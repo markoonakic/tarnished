@@ -11,6 +11,7 @@ from app.core.security import (
     get_password_hash,
     verify_password,
 )
+from app.core.deps import get_current_user
 from app.models import User
 from app.schemas.auth import Token, TokenRefresh, UserCreate, UserLogin, UserResponse
 
@@ -90,3 +91,8 @@ async def refresh_token(token_data: TokenRefresh, db: AsyncSession = Depends(get
         access_token=create_access_token({"sub": user.id}),
         refresh_token=create_refresh_token({"sub": user.id}),
     )
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_me(user: User = Depends(get_current_user)):
+    return user

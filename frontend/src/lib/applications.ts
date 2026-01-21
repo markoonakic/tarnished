@@ -1,0 +1,44 @@
+import api from './api';
+import type { Application, ApplicationCreate, ApplicationUpdate, ApplicationListResponse } from './types';
+
+export interface ListParams {
+  page?: number;
+  per_page?: number;
+  status_id?: string;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+}
+
+export async function listApplications(params: ListParams = {}): Promise<ApplicationListResponse> {
+  const response = await api.get('/api/applications', { params });
+  return response.data;
+}
+
+export async function getApplication(id: string): Promise<Application> {
+  const response = await api.get(`/api/applications/${id}`);
+  return response.data;
+}
+
+export async function createApplication(data: ApplicationCreate): Promise<Application> {
+  const response = await api.post('/api/applications', data);
+  return response.data;
+}
+
+export async function updateApplication(id: string, data: ApplicationUpdate): Promise<Application> {
+  const response = await api.put(`/api/applications/${id}`, data);
+  return response.data;
+}
+
+export async function deleteApplication(id: string): Promise<void> {
+  await api.delete(`/api/applications/${id}`);
+}
+
+export async function uploadCV(applicationId: string, file: File): Promise<Application> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(`/api/applications/${applicationId}/cv`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+}

@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+@theme {
+  --color-primary: var(--bg-primary);
+  --color-secondary: var(--bg-secondary);
+  --color-tertiary: var(--bg-tertiary);
+  --color-muted: var(--text-secondary);
+  --color-accent-red: var(--accent-red);
+  --color-accent-green: var(--accent-green);
+  --color-accent-yellow: var(--accent-yellow);
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-purple: var(--accent-purple);
+  --color-accent-aqua: var(--accent-aqua);
+  --color-accent-orange: var(--accent-orange);
+}
+
 :root {
   --bg-primary: #282828;
   --bg-secondary: #3c3836;
@@ -15,9 +29,92 @@
   --accent-orange: #fe8019;
 }
 
+[data-theme="gruvbox-light"] {
+  --bg-primary: #fbf1c7;
+  --bg-secondary: #ebdbb2;
+  --bg-tertiary: #d5c4a1;
+  --text-primary: #3c3836;
+  --text-secondary: #665c54;
+  --accent-red: #cc241d;
+  --accent-green: #98971a;
+  --accent-yellow: #d79921;
+  --accent-blue: #458588;
+  --accent-purple: #b16286;
+  --accent-aqua: #689d6a;
+  --accent-orange: #d65d0e;
+}
+
+[data-theme="nord"] {
+  --bg-primary: #2e3440;
+  --bg-secondary: #3b4252;
+  --bg-tertiary: #434c5e;
+  --text-primary: #eceff4;
+  --text-secondary: #d8dee9;
+  --accent-red: #bf616a;
+  --accent-green: #a3be8c;
+  --accent-yellow: #ebcb8b;
+  --accent-blue: #81a1c1;
+  --accent-purple: #b48ead;
+  --accent-aqua: #88c0d0;
+  --accent-orange: #d08770;
+}
+
+[data-theme="dracula"] {
+  --bg-primary: #282a36;
+  --bg-secondary: #44475a;
+  --bg-tertiary: #6272a4;
+  --text-primary: #f8f8f2;
+  --text-secondary: #6272a4;
+  --accent-red: #ff5555;
+  --accent-green: #50fa7b;
+  --accent-yellow: #f1fa8c;
+  --accent-blue: #8be9fd;
+  --accent-purple: #bd93f9;
+  --accent-aqua: #8be9fd;
+  --accent-orange: #ffb86c;
+}
+
 body {
   margin: 0;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family: system-ui, -apple-system, sans-serif;
+}
+
+.bg-primary { background-color: var(--bg-primary); }
+.bg-secondary { background-color: var(--bg-secondary); }
+.bg-tertiary { background-color: var(--bg-tertiary); }
+.bg-accent-red { background-color: var(--accent-red); }
+.bg-accent-green { background-color: var(--accent-green); }
+.bg-accent-yellow { background-color: var(--accent-yellow); }
+.bg-accent-blue { background-color: var(--accent-blue); }
+.bg-accent-purple { background-color: var(--accent-purple); }
+.bg-accent-aqua { background-color: var(--accent-aqua); }
+.bg-accent-orange { background-color: var(--accent-orange); }
+
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-secondary); }
+.text-bg-primary { color: var(--bg-primary); }
+.text-accent-red { color: var(--accent-red); }
+.text-accent-green { color: var(--accent-green); }
+.text-accent-yellow { color: var(--accent-yellow); }
+.text-accent-blue { color: var(--accent-blue); }
+.text-accent-purple { color: var(--accent-purple); }
+.text-accent-aqua { color: var(--accent-aqua); }
+.text-accent-orange { color: var(--accent-orange); }
+
+.border-primary { border-color: var(--bg-primary); }
+.border-secondary { border-color: var(--bg-secondary); }
+.border-tertiary { border-color: var(--bg-tertiary); }
+.border-accent-aqua { border-color: var(--accent-aqua); }
+
+input[type="date"],
+input[type="datetime-local"] {
+  color-scheme: dark;
+}
+
+[data-theme="gruvbox-light"] input[type="date"],
+[data-theme="gruvbox-light"] input[type="datetime-local"] {
+  color-scheme: light;
 }
