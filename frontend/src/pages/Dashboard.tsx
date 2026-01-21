@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Layout from '../components/Layout';
+import ActivityHeatmap from '../components/ActivityHeatmap';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -10,7 +11,7 @@ export default function Dashboard() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-primary mb-6">Dashboard</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Link
             to="/applications"
             className="bg-secondary rounded-lg p-6 hover:bg-tertiary transition-colors"
@@ -44,6 +45,16 @@ export default function Dashboard() {
               <p className="text-muted text-sm">Manage users and view system statistics</p>
             </Link>
           )}
+        </div>
+
+        <div className="bg-secondary rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-primary">Activity Overview</h2>
+            <Link to="/analytics" className="text-sm text-accent-aqua hover:underline">
+              View Analytics &rarr;
+            </Link>
+          </div>
+          <ActivityHeatmap />
         </div>
       </div>
     </Layout>
