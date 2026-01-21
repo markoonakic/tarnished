@@ -11,6 +11,7 @@ interface SankeyNodePayload {
   width: number;
   height: number;
   index: number;
+  color?: string;
 }
 
 function SankeyNode({ x, y, width, height, index, payload }: {
@@ -21,7 +22,8 @@ function SankeyNode({ x, y, width, height, index, payload }: {
   index: number;
   payload: SankeyNodePayload;
 }) {
-  const colors = [
+  // Use node color if available, otherwise fall back to preset colors
+  const fallbackColors = [
     'var(--accent-aqua)',
     'var(--accent-green)',
     'var(--accent-yellow)',
@@ -30,7 +32,7 @@ function SankeyNode({ x, y, width, height, index, payload }: {
     'var(--accent-purple)',
     'var(--accent-blue)',
   ];
-  const color = colors[index % colors.length];
+  const color = payload.color || fallbackColors[index % fallbackColors.length];
 
   return (
     <Layer key={`node-${index}`}>
@@ -93,8 +95,9 @@ export default function SankeyChart() {
   }
 
   const nodeMap = new Map(data.nodes.map((n, i) => [n.id, i]));
+
   const sankeyData = {
-    nodes: data.nodes.map((n) => ({ name: n.name })),
+    nodes: data.nodes.map((n) => ({ name: n.name, color: n.color })),
     links: data.links
       .filter((l) => nodeMap.has(l.source) && nodeMap.has(l.target))
       .map((l) => ({

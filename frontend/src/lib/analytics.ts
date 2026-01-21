@@ -3,6 +3,7 @@ import api from './api';
 export interface SankeyNode {
   id: string;
   name: string;
+  color?: string;
 }
 
 export interface SankeyLink {
