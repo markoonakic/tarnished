@@ -233,3 +233,186 @@ async def upload_cv(
         .options(selectinload(Application.status))
     )
     return result.scalars().first()
+
+
+@router.delete("/{application_id}/cv", response_model=ApplicationResponse)
+async def delete_cv(
+    application_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Application)
+        .where(Application.id == application_id, Application.user_id == user.id)
+    )
+    application = result.scalars().first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    if application.cv_path and os.path.exists(application.cv_path):
+        os.remove(application.cv_path)
+
+    application.cv_path = None
+    await db.commit()
+
+    result = await db.execute(
+        select(Application)
+        .where(Application.id == application_id)
+        .options(selectinload(Application.status))
+    )
+    return result.scalars().first()
+
+
+@router.post("/{application_id}/cover-letter", response_model=ApplicationResponse)
+async def upload_cover_letter(
+    application_id: str,
+    file: UploadFile,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Application)
+        .where(Application.id == application_id, Application.user_id == user.id)
+    )
+    application = result.scalars().first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    allowed_types = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="File must be PDF or Word document")
+
+    if application.cover_letter_path and os.path.exists(application.cover_letter_path):
+        os.remove(application.cover_letter_path)
+
+    settings = get_settings()
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    ext = os.path.splitext(file.filename or "")[1] or ".pdf"
+    file_name = f"cover_letter_{application_id}{ext}"
+    file_path = os.path.join(settings.upload_dir, file_name)
+
+    with open(file_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+
+    application.cover_letter_path = file_path
+    await db.commit()
+
+    result = await db.execute(
+        select(Application)
+        .where(Application.id == application_id)
+        .options(selectinload(Application.status))
+    )
+    return result.scalars().first()
+
+
+@router.delete("/{application_id}/cover-letter", response_model=ApplicationResponse)
+async def delete_cover_letter(
+    application_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Application)
+        .where(Application.id == application_id, Application.user_id == user.id)
+    )
+    application = result.scalars().first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    if application.cover_letter_path and os.path.exists(application.cover_letter_path):
+        os.remove(application.cover_letter_path)
+
+    application.cover_letter_path = None
+    await db.commit()
+
+    result = await db.execute(
+        select(Application)
+        .where(Application.id == application_id)
+        .options(selectinload(Application.status))
+    )
+    return result.scalars().first()
+
+
+@router.post("/{application_id}/transcript", response_model=ApplicationResponse)
+async def upload_transcript(
+    application_id: str,
+    file: UploadFile,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Application)
+        .where(Application.id == application_id, Application.user_id == user.id)
+    )
+    application = result.scalars().first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    allowed_types = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="File must be PDF or Word document")
+
+    if application.transcript_path and os.path.exists(application.transcript_path):
+        os.remove(application.transcript_path)
+
+    settings = get_settings()
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    ext = os.path.splitext(file.filename or "")[1] or ".pdf"
+    file_name = f"transcript_{application_id}{ext}"
+    file_path = os.path.join(settings.upload_dir, file_name)
+
+    with open(file_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+
+    application.transcript_path = file_path
+    await db.commit()
+
+    result = await db.execute(
+        select(Application)
+        .where(Application.id == application_id)
+        .options(selectinload(Application.status))
+    )
+    return result.scalars().first()
+
+
+@router.delete("/{application_id}/transcript", response_model=ApplicationResponse)
+async def delete_transcript(
+    application_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Application)
+        .where(Application.id == application_id, Application.user_id == user.id)
+    )
+    application = result.scalars().first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    if application.transcript_path and os.path.exists(application.transcript_path):
+        os.remove(application.transcript_path)
+
+    application.transcript_path = None
+    await db.commit()
+
+    result = await db.execute(
+        select(Application)
+        .where(Application.id == application_id)
+        .options(selectinload(Application.status))
+    )
+    return result.scalars().first()

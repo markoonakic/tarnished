@@ -19,6 +19,7 @@ class ApplicationUpdate(BaseModel):
     job_url: str | None = None
     status_id: str | None = None
     applied_at: date | None = None
+    transcript_summary: str | None = None
 
 
 class StatusResponse(BaseModel):
@@ -38,6 +39,9 @@ class ApplicationResponse(BaseModel):
     job_url: str | None
     status: StatusResponse
     cv_path: str | None
+    cover_letter_path: str | None
+    transcript_path: str | None
+    transcript_summary: str | None
     applied_at: date
     created_at: datetime
     updated_at: datetime
