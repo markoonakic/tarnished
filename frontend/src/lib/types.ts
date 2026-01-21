@@ -38,6 +38,9 @@ export interface Application {
   job_url: string | null;
   status: Status;
   cv_path: string | null;
+  cover_letter_path: string | null;
+  transcript_path: string | null;
+  transcript_summary: string | null;
   applied_at: string;
   created_at: string;
   updated_at: string;
@@ -67,6 +70,7 @@ export interface ApplicationUpdate {
   job_url?: string;
   status_id?: string;
   applied_at?: string;
+  transcript_summary?: string;
 }
 
 export interface RoundCreate {

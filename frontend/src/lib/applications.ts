@@ -42,3 +42,40 @@ export async function uploadCV(applicationId: string, file: File): Promise<Appli
   });
   return response.data;
 }
+
+export async function deleteCV(applicationId: string): Promise<Application> {
+  const response = await api.delete(`/api/applications/${applicationId}/cv`);
+  return response.data;
+}
+
+export async function uploadCoverLetter(applicationId: string, file: File): Promise<Application> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(`/api/applications/${applicationId}/cover-letter`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+}
+
+export async function deleteCoverLetter(applicationId: string): Promise<Application> {
+  const response = await api.delete(`/api/applications/${applicationId}/cover-letter`);
+  return response.data;
+}
+
+export async function uploadTranscript(applicationId: string, file: File): Promise<Application> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(`/api/applications/${applicationId}/transcript`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+}
+
+export async function deleteTranscript(applicationId: string): Promise<Application> {
+  const response = await api.delete(`/api/applications/${applicationId}/transcript`);
+  return response.data;
+}
+
+export function getFileUrl(applicationId: string, docType: 'cv' | 'cover-letter' | 'transcript'): string {
+  return `/api/files/${applicationId}/${docType}`;
+}

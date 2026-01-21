@@ -10,6 +10,7 @@ from app.api.settings import router as settings_router
 from app.api.analytics import router as analytics_router
 from app.api.admin import router as admin_router
 from app.api.export import router as export_router
+from app.api.files import router as files_router
 from app.core.database import async_session_maker
 from app.core.seed import seed_defaults
 
@@ -38,6 +39,7 @@ app.include_router(settings_router)
 app.include_router(analytics_router)
 app.include_router(admin_router)
 app.include_router(export_router)
+app.include_router(files_router)
 
 
 @app.get("/health")
