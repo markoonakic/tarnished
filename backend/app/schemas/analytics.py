@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class SankeyNode(BaseModel):
     id: str
     name: str
+    color: str | None = None
 
 
 class SankeyLink(BaseModel):

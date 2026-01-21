@@ -18,23 +18,28 @@ async def get_sankey_data(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Application.status_id, ApplicationStatus.name, func.count(Application.id))
+        select(
+            Application.status_id,
+            ApplicationStatus.name,
+            ApplicationStatus.color,
+            func.count(Application.id),
+        )
         .join(ApplicationStatus)
         .where(Application.user_id == user.id)
-        .group_by(Application.status_id, ApplicationStatus.name)
+        .group_by(Application.status_id, ApplicationStatus.name, ApplicationStatus.color)
     )
     status_counts = result.all()
 
     if not status_counts:
         return SankeyData(nodes=[], links=[])
 
-    nodes = [SankeyNode(id="applications", name="Applications")]
+    nodes = [SankeyNode(id="applications", name="Applications", color="#8ec07c")]
 
-    for status_id, status_name, _ in status_counts:
-        nodes.append(SankeyNode(id=status_id, name=status_name))
+    for status_id, status_name, status_color, _ in status_counts:
+        nodes.append(SankeyNode(id=status_id, name=status_name, color=status_color))
 
     links = []
-    for status_id, _, count in status_counts:
+    for status_id, _, _, count in status_counts:
         links.append(SankeyLink(
             source="applications",
             target=status_id,
