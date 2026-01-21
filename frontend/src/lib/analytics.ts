@@ -31,8 +31,13 @@ export async function getSankeyData(): Promise<SankeyData> {
   return response.data;
 }
 
-export async function getHeatmapData(year?: number): Promise<HeatmapData> {
-  const params = year ? { year } : {};
+export async function getHeatmapData(year?: number | 'rolling'): Promise<HeatmapData> {
+  const params: Record<string, string | number | boolean> = {};
+  if (year === 'rolling') {
+    params.rolling = true;
+  } else if (year) {
+    params.year = year;
+  }
   const response = await api.get('/api/analytics/heatmap', { params });
   return response.data;
 }

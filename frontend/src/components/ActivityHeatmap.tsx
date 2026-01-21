@@ -3,7 +3,6 @@ import { getHeatmapData } from '../lib/analytics';
 import type { HeatmapData } from '../lib/analytics';
 
 const DAYS_IN_WEEK = 7;
-const WEEKS_TO_SHOW = 53;
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -17,17 +16,20 @@ export default function ActivityHeatmap() {
   const [data, setData] = useState<HeatmapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [viewMode, setViewMode] = useState<'rolling' | number>('rolling');
   const [hoveredCell, setHoveredCell] = useState<CellData | null>(null);
+
+  const currentYear = new Date().getFullYear();
+  const years = [currentYear, currentYear - 1, currentYear - 2];
 
   useEffect(() => {
     loadData();
-  }, [year]);
+  }, [viewMode]);
 
   async function loadData() {
     setLoading(true);
     try {
-      const result = await getHeatmapData(year);
+      const result = await getHeatmapData(viewMode);
       setData(result);
     } catch {
       setError('Failed to load activity data');
@@ -48,18 +50,12 @@ export default function ActivityHeatmap() {
 
   function getLevelColor(level: number): string {
     switch (level) {
-      case 0:
-        return 'var(--bg-tertiary)';
-      case 1:
-        return 'var(--accent-green)';
-      case 2:
-        return 'var(--accent-aqua)';
-      case 3:
-        return 'var(--accent-blue)';
-      case 4:
-        return 'var(--accent-purple)';
-      default:
-        return 'var(--bg-tertiary)';
+      case 0: return 'var(--bg-tertiary)';
+      case 1: return 'var(--accent-green)';
+      case 2: return 'var(--accent-aqua)';
+      case 3: return 'var(--accent-blue)';
+      case 4: return 'var(--accent-purple)';
+      default: return 'var(--bg-tertiary)';
     }
   }
 
@@ -71,15 +67,26 @@ export default function ActivityHeatmap() {
       data.days.forEach((d) => countMap.set(d.date, d.count));
     }
 
-    const startDate = new Date(year, 0, 1);
-    const startDay = startDate.getDay();
-    const firstSunday = new Date(startDate);
-    firstSunday.setDate(firstSunday.getDate() - startDay);
+    const today = new Date();
+    let startDate: Date;
+    const weeksToShow = 53;
 
-    for (let week = 0; week < WEEKS_TO_SHOW; week++) {
+    if (viewMode === 'rolling') {
+      // Rolling: 12 months back from today, ending at current week
+      startDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+      const startDay = startDate.getDay();
+      startDate.setDate(startDate.getDate() - startDay); // Go to Sunday
+    } else {
+      // Specific year: Jan 1 to Dec 31
+      startDate = new Date(viewMode, 0, 1);
+      const startDay = startDate.getDay();
+      startDate.setDate(startDate.getDate() - startDay); // Go to Sunday before Jan 1
+    }
+
+    for (let week = 0; week < weeksToShow; week++) {
       const weekData: CellData[] = [];
       for (let day = 0; day < DAYS_IN_WEEK; day++) {
-        const cellDate = new Date(firstSunday);
+        const cellDate = new Date(startDate);
         cellDate.setDate(cellDate.getDate() + week * 7 + day);
         const dateStr = cellDate.toISOString().split('T')[0];
         const count = countMap.get(dateStr) || 0;
@@ -99,7 +106,7 @@ export default function ActivityHeatmap() {
     grid.forEach((week, weekIndex) => {
       const firstDayOfWeek = new Date(week[0].date);
       const month = firstDayOfWeek.getMonth();
-      if (month !== lastMonth && firstDayOfWeek.getFullYear() === year) {
+      if (month !== lastMonth) {
         labels.push({ label: MONTH_LABELS[month], week: weekIndex });
         lastMonth = month;
       }
@@ -120,25 +127,22 @@ export default function ActivityHeatmap() {
   const monthLabels = getMonthLabels(grid);
   const cellSize = 12;
   const cellGap = 3;
+  const gridWeeks = grid.length;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setYear(year - 1)}
-            className="px-2 py-1 bg-tertiary text-primary rounded hover:bg-muted text-sm"
+          <select
+            value={viewMode}
+            onChange={(e) => setViewMode(e.target.value === 'rolling' ? 'rolling' : parseInt(e.target.value))}
+            className="px-3 py-1 bg-tertiary text-primary rounded text-sm border border-muted focus:outline-none focus:border-accent-aqua"
           >
-            &larr;
-          </button>
-          <span className="text-primary font-medium">{year}</span>
-          <button
-            onClick={() => setYear(year + 1)}
-            disabled={year >= new Date().getFullYear()}
-            className="px-2 py-1 bg-tertiary text-primary rounded hover:bg-muted text-sm disabled:opacity-50"
-          >
-            &rarr;
-          </button>
+            <option value="rolling">Last 12 months</option>
+            {years.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted">
           <span>Less</span>
@@ -154,11 +158,11 @@ export default function ActivityHeatmap() {
       </div>
 
       <div className="overflow-x-auto">
-        <div className="relative" style={{ minWidth: WEEKS_TO_SHOW * (cellSize + cellGap) + 30 }}>
+        <div className="relative" style={{ minWidth: gridWeeks * (cellSize + cellGap) + 30 }}>
           <div className="flex text-xs text-muted mb-1 pl-8">
-            {monthLabels.map((m) => (
+            {monthLabels.map((m, i) => (
               <span
-                key={m.week}
+                key={`${m.label}-${i}`}
                 style={{
                   position: 'absolute',
                   left: 30 + m.week * (cellSize + cellGap),
