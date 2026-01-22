@@ -7,9 +7,10 @@ interface Props {
   round: Round;
   onEdit: () => void;
   onDelete: () => void;
+  onMediaChange: () => void;
 }
 
-export default function RoundCard({ round, onEdit, onDelete }: Props) {
+export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Props) {
   const [uploading, setUploading] = useState(false);
   const [playingMedia, setPlayingMedia] = useState<RoundMedia | null>(null);
 
@@ -42,7 +43,7 @@ export default function RoundCard({ round, onEdit, onDelete }: Props) {
     setUploading(true);
     try {
       await uploadMedia(round.id, file);
-      window.location.reload();
+      onMediaChange();
     } catch {
       alert('Failed to upload media');
     } finally {
@@ -55,7 +56,7 @@ export default function RoundCard({ round, onEdit, onDelete }: Props) {
     if (!confirm('Delete this media file?')) return;
     try {
       await deleteMedia(mediaId);
-      window.location.reload();
+      onMediaChange();
     } catch {
       alert('Failed to delete media');
     }

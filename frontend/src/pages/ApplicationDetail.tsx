@@ -213,6 +213,7 @@ export default function ApplicationDetail() {
                   round={round}
                   onEdit={() => setEditingRound(round)}
                   onDelete={() => handleDeleteRound(round.id)}
+                  onMediaChange={loadApplication}
                 />
               ))}
             </div>
