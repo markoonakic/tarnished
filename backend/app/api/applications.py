@@ -12,6 +12,7 @@ from app.core.deps import get_current_user
 from app.models import Application, ApplicationStatus, Round, User
 from app.schemas.application import (
     ApplicationCreate,
+    ApplicationListItem,
     ApplicationListResponse,
     ApplicationResponse,
     ApplicationUpdate,
@@ -74,7 +75,7 @@ async def list_applications(
     )
 
 
-@router.post("", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED)
 async def create_application(
     data: ApplicationCreate,
     user: User = Depends(get_current_user),
@@ -132,7 +133,7 @@ async def get_application(
     return application
 
 
-@router.put("/{application_id}", response_model=ApplicationResponse)
+@router.put("/{application_id}", response_model=ApplicationListItem)
 async def update_application(
     application_id: str,
     data: ApplicationUpdate,
@@ -191,7 +192,7 @@ async def delete_application(
     await db.commit()
 
 
-@router.post("/{application_id}/cv", response_model=ApplicationResponse)
+@router.post("/{application_id}/cv", response_model=ApplicationListItem)
 async def upload_cv(
     application_id: str,
     file: UploadFile,
@@ -239,7 +240,7 @@ async def upload_cv(
     return result.scalars().first()
 
 
-@router.delete("/{application_id}/cv", response_model=ApplicationResponse)
+@router.delete("/{application_id}/cv", response_model=ApplicationListItem)
 async def delete_cv(
     application_id: str,
     user: User = Depends(get_current_user),
@@ -268,7 +269,7 @@ async def delete_cv(
     return result.scalars().first()
 
 
-@router.post("/{application_id}/cover-letter", response_model=ApplicationResponse)
+@router.post("/{application_id}/cover-letter", response_model=ApplicationListItem)
 async def upload_cover_letter(
     application_id: str,
     file: UploadFile,
@@ -316,7 +317,7 @@ async def upload_cover_letter(
     return result.scalars().first()
 
 
-@router.delete("/{application_id}/cover-letter", response_model=ApplicationResponse)
+@router.delete("/{application_id}/cover-letter", response_model=ApplicationListItem)
 async def delete_cover_letter(
     application_id: str,
     user: User = Depends(get_current_user),
@@ -345,7 +346,7 @@ async def delete_cover_letter(
     return result.scalars().first()
 
 
-@router.post("/{application_id}/transcript", response_model=ApplicationResponse)
+@router.post("/{application_id}/transcript", response_model=ApplicationListItem)
 async def upload_transcript(
     application_id: str,
     file: UploadFile,
@@ -393,7 +394,7 @@ async def upload_transcript(
     return result.scalars().first()
 
 
-@router.delete("/{application_id}/transcript", response_model=ApplicationResponse)
+@router.delete("/{application_id}/transcript", response_model=ApplicationListItem)
 async def delete_transcript(
     application_id: str,
     user: User = Depends(get_current_user),
