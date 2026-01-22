@@ -60,3 +60,26 @@ def decode_file_token(token: str) -> dict | None:
         return payload
     except JWTError:
         return None
+
+
+def create_media_token(media_id: str, user_id: str) -> str:
+    """Create a short-lived token for media file access."""
+    to_encode = {
+        "media_id": media_id,
+        "user_id": user_id,
+        "type": "media",
+    }
+    expire = datetime.utcnow() + timedelta(minutes=5)
+    to_encode["exp"] = expire
+    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+
+
+def decode_media_token(token: str) -> dict | None:
+    """Decode and validate a media access token."""
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        if payload.get("type") != "media":
+            return None
+        return payload
+    except JWTError:
+        return None
