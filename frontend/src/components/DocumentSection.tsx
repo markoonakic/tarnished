@@ -20,6 +20,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
   const [uploading, setUploading] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [transcriptSummary, setTranscriptSummary] = useState(application.transcript_summary || '');
+  const [editingSummary, setEditingSummary] = useState(false);
   const [savingSummary, setSavingSummary] = useState(false);
 
   async function handleUpload(
@@ -92,14 +93,20 @@ export default function DocumentSection({ application, onUpdate }: Props) {
     setSavingSummary(true);
     try {
       const updated = await updateApplication(application.id, {
-        transcript_summary: transcriptSummary || undefined,
+        transcript_summary: transcriptSummary || null,
       });
       onUpdate(updated);
+      setEditingSummary(false);
     } catch {
       setError('Failed to save summary');
     } finally {
       setSavingSummary(false);
     }
+  }
+
+  function handleCancelSummary() {
+    setTranscriptSummary(application.transcript_summary || '');
+    setEditingSummary(false);
   }
 
   function isPreviewable(path: string | null): boolean {
@@ -195,21 +202,48 @@ export default function DocumentSection({ application, onUpdate }: Props) {
 
       {application.transcript_path && (
         <div className="mt-4 pt-4 border-t border-tertiary">
-          <label className="block text-sm text-muted mb-2">Transcript Summary</label>
-          <textarea
-            value={transcriptSummary}
-            onChange={(e) => setTranscriptSummary(e.target.value)}
-            rows={3}
-            placeholder="Key points: GPA, relevant coursework, certifications..."
-            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua resize-y"
-          />
-          <button
-            onClick={handleSaveSummary}
-            disabled={savingSummary}
-            className="mt-2 px-3 py-1 bg-accent-aqua text-bg-primary rounded text-sm hover:opacity-90 disabled:opacity-50"
-          >
-            {savingSummary ? 'Saving...' : 'Save Summary'}
-          </button>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted">Transcript Summary</span>
+            {!editingSummary && (
+              <button
+                onClick={() => setEditingSummary(true)}
+                className="text-sm text-accent-aqua hover:underline"
+              >
+                {application.transcript_summary ? 'Edit' : 'Add Summary'}
+              </button>
+            )}
+          </div>
+          {editingSummary ? (
+            <>
+              <textarea
+                value={transcriptSummary}
+                onChange={(e) => setTranscriptSummary(e.target.value)}
+                rows={3}
+                placeholder="Key points: GPA, relevant coursework, certifications..."
+                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua resize-y"
+              />
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={handleSaveSummary}
+                  disabled={savingSummary}
+                  className="px-3 py-1 bg-accent-aqua text-bg-primary rounded text-sm hover:opacity-90 disabled:opacity-50"
+                >
+                  {savingSummary ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={handleCancelSummary}
+                  disabled={savingSummary}
+                  className="px-3 py-1 bg-tertiary text-primary rounded text-sm hover:bg-muted disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          ) : application.transcript_summary ? (
+            <p className="text-primary text-sm whitespace-pre-wrap">{application.transcript_summary}</p>
+          ) : (
+            <p className="text-muted text-sm italic">No summary added</p>
+          )}
         </div>
       )}
     </div>
