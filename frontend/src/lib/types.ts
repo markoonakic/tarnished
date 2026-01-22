@@ -66,11 +66,11 @@ export interface ApplicationCreate {
 export interface ApplicationUpdate {
   company?: string;
   job_title?: string;
-  job_description?: string;
-  job_url?: string;
+  job_description?: string | null;
+  job_url?: string | null;
   status_id?: string;
   applied_at?: string;
-  transcript_summary?: string;
+  transcript_summary?: string | null;
 }
 
 export interface RoundCreate {

@@ -19,8 +19,40 @@ export default function ApplicationForm() {
   const [jobTitle, setJobTitle] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [jobUrl, setJobUrl] = useState('');
+  const [jobUrlError, setJobUrlError] = useState('');
   const [statusId, setStatusId] = useState('');
   const [appliedAt, setAppliedAt] = useState('');
+
+  function normalizeUrl(url: string): string {
+    if (!url) return url;
+    const trimmed = url.trim();
+    if (trimmed && !trimmed.match(/^https?:\/\//i)) {
+      return `https://${trimmed}`;
+    }
+    return trimmed;
+  }
+
+  function isValidUrl(url: string): boolean {
+    if (!url) return true;
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function handleJobUrlBlur() {
+    if (jobUrl) {
+      const normalized = normalizeUrl(jobUrl);
+      setJobUrl(normalized);
+      if (!isValidUrl(normalized)) {
+        setJobUrlError('Please enter a valid URL');
+      } else {
+        setJobUrlError('');
+      }
+    }
+  }
 
   useEffect(() => {
     loadStatuses();
@@ -68,6 +100,12 @@ export default function ApplicationForm() {
       return;
     }
 
+    const normalizedUrl = normalizeUrl(jobUrl);
+    if (normalizedUrl && !isValidUrl(normalizedUrl)) {
+      setJobUrlError('Please enter a valid URL');
+      return;
+    }
+
     setSaving(true);
     setError('');
 
@@ -76,8 +114,8 @@ export default function ApplicationForm() {
         const data: ApplicationUpdate = {
           company,
           job_title: jobTitle,
-          job_description: jobDescription || undefined,
-          job_url: jobUrl || undefined,
+          job_description: jobDescription || null,
+          job_url: normalizedUrl || null,
           status_id: statusId,
           applied_at: appliedAt,
         };
@@ -88,7 +126,7 @@ export default function ApplicationForm() {
           company,
           job_title: jobTitle,
           job_description: jobDescription || undefined,
-          job_url: jobUrl || undefined,
+          job_url: normalizedUrl || undefined,
           status_id: statusId,
           applied_at: appliedAt,
         };
@@ -194,12 +232,21 @@ export default function ApplicationForm() {
             <div>
               <label className="block text-sm text-muted mb-1">Job URL</label>
               <input
-                type="url"
+                type="text"
                 value={jobUrl}
-                onChange={(e) => setJobUrl(e.target.value)}
-                placeholder="https://..."
-                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua"
+                onChange={(e) => {
+                  setJobUrl(e.target.value);
+                  setJobUrlError('');
+                }}
+                onBlur={handleJobUrlBlur}
+                placeholder="example.com or https://..."
+                className={`w-full px-3 py-2 bg-tertiary border rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua ${
+                  jobUrlError ? 'border-accent-red' : 'border-muted'
+                }`}
               />
+              {jobUrlError && (
+                <p className="text-accent-red text-sm mt-1">{jobUrlError}</p>
+              )}
             </div>
 
             <div>
