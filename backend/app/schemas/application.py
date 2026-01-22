@@ -33,7 +33,7 @@ class StatusResponse(BaseModel):
         from_attributes = True
 
 
-class ApplicationResponse(BaseModel):
+class ApplicationListItem(BaseModel):
     id: str
     company: str
     job_title: str
@@ -47,6 +47,12 @@ class ApplicationResponse(BaseModel):
     applied_at: date
     created_at: datetime
     updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ApplicationResponse(ApplicationListItem):
     rounds: list[RoundResponse] = []
 
     class Config:
@@ -54,7 +60,7 @@ class ApplicationResponse(BaseModel):
 
 
 class ApplicationListResponse(BaseModel):
-    items: list[ApplicationResponse]
+    items: list[ApplicationListItem]
     total: int
     page: int
     per_page: int
