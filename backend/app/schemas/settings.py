@@ -6,6 +6,11 @@ class StatusCreate(BaseModel):
     color: str = "#83a598"
 
 
+class StatusUpdate(BaseModel):
+    name: str | None = None
+    color: str | None = None
+
+
 class StatusFullResponse(BaseModel):
     id: str
     name: str

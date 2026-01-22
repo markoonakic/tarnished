@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { listStatuses, createStatus, listRoundTypes, createRoundType } from '../lib/settings';
+import { listStatuses, createStatus, updateStatus, deleteStatus, listRoundTypes, createRoundType } from '../lib/settings';
 import { exportJSON, exportCSV } from '../lib/export';
 import type { Status, RoundType } from '../lib/types';
 import Layout from '../components/Layout';
@@ -47,6 +47,9 @@ export default function Settings() {
   const [roundTypes, setRoundTypes] = useState<RoundType[]>([]);
   const [newStatusName, setNewStatusName] = useState('');
   const [newStatusColor, setNewStatusColor] = useState('#8ec07c');
+  const [editingStatus, setEditingStatus] = useState<Status | null>(null);
+  const [editStatusName, setEditStatusName] = useState('');
+  const [editStatusColor, setEditStatusColor] = useState('');
   const [newRoundTypeName, setNewRoundTypeName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -86,6 +89,41 @@ export default function Settings() {
       loadData();
     } catch {
       setError('Failed to create status');
+    }
+  }
+
+  function startEditStatus(status: Status) {
+    setEditingStatus(status);
+    setEditStatusName(status.name);
+    setEditStatusColor(status.color);
+  }
+
+  async function handleUpdateStatus(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingStatus || !editStatusName.trim()) return;
+
+    try {
+      await updateStatus(editingStatus.id, {
+        name: editStatusName.trim(),
+        color: editStatusColor,
+      });
+      setEditingStatus(null);
+      loadData();
+    } catch {
+      setError('Failed to update status');
+    }
+  }
+
+  async function handleDeleteStatus(status: Status) {
+    if (!confirm(`Delete status "${status.name}"? Applications using this status will need to be updated.`)) {
+      return;
+    }
+
+    try {
+      await deleteStatus(status.id);
+      loadData();
+    } catch {
+      setError('Failed to delete status');
     }
   }
 
@@ -165,34 +203,89 @@ export default function Settings() {
                         />
                         <span className="text-primary">{status.name}</span>
                       </div>
-                      {status.is_default && (
-                        <span className="text-xs text-muted">Default</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {status.is_default ? (
+                          <span className="text-xs text-muted">Default</span>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => startEditStatus(status)}
+                              className="text-xs text-accent-aqua hover:underline"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteStatus(status)}
+                              className="text-xs text-accent-red hover:underline"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
 
-                <form onSubmit={handleAddStatus} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newStatusName}
-                    onChange={(e) => setNewStatusName(e.target.value)}
-                    placeholder="New status name"
-                    className="flex-1 px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua"
-                  />
-                  <input
-                    type="color"
-                    value={newStatusColor}
-                    onChange={(e) => setNewStatusColor(e.target.value)}
-                    className="w-10 h-10 rounded cursor-pointer bg-tertiary border border-muted"
-                  />
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-accent-aqua text-bg-primary rounded hover:opacity-90"
-                  >
-                    Add
-                  </button>
-                </form>
+                {editingStatus ? (
+                  <form onSubmit={handleUpdateStatus} className="mb-4 p-3 bg-secondary border border-muted rounded">
+                    <div className="text-sm text-muted mb-2">Edit Status</div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={editStatusName}
+                        onChange={(e) => setEditStatusName(e.target.value)}
+                        placeholder="Status name"
+                        className="flex-1 px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua"
+                      />
+                      <input
+                        type="color"
+                        value={editStatusColor}
+                        onChange={(e) => setEditStatusColor(e.target.value)}
+                        className="w-10 h-10 rounded cursor-pointer bg-tertiary border border-muted"
+                      />
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-accent-aqua text-bg-primary rounded hover:opacity-90"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingStatus(null)}
+                        className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleAddStatus} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newStatusName}
+                      onChange={(e) => setNewStatusName(e.target.value)}
+                      placeholder="New status name"
+                      className="flex-1 px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua"
+                    />
+                    <input
+                      type="color"
+                      value={newStatusColor}
+                      onChange={(e) => setNewStatusColor(e.target.value)}
+                      className="w-10 h-10 rounded cursor-pointer bg-tertiary border border-muted"
+                    />
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-accent-aqua text-bg-primary rounded hover:opacity-90"
+                    >
+                      Add
+                    </button>
+                  </form>
+                )}
+
+                <p className="text-xs text-muted mt-3">
+                  Default statuses cannot be edited. Create custom statuses to customize colors.
+                </p>
               </>
             )}
           </div>

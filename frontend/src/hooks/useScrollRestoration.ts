@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const scrollPositions = new Map<string, number>();
@@ -6,14 +6,14 @@ const scrollPositions = new Map<string, number>();
 export function useScrollRestoration() {
   const location = useLocation();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Save current scroll position when unmounting (navigating away)
     return () => {
       scrollPositions.set(location.key, window.scrollY);
     };
   }, [location.key]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Restore scroll position if we've been here before
     const savedPosition = scrollPositions.get(location.key);
     if (savedPosition !== undefined) {
