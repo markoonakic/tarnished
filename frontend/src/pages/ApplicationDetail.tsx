@@ -152,7 +152,7 @@ export default function ApplicationDetail() {
           {application.job_description && (
             <div className="mb-4">
               <h3 className="text-muted text-sm mb-2">Job Description</h3>
-              <p className="text-primary whitespace-pre-wrap">{application.job_description}</p>
+              <p className="text-primary whitespace-pre-wrap break-words">{application.job_description}</p>
             </div>
           )}
 
