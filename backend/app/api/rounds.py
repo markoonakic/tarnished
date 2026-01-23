@@ -207,3 +207,76 @@ async def delete_media(
 
     await db.delete(media)
     await db.commit()
+
+
+@router.post("/api/rounds/{round_id}/transcript", response_model=RoundResponse)
+async def upload_transcript(
+    round_id: str,
+    file: UploadFile,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload transcript PDF for a round."""
+    result = await db.execute(
+        select(Round)
+        .join(Application)
+        .where(Round.id == round_id, Application.user_id == user.id)
+    )
+    round = result.scalars().first()
+
+    if not round:
+        raise HTTPException(status_code=404, detail="Round not found")
+
+    # Validate file type
+    if not (file.filename or "").lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+
+    # Delete old transcript if exists
+    if round.transcript_path and os.path.exists(round.transcript_path):
+        os.remove(round.transcript_path)
+
+    # Create upload directory
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    file_name = f"transcript_{uuid.uuid4()}.pdf"
+    file_path = os.path.join(settings.upload_dir, file_name)
+
+    # Save file
+    with open(file_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+
+    # Update round
+    round.transcript_path = file_path
+    await db.commit()
+
+    result = await db.execute(
+        select(Round)
+        .where(Round.id == round_id)
+        .options(selectinload(Round.round_type), selectinload(Round.media))
+    )
+    return result.scalars().first()
+
+
+@router.delete("/api/rounds/{round_id}/transcript", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_transcript(
+    round_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete transcript from a round."""
+    result = await db.execute(
+        select(Round)
+        .join(Application)
+        .where(Round.id == round_id, Application.user_id == user.id)
+    )
+    round = result.scalars().first()
+
+    if not round:
+        raise HTTPException(status_code=404, detail="Round not found")
+
+    if round.transcript_path and os.path.exists(round.transcript_path):
+        os.remove(round.transcript_path)
+
+    round.transcript_path = None
+    round.transcript_summary = None
+    await db.commit()
