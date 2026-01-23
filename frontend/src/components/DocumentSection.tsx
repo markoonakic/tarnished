@@ -86,9 +86,11 @@ export default function DocumentSection({ application, onUpdate }: Props) {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const link = document.createElement('a');
       link.href = `${baseUrl}${url}`;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
+      link.download = '';
+      link.style.display = 'none';
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch {
       setError(`Failed to download ${type}`);
     }
