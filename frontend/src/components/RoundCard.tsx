@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { uploadMedia, deleteMedia, getMediaSignedUrl } from '../lib/rounds';
 import type { Round, RoundMedia } from '../lib/types';
 import MediaPlayer from './MediaPlayer';
+import { downloadFile } from '../lib/downloadFile';
 
 interface Props {
   round: Round;
@@ -67,13 +68,24 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
     try {
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const { url } = await getMediaSignedUrl(media.id, 'attachment');
-      const link = document.createElement('a');
-      link.href = `${apiBase}${url}`;
-      link.download = '';
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+
+      const response = await fetch(`${apiBase}${url}`);
+      if (!response.ok) throw new Error('Download failed');
+
+      // Extract filename from Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'media';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      await downloadFile(blobUrl, filename);
     } catch {
       alert('Failed to download media');
     }
