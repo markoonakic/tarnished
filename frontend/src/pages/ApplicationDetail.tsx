@@ -52,16 +52,53 @@ export default function ApplicationDetail() {
     if (!confirm('Delete this round?')) return;
     try {
       await deleteRound(roundId);
-      loadApplication();
+
+      setApplication(prev => prev ? {
+        ...prev,
+        rounds: prev.rounds.filter(r => r.id !== roundId)
+      } : null);
     } catch {
       setError('Failed to delete round');
     }
   }
 
-  function handleRoundSaved() {
+  async function handleRoundSaved(savedRound: Round) {
     setShowRoundForm(false);
     setEditingRound(null);
-    loadApplication();
+
+    setApplication(prev => {
+      if (!prev) return null;
+
+      const existingIndex = prev.rounds.findIndex(r => r.id === savedRound.id);
+
+      if (existingIndex >= 0) {
+        const newRounds = [...prev.rounds];
+        newRounds[existingIndex] = savedRound;
+        return { ...prev, rounds: newRounds };
+      } else {
+        return { ...prev, rounds: [...prev.rounds, savedRound] };
+      }
+    });
+  }
+
+  async function handleMediaChange(roundId: string) {
+    try {
+      const updatedApplication = await getApplication(id!);
+
+      setApplication(prev => {
+        if (!prev) return updatedApplication;
+
+        const updatedRound = updatedApplication.rounds.find(r => r.id === roundId);
+        if (!updatedRound) return prev;
+
+        return {
+          ...prev,
+          rounds: prev.rounds.map(r => r.id === roundId ? updatedRound : r)
+        };
+      });
+    } catch {
+      setError('Failed to refresh media');
+    }
   }
 
   function formatDate(dateStr: string | null) {
@@ -213,7 +250,7 @@ export default function ApplicationDetail() {
                   round={round}
                   onEdit={() => setEditingRound(round)}
                   onDelete={() => handleDeleteRound(round.id)}
-                  onMediaChange={loadApplication}
+                  onMediaChange={() => handleMediaChange(round.id)}
                 />
               ))}
             </div>
