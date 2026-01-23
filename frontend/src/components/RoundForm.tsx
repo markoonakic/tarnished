@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { createRound, updateRound } from '../lib/rounds';
+import { createRound, updateRound, uploadRoundTranscript } from '../lib/rounds';
 import { listRoundTypes } from '../lib/settings';
 import type { Round, RoundType, RoundCreate, RoundUpdate } from '../lib/types';
 
@@ -52,6 +52,8 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
   const [completedTime, setCompletedTime] = useState(completedParsed.time);
   const [outcome, setOutcome] = useState(round?.outcome || '');
   const [notesSummary, setNotesSummary] = useState(round?.notes_summary || '');
+  const [transcriptFile, setTranscriptFile] = useState<File | null>(null);
+  const [transcriptSummary, setTranscriptSummary] = useState(round?.transcript_summary || '');
 
   useEffect(() => {
     loadRoundTypes();
@@ -89,6 +91,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
           completed_at: formatDateTimeForApi(completedDate, completedTime),
           outcome: outcome || undefined,
           notes_summary: notesSummary || undefined,
+          transcript_summary: transcriptSummary || undefined,
         };
         savedRound = await updateRound(round.id, data);
       } else {
@@ -96,9 +99,16 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
           round_type_id: roundTypeId,
           scheduled_at: formatDateTimeForApi(scheduledDate, scheduledTime),
           notes_summary: notesSummary || undefined,
+          transcript_summary: transcriptSummary || undefined,
         };
         savedRound = await createRound(applicationId, data);
       }
+
+      // Upload transcript if file is selected
+      if (transcriptFile) {
+        savedRound = await uploadRoundTranscript(savedRound.id, transcriptFile);
+      }
+
       onSave(savedRound);
     } catch {
       setError('Failed to save round. Please check your inputs.');
@@ -203,6 +213,30 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             onChange={(e) => setNotesSummary(e.target.value)}
             rows={3}
             placeholder="Key points, questions asked, feedback..."
+            className="w-full px-3 py-2 bg-secondary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua resize-y"
+          />
+        </div>
+
+        <div className="col-span-2">
+          <label className="block text-sm text-muted mb-1">Transcript (PDF)</label>
+          <input
+            type="file"
+            accept=".pdf"
+            onChange={(e) => setTranscriptFile(e.target.files?.[0] || null)}
+            className="w-full px-3 py-2 bg-secondary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua"
+          />
+          {round?.transcript_path && !transcriptFile && (
+            <p className="text-xs text-muted mt-1">Current: {round.transcript_path.split('/').pop()}</p>
+          )}
+        </div>
+
+        <div className="col-span-2">
+          <label className="block text-sm text-muted mb-1">Transcript Summary</label>
+          <textarea
+            value={transcriptSummary}
+            onChange={(e) => setTranscriptSummary(e.target.value)}
+            rows={3}
+            placeholder="Summary of key discussion points from transcript..."
             className="w-full px-3 py-2 bg-secondary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua resize-y"
           />
         </div>
