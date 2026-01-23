@@ -118,3 +118,14 @@ input[type="datetime-local"] {
 [data-theme="gruvbox-light"] input[type="datetime-local"] {
   color-scheme: light;
 }
+
+table {
+  table-layout: fixed;
+}
+
+td, th {
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 0;
+}
