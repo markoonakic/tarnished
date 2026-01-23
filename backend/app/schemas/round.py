@@ -25,6 +25,7 @@ class RoundCreate(BaseModel):
     round_type_id: str
     scheduled_at: datetime | None = None
     notes_summary: str | None = None
+    transcript_summary: str | None = None
 
 
 class RoundUpdate(BaseModel):
@@ -33,6 +34,7 @@ class RoundUpdate(BaseModel):
     completed_at: datetime | None = None
     outcome: str | None = None
     notes_summary: str | None = None
+    transcript_summary: str | None = None
 
 
 class RoundResponse(BaseModel):
@@ -42,6 +44,8 @@ class RoundResponse(BaseModel):
     completed_at: datetime | None
     outcome: str | None
     notes_summary: str | None
+    transcript_path: str | None
+    transcript_summary: str | None
     media: list[RoundMediaResponse]
     created_at: datetime
 
