@@ -89,7 +89,9 @@ export default function DocumentSection({ application, onUpdate }: Props) {
       const contentDisposition = response.headers.get('Content-Disposition');
       const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
       const filename = filenameMatch?.[1] || `${type}.pdf`;
-      const blobUrl = URL.createObjectURL(blob);
+      // Force octet-stream to prevent browser PDF auto-preview
+      const downloadBlob = new Blob([blob], { type: 'application/octet-stream' });
+      const blobUrl = URL.createObjectURL(downloadBlob);
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = filename;
