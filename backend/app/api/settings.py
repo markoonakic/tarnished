@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import or_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -21,14 +21,30 @@ async def list_statuses(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
+    # Get user's custom statuses first
+    user_result = await db.execute(
+        select(ApplicationStatus)
+        .where(ApplicationStatus.user_id == user.id)
+    )
+    user_statuses = user_result.scalars().all()
+    user_status_names = {s.name for s in user_statuses}
+
+    # Get default statuses, excluding ones user has overridden
+    default_result = await db.execute(
         select(ApplicationStatus)
         .where(
-            or_(ApplicationStatus.user_id == user.id, ApplicationStatus.user_id.is_(None))
+            and_(
+                ApplicationStatus.user_id.is_(None),
+                ApplicationStatus.name.not_in(user_status_names)
+            )
         )
-        .order_by(ApplicationStatus.order)
     )
-    return result.scalars().all()
+    default_statuses = default_result.scalars().all()
+
+    # Merge and sort by order
+    all_statuses = list(user_statuses) + list(default_statuses)
+    all_statuses.sort(key=lambda s: s.order)
+    return all_statuses
 
 
 @router.post("/statuses", response_model=StatusFullResponse, status_code=status.HTTP_201_CREATED)
@@ -75,13 +91,22 @@ async def update_status(
     if not status_obj:
         raise HTTPException(status_code=404, detail="Status not found")
 
-    # Only allow editing user-owned statuses, not system defaults
+    # If editing a default status, create user override instead
     if status_obj.user_id is None:
-        raise HTTPException(
-            status_code=403,
-            detail="Cannot edit default statuses. Create a custom status instead.",
+        # Create user's personal copy with custom values
+        new_status = ApplicationStatus(
+            name=status_obj.name,
+            color=data.color if data.color is not None else status_obj.color,
+            is_default=False,
+            user_id=user.id,
+            order=status_obj.order,
         )
+        db.add(new_status)
+        await db.commit()
+        await db.refresh(new_status)
+        return new_status
 
+    # Update user-owned status
     if status_obj.user_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this status")
 

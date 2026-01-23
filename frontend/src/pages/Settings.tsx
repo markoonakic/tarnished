@@ -202,25 +202,24 @@ export default function Settings() {
                           style={{ backgroundColor: status.color }}
                         />
                         <span className="text-primary">{status.name}</span>
+                        {status.is_default && (
+                          <span className="text-xs text-muted">(Default)</span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
-                        {status.is_default ? (
-                          <span className="text-xs text-muted">Default</span>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => startEditStatus(status)}
-                              className="text-xs text-accent-aqua hover:underline"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteStatus(status)}
-                              className="text-xs text-accent-red hover:underline"
-                            >
-                              Delete
-                            </button>
-                          </>
+                        <button
+                          onClick={() => startEditStatus(status)}
+                          className="text-xs text-accent-aqua hover:underline"
+                        >
+                          Edit
+                        </button>
+                        {!status.is_default && (
+                          <button
+                            onClick={() => handleDeleteStatus(status)}
+                            className="text-xs text-accent-red hover:underline"
+                          >
+                            Delete
+                          </button>
                         )}
                       </div>
                     </div>
@@ -284,7 +283,7 @@ export default function Settings() {
                 )}
 
                 <p className="text-xs text-muted mt-3">
-                  Default statuses cannot be edited. Create custom statuses to customize colors.
+                  Editing default statuses creates your personal override.
                 </p>
               </>
             )}
