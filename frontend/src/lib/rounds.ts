@@ -42,3 +42,26 @@ export async function getMediaSignedUrl(
   });
   return response.data;
 }
+
+export async function uploadRoundTranscript(roundId: string, file: File): Promise<Round> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(`/api/rounds/${roundId}/transcript`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+}
+
+export async function deleteRoundTranscript(roundId: string): Promise<void> {
+  await api.delete(`/api/rounds/${roundId}/transcript`);
+}
+
+export async function getRoundTranscriptSignedUrl(
+  roundId: string,
+  disposition: 'inline' | 'attachment' = 'inline'
+): Promise<SignedUrlResponse> {
+  const response = await api.get(`/api/files/rounds/${roundId}/transcript/signed`, {
+    params: { disposition }
+  });
+  return response.data;
+}
