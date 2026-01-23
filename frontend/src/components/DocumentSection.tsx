@@ -10,6 +10,7 @@ import {
   updateApplication,
 } from '../lib/applications';
 import type { Application } from '../lib/types';
+import { downloadFile } from '../lib/downloadFile';
 
 interface Props {
   application: Application;
@@ -84,13 +85,24 @@ export default function DocumentSection({ application, onUpdate }: Props) {
     try {
       const { url } = await getSignedUrl(application.id, type, 'attachment');
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const link = document.createElement('a');
-      link.href = `${baseUrl}${url}`;
-      link.download = '';
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+
+      const response = await fetch(`${baseUrl}${url}`);
+      if (!response.ok) throw new Error('Download failed');
+
+      // Extract filename from Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `${type}.pdf`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      await downloadFile(blobUrl, filename);
     } catch {
       setError(`Failed to download ${type}`);
     }
