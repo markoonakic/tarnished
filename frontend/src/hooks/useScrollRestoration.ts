@@ -2,10 +2,10 @@ import { useLayoutEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const scrollPositions = new Map<string, number>();
-const previousPath = useRef<string>('');
 
 export function useScrollRestoration() {
   const location = useLocation();
+  const previousPath = useRef<string>('');
 
   useLayoutEffect(() => {
     return () => {
@@ -26,8 +26,6 @@ export function useScrollRestoration() {
 
     previousPath.current = currentPath;
   }, [location.key, location.pathname]);
-}
-  }, [location.key]);
 }
 
 export function useSaveScrollPosition() {
