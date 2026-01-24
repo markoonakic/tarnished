@@ -55,7 +55,7 @@ export default function ApplicationDetail() {
 
       setApplication(prev => prev ? {
         ...prev,
-        rounds: prev.rounds.filter(r => r.id !== roundId)
+        rounds: prev.rounds?.filter(r => r.id !== roundId) || []
       } : null);
     } catch {
       setError('Failed to delete round');
@@ -69,14 +69,15 @@ export default function ApplicationDetail() {
     setApplication(prev => {
       if (!prev) return null;
 
-      const existingIndex = prev.rounds.findIndex(r => r.id === savedRound.id);
+      const rounds = prev.rounds || [];
+      const existingIndex = rounds.findIndex(r => r.id === savedRound.id);
 
       if (existingIndex >= 0) {
-        const newRounds = [...prev.rounds];
+        const newRounds = [...rounds];
         newRounds[existingIndex] = savedRound;
         return { ...prev, rounds: newRounds };
       } else {
-        return { ...prev, rounds: [...prev.rounds, savedRound] };
+        return { ...prev, rounds: [...rounds, savedRound] };
       }
     });
   }
@@ -88,12 +89,12 @@ export default function ApplicationDetail() {
       setApplication(prev => {
         if (!prev) return updatedApplication;
 
-        const updatedRound = updatedApplication.rounds.find(r => r.id === roundId);
+        const updatedRound = updatedApplication.rounds?.find(r => r.id === roundId);
         if (!updatedRound) return prev;
 
         return {
           ...prev,
-          rounds: prev.rounds.map(r => r.id === roundId ? updatedRound : r)
+          rounds: prev.rounds?.map(r => r.id === roundId ? updatedRound : r) || []
         };
       });
     } catch {

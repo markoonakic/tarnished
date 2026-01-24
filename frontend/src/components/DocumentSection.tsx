@@ -2,12 +2,9 @@ import { useState } from 'react';
 import {
   uploadCV,
   uploadCoverLetter,
-  uploadTranscript,
   deleteCV,
   deleteCoverLetter,
-  deleteTranscript,
   getSignedUrl,
-  updateApplication,
 } from '../lib/applications';
 import type { Application } from '../lib/types';
 import { downloadFile } from '../lib/downloadFile';
@@ -21,12 +18,9 @@ export default function DocumentSection({ application, onUpdate }: Props) {
   const [uploading, setUploading] = useState<string | null>(null);
   const [justReplaced, setJustReplaced] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [transcriptSummary, setTranscriptSummary] = useState(application.transcript_summary || '');
-  const [editingSummary, setEditingSummary] = useState(false);
-  const [savingSummary, setSavingSummary] = useState(false);
 
   async function handleUpload(
-    type: 'cv' | 'cover-letter' | 'transcript',
+    type: 'cv' | 'cover-letter',
     file: File,
     isReplace = false
   ) {
@@ -36,10 +30,8 @@ export default function DocumentSection({ application, onUpdate }: Props) {
       let updated: Application;
       if (type === 'cv') {
         updated = await uploadCV(application.id, file);
-      } else if (type === 'cover-letter') {
-        updated = await uploadCoverLetter(application.id, file);
       } else {
-        updated = await uploadTranscript(application.id, file);
+        updated = await uploadCoverLetter(application.id, file);
       }
       onUpdate(updated);
       if (isReplace) {
@@ -53,17 +45,15 @@ export default function DocumentSection({ application, onUpdate }: Props) {
     }
   }
 
-  async function handleDelete(type: 'cv' | 'cover-letter' | 'transcript') {
+  async function handleDelete(type: 'cv' | 'cover-letter') {
     if (!confirm(`Remove this ${type}?`)) return;
     setError('');
     try {
       let updated: Application;
       if (type === 'cv') {
         updated = await deleteCV(application.id);
-      } else if (type === 'cover-letter') {
-        updated = await deleteCoverLetter(application.id);
       } else {
-        updated = await deleteTranscript(application.id);
+        updated = await deleteCoverLetter(application.id);
       }
       onUpdate(updated);
     } catch {
@@ -71,7 +61,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
     }
   }
 
-  async function handlePreview(type: 'cv' | 'cover-letter' | 'transcript') {
+  async function handlePreview(type: 'cv' | 'cover-letter') {
     try {
       const { url } = await getSignedUrl(application.id, type, 'inline');
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -81,7 +71,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
     }
   }
 
-  async function handleDownload(type: 'cv' | 'cover-letter' | 'transcript') {
+  async function handleDownload(type: 'cv' | 'cover-letter') {
     try {
       const { url } = await getSignedUrl(application.id, type, 'attachment');
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -103,32 +93,10 @@ export default function DocumentSection({ application, onUpdate }: Props) {
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
 
-      // For Firefox PDFs, use original URL (has Content-Disposition header)
-      // For others, use blob URL
-      await downloadFile(fullUrl, blobUrl, filename, blob);
+      downloadFile(blobUrl, filename);
     } catch {
       setError(`Failed to download ${type}`);
     }
-  }
-
-  async function handleSaveSummary() {
-    setSavingSummary(true);
-    try {
-      const updated = await updateApplication(application.id, {
-        transcript_summary: transcriptSummary || null,
-      });
-      onUpdate(updated);
-      setEditingSummary(false);
-    } catch {
-      setError('Failed to save summary');
-    } finally {
-      setSavingSummary(false);
-    }
-  }
-
-  function handleCancelSummary() {
-    setTranscriptSummary(application.transcript_summary || '');
-    setEditingSummary(false);
   }
 
   function isPreviewable(path: string | null): boolean {
@@ -139,7 +107,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
 
   function renderDocRow(
     label: string,
-    type: 'cv' | 'cover-letter' | 'transcript',
+    type: 'cv' | 'cover-letter',
     path: string | null
   ) {
     const hasFile = Boolean(path);
@@ -223,54 +191,6 @@ export default function DocumentSection({ application, onUpdate }: Props) {
 
       {renderDocRow('CV', 'cv', application.cv_path)}
       {renderDocRow('Cover Letter', 'cover-letter', application.cover_letter_path)}
-      {renderDocRow('Transcript', 'transcript', application.transcript_path)}
-
-      {application.transcript_path && (
-        <div className="mt-4 pt-4 border-t border-tertiary">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted">Transcript Summary</span>
-            {!editingSummary && (
-              <button
-                onClick={() => setEditingSummary(true)}
-                className="text-sm text-accent-aqua hover:underline"
-              >
-                {application.transcript_summary ? 'Edit' : 'Add Summary'}
-              </button>
-            )}
-          </div>
-          {editingSummary ? (
-            <>
-              <textarea
-                value={transcriptSummary}
-                onChange={(e) => setTranscriptSummary(e.target.value)}
-                rows={3}
-                placeholder="Key points: GPA, relevant coursework, certifications..."
-                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua resize-y"
-              />
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={handleSaveSummary}
-                  disabled={savingSummary}
-                  className="px-3 py-1 bg-accent-aqua text-bg-primary rounded text-sm hover:opacity-90 disabled:opacity-50"
-                >
-                  {savingSummary ? 'Saving...' : 'Save'}
-                </button>
-                <button
-                  onClick={handleCancelSummary}
-                  disabled={savingSummary}
-                  className="px-3 py-1 bg-tertiary text-primary rounded text-sm hover:bg-muted disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-              </div>
-            </>
-          ) : application.transcript_summary ? (
-            <p className="text-primary text-sm whitespace-pre-wrap break-words">{application.transcript_summary}</p>
-          ) : (
-            <p className="text-muted text-sm italic">No summary added</p>
-          )}
-        </div>
-      )}
     </div>
   );
 }

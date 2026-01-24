@@ -76,6 +76,7 @@ export interface RoundCreate {
   round_type_id: string;
   scheduled_at?: string;
   notes_summary?: string;
+  transcript_summary?: string;
 }
 
 export interface RoundUpdate {
@@ -84,4 +85,5 @@ export interface RoundUpdate {
   completed_at?: string;
   outcome?: string;
   notes_summary?: string;
+  transcript_summary?: string;
 }
