@@ -217,7 +217,7 @@ async def get_signed_url(
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a signed URL for file access."""
-    if doc_type not in ("cv", "cover-letter", "transcript"):
+    if doc_type not in ("cv", "cover-letter"):
         raise HTTPException(status_code=400, detail="Invalid document type")
 
     result = await db.execute(
@@ -232,7 +232,6 @@ async def get_signed_url(
     path_map = {
         "cv": application.cv_path,
         "cover-letter": application.cover_letter_path,
-        "transcript": application.transcript_path,
     }
 
     if not path_map.get(doc_type):
@@ -285,7 +284,6 @@ async def get_file(
     path_map = {
         "cv": application.cv_path,
         "cover-letter": application.cover_letter_path,
-        "transcript": application.transcript_path,
     }
 
     file_path = path_map.get(doc_type)
