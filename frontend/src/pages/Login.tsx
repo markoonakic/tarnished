@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login } from '../lib/auth';
 import { useAuth } from '../contexts/AuthContext';
+import PasswordInput from '../components/PasswordInput';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -35,7 +36,7 @@ export default function Login() {
         </h1>
 
         {error && (
-          <div className="mb-4 p-3 rounded bg-accent-red text-primary">
+          <div className="mb-4 p-3 rounded border border-accent-red text-accent-red" style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)' }}>
             {error}
           </div>
         )}
@@ -47,21 +48,19 @@ export default function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoFocus
               className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200"
               required
             />
           </div>
 
-          <div>
-            <label className="block mb-1 text-sm font-semibold text-muted">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200"
-              required
-            />
-          </div>
+          <PasswordInput
+            value={password}
+            onChange={setPassword}
+            label="Password"
+            required
+            autoComplete="current-password"
+          />
 
           <button
             type="submit"
@@ -72,10 +71,10 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-muted">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-accent-blue hover:underline">Register</Link>
-        </p>
+          <p className="mt-4 text-center text-muted">
+            Don't have an account?{' '}
+            <Link to="/register" className="text-accent-aqua hover:underline">Register</Link>
+          </p>
       </div>
     </div>
   );
