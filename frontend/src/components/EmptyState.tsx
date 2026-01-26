@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 interface Props {
   message: string;
   subMessage?: string;
