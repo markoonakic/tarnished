@@ -1,3 +1,69 @@
+/* Font Faces - CommitMonoFunky */
+@font-face {
+  font-family: 'CommitMonoFunky';
+  src: url('/fonts/CommitMonoFunky-400-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'CommitMonoFunky';
+  src: url('/fonts/CommitMonoFunky-400-Italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'CommitMonoFunky';
+  src: url('/fonts/CommitMonoFunky-700-Regular.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'CommitMonoFunky';
+  src: url('/fonts/CommitMonoFunky-700-Italic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Font Faces - Manrope */
+@font-face {
+  font-family: 'Manrope';
+  src: url('/fonts/Manrope-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Manrope';
+  src: url('/fonts/Manrope-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Manrope';
+  src: url('/fonts/Manrope-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Manrope';
+  src: url('/fonts/Manrope-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @import "tailwindcss";
 
 @theme {
@@ -21,7 +87,7 @@
 
   /* Font families */
   --font-display: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'Commit Mono', 'Monaco', 'Menlo', monospace;
+  --font-mono: 'CommitMonoFunky', 'Monaco', 'Menlo', monospace;
 
   /* Type scale (rem) */
   --font-h1: 2rem;        /* 32px at base */
