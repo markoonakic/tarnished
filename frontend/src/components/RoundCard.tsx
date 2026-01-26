@@ -219,18 +219,14 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
             className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
             title="Edit"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
+            <i className="bi bi-pencil text-base" />
           </button>
           <button
             onClick={onDelete}
             className="px-4 py-2 bg-tertiary text-accent-red rounded hover:bg-red-900/20 disabled:opacity-50 transition-all duration-200"
             title="Delete"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <i className="bi bi-trash text-base" />
           </button>
         </div>
       </div>
@@ -272,13 +268,9 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
               >
                 <div className="flex items-center gap-2">
                   {m.media_type === 'video' ? (
-                    <svg className="w-4 h-4 text-accent-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
+                    <i className="bi bi-camera-video text-base text-accent-purple" />
                   ) : (
-                    <svg className="w-4 h-4 text-accent-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
+                    <i className="bi bi-music-note-beamed text-base text-accent-orange" />
                   )}
                   <span className="text-sm text-primary truncate max-w-[200px]">
                     {m.file_path.split('/').pop()}
@@ -290,18 +282,14 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                     className="text-muted hover:text-accent-aqua"
                     title="Download"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
+                    <i className="bi bi-download text-base" />
                   </button>
                   <button
                     onClick={(e) => handleMediaDelete(m.id, e)}
                     className="px-4 py-2 bg-tertiary text-accent-red rounded hover:bg-red-900/20 disabled:opacity-50 transition-all duration-200"
                     title="Delete"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <i className="bi bi-x-lg text-base" />
                   </button>
                 </div>
               </div>
@@ -339,9 +327,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
           <>
             <div className="flex items-center justify-between bg-secondary rounded px-3 py-2">
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-accent-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
+                <i className="bi bi-file-text text-base text-accent-red" />
                 <span className="text-sm text-primary truncate max-w-[200px]">
                   {round.transcript_path.split('/').pop()}
                 </span>
@@ -353,10 +339,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                   className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
                   title="Preview"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
+                  <i className="bi bi-eye text-base" />
                 </button>
                 <button
                   onClick={handleTranscriptDownload}
@@ -364,9 +347,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                   className="text-muted hover:text-accent-aqua"
                   title="Download"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
+                  <i className="bi bi-download text-base" />
                 </button>
                 <button
                   onClick={handleTranscriptDelete}
@@ -374,9 +355,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                   className="px-4 py-2 bg-tertiary text-accent-red rounded hover:bg-red-900/20 disabled:opacity-50 transition-all duration-200"
                   title="Delete"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <i className="bi bi-x-lg text-base" />
                 </button>
               </div>
             </div>

@@ -53,14 +53,7 @@ export default function ThemeDropdown({ themes, currentTheme, onChange }: Props)
             ))}
           </div>
         </div>
-        <svg
-          className={`w-5 h-5 text-muted transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <i className={`bi bi-chevron-down text-muted transition-transform inline-block ${isOpen ? 'rotate-180' : ''}`} style={{fontSize: '1.25rem'}} />
       </button>
 
       {isOpen && (
@@ -87,9 +80,7 @@ export default function ThemeDropdown({ themes, currentTheme, onChange }: Props)
                 </div>
               </div>
               {theme.id === currentTheme && (
-                <svg className="w-5 h-5 text-accent-aqua" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+                <i className="bi bi-check-lg text-accent-aqua" style={{fontSize: '1.25rem'}} />
               )}
             </button>
           ))}
