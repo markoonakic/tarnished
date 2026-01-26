@@ -84,7 +84,7 @@ export default function Applications() {
           <h1 className="text-2xl font-bold text-primary">Applications</h1>
           <Link
             to="/applications/new"
-            className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
+            className="px-4 py-2 bg-[#689d6a] text-[#282828] rounded font-medium hover:bg-[#8ec07c] transition-all duration-200"
           >
             New Application
           </Link>
