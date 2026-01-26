@@ -126,10 +126,10 @@ export default function DocumentSection({ application, onUpdate }: Props) {
             <button
               onClick={() => handlePreview(type)}
               disabled={!canPreview}
-              className={`px-2 py-1 rounded text-xs ${
+              className={`px-4 py-2 rounded font-medium transition-all duration-200 ${
                 canPreview
-                  ? 'bg-tertiary text-primary hover:bg-muted'
-                  : 'bg-tertiary/50 text-muted cursor-not-allowed'
+                  ? 'bg-tertiary text-primary hover:bg-muted disabled:opacity-50'
+                  : 'bg-tertiary/50 text-muted cursor-not-allowed opacity-50'
               }`}
               title={canPreview ? 'Preview' : 'Preview not available for this file type'}
             >
@@ -137,11 +137,11 @@ export default function DocumentSection({ application, onUpdate }: Props) {
             </button>
             <button
               onClick={() => handleDownload(type)}
-              className="px-2 py-1 bg-tertiary text-primary rounded text-xs hover:bg-muted"
+              className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
             >
               Download
             </button>
-            <label className="px-2 py-1 bg-tertiary text-primary rounded text-xs hover:bg-muted cursor-pointer">
+            <label className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200 cursor-pointer">
               Replace
               <input
                 type="file"
@@ -155,13 +155,13 @@ export default function DocumentSection({ application, onUpdate }: Props) {
             </label>
             <button
               onClick={() => handleDelete(type)}
-              className="px-2 py-1 bg-accent-red/20 text-accent-red rounded text-xs hover:bg-accent-red/30"
+              className="px-4 py-2 bg-tertiary text-accent-red rounded hover:bg-red-900/20 disabled:opacity-50 transition-all duration-200"
             >
               Remove
             </button>
           </div>
         ) : (
-          <label className="px-3 py-1 bg-accent-aqua text-bg-primary rounded text-sm hover:opacity-90 cursor-pointer">
+          <label className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200 cursor-pointer">
             {isUploading ? 'Uploading...' : 'Upload'}
             <input
               type="file"

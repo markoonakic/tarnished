@@ -44,7 +44,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
           </h3>
           <button
             onClick={onClose}
-            className="text-muted hover:text-primary p-1"
+            className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -45,7 +45,7 @@ export default function Layout({ children }: Props) {
             <span className="text-muted">{user?.email}</span>
             <button
               onClick={signOut}
-              className="px-3 py-1 rounded bg-tertiary text-primary hover:opacity-80 text-sm"
+              className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
             >
               Sign Out
             </button>

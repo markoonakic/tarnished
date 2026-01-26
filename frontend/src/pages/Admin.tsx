@@ -68,9 +68,9 @@ export default function Admin() {
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setActiveTab('stats')}
-            className={`px-4 py-2 rounded ${
+            className={`px-4 py-2 rounded font-medium transition-all duration-200 ${
               activeTab === 'stats'
-                ? 'bg-accent-aqua text-bg-primary'
+                ? 'bg-accent-aqua text-bg-primary hover:opacity-90'
                 : 'bg-tertiary text-primary hover:bg-muted'
             }`}
           >
@@ -78,9 +78,9 @@ export default function Admin() {
           </button>
           <button
             onClick={() => setActiveTab('users')}
-            className={`px-4 py-2 rounded ${
+            className={`px-4 py-2 rounded font-medium transition-all duration-200 ${
               activeTab === 'users'
-                ? 'bg-accent-aqua text-bg-primary'
+                ? 'bg-accent-aqua text-bg-primary hover:opacity-90'
                 : 'bg-tertiary text-primary hover:bg-muted'
             }`}
           >

@@ -245,14 +245,14 @@ export default function Settings() {
                       />
                       <button
                         type="submit"
-                        className="px-4 py-2 bg-accent-aqua text-bg-primary rounded hover:opacity-90"
+                        className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
                       >
                         Save
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditingStatus(null)}
-                        className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted"
+                        className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
                       >
                         Cancel
                       </button>
@@ -275,7 +275,7 @@ export default function Settings() {
                     />
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-accent-aqua text-bg-primary rounded hover:opacity-90"
+                      className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
                     >
                       Add
                     </button>
@@ -320,7 +320,7 @@ export default function Settings() {
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-accent-aqua text-bg-primary rounded hover:opacity-90"
+                    className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
                   >
                     Add
                   </button>
@@ -338,14 +338,14 @@ export default function Settings() {
               <button
                 onClick={handleExportJSON}
                 disabled={exporting}
-                className="px-4 py-2 bg-accent-aqua text-bg-primary rounded hover:opacity-90 disabled:opacity-50"
+                className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
               >
                 {exporting ? 'Exporting...' : 'Export JSON'}
               </button>
               <button
                 onClick={handleExportCSV}
                 disabled={exporting}
-                className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50"
+                className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
               >
                 {exporting ? 'Exporting...' : 'Export CSV'}
               </button>

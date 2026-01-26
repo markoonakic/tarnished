@@ -39,7 +39,7 @@ export default function ThemeDropdown({ themes, currentTheme, onChange }: Props)
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-tertiary border border-muted rounded-lg text-left hover:border-accent-aqua focus:outline-none focus:border-accent-aqua"
+        className="w-full flex items-center justify-between px-4 py-2 bg-tertiary border border-muted rounded text-left hover:border-accent-aqua focus:outline-none focus:border-accent-aqua transition-all duration-200"
       >
         <div className="flex items-center gap-3">
           <span className="text-primary font-medium">{selectedTheme.name}</span>
@@ -70,7 +70,7 @@ export default function ThemeDropdown({ themes, currentTheme, onChange }: Props)
               key={theme.id}
               type="button"
               onClick={() => handleSelect(theme.id)}
-              className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-tertiary transition-colors ${
+              className={`w-full flex items-center justify-between px-4 py-2 text-left hover:bg-tertiary transition-all duration-200 ${
                 theme.id === currentTheme ? 'bg-tertiary' : ''
               }`}
             >

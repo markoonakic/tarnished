@@ -179,7 +179,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
           </span>
           <button
             onClick={onEdit}
-            className="p-1 text-muted hover:text-primary"
+            className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
             title="Edit"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,7 +188,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
           </button>
           <button
             onClick={onDelete}
-            className="p-1 text-muted hover:text-accent-red"
+            className="px-4 py-2 bg-tertiary text-accent-red rounded hover:bg-red-900/20 disabled:opacity-50 transition-all duration-200"
             title="Delete"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -253,7 +253,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                   </button>
                   <button
                     onClick={(e) => handleMediaDelete(m.id, e)}
-                    className="text-muted hover:text-accent-red"
+                    className="px-4 py-2 bg-tertiary text-accent-red rounded hover:bg-red-900/20 disabled:opacity-50 transition-all duration-200"
                     title="Delete"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -300,7 +300,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleTranscriptPreview}
-                  className="text-muted hover:text-accent-purple"
+                  className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
                   title="Preview"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -319,7 +319,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                 </button>
                 <button
                   onClick={handleTranscriptDelete}
-                  className="text-muted hover:text-accent-red"
+                  className="px-4 py-2 bg-tertiary text-accent-red rounded hover:bg-red-900/20 disabled:opacity-50 transition-all duration-200"
                   title="Delete"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

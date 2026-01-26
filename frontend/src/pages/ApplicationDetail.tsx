@@ -198,13 +198,13 @@ export default function ApplicationDetail() {
           <div className="flex items-center justify-end gap-2 pt-4 border-t border-tertiary">
             <Link
               to={`/applications/${id}/edit`}
-              className="px-3 py-1 bg-accent-aqua text-bg-primary rounded text-sm hover:opacity-90"
+              className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
             >
               Edit
             </Link>
             <button
               onClick={handleDelete}
-              className="px-3 py-1 bg-accent-red text-bg-primary rounded text-sm hover:opacity-90"
+              className="px-4 py-2 bg-tertiary text-accent-red rounded hover:bg-red-900/20 disabled:opacity-50 transition-all duration-200"
             >
               Delete
             </button>
@@ -223,7 +223,7 @@ export default function ApplicationDetail() {
             <h2 className="text-lg font-semibold text-primary">Interview Rounds</h2>
             <button
               onClick={() => setShowRoundForm(true)}
-              className="px-3 py-1 bg-accent-aqua text-bg-primary rounded text-sm hover:opacity-90"
+              className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
             >
               Add Round
             </button>
