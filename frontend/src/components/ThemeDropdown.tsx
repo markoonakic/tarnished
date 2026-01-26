@@ -56,8 +56,15 @@ export default function ThemeDropdown({ themes, currentTheme, onChange }: Props)
         <i className={`bi bi-chevron-down text-muted transition-transform inline-block ${isOpen ? 'rotate-180' : ''}`} style={{fontSize: '1.25rem'}} />
       </button>
 
-      {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-secondary border border-muted rounded-lg shadow-lg overflow-hidden">
+      <div
+        className="absolute z-10 w-full mt-1 bg-secondary border border-muted rounded-lg overflow-hidden transition-all duration-200"
+        style={{
+          display: 'grid',
+          gridTemplateRows: isOpen ? '1fr' : '0fr',
+          opacity: isOpen ? 1 : 0,
+        }}
+      >
+        <div style={{ overflow: 'hidden' }}>
           {themes.map((theme) => (
             <button
               key={theme.id}
@@ -85,7 +92,7 @@ export default function ThemeDropdown({ themes, currentTheme, onChange }: Props)
             </button>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
