@@ -155,7 +155,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
           <select
             value={roundTypeId}
             onChange={(e) => setRoundTypeId(e.target.value)}
-            className="w-full px-3 py-2 bg-secondary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua transition-colors duration-200"
+            className="w-full px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] placeholder-[#928374] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
           >
             <option value="">Select type</option>
             {roundTypes.map((type) => (
@@ -172,7 +172,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             type="date"
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
-            className="w-full px-3 py-2 bg-secondary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua transition-colors duration-200"
+            className="w-full px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] placeholder-[#928374] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
           />
         </div>
 
@@ -194,7 +194,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
               <select
                 value={outcome}
                 onChange={(e) => setOutcome(e.target.value)}
-                className="w-full px-3 py-2 bg-secondary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua transition-colors duration-200"
+                className="w-full px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] placeholder-[#928374] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
               >
                 <option value="">Pending</option>
                 <option value="passed">Passed</option>
@@ -209,7 +209,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
                 type="date"
                 value={completedDate}
                 onChange={(e) => setCompletedDate(e.target.value)}
-                className="w-full px-3 py-2 bg-secondary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua transition-colors duration-200"
+                className="w-full px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] placeholder-[#928374] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
               />
             </div>
 
@@ -243,7 +243,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             type="file"
             accept=".pdf"
             onChange={(e) => setTranscriptFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 bg-secondary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua transition-colors duration-200"
+            className="w-full px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] placeholder-[#928374] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
           />
           {uploadProgress > 0 && uploadProgress < 100 && (
             <div className="mt-2">
@@ -271,14 +271,14 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
+          className="px-4 py-2 bg-[#3c3836] text-[#ebdbb2] rounded hover:bg-[#504945] hover:text-[#fbf1c7] transition-all duration-200"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
+          className="px-4 py-2 bg-[#689d6a] text-[#282828] rounded font-medium hover:bg-[#8ec07c] disabled:opacity-50 transition-all duration-200"
         >
           {loading ? 'Saving...' : isEditing ? 'Save' : 'Add Round'}
         </button>
