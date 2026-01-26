@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Sankey, Tooltip, Layer, Rectangle } from 'recharts';
 import { getSankeyData } from '../lib/analytics';
 import type { SankeyData } from '../lib/analytics';
+import Loading from './Loading';
 
 interface SankeyNodePayload {
   name: string;
@@ -79,7 +80,7 @@ export default function SankeyChart() {
   }
 
   if (loading) {
-    return <div className="text-center py-8 text-muted">Loading chart...</div>;
+    return <Loading message="Loading chart data..." size="sm" />;
   }
 
   if (error) {

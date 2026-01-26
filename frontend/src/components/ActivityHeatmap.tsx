@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getHeatmapData } from '../lib/analytics';
 import type { HeatmapData } from '../lib/analytics';
+import Loading from './Loading';
 
 const DAYS_IN_WEEK = 7;
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -116,7 +117,7 @@ export default function ActivityHeatmap() {
   }
 
   if (loading) {
-    return <div className="text-center py-8 text-muted">Loading activity data...</div>;
+    return <Loading message="Loading chart data..." size="sm" />;
   }
 
   if (error) {
