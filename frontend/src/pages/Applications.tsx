@@ -154,12 +154,16 @@ export default function Applications() {
                       <td className="px-4 py-3 text-primary">{app.job_title}</td>
                       <td className="px-4 py-3">
                         <span
-                          className="px-2 py-1 rounded text-sm font-medium"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold"
                           style={{
                             backgroundColor: `${app.status.color}20`,
                             color: app.status.color,
                           }}
                         >
+                          <span
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: app.status.color }}
+                          />
                           {app.status.name}
                         </span>
                       </td>

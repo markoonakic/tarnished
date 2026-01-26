@@ -126,11 +126,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
             <button
               onClick={() => handlePreview(type)}
               disabled={!canPreview}
-              className={`px-4 py-2 rounded font-medium transition-all duration-200 ${
-                canPreview
-                  ? 'bg-tertiary text-primary hover:bg-muted disabled:opacity-50'
-                  : 'bg-tertiary/50 text-muted cursor-not-allowed opacity-50'
-              }`}
+              className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
               title={canPreview ? 'Preview' : 'Preview not available for this file type'}
             >
               Preview

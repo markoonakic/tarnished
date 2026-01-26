@@ -42,23 +42,23 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block mb-1 text-muted">Email</label>
+            <label className="block mb-1 text-sm font-semibold text-muted">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 rounded bg-tertiary text-primary"
+              className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200"
               required
             />
           </div>
 
           <div>
-            <label className="block mb-1 text-muted">Password</label>
+            <label className="block mb-1 text-sm font-semibold text-muted">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 rounded bg-tertiary text-primary"
+              className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200"
               required
             />
           </div>

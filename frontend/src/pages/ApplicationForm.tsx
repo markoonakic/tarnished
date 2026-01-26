@@ -175,7 +175,7 @@ export default function ApplicationForm() {
         <form onSubmit={handleSubmit} className="bg-secondary rounded-lg p-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-muted mb-1">
+              <label className="block mb-1 text-sm font-semibold text-muted">
                 Company <span className="text-accent-red">*</span>
               </label>
               <input
@@ -188,7 +188,7 @@ export default function ApplicationForm() {
             </div>
 
             <div>
-              <label className="block text-sm text-muted mb-1">
+              <label className="block mb-1 text-sm font-semibold text-muted">
                 Job Title <span className="text-accent-red">*</span>
               </label>
               <input
@@ -201,7 +201,7 @@ export default function ApplicationForm() {
             </div>
 
             <div>
-              <label className="block text-sm text-muted mb-1">
+              <label className="block mb-1 text-sm font-semibold text-muted">
                 Status <span className="text-accent-red">*</span>
               </label>
               <select
@@ -220,7 +220,7 @@ export default function ApplicationForm() {
             </div>
 
             <div>
-              <label className="block text-sm text-muted mb-1">Applied Date</label>
+              <label className="block mb-1 text-sm font-semibold text-muted">Applied Date</label>
               <input
                 type="date"
                 value={appliedAt}
@@ -230,7 +230,7 @@ export default function ApplicationForm() {
             </div>
 
             <div>
-              <label className="block text-sm text-muted mb-1">Job URL</label>
+              <label className="block mb-1 text-sm font-semibold text-muted">Job URL</label>
               <input
                 type="text"
                 value={jobUrl}
@@ -250,7 +250,7 @@ export default function ApplicationForm() {
             </div>
 
             <div>
-              <label className="block text-sm text-muted mb-1">Job Description</label>
+              <label className="block mb-1 text-sm font-semibold text-muted">Job Description</label>
               <textarea
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
