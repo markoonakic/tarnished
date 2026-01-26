@@ -176,7 +176,7 @@ export default function Settings() {
                 href="#theme"
                 onClick={(e) => { e.preventDefault(); setActiveSection('theme'); }}
                 className={`block px-4 py-3 text-sm transition-colors duration-200 ${
-                  activeSection === 'theme' ? 'text-accent-aqua' : 'text-primary hover:text-accent-aqua'
+                  activeSection === 'theme' ? 'text-[#8ec07c]' : 'text-[#ebdbb2] hover:text-[#8ec07c]'
                 }`}
               >
                 Theme
@@ -280,14 +280,14 @@ export default function Settings() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => startEditStatus(status)}
-                          className="text-xs text-accent-aqua hover:underline"
+                          className="text-xs text-[#689d6a] hover:text-[#8ec07c] transition-colors duration-200"
                         >
                           Edit
                         </button>
                         {!status.is_default && (
                           <button
                             onClick={() => handleDeleteStatus(status)}
-                            className="text-xs text-accent-red hover:underline"
+                            className="text-xs text-[#fb4934] hover:text-[#8ec07c] transition-colors duration-200"
                           >
                             Delete
                           </button>
@@ -306,7 +306,7 @@ export default function Settings() {
                         value={editStatusName}
                         onChange={(e) => setEditStatusName(e.target.value)}
                         placeholder="Status name"
-                        className="flex-1 px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua"
+                        className="flex-1 px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] placeholder-[#928374] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
                       />
                       <input
                         type="color"
@@ -316,14 +316,14 @@ export default function Settings() {
                       />
                       <button
                         type="submit"
-                        className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
+                        className="px-4 py-2 bg-[#689d6a] text-[#282828] rounded font-medium hover:bg-[#8ec07c] transition-all duration-200"
                       >
                         Save
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditingStatus(null)}
-                        className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
+                        className="px-4 py-2 bg-[#3c3836] text-[#ebdbb2] rounded hover:bg-[#504945] hover:text-[#fbf1c7] transition-all duration-200"
                       >
                         Cancel
                       </button>
@@ -336,17 +336,17 @@ export default function Settings() {
                       value={newStatusName}
                       onChange={(e) => setNewStatusName(e.target.value)}
                       placeholder="New status name"
-                      className="flex-1 px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua"
+                      className="flex-1 px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] placeholder-[#928374] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
                     />
                     <input
                       type="color"
                       value={newStatusColor}
                       onChange={(e) => setNewStatusColor(e.target.value)}
-                      className="w-10 h-10 rounded cursor-pointer bg-tertiary border border-muted"
+                      className="w-10 h-10 rounded cursor-pointer bg-[#3c3836] border border-transparent"
                     />
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
+                      className="px-4 py-2 bg-[#689d6a] text-[#282828] rounded font-medium hover:bg-[#8ec07c] transition-all duration-200"
                     >
                       Add
                     </button>
@@ -394,11 +394,11 @@ export default function Settings() {
                     value={newRoundTypeName}
                     onChange={(e) => setNewRoundTypeName(e.target.value)}
                     placeholder="New round type name"
-                    className="flex-1 px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua"
+                    className="flex-1 px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] placeholder-[#928374] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
+                    className="px-4 py-2 bg-[#689d6a] text-[#282828] rounded font-medium hover:bg-[#8ec07c] transition-all duration-200"
                   >
                     Add
                   </button>
@@ -418,14 +418,14 @@ export default function Settings() {
               <button
                 onClick={handleExportJSON}
                 disabled={exporting}
-                className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
+                className="px-4 py-2 bg-[#689d6a] text-[#282828] rounded font-medium hover:bg-[#8ec07c] disabled:opacity-50 transition-all duration-200"
               >
                 {exporting ? 'Exporting...' : 'Export JSON'}
               </button>
               <button
                 onClick={handleExportCSV}
                 disabled={exporting}
-                className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
+                className="px-4 py-2 bg-[#3c3836] text-[#ebdbb2] rounded hover:bg-[#504945] hover:text-[#fbf1c7] disabled:opacity-50 transition-all duration-200"
               >
                 {exporting ? 'Exporting...' : 'Export CSV'}
               </button>
