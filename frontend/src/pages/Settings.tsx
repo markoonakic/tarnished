@@ -55,6 +55,8 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [activeSection, setActiveSection] = useState('theme');
+  const [mobileCategory, setMobileCategory] = useState('theme');
 
   useEffect(() => {
     loadData();
@@ -165,27 +167,90 @@ export default function Settings() {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-primary mb-6">Settings</h1>
-
-        {error && (
-          <div className="bg-accent-red/20 border border-accent-red text-accent-red px-4 py-3 rounded mb-6">
-            {error}
+      <div className="flex min-h-screen">
+        {/* Sidebar - desktop */}
+        <aside className="hidden md:block w-60 bg-secondary border-r border-tertiary">
+          <div className="py-8">
+            <h1 className="text-2xl font-bold text-primary mb-6 px-4">Settings</h1>
+            <nav className="py-4">
+              <a
+                href="#theme"
+                onClick={(e) => { e.preventDefault(); setActiveSection('theme'); }}
+                className={`block px-4 py-3 text-sm transition-colors duration-200 ${
+                  activeSection === 'theme' ? 'text-accent-aqua' : 'text-primary hover:text-accent-aqua'
+                }`}
+              >
+                Theme
+              </a>
+              <a
+                href="#statuses"
+                onClick={(e) => { e.preventDefault(); setActiveSection('statuses'); }}
+                className={`block px-4 py-3 text-sm transition-colors duration-200 ${
+                  activeSection === 'statuses' ? 'text-accent-aqua' : 'text-primary hover:text-accent-aqua'
+                }`}
+              >
+                Application Statuses
+              </a>
+              <a
+                href="#rounds"
+                onClick={(e) => { e.preventDefault(); setActiveSection('rounds'); }}
+                className={`block px-4 py-3 text-sm transition-colors duration-200 ${
+                  activeSection === 'rounds' ? 'text-accent-aqua' : 'text-primary hover:text-accent-aqua'
+                }`}
+              >
+                Interview Round Types
+              </a>
+              <a
+                href="#export"
+                onClick={(e) => { e.preventDefault(); setActiveSection('export'); }}
+                className={`block px-4 py-3 text-sm transition-colors duration-200 ${
+                  activeSection === 'export' ? 'text-accent-aqua' : 'text-primary hover:text-accent-aqua'
+                }`}
+              >
+                Data Export
+              </a>
+            </nav>
           </div>
-        )}
+        </aside>
 
-        <div className="space-y-8">
-          <div className="bg-secondary rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-primary mb-4">Theme</h2>
-            <ThemeDropdown
-              themes={THEMES}
-              currentTheme={currentTheme}
-              onChange={handleThemeChange}
-            />
-          </div>
+        {/* Mobile dropdown */}
+        <div className="md:hidden w-full p-4 border-b border-tertiary bg-secondary">
+          <h1 className="text-2xl font-bold text-primary mb-4">Settings</h1>
+          <select
+            value={mobileCategory}
+            onChange={(e) => setMobileCategory(e.target.value)}
+            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua"
+          >
+            <option value="theme">Theme</option>
+            <option value="statuses">Application Statuses</option>
+            <option value="rounds">Interview Round Types</option>
+            <option value="export">Data Export</option>
+          </select>
+        </div>
 
-          <div className="bg-secondary rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-primary mb-4">Application Statuses</h2>
+        {/* Content area */}
+        <main className="flex-1 max-w-4xl p-8">
+          {error && (
+            <div className="bg-accent-red/20 border border-accent-red text-accent-red px-4 py-3 rounded mb-6">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-8">
+          {(activeSection === 'theme' || mobileCategory === 'theme') && (
+            <div className="bg-secondary rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-primary mb-4">Theme</h2>
+              <ThemeDropdown
+                themes={THEMES}
+                currentTheme={currentTheme}
+                onChange={handleThemeChange}
+              />
+            </div>
+          )}
+
+          {(activeSection === 'statuses' || mobileCategory === 'statuses') && (
+            <div className="bg-secondary rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-primary mb-4">Application Statuses</h2>
 
             {loading ? (
               <Loading message="Loading settings..." />
@@ -288,10 +353,12 @@ export default function Settings() {
                 </p>
               </>
             )}
-          </div>
+            </div>
+          )}
 
-          <div className="bg-secondary rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-primary mb-4">Interview Round Types</h2>
+          {(activeSection === 'rounds' || mobileCategory === 'rounds') && (
+            <div className="bg-secondary rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-primary mb-4">Interview Round Types</h2>
 
             {loading ? (
               <Loading message="Loading settings..." />
@@ -328,10 +395,12 @@ export default function Settings() {
                 </form>
               </>
             )}
-          </div>
+            </div>
+          )}
 
-          <div className="bg-secondary rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-primary mb-4">Export Data</h2>
+          {(activeSection === 'export' || mobileCategory === 'export') && (
+            <div className="bg-secondary rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-primary mb-4">Export Data</h2>
             <p className="text-sm text-muted mb-4">
               Download all your application data for backup or analysis.
             </p>
@@ -351,8 +420,10 @@ export default function Settings() {
                 {exporting ? 'Exporting...' : 'Export CSV'}
               </button>
             </div>
+            </div>
+          )}
           </div>
-        </div>
+        </main>
       </div>
     </Layout>
   );
