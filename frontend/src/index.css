@@ -177,6 +177,50 @@
   --accent-orange: #ffb86c;
 }
 
+/* Links - standardized pattern */
+a {
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover,
+a:focus-visible {
+  color: var(--accent-aqua);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--accent-aqua);
+  outline-offset: 2px;
+}
+
+/* Content links (in page content, like company names, back links) */
+.content-link,
+main a:not(.btn):not(.nav-link) {
+  color: var(--accent-aqua);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.content-link:hover,
+main a:not(.btn):not(.nav-link):hover {
+  color: var(--accent-aqua);
+  text-decoration: underline;
+}
+
+/* Navigation links (top nav, sidebar) */
+.nav-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--accent-aqua);
+  /* No border - navigation area is visually distinct */
+}
+
 body {
   margin: 0;
   background-color: var(--bg-primary);
