@@ -3,6 +3,7 @@ import { Sankey, Tooltip, Layer, Rectangle } from 'recharts';
 import { getSankeyData } from '../lib/analytics';
 import type { SankeyData } from '../lib/analytics';
 import Loading from './Loading';
+import EmptyState from './EmptyState';
 
 interface SankeyNodePayload {
   name: string;
@@ -89,9 +90,7 @@ export default function SankeyChart() {
 
   if (!data || data.nodes.length === 0 || data.links.length === 0) {
     return (
-      <div className="text-center py-8 text-muted">
-        Not enough data for visualization. Add more applications with different statuses.
-      </div>
+      <EmptyState message="Not enough data for visualization. Add more applications with different statuses." />
     );
   }
 
@@ -110,9 +109,7 @@ export default function SankeyChart() {
 
   if (sankeyData.links.length === 0) {
     return (
-      <div className="text-center py-8 text-muted">
-        Not enough data for visualization. Add more applications with different statuses.
-      </div>
+      <EmptyState message="Not enough data for visualization. Add more applications with different statuses." />
     );
   }
 

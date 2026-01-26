@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getHeatmapData } from '../lib/analytics';
 import type { HeatmapData } from '../lib/analytics';
 import Loading from './Loading';
+import EmptyState from './EmptyState';
 
 const DAYS_IN_WEEK = 7;
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -122,6 +123,12 @@ export default function ActivityHeatmap() {
 
   if (error) {
     return <div className="text-center py-8 text-accent-red">{error}</div>;
+  }
+
+  if (!data || !data.days || data.days.length === 0 || data.max_count === 0) {
+    return (
+      <EmptyState message="Not enough data for visualization. Add more applications with different statuses." />
+    );
   }
 
   const grid = buildGrid();
