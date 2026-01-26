@@ -185,7 +185,7 @@ export default function Settings() {
                 href="#statuses"
                 onClick={(e) => { e.preventDefault(); setActiveSection('statuses'); }}
                 className={`block px-4 py-3 text-sm transition-colors duration-200 ${
-                  activeSection === 'statuses' ? 'text-accent-aqua' : 'text-primary hover:text-accent-aqua'
+                  activeSection === 'statuses' ? 'text-[#8ec07c]' : 'text-[#ebdbb2] hover:text-[#8ec07c]'
                 }`}
               >
                 Application Statuses
@@ -194,7 +194,7 @@ export default function Settings() {
                 href="#rounds"
                 onClick={(e) => { e.preventDefault(); setActiveSection('rounds'); }}
                 className={`block px-4 py-3 text-sm transition-colors duration-200 ${
-                  activeSection === 'rounds' ? 'text-accent-aqua' : 'text-primary hover:text-accent-aqua'
+                  activeSection === 'rounds' ? 'text-[#8ec07c]' : 'text-[#ebdbb2] hover:text-[#8ec07c]'
                 }`}
               >
                 Interview Round Types
@@ -203,7 +203,7 @@ export default function Settings() {
                 href="#export"
                 onClick={(e) => { e.preventDefault(); setActiveSection('export'); }}
                 className={`block px-4 py-3 text-sm transition-colors duration-200 ${
-                  activeSection === 'export' ? 'text-accent-aqua' : 'text-primary hover:text-accent-aqua'
+                  activeSection === 'export' ? 'text-[#8ec07c]' : 'text-[#ebdbb2] hover:text-[#8ec07c]'
                 }`}
               >
                 Data Export
@@ -218,7 +218,7 @@ export default function Settings() {
           <select
             value={activeSection}
             onChange={(e) => setActiveSection(e.target.value)}
-            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua"
+            className="w-full px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
           >
             <option value="theme">Theme</option>
             <option value="statuses">Application Statuses</option>

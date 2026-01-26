@@ -98,14 +98,14 @@ export default function Applications() {
                 placeholder="Search company or job title..."
                 value={search}
                 onChange={(e) => updateParams({ search: e.target.value })}
-                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua"
+                className="w-full px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] placeholder-[#928374] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
               />
             </div>
             <div>
               <select
                 value={statusFilter}
                 onChange={(e) => updateParams({ status: e.target.value })}
-                className="px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua"
+                className="px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
               >
                 <option value="">All Statuses</option>
                 {statuses.map((status) => (
@@ -119,7 +119,7 @@ export default function Applications() {
         </div>
 
         {error && (
-          <div className="bg-accent-red/20 border border-accent-red text-accent-red px-4 py-3 rounded mb-6">
+          <div className="bg-[#fb4934]/20 border border-[#fb4934] text-[#fb4934] px-4 py-3 rounded mb-6">
             {error}
           </div>
         )}

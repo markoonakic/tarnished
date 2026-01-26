@@ -127,7 +127,7 @@ export default function ApplicationDetail() {
     return (
       <Layout>
         <div className="flex items-center justify-center py-20">
-          <div className="text-accent-red">Application not found</div>
+          <div className="text-[#fb4934]">Application not found</div>
         </div>
       </Layout>
     );
@@ -143,7 +143,7 @@ export default function ApplicationDetail() {
         </div>
 
         {error && (
-          <div className="bg-accent-red/20 border border-accent-red text-accent-red px-4 py-3 rounded mb-6">
+          <div className="bg-[#fb4934]/20 border border-[#fb4934] text-[#fb4934] px-4 py-3 rounded mb-6">
             {error}
           </div>
         )}

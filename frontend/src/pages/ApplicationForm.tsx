@@ -156,7 +156,7 @@ export default function ApplicationForm() {
         <div className="mb-6">
           <Link
             to={isEditing ? `/applications/${id}` : '/applications'}
-            className="text-accent-aqua hover:underline"
+            className="text-[#689d6a] hover:text-[#8ec07c] transition-colors duration-200"
           >
             &larr; Back
           </Link>
@@ -167,7 +167,7 @@ export default function ApplicationForm() {
         </h1>
 
         {error && (
-          <div className="bg-accent-red/20 border border-accent-red text-accent-red px-4 py-3 rounded mb-6">
+          <div className="bg-[#fb4934]/20 border border-[#fb4934] text-[#fb4934] px-4 py-3 rounded mb-6">
             {error}
           </div>
         )}
@@ -176,7 +176,7 @@ export default function ApplicationForm() {
           <div className="space-y-4">
             <div>
               <label className="block mb-1 text-sm font-semibold text-muted">
-                Company <span className="text-accent-red">*</span>
+                Company <span className="text-[#fb4934]">*</span>
               </label>
               <input
                 type="text"
@@ -189,7 +189,7 @@ export default function ApplicationForm() {
 
             <div>
               <label className="block mb-1 text-sm font-semibold text-muted">
-                Job Title <span className="text-accent-red">*</span>
+                Job Title <span className="text-[#fb4934]">*</span>
               </label>
               <input
                 type="text"
@@ -202,7 +202,7 @@ export default function ApplicationForm() {
 
             <div>
               <label className="block mb-1 text-sm font-semibold text-muted">
-                Status <span className="text-accent-red">*</span>
+                Status <span className="text-[#fb4934]">*</span>
               </label>
               <select
                 value={statusId}
@@ -245,7 +245,7 @@ export default function ApplicationForm() {
                 }`}
               />
               {jobUrlError && (
-                <p className="text-accent-red text-sm mt-1">{jobUrlError}</p>
+                <p className="text-[#fb4934] text-sm mt-1">{jobUrlError}</p>
               )}
             </div>
 
@@ -270,7 +270,7 @@ export default function ApplicationForm() {
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
+              className="px-4 py-2 bg-[#689d6a] text-[#282828] rounded font-medium hover:bg-[#8ec07c] disabled:opacity-50 transition-all duration-200"
             >
               {loading ? 'Saving...' : isEditing ? 'Save' : 'Add Application'}
             </button>
