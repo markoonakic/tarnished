@@ -39,6 +39,14 @@ from app.schemas.admin import (
 from pydantic import BaseModel
 
 
+class DashboardKPIsResponse(BaseModel):
+    last_7_days: int
+    last_7_days_trend: float
+    last_30_days: int
+    last_30_days_trend: float
+    active_opportunities: int
+
+
 class ApplicationStatusHistoryResponse(BaseModel):
     id: str
     from_status: StatusResponse | None
@@ -80,5 +88,6 @@ __all__ = [
     "AdminStatsResponse",
     "AdminStatusUpdate",
     "AdminRoundTypeUpdate",
+    "DashboardKPIsResponse",
     "ApplicationStatusHistoryResponse",
 ]
