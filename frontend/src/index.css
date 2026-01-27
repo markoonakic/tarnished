@@ -67,17 +67,40 @@
 }
 
 @theme {
-  --color-primary: var(--bg-primary);
-  --color-secondary: var(--bg-secondary);
-  --color-tertiary: var(--bg-tertiary);
-  --color-muted: var(--text-secondary);
-  --color-accent-red: var(--accent-red);
-  --color-accent-green: var(--accent-green);
-  --color-accent-yellow: var(--accent-yellow);
-  --color-accent-blue: var(--accent-blue);
-  --color-accent-purple: var(--accent-purple);
-  --color-accent-aqua: var(--accent-aqua);
-  --color-accent-orange: var(--accent-orange);
+  /* Backgrounds */
+  --color-bg0-hard: var(--bg0-hard);
+  --color-bg0: var(--bg0);
+  --color-bg0-soft: var(--bg0-soft);
+  --color-bg1: var(--bg1);
+  --color-bg2: var(--bg2);
+  --color-bg3: var(--bg3);
+  --color-bg4: var(--bg4);
+
+  /* Foregrounds */
+  --color-fg0: var(--fg0);
+  --color-fg1: var(--fg1);
+  --color-fg2: var(--fg2);
+  --color-fg3: var(--fg3);
+  --color-fg4: var(--fg4);
+  --color-gray: var(--gray);
+
+  /* Accent colors - darker */
+  --color-red: var(--red);
+  --color-green: var(--green);
+  --color-yellow: var(--yellow);
+  --color-blue: var(--blue);
+  --color-purple: var(--purple);
+  --color-aqua: var(--aqua);
+  --color-orange: var(--orange);
+
+  /* Accent colors - bright */
+  --color-red-bright: var(--red-bright);
+  --color-green-bright: var(--green-bright);
+  --color-yellow-bright: var(--yellow-bright);
+  --color-blue-bright: var(--blue-bright);
+  --color-purple-bright: var(--purple-bright);
+  --color-aqua-bright: var(--aqua-bright);
+  --color-orange-bright: var(--orange-bright);
 }
 
 :root {
@@ -121,116 +144,173 @@
   /* Touch targets (accessibility) */
   --touch-target-min: 2.75rem; /* 44px minimum for mobile */
 
-  /* RGB values for opacity calculations */
-  --accent-red-rgb: 251, 73, 68; /* #fb4934 */
-  --accent-aqua-rgb: 142, 192, 124; /* #8ec07c */
+  /* Backgrounds */
+  --bg0-hard: #1d2021;
+  --bg0: #282828;
+  --bg0-soft: #32302f;
+  --bg1: #3c3836;
+  --bg2: #504945;
+  --bg3: #665c54;
+  --bg4: #7c6f64;
 
-  --bg-primary: #282828;
-  --bg-secondary: #3c3836;
-  --bg-tertiary: #504945;
-  --text-primary: #ebdbb2;
-  --text-secondary: #a89984;
-  --accent-red: #fb4934;
-  --accent-green: #b8bb26;
-  --accent-yellow: #fabd2f;
-  --accent-blue: #83a598;
-  --accent-purple: #d3869b;
-  --accent-aqua: #8ec07c;
-  --accent-orange: #fe8019;
+  /* Foregrounds */
+  --fg0: #fbf1c7;
+  --fg1: #ebdbb2;
+  --fg2: #d5c4a1;
+  --fg3: #bdae93;
+  --fg4: #a89984;
+  --gray: #928374;
+
+  /* Accent colors - darker (row 1) */
+  --red: #cc241d;
+  --green: #98971a;
+  --yellow: #d79921;
+  --blue: #458588;
+  --purple: #b16286;
+  --aqua: #689d6a;
+  --orange: #d65d0e;
+
+  /* Accent colors - bright (row 2) */
+  --red-bright: #fb4934;
+  --green-bright: #b8bb26;
+  --yellow-bright: #fabd2f;
+  --blue-bright: #83a598;
+  --purple-bright: #d3869b;
+  --aqua-bright: #8ec07c;
+  --orange-bright: #fe8019;
 }
 
 [data-theme="gruvbox-light"] {
-  --bg-primary: #fbf1c7;
-  --bg-secondary: #ebdbb2;
-  --bg-tertiary: #d5c4a1;
-  --text-primary: #3c3836;
-  --text-secondary: #665c54;
-  --accent-red: #cc241d;
-  --accent-green: #98971a;
-  --accent-yellow: #d79921;
-  --accent-blue: #458588;
-  --accent-purple: #b16286;
-  --accent-aqua: #689d6a;
-  --accent-orange: #d65d0e;
+  --bg0: #fbf1c7;
+  --bg1: #ebdbb2;
+  --bg2: #d5c4a1;
+  --bg3: #bdae93;
+  --bg4: #a89984;
+  --fg0: #282828;
+  --fg1: #3c3836;
+  --fg2: #504945;
+  --fg3: #665c54;
+  --fg4: #7c6f64;
+  --gray: #928374;
+  --red: #9d0006;
+  --green: #79740e;
+  --yellow: #b57614;
+  --blue: #076678;
+  --purple: #8f3f71;
+  --aqua: #427b58;
+  --orange: #af3a03;
+  --red-bright: #cc241d;
+  --green-bright: #98971a;
+  --yellow-bright: #d79921;
+  --blue-bright: #458588;
+  --purple-bright: #b16286;
+  --aqua-bright: #689d6a;
+  --orange-bright: #d65d0e;
 }
 
 [data-theme="nord"] {
-  --bg-primary: #2e3440;
-  --bg-secondary: #3b4252;
-  --bg-tertiary: #434c5e;
-  --text-primary: #eceff4;
-  --text-secondary: #d8dee9;
-  --accent-red: #bf616a;
-  --accent-green: #a3be8c;
-  --accent-yellow: #ebcb8b;
-  --accent-blue: #81a1c1;
-  --accent-purple: #b48ead;
-  --accent-aqua: #88c0d0;
-  --accent-orange: #d08770;
+  --bg0: #2e3440;
+  --bg1: #3b4252;
+  --bg2: #434c5e;
+  --bg3: #4c566a;
+  --bg4: #4c566a;
+  --fg0: #eceff4;
+  --fg1: #eceff4;
+  --fg2: #e5e9f0;
+  --fg3: #d8dee9;
+  --fg4: #d8dee9;
+  --gray: #4c566a;
+  --red: #bf616a;
+  --green: #a3be8c;
+  --yellow: #ebcb8b;
+  --blue: #81a1c1;
+  --purple: #b48ead;
+  --aqua: #88c0d0;
+  --orange: #d08770;
+  --red-bright: #bf616a;
+  --green-bright: #a3be8c;
+  --yellow-bright: #ebcb8b;
+  --blue-bright: #81a1c1;
+  --purple-bright: #b48ead;
+  --aqua-bright: #88c0d0;
+  --orange-bright: #d08770;
 }
 
 [data-theme="dracula"] {
-  --bg-primary: #282a36;
-  --bg-secondary: #44475a;
-  --bg-tertiary: #6272a4;
-  --text-primary: #f8f8f2;
-  --text-secondary: #6272a4;
-  --accent-red: #ff5555;
-  --accent-green: #50fa7b;
-  --accent-yellow: #f1fa8c;
-  --accent-blue: #8be9fd;
-  --accent-purple: #bd93f9;
-  --accent-aqua: #8be9fd;
-  --accent-orange: #ffb86c;
+  --bg0: #282a36;
+  --bg1: #44475a;
+  --bg2: #6272a4;
+  --bg3: #6272a4;
+  --bg4: #6272a4;
+  --fg0: #f8f8f2;
+  --fg1: #f8f8f2;
+  --fg2: #f8f8f2;
+  --fg3: #f8f8f2;
+  --fg4: #6272a4;
+  --gray: #6272a4;
+  --red: #ff5555;
+  --green: #50fa7b;
+  --yellow: #f1fa8c;
+  --blue: #8be9fd;
+  --purple: #bd93f9;
+  --aqua: #8be9fd;
+  --orange: #ffb86c;
+  --red-bright: #ff5555;
+  --green-bright: #50fa7b;
+  --yellow-bright: #f1fa8c;
+  --blue-bright: #8be9fd;
+  --purple-bright: #bd93f9;
+  --aqua-bright: #8be9fd;
+  --orange-bright: #ffb86c;
 }
 
 /* Links - standardized pattern */
 a {
-  color: var(--text-primary);
+  color: var(--fg1);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 a:hover,
 a:focus-visible {
-  color: var(--accent-aqua);
+  color: var(--aqua-bright);
 }
 
 a:focus-visible {
-  outline: 2px solid var(--accent-aqua);
+  outline: 2px solid var(--aqua-bright);
   outline-offset: 2px;
 }
 
 /* Content links (in page content, like company names, back links) */
 .content-link,
 main a:not(.btn):not(.nav-link) {
-  color: var(--accent-aqua);
+  color: var(--aqua-bright);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 .content-link:hover,
 main a:not(.btn):not(.nav-link):hover {
-  color: var(--accent-aqua);
+  color: var(--aqua-bright);
 }
 
 /* Navigation links (top nav, sidebar) */
 .nav-link {
-  color: var(--text-primary);
+  color: var(--fg1);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 .nav-link:hover,
 .nav-link.active {
-  color: var(--accent-aqua);
+  color: var(--aqua-bright);
   /* No border - navigation area is visually distinct */
 }
 
 body {
   margin: 0;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  background-color: var(--bg0);
+  color: var(--fg1);
   font-family: var(--font-mono);
   font-size: var(--font-base);
   line-height: 1.5;
@@ -263,33 +343,37 @@ h3 {
   min-width: var(--touch-target-min);
 }
 
-.bg-primary { background-color: var(--bg-primary); }
-.bg-secondary { background-color: var(--bg-secondary); }
-.bg-tertiary { background-color: var(--bg-tertiary); }
-.bg-accent-red { background-color: var(--accent-red); }
-.bg-accent-green { background-color: var(--accent-green); }
-.bg-accent-yellow { background-color: var(--accent-yellow); }
-.bg-accent-blue { background-color: var(--accent-blue); }
-.bg-accent-purple { background-color: var(--accent-purple); }
-.bg-accent-aqua { background-color: var(--accent-aqua); }
-.bg-accent-orange { background-color: var(--accent-orange); }
+/* Background utilities */
+.bg-primary { background-color: var(--bg0); }
+.bg-secondary { background-color: var(--bg1); }
+.bg-tertiary { background-color: var(--bg2); }
+.bg-accent-red { background-color: var(--red-bright); }
+.bg-accent-green { background-color: var(--green-bright); }
+.bg-accent-yellow { background-color: var(--yellow-bright); }
+.bg-accent-blue { background-color: var(--blue-bright); }
+.bg-accent-purple { background-color: var(--purple-bright); }
+.bg-accent-aqua { background-color: var(--aqua-bright); }
+.bg-accent-orange { background-color: var(--orange-bright); }
 
-.text-primary { color: var(--text-primary); }
-.text-secondary { color: var(--text-secondary); }
-.text-muted { color: var(--text-secondary); }
-.text-bg-primary { color: var(--bg-primary); }
-.text-accent-red { color: var(--accent-red); }
-.text-accent-green { color: var(--accent-green); }
-.text-accent-yellow { color: var(--accent-yellow); }
-.text-accent-blue { color: var(--accent-blue); }
-.text-accent-purple { color: var(--accent-purple); }
-.text-accent-aqua { color: var(--accent-aqua); }
-.text-accent-orange { color: var(--accent-orange); }
+/* Text color utilities */
+.text-primary { color: var(--fg1); }
+.text-secondary { color: var(--fg4); }
+.text-muted { color: var(--fg4); }
+.text-bg-primary { color: var(--bg0); }
+.text-accent-red { color: var(--red-bright); }
+.text-accent-green { color: var(--green-bright); }
+.text-accent-yellow { color: var(--yellow-bright); }
+.text-accent-blue { color: var(--blue-bright); }
+.text-accent-purple { color: var(--purple-bright); }
+.text-accent-aqua { color: var(--aqua-bright); }
+.text-accent-orange { color: var(--orange-bright); }
 
-.border-primary { border-color: var(--bg-primary); }
-.border-secondary { border-color: var(--bg-secondary); }
-.border-tertiary { border-color: var(--bg-tertiary); }
-.border-accent-aqua { border-color: var(--accent-aqua); }
+/* Border utilities */
+.border-primary { border-color: var(--bg0); }
+.border-secondary { border-color: var(--bg1); }
+.border-tertiary { border-color: var(--bg2); }
+.border-muted { border-color: var(--fg4); }
+.border-accent-aqua { border-color: var(--aqua-bright); }
 
 input[type="date"],
 input[type="datetime-local"] {
@@ -353,7 +437,7 @@ td, th {
 
 /* Focus indicators - visible and consistent */
 :focus-visible {
-  outline: 2px solid var(--accent-aqua);
+  outline: 2px solid var(--aqua-bright);
   outline-offset: 2px;
 }
 
@@ -364,7 +448,7 @@ td, th {
 
 /* Button focus */
 button:focus-visible {
-  outline: 2px solid var(--accent-aqua);
+  outline: 2px solid var(--aqua-bright);
   outline-offset: 2px;
 }
 
@@ -372,13 +456,13 @@ button:focus-visible {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--accent-aqua);
+  outline: 2px solid var(--aqua-bright);
   outline-offset: -1px; /* Inside element */
 }
 
 /* Link focus */
 a:focus-visible {
-  outline: 2px solid var(--accent-aqua);
+  outline: 2px solid var(--aqua-bright);
   outline-offset: 2px;
 }
 
