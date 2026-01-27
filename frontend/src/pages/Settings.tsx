@@ -280,14 +280,14 @@ export default function Settings() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => startEditStatus(status)}
-                          className="text-xs text-aqua hover:text-aqua-bright transition-colors duration-200"
+                          className="text-xs text-aqua hover:text-aqua-bright transition-colors duration-200 cursor-pointer"
                         >
                           Edit
                         </button>
                         {!status.is_default && (
                           <button
                             onClick={() => handleDeleteStatus(status)}
-                            className="text-xs text-red hover:text-red-bright transition-colors duration-200"
+                            className="text-xs text-red hover:text-red-bright transition-colors duration-200 cursor-pointer"
                           >
                             Delete
                           </button>
@@ -312,18 +312,18 @@ export default function Settings() {
                         type="color"
                         value={editStatusColor}
                         onChange={(e) => setEditStatusColor(e.target.value)}
-                        className="w-10 h-10 rounded cursor-pointer bg-tertiary border border-muted"
+                        className="w-10 h-10 rounded cursor-pointer bg-bg1 border border-muted"
                       />
                       <button
                         type="submit"
-                        className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200"
+                        className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
                       >
                         Save
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditingStatus(null)}
-                        className="px-4 py-2 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200"
+                        className="px-4 py-2 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -346,7 +346,7 @@ export default function Settings() {
                     />
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200"
+                      className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
                     >
                       Add
                     </button>
@@ -398,7 +398,7 @@ export default function Settings() {
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200"
+                    className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
                   >
                     Add
                   </button>
@@ -418,14 +418,14 @@ export default function Settings() {
               <button
                 onClick={handleExportJSON}
                 disabled={exporting}
-                className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright disabled:opacity-50 transition-all duration-200"
+                className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright disabled:opacity-50 transition-all duration-200 cursor-pointer"
               >
                 {exporting ? 'Exporting...' : 'Export JSON'}
               </button>
               <button
                 onClick={handleExportCSV}
                 disabled={exporting}
-                className="px-4 py-2 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200"
+                className="px-4 py-2 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200 cursor-pointer"
               >
                 {exporting ? 'Exporting...' : 'Export CSV'}
               </button>

@@ -122,7 +122,7 @@ export default function SankeyChart() {
         node={<SankeyNode x={0} y={0} width={0} height={0} index={0} payload={{ name: '', value: 0, x: 0, y: 0, width: 0, height: 0, index: 0 }} />}
         nodePadding={50}
         margin={{ top: 20, right: 200, bottom: 20, left: 20 }}
-        link={{ stroke: 'var(--bg-tertiary)' }}
+        link={{ stroke: 'var(--bg3)' }}
       >
         <Tooltip
           contentStyle={{

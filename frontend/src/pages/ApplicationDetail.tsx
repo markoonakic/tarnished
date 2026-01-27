@@ -209,7 +209,7 @@ export default function ApplicationDetail() {
             </Link>
             <button
               onClick={handleDelete}
-              className="px-4 py-2 bg-bg1 text-red rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200"
+              className="px-4 py-2 bg-bg1 text-red rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 cursor-pointer"
             >
               Delete
             </button>
@@ -228,7 +228,7 @@ export default function ApplicationDetail() {
             <h2 className="text-lg font-semibold text-primary">Interview Rounds</h2>
             <button
               onClick={() => setShowRoundForm(true)}
-              className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200"
+              className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
             >
               Add Round
             </button>

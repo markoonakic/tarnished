@@ -271,14 +271,14 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
+          className="px-4 py-2 bg-bg1 text-fg1 rounded hover:bg-bg2 disabled:opacity-50 transition-all duration-200 cursor-pointer"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
+          className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright disabled:opacity-50 transition-all duration-200 cursor-pointer"
         >
           {loading ? 'Saving...' : isEditing ? 'Save' : 'Add Round'}
         </button>

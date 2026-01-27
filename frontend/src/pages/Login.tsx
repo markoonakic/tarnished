@@ -65,7 +65,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-4 py-2 bg-accent-aqua text-bg-primary rounded font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200"
+            className="w-full px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright disabled:opacity-50 transition-all duration-200 cursor-pointer"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
@@ -73,7 +73,7 @@ export default function Login() {
 
           <p className="mt-4 text-center text-muted">
             Don't have an account?{' '}
-            <Link to="/register" className="text-accent-aqua">Register</Link>
+            <Link to="/register" className="text-aqua hover:text-aqua-bright transition-colors duration-200 cursor-pointer">Register</Link>
           </p>
       </div>
     </div>

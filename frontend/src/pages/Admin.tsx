@@ -69,20 +69,20 @@ export default function Admin() {
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setActiveTab('stats')}
-            className={`px-4 py-2 rounded font-medium transition-all duration-200 ${
+            className={`px-4 py-2 rounded font-medium transition-all duration-200 cursor-pointer ${
               activeTab === 'stats'
-                ? 'bg-accent-aqua text-bg-primary hover:opacity-90'
-                : 'bg-tertiary text-primary hover:bg-muted'
+                ? 'bg-aqua text-bg0 hover:bg-aqua-bright'
+                : 'bg-bg1 text-fg1 hover:bg-bg2'
             }`}
           >
             Statistics
           </button>
           <button
             onClick={() => setActiveTab('users')}
-            className={`px-4 py-2 rounded font-medium transition-all duration-200 ${
+            className={`px-4 py-2 rounded font-medium transition-all duration-200 cursor-pointer ${
               activeTab === 'users'
-                ? 'bg-accent-aqua text-bg-primary hover:opacity-90'
-                : 'bg-tertiary text-primary hover:bg-muted'
+                ? 'bg-aqua text-bg0 hover:bg-aqua-bright'
+                : 'bg-bg1 text-fg1 hover:bg-bg2'
             }`}
           >
             Users
@@ -140,10 +140,10 @@ export default function Admin() {
                       <button
                         onClick={() => handleToggleAdmin(u.id, u.is_admin)}
                         disabled={u.id === user?.id}
-                        className={`px-2 py-1 rounded text-xs ${
+                        className={`px-2 py-1 rounded text-xs cursor-pointer ${
                           u.is_admin
                             ? 'bg-accent-purple/20 text-accent-purple'
-                            : 'bg-tertiary text-muted'
+                            : 'bg-bg1 text-muted'
                         } disabled:opacity-50`}
                       >
                         {u.is_admin ? 'Yes' : 'No'}
@@ -153,7 +153,7 @@ export default function Admin() {
                       <button
                         onClick={() => handleToggleActive(u.id, u.is_active)}
                         disabled={u.id === user?.id}
-                        className={`px-2 py-1 rounded text-xs ${
+                        className={`px-2 py-1 rounded text-xs cursor-pointer ${
                           u.is_active
                             ? 'bg-accent-green/20 text-accent-green'
                             : 'bg-accent-red/20 text-accent-red'

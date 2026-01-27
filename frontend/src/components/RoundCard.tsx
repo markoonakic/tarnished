@@ -217,7 +217,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
           <div className="flex items-center gap-1.5">
             <button
               onClick={onEdit}
-              className="p-2 text-blue hover:text-blue-bright transition-colors duration-200"
+              className="p-2 bg-bg1 text-blue rounded hover:bg-bg2 hover:text-blue-bright transition-all duration-200 cursor-pointer"
               aria-label="Edit round"
               title="Edit"
             >
@@ -225,7 +225,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
             </button>
             <button
               onClick={onDelete}
-              className="p-2 text-red hover:text-red-bright transition-colors duration-200"
+              className="p-2 bg-bg1 text-red rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 cursor-pointer"
               aria-label="Delete round"
               title="Delete"
             >
@@ -283,7 +283,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPlayingMedia(m)}
-                    className="px-3 py-1.5 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 flex items-center gap-1.5 text-sm"
+                    className="px-3 py-1.5 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 flex items-center gap-1.5 text-sm cursor-pointer"
                     title="Play"
                   >
                     <i className="bi-play-fill" />
@@ -291,7 +291,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                   </button>
                   <button
                     onClick={(e) => handleMediaDownload(m, e)}
-                    className="px-3 py-1.5 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 flex items-center gap-1.5 text-sm"
+                    className="px-3 py-1.5 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 flex items-center gap-1.5 text-sm cursor-pointer"
                     title="Download"
                   >
                     <i className="bi-download" />
@@ -299,7 +299,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                   </button>
                   <button
                     onClick={(e) => handleMediaDelete(m.id, e)}
-                    className="px-3 py-1.5 bg-bg1 text-red rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 flex items-center gap-1.5 text-sm"
+                    className="px-3 py-1.5 bg-bg1 text-red rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 flex items-center gap-1.5 text-sm cursor-pointer"
                     title="Delete"
                   >
                     <i className="bi-trash" />
@@ -351,7 +351,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                 <button
                   onClick={handleTranscriptPreview}
                   disabled={uploadingTranscript}
-                  className="px-3 py-1.5 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200 flex items-center gap-1.5 text-sm"
+                  className="px-3 py-1.5 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200 flex items-center gap-1.5 text-sm cursor-pointer"
                   title="View"
                 >
                   <i className="bi-eye" />
@@ -360,7 +360,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                 <button
                   onClick={handleTranscriptDelete}
                   disabled={uploadingTranscript}
-                  className="px-3 py-1.5 bg-bg1 text-red-bright rounded hover:bg-bg2 disabled:opacity-50 transition-all duration-200 flex items-center gap-1.5 text-sm"
+                  className="px-3 py-1.5 bg-bg1 text-red rounded hover:bg-bg2 hover:text-red-bright disabled:opacity-50 transition-all duration-200 flex items-center gap-1.5 text-sm cursor-pointer"
                   title="Delete"
                 >
                   <i className="bi-trash" />
