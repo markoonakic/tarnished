@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import Application, ApplicationStatus, Round, User
+from app.models import Application, ApplicationStatus, ApplicationStatusHistory, Round, User
 from app.schemas.application import (
     ApplicationCreate,
     ApplicationListItem,
@@ -159,11 +159,27 @@ async def update_application(
         if not result.scalars().first():
             raise HTTPException(status_code=400, detail="Invalid status")
 
+    # Track status change if status_id is being updated
+    old_status_id = application.status_id
+    status_changed = False
+
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
+        if key == "status_id" and value != old_status_id:
+            status_changed = True
         setattr(application, key, value)
 
     await db.commit()
+
+    # Create status history entry if status changed
+    if status_changed:
+        history_entry = ApplicationStatusHistory(
+            application_id=application.id,
+            from_status_id=old_status_id,
+            to_status_id=data.status_id,
+        )
+        db.add(history_entry)
+        await db.commit()
 
     result = await db.execute(
         select(Application)
