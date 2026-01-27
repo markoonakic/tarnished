@@ -84,7 +84,7 @@ export default function Applications() {
           <h1 className="text-2xl font-bold text-primary">Applications</h1>
           <Link
             to="/applications/new"
-            className="px-4 py-2 bg-[#689d6a] text-[#282828] rounded font-medium hover:bg-[#8ec07c] transition-all duration-200"
+            className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200"
           >
             New Application
           </Link>
@@ -162,7 +162,7 @@ export default function Applications() {
                       <td className="py-3 px-4 text-sm">
                         <Link
                           to={`/applications/${app.id}`}
-                          className="text-[#689d6a] hover:text-[#8ec07c] transition-colors duration-200 font-medium"
+                          className="text-aqua hover:text-aqua-bright transition-colors duration-200 font-medium"
                         >
                           {app.company}
                         </Link>

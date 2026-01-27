@@ -137,7 +137,7 @@ export default function ApplicationDetail() {
     <Layout>
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <Link to="/applications" className="text-[#689d6a] hover:text-[#8ec07c] transition-colors duration-200">
+          <Link to="/applications" className="text-aqua hover:text-aqua-bright transition-colors duration-200">
             &larr; Back to Applications
           </Link>
         </div>
@@ -186,7 +186,7 @@ export default function ApplicationDetail() {
                 href={application.job_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#689d6a] hover:text-[#8ec07c] transition-colors duration-200 text-sm"
+                className="text-aqua hover:text-aqua-bright transition-colors duration-200 text-sm"
               >
                 View Job Posting &rarr;
               </a>
@@ -203,13 +203,13 @@ export default function ApplicationDetail() {
           <div className="flex items-center justify-end gap-2 pt-4 border-t border-tertiary">
             <Link
               to={`/applications/${id}/edit`}
-              className="px-4 py-2 bg-[#3c3836] text-[#ebdbb2] rounded hover:bg-[#504945] hover:text-[#fbf1c7] transition-all duration-200"
+              className="px-4 py-2 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200"
             >
               Edit
             </Link>
             <button
               onClick={handleDelete}
-              className="px-4 py-2 bg-[#3c3836] text-[#fb4934] rounded hover:bg-[#504945] transition-all duration-200"
+              className="px-4 py-2 bg-bg1 text-red-bright rounded hover:bg-bg2 transition-all duration-200"
             >
               Delete
             </button>
@@ -228,7 +228,7 @@ export default function ApplicationDetail() {
             <h2 className="text-lg font-semibold text-primary">Interview Rounds</h2>
             <button
               onClick={() => setShowRoundForm(true)}
-              className="px-4 py-2 bg-[#689d6a] text-[#282828] rounded font-medium hover:bg-[#8ec07c] transition-all duration-200"
+              className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200"
             >
               Add Round
             </button>

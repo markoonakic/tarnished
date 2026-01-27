@@ -182,7 +182,7 @@ export default function ApplicationForm() {
                 type="text"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                className="w-full px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] placeholder-[#928374] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
+                className="w-full px-3 py-2 bg-bg1 border border-transparent rounded text-fg1 placeholder-gray focus:outline-none focus:border-aqua-bright transition-all duration-200"
                 required
               />
             </div>
@@ -195,7 +195,7 @@ export default function ApplicationForm() {
                 type="text"
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
-                className="w-full px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] placeholder-[#928374] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
+                className="w-full px-3 py-2 bg-bg1 border border-transparent rounded text-fg1 placeholder-gray focus:outline-none focus:border-aqua-bright transition-all duration-200"
                 required
               />
             </div>
@@ -207,7 +207,7 @@ export default function ApplicationForm() {
               <select
                 value={statusId}
                 onChange={(e) => setStatusId(e.target.value)}
-                className="w-full px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
+                className="w-full px-3 py-2 bg-bg1 border border-transparent rounded text-fg1 focus:outline-none focus:border-aqua-bright transition-all duration-200"
                 required
               >
                 <option value="">Select status</option>
@@ -225,7 +225,7 @@ export default function ApplicationForm() {
                 type="date"
                 value={appliedAt}
                 onChange={(e) => setAppliedAt(e.target.value)}
-                className="w-full px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] focus:outline-none focus:border-[#8ec07c] transition-all duration-200"
+                className="w-full px-3 py-2 bg-bg1 border border-transparent rounded text-fg1 focus:outline-none focus:border-aqua-bright transition-all duration-200"
               />
             </div>
 
@@ -240,8 +240,8 @@ export default function ApplicationForm() {
                 }}
                 onBlur={handleJobUrlBlur}
                 placeholder="example.com or https://..."
-                className={`w-full px-3 py-2 bg-[#3c3836] border rounded text-[#ebdbb2] placeholder-[#928374] focus:outline-none focus:border-[#8ec07c] transition-all duration-200 ${
-                  jobUrlError ? 'border-[#fb4934]' : 'border-transparent'
+                className={`w-full px-3 py-2 bg-bg1 border rounded text-fg1 placeholder-gray focus:outline-none focus:border-aqua-bright transition-all duration-200 ${
+                  jobUrlError ? 'border-red-bright' : 'border-transparent'
                 }`}
               />
               {jobUrlError && (
@@ -255,7 +255,7 @@ export default function ApplicationForm() {
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
                 rows={6}
-                className="w-full px-3 py-2 bg-[#3c3836] border border-transparent rounded text-[#ebdbb2] placeholder-[#928374] focus:outline-none focus:border-[#8ec07c] transition-all duration-200 resize-y"
+                className="w-full px-3 py-2 bg-bg1 border border-transparent rounded text-fg1 placeholder-gray focus:outline-none focus:border-aqua-bright transition-all duration-200 resize-y"
               />
             </div>
           </div>

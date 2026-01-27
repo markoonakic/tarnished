@@ -15,7 +15,7 @@ export default function Layout({ children }: Props) {
   }
 
   function linkClass(path: string) {
-    return isActive(path) ? 'text-[#8ec07c]' : 'text-[#ebdbb2] hover:text-[#8ec07c] transition-colors duration-200';
+    return isActive(path) ? 'text-aqua-bright' : 'text-fg1 hover:text-aqua-bright transition-colors duration-200';
   }
 
   return (
@@ -23,13 +23,13 @@ export default function Layout({ children }: Props) {
       <nav className="bg-secondary border-b border-tertiary">
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[#689d6a] focus:text-[#282828] focus:rounded"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-aqua focus:text-bg0 focus:rounded"
         >
           Skip to main content
         </a>
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-6">
-            <Link to="/" className="text-xl font-bold text-[#ebdbb2] hover:text-[#8ec07c] transition-colors duration-200">
+            <Link to="/" className="text-xl font-bold text-fg1 hover:text-aqua-bright transition-colors duration-200">
               Job Tracker
             </Link>
             <Link to="/applications" className={linkClass('/applications')}>
@@ -51,7 +51,7 @@ export default function Layout({ children }: Props) {
             <span className="text-muted">{user?.email}</span>
             <button
               onClick={signOut}
-              className="px-4 py-2 bg-[#3c3836] text-[#ebdbb2] rounded hover:bg-[#504945] hover:text-[#fbf1c7] transition-all duration-200"
+              className="px-4 py-2 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200"
             >
               Sign Out
             </button>

@@ -149,13 +149,13 @@ export default function DocumentSection({ application, onUpdate }: Props) {
               <button
                 onClick={() => handlePreview(type)}
                 disabled={!canPreview || isUploading}
-                className="px-3 py-1.5 bg-[#3c3836] text-[#ebdbb2] rounded hover:bg-[#504945] hover:text-[#fbf1c7] disabled:opacity-50 transition-all duration-200 flex items-center gap-1.5 text-sm"
+                className="px-3 py-1.5 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200 flex items-center gap-1.5 text-sm"
                 title={canPreview ? 'Preview' : 'Preview not available for this file type'}
               >
                 <i className="bi-eye"></i>
                 Preview
               </button>
-              <label className="px-3 py-1.5 bg-[#3c3836] text-[#ebdbb2] rounded hover:bg-[#504945] hover:text-[#fbf1c7] disabled:opacity-50 transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-sm">
+              <label className="px-3 py-1.5 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-sm">
                 <i className="bi-arrow-repeat"></i>
                 Replace
                 <input
@@ -172,7 +172,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
               <button
                 onClick={() => handleDelete(type)}
                 disabled={isUploading}
-                className="px-3 py-1.5 bg-[#3c3836] text-[#fb4934] rounded hover:bg-[#504945] disabled:opacity-50 transition-all duration-200 flex items-center gap-1.5 text-sm"
+                className="px-3 py-1.5 bg-bg1 text-red-bright rounded hover:bg-bg2 disabled:opacity-50 transition-all duration-200 flex items-center gap-1.5 text-sm"
               >
                 <i className="bi-trash"></i>
                 Remove
@@ -182,7 +182,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
         ) : (
           <div className="flex flex-col gap-2 items-end">
             {isProgressActive && <ProgressBar progress={uploadProgress} fileName={uploadingFile?.name} />}
-            <label className="px-4 py-2 bg-[#689d6a] text-[#282828] rounded font-medium hover:bg-[#8ec07c] disabled:opacity-50 transition-all duration-200 cursor-pointer flex items-center gap-1.5">
+            <label className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright disabled:opacity-50 transition-all duration-200 cursor-pointer flex items-center gap-1.5">
               <i className="bi-upload"></i>
               {isUploading ? 'Uploading...' : 'Upload'}
               <input
