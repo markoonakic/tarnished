@@ -27,6 +27,7 @@ async def get_sankey_data(
         .join(ApplicationStatus)
         .where(Application.user_id == user.id)
         .group_by(Application.status_id, ApplicationStatus.name, ApplicationStatus.color)
+        .order_by(ApplicationStatus.order)
     )
     status_counts = result.all()
 

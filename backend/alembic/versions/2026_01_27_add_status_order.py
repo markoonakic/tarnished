@@ -20,35 +20,44 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    # Check if order column exists, if not add it
     conn = op.get_bind()
     inspector = sa.inspect(conn)
     columns = [col['name'] for col in inspector.get_columns('application_statuses')]
+    column_existed = 'order' in columns
 
-    if 'order' not in columns:
+    if not column_existed:
         # Add order column as nullable first
         op.add_column('application_statuses', sa.Column('order', sa.Integer(), nullable=True))
 
     # Ensure order values are correct (1-indexed)
-    op.execute("""
-        UPDATE application_statuses
-        SET "order" = CASE name
-            WHEN 'Applied' THEN 1
-            WHEN 'Screening' THEN 2
-            WHEN 'Interviewing' THEN 3
-            WHEN 'Offer' THEN 4
-            WHEN 'Accepted' THEN 5
-            WHEN 'Rejected' THEN 6
-            WHEN 'Withdrawn' THEN 7
-            WHEN 'No Reply' THEN 8
-            WHEN 'On Hold' THEN 9
-            ELSE 999
-        END
-    """)
+    # Use SQLAlchemy's text() for safe parameterized query execution
+    from sqlalchemy import text, update, table, column
+    application_statuses = table('application_statuses',
+        column('name'),
+        column('order')
+    )
 
-    # Ensure the column is non-nullable
-    if 'order' not in columns:
-        op.alter_column('application_statuses', 'order', nullable=False)
+    # Build the CASE expression using SQLAlchemy expressions
+    case_expression = sa.case(
+        (application_statuses.c.name == 'Applied', 1),
+        (application_statuses.c.name == 'Screening', 2),
+        (application_statuses.c.name == 'Interviewing', 3),
+        (application_statuses.c.name == 'Offer', 4),
+        (application_statuses.c.name == 'Accepted', 5),
+        (application_statuses.c.name == 'Rejected', 6),
+        (application_statuses.c.name == 'Withdrawn', 7),
+        (application_statuses.c.name == 'No Reply', 8),
+        (application_statuses.c.name == 'On Hold', 9),
+        else_=999
+    )
+
+    conn.execute(
+        update(application_statuses)
+        .values(order=case_expression)
+    )
+
+    if not column_existed:
+        op.alter_column('application_statuses', 'order', nullable=False, server_default='0')
 
     # Create index on order column if it doesn't exist
     indexes = [idx['name'] for idx in inspector.get_indexes('application_statuses')]
