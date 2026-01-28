@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import api from '@/lib/api';
+import { colors } from '@/lib/theme';
 
 interface WeeklyData {
   week: string;
@@ -29,12 +30,12 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
   // Color variants: darker (default) → brighter (hover)
   const getAppColor = (barKey: string) => {
     if (barKey === 'applications') {
-      return hoveredBar === 'applications' ? '#7ec1c1' : '#458588';  // brighter blue : blue
+      return hoveredBar === 'applications' ? colors.blueBright : colors.blue;
     }
     if (barKey === 'interviews') {
-      return hoveredBar === 'interviews' ? '#e6a9ef' : '#d3869b';  // brighter purple : purple
+      return hoveredBar === 'interviews' ? colors.purpleBright : colors.purple;
     }
-    return '#458588';
+    return colors.blue;
   };
 
   useEffect(() => {
@@ -82,30 +83,30 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
     <div className="w-full h-64">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#3c3836" />
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.bg1} />
           <XAxis
             dataKey="week"
-            tick={{ fill: '#a89984', fontSize: 12 }}
-            stroke="#3c3836"
+            tick={{ fill: colors.fg4, fontSize: 12 }}
+            stroke={colors.bg1}
           />
           <YAxis
-            tick={{ fill: '#a89984', fontSize: 12 }}
-            stroke="#3c3836"
+            tick={{ fill: colors.fg4, fontSize: 12 }}
+            stroke={colors.bg1}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#1d2021',
-              border: '1px solid #3c3836',
+              backgroundColor: colors.bg0Hard,
+              border: `1px solid ${colors.bg1}`,
               borderRadius: '4px',
-              color: '#ebdbb2',
+              color: colors.fg1,
               padding: '0.5rem 0.75rem',
             }}
             labelStyle={{
-              color: '#ebdbb2',
+              color: colors.fg1,
               fontWeight: 600,
             }}
             itemStyle={{
-              color: '#ebdbb2',
+              color: colors.fg1,
             }}
           />
           <Bar
