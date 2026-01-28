@@ -120,32 +120,34 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
               color: colors.fg1,
             }}
           />
-          {data.map((_, segmentIndex) => (
-            <Bar
-              key={`applications-${segmentIndex}`}
-              data={getSegmentData(segmentIndex)}
-              dataKey="applications"
-              fill={getBarColor('applications', segmentIndex)}
-              name="Applications"
-              radius={[4, 4, 0, 0]}
-              onMouseEnter={() => setHoveredSegment(segmentIndex)}
-              onMouseLeave={() => setHoveredSegment(null)}
-              style={{ cursor: 'pointer', transition: 'fill 0.2s ease' }}
-            />
-          ))}
-          {data.map((_, segmentIndex) => (
-            <Bar
-              key={`interviews-${segmentIndex}`}
-              data={getSegmentData(segmentIndex)}
-              dataKey="interviews"
-              fill={getBarColor('interviews', segmentIndex)}
-              name="Interviews"
-              radius={[4, 4, 0, 0]}
-              onMouseEnter={() => setHoveredSegment(segmentIndex)}
-              onMouseLeave={() => setHoveredSegment(null)}
-              style={{ cursor: 'pointer', transition: 'fill 0.2s ease' }}
-            />
-          ))
+          <>
+            {data.map((_, segmentIndex) => (
+              <Bar
+                key={`applications-${segmentIndex}`}
+                data={getSegmentData(segmentIndex)}
+                dataKey="applications"
+                fill={getBarColor('applications', segmentIndex)}
+                name="Applications"
+                radius={[4, 4, 0, 0]}
+                onMouseEnter={() => setHoveredSegment(segmentIndex)}
+                onMouseLeave={() => setHoveredSegment(null)}
+                style={{ cursor: 'pointer', transition: 'fill 0.2s ease' }}
+              />
+            ))}
+            {data.map((_, segmentIndex) => (
+              <Bar
+                key={`interviews-${segmentIndex}`}
+                data={getSegmentData(segmentIndex)}
+                dataKey="interviews"
+                fill={getBarColor('interviews', segmentIndex)}
+                name="Interviews"
+                radius={[4, 4, 0, 0]}
+                onMouseEnter={() => setHoveredSegment(segmentIndex)}
+                onMouseLeave={() => setHoveredSegment(null)}
+                style={{ cursor: 'pointer', transition: 'fill 0.2s ease' }}
+              />
+            ))}
+          </>
         </BarChart>
       </ResponsiveContainer>
     </div>
