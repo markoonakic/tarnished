@@ -73,10 +73,11 @@ export default function FlameEmblem() {
         <div
           className={`
             relative px-12 py-6 border-2 rounded-lg
-            ${isEmber ? 'border-orange' : isExtinguished ? 'border-tertiary' : 'border-aqua'}
+            ${isExtinguished ? 'border-tertiary' : 'border-accent-aqua'}
             transition-all duration-300
           `}
           style={{
+            ...(isEmber && { borderColor: colors.orange }),
             animation: (isEmber || data.current_streak > 0) ? 'flicker 2s ease-in-out infinite' : 'none',
           }}
         >
