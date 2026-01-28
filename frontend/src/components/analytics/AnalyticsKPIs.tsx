@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import api from '@/lib/api';
 
 interface AnalyticsKPIs {
   total_applications: number;
@@ -44,21 +45,8 @@ export default function AnalyticsKPIs({ period }: AnalyticsKPIsProps) {
     async function fetchKPIs() {
       setLoading(true);
       try {
-        const response = await fetch(`/api/analytics/kpis?period=${period}`, {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          // If endpoint doesn't exist, use mock data
-          if (response.status === 404) {
-            setKpis(getMockKPIs());
-            return;
-          }
-          throw new Error('Failed to fetch KPIs');
-        }
-
-        const data = await response.json();
-        setKpis(data);
+        const response = await api.get(`/analytics/kpis?period=${period}`);
+        setKpis(response.data);
       } catch (err) {
         console.error('Error fetching KPIs, using mock data:', err);
         setKpis(getMockKPIs());

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '@/lib/api';
 
 interface NeedsAttentionItem {
   id: string;
@@ -83,16 +84,8 @@ export default function NeedsAttention() {
   useEffect(() => {
     async function fetchNeedsAttention() {
       try {
-        const response = await fetch('/api/dashboard/needs-attention', {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch needs attention data');
-        }
-
-        const responseData = await response.json();
-        setData(responseData);
+        const response = await api.get('/dashboard/needs-attention');
+        setData(response.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {

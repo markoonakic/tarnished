@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import api from '@/lib/api';
 
 interface WeeklyData {
   week: string;
@@ -28,21 +29,8 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
     async function fetchData() {
       setLoading(true);
       try {
-        const response = await fetch(`/api/analytics/weekly?period=${period}`, {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          // If endpoint doesn't exist, use mock data
-          if (response.status === 404) {
-            setData(getMockData(period));
-            return;
-          }
-          throw new Error('Failed to fetch weekly data');
-        }
-
-        const result = await response.json();
-        setData(result);
+        const response = await api.get(`/analytics/weekly?period=${period}`);
+        setData(response.data);
       } catch (err) {
         console.error('Error fetching weekly data, using mock data:', err);
         setData(getMockData(period));
@@ -82,34 +70,44 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
     <div className="w-full h-64">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--bg3)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#3c3836" />
           <XAxis
             dataKey="week"
-            tick={{ fill: 'var(--fg4)', fontSize: 12 }}
-            stroke="var(--bg3)"
+            tick={{ fill: '#a89984', fontSize: 12 }}
+            stroke="#3c3836"
           />
           <YAxis
-            tick={{ fill: 'var(--fg4)', fontSize: 12 }}
-            stroke="var(--bg3)"
+            tick={{ fill: '#a89984', fontSize: 12 }}
+            stroke="#3c3836"
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#665c54',
-              border: '1px solid #8ec07c',
+              backgroundColor: '#1d2021',
+              border: '1px solid #3c3836',
               borderRadius: '4px',
-              color: '#fbf1c7',
+              color: '#ebdbb2',
               padding: '0.5rem 0.75rem',
             }}
             labelStyle={{
-              color: '#fbf1c7',
+              color: '#ebdbb2',
               fontWeight: 600,
             }}
             itemStyle={{
-              color: '#fbf1c7',
+              color: '#ebdbb2',
             }}
           />
-          <Bar dataKey="applications" fill="var(--accent-aqua)" name="Applications" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="interviews" fill="var(--accent-green)" name="Interviews" radius={[4, 4, 0, 0]} />
+          <Bar
+            dataKey="applications"
+            fill="#458588"
+            name="Applications"
+            radius={[4, 4, 0, 0]}
+          />
+          <Bar
+            dataKey="interviews"
+            fill="#d3869b"
+            name="Interviews"
+            radius={[4, 4, 0, 0]}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

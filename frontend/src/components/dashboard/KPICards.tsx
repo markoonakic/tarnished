@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import api from '@/lib/api';
 
 interface DashboardKPIs {
   last_7_days: number;
@@ -42,16 +43,8 @@ export default function KPICards() {
   useEffect(() => {
     async function fetchKPIs() {
       try {
-        const response = await fetch('/api/dashboard/kpis', {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch KPIs');
-        }
-
-        const data = await response.json();
-        setKpis(data);
+        const response = await api.get('/dashboard/kpis');
+        setKpis(response.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
