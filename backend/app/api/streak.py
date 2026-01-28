@@ -10,6 +10,55 @@ from app.schemas.streak import StreakResponse
 
 router = APIRouter(prefix="/api/streak", tags=["streak"])
 
+
+async def record_streak_activity(
+    user: User,
+    db: AsyncSession,
+) -> dict:
+    """
+    Record activity that counts toward streak.
+
+    This is a helper function that can be called from other endpoints.
+    The POST /record endpoint delegates to this function.
+    """
+    today = date.today()
+
+    # First activity ever
+    if not user.streak_start_date:
+        user.current_streak = 1
+        user.longest_streak = 1
+        user.total_activity_days = 1
+        user.last_activity_date = today
+        user.streak_start_date = today
+        user.ember_active = False
+    else:
+        days_since_last = (today - user.last_activity_date).days
+
+        if days_since_last == 0:
+            # Already recorded today, do nothing
+            pass
+        elif days_since_last == 1:
+            # Continued streak (or recovered from ember)
+            user.current_streak += 1
+            user.total_activity_days += 1
+            user.last_activity_date = today
+            user.ember_active = False
+
+            # Update longest if needed
+            if user.current_streak > user.longest_streak:
+                user.longest_streak = user.current_streak
+        elif days_since_last >= 2:
+            # Streak extinguished, start over
+            user.current_streak = 1
+            user.total_activity_days += 1
+            user.last_activity_date = today
+            user.streak_start_date = today
+            user.ember_active = False
+
+    await db.commit()
+
+    return {"message": "Activity recorded", "current_streak": user.current_streak}
+
 # 15 flame stages with art, name, min_days, max_days
 FLAME_STAGES = [
     {"stage": 1, "name": "First Ember", "min_days": 1, "max_days": 1, "art": "░░"},
@@ -77,46 +126,5 @@ async def record_activity(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Record activity that counts toward streak.
-
-    OPTION D: "Meaningful Engagement" Approach
-    Any meaningful job search activity counts toward the streak.
-    """
-    today = date.today()
-
-    # First activity ever
-    if not user.streak_start_date:
-        user.current_streak = 1
-        user.longest_streak = 1
-        user.total_activity_days = 1
-        user.last_activity_date = today
-        user.streak_start_date = today
-        user.ember_active = False
-    else:
-        days_since_last = (today - user.last_activity_date).days
-
-        if days_since_last == 0:
-            # Already recorded today, do nothing
-            pass
-        elif days_since_last == 1:
-            # Continued streak (or recovered from ember)
-            user.current_streak += 1
-            user.total_activity_days += 1
-            user.last_activity_date = today
-            user.ember_active = False
-
-            # Update longest if needed
-            if user.current_streak > user.longest_streak:
-                user.longest_streak = user.current_streak
-        elif days_since_last >= 2:
-            # Streak extinguished, start over
-            user.current_streak = 1
-            user.total_activity_days += 1
-            user.last_activity_date = today
-            user.streak_start_date = today
-            user.ember_active = False
-
-    await db.commit()
-
-    return {"message": "Activity recorded", "current_streak": user.current_streak}
+    """Record activity that counts toward streak."""
+    return await record_streak_activity(user=user, db=db)
