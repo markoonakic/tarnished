@@ -84,7 +84,7 @@ export default function NeedsAttention() {
   useEffect(() => {
     async function fetchNeedsAttention() {
       try {
-        const response = await api.get('/dashboard/needs-attention');
+        const response = await api.get('/api/dashboard/needs-attention');
         setData(response.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
