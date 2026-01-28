@@ -312,7 +312,8 @@ async def get_weekly_data(
 
     for app in applications:
         # Calculate week number (weeks since start_date)
-        days_diff = (today - app.applied_at).days
+        # Note: applications is a list of date objects (from .scalars())
+        days_diff = (today - app).days
         week_num = min(days_diff // 7, weeks_count - 1)
         week_label = f"Week {week_num + 1}"
 
@@ -338,7 +339,8 @@ async def get_weekly_data(
     interviewing_apps = result.scalars().all()
 
     for app in interviewing_apps:
-        days_diff = (today - app.applied_at).days
+        # Note: interviewing_apps is a list of date objects (from .scalars())
+        days_diff = (today - app).days
         week_num = min(days_diff // 7, weeks_count - 1)
         week_label = f"Week {week_num + 1}"
         weekly_data[week_label]["interviews"] += 1
