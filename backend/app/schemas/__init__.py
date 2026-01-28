@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from app.schemas.streak import StreakResponse
 from app.schemas.auth import Token, TokenRefresh, UserCreate, UserLogin, UserResponse
 from app.schemas.application import (
     ApplicationCreate,
@@ -74,6 +75,7 @@ class ApplicationStatusHistoryResponse(BaseModel):
 
 
 __all__ = [
+    "StreakResponse",
     "Token",
     "TokenRefresh",
     "UserCreate",
