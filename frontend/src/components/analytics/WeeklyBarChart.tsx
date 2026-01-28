@@ -40,12 +40,16 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
     return colors.blue;
   };
 
-  // Transform data to enable per-segment hover by using unique keys
+  // Transform data to enable per-segment hover
   const getSegmentData = (segmentIndex: number) => {
+    const segment = data[segmentIndex];
+    const maxValue = Math.max(segment.applications, segment.interviews, 1);
+
     return {
-      week: data[segmentIndex].week,
-      applications: data[segmentIndex].applications,
-      interviews: data[segmentIndex].interviews,
+      week: segment.week,
+      background: hoveredSegment === segmentIndex ? maxValue : 0,
+      applications: segment.applications,
+      interviews: segment.interviews,
     };
   };
 
@@ -120,30 +124,19 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
               color: colors.fg1,
             }}
           />
-          {data.flatMap((_, segmentIndex) => [
+          {data.map((_, segmentIndex) => (
             <Bar
-              key={`applications-${segmentIndex}`}
+              key={segmentIndex}
               data={getSegmentData(segmentIndex)}
-              dataKey="applications"
-              fill={getBarColor('applications', segmentIndex)}
-              name="Applications"
-              radius={[4, 4, 0, 0]}
               onMouseEnter={() => setHoveredSegment(segmentIndex)}
               onMouseLeave={() => setHoveredSegment(null)}
-              style={{ cursor: 'pointer', transition: 'fill 0.2s ease' }}
-            />,
-            <Bar
-              key={`interviews-${segmentIndex}`}
-              data={getSegmentData(segmentIndex)}
-              dataKey="interviews"
-              fill={getBarColor('interviews', segmentIndex)}
-              name="Interviews"
-              radius={[4, 4, 0, 0]}
-              onMouseEnter={() => setHoveredSegment(segmentIndex)}
-              onMouseLeave={() => setHoveredSegment(null)}
-              style={{ cursor: 'pointer', transition: 'fill 0.2s ease' }}
-            />,
-          ])}
+              style={{ cursor: 'pointer' }}
+            >
+              <Bar dataKey="background" fill={colors.bg2} stackId="bg" isAnimationActive={false} />
+              <Bar dataKey="applications" fill={getBarColor('applications', segmentIndex)} name="Applications" stackId="data" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="interviews" fill={getBarColor('interviews', segmentIndex)} name="Interviews" stackId="data" radius={[4, 4, 0, 0]} />
+            </Bar>
+          ))}
         </BarChart>
       </ResponsiveContainer>
     </div>
