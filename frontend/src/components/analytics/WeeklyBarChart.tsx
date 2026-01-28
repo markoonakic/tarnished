@@ -24,12 +24,24 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
   const [data, setData] = useState<WeeklyData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error] = useState<string | null>(null);
+  const [hoveredBar, setHoveredBar] = useState<string | null>(null);
+
+  // Color variants: darker (default) → brighter (hover)
+  const getAppColor = (barKey: string) => {
+    if (barKey === 'applications') {
+      return hoveredBar === 'applications' ? '#7ec1c1' : '#458588';  // brighter blue : blue
+    }
+    if (barKey === 'interviews') {
+      return hoveredBar === 'interviews' ? '#e6a9ef' : '#d3869b';  // brighter purple : purple
+    }
+    return '#458588';
+  };
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
       try {
-        const response = await api.get(`/analytics/weekly?period=${period}`);
+        const response = await api.get(`/api/analytics/weekly?period=${period}`);
         setData(response.data);
       } catch (err) {
         console.error('Error fetching weekly data, using mock data:', err);
@@ -98,15 +110,21 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
           />
           <Bar
             dataKey="applications"
-            fill="#458588"
+            fill={getAppColor('applications')}
             name="Applications"
             radius={[4, 4, 0, 0]}
+            onMouseEnter={() => setHoveredBar('applications')}
+            onMouseLeave={() => setHoveredBar(null)}
+            style={{ cursor: 'pointer', transition: 'fill 0.2s' }}
           />
           <Bar
             dataKey="interviews"
-            fill="#d3869b"
+            fill={getAppColor('interviews')}
             name="Interviews"
             radius={[4, 4, 0, 0]}
+            onMouseEnter={() => setHoveredBar('interviews')}
+            onMouseLeave={() => setHoveredBar(null)}
+            style={{ cursor: 'pointer', transition: 'fill 0.2s' }}
           />
         </BarChart>
       </ResponsiveContainer>
