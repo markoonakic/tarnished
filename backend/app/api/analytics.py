@@ -96,9 +96,12 @@ async def get_sankey_data(
         ))
 
     # Count how many applications took each path segment
+    # Prevent cycles by tracking visited statuses per application
     link_counts = {}  # {(source_id, target_id): count}
 
     for app_id, transitions in app_transitions.items():
+        visited_statuses = set()  # Track statuses visited in this application's journey
+
         for i, t in enumerate(transitions):
             # Determine source node
             if i == 0 or t['from_status'] is None:
@@ -113,6 +116,13 @@ async def get_sankey_data(
             target_id = status_name_to_node_id.get(t['to_status'])
             if not target_id:
                 continue
+
+            # Prevent cycles: don't link back to already visited statuses
+            if t['to_status'] in visited_statuses:
+                continue
+
+            # Mark this status as visited
+            visited_statuses.add(t['to_status'])
 
             link_key = (source_id, target_id)
             link_counts[link_key] = link_counts.get(link_key, 0) + 1
