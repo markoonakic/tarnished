@@ -4,6 +4,7 @@ import { listApplications } from '../lib/applications';
 import Layout from '../components/Layout';
 import ActivityHeatmap from '../components/ActivityHeatmap';
 import EmptyState from '../components/EmptyState';
+import FlameEmblem from '../components/dashboard/FlameEmblem';
 import KPICards from '../components/dashboard/KPICards';
 import QuickActions from '../components/dashboard/QuickActions';
 import NeedsAttention from '../components/dashboard/NeedsAttention';
@@ -46,7 +47,14 @@ export default function Dashboard() {
           <>
             <h1 className="text-2xl font-bold text-primary mb-6">Dashboard</h1>
 
-            <KPICards />
+            {/* Flame + KPIs Container */}
+            <div className="bg-secondary rounded-lg border border-tertiary mb-6">
+              <FlameEmblem />
+              <div className="px-6 pb-6">
+                <KPICards />
+              </div>
+            </div>
+
             <QuickActions />
             <NeedsAttention />
 

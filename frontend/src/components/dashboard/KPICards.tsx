@@ -57,7 +57,7 @@ export default function KPICards() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[1, 2, 3].map((i) => (
           <div key={i} className="bg-secondary rounded-lg p-6 border border-tertiary animate-pulse">
             <div className="h-4 bg-tertiary rounded mb-2 w-24"></div>
@@ -70,14 +70,14 @@ export default function KPICards() {
 
   if (error || !kpis) {
     return (
-      <div className="bg-secondary rounded-lg p-6 border border-tertiary mb-8">
+      <div className="bg-secondary rounded-lg p-6 border border-tertiary">
         <p className="text-red">Failed to load dashboard KPIs</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <KPICard
         title="Last 7 Days"
         value={kpis.last_7_days}
