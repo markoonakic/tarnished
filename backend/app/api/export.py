@@ -16,6 +16,17 @@ from app.models.round_type import RoundType
 router = APIRouter(prefix="/api/export", tags=["export"])
 
 
+def _sanitize_csv_value(value: str | None) -> str:
+    """Prevent CSV injection by escaping formula characters.
+
+    If a value starts with =, -, +, or @, Excel may interpret it as a formula.
+    Prefix with a tab to prevent this while maintaining readability.
+    """
+    if value and isinstance(value, str) and value[0] in ('=', '-', '+', '@'):
+        return f"\t{value}"
+    return value or ""
+
+
 @router.get("/json")
 async def export_json(
     user: User = Depends(get_current_user),
@@ -29,6 +40,7 @@ async def export_json(
             selectinload(Application.rounds).selectinload(Round.round_type),
             selectinload(Application.rounds).selectinload(Round.media),
         )
+        .order_by(Application.applied_at.desc())
     )
     applications = result.scalars().all()
 
@@ -89,7 +101,7 @@ async def export_csv(
     applications = result.scalars().all()
 
     output = io.StringIO()
-    writer = csv.writer(output)
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
     writer.writerow([
         "Company",
         "Job Title",
@@ -108,12 +120,12 @@ async def export_csv(
         if not app.rounds:
             # Write a row for the application with no rounds
             writer.writerow([
-                app.company,
-                app.job_title,
-                app.status.name,
+                _sanitize_csv_value(app.company),
+                _sanitize_csv_value(app.job_title),
+                _sanitize_csv_value(app.status.name),
                 str(app.applied_at),
-                app.job_url or "",
-                app.cv_path or "",
+                _sanitize_csv_value(app.job_url),
+                _sanitize_csv_value(app.cv_path),
                 "",
                 "",
                 "",
@@ -131,17 +143,17 @@ async def export_csv(
                 round_status = "Completed" if round.completed_at else "Scheduled" if round.scheduled_at else "Pending"
 
                 writer.writerow([
-                    app.company,
-                    app.job_title,
-                    app.status.name,
+                    _sanitize_csv_value(app.company),
+                    _sanitize_csv_value(app.job_title),
+                    _sanitize_csv_value(app.status.name),
                     str(app.applied_at),
-                    app.job_url or "",
-                    app.cv_path or "",
-                    round.round_type.name if round.round_type else "",
+                    _sanitize_csv_value(app.job_url),
+                    _sanitize_csv_value(app.cv_path),
+                    _sanitize_csv_value(round.round_type.name if round.round_type else None),
                     round_status,
-                    round.outcome or "",
-                    round.notes_summary or "",
-                    media_info,
+                    _sanitize_csv_value(round.outcome),
+                    _sanitize_csv_value(round.notes_summary),
+                    _sanitize_csv_value(media_info),
                 ])
 
     output.seek(0)
