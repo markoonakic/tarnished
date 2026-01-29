@@ -1,10 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { colors } from '@/lib/theme';
-import FrozenBlockIcon from '@/components/icons/FrozenBlockIcon';
-import SmokingOrbIcon from '@/components/icons/SmokingOrbIcon';
-import BurningEmbersIcon from '@/components/icons/BurningEmbersIcon';
-import CelebrationFireIcon from '@/components/icons/CelebrationFireIcon';
 
 interface StreakData {
   current_streak: number;
@@ -37,6 +33,19 @@ const flameMessages: Record<number, string> = {
 };
 
 type FlameState = 'BURNING' | 'EMBER' | 'EXTINGUISHED' | 'COLD';
+
+function getPlaceholderFlameArt(state: FlameState): string {
+  switch (state) {
+    case 'EMBER':
+      return '▓▓▓▓';
+    case 'EXTINGUISHED':
+      return '░░░░';
+    case 'COLD':
+      return '····';
+    default:
+      return '';
+  }
+}
 
 export default function FlameEmblem() {
   const { data, isLoading } = useQuery<StreakData>({
@@ -74,6 +83,13 @@ export default function FlameEmblem() {
 
   const flameState: FlameState = neverLit ? 'COLD' : isExtinguished ? 'EXTINGUISHED' : isEmber ? 'EMBER' : 'BURNING';
 
+  const getFlameArt = (): string => {
+    if (flameState === 'BURNING' && data.flame_art) {
+      return data.flame_art;
+    }
+    return getPlaceholderFlameArt(flameState);
+  };
+
   return (
     <div className="bg-secondary p-6 mb-6">
       <div className="flex flex-col items-center justify-center py-4">
@@ -86,7 +102,6 @@ export default function FlameEmblem() {
           `}
           style={{
             ...(isEmber && { borderColor: colors.orange }),
-            animation: (flameState === 'BURNING' || flameState === 'EMBER') ? 'flicker 2s ease-in-out infinite' : 'none',
           }}
         >
           {/* Decorative corners */}
@@ -97,22 +112,9 @@ export default function FlameEmblem() {
 
           {/* Flame display */}
           <div className="text-center mb-3">
-            {flameState === 'BURNING' && (
-              <CelebrationFireIcon color={colors.orangeBright} />
-            )}
-            {flameState === 'EMBER' && (
-              <BurningEmbersIcon color={colors.yellowBright} />
-            )}
-            {flameState === 'EXTINGUISHED' && (
-              isRecentlyExhausted ? (
-                <SmokingOrbIcon color={colors.gray} />
-              ) : (
-                <FrozenBlockIcon color={colors.fg4} />
-              )
-            )}
-            {flameState === 'COLD' && (
-              <FrozenBlockIcon color={colors.fg4} />
-            )}
+            <div className="font-mono text-xs text-primary whitespace-pre leading-tight">
+              {getFlameArt()}
+            </div>
           </div>
 
           {/* Days display */}
