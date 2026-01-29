@@ -97,7 +97,7 @@ export default function FlameEmblem() {
         <div
           className={`
             relative px-12 py-6 border-2 rounded-lg
-            ${flameState === 'COLD' ? 'border-tertiary' : 'border-accent-aqua'}
+            ${flameState === 'COLD' ? 'border-tertiary' : 'border-fg1'}
             transition-all duration-300
           `}
           style={{
@@ -105,10 +105,10 @@ export default function FlameEmblem() {
           }}
         >
           {/* Decorative corners */}
-          <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-fg4"></div>
-          <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-fg4"></div>
-          <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-fg4"></div>
-          <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-fg4"></div>
+          <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-fg0 rounded-tl-sm"></div>
+          <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-fg0 rounded-tr-sm"></div>
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-fg0 rounded-bl-sm"></div>
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-fg0 rounded-br-sm"></div>
 
           {/* Flame display */}
           <div className="text-center mb-3">
