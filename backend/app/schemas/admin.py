@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 
 
 class AdminUserResponse(BaseModel):
@@ -19,6 +19,13 @@ class AdminUserUpdate(BaseModel):
     is_active: bool | None = None
     is_admin: bool | None = None
     password: str | None = None  # NEW: Optional password reset
+
+
+class AdminUserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8)
+    is_admin: bool = False
+    is_active: bool = True
 
 
 class AdminStatsResponse(BaseModel):
