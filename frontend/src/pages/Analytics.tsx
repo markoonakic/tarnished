@@ -19,7 +19,7 @@ export default function Analytics() {
 
         <div className="space-y-8">
           {/* KPIs Section */}
-          <div className="bg-secondary rounded-lg p-6">
+          <div className="bg-secondary border border-tertiary rounded-lg p-6">
             <h2 className="text-lg font-semibold text-primary mb-4">Key Performance Indicators</h2>
             <p className="text-sm text-muted mb-4">
               Track your job application metrics and conversion rates.
@@ -28,7 +28,7 @@ export default function Analytics() {
           </div>
 
           {/* Sankey Chart Section */}
-          <div className="bg-secondary rounded-lg p-6">
+          <div className="bg-secondary border border-tertiary rounded-lg p-6">
             <h2 className="text-lg font-semibold text-primary mb-4">Application Flow</h2>
             <p className="text-sm text-muted mb-4">
               Visualize how your applications progress through different stages.
@@ -37,7 +37,7 @@ export default function Analytics() {
           </div>
 
           {/* Weekly Bar Chart Section */}
-          <div className="bg-secondary rounded-lg p-6">
+          <div className="bg-secondary border border-tertiary rounded-lg p-6">
             <h2 className="text-lg font-semibold text-primary mb-4">Weekly Activity</h2>
             <p className="text-sm text-muted mb-4">
               Track your application and interview activity over time.
@@ -46,7 +46,7 @@ export default function Analytics() {
           </div>
 
           {/* Activity Heatmap Section */}
-          <div className="bg-secondary rounded-lg p-6">
+          <div className="bg-secondary border border-tertiary rounded-lg p-6">
             <h2 className="text-lg font-semibold text-primary mb-4">Activity Overview</h2>
             <p className="text-sm text-muted mb-4">
               Track your job application activity throughout the year.
