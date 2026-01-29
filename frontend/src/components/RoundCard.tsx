@@ -114,32 +114,33 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
     }
   }
 
-  async function handleTranscriptDownload() {
-    try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const { url } = await getRoundTranscriptSignedUrl(round.id, 'attachment');
-      const fullUrl = `${apiBase}${url}`;
-
-      const response = await fetch(fullUrl);
-      if (!response.ok) throw new Error('Download failed');
-
-      const contentDisposition = response.headers.get('Content-Disposition');
-      let filename = 'transcript.pdf';
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-        if (filenameMatch) {
-          filename = filenameMatch[1];
-        }
-      }
-
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-
-      downloadFile(blobUrl, filename);
-    } catch {
-      alert('Failed to download transcript');
-    }
-  }
+  // TODO: handleTranscriptDownload is currently unused but may be needed for future download functionality
+  // async function handleTranscriptDownload() {
+  //   try {
+  //     const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  //     const { url } = await getRoundTranscriptSignedUrl(round.id, 'attachment');
+  //     const fullUrl = `${apiBase}${url}`;
+  //
+  //     const response = await fetch(fullUrl);
+  //     if (!response.ok) throw new Error('Download failed');
+  //
+  //     const contentDisposition = response.headers.get('Content-Disposition');
+  //     let filename = 'transcript.pdf';
+  //     if (contentDisposition) {
+  //       const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+  //       if (filenameMatch) {
+  //         filename = filenameMatch[1];
+  //       }
+  //     }
+  //
+  //     const blob = await response.blob();
+  //     const blobUrl = URL.createObjectURL(blob);
+  //
+  //     downloadFile(blobUrl, filename);
+  //   } catch {
+  //     alert('Failed to download transcript');
+  //   }
+  // }
 
   async function handleTranscriptPreview() {
     try {

@@ -96,7 +96,7 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
             itemStyle={{ color: colors.fg0 }}
           />
           <Bar dataKey="applications" name="Applications" maxBarSize={50}>
-            {data.map((entry, index) => (
+            {data.map((_entry, index) => (
               <Cell
                 key={`app-${index}`}
                 fill={hoveredSegment === index ? colors.blueBright : colors.blue}
@@ -106,7 +106,7 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
             ))}
           </Bar>
           <Bar dataKey="interviews" name="Interviews" maxBarSize={50}>
-            {data.map((entry, index) => (
+            {data.map((_entry, index) => (
               <Cell
                 key={`int-${index}`}
                 fill={hoveredSegment === index ? colors.purpleBright : colors.purple}

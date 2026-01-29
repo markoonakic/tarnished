@@ -7,7 +7,8 @@ import {
   getSignedUrl,
 } from '../lib/applications';
 import type { Application } from '../lib/types';
-import { downloadFile } from '../lib/downloadFile';
+// TODO: downloadFile imported but unused - may be needed for future download functionality
+// import { downloadFile } from '../lib/downloadFile';
 import ProgressBar from './ProgressBar';
 import EmptyState from './EmptyState';
 
@@ -91,33 +92,34 @@ export default function DocumentSection({ application, onUpdate }: Props) {
     }
   }
 
-  async function handleDownload(type: 'cv' | 'cover-letter') {
-    try {
-      const { url } = await getSignedUrl(application.id, type, 'attachment');
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const fullUrl = `${baseUrl}${url}`;
-
-      const response = await fetch(fullUrl);
-      if (!response.ok) throw new Error('Download failed');
-
-      // Extract filename from Content-Disposition header
-      const contentDisposition = response.headers.get('Content-Disposition');
-      let filename = `${type}.pdf`;
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-        if (filenameMatch) {
-          filename = filenameMatch[1];
-        }
-      }
-
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-
-      downloadFile(blobUrl, filename);
-    } catch {
-      setError(`Failed to download ${type}`);
-    }
-  }
+  // TODO: handleDownload is currently unused but may be needed for future download functionality
+  // async function handleDownload(type: 'cv' | 'cover-letter') {
+  //   try {
+  //     const { url } = await getSignedUrl(application.id, type, 'attachment');
+  //     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  //     const fullUrl = `${baseUrl}${url}`;
+  //
+  //     const response = await fetch(fullUrl);
+  //     if (!response.ok) throw new Error('Download failed');
+  //
+  //     // Extract filename from Content-Disposition header
+  //     const contentDisposition = response.headers.get('Content-Disposition');
+  //     let filename = `${type}.pdf`;
+  //     if (contentDisposition) {
+  //       const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+  //       if (filenameMatch) {
+  //         filename = filenameMatch[1];
+  //       }
+  //     }
+  //
+  //     const blob = await response.blob();
+  //     const blobUrl = URL.createObjectURL(blob);
+  //
+  //     downloadFile(blobUrl, filename);
+  //   } catch {
+  //     setError(`Failed to download ${type}`);
+  //   }
+  // }
 
   function isPreviewable(path: string | null): boolean {
     if (!path) return false;
