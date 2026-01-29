@@ -134,10 +134,10 @@ export default function HistoryViewer({ applicationId }: Props) {
                   <button
                     onClick={() => handleDelete(entry.id)}
                     disabled={deleteMutation.isPending}
-                    className="px-3 py-1.5 bg-bg1 text-red rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 flex items-center gap-1.5 text-sm cursor-pointer disabled:opacity-50 flex-shrink-0"
+                    className="px-3 py-1.5 bg-bg1 text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-colors duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 flex-shrink-0"
                     title="Delete"
                   >
-                    <i className="bi-trash" />
+                    <i className="bi-trash text-xs"></i>
                     Delete
                   </button>
                 )}
