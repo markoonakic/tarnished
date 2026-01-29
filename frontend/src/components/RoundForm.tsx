@@ -251,7 +251,10 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             </div>
           )}
           {round?.transcript_path && !transcriptFile && (
-            <p className="text-xs text-muted mt-1">Current: {round.transcript_path.split('/').pop()}</p>
+            <div className="flex items-center gap-2 p-2 bg-secondary rounded border border-tertiary mt-2">
+              <i className="bi-file-text text-accent-red"></i>
+              <span className="text-sm text-primary truncate">Current: {round.transcript_path.split('/').pop()}</span>
+            </div>
           )}
         </div>
 
