@@ -5,6 +5,7 @@ import type { User, AdminStats } from '../lib/admin';
 import Layout from '../components/Layout';
 import Loading from '../components/Loading';
 import CreateUserModal from '../components/CreateUserModal';
+import EditUserModal from '../components/EditUserModal';
 
 export default function Admin() {
   const { user } = useAuth();
@@ -226,6 +227,13 @@ export default function Admin() {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSuccess={loadData}
+      />
+
+      <EditUserModal
+        user={editingUser}
+        onClose={() => setEditingUser(null)}
+        onSuccess={loadData}
+        currentUserId={user?.id}
       />
     </Layout>
   );
