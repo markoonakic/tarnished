@@ -10,7 +10,6 @@ import type { Application } from '../lib/types';
 // TODO: downloadFile imported but unused - may be needed for future download functionality
 // import { downloadFile } from '../lib/downloadFile';
 import ProgressBar from './ProgressBar';
-import EmptyState from './EmptyState';
 
 interface Props {
   application: Application;
@@ -214,17 +213,10 @@ export default function DocumentSection({ application, onUpdate }: Props) {
         </div>
       )}
 
-      {!application.cv_path && !application.cover_letter_path ? (
-        <EmptyState
-          message="No documents uploaded yet."
-          icon="bi-file-earmark"
-        />
-      ) : (
-        <>
-          {renderDocRow('CV', 'cv', application.cv_path)}
-          {renderDocRow('Cover Letter', 'cover-letter', application.cover_letter_path)}
-        </>
-      )}
+      <>
+        {renderDocRow('CV', 'cv', application.cv_path)}
+        {renderDocRow('Cover Letter', 'cover-letter', application.cover_letter_path)}
+      </>
     </div>
   );
 }
