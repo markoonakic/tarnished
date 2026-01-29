@@ -1,3 +1,5 @@
+from datetime import date
+
 from pydantic import BaseModel
 
 
@@ -10,3 +12,4 @@ class StreakResponse(BaseModel):
     flame_stage: int
     flame_name: str
     flame_art: str
+    streak_exhausted_at: date | None = None
