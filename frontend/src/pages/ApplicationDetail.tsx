@@ -17,7 +17,7 @@ export default function ApplicationDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showRoundForm, setShowRoundForm] = useState(false);
-  const [editingRound, setEditingRound] = useState<Round | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) loadApplication();
@@ -66,7 +66,7 @@ export default function ApplicationDetail() {
 
   async function handleRoundSaved(savedRound: Round) {
     setShowRoundForm(false);
-    setEditingRound(null);
+    setEditingId(null);
 
     setApplication(prev => {
       if (!prev) return null;
@@ -241,16 +241,12 @@ export default function ApplicationDetail() {
             )}
           </div>
 
-          {(showRoundForm || editingRound) && (
+          {showRoundForm && (
             <div className="mb-4">
               <RoundForm
                 applicationId={id!}
-                round={editingRound}
                 onSave={handleRoundSaved}
-                onCancel={() => {
-                  setShowRoundForm(false);
-                  setEditingRound(null);
-                }}
+                onCancel={() => setShowRoundForm(false)}
               />
             </div>
           )}
@@ -258,13 +254,23 @@ export default function ApplicationDetail() {
           {application.rounds && application.rounds.length > 0 ? (
             <div className="space-y-4">
               {application.rounds.map((round) => (
-                <RoundCard
-                  key={round.id}
-                  round={round}
-                  onEdit={() => setEditingRound(round)}
-                  onDelete={() => handleDeleteRound(round.id)}
-                  onMediaChange={() => handleMediaChange(round.id)}
-                />
+                round.id === editingId ? (
+                  <RoundForm
+                    key={round.id}
+                    round={round}
+                    applicationId={id!}
+                    onSave={handleRoundSaved}
+                    onCancel={() => setEditingId(null)}
+                  />
+                ) : (
+                  <RoundCard
+                    key={round.id}
+                    round={round}
+                    onEdit={() => setEditingId(round.id)}
+                    onDelete={() => handleDeleteRound(round.id)}
+                    onMediaChange={() => handleMediaChange(round.id)}
+                  />
+                )
               ))}
             </div>
           ) : (
