@@ -107,14 +107,15 @@ async def get_streak(
             user.streak_start_date = None
 
             # Set streak_exhausted_at when streak goes to 0 after grace period
-            if user.current_streak == 0 and user.longest_streak > 0 and user.streak_exhausted_at is None:
+            if user.longest_streak > 0 and user.streak_exhausted_at is None:
                 user.streak_exhausted_at = date.today()
 
             await db.commit()
 
     # Clear streak_exhausted_at when streak becomes active again
-    if user.current_streak > 0:
+    if user.current_streak > 0 and user.streak_exhausted_at is not None:
         user.streak_exhausted_at = None
+        await db.commit()
 
     flame_stage = get_flame_stage(user.current_streak)
 
