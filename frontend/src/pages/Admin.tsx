@@ -13,7 +13,6 @@ export default function Admin() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'stats' | 'users'>('stats');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -35,24 +34,6 @@ export default function Admin() {
       setError('Failed to load admin data. You may not have admin privileges.');
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleToggleAdmin(userId: string, currentValue: boolean) {
-    try {
-      await updateUser(userId, { is_admin: !currentValue });
-      loadData();
-    } catch {
-      setError('Failed to update user');
-    }
-  }
-
-  async function handleToggleActive(userId: string, currentValue: boolean) {
-    try {
-      await updateUser(userId, { is_active: !currentValue });
-      loadData();
-    } catch {
-      setError('Failed to update user');
     }
   }
 
@@ -88,138 +69,102 @@ export default function Admin() {
           </div>
         )}
 
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setActiveTab('stats')}
-            className={`px-4 py-2 rounded font-medium transition-all duration-200 cursor-pointer ${
-              activeTab === 'stats'
-                ? 'bg-aqua text-bg0 hover:bg-aqua-bright'
-                : 'bg-bg1 text-fg1 hover:bg-bg2'
-            }`}
-          >
-            Statistics
-          </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`px-4 py-2 rounded font-medium transition-all duration-200 cursor-pointer ${
-              activeTab === 'users'
-                ? 'bg-aqua text-bg0 hover:bg-aqua-bright'
-                : 'bg-bg1 text-fg1 hover:bg-bg2'
-            }`}
-          >
-            Users
-          </button>
-        </div>
-
         {loading ? (
           <Loading message="Loading admin data..." />
-        ) : activeTab === 'stats' ? (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-secondary rounded-lg p-6">
-                <h3 className="text-muted text-sm mb-1">Total Users</h3>
-                <p className="text-3xl font-bold text-primary">{stats?.total_users || 0}</p>
-              </div>
-              <div className="bg-secondary rounded-lg p-6">
-                <h3 className="text-muted text-sm mb-1">Total Applications</h3>
-                <p className="text-3xl font-bold text-primary">{stats?.total_applications || 0}</p>
-              </div>
-            </div>
-
-            <div className="bg-secondary rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-primary mb-4">Applications by Status</h3>
-              {stats?.applications_by_status && stats.applications_by_status.length > 0 ? (
-                <div className="space-y-2">
-                  {stats.applications_by_status.map((item) => (
-                    <div key={item.status} className="flex justify-between items-center py-2">
-                      <span className="text-primary">{item.status}</span>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-accent-aqua/20 text-accent-aqua">
-                        {item.count}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted">No data available</p>
-              )}
-            </div>
-          </div>
         ) : (
-          <>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-primary">Users</h2>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
-              >
-                Create User
-              </button>
-            </div>
+          <div className="space-y-12">
+            <section>
+              <h2 className="text-xl font-bold text-primary mb-6">Statistics</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-secondary rounded-lg p-6">
+                  <h3 className="text-muted text-sm mb-1">Total Users</h3>
+                  <p className="text-3xl font-bold text-primary">{stats?.total_users || 0}</p>
+                </div>
+                <div className="bg-secondary rounded-lg p-6">
+                  <h3 className="text-muted text-sm mb-1">Total Applications</h3>
+                  <p className="text-3xl font-bold text-primary">{stats?.total_applications || 0}</p>
+                </div>
+              </div>
+            </section>
 
-            <div className="bg-secondary rounded-lg p-4 mb-6">
-              <input
-                type="text"
-                placeholder="Search by email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua"
-              />
-            </div>
+            <section>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-primary">Users</h2>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
+                >
+                  Create User
+                </button>
+              </div>
 
-            <div className="bg-secondary rounded-lg overflow-hidden">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-tertiary">
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Email</th>
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Joined</th>
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Admin</th>
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Active</th>
-                    <th className="text-right py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map((u) => (
-                    <tr key={u.id} className="border-b border-tertiary hover:bg-tertiary transition-colors duration-200">
-                      <td className="py-3 px-4 text-sm text-primary">{u.email}</td>
-                      <td className="py-3 px-4 text-sm text-secondary">{formatDate(u.created_at)}</td>
-                      <td className="py-3 px-4 text-sm">
-                        {u.is_admin ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-accent-purple/20 text-accent-purple">
-                            Admin
-                          </span>
-                        ) : (
-                          <span className="text-muted text-xs">—</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-sm">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold ${
-                          u.is_active
-                            ? 'bg-accent-green/20 text-accent-green'
-                            : 'bg-accent-red/20 text-accent-red'
-                        }`}>
-                          {u.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-right">
-                        <button
-                          onClick={() => setEditingUser(u)}
-                          className="text-aqua hover:text-aqua-bright transition-colors duration-200 cursor-pointer mr-3"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(u)}
-                          className="text-red hover:text-red-bright transition-colors duration-200 cursor-pointer"
-                        >
-                          Delete
-                        </button>
-                      </td>
+              <div className="bg-secondary rounded-lg p-4 mb-6">
+                <input
+                  type="text"
+                  placeholder="Search by email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua"
+                />
+              </div>
+
+              <div className="bg-secondary rounded-lg overflow-hidden">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-tertiary">
+                      <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Email</th>
+                      <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Joined</th>
+                      <th className="text-center py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Admin</th>
+                      <th className="text-center py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Active</th>
+                      <th className="text-right py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map((u) => (
+                      <tr key={u.id} className="border-b border-tertiary hover:bg-tertiary transition-colors duration-200">
+                        <td className="py-3 px-4 text-sm text-primary">{u.email}</td>
+                        <td className="py-3 px-4 text-sm text-secondary">{formatDate(u.created_at)}</td>
+                        <td className="py-3 px-4 text-sm text-center">
+                          {u.is_admin ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-accent-purple/20 text-accent-purple">
+                              Admin
+                            </span>
+                          ) : (
+                            <span className="text-muted text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-center">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold ${
+                            u.is_active
+                              ? 'bg-accent-green/20 text-accent-green'
+                              : 'bg-accent-red/20 text-accent-red'
+                          }`}>
+                            {u.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-right">
+                          <button
+                            onClick={() => setEditingUser(u)}
+                            className="px-3 py-1.5 bg-bg1 text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-colors duration-200 flex items-center gap-1.5"
+                          >
+                            <i className="bi-pencil text-xs"></i>
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(u)}
+                            className="px-3 py-1.5 bg-bg1 text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-colors duration-200 flex items-center gap-1.5"
+                          >
+                            <i className="bi-trash text-xs"></i>
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
         )}
       </div>
 
