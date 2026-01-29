@@ -18,6 +18,7 @@ class AdminUserResponse(BaseModel):
 class AdminUserUpdate(BaseModel):
     is_active: bool | None = None
     is_admin: bool | None = None
+    password: str | None = None  # NEW: Optional password reset
 
 
 class AdminStatsResponse(BaseModel):
