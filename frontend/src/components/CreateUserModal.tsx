@@ -52,10 +52,16 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
       <div className="bg-secondary rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center p-4 border-b border-tertiary">
-          <h3 className="text-primary font-medium">Create User</h3>
+          <h3 id="modal-title" className="text-primary font-medium">Create User</h3>
           <button
             onClick={onClose}
             aria-label="Close modal"
@@ -104,7 +110,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-bg1 text-fg1 rounded hover:bg-bg2 transition-all duration-200 cursor-pointer"
+              className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200 cursor-pointer"
             >
               Cancel
             </button>
