@@ -7,7 +7,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
 } from 'recharts';
 import api from '@/lib/api';
 import { colors } from '@/lib/theme';
@@ -26,7 +25,6 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
   const [data, setData] = useState<WeeklyData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error] = useState<string | null>(null);
-  const [hoveredSegment, setHoveredSegment] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -95,26 +93,8 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
             labelStyle={{ color: colors.fg0, fontWeight: 600 }}
             itemStyle={{ color: colors.fg0 }}
           />
-          <Bar dataKey="applications" name="Applications" maxBarSize={50}>
-            {data.map((_entry, index) => (
-              <Cell
-                key={`app-${index}`}
-                fill={hoveredSegment === index ? colors.blueBright : colors.blue}
-                onMouseEnter={() => setHoveredSegment(index)}
-                onMouseLeave={() => setHoveredSegment(null)}
-              />
-            ))}
-          </Bar>
-          <Bar dataKey="interviews" name="Interviews" maxBarSize={50}>
-            {data.map((_entry, index) => (
-              <Cell
-                key={`int-${index}`}
-                fill={hoveredSegment === index ? colors.purpleBright : colors.purple}
-                onMouseEnter={() => setHoveredSegment(index)}
-                onMouseLeave={() => setHoveredSegment(null)}
-              />
-            ))}
-          </Bar>
+          <Bar dataKey="applications" name="Applications" fill={colors.blue} />
+          <Bar dataKey="interviews" name="Interviews" fill={colors.purple} />
         </BarChart>
       </ResponsiveContainer>
     </div>
