@@ -105,7 +105,16 @@ async def get_streak(
             user.current_streak = 0
             user.ember_active = False
             user.streak_start_date = None
+
+            # Set streak_exhausted_at when streak goes to 0 after grace period
+            if user.current_streak == 0 and user.longest_streak > 0 and user.streak_exhausted_at is None:
+                user.streak_exhausted_at = date.today()
+
             await db.commit()
+
+    # Clear streak_exhausted_at when streak becomes active again
+    if user.current_streak > 0:
+        user.streak_exhausted_at = None
 
     flame_stage = get_flame_stage(user.current_streak)
 
@@ -118,6 +127,7 @@ async def get_streak(
         flame_stage=flame_stage["stage"],
         flame_name=flame_stage["name"],
         flame_art=flame_stage["art"],
+        streak_exhausted_at=user.streak_exhausted_at,
     )
 
 
