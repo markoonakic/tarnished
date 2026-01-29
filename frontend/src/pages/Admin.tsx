@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { listUsers, updateUser, getAdminStats } from '../lib/admin';
+import { listUsers, updateUser, getAdminStats, deleteUser } from '../lib/admin';
 import type { User, AdminStats } from '../lib/admin';
 import Layout from '../components/Layout';
 import Loading from '../components/Loading';
@@ -56,6 +56,19 @@ export default function Admin() {
 
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString();
+  }
+
+  async function handleDeleteUser(user: User) {
+    if (!confirm(`Delete user "${user.email}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await deleteUser(user.id);
+      loadData();
+    } catch {
+      setError('Failed to delete user');
+    }
   }
 
   const filteredUsers = users.filter(u =>
@@ -152,44 +165,51 @@ export default function Admin() {
             </div>
 
             <div className="bg-secondary rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-tertiary">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-muted text-sm font-medium">Email</th>
-                    <th className="px-4 py-3 text-left text-muted text-sm font-medium">Joined</th>
-                    <th className="px-4 py-3 text-center text-muted text-sm font-medium">Admin</th>
-                    <th className="px-4 py-3 text-center text-muted text-sm font-medium">Active</th>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-tertiary">
+                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Email</th>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Joined</th>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Admin</th>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Active</th>
+                    <th className="text-right py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-tertiary">
+                <tbody>
                   {filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-tertiary/50">
-                      <td className="px-4 py-3 text-primary">{u.email}</td>
-                      <td className="px-4 py-3 text-secondary">{formatDate(u.created_at)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => handleToggleAdmin(u.id, u.is_admin)}
-                          disabled={u.id === user?.id}
-                          className={`px-2 py-1 rounded text-xs cursor-pointer ${
-                            u.is_admin
-                              ? 'bg-accent-purple/20 text-accent-purple'
-                              : 'bg-bg1 text-muted'
-                          } disabled:opacity-50`}
-                        >
-                          {u.is_admin ? 'Yes' : 'No'}
-                        </button>
+                    <tr key={u.id} className="border-b border-tertiary hover:bg-tertiary transition-colors duration-200">
+                      <td className="py-3 px-4 text-sm text-primary">{u.email}</td>
+                      <td className="py-3 px-4 text-sm text-secondary">{formatDate(u.created_at)}</td>
+                      <td className="py-3 px-4 text-sm">
+                        {u.is_admin ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-accent-purple/20 text-accent-purple">
+                            Admin
+                          </span>
+                        ) : (
+                          <span className="text-muted text-xs">—</span>
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="py-3 px-4 text-sm">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold ${
+                          u.is_active
+                            ? 'bg-accent-green/20 text-accent-green'
+                            : 'bg-accent-red/20 text-accent-red'
+                        }`}>
+                          {u.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-right">
                         <button
-                          onClick={() => handleToggleActive(u.id, u.is_active)}
-                          disabled={u.id === user?.id}
-                          className={`px-2 py-1 rounded text-xs cursor-pointer ${
-                            u.is_active
-                              ? 'bg-accent-green/20 text-accent-green'
-                              : 'bg-accent-red/20 text-accent-red'
-                          } disabled:opacity-50`}
+                          onClick={() => setEditingUser(u)}
+                          className="text-aqua hover:text-aqua-bright transition-colors duration-200 cursor-pointer mr-3"
                         >
-                          {u.is_active ? 'Yes' : 'No'}
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(u)}
+                          className="text-red hover:text-red-bright transition-colors duration-200 cursor-pointer"
+                        >
+                          Delete
                         </button>
                       </td>
                     </tr>
