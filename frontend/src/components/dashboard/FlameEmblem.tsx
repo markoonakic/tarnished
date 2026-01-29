@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
 import api from '@/lib/api';
 import { colors } from '@/lib/theme';
 import FrozenBlockIcon from '@/components/icons/FrozenBlockIcon';
@@ -45,15 +44,14 @@ export default function FlameEmblem() {
     queryFn: () => api.get('/api/streak').then(r => r.data),
   });
 
-  const isRecentlyExhausted = useMemo(() => {
-    if (!data || !data.streak_exhausted_at || data.longest_streak === 0) {
-      return false;
-    }
-    const daysSinceExhausted = Math.floor(
-      (Date.now() - new Date(data.streak_exhausted_at).getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return daysSinceExhausted <= 7;
-  }, [data]);
+  const isRecentlyExhausted = !data || !data.streak_exhausted_at || data.longest_streak === 0
+    ? false
+    : (() => {
+        const daysSinceExhausted = Math.floor(
+          (Date.now() - new Date(data.streak_exhausted_at).getTime()) / (1000 * 60 * 60 * 24)
+        );
+        return daysSinceExhausted <= 7;
+      })();
 
   if (isLoading) {
     return (
