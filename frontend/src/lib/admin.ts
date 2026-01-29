@@ -22,10 +22,22 @@ export async function listUsers(): Promise<User[]> {
 
 export async function updateUser(
   userId: string,
-  data: { is_admin?: boolean; is_active?: boolean }
+  data: { is_admin?: boolean; is_active?: boolean; password?: string }
 ): Promise<User> {
   const response = await api.put(`/api/admin/users/${userId}`, data);
   return response.data;
+}
+
+export async function createUser(data: {
+  email: string;
+  password: string;
+}): Promise<User> {
+  const response = await api.post('/api/admin/users', data);
+  return response.data;
+}
+
+export async function deleteUser(userId: string): Promise<void> {
+  await api.delete(`/api/admin/users/${userId}`);
 }
 
 export async function getAdminStats(): Promise<AdminStats> {
