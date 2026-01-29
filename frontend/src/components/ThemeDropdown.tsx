@@ -70,8 +70,8 @@ export default function ThemeDropdown({ themes, currentTheme, onChange }: Props)
               key={theme.id}
               type="button"
               onClick={() => handleSelect(theme.id)}
-              className={`w-full flex items-center justify-between px-4 py-2 text-fg1 text-left hover:bg-bg1 transition-all duration-200 cursor-pointer ${
-                theme.id === currentTheme ? 'bg-bg1' : ''
+              className={`w-full flex items-center justify-between px-4 py-2 text-fg1 text-left transition-all duration-200 cursor-pointer ${
+                theme.id === currentTheme ? 'bg-bg1 hover:bg-secondary' : 'hover:bg-bg1'
               }`}
             >
               <div className="flex items-center gap-3">
