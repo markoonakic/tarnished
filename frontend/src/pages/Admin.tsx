@@ -109,9 +109,11 @@ export default function Admin() {
               {stats?.applications_by_status && stats.applications_by_status.length > 0 ? (
                 <div className="space-y-2">
                   {stats.applications_by_status.map((item) => (
-                    <div key={item.status} className="flex justify-between items-center">
+                    <div key={item.status} className="flex justify-between items-center py-2">
                       <span className="text-primary">{item.status}</span>
-                      <span className="text-accent-aqua font-medium">{item.count}</span>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-accent-aqua/20 text-accent-aqua">
+                        {item.count}
+                      </span>
                     </div>
                   ))}
                 </div>
