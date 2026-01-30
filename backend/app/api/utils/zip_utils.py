@@ -24,6 +24,74 @@ def is_path_safe(base_path: str, file_path: str) -> bool:
         return False
 
 
+async def validate_zip_safety(zip_path: str) -> dict:
+    """Validate ZIP file safety and return information about its contents.
+
+    Args:
+        zip_path: Path to the ZIP file to validate
+
+    Returns:
+        Dictionary with validation results including file_count and is_safe
+
+    Raises:
+        ValueError: If ZIP file is unsafe (path traversal, oversized, etc.)
+    """
+    MAX_FILE_COUNT = 1000
+    MAX_UNCOMPRESSED_SIZE = 1024 * 1024 * 1024  # 1GB
+
+    file_count = 0
+    total_uncompressed_size = 0
+
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            file_list = zip_ref.infolist()
+            file_count = len(file_list)
+
+            # Check file count limit
+            if file_count > MAX_FILE_COUNT:
+                raise ValueError(f"ZIP contains too many files ({file_count} > {MAX_FILE_COUNT})")
+
+            # Check each file for path traversal and size limits
+            for file_info in file_list:
+                # Check for path traversal attempts
+                file_path = Path(file_info.filename)
+
+                # Reject absolute paths
+                if file_path.is_absolute():
+                    raise ValueError(f"ZIP contains absolute path: {file_info.filename}")
+
+                # Reject paths with .. components
+                if ".." in file_path.parts:
+                    raise ValueError(f"ZIP contains path traversal attempt: {file_info.filename}")
+
+                # Check uncompressed size
+                total_uncompressed_size += file_info.file_size
+                if file_info.file_size > 100 * 1024 * 1024:  # 100MB per file limit
+                    raise ValueError(f"ZIP contains file larger than 100MB: {file_info.filename}")
+
+                # Check total size
+                if total_uncompressed_size > MAX_UNCOMPRESSED_SIZE:
+                    raise ValueError(f"ZIP total uncompressed size exceeds 1GB")
+
+            # Check for ZIP bomb (compression ratio)
+            if file_count > 0:
+                zip_size = os.path.getsize(zip_path)
+                if zip_size > 0 and total_uncompressed_size / zip_size > 100:
+                    raise ValueError("ZIP has suspicious compression ratio (possible ZIP bomb)")
+
+        return {
+            "file_count": file_count,
+            "is_safe": True,
+            "total_uncompressed_size": total_uncompressed_size
+        }
+    except zipfile.BadZipFile:
+        raise ValueError("Invalid ZIP file")
+    except Exception as e:
+        if isinstance(e, ValueError):
+            raise
+        raise ValueError(f"Error validating ZIP: {str(e)}")
+
+
 async def create_zip_export(
     json_data: str,
     user_id: str,

@@ -11,6 +11,7 @@ from app.api.settings import router as settings_router
 from app.api.analytics import router as analytics_router
 from app.api.admin import router as admin_router
 from app.api.export import router as export_router
+from app.api.import_router import router as import_router
 from app.api.files import router as files_router
 from app.api.dashboard import router as dashboard_router
 from app.api.user_preferences import router as user_preferences_router
@@ -45,6 +46,7 @@ app.include_router(settings_router)
 app.include_router(analytics_router)
 app.include_router(admin_router)
 app.include_router(export_router)
+app.include_router(import_router)
 app.include_router(files_router)
 app.include_router(dashboard_router)
 app.include_router(user_preferences_router)

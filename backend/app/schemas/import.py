@@ -112,3 +112,10 @@ class ImportDataSchema(BaseModel):
         if len(v) > 1000:
             raise ValueError('Cannot import more than 1000 applications at once')
         return v
+
+
+class ImportValidationResponse(BaseModel):
+    valid: bool
+    summary: dict
+    warnings: List[str] = []
+    errors: List[str] = []
