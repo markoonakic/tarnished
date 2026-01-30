@@ -1,6 +1,7 @@
 import csv
 import io
 import json
+from datetime import datetime
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -10,9 +11,11 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.config import get_settings
 from app.models import Application, ApplicationStatusHistory, Round, User
 from app.models.status import ApplicationStatus
 from app.models.round_type import RoundType
+from app.api.utils.zip_utils import create_zip_export
 
 router = APIRouter(prefix="/api/export", tags=["export"])
 
@@ -296,4 +299,119 @@ async def export_csv(
         io.BytesIO(output.getvalue().encode()),
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=job-tracker-export.csv"},
+    )
+
+
+@router.get("/zip")
+async def export_zip(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export all data as a ZIP file containing JSON and media files."""
+    result = await db.execute(
+        select(Application)
+        .where(Application.user_id == user.id)
+        .options(
+            selectinload(Application.status),
+            selectinload(Application.status_history).selectinload(ApplicationStatusHistory.from_status),
+            selectinload(Application.status_history).selectinload(ApplicationStatusHistory.to_status),
+            selectinload(Application.rounds).selectinload(Round.round_type),
+            selectinload(Application.rounds).selectinload(Round.media),
+        )
+        .order_by(Application.applied_at.desc())
+    )
+    applications = result.scalars().all()
+
+    # Fetch ALL statuses (both default and user-specific)
+    result_statuses = await db.execute(
+        select(ApplicationStatus)
+        .where(
+            (ApplicationStatus.user_id == user.id) |
+            (ApplicationStatus.is_default == True)
+        )
+        .order_by(ApplicationStatus.order)
+    )
+    custom_statuses = result_statuses.scalars().all()
+
+    # Fetch ALL round types (both default and user-specific)
+    result_types = await db.execute(
+        select(RoundType)
+        .where(
+            (RoundType.user_id == user.id) |
+            (RoundType.is_default == True)
+        )
+        .order_by(RoundType.id)
+    )
+    custom_round_types = result_types.scalars().all()
+
+    data = {
+        "user": {"id": str(user.id), "email": user.email},
+        "custom_statuses": [
+            {
+                "name": s.name,
+                "color": s.color,
+                "is_default": s.is_default,
+                "order": s.order,
+            }
+            for s in custom_statuses
+        ],
+        "custom_round_types": [
+            {
+                "name": rt.name,
+                "is_default": rt.is_default,
+            }
+            for rt in custom_round_types
+        ],
+        "applications": [
+            {
+                "id": app.id,
+                "company": app.company,
+                "job_title": app.job_title,
+                "job_description": app.job_description,
+                "job_url": app.job_url,
+                "status": app.status.name,
+                "cv_path": app.cv_path,
+                "applied_at": str(app.applied_at),
+                "status_history": [
+                    {
+                        "from_status": h.from_status.name if h.from_status else None,
+                        "to_status": h.to_status.name if h.to_status else None,
+                        "changed_at": str(h.changed_at),
+                        "note": h.note,
+                    }
+                    for h in app.status_history
+                ],
+                "rounds": [
+                    {
+                        "id": r.id,
+                        "type": r.round_type.name,
+                        "scheduled_at": str(r.scheduled_at) if r.scheduled_at else None,
+                        "completed_at": str(r.completed_at) if r.completed_at else None,
+                        "outcome": r.outcome,
+                        "notes_summary": r.notes_summary,
+                        "media": [
+                            {"type": m.media_type, "path": m.file_path}
+                            for m in r.media
+                        ],
+                    }
+                    for r in app.rounds
+                ],
+            }
+            for app in applications
+        ],
+    }
+
+    json_data = json.dumps(data, indent=2)
+
+    # Get upload directory from settings
+    settings = get_settings()
+
+    # Create ZIP with all media files
+    zip_bytes = await create_zip_export(json_data, str(user.id), settings.upload_dir)
+
+    filename = f"job-tracker-export-{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip"
+    return StreamingResponse(
+        io.BytesIO(zip_bytes),
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
