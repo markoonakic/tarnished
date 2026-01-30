@@ -143,20 +143,22 @@ export default function Admin() {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-sm text-right">
-                          <button
-                            onClick={() => setEditingUser(u)}
-                            className="px-3 py-1.5 bg-bg1 text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-colors duration-200 flex items-center gap-1.5"
-                          >
-                            <i className="bi-pencil text-xs"></i>
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(u)}
-                            className="px-3 py-1.5 bg-bg1 text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-colors duration-200 flex items-center gap-1.5"
-                          >
-                            <i className="bi-trash text-xs"></i>
-                            Delete
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => setEditingUser(u)}
+                              className="px-3 py-1.5 bg-secondary text-fg1 text-xs rounded hover:bg-tertiary hover:text-fg0 transition-colors duration-200 flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <i className="bi-pencil text-xs"></i>
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(u)}
+                              className="px-3 py-1.5 bg-secondary text-red text-xs rounded hover:bg-tertiary hover:text-red-bright transition-colors duration-200 flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <i className="bi-trash text-xs"></i>
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
