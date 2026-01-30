@@ -17,8 +17,11 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import select
-from typing import Dict
+from typing import Dict, Callable
 from sqlalchemy.ext.asyncio import AsyncSession
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
@@ -38,6 +41,34 @@ ImportValidationResponse = import_schemas.ImportValidationResponse
 from app.api.utils.zip_utils import validate_zip_safety
 
 router = APIRouter(prefix="/api/import", tags=["import"])
+
+
+def get_rate_limit_key(request: Request) -> str:
+    """Get rate limit key, disabled during testing."""
+    import os
+    # Check if rate limiting is explicitly disabled via environment variable
+    # Default to enabled unless explicitly disabled
+    if os.environ.get("ENABLE_RATE_LIMITING", "true").lower() == "false":
+        # Use the request path as part of the key to avoid rate limiting during tests
+        return f"test_override_{request.url.path}"
+    return get_remote_address(request)
+
+
+limiter = Limiter(key_func=get_rate_limit_key)
+
+
+def conditional_rate_limit(limit_string: str):
+    """Apply rate limiting only when enabled."""
+    def decorator(func: Callable):
+        # Check if rate limiting is disabled
+        if os.environ.get("ENABLE_RATE_LIMITING", "true").lower() == "false":
+            return func
+
+        # Otherwise apply the rate limit decorator
+        return limiter.limit(limit_string)(func)
+    return decorator
+
+
 SECURE_TEMP_DIR = "/tmp/secure_imports"
 os.makedirs(SECURE_TEMP_DIR, mode=0o700, exist_ok=True)
 UPLOAD_DIR = os.getenv('UPLOAD_DIR', './uploads')
@@ -295,6 +326,7 @@ async def import_applications(
 
 
 @router.post("/validate")
+@conditional_rate_limit("5/hour")
 async def validate_import(
     request: Request,
     file: UploadFile,
@@ -429,6 +461,7 @@ async def import_progress(import_id: str):
 
 
 @router.post("/import")
+@conditional_rate_limit("5/hour")
 async def import_data(
     request: Request,
     file: UploadFile,

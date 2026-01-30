@@ -1,5 +1,9 @@
 """Pytest configuration and fixtures for testing."""
 
+# IMPORTANT: Set environment variables BEFORE any imports
+import os
+os.environ["ENABLE_RATE_LIMITING"] = "false"
+
 import asyncio
 from typing import AsyncGenerator, Generator
 

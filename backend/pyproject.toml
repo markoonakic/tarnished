@@ -21,6 +21,7 @@ dependencies = [
     "greenlet>=3.0.0",
     "email-validator>=2.0.0",
     "aiofiles>=25.1.0",
+    "slowapi>=0.1.9",
 ]
 
 [build-system]
