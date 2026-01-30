@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Tailwind v4 theme definition - must come immediately after @import */
+@theme {
+  /* Accent colors - bright */
+  --color-aqua-bright: #8ec07c;
+  --color-aqua: #689d6a;
+}
+
 /* Font Faces - CommitMonoFunky */
 @font-face {
   font-family: 'CommitMonoFunky';
@@ -225,44 +232,6 @@
   --purple-bright: #bd93f9;
   --aqua-bright: #8be9fd;
   --orange-bright: #ffb86c;
-}
-
-/* Tailwind v4 theme definition - use direct hex values, not CSS variables */
-@theme {
-  /* Backgrounds */
-  --color-bg0-hard: #1d2021;
-  --color-bg0: #282828;
-  --color-bg0-soft: #32302f;
-  --color-bg1: #3c3836;
-  --color-bg2: #504945;
-  --color-bg3: #665c54;
-  --color-bg4: #7c6f64;
-
-  /* Foregrounds */
-  --color-fg0: #fbf1c7;
-  --color-fg1: #ebdbb2;
-  --color-fg2: #d5c4a1;
-  --color-fg3: #bdae93;
-  --color-fg4: #a89984;
-  --color-gray: #928374;
-
-  /* Accent colors - darker */
-  --color-red: #cc241d;
-  --color-green: #98971a;
-  --color-yellow: #d79921;
-  --color-blue: #458588;
-  --color-purple: #b16286;
-  --color-aqua: #689d6a;
-  --color-orange: #d65d0e;
-
-  /* Accent colors - bright */
-  --color-red-bright: #fb4934;
-  --color-green-bright: #b8bb26;
-  --color-yellow-bright: #fabd2f;
-  --color-blue-bright: #83a598;
-  --color-purple-bright: #d3869b;
-  --color-aqua-bright: #8ec07c;
-  --color-orange-bright: #fe8019;
 }
 
 /* Links - standardized pattern */
