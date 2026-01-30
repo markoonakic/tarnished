@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { listStatuses, createStatus, updateStatus, deleteStatus, listRoundTypes, createRoundType } from '../lib/settings';
+import { listStatuses, createStatus, updateStatus, deleteStatus, listRoundTypes, createRoundType, updateRoundType, deleteRoundType } from '../lib/settings';
 import { exportJSON, exportCSV } from '../lib/export';
 import type { Status, RoundType } from '../lib/types';
 import Layout from '../components/Layout';
@@ -53,6 +53,8 @@ export default function Settings() {
   const [editStatusName, setEditStatusName] = useState('');
   const [editStatusColor, setEditStatusColor] = useState('');
   const [newRoundTypeName, setNewRoundTypeName] = useState('');
+  const [editingRoundType, setEditingRoundType] = useState<RoundType | null>(null);
+  const [editRoundTypeName, setEditRoundTypeName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -127,6 +129,39 @@ export default function Settings() {
       loadData();
     } catch {
       setError('Failed to delete status');
+    }
+  }
+
+  function startEditRoundType(roundType: RoundType) {
+    setEditingRoundType(roundType);
+    setEditRoundTypeName(roundType.name);
+  }
+
+  async function handleUpdateRoundType(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingRoundType || !editRoundTypeName.trim()) return;
+
+    try {
+      await updateRoundType(editingRoundType.id, {
+        name: editRoundTypeName.trim(),
+      });
+      setEditingRoundType(null);
+      loadData();
+    } catch {
+      setError('Failed to update round type');
+    }
+  }
+
+  async function handleDeleteRoundType(roundType: RoundType) {
+    if (!confirm(`Delete round type "${roundType.name}"?`)) {
+      return;
+    }
+
+    try {
+      await deleteRoundType(roundType.id);
+      loadData();
+    } catch {
+      setError('Failed to delete round type');
     }
   }
 
@@ -296,7 +331,7 @@ export default function Settings() {
                         {!status.is_default && (
                           <button
                             onClick={() => startEditStatus(status)}
-                            className="px-3 py-1.5 bg-secondary text-fg1 text-xs rounded hover:bg-tertiary hover:text-fg0 transition-colors duration-200 ease-out flex items-center gap-1.5 cursor-pointer"
+                            className="px-3 py-1.5 text-fg1 text-xs rounded hover:bg-tertiary hover:text-fg0 transition-colors duration-200 ease-out flex items-center gap-1.5 cursor-pointer"
                           >
                             <i className="bi-pencil text-xs"></i>
                             Edit
@@ -305,7 +340,7 @@ export default function Settings() {
                         {!status.is_default && (
                           <button
                             onClick={() => handleDeleteStatus(status)}
-                            className="px-3 py-1.5 bg-secondary text-red text-xs rounded hover:bg-tertiary hover:text-red-bright transition-colors duration-200 ease-out flex items-center gap-1.5 cursor-pointer"
+                            className="px-3 py-1.5 text-red text-xs rounded hover:bg-tertiary hover:text-red-bright transition-colors duration-200 ease-out flex items-center gap-1.5 cursor-pointer"
                           >
                             <i className="bi-trash text-xs"></i>
                             Delete
@@ -400,14 +435,61 @@ export default function Settings() {
                       className="flex items-center justify-between bg-tertiary rounded px-3 py-2"
                     >
                       <span className="text-primary">{type.name}</span>
-                      {type.is_default && (
-                        <span className="text-xs text-muted">Default</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {type.is_default && (
+                          <span className="text-xs text-muted">Default</span>
+                        )}
+                        {!type.is_default && (
+                          <>
+                            <button
+                              onClick={() => startEditRoundType(type)}
+                              className="px-3 py-1.5 text-fg1 text-xs rounded hover:bg-tertiary hover:text-fg0 transition-colors duration-200 ease-out flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <i className="bi-pencil text-xs"></i>
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRoundType(type)}
+                              className="px-3 py-1.5 text-red text-xs rounded hover:bg-tertiary hover:text-red-bright transition-colors duration-200 ease-out flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <i className="bi-trash text-xs"></i>
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
 
-                <form onSubmit={handleAddRoundType} className="flex gap-2">
+                {editingRoundType ? (
+                  <form onSubmit={handleUpdateRoundType} className="mb-4 p-3 bg-secondary rounded">
+                    <div className="text-sm text-muted mb-2">Edit Round Type</div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={editRoundTypeName}
+                        onChange={(e) => setEditRoundTypeName(e.target.value)}
+                        placeholder="Round type name"
+                        className="flex-1 px-3 py-2 bg-tertiary rounded text-primary placeholder-muted focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+                      />
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingRoundType(null)}
+                        className="px-4 py-2 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleAddRoundType} className="flex gap-2">
                   <input
                     type="text"
                     value={newRoundTypeName}
@@ -422,6 +504,7 @@ export default function Settings() {
                     Add
                   </button>
                 </form>
+                )}
               </>
             )}
             </div>

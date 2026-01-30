@@ -32,3 +32,12 @@ export async function createRoundType(data: { name: string }): Promise<RoundType
   const response = await api.post('/api/round-types', data);
   return response.data;
 }
+
+export async function updateRoundType(id: string, data: { name: string }): Promise<RoundType> {
+  const response = await api.put(`/api/round-types/${id}`, data);
+  return response.data;
+}
+
+export async function deleteRoundType(id: string): Promise<void> {
+  await api.delete(`/api/round-types/${id}`);
+}
