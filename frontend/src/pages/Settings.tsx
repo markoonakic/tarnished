@@ -6,6 +6,7 @@ import Layout from '../components/Layout';
 import ThemeDropdown from '../components/ThemeDropdown';
 import Loading from '../components/Loading';
 import FeatureToggles from '../components/settings/FeatureToggles';
+import ImportModal from '../components/ImportModal';
 
 const THEMES = [
   {
@@ -59,6 +60,7 @@ export default function Settings() {
   const [error, setError] = useState('');
   const [exporting, setExporting] = useState(false);
   const [activeSection, setActiveSection] = useState('theme');
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -253,6 +255,15 @@ export default function Settings() {
               >
                 Data Export
               </a>
+              <a
+                href="#import"
+                onClick={(e) => { e.preventDefault(); setActiveSection('import'); }}
+                className={`block px-4 py-3 text-sm transition-colors duration-200 ease-out ${
+                  activeSection === 'import' ? 'text-aqua-bright' : 'text-aqua hover:text-aqua-bright'
+                }`}
+              >
+                Data Import
+              </a>
             </nav>
           </div>
         </aside>
@@ -270,6 +281,7 @@ export default function Settings() {
             <option value="statuses">Application Statuses</option>
             <option value="rounds">Interview Round Types</option>
             <option value="export">Data Export</option>
+            <option value="import">Data Import</option>
           </select>
         </div>
 
@@ -534,10 +546,34 @@ export default function Settings() {
             </div>
             </div>
           )}
+
+          {activeSection === 'import' && (
+            <div className="bg-secondary rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-primary mb-4">Import Data</h2>
+            <p className="text-sm text-muted mb-4">
+              Import job application data from a previously exported ZIP file.
+            </p>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
+            >
+              Import Data
+            </button>
+            </div>
+          )}
           </div>
           </div>
         </main>
       </div>
+
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={() => {
+          setShowImportModal(false);
+          loadData();
+        }}
+      />
     </Layout>
   );
 }
