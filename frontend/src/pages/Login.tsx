@@ -49,7 +49,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoFocus
-              className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200"
+              className="w-full px-3 py-2 bg-bg1 border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200"
               required
             />
           </div>
