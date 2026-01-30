@@ -228,7 +228,7 @@ export default function Settings() {
           <select
             value={activeSection}
             onChange={(e) => setActiveSection(e.target.value)}
-            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua"
+            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-[#8ec07c]"
           >
             <option value="theme">Theme</option>
             <option value="features">Features</option>
@@ -323,7 +323,7 @@ export default function Settings() {
                         value={editStatusName}
                         onChange={(e) => setEditStatusName(e.target.value)}
                         placeholder="Status name"
-                        className="flex-1 px-3 py-2 bg-tertiary border border-transparent rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-[border-color_200ms_ease]"
+                        className="flex-1 px-3 py-2 bg-tertiary border border-transparent rounded text-primary placeholder-muted focus:outline-none focus:border-[#8ec07c] transition-[border-color_200ms_ease]"
                       />
                       <input
                         type="color"
@@ -353,7 +353,7 @@ export default function Settings() {
                       value={newStatusName}
                       onChange={(e) => setNewStatusName(e.target.value)}
                       placeholder="New status name"
-                      className="flex-1 px-3 py-2 bg-tertiary border border-transparent rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-[border-color_200ms_ease]"
+                      className="flex-1 px-3 py-2 bg-tertiary border border-transparent rounded text-primary placeholder-muted focus:outline-none focus:border-[#8ec07c] transition-[border-color_200ms_ease]"
                     />
                     <input
                       type="color"
@@ -411,7 +411,7 @@ export default function Settings() {
                     value={newRoundTypeName}
                     onChange={(e) => setNewRoundTypeName(e.target.value)}
                     placeholder="New round type name"
-                    className="flex-1 px-3 py-2 bg-tertiary border border-transparent rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-[border-color_200ms_ease]"
+                    className="flex-1 px-3 py-2 bg-tertiary border border-transparent rounded text-primary placeholder-muted focus:outline-none focus:border-[#8ec07c] transition-[border-color_200ms_ease]"
                   />
                   <button
                     type="submit"

@@ -155,7 +155,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
           <select
             value={roundTypeId}
             onChange={(e) => setRoundTypeId(e.target.value)}
-            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease"
+            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease"
           >
             <option value="">Select type</option>
             {roundTypes.map((type) => (
@@ -172,7 +172,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             type="date"
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
-            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease"
+            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease"
           />
         </div>
 
@@ -183,7 +183,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
             placeholder="e.g. 2:30 PM"
-            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease"
+            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease"
           />
         </div>
 
@@ -194,7 +194,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
               <select
                 value={outcome}
                 onChange={(e) => setOutcome(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease"
+                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease"
               >
                 <option value="">Pending</option>
                 <option value="passed">Passed</option>
@@ -209,7 +209,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
                 type="date"
                 value={completedDate}
                 onChange={(e) => setCompletedDate(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease"
+                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease"
               />
             </div>
 
@@ -220,7 +220,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
                 value={completedTime}
                 onChange={(e) => setCompletedTime(e.target.value)}
                 placeholder="e.g. 2:30 PM"
-                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease"
+                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease"
               />
             </div>
           </>
@@ -233,7 +233,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             onChange={(e) => setNotesSummary(e.target.value)}
             rows={3}
             placeholder="Key points, questions asked, feedback..."
-            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease resize-y"
+            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease resize-y"
           />
         </div>
 
@@ -243,7 +243,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             type="file"
             accept=".pdf"
             onChange={(e) => setTranscriptFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease"
+            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease"
           />
           {uploadProgress > 0 && uploadProgress < 100 && (
             <div className="mt-2">
@@ -265,7 +265,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             onChange={(e) => setTranscriptSummary(e.target.value)}
             rows={3}
             placeholder="Summary of key discussion points from transcript..."
-            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease resize-y"
+            className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-primary placeholder-muted focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease resize-y"
           />
         </div>
       </div>

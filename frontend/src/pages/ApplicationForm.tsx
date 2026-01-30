@@ -182,7 +182,7 @@ export default function ApplicationForm() {
                 type="text"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 placeholder-gray focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease"
+                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 placeholder-gray focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease"
                 required
               />
             </div>
@@ -195,7 +195,7 @@ export default function ApplicationForm() {
                 type="text"
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 placeholder-gray focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease"
+                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 placeholder-gray focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease"
                 required
               />
             </div>
@@ -207,7 +207,7 @@ export default function ApplicationForm() {
               <select
                 value={statusId}
                 onChange={(e) => setStatusId(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease"
+                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease"
                 required
               >
                 <option value="">Select status</option>
@@ -225,7 +225,7 @@ export default function ApplicationForm() {
                 type="date"
                 value={appliedAt}
                 onChange={(e) => setAppliedAt(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease"
+                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease"
               />
             </div>
 
@@ -240,7 +240,7 @@ export default function ApplicationForm() {
                 }}
                 onBlur={handleJobUrlBlur}
                 placeholder="example.com or https://..."
-                className={`w-full px-3 py-2 bg-tertiary border rounded text-fg1 placeholder-gray focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease ${
+                className={`w-full px-3 py-2 bg-tertiary border rounded text-fg1 placeholder-gray focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease ${
                   jobUrlError ? 'border-red-bright' : 'border-transparent'
                 }`}
               />
@@ -255,7 +255,7 @@ export default function ApplicationForm() {
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
                 rows={6}
-                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 placeholder-gray focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease resize-y"
+                className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 placeholder-gray focus:outline-none focus:border-[#8ec07c] transition-colors duration-200 ease resize-y"
               />
             </div>
           </div>
