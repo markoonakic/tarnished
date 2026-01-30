@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
+from app.models.round import MediaType
 
 
 class CustomStatusSchema(BaseModel):
@@ -16,8 +17,8 @@ class CustomRoundTypeSchema(BaseModel):
 
 
 class RoundMediaSchema(BaseModel):
-    type: str = Field(..., min_length=1)
-    path: Optional[str] = None
+    type: MediaType = Field(...)
+    path: Optional[str] = Field(None, max_length=500)
 
 
 class RoundSchema(BaseModel):
@@ -29,12 +30,32 @@ class RoundSchema(BaseModel):
     notes_summary: Optional[str] = None
     media: List[RoundMediaSchema] = []
 
+    @field_validator('scheduled_at', 'completed_at')
+    @classmethod
+    def validate_datetime_format(cls, v):
+        if v:
+            try:
+                datetime.fromisoformat(v.replace('Z', '+00:00'))
+            except ValueError:
+                raise ValueError(f'Invalid datetime format: {v}. Expected ISO 8601 format.')
+        return v
+
 
 class StatusHistoryEntrySchema(BaseModel):
     from_status: Optional[str] = None
     to_status: str = Field(..., min_length=1)
     changed_at: str = Field(..., min_length=1)
     note: Optional[str] = None
+
+    @field_validator('changed_at')
+    @classmethod
+    def validate_datetime_format(cls, v):
+        if v:
+            try:
+                datetime.fromisoformat(v.replace('Z', '+00:00'))
+            except ValueError:
+                raise ValueError(f'Invalid datetime format: {v}. Expected ISO 8601 format.')
+        return v
 
 
 class ApplicationSchema(BaseModel):
@@ -44,7 +65,7 @@ class ApplicationSchema(BaseModel):
     job_description: Optional[str] = None
     job_url: Optional[str] = None
     status: str = Field(..., min_length=1)
-    cv_path: Optional[str] = None
+    cv_path: Optional[str] = Field(None, max_length=500)
     applied_at: str = Field(..., min_length=1)
     status_history: List[StatusHistoryEntrySchema] = []
     rounds: List[RoundSchema] = []
@@ -56,10 +77,27 @@ class ApplicationSchema(BaseModel):
             raise ValueError('job_url must start with http:// or https://')
         return v
 
+    @field_validator('applied_at')
+    @classmethod
+    def validate_datetime_format(cls, v):
+        if v:
+            try:
+                datetime.fromisoformat(v.replace('Z', '+00:00'))
+            except ValueError:
+                raise ValueError(f'Invalid datetime format: {v}. Expected ISO 8601 format.')
+        return v
+
 
 class UserSchema(BaseModel):
     id: Optional[str] = None
     email: str = Field(..., min_length=5)
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        if '@' not in v or '.' not in v.split('@')[1]:
+            raise ValueError('Invalid email format')
+        return v
 
 
 class ImportDataSchema(BaseModel):
