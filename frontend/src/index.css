@@ -66,43 +66,6 @@
   font-display: swap;
 }
 
-@theme inline {
-  /* Backgrounds */
-  --color-bg0-hard: var(--bg0-hard);
-  --color-bg0: var(--bg0);
-  --color-bg0-soft: var(--bg0-soft);
-  --color-bg1: var(--bg1);
-  --color-bg2: var(--bg2);
-  --color-bg3: var(--bg3);
-  --color-bg4: var(--bg4);
-
-  /* Foregrounds */
-  --color-fg0: var(--fg0);
-  --color-fg1: var(--fg1);
-  --color-fg2: var(--fg2);
-  --color-fg3: var(--fg3);
-  --color-fg4: var(--fg4);
-  --color-gray: var(--gray);
-
-  /* Accent colors - darker */
-  --color-red: var(--red);
-  --color-green: var(--green);
-  --color-yellow: var(--yellow);
-  --color-blue: var(--blue);
-  --color-purple: var(--purple);
-  --color-aqua: var(--aqua);
-  --color-orange: var(--orange);
-
-  /* Accent colors - bright */
-  --color-red-bright: var(--red-bright);
-  --color-green-bright: var(--green-bright);
-  --color-yellow-bright: var(--yellow-bright);
-  --color-blue-bright: var(--blue-bright);
-  --color-purple-bright: var(--purple-bright);
-  --color-aqua-bright: var(--aqua-bright);
-  --color-orange-bright: var(--orange-bright);
-}
-
 :root {
   /* Fluid typography - prevents tiny text on 4K/8K displays */
   font-size: clamp(100%, 0.9rem + 0.3vw, 112.5%);
@@ -262,6 +225,44 @@
   --purple-bright: #bd93f9;
   --aqua-bright: #8be9fd;
   --orange-bright: #ffb86c;
+}
+
+/* Tailwind v4 theme definition - must come AFTER :root and theme variants */
+@theme inline {
+  /* Backgrounds */
+  --color-bg0-hard: var(--bg0-hard);
+  --color-bg0: var(--bg0);
+  --color-bg0-soft: var(--bg0-soft);
+  --color-bg1: var(--bg1);
+  --color-bg2: var(--bg2);
+  --color-bg3: var(--bg3);
+  --color-bg4: var(--bg4);
+
+  /* Foregrounds */
+  --color-fg0: var(--fg0);
+  --color-fg1: var(--fg1);
+  --color-fg2: var(--fg2);
+  --color-fg3: var(--fg3);
+  --color-fg4: var(--fg4);
+  --color-gray: var(--gray);
+
+  /* Accent colors - darker */
+  --color-red: var(--red);
+  --color-green: var(--green);
+  --color-yellow: var(--yellow);
+  --color-blue: var(--blue);
+  --color-purple: var(--purple);
+  --color-aqua: var(--aqua);
+  --color-orange: var(--orange);
+
+  /* Accent colors - bright */
+  --color-red-bright: var(--red-bright);
+  --color-green-bright: var(--green-bright);
+  --color-yellow-bright: var(--yellow-bright);
+  --color-blue-bright: var(--blue-bright);
+  --color-purple-bright: var(--purple-bright);
+  --color-aqua-bright: var(--aqua-bright);
+  --color-orange-bright: var(--orange-bright);
 }
 
 /* Links - standardized pattern */
