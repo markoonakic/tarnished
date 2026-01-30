@@ -29,6 +29,7 @@ from app.models import (
     Application,
     ApplicationStatus,
     ApplicationStatusHistory,
+    AuditLog,
     Round,
     RoundMedia,
     RoundType,
@@ -67,6 +68,18 @@ def conditional_rate_limit(limit_string: str):
         # Otherwise apply the rate limit decorator
         return limiter.limit(limit_string)(func)
     return decorator
+
+
+async def log_import_event(db: AsyncSession, user_id: str, event: str, details: dict, request: Request):
+    """Log import events for security audit."""
+    log = AuditLog(
+        user_id=user_id,
+        event_type=f"import_{event}",
+        details=json.dumps(details),
+        ip_address=request.client.host if request.client else None
+    )
+    db.add(log)
+    await db.commit()
 
 
 SECURE_TEMP_DIR = "/tmp/secure_imports"
@@ -359,6 +372,19 @@ async def validate_import(
         # Validate with Pydantic
         validated_data = ImportDataSchema(**data)
 
+        # Log successful validation
+        await log_import_event(
+            db,
+            user.id,
+            "validation_success",
+            {
+                "filename": file.filename,
+                "applications_count": len(validated_data.applications),
+                "rounds_count": sum(len(app.rounds) for app in validated_data.applications),
+            },
+            request
+        )
+
         # Check for override warning
         result = await db.execute(
             select(Application)
@@ -413,6 +439,17 @@ async def validate_import(
     except HTTPException:
         raise
     except Exception as e:
+        # Log validation failure
+        await log_import_event(
+            db,
+            user.id,
+            "validation_failed",
+            {
+                "filename": file.filename,
+                "error": str(e),
+            },
+            request
+        )
         return ImportValidationResponse(
             valid=False,
             summary={},
@@ -574,6 +611,22 @@ async def import_data(
 
         await db.commit()
 
+        # Log successful import
+        await log_import_event(
+            db,
+            user.id,
+            "success",
+            {
+                "import_id": import_id,
+                "override": override,
+                "applications_imported": result["applications"],
+                "rounds_imported": result["rounds"],
+                "status_history_imported": result["status_history"],
+                "files_imported": len(file_mapping),
+            },
+            request
+        )
+
         ImportProgress.complete(import_id, success=True, result={
             "applications": result["applications"],
             "rounds": result["rounds"],
@@ -584,10 +637,34 @@ async def import_data(
         return {"import_id": import_id, "status": "processing"}
 
     except HTTPException:
+        # Log HTTP exception
+        await log_import_event(
+            db,
+            user.id,
+            "failed",
+            {
+                "import_id": import_id,
+                "override": override,
+                "error": "Validation failed",
+            },
+            request
+        )
         ImportProgress.complete(import_id, success=False, result={"error": "Validation failed"})
         raise
     except Exception as e:
         await db.rollback()
+        # Log import failure
+        await log_import_event(
+            db,
+            user.id,
+            "failed",
+            {
+                "import_id": import_id,
+                "override": override,
+                "error": str(e),
+            },
+            request
+        )
         ImportProgress.complete(import_id, success=False, result={"error": str(e)})
         raise HTTPException(500, f"Import failed: {str(e)}")
     finally:
