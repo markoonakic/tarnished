@@ -429,12 +429,11 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-/* Input focus (already has border change, but add outline for clarity) */
+/* Input focus - handled by border-color change, no outline needed */
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--aqua-bright);
-  outline-offset: -1px; /* Inside element */
+  outline: none;
 }
 
 /* Link focus */
