@@ -14,7 +14,7 @@ import uuid
 import zipfile
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import select
 from typing import Dict
@@ -432,7 +432,7 @@ async def import_progress(import_id: str):
 async def import_data(
     request: Request,
     file: UploadFile,
-    override: bool = False,
+    override: bool = Form(False),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -525,7 +525,7 @@ async def import_data(
 
         # Import applications with progress callback
         def progress_update(**kwargs):
-            percent = 50 + int(kwargs.get('percent', 0) * 0.4)  # 50-90%
+            percent = 50 + int(kwargs.pop('percent', 0) * 0.4)  # 50-90%
             ImportProgress.update(import_id, percent=percent, **kwargs)
 
         result = await import_applications(

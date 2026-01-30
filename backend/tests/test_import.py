@@ -4,8 +4,10 @@ These tests verify that the import validation endpoint works correctly,
 including ZIP file safety validation and data validation.
 """
 
+import asyncio
 import io
 import json
+import tempfile
 import zipfile
 from datetime import date, datetime
 
@@ -115,6 +117,26 @@ def auth_headers(test_user: User) -> dict[str, str]:
 
 
 @pytest.fixture
+async def import_user(db: AsyncSession) -> dict:
+    """Create an import user with headers for import tests."""
+    user = User(
+        email="import@example.com",
+        password_hash=get_password_hash("importpass123"),
+        is_admin=False,
+        is_active=True,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    token = create_access_token({"sub": user.id})
+    return {
+        "Authorization": f"Bearer {token}",
+        "user_id": user.id,
+    }
+
+
+@pytest.fixture
 def sample_import_data(test_user: User) -> dict:
     """Create sample import data."""
     return {
@@ -178,6 +200,72 @@ def sample_import_zip(sample_import_data: dict) -> bytes:
         zipf.writestr('data.json', json.dumps(sample_import_data))
     zip_buffer.seek(0)
     return zip_buffer.read()
+
+
+@pytest.fixture
+def sample_import_zip_file(sample_import_zip: bytes) -> str:
+    """Create a sample import ZIP file and return its path."""
+    with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as f:
+        f.write(sample_import_zip)
+        return f.name
+
+
+@pytest.fixture
+def sample_import_with_phone_screen(import_user: dict) -> dict:
+    """Create sample import data with Phone Screen status for testing."""
+    return {
+        "user": {
+            "id": str(import_user["user_id"]),
+            "email": "import@example.com",
+        },
+        "custom_statuses": [],
+        "custom_round_types": [],
+        "applications": [
+            {
+                "id": "app-old-1",
+                "company": "TestCorp",
+                "job_title": "Developer",
+                "job_description": "Test description",
+                "job_url": None,
+                "status": "Phone Screen",
+                "cv_path": None,
+                "applied_at": "2024-01-25",
+                "status_history": [
+                    {
+                        "from_status": None,
+                        "to_status": "Phone Screen",
+                        "changed_at": "2024-01-25T10:00:00",
+                        "note": "Applied",
+                    }
+                ],
+                "rounds": [
+                    {
+                        "id": "round-old-1",
+                        "type": "Technical Interview",
+                        "scheduled_at": "2024-01-26T10:00:00",
+                        "completed_at": None,
+                        "outcome": "Passed",
+                        "notes_summary": "Good interview",
+                        "media": [],
+                    }
+                ],
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def sample_import_zip_with_phone_screen(sample_import_with_phone_screen: dict) -> str:
+    """Create a sample import ZIP file and return its path."""
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        zipf.writestr('data.json', json.dumps(sample_import_with_phone_screen))
+    zip_buffer.seek(0)
+    zip_bytes = zip_buffer.read()
+
+    with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as f:
+        f.write(zip_bytes)
+        return f.name
 
 
 class TestImportValidationAuthentication:
@@ -612,3 +700,180 @@ class TestValidateZIPSafety:
             import os
             if os.path.exists(zip_path):
                 os.remove(zip_path)
+
+
+class TestImportData:
+    """Test the actual import functionality."""
+
+    async def test_import_creates_missing_status(
+        self, client: AsyncClient, import_user: dict, sample_import_zip_with_phone_screen: str, db: AsyncSession
+    ):
+        """Test import creates missing status automatically."""
+        # Check status doesn't exist
+        result = await db.execute(
+            select(ApplicationStatus)
+            .where(ApplicationStatus.name == "Phone Screen")
+        )
+        assert result.scalar_one_or_none() is None
+
+        # Import
+        with open(sample_import_zip_with_phone_screen, 'rb') as f:
+            response = await client.post(
+                "/api/import/import",
+                files={"file": ("import.zip", f, "application/zip")},
+                headers=import_user,
+                data={"override": "false"}
+            )
+
+        assert response.status_code == 200
+
+        # Wait for import to complete
+        await asyncio.sleep(2)
+
+        # Check status was created
+        result = await db.execute(
+            select(ApplicationStatus)
+            .where(ApplicationStatus.name == "Phone Screen")
+        )
+        status = result.scalar_one_or_none()
+        assert status is not None
+        assert status.color == "#6B7280"  # Default gray
+
+        # Clean up temp file
+        import os
+        if os.path.exists(sample_import_zip_with_phone_screen):
+            os.remove(sample_import_zip_with_phone_screen)
+
+    async def test_import_creates_application(
+        self, client: AsyncClient, import_user: dict, sample_import_zip_with_phone_screen: str, db: AsyncSession
+    ):
+        """Test import creates application with new ID."""
+        user_id = import_user["user_id"]
+
+        with open(sample_import_zip_with_phone_screen, 'rb') as f:
+            response = await client.post(
+                "/api/import/import",
+                files={"file": ("import.zip", f, "application/zip")},
+                headers=import_user,
+                data={"override": "false"}
+            )
+
+        assert response.status_code == 200
+        import_id = response.json()["import_id"]
+
+        # Wait for import to complete
+        await asyncio.sleep(2)
+
+        # Check application was created
+        result = await db.execute(
+            select(Application)
+            .where(Application.user_id == user_id)
+            .where(Application.company == "TestCorp")
+        )
+        app = result.scalar_one_or_none()
+        assert app is not None
+        assert app.job_title == "Developer"
+        assert app.id != "app-old-1"  # New ID generated
+
+        # Clean up temp file
+        import os
+        if os.path.exists(sample_import_zip_with_phone_screen):
+            os.remove(sample_import_zip_with_phone_screen)
+
+    async def test_import_creates_rounds_with_relationships(
+        self, client: AsyncClient, import_user: dict, sample_import_zip_with_phone_screen: str, db: AsyncSession
+    ):
+        """Test import creates rounds with correct relationships."""
+        from sqlalchemy.orm import selectinload
+        user_id = import_user["user_id"]
+
+        with open(sample_import_zip_with_phone_screen, 'rb') as f:
+            response = await client.post(
+                "/api/import/import",
+                files={"file": ("import.zip", f, "application/zip")},
+                headers=import_user,
+                data={"override": "false"}
+            )
+
+        # Wait for import to complete
+        await asyncio.sleep(2)
+
+        # Check application has round
+        result = await db.execute(
+            select(Application)
+            .options(selectinload(Application.rounds))
+            .where(Application.user_id == user_id)
+            .where(Application.company == "TestCorp")
+        )
+        app = result.scalar_one()
+
+        assert len(app.rounds) == 1
+        round = app.rounds[0]
+        assert round.outcome == "Passed"
+        assert round.notes_summary == "Good interview"
+
+        # Clean up temp file
+        import os
+        if os.path.exists(sample_import_zip_with_phone_screen):
+            os.remove(sample_import_zip_with_phone_screen)
+
+
+class TestImportOverride:
+    """Test the override functionality."""
+
+    async def test_override_deletes_existing_data(
+        self, client: AsyncClient, import_user: dict, db: AsyncSession, sample_import_zip_with_phone_screen: str
+    ):
+        """Test override option deletes existing applications."""
+        user_id = import_user["user_id"]
+
+        # Create an existing application
+        status = ApplicationStatus(name="Old Status", color="#000000", is_default=True, user_id=user_id)
+        db.add(status)
+        await db.flush()
+
+        existing_app = Application(
+            user_id=user_id,
+            company="Existing Company",
+            job_title="Old Job",
+            status_id=status.id,
+            applied_at=date.today()
+        )
+        db.add(existing_app)
+        await db.commit()
+
+        # Count applications before import
+        result = await db.execute(
+            select(Application)
+            .where(Application.user_id == user_id)
+        )
+        count_before = len(result.scalars().all())
+        assert count_before == 1
+
+        # Import with override
+        with open(sample_import_zip_with_phone_screen, 'rb') as f:
+            response = await client.post(
+                "/api/import/import",
+                files={"file": ("import.zip", f, "application/zip")},
+                headers=import_user,
+                data={"override": "true"}
+            )
+
+        assert response.status_code == 200
+
+        # Wait for import to complete
+        await asyncio.sleep(2)
+
+        # Check old application is gone
+        result = await db.execute(
+            select(Application)
+            .where(Application.user_id == user_id)
+        )
+        apps = result.scalars().all()
+        assert len(apps) == 1
+        assert apps[0].company == "TestCorp"  # New data
+
+        # Clean up temp file
+        import os
+        if os.path.exists(sample_import_zip_with_phone_screen):
+            os.remove(sample_import_zip_with_phone_screen)
