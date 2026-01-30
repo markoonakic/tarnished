@@ -86,7 +86,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200"
+              className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease"
               required
               autoFocus
             />
@@ -100,7 +100,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200"
+              className="w-full px-3 py-2 bg-tertiary border border-muted rounded text-fg1 placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200 ease"
               required
               minLength={8}
             />

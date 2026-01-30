@@ -176,7 +176,7 @@ export default function Settings() {
               <a
                 href="#theme"
                 onClick={(e) => { e.preventDefault(); setActiveSection('theme'); }}
-                className={`block px-4 py-3 text-sm transition-colors duration-200 ${
+                className={`block px-4 py-3 text-sm transition-[border-color_200ms_ease] ${
                   activeSection === 'theme' ? 'text-aqua-bright' : 'text-aqua hover:text-aqua-bright'
                 }`}
               >
@@ -185,7 +185,7 @@ export default function Settings() {
               <a
                 href="#features"
                 onClick={(e) => { e.preventDefault(); setActiveSection('features'); }}
-                className={`block px-4 py-3 text-sm transition-colors duration-200 ${
+                className={`block px-4 py-3 text-sm transition-[border-color_200ms_ease] ${
                   activeSection === 'features' ? 'text-aqua-bright' : 'text-aqua hover:text-aqua-bright'
                 }`}
               >
@@ -194,7 +194,7 @@ export default function Settings() {
               <a
                 href="#statuses"
                 onClick={(e) => { e.preventDefault(); setActiveSection('statuses'); }}
-                className={`block px-4 py-3 text-sm transition-colors duration-200 ${
+                className={`block px-4 py-3 text-sm transition-[border-color_200ms_ease] ${
                   activeSection === 'statuses' ? 'text-aqua-bright' : 'text-aqua hover:text-aqua-bright'
                 }`}
               >
@@ -203,7 +203,7 @@ export default function Settings() {
               <a
                 href="#rounds"
                 onClick={(e) => { e.preventDefault(); setActiveSection('rounds'); }}
-                className={`block px-4 py-3 text-sm transition-colors duration-200 ${
+                className={`block px-4 py-3 text-sm transition-[border-color_200ms_ease] ${
                   activeSection === 'rounds' ? 'text-aqua-bright' : 'text-aqua hover:text-aqua-bright'
                 }`}
               >
@@ -212,7 +212,7 @@ export default function Settings() {
               <a
                 href="#export"
                 onClick={(e) => { e.preventDefault(); setActiveSection('export'); }}
-                className={`block px-4 py-3 text-sm transition-colors duration-200 ${
+                className={`block px-4 py-3 text-sm transition-[border-color_200ms_ease] ${
                   activeSection === 'export' ? 'text-aqua-bright' : 'text-aqua hover:text-aqua-bright'
                 }`}
               >
@@ -295,7 +295,7 @@ export default function Settings() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => startEditStatus(status)}
-                          className="px-3 py-1.5 bg-secondary text-fg1 text-xs rounded hover:bg-tertiary hover:text-fg0 transition-colors duration-200 flex items-center gap-1.5 cursor-pointer"
+                          className="px-3 py-1.5 bg-secondary text-fg1 text-xs rounded hover:bg-tertiary hover:text-fg0 transition-[border-color_200ms_ease] flex items-center gap-1.5 cursor-pointer"
                         >
                           <i className="bi-pencil text-xs"></i>
                           Edit
@@ -303,7 +303,7 @@ export default function Settings() {
                         {!status.is_default && (
                           <button
                             onClick={() => handleDeleteStatus(status)}
-                            className="px-3 py-1.5 bg-secondary text-red text-xs rounded hover:bg-tertiary hover:text-red-bright transition-colors duration-200 flex items-center gap-1.5 cursor-pointer"
+                            className="px-3 py-1.5 bg-secondary text-red text-xs rounded hover:bg-tertiary hover:text-red-bright transition-[border-color_200ms_ease] flex items-center gap-1.5 cursor-pointer"
                           >
                             <i className="bi-trash text-xs"></i>
                             Delete
@@ -323,7 +323,7 @@ export default function Settings() {
                         value={editStatusName}
                         onChange={(e) => setEditStatusName(e.target.value)}
                         placeholder="Status name"
-                        className="flex-1 px-3 py-2 bg-tertiary border border-transparent rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200"
+                        className="flex-1 px-3 py-2 bg-tertiary border border-transparent rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-[border-color_200ms_ease]"
                       />
                       <input
                         type="color"
@@ -353,7 +353,7 @@ export default function Settings() {
                       value={newStatusName}
                       onChange={(e) => setNewStatusName(e.target.value)}
                       placeholder="New status name"
-                      className="flex-1 px-3 py-2 bg-tertiary border border-transparent rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200"
+                      className="flex-1 px-3 py-2 bg-tertiary border border-transparent rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-[border-color_200ms_ease]"
                     />
                     <input
                       type="color"
@@ -411,7 +411,7 @@ export default function Settings() {
                     value={newRoundTypeName}
                     onChange={(e) => setNewRoundTypeName(e.target.value)}
                     placeholder="New round type name"
-                    className="flex-1 px-3 py-2 bg-tertiary border border-transparent rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-colors duration-200"
+                    className="flex-1 px-3 py-2 bg-tertiary border border-transparent rounded text-primary placeholder-muted focus:outline-none focus:border-accent-aqua transition-[border-color_200ms_ease]"
                   />
                   <button
                     type="submit"
