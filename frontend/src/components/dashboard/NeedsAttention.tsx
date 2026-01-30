@@ -45,7 +45,7 @@ function AttentionSection({
   }
 
   return (
-    <div className="bg-secondary rounded-lg p-6 border border-tertiary">
+    <div className="bg-secondary rounded-lg p-6">
       <div className="flex items-center gap-2 mb-4">
         <i className={`bi ${icon} ${iconColor}`}></i>
         <h3 className="text-lg font-semibold text-fg1">{title}</h3>
@@ -100,7 +100,7 @@ export default function NeedsAttention() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-secondary rounded-lg p-6 border border-tertiary animate-pulse">
+          <div key={i} className="bg-secondary rounded-lg p-6 animate-pulse">
             <div className="h-6 bg-tertiary rounded mb-4 w-32"></div>
             <div className="space-y-2">
               <div className="h-16 bg-bg0 rounded"></div>
