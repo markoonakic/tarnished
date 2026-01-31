@@ -23,7 +23,7 @@ export default function PasswordInput({ value, onChange, label, required = false
           onChange={(e) => onChange(e.target.value)}
           required={required}
           autoComplete={autoComplete}
-          className="w-full px-3 py-2 pr-10 bg-bg1 rounded text-primary focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+          className="w-full px-3 py-2 pr-10 bg-bg2 rounded text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out"
         />
         <button
           type="button"

@@ -152,7 +152,7 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-tertiary rounded text-fg1 placeholder-muted focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               placeholder="Leave blank to keep current password"
               minLength={8}
             />
