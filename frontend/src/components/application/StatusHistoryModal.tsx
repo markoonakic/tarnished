@@ -34,7 +34,7 @@ export default function StatusHistoryModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-bg0/80 flex items-center justify-center z-50"
       onClick={onClose}
       role="dialog"
       aria-modal="true"

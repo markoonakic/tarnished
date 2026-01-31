@@ -108,7 +108,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-bg0/80 flex items-center justify-center z-50"
       onClick={handleClose}
       role="dialog"
       aria-modal="true"
