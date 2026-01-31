@@ -13,28 +13,28 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 Phase: 1 of 4 (UI/UX & CSS Fixes)
 Plan: 5 of 10 in current phase
 Status: Gap closure plans created, ready for execution
-Last activity: 2026-01-31T19:28 — Gap closure plans 01-05 through 01-10 created from UAT diagnosis
+Last activity: 2026-01-31T19:55 — Completed 01-05: Add border class to all inputs
 
-Progress: [████████░░] 40% (4/10 plans executed, 6 gap closure plans ready)
+Progress: [████████░░] 50% (5/10 plans executed, 5 gap closure plans ready)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 10 min
+- Total plans completed: 5
+- Average duration: 9 min
 - Total execution time: 0.7 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 | 4/10 executed, 6 gap closure ready | 40 min | 10 min |
+| 1 | 5/10 executed, 5 gap closure ready | 45 min | 9 min |
 | 2 | 0/2 | - | - |
 | 3 | 0/3 | - | - |
 | 4 | 0/3 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 11 min (01-01), 9 min (01-03), 10 min (01-04)
+- Last 5 plans: 11 min (01-01), 9 min (01-03), 10 min (01-04), 4 min (01-05)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -83,8 +83,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-31T19:28:00Z
-Stopped at: Created gap closure plans 01-05 through 01-10 from diagnosed UAT gaps
+Last session: 2026-01-31T19:55:00Z
+Stopped at: Completed 01-05-PLAN.md - Add border class to all inputs
 Resume file: None
 
 ## Gap Closure Summary
@@ -92,14 +92,16 @@ Resume file: None
 **UAT Status:** 6/10 tests passed, 4/10 failed (6 major issues, 0 minor)
 
 **Gap Closure Plans Created:**
-- 01-05: Add border class to all inputs (Gap 1) - 3 tasks, 7 files
-- 01-06: Fix modal backgrounds to bg-bg2 (Gaps 4, 10) - 2 tasks, 5 files
-- 01-07: Fix cancel/danger button defaults (Gaps 3, 9, 12) - 2 tasks, 6 files
-- 01-08: Fix Admin spacing and table separators (Gaps 8, 12, 13) - 2 tasks, 2 files
-- 01-09: Fix X icon button padding (Gap 2) - 1 task, 5 files
-- 01-10: Add trash icon and document 5-layer rule (Gaps 10, 14) - 2 tasks, 2 files
+- 01-05: Add border class to all inputs (Gap 1) - 3 tasks, 7 files [DONE]
+- 01-06: Fix modal backgrounds to bg-bg2 (Gaps 4, 10) - 2 tasks, 5 files [PENDING]
+- 01-07: Fix cancel/danger button defaults (Gaps 3, 9, 12) - 2 tasks, 6 files [PENDING]
+- 01-08: Fix Admin spacing and table separators (Gaps 8, 12, 13) - 2 tasks, 2 files [PENDING]
+- 01-09: Fix X icon button padding (Gap 2) - 1 task, 5 files [PENDING]
+- 01-10: Add trash icon and document 5-layer rule (Gaps 10, 14) - 2 tasks, 2 files [PENDING]
 
-**Total Gap Closure Work:** 12 tasks across ~15 files
+**Total Gap Closure Work:** 12 tasks across ~15 files (3/12 tasks completed)
+
+**Note:** Plan 01-05 fixed 20 inputs in 7 files. Additional inputs remain in Login.tsx, Register.tsx, ApplicationForm.tsx, Applications.tsx, and Admin.tsx (11 inputs) - these need the same border class fix for complete Gap 1 closure.
 
 **False Positives (No Action Required):**
 - Gap 5: Duplicate of Gap 3
