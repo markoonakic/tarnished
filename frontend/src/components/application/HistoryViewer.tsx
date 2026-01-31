@@ -66,7 +66,7 @@ export default function HistoryViewer({ applicationId }: Props) {
                 className={`px-4 py-2 rounded font-medium transition-all duration-200 cursor-pointer ${
                   isEditing
                     ? 'bg-aqua text-bg0 hover:bg-aqua-bright'
-                    : 'bg-bg1 text-fg1 hover:bg-bg2 hover:text-fg0'
+                    : 'bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0'
                 }`}
               >
                 {isEditing ? 'Done' : 'Edit History'}
@@ -75,7 +75,7 @@ export default function HistoryViewer({ applicationId }: Props) {
             <button
               onClick={() => setIsModalOpen(true)}
               disabled={!history || history.length === 0}
-              className="px-4 py-2 bg-bg1 text-fg1 rounded font-medium hover:bg-bg2 hover:text-fg0 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-transparent text-fg1 rounded font-medium hover:bg-bg2 hover:text-fg0 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               View All History
             </button>
@@ -134,7 +134,7 @@ export default function HistoryViewer({ applicationId }: Props) {
                   <button
                     onClick={() => handleDelete(entry.id)}
                     disabled={deleteMutation.isPending}
-                    className="px-3 py-1.5 bg-bg1 text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-colors duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 flex-shrink-0"
+                    className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-colors duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 flex-shrink-0"
                     title="Delete"
                   >
                     <i className="bi-trash text-xs"></i>
