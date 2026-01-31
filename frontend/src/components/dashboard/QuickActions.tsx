@@ -10,7 +10,7 @@ function QuickActionButton({ label, icon, onClick }: QuickActionButton) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-3 bg-secondary border border-tertiary rounded-lg p-4 hover:-translate-y-0.5 transition-transform duration-200 ease-in-out text-left w-full"
+      className="flex items-center gap-3 bg-secondary rounded-lg p-4 hover:-translate-y-0.5 transition-transform duration-200 ease-in-out text-left w-full"
     >
       <i className={`bi ${icon} text-aqua text-xl`}></i>
       <span className="text-fg1 font-medium">{label}</span>
