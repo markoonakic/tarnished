@@ -147,7 +147,7 @@ export default function HistoryViewer({ applicationId }: Props) {
               <div className="text-center pt-2">
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="text-sm text-muted hover:text-fg0 hover:bg-bg1 transition-all duration-200 cursor-pointer px-2 py-1 rounded"
+                  className="text-sm text-muted hover:text-fg0 hover:bg-bg2 transition-all duration-200 cursor-pointer px-2 py-1 rounded"
                 >
                   View {history.length - 3} more entr{history.length - 3 === 1 ? 'y' : 'ies'}
                 </button>
