@@ -118,7 +118,7 @@ export default function Admin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredUsers.map((u, index) => (
+                    {filteredUsers.map((u) => (
                       <tr key={u.id} className="transition-colors duration-200">
                         <td className="py-3 px-4 text-sm text-primary">{u.email}</td>
                         <td className="py-3 px-4 text-sm text-secondary">{formatDate(u.created_at)}</td>
