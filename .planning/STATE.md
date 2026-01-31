@@ -11,31 +11,31 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 1 of 4 (UI/UX & CSS Fixes)
-Plan: 3 of 3 in current phase
-Status: Pending checkpoint verification
-Last activity: 2026-01-31T12:47 — Completed 01-03-PLAN.md (Visual Consistency: Badges, Borders, Icons)
+Plan: 4 of 4 in current phase
+Status: Phase complete
+Last activity: 2026-01-31T16:41 — Completed 01-04-PLAN.md (5-Color Gruvbox Layering Fixes)
 
-Progress: [██████░░░░] 33%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 8 min
-- Total execution time: 0.3 hours
+- Total plans completed: 4
+- Average duration: 10 min
+- Total execution time: 0.7 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 | 2/3 | 16 min | 8 min |
+| 1 | 4/4 | 40 min | 10 min |
 | 2 | 0/2 | - | - |
 | 3 | 0/3 | - | - |
 | 4 | 0/3 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 11 min (01-01), 6 min (01-03)
-- Trend: Decreasing
+- Last 5 plans: 11 min (01-01), 9 min (01-03), 10 min (01-04)
+- Trend: Stable
 
 *Updated after each plan completion*
 
@@ -52,12 +52,19 @@ Recent decisions affecting current work:
 - [01-00]: Design guidelines as single source of truth for AI agents and developers
 - [01-00]: CSS custom properties mandatory for all colors (enables theme switching)
 - [01-00]: Neutral/Danger buttons transparent by default with background on hover (layered visual hierarchy)
-- [01-01]: Button variants standardized: Primary (bg-aqua), Secondary (bg-transparent hover-bg-bg2), Danger (bg-transparent text-red), Icon-only (p-2)
+- [01-01]: Button variants standardized: Primary (bg-aqua), Secondary (bg-transparent hover-bg-bg2), Danger (bg-transparent text-red), Icon-only (px-3 py-1.5)
 - [01-01]: All button transitions use ease-in-out for consistent animation feel
 - [01-01]: Terminology standardized: "Remove" changed to "Delete" throughout application
-- [01-03]: Layer 1 containers (bg-secondary) must have border border-tertiary for visual hierarchy
+- [01-03]: Base containers should NOT have borders - separation through color layering only
 - [01-03]: Dashboard icons standardized to text-xl for consistent sizing
-- [01-03]: Theme dropdown hover fixed to use bg-bg2 for both selected and unselected options
+- [01-03]: Icon-only buttons use px-3 py-1.5 for square proportions (taller icons need more horizontal padding)
+- [01-03]: Input background layering uses 5-color Gruvbox palette (bg0 -> bg1 -> bg2 -> bg3 -> bg4)
+- [01-03]: Theme dropdown pattern: container bg-bg1 border-tertiary, selected bg-bg2, hover bg-bg3
+- [01-04]: Modal backgrounds use bg-bg4 (lightest layer) for proper visual separation from page
+- [01-04]: Input backgrounds follow "next color darker" rule: bg0→bg1, bg1→bg2, bg2→bg3
+- [01-04]: Tables use color-only separation, no borders on rows
+- [01-04]: Modal overlays use bg-bg0/80 instead of hardcoded bg-black/80
+- [01-04]: Delete buttons use transparent danger pattern: bg-transparent text-red hover:bg-bg2 hover:text-red-bright
 
 ### Pending Todos
 
@@ -65,10 +72,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- [01-03]: Pending checkpoint verification - user needs to verify visual changes in all 4 themes before proceeding
+- [01-03]: Theme system investigation needed - themes switch but colors are completely broken (not all colors change from gruvbox dark). Requires separate research phase.
 
 ## Session Continuity
 
-Last session: 2026-01-31T12:47:00Z
-Stopped at: Completed 01-03-PLAN.md (Visual Consistency: Badges, Borders, Icons) - awaiting checkpoint verification
+Last session: 2026-01-31T16:41:54Z
+Stopped at: Completed 01-04-PLAN.md (5-Color Gruvbox Layering Fixes) - Phase 1 complete
 Resume file: None
