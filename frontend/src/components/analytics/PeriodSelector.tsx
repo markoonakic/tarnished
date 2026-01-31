@@ -31,7 +31,7 @@ export default function PeriodSelector({ onPeriodChange }: PeriodSelectorProps) 
           className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-in-out cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent-aqua/50 ${
             currentPeriod === period.value
               ? 'bg-accent-aqua text-bg1'
-              : 'bg-transparent text-fg1 hover:bg-bg1 hover:text-fg0'
+              : 'bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0'
           }`}
         >
           {period.label}
