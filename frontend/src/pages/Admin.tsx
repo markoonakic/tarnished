@@ -106,7 +106,7 @@ export default function Admin() {
                 className="w-full px-4 py-2 bg-bg2 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
 
-              <div className="bg-secondary rounded-lg overflow-hidden">
+              <div className="bg-secondary rounded-lg overflow-hidden mt-4">
                 <table className="w-full border-collapse">
                   <thead>
                     <tr>
