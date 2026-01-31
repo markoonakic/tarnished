@@ -25,14 +25,24 @@ All UI elements follow this 5-layer hierarchy:
 ├───────┼──────────┼───────────────────────────────────────┤
 │ bg1   │ Dark     │ Base containers (cards, content)      │
 ├───────┼──────────┼───────────────────────────────────────┤
-│ bg2   │ Medium   │ Hover states, nested containers       │
+│ bg2   │ Medium   │ Hover states, nested containers, modal content │
 ├───────┼──────────┼───────────────────────────────────────┤
 │ bg3   │ Light    │ Input backgrounds (on bg2 containers) │
-├───────┼──────────┴───────────────────────────────────────┤
-│ bg4   │ Lightest │ Modal backgrounds                     │
-└───────┴───────────────────────────────────────────────────┘
+├───────┼──────────┼───────────────────────────────────────┤
+│ bg4   │ Lightest │ Nested modal elements                 │
+└───────┴──────────┴───────────────────────────────────────┘
 
 **Layering rule:** Always step one layer lighter for nested/hover states.
+
+**Modal Reset Rule:**
+Modals reset to bg-bg2 (3rd layer from base) and follow the 5-layer strategy from there.
+This ensures modals stand out from the page while maintaining proper layering.
+From bg-bg2 modal background, inputs use bg-bg3, nested containers use bg-bg4, etc.
+
+**Wrap-Around Rule:**
+If 5 layers are exceeded in nested contexts, start over from base bg-bg0.
+Example: bg0 → bg1 → bg2 → bg3 → bg4 → bg0 → bg1 ...
+This prevents running out of colors in deeply nested contexts.
 
 ### CSS Custom Properties (Required)
 
@@ -336,23 +346,31 @@ Applies to: buttons, badges, navigation, focus states, all hover effects.
 
 ### Modals
 
-Modal content containers use **bg-bg4** (lightest layer) — this ensures modals stand out from the page background:
+Modal content containers use **bg-bg2** (modal reset rule) — this ensures modals stand out from the page background:
 
 ```tsx
 {/* Modal backdrop/overlay */}
-<div className="fixed inset-0 bg-bg4/90 backdrop-blur-sm z-50">
+<div className="fixed inset-0 bg-bg0/80 z-50">
   {/* Modal content container */}
-  <div className="bg-bg4 rounded-lg p-6 max-w-md mx-4">
+  <div className="bg-bg2 rounded-lg p-6 max-w-md mx-4">
     {/* Modal content */}
+    {/* Inputs inside modal use bg-bg3 */}
+    <input className="bg-bg3 border border-tertiary ..." />
   </div>
 </div>
 ```
 
 **Key pattern:**
-- Modal overlay: `bg-bg4/90` (90% opacity for backdrop blur)
-- Modal content: `bg-bg4` (solid lightest layer)
+- Modal overlay: `bg-bg0/80` (80% opacity for dimming)
+- Modal content: `bg-bg2` (modal reset rule — 3rd layer from base)
+- Modal inputs: `bg-bg3` (next darker from modal background)
 - Close buttons: `px-3 py-1.5` (icon-only proportions)
 - NO borders on modal containers (color-only separation)
+
+**Modal Reset Rule:**
+Modals reset to bg-bg2 (3rd layer from base) instead of continuing as another layer.
+From bg-bg2, modal inputs use bg-bg3, nested containers use bg-bg4, etc.
+This creates proper visual separation between page and modal content.
 
 ### Cards
 
@@ -437,10 +455,14 @@ Update this file when:
 ```
 bg0 → Page background
 bg1 → Base containers (cards, content)
-bg2 → Hover states, nested containers
+bg2 → Hover states, nested containers, modal content (reset rule)
 bg3 → Input backgrounds (on bg2 containers)
-bg4 → Modal backgrounds
+bg4 → Nested modal elements
 ```
+
+**Special Rules:**
+- Modal Reset: Modals use bg-bg2 (not bg-bg4) then follow 5-layer from there
+- Wrap-Around: If 5 layers exceeded, start over from bg-bg0
 
 ### All Patterns
 - **Colors:** Always use `--color-*` CSS variables
