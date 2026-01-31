@@ -138,7 +138,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
     const isProgressActive = isUploading && uploadProgress > 0 && uploadProgress < 100;
 
     return (
-      <div className="flex items-center justify-between py-3 border-b border-tertiary last:border-0">
+      <div className="flex items-center justify-between py-3">
         <span className="text-primary font-medium w-28">{label}</span>
         {hasFile ? (
           <div className="flex flex-col gap-2 items-end">

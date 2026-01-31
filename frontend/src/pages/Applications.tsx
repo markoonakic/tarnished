@@ -148,7 +148,7 @@ export default function Applications() {
             <div className="bg-secondary rounded-lg overflow-hidden">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-tertiary">
+                  <tr>
                     <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Company</th>
                     <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Position</th>
                     <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Status</th>
@@ -158,7 +158,7 @@ export default function Applications() {
                 </thead>
                 <tbody>
                   {applications.map((app, index) => (
-                    <tr key={app.id} className={`${index === applications.length - 1 ? '' : 'border-b border-tertiary'} transition-colors duration-200`}>
+                    <tr key={app.id} className="transition-colors duration-200">
                       <td className="py-3 px-4 text-sm">
                         <Link
                           to={`/applications/${app.id}`}

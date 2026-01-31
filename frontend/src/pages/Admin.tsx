@@ -109,7 +109,7 @@ export default function Admin() {
               <div className="bg-secondary rounded-lg overflow-hidden">
                 <table className="w-full border-collapse">
                   <thead>
-                    <tr className="border-b border-tertiary">
+                    <tr>
                       <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Email</th>
                       <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Joined</th>
                       <th className="text-center py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Admin</th>
@@ -119,7 +119,7 @@ export default function Admin() {
                   </thead>
                   <tbody>
                     {filteredUsers.map((u, index) => (
-                      <tr key={u.id} className={`${index === filteredUsers.length - 1 ? '' : 'border-b border-tertiary'} transition-colors duration-200`}>
+                      <tr key={u.id} className="transition-colors duration-200">
                         <td className="py-3 px-4 text-sm text-primary">{u.email}</td>
                         <td className="py-3 px-4 text-sm text-secondary">{formatDate(u.created_at)}</td>
                         <td className="py-3 px-4 text-sm text-center">
