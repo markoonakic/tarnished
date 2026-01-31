@@ -108,7 +108,7 @@ export default function Dashboard() {
             <QuickActions />
             <NeedsAttention />
 
-            <div className="bg-secondary border border-tertiary rounded-lg p-6">
+            <div className="bg-secondary rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-primary">Activity Overview</h2>
               </div>

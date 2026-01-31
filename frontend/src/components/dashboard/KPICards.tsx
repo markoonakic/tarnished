@@ -22,7 +22,7 @@ function KPICard({ title, value, trend, suffix = '' }: KPICardProps) {
   const trendText = trend !== undefined ? `${trendIcon} ${Math.abs(trend)}%` : '';
 
   return (
-    <div className="bg-secondary border border-tertiary rounded-lg p-6">
+    <div className="bg-secondary rounded-lg p-6">
       <h3 className="text-sm font-semibold text-fg4 mb-2">{title}</h3>
       <div className="flex items-baseline gap-2">
         <span className="text-2xl font-bold text-fg1">{value}</span>
@@ -70,7 +70,7 @@ export default function KPICards() {
 
   if (error || !kpis) {
     return (
-      <div className="bg-secondary border border-tertiary rounded-lg p-6">
+      <div className="bg-secondary rounded-lg p-6">
         <p className="text-red">Failed to load dashboard KPIs</p>
       </div>
     );

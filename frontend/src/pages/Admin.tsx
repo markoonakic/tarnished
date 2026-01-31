@@ -76,11 +76,11 @@ export default function Admin() {
             <section>
               <h2 className="text-xl font-bold text-primary mb-6">Statistics</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-secondary border border-tertiary rounded-lg p-6">
+                <div className="bg-secondary rounded-lg p-6">
                   <h3 className="text-muted text-sm mb-1">Total Users</h3>
                   <p className="text-3xl font-bold text-primary">{stats?.total_users || 0}</p>
                 </div>
-                <div className="bg-secondary border border-tertiary rounded-lg p-6">
+                <div className="bg-secondary rounded-lg p-6">
                   <h3 className="text-muted text-sm mb-1">Total Applications</h3>
                   <p className="text-3xl font-bold text-primary">{stats?.total_applications || 0}</p>
                 </div>
@@ -106,7 +106,7 @@ export default function Admin() {
                 className="w-full px-4 py-2 bg-tertiary rounded text-primary placeholder-muted focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
               />
 
-              <div className="bg-secondary border border-tertiary rounded-lg overflow-hidden">
+              <div className="bg-secondary rounded-lg overflow-hidden">
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="border-b border-tertiary">
