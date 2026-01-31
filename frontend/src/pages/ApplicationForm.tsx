@@ -182,7 +182,7 @@ export default function ApplicationForm() {
                 type="text"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary rounded text-fg1 placeholder-gray focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
                 required
               />
             </div>
@@ -195,7 +195,7 @@ export default function ApplicationForm() {
                 type="text"
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary rounded text-fg1 placeholder-gray focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
                 required
               />
             </div>
@@ -240,8 +240,8 @@ export default function ApplicationForm() {
                 }}
                 onBlur={handleJobUrlBlur}
                 placeholder="example.com or https://..."
-                className={`w-full px-3 py-2 bg-tertiary rounded text-fg1 placeholder-gray focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out ${
-                  jobUrlError ? 'border-red-bright' : ''
+                className={`w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded ${
+                  jobUrlError ? 'border border-red-bright' : ''
                 }`}
               />
               {jobUrlError && (

@@ -274,7 +274,7 @@ export default function Settings() {
           <select
             value={activeSection}
             onChange={(e) => setActiveSection(e.target.value)}
-            className="w-full px-3 py-2 bg-tertiary rounded text-primary focus:outline-none focus:border-aqua-bright"
+            className="w-full px-3 py-2 bg-bg2 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
           >
             <option value="theme">Theme</option>
             <option value="features">Features</option>
@@ -372,13 +372,13 @@ export default function Settings() {
                         value={editStatusName}
                         onChange={(e) => setEditStatusName(e.target.value)}
                         placeholder="Status name"
-                        className="flex-1 px-3 py-2 bg-tertiary rounded text-primary placeholder-muted focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+                        className="flex-1 px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
                       />
                       <input
                         type="color"
                         value={editStatusColor}
                         onChange={(e) => setEditStatusColor(e.target.value)}
-                        className="w-10 h-10 rounded cursor-pointer bg-bg1 border border-muted"
+                        className="w-10 h-10 rounded cursor-pointer bg-bg2 border border-tertiary"
                       />
                       <button
                         type="submit"
@@ -483,7 +483,7 @@ export default function Settings() {
                         value={editRoundTypeName}
                         onChange={(e) => setEditRoundTypeName(e.target.value)}
                         placeholder="Round type name"
-                        className="flex-1 px-3 py-2 bg-tertiary rounded text-primary placeholder-muted focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+                        className="flex-1 px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
                       />
                       <button
                         type="submit"
