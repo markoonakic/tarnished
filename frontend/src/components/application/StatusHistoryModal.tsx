@@ -43,7 +43,7 @@ export default function StatusHistoryModal({
       <div className="bg-secondary rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center p-4 border-b border-tertiary">
           <h3 id="status-history-title" className="text-lg font-semibold text-primary">Status History</h3>
-          <button onClick={onClose} className="text-fg1 hover:bg-bg1 hover:text-fg0 p-1 rounded transition-all duration-200 cursor-pointer">
+          <button onClick={onClose} className="text-fg1 hover:bg-bg2 hover:text-fg0 p-1 rounded transition-all duration-200 ease-in-out cursor-pointer">
             <i className="bi bi-x-lg text-xl" />
           </button>
         </div>
@@ -100,11 +100,11 @@ export default function StatusHistoryModal({
                     <button
                       onClick={() => onDelete(entry.id)}
                       disabled={deleteIsPending}
-                      className="px-3 py-1.5 bg-bg1 text-red rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 flex items-center gap-1.5 text-sm cursor-pointer disabled:opacity-50 flex-shrink-0"
-                      title="Remove"
+                      className="px-3 py-1.5 bg-transparent text-red rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 text-sm cursor-pointer disabled:opacity-50 flex-shrink-0"
+                      title="Delete"
                     >
                       <i className="bi-trash" />
-                      Remove
+                      Delete
                     </button>
                   )}
                 </div>
