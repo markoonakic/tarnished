@@ -402,13 +402,13 @@ export default function Settings() {
                       value={newStatusName}
                       onChange={(e) => setNewStatusName(e.target.value)}
                       placeholder="New status name"
-                      className="flex-1 px-3 py-2 bg-tertiary rounded text-primary placeholder-muted focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+                      className="flex-1 px-3 py-2 bg-bg2 rounded text-primary placeholder-muted focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
                     />
                     <input
                       type="color"
                       value={newStatusColor}
                       onChange={(e) => setNewStatusColor(e.target.value)}
-                      className="w-10 h-10 rounded cursor-pointer bg-bg1 border border-muted"
+                      className="w-10 h-10 rounded cursor-pointer bg-bg2 border border-tertiary"
                     />
                     <button
                       type="submit"

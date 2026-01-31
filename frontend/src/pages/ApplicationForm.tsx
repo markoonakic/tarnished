@@ -207,7 +207,7 @@ export default function ApplicationForm() {
               <select
                 value={statusId}
                 onChange={(e) => setStatusId(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary rounded text-fg1 focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+                className="w-full px-3 py-2 bg-bg2 rounded text-fg1 focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
                 required
               >
                 <option value="">Select status</option>
@@ -225,7 +225,7 @@ export default function ApplicationForm() {
                 type="date"
                 value={appliedAt}
                 onChange={(e) => setAppliedAt(e.target.value)}
-                className="w-full px-3 py-2 bg-tertiary rounded text-fg1 focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+                className="w-full px-3 py-2 bg-bg2 rounded text-fg1 focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
               />
             </div>
 
@@ -255,7 +255,7 @@ export default function ApplicationForm() {
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
                 rows={6}
-                className="w-full px-3 py-2 bg-tertiary rounded text-fg1 placeholder-gray focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out resize-y"
+                className="w-full px-3 py-2 bg-bg2 rounded text-fg1 placeholder-gray focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out resize-y"
               />
             </div>
           </div>
