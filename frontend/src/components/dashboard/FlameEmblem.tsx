@@ -99,12 +99,9 @@ export default function FlameEmblem() {
         <div
           className={`
             relative px-12 py-4 border-2 rounded-lg
-            ${flameState === 'COLD' ? 'border-tertiary' : 'border-fg1'}
+            ${flameState === 'COLD' ? 'border-tertiary' : isEmber ? 'border-orange' : 'border-fg1'}
             transition-all duration-300
           `}
-          style={{
-            ...(isEmber && { borderColor: colors.orange }),
-          }}
         >
           {/* Decorative corners */}
           <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-fg0 rounded-tl-sm"></div>
