@@ -64,7 +64,7 @@ export default function FlameEmblem() {
 
   if (isLoading) {
     return (
-      <div className="bg-secondary border border-tertiary rounded-lg p-6 mb-6">
+      <div className="bg-secondary rounded-lg p-6 mb-6">
         <div className="flex flex-col items-center justify-center">
           <div className="animate-pulse">
             <div className="h-20 bg-tertiary rounded mb-4"></div>

@@ -296,7 +296,7 @@ export default function Settings() {
 
             <div className="space-y-8">
           {activeSection === 'theme' && (
-            <div className="bg-secondary border border-tertiary rounded-lg p-6">
+            <div className="bg-secondary rounded-lg p-6">
               <h2 className="text-lg font-semibold text-primary mb-4">Theme</h2>
               <ThemeDropdown
                 themes={THEMES}
@@ -311,7 +311,7 @@ export default function Settings() {
           )}
 
           {activeSection === 'statuses' && (
-            <div className="bg-secondary border border-tertiary rounded-lg p-6">
+            <div className="bg-secondary rounded-lg p-6">
               <h2 className="text-lg font-semibold text-primary mb-4">Application Statuses</h2>
 
             {loading ? (
@@ -428,7 +428,7 @@ export default function Settings() {
           )}
 
           {activeSection === 'rounds' && (
-            <div className="bg-secondary border border-tertiary rounded-lg p-6">
+            <div className="bg-secondary rounded-lg p-6">
               <h2 className="text-lg font-semibold text-primary mb-4">Interview Round Types</h2>
 
             {loading ? (
@@ -523,7 +523,7 @@ export default function Settings() {
           )}
 
           {activeSection === 'export' && (
-            <div className="bg-secondary border border-tertiary rounded-lg p-6">
+            <div className="bg-secondary rounded-lg p-6">
               <h2 className="text-lg font-semibold text-primary mb-4">Export Data</h2>
             <p className="text-sm text-muted mb-4">
               Download all your application data for backup or analysis.
@@ -548,7 +548,7 @@ export default function Settings() {
           )}
 
           {activeSection === 'import' && (
-            <div className="bg-secondary border border-tertiary rounded-lg p-6">
+            <div className="bg-secondary rounded-lg p-6">
               <h2 className="text-lg font-semibold text-primary mb-4">Import Data</h2>
             <p className="text-sm text-muted mb-4">
               Import job application data from a previously exported ZIP file.

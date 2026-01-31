@@ -90,7 +90,7 @@ export default function Applications() {
           </Link>
         </div>
 
-        <div className="bg-secondary border border-tertiary rounded-lg p-4 mb-6">
+        <div className="bg-secondary rounded-lg p-4 mb-6">
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[200px]">
               <input
@@ -145,7 +145,7 @@ export default function Applications() {
           )
         ) : (
           <>
-            <div className="bg-secondary border border-tertiary rounded-lg overflow-hidden">
+            <div className="bg-secondary rounded-lg overflow-hidden">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b border-tertiary">

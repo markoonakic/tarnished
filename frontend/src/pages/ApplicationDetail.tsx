@@ -149,7 +149,7 @@ export default function ApplicationDetail() {
           </div>
         )}
 
-        <div className="bg-secondary border border-tertiary rounded-lg p-6 mb-6">
+        <div className="bg-secondary rounded-lg p-6 mb-6">
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-2xl font-bold text-primary mb-1">{application.company}</h1>
@@ -230,7 +230,7 @@ export default function ApplicationDetail() {
           <HistoryViewer applicationId={id!} />
         </div>
 
-        <div className="bg-secondary border border-tertiary rounded-lg p-6">
+        <div className="bg-secondary rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-primary">Interview Rounds</h2>
             {application.rounds && application.rounds.length > 0 && (
