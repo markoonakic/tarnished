@@ -124,7 +124,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
             onClick={handleClose}
             disabled={importing}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 px-3 py-1.5 rounded transition-all duration-200 ease-in-out cursor-pointer disabled:opacity-50"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 px-2 py-1 rounded transition-all duration-200 ease-in-out cursor-pointer disabled:opacity-50"
           >
             <i className="bi bi-x-lg text-xl" />
           </button>
