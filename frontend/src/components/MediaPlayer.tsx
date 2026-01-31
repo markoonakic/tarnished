@@ -85,7 +85,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-secondary rounded-lg max-w-4xl w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-bg4 rounded-lg max-w-4xl w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center p-4 border-b border-tertiary">
           <h3 className="text-primary font-medium truncate">
             {media.file_path.split('/').pop()}

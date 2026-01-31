@@ -40,7 +40,7 @@ export default function StatusHistoryModal({
       aria-modal="true"
       aria-labelledby="status-history-title"
     >
-      <div className="bg-secondary rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-bg4 rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center p-4 border-b border-tertiary">
           <h3 id="status-history-title" className="text-lg font-semibold text-primary">Status History</h3>
           <button onClick={onClose} className="text-fg1 hover:bg-bg2 hover:text-fg0 p-1 rounded transition-all duration-200 ease-in-out cursor-pointer">

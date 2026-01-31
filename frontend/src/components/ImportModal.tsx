@@ -115,7 +115,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
       aria-labelledby="import-modal-title"
     >
       <div
-        className="bg-secondary rounded-lg max-w-md w-full mx-4"
+        className="bg-bg4 rounded-lg max-w-md w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center p-4 border-b border-tertiary">

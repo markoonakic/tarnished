@@ -59,7 +59,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="bg-secondary rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-bg4 rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center p-4 border-b border-tertiary">
           <h3 id="modal-title" className="text-primary font-medium">Create User</h3>
           <button
