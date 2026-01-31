@@ -36,7 +36,7 @@ function AttentionSection({
     return (
       <div className="bg-secondary border border-tertiary rounded-lg p-6">
         <div className="flex items-center gap-2 mb-4">
-          <i className={`bi ${icon} ${iconColor}`}></i>
+          <i className={`bi ${icon} ${iconColor} text-xl`}></i>
           <h3 className="text-lg font-semibold text-fg1">{title}</h3>
         </div>
         <p className="text-fg4 text-sm">{emptyMessage}</p>
@@ -45,9 +45,9 @@ function AttentionSection({
   }
 
   return (
-    <div className="bg-secondary rounded-lg p-6">
+    <div className="bg-secondary border border-tertiary rounded-lg p-6">
       <div className="flex items-center gap-2 mb-4">
-        <i className={`bi ${icon} ${iconColor}`}></i>
+        <i className={`bi ${icon} ${iconColor} text-xl`}></i>
         <h3 className="text-lg font-semibold text-fg1">{title}</h3>
         <span className="text-xs bg-tertiary text-fg4 px-2 py-1 rounded-full">
           {items.length}
