@@ -263,14 +263,14 @@ export default function ApplicationForm() {
           <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-tertiary">
             <Link
               to={isEditing ? `/applications/${id}` : '/applications'}
-              className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200"
+              className="px-4 py-2 bg-transparent text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200 ease-in-out cursor-pointer"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright disabled:opacity-50 transition-all duration-200 cursor-pointer"
+              className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright disabled:opacity-50 transition-all duration-200 ease-in-out cursor-pointer"
             >
               {loading ? 'Saving...' : isEditing ? 'Save' : 'Add Application'}
             </button>

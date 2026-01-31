@@ -296,7 +296,7 @@ export default function Settings() {
 
             <div className="space-y-8">
           {activeSection === 'theme' && (
-            <div className="bg-secondary rounded-lg p-6">
+            <div className="bg-secondary border border-tertiary rounded-lg p-6">
               <h2 className="text-lg font-semibold text-primary mb-4">Theme</h2>
               <ThemeDropdown
                 themes={THEMES}
@@ -311,7 +311,7 @@ export default function Settings() {
           )}
 
           {activeSection === 'statuses' && (
-            <div className="bg-secondary rounded-lg p-6">
+            <div className="bg-secondary border border-tertiary rounded-lg p-6">
               <h2 className="text-lg font-semibold text-primary mb-4">Application Statuses</h2>
 
             {loading ? (
@@ -343,7 +343,7 @@ export default function Settings() {
                         {!status.is_default && (
                           <button
                             onClick={() => startEditStatus(status)}
-                            className="px-3 py-1.5 text-fg1 text-xs rounded hover:bg-tertiary hover:text-fg0 transition-colors duration-200 ease-out flex items-center gap-1.5 cursor-pointer"
+                            className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
                           >
                             <i className="bi-pencil text-xs"></i>
                             Edit
@@ -352,7 +352,7 @@ export default function Settings() {
                         {!status.is_default && (
                           <button
                             onClick={() => handleDeleteStatus(status)}
-                            className="px-3 py-1.5 text-red text-xs rounded hover:bg-tertiary hover:text-red-bright transition-colors duration-200 ease-out flex items-center gap-1.5 cursor-pointer"
+                            className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
                           >
                             <i className="bi-trash text-xs"></i>
                             Delete
@@ -428,7 +428,7 @@ export default function Settings() {
           )}
 
           {activeSection === 'rounds' && (
-            <div className="bg-secondary rounded-lg p-6">
+            <div className="bg-secondary border border-tertiary rounded-lg p-6">
               <h2 className="text-lg font-semibold text-primary mb-4">Interview Round Types</h2>
 
             {loading ? (
@@ -455,14 +455,14 @@ export default function Settings() {
                           <>
                             <button
                               onClick={() => startEditRoundType(type)}
-                              className="px-3 py-1.5 text-fg1 text-xs rounded hover:bg-tertiary hover:text-fg0 transition-colors duration-200 ease-out flex items-center gap-1.5 cursor-pointer"
+                              className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
                             >
                               <i className="bi-pencil text-xs"></i>
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteRoundType(type)}
-                              className="px-3 py-1.5 text-red text-xs rounded hover:bg-tertiary hover:text-red-bright transition-colors duration-200 ease-out flex items-center gap-1.5 cursor-pointer"
+                              className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
                             >
                               <i className="bi-trash text-xs"></i>
                               Delete
@@ -523,7 +523,7 @@ export default function Settings() {
           )}
 
           {activeSection === 'export' && (
-            <div className="bg-secondary rounded-lg p-6">
+            <div className="bg-secondary border border-tertiary rounded-lg p-6">
               <h2 className="text-lg font-semibold text-primary mb-4">Export Data</h2>
             <p className="text-sm text-muted mb-4">
               Download all your application data for backup or analysis.
@@ -548,7 +548,7 @@ export default function Settings() {
           )}
 
           {activeSection === 'import' && (
-            <div className="bg-secondary rounded-lg p-6">
+            <div className="bg-secondary border border-tertiary rounded-lg p-6">
               <h2 className="text-lg font-semibold text-primary mb-4">Import Data</h2>
             <p className="text-sm text-muted mb-4">
               Import job application data from a previously exported ZIP file.
