@@ -163,7 +163,7 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
               type="button"
               onClick={handleDelete}
               disabled={isCurrentUser || loading}
-              className="px-4 py-2 bg-accent-red/20 text-accent-red rounded font-medium hover:bg-accent-red/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
+              className="px-4 py-2 bg-transparent text-red rounded font-medium hover:bg-bg2 hover:text-red-bright disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
             >
               Delete
             </button>
