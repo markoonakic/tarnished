@@ -39,7 +39,7 @@ export default function ThemeDropdown({ themes, currentTheme, onChange }: Props)
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 py-2 bg-bg1 border border-muted rounded text-fg1 hover:border-aqua focus:outline-none focus:border-aqua transition-all duration-200 cursor-pointer"
+        className="w-full flex items-center justify-between px-4 py-2 bg-bg1 border border-tertiary rounded text-fg1 hover:border-aqua focus:outline-none focus:border-aqua transition-all duration-200 cursor-pointer"
       >
         <div className="flex items-center gap-3">
           <span className="text-primary font-medium">{selectedTheme.name}</span>
@@ -57,7 +57,7 @@ export default function ThemeDropdown({ themes, currentTheme, onChange }: Props)
       </button>
 
       <div
-        className="absolute z-10 w-full mt-1 bg-secondary border border-muted rounded-lg overflow-hidden transition-all duration-200"
+        className="absolute z-10 w-full mt-1 bg-bg1 border border-tertiary rounded-lg overflow-hidden transition-all duration-200"
         style={{
           display: 'grid',
           gridTemplateRows: isOpen ? '1fr' : '0fr',
@@ -71,7 +71,7 @@ export default function ThemeDropdown({ themes, currentTheme, onChange }: Props)
               type="button"
               onClick={() => handleSelect(theme.id)}
               className={`w-full flex items-center justify-between px-4 py-2 text-fg1 text-left transition-all duration-200 ease-in-out cursor-pointer ${
-                theme.id === currentTheme ? 'bg-bg1 hover:bg-bg2' : 'bg-transparent hover:bg-bg2'
+                theme.id === currentTheme ? 'bg-bg2 hover:bg-bg3' : 'bg-transparent hover:bg-bg3'
               }`}
             >
               <div className="flex items-center gap-3">
