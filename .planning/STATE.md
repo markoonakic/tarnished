@@ -6,16 +6,16 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Users can see every job application, its current status, interview history, and documents in one place—without losing track of follow-ups or drowning in spreadsheets.
 
-**Current focus:** Phase 1 - UI/UX & CSS Fixes
+**Current focus:** Phase 1 - UI/UX & CSS Fixes (Gap Closure)
 
 ## Current Position
 
 Phase: 1 of 4 (UI/UX & CSS Fixes)
-Plan: 4 of 4 in current phase
-Status: Phase complete
-Last activity: 2026-01-31T16:41 — Completed 01-04-PLAN.md (5-Color Gruvbox Layering Fixes)
+Plan: 5 of 10 in current phase
+Status: Gap closure plans created, ready for execution
+Last activity: 2026-01-31T19:28 — Gap closure plans 01-05 through 01-10 created from UAT diagnosis
 
-Progress: [██████████] 100%
+Progress: [████████░░] 40% (4/10 plans executed, 6 gap closure plans ready)
 
 ## Performance Metrics
 
@@ -28,7 +28,7 @@ Progress: [██████████] 100%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 | 4/4 | 40 min | 10 min |
+| 1 | 4/10 executed, 6 gap closure ready | 40 min | 10 min |
 | 2 | 0/2 | - | - |
 | 3 | 0/3 | - | - |
 | 4 | 0/3 | - | - |
@@ -60,11 +60,17 @@ Recent decisions affecting current work:
 - [01-03]: Icon-only buttons use px-3 py-1.5 for square proportions (taller icons need more horizontal padding)
 - [01-03]: Input background layering uses 5-color Gruvbox palette (bg0 -> bg1 -> bg2 -> bg3 -> bg4)
 - [01-03]: Theme dropdown pattern: container bg-bg1 border-tertiary, selected bg-bg2, hover bg-bg3
-- [01-04]: Modal backgrounds use bg-bg4 (lightest layer) for proper visual separation from page
+- [01-04]: Modal backgrounds use bg-bg4 (lightest layer) for proper visual separation from page (CHANGED by UAT: modals should reset to bg-bg2)
 - [01-04]: Input backgrounds follow "next color darker" rule: bg0→bg1, bg1→bg2, bg2→bg3
-- [01-04]: Tables use color-only separation, no borders on rows
+- [01-04]: Tables use color-only separation, no borders on rows (CHANGED by UAT: add table row separators)
 - [01-04]: Modal overlays use bg-bg0/80 instead of hardcoded bg-black/80
 - [01-04]: Delete buttons use transparent danger pattern: bg-transparent text-red hover:bg-bg2 hover:text-red-bright
+- [Gap Closure 01-05]: All inputs need base 'border' class for focus:border-aqua-bright to work
+- [Gap Closure 01-06]: Modal reset rule - modals reset to bg-bg2 (3rd layer) then follow 5-layer strategy
+- [Gap Closure 01-07]: Cancel/danger buttons use bg-transparent by default (not bg-bg1)
+- [Gap Closure 01-08]: Table row separators added back with border-b border-tertiary
+- [Gap Closure 01-09]: X icon close buttons use px-2 py-1 padding (reduced from px-3 py-1.5)
+- [Gap Closure 01-10]: 5-layer wrap-around rule documented - if 5 layers exceeded, start from bg-bg0
 
 ### Pending Todos
 
@@ -73,9 +79,31 @@ None yet.
 ### Blockers/Concerns
 
 - [01-03]: Theme system investigation needed - themes switch but colors are completely broken (not all colors change from gruvbox dark). Requires separate research phase.
+- [UAT Gap Closure]: Multiple gaps identified in UAT requiring fixes across 7 files (20+ inputs, 5 modals, 4+ buttons)
 
 ## Session Continuity
 
-Last session: 2026-01-31T16:41:54Z
-Stopped at: Completed 01-04-PLAN.md (5-Color Gruvbox Layering Fixes) - Phase 1 complete
+Last session: 2026-01-31T19:28:00Z
+Stopped at: Created gap closure plans 01-05 through 01-10 from diagnosed UAT gaps
 Resume file: None
+
+## Gap Closure Summary
+
+**UAT Status:** 6/10 tests passed, 4/10 failed (6 major issues, 0 minor)
+
+**Gap Closure Plans Created:**
+- 01-05: Add border class to all inputs (Gap 1) - 3 tasks, 7 files
+- 01-06: Fix modal backgrounds to bg-bg2 (Gaps 4, 10) - 2 tasks, 5 files
+- 01-07: Fix cancel/danger button defaults (Gaps 3, 9, 12) - 2 tasks, 6 files
+- 01-08: Fix Admin spacing and table separators (Gaps 8, 12, 13) - 2 tasks, 2 files
+- 01-09: Fix X icon button padding (Gap 2) - 1 task, 5 files
+- 01-10: Add trash icon and document 5-layer rule (Gaps 10, 14) - 2 tasks, 2 files
+
+**Total Gap Closure Work:** 12 tasks across ~15 files
+
+**False Positives (No Action Required):**
+- Gap 5: Duplicate of Gap 3
+- Gap 6: Round types/status buttons already correct
+- Gap 7: Comprehensive audit already done
+- Gap 8: Interview round icon buttons already correct
+- Gap 11: Icon buttons in interview rounds already correct

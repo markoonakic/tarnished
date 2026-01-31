@@ -12,7 +12,7 @@ This roadmap delivers improvements to the existing Job Tracker application in fo
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [x] **Phase 1: UI/UX & CSS Fixes** - Visual consistency and styling improvements (Completed 2026-01-31)
+- [ ] **Phase 1: UI/UX & CSS Fixes** - Visual consistency and styling improvements
 - [ ] **Phase 2: Complete Data Import** - Finish the import feature backend
 - [ ] **Phase 3: Code Refactoring & Modals** - Component cleanup and UX patterns
 - [ ] **Phase 4: Documentation** - Developer guides and API documentation
@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 4. Navigation elements use consistent transition effects
 5. "Delete" is used consistently instead of "Remove" on all action buttons
 
-**Plans**: 4 plans in 1 wave
+**Plans**: 10 plans in 1 wave
 
 Plans:
 - [x] 01-00: Create frontend and backend design guidelines files — 2 tasks
@@ -42,6 +42,12 @@ Plans:
 - [x] 01-02: Fix input focus states and CSS class generation (UIUX-07, CSS-01, CSS-02) — 2 tasks
 - [x] 01-03: Fix badge colors and visual hierarchy (UIUX-05, UIUX-06, UIUX-10, CSS-03) — 3 tasks (with human verification)
 - [x] 01-04: 5-Color Gruvbox Layering Fixes — 8 tasks (comprehensive audit fixes)
+- [ ] 01-05: Add border class to all inputs (Gap Closure: Input focus borders) — 3 tasks
+- [ ] 01-06: Fix modal backgrounds to bg-bg2 (Gap Closure: 5-layer reset rule) — 2 tasks
+- [ ] 01-07: Fix cancel/danger button defaults (Gap Closure: Transparent defaults) — 2 tasks
+- [ ] 01-08: Fix Admin spacing and table separators (Gap Closure: Spacing & separators) — 2 tasks
+- [ ] 01-09: Fix X icon button padding (Gap Closure: Oversized hover area) — 1 task
+- [ ] 01-10: Add trash icon and document 5-layer rule (Gap Closure: Icon & docs) — 2 tasks
 
 ### Phase 2: Complete Data Import
 
@@ -117,7 +123,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. UI/UX & CSS Fixes | 4/4 | Complete | 2026-01-31 |
+| 1. UI/UX & CSS Fixes | 4/10 | Gap closure in progress | - |
 | 2. Complete Data Import | 0/2 | Not started | - |
 | 3. Code Refactoring & Modals | 0/3 | Not started | - |
 | 4. Documentation | 0/3 | Not started | - |
