@@ -12,3 +12,6 @@ build/
 *.egg-info/
 .worktrees/
 docs/
+
+# macOS
+.DS_Store
