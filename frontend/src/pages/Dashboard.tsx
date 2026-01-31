@@ -74,7 +74,7 @@ export default function Dashboard() {
               <div className="flex gap-3">
                 <button
                   onClick={handleDismissPrompt}
-                  className="px-4 py-2 bg-tertiary text-primary rounded font-medium hover:bg-bg2 transition-colors"
+                  className="px-4 py-2 bg-transparent text-fg1 rounded font-medium hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out cursor-pointer"
                 >
                   Skip
                 </button>
@@ -108,7 +108,7 @@ export default function Dashboard() {
             <QuickActions />
             <NeedsAttention />
 
-            <div className="bg-secondary rounded-lg p-6">
+            <div className="bg-secondary border border-tertiary rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-primary">Activity Overview</h2>
               </div>

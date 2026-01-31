@@ -150,13 +150,13 @@ export default function DocumentSection({ application, onUpdate }: Props) {
               <button
                 onClick={() => handlePreview(type)}
                 disabled={!canPreview || isUploading}
-                className="px-3 py-1.5 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-colors duration-200 flex items-center gap-1.5 text-sm cursor-pointer"
+                className="px-3 py-1.5 bg-transparent text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200 ease-in-out flex items-center gap-1.5 text-sm cursor-pointer"
                 title={canPreview ? 'Preview' : 'Preview not available for this file type'}
               >
                 <i className="bi-eye text-sm"></i>
                 Preview
               </button>
-              <label className="px-3 py-1.5 bg-bg1 text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-colors duration-200 cursor-pointer flex items-center gap-1.5 text-sm">
+              <label className="px-3 py-1.5 bg-transparent text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200 ease-in-out cursor-pointer flex items-center gap-1.5 text-sm">
                 <i className="bi-arrow-repeat text-sm"></i>
                 Replace
                 <input
@@ -173,7 +173,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
               <button
                 onClick={() => handleDelete(type)}
                 disabled={isUploading}
-                className="px-3 py-1.5 bg-bg1 text-red rounded hover:bg-bg2 hover:text-red-bright disabled:opacity-50 transition-colors duration-200 flex items-center gap-1.5 text-sm cursor-pointer"
+                className="px-3 py-1.5 bg-transparent text-red rounded hover:bg-bg2 hover:text-red-bright disabled:opacity-50 transition-all duration-200 ease-in-out flex items-center gap-1.5 text-sm cursor-pointer"
               >
                 <i className="bi-trash text-sm"></i>
                 Delete

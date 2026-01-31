@@ -93,7 +93,7 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg1 hover:text-fg0 p-1 rounded transition-all duration-200 cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 p-1 rounded transition-all duration-200 ease-in-out cursor-pointer"
           >
             <i className="bi bi-x-lg text-xl" />
           </button>
@@ -171,7 +171,7 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-tertiary text-primary rounded hover:bg-muted disabled:opacity-50 transition-all duration-200 cursor-pointer"
+                className="px-4 py-2 bg-transparent text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200 ease-in-out cursor-pointer"
               >
                 Cancel
               </button>

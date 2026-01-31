@@ -65,7 +65,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg1 hover:text-fg0 p-1 rounded transition-all duration-200 cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 p-1 rounded transition-all duration-200 ease-in-out cursor-pointer"
           >
             <i className="bi bi-x-lg text-xl" />
           </button>

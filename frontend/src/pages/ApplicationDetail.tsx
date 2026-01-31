@@ -204,14 +204,14 @@ export default function ApplicationDetail() {
           <div className="flex items-center justify-end gap-2 pt-4 border-t border-tertiary">
             <Link
               to={`/applications/${id}/edit`}
-              className="px-3 py-1.5 bg-bg1 text-fg1 text-sm rounded hover:bg-bg2 hover:text-fg0 transition-colors duration-200 flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-transparent text-fg1 text-sm rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
             >
               <i className="bi-pencil text-sm"></i>
               Edit
             </Link>
             <button
               onClick={handleDelete}
-              className="px-3 py-1.5 bg-bg1 text-red text-sm rounded hover:bg-bg2 hover:text-red-bright transition-colors duration-200 flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 bg-transparent text-red text-sm rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
             >
               <i className="bi-trash text-sm"></i>
               Delete
