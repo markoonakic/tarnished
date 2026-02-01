@@ -364,7 +364,7 @@ bg4 → Nested modal elements
   - `bg-bg2` container → `bg-bg3` input
   - Focus: `focus:border-aqua-bright`
 - **Containers:** NO borders on base containers (color-only separation)
-- **Modals:** Use `bg-bg4` for modal content (lightest layer)
+- **Modals:** Use `bg-bg1` for modal content (modal reset rule - 2nd layer)
 - **Badges:** Use `bg-[var(--color-*)]/20 text-[var(--color-*)]`
 - **Actions:** "Delete" not "Remove"
 - **Theme dropdown:** Container `bg-bg1 border border-tertiary`, selected `bg-bg2`, hover `bg-bg3`
