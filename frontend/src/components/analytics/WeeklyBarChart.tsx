@@ -9,7 +9,11 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import api from '@/lib/api';
-import { colors } from '@/lib/theme';
+
+// Get CSS variable value helper
+function getCssVar(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
 
 interface WeeklyData {
   week: string;
@@ -54,7 +58,7 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
   if (error) {
     return (
       <div className="w-full h-64 flex items-center justify-center">
-        <div className="text-red">Failed to load chart data</div>
+        <div className="text-accent-red">Failed to load chart data</div>
       </div>
     );
   }
@@ -71,30 +75,30 @@ export default function WeeklyBarChart({ period }: WeeklyBarChartProps) {
     <div className="w-full h-64">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={colors.bg1} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--bg1)" />
           <XAxis
             dataKey="week"
-            tick={{ fill: colors.fg4, fontSize: 12 }}
-            stroke={colors.bg1}
+            tick={{ fill: 'var(--fg4)', fontSize: 12 }}
+            stroke="var(--bg1)"
           />
           <YAxis
-            tick={{ fill: colors.fg4, fontSize: 12 }}
-            stroke={colors.bg1}
+            tick={{ fill: 'var(--fg4)', fontSize: 12 }}
+            stroke="var(--bg1)"
           />
           <Tooltip
             wrapperStyle={{ zIndex: 1000 }}
             contentStyle={{
-              backgroundColor: colors.bg3,
-              border: `1px solid ${colors.aquaBright}`,
+              backgroundColor: 'var(--bg3)',
+              border: '1px solid var(--aqua-bright)',
               borderRadius: '4px',
-              color: colors.fg0,
+              color: 'var(--fg0)',
               padding: '0.5rem 0.75rem',
             }}
-            labelStyle={{ color: colors.fg0, fontWeight: 600 }}
-            itemStyle={{ color: colors.fg0 }}
+            labelStyle={{ color: 'var(--fg0)', fontWeight: 600 }}
+            itemStyle={{ color: 'var(--fg0)' }}
           />
-          <Bar dataKey="applications" name="Applications" fill={colors.blue} />
-          <Bar dataKey="interviews" name="Interviews" fill={colors.purple} />
+          <Bar dataKey="applications" name="Applications" fill="var(--blue)" />
+          <Bar dataKey="interviews" name="Interviews" fill="var(--purple)" />
         </BarChart>
       </ResponsiveContainer>
     </div>
