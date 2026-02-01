@@ -5,6 +5,7 @@ import type { ListParams } from '../lib/applications';
 import { listStatuses } from '../lib/settings';
 import type { Application, Status } from '../lib/types';
 import Layout from '../components/Layout';
+import Dropdown from '../components/Dropdown';
 import Loading from '../components/Loading';
 import EmptyState from '../components/EmptyState';
 
@@ -102,18 +103,16 @@ export default function Applications() {
               />
             </div>
             <div>
-              <select
+              <Dropdown
+                options={[
+                  { value: '', label: 'All Statuses' },
+                  ...statuses.map((status) => ({ value: status.id, label: status.name }))
+                ]}
                 value={statusFilter}
-                onChange={(e) => updateParams({ status: e.target.value })}
-                className="px-3 py-2 bg-bg2 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
-              >
-                <option value="">All Statuses</option>
-                {statuses.map((status) => (
-                  <option key={status.id} value={status.id}>
-                    {status.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => updateParams({ status: value })}
+                placeholder="All Statuses"
+                containerBackground="bg1"
+              />
             </div>
           </div>
         </div>

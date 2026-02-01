@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import Dropdown from './Dropdown';
 
 interface Theme {
   id: string;
@@ -13,86 +13,16 @@ interface Props {
 }
 
 export default function ThemeDropdown({ themes, currentTheme, onChange }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const selectedTheme = themes.find((t) => t.id === currentTheme) || themes[0];
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  function handleSelect(themeId: string) {
-    onChange(themeId);
-    setIsOpen(false);
-  }
-
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 py-2 bg-bg1 border border-tertiary rounded text-fg1 hover:border-aqua focus:outline-none focus:border-aqua transition-all duration-200 ease-in-out cursor-pointer"
-      >
-        <div className="flex items-center gap-3">
-          <span className="text-primary font-medium">{selectedTheme.name}</span>
-          <div className="flex gap-1">
-            {selectedTheme.swatches.map((color, i) => (
-              <div
-                key={i}
-                className="w-4 h-4 rounded"
-                style={{ backgroundColor: color }}
-              />
-            ))}
-          </div>
-        </div>
-        <i className={`bi bi-chevron-down text-muted transition-transform inline-block text-xl ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-
-      <div
-        className="absolute z-10 w-full mt-1 bg-bg1 border border-tertiary rounded-lg overflow-hidden transition-all duration-200 ease-in-out"
-        style={{
-          display: 'grid',
-          gridTemplateRows: isOpen ? '1fr' : '0fr',
-          opacity: isOpen ? 1 : 0,
-        }}
-      >
-        <div style={{ overflow: 'hidden' }}>
-          {themes.map((theme) => (
-            <button
-              key={theme.id}
-              type="button"
-              onClick={() => handleSelect(theme.id)}
-              className={`w-full flex items-center justify-between px-4 py-2 text-fg1 text-left transition-all duration-200 ease-in-out cursor-pointer ${
-                theme.id === currentTheme ? 'bg-bg2 hover:bg-bg3' : 'bg-transparent hover:bg-bg3'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-primary">{theme.name}</span>
-                <div className="flex gap-1">
-                  {theme.swatches.map((color, i) => (
-                    <div
-                      key={i}
-                      className="w-4 h-4 rounded"
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                </div>
-              </div>
-              {theme.id === currentTheme && (
-                <i className="bi bi-check-lg text-accent-aqua text-xl" />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
+    <Dropdown
+      options={themes.map((theme) => ({
+        value: theme.id,
+        label: theme.name,
+      }))}
+      value={currentTheme}
+      onChange={onChange}
+      placeholder="Select theme"
+      containerBackground="bg1"
+    />
   );
 }

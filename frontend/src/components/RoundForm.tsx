@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createRound, updateRound, uploadRoundTranscript } from '../lib/rounds';
 import { listRoundTypes } from '../lib/settings';
 import type { Round, RoundType, RoundCreate, RoundUpdate } from '../lib/types';
+import Dropdown from './Dropdown';
 import ProgressBar from './ProgressBar';
 
 interface Props {
@@ -152,18 +153,16 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block mb-1 text-sm font-semibold text-muted">Round Type</label>
-          <select
+          <Dropdown
+            options={[
+              { value: '', label: 'Select type' },
+              ...roundTypes.map((type) => ({ value: type.id, label: type.name }))
+            ]}
             value={roundTypeId}
-            onChange={(e) => setRoundTypeId(e.target.value)}
-            className="w-full px-3 py-2 bg-bg3 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
-          >
-            <option value="">Select type</option>
-            {roundTypes.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => setRoundTypeId(value)}
+            placeholder="Select type"
+            containerBackground="bg2"
+          />
         </div>
 
         <div>
@@ -191,16 +190,18 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
           <>
             <div>
               <label className="block mb-1 text-sm font-semibold text-muted">Outcome</label>
-              <select
+              <Dropdown
+                options={[
+                  { value: '', label: 'Pending' },
+                  { value: 'passed', label: 'Passed' },
+                  { value: 'failed', label: 'Failed' },
+                  { value: 'cancelled', label: 'Cancelled' },
+                ]}
                 value={outcome}
-                onChange={(e) => setOutcome(e.target.value)}
-                className="w-full px-3 py-2 bg-bg3 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
-              >
-                <option value="">Pending</option>
-                <option value="passed">Passed</option>
-                <option value="failed">Failed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+                onChange={(value) => setOutcome(value)}
+                placeholder="Pending"
+                containerBackground="bg2"
+              />
             </div>
 
             <div>

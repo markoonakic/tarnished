@@ -4,6 +4,7 @@ import { getApplication, createApplication, updateApplication } from '../lib/app
 import { listStatuses } from '../lib/settings';
 import type { Status, ApplicationCreate, ApplicationUpdate } from '../lib/types';
 import Layout from '../components/Layout';
+import Dropdown from '../components/Dropdown';
 
 export default function ApplicationForm() {
   const { id } = useParams<{ id: string }>();
@@ -204,19 +205,16 @@ export default function ApplicationForm() {
               <label className="block mb-1 text-sm font-semibold text-muted">
                 Status <span className="text-accent-red">*</span>
               </label>
-              <select
+              <Dropdown
+                options={[
+                  { value: '', label: 'Select status' },
+                  ...statuses.map((status) => ({ value: status.id, label: status.name }))
+                ]}
                 value={statusId}
-                onChange={(e) => setStatusId(e.target.value)}
-                className="w-full px-3 py-2 bg-bg2 rounded text-fg1 focus:outline-none focus:border-aqua-bright transition-all duration-200 ease-in-out"
-                required
-              >
-                <option value="">Select status</option>
-                {statuses.map((status) => (
-                  <option key={status.id} value={status.id}>
-                    {status.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setStatusId(value)}
+                placeholder="Select status"
+                containerBackground="bg1"
+              />
             </div>
 
             <div>
