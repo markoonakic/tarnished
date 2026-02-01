@@ -17,7 +17,7 @@ interface KPICardProps {
 }
 
 function KPICard({ title, value, trend, suffix = '' }: KPICardProps) {
-  const trendColor = trend !== undefined ? (trend >= 0 ? 'text-green' : 'text-red') : '';
+  const trendColor = trend !== undefined ? (trend >= 0 ? 'text-green' : 'text-accent-red') : '';
   const trendIcon = trend !== undefined ? (trend >= 0 ? '↑' : '↓') : '';
   const trendText = trend !== undefined ? `${trendIcon} ${Math.abs(trend)}%` : '';
 
@@ -71,7 +71,7 @@ export default function KPICards() {
   if (error || !kpis) {
     return (
       <div className="bg-secondary rounded-lg p-6">
-        <p className="text-red">Failed to load dashboard KPIs</p>
+        <p className="text-accent-red">Failed to load dashboard KPIs</p>
       </div>
     );
   }
