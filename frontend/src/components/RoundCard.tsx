@@ -194,7 +194,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
   }
 
   return (
-    <div className="bg-tertiary rounded-lg p-4">
+    <div className="bg-secondary rounded-lg p-4">
       {playingMedia && (
         <MediaPlayer media={playingMedia} onClose={() => setPlayingMedia(null)} />
       )}
