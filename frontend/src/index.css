@@ -17,8 +17,8 @@
   --color-fg4: #a89984;
   --color-gray: #928374;
   --color-primary: #ebdbb2;
-  --color-secondary: #3c3836;
-  --color-tertiary: #504945;
+  --color-secondary: #928374;  /* gray - visible against bg-bg1 (#3c3836) */
+  --color-tertiary: #a89984;   /* fg4 - visible against bg-bg2 (#504945) */
   --color-muted: #a89984;
 
   /* Accent colors */
