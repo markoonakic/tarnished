@@ -362,7 +362,7 @@ export default function Settings() {
                       value={newStatusName}
                       onChange={(e) => setNewStatusName(e.target.value)}
                       placeholder="New status name"
-                      className="flex-1 px-3 py-2 border bg-bg2 rounded text-primary placeholder-muted focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+                      className="flex-1 px-3 py-2 border bg-bg2 rounded text-primary placeholder-muted focus:outline-none focus:border-aqua-bright transition-all duration-200 ease-in-out"
                     />
                     <input
                       type="color"
@@ -467,7 +467,7 @@ export default function Settings() {
                     value={newRoundTypeName}
                     onChange={(e) => setNewRoundTypeName(e.target.value)}
                     placeholder="New round type name"
-                    className="flex-1 px-3 py-2 border bg-tertiary rounded text-primary placeholder-muted focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+                    className="flex-1 px-3 py-2 border bg-tertiary rounded text-primary placeholder-muted focus:outline-none focus:border-aqua-bright transition-all duration-200 ease-in-out"
                   />
                   <button
                     type="submit"
