@@ -10,12 +10,12 @@ export default function ProgressBar({ progress, fileName, showPercentage = true 
   return (
     <div>
       {fileName && (
-        <div className="text-sm text-primary mb-2 truncate">{fileName}</div>
+        <div className="text-sm text-fg1 mb-2 truncate">{fileName}</div>
       )}
       <div className="w-full h-2 bg-tertiary rounded-sm overflow-hidden">
         <div
           className={`h-full transition-all duration-300 ${
-            isComplete ? 'bg-accent-green' : 'bg-accent-aqua'
+            isComplete ? 'bg-green' : 'bg-aqua'
           }`}
           style={{ width: `${Math.min(progress, 100)}%` }}
           role="progressbar"
