@@ -12,7 +12,9 @@ This roadmap delivers improvements to the existing Job Tracker application in fo
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: UI/UX & CSS Fixes** - Visual consistency and styling improvements
+- [x] **Phase 1: UI/UX & CSS Fixes** - Visual consistency and styling improvements
+- [ ] **Phase 1.1: Theme System Refactor (INSERTED)** - Fix color system for seamless theme switching
+- [ ] **Phase 1.2: Repository Cleanup (INSERTED)** - Clean repository before push
 - [ ] **Phase 2: Complete Data Import** - Finish the import feature backend
 - [ ] **Phase 3: Code Refactoring & Modals** - Component cleanup and UX patterns
 - [ ] **Phase 4: Documentation** - Developer guides and API documentation
@@ -42,18 +44,63 @@ Plans:
 - [x] 01-02: Fix input focus states and CSS class generation (UIUX-07, CSS-01, CSS-02) — 2 tasks
 - [x] 01-03: Fix badge colors and visual hierarchy (UIUX-05, UIUX-06, UIUX-10, CSS-03) — 3 tasks (with human verification)
 - [x] 01-04: 5-Color Gruvbox Layering Fixes — 8 tasks (comprehensive audit fixes)
-- [ ] 01-05: Add border class to all inputs (Gap Closure: Input focus borders) — 3 tasks
-- [ ] 01-06: Fix modal backgrounds to bg-bg2 (Gap Closure: 5-layer reset rule) — 2 tasks
-- [ ] 01-07: Fix cancel/danger button defaults (Gap Closure: Transparent defaults) — 2 tasks
-- [ ] 01-08: Fix Admin spacing and table separators (Gap Closure: Spacing & separators) — 2 tasks
-- [ ] 01-09: Fix X icon button padding (Gap Closure: Oversized hover area) — 1 task
-- [ ] 01-10: Add trash icon and document 5-layer rule (Gap Closure: Icon & docs) — 2 tasks
+- [x] 01-05: Add border class to all inputs (Gap Closure: Input focus borders) — 3 tasks
+- [x] 01-06: Fix modal backgrounds to bg-bg2 (Gap Closure: 5-layer reset rule) — 2 tasks
+- [x] 01-07: Fix cancel/danger button defaults (Gap Closure: Transparent defaults) — 2 tasks
+- [x] 01-08: Fix Admin spacing and table separators (Gap Closure: Spacing & separators) — 2 tasks
+- [x] 01-09: Fix X icon button padding (Gap Closure: Oversized hover area) — 1 task
+- [x] 01-10: Add trash icon and document 5-layer rule (Gap Closure: Icon & docs) — 2 tasks
+
+### Phase 1.1: Theme System Refactor (INSERTED)
+
+**Goal**: Theme system supports seamless switching and easy community contributions
+
+**Depends on**: Phase 1 (UI/UX & CSS Fixes)
+
+**Requirements**: THEME-01, THEME-02, THEME-03, THEME-04, THEME-05
+
+**Success Criteria** (what must be TRUE):
+1. Theme switching is instant with no page reload
+2. Each theme defines its full color palette + accent color
+3. Adding a new theme requires only one CSS file
+4. No hardcoded colors in components (all use CSS variables)
+5. Theme preference persists in localStorage
+
+**Plans**: 2 plans in 2 waves
+
+Plans:
+- [ ] 01.1-01: Refactor color system and fix dual variable issue (THEME-01, THEME-02, THEME-03) — 3 tasks
+- [ ] 01.1-02: Remove hardcoded colors and add React Context (THEME-04, THEME-05) — 4 tasks
+
+**Details**:
+Refactor the theme system to use CSS variables + React Context hybrid. Fix the dual variable system (--bg0 vs --color-bg0), remove hardcoded colors from components, and structure theme files for easy community contributions. Minimal approach (CSS + human review) like Dracula/Nord themes.
+
+### Phase 1.2: Repository Cleanup (INSERTED)
+
+**Goal**: Repository is clean and ready for push before continuing
+
+**Depends on**: Phase 1.1 (Theme System Refactor)
+
+**Requirements**: CLEANUP-01, CLEANUP-02, CLEANUP-03
+
+**Success Criteria** (what must be TRUE):
+1. Root directory is clean (no junk files, organized scripts)
+2. Duplicate/unused files are deleted
+3. Git status shows only meaningful changes
+
+**Plans**: TBD
+
+Plans:
+- [ ] TBD (run `/gsd:plan-phase 1.2` to break down)
+
+**Details**:
+Urgent cleanup discovered during Phase 2 CONTEXT AUDIT. Root directory has duplicate files, junk files, and scripts that need organizing before continuing.
 
 ### Phase 2: Complete Data Import
 
 **Goal**: Users can import job application data from exported files
 
-**Depends on**: Nothing (feature-independent)
+**Depends on**: Phase 1.2 (Repository Cleanup)
 
 **Requirements**: IMPORT-01, IMPORT-02, IMPORT-03, IMPORT-04, IMPORT-05, IMPORT-06, IMPORT-07
 
@@ -123,7 +170,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. UI/UX & CSS Fixes | 4/10 | Gap closure in progress | - |
+| 1. UI/UX & CSS Fixes | 11/11 | ✓ Complete | 2026-01-31 |
+| 1.1. Theme System Refactor (INSERTED) | 0/2 | Not started | - |
+| 1.2. Repository Cleanup (INSERTED) | 0/0 | Not started | - |
 | 2. Complete Data Import | 0/2 | Not started | - |
 | 3. Code Refactoring & Modals | 0/3 | Not started | - |
 | 4. Documentation | 0/3 | Not started | - |

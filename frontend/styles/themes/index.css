@@ -1,0 +1,5 @@
+/* Import all theme CSS files */
+@import './gruvbox-dark.css';
+@import './gruvbox-light.css';
+@import './nord.css';
+@import './dracula.css';
