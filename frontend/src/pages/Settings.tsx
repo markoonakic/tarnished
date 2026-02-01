@@ -303,7 +303,7 @@ export default function Settings() {
                         {!status.is_default && (
                           <button
                             onClick={() => startEditStatus(status)}
-                            className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5"
+                            className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
                           >
                             <i className="bi-pencil text-xs"></i>
                             Edit
@@ -312,7 +312,7 @@ export default function Settings() {
                         {!status.is_default && (
                           <button
                             onClick={() => handleDeleteStatus(status)}
-                            className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5"
+                            className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
                           >
                             <i className="bi-trash text-xs"></i>
                             Delete
@@ -342,14 +342,14 @@ export default function Settings() {
                       />
                       <button
                         type="submit"
-                        className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
+                        className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
                       >
                         Save
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditingStatus(null)}
-                        className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md"
+                        className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -372,7 +372,7 @@ export default function Settings() {
                     />
                     <button
                       type="submit"
-                      className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
+                      className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
                     >
                       Add
                     </button>
@@ -415,14 +415,14 @@ export default function Settings() {
                           <>
                             <button
                               onClick={() => startEditRoundType(type)}
-                              className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5"
+                              className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
                             >
                               <i className="bi-pencil text-xs"></i>
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteRoundType(type)}
-                              className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5"
+                              className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
                             >
                               <i className="bi-trash text-xs"></i>
                               Delete
@@ -447,14 +447,14 @@ export default function Settings() {
                       />
                       <button
                         type="submit"
-                        className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
+                        className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
                       >
                         Save
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditingRoundType(null)}
-                        className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md"
+                        className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -471,7 +471,7 @@ export default function Settings() {
                   />
                   <button
                     type="submit"
-                    className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
+                    className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
                   >
                     Add
                   </button>
@@ -492,14 +492,14 @@ export default function Settings() {
               <button
                 onClick={handleExportJSON}
                 disabled={exporting}
-                className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50"
+                className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
               >
                 {exporting ? 'Exporting...' : 'Export JSON'}
               </button>
               <button
                 onClick={handleExportCSV}
                 disabled={exporting}
-                className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50"
+                className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
               >
                 {exporting ? 'Exporting...' : 'Export CSV'}
               </button>
@@ -515,7 +515,7 @@ export default function Settings() {
             </p>
             <button
               onClick={() => setShowImportModal(true)}
-              className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
+              className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
             >
               Import Data
             </button>

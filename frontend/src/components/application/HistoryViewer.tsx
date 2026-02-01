@@ -75,7 +75,7 @@ export default function HistoryViewer({ applicationId }: Props) {
             <button
               onClick={() => setIsModalOpen(true)}
               disabled={!history || history.length === 0}
-              className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               View All History
             </button>
@@ -134,7 +134,7 @@ export default function HistoryViewer({ applicationId }: Props) {
                   <button
                     onClick={() => handleDelete(entry.id)}
                     disabled={deleteMutation.isPending}
-                    className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-xs disabled:opacity-50 flex-shrink-0"
+                    className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-xs disabled:opacity-50 flex-shrink-0 cursor-pointer"
                     title="Delete"
                   >
                     <i className="bi-trash text-xs"></i>
@@ -147,7 +147,7 @@ export default function HistoryViewer({ applicationId }: Props) {
               <div className="text-center pt-2">
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="text-muted hover:text-fg0 hover:bg-bg2 transition-all duration-200 ease-in-out px-2 py-1 rounded text-sm"
+                  className="text-muted hover:text-fg0 hover:bg-bg2 transition-all duration-200 ease-in-out px-2 py-1 rounded text-sm cursor-pointer"
                 >
                   View {history.length - 3} more entr{history.length - 3 === 1 ? 'y' : 'ies'}
                 </button>

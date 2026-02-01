@@ -32,7 +32,7 @@ export default function EmptyState({ message, subMessage, icon, action }: Props)
       {action && (
         <button
           onClick={action.onClick}
-          className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium mt-6"
+          className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium mt-6 cursor-pointer"
         >
           {action.label}
         </button>

@@ -65,7 +65,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded cursor-pointer"
           >
             <i className="bi bi-x-lg text-xl" />
           </button>
@@ -110,14 +110,14 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50"
+              className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50"
+              className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
             >
               {loading ? 'Creating...' : 'Create'}
             </button>

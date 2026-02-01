@@ -124,7 +124,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
             onClick={handleClose}
             disabled={importing}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded disabled:opacity-50"
+            className="text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded disabled:opacity-50 cursor-pointer"
           >
             <i className="bi bi-x-lg text-xl" />
           </button>
@@ -179,13 +179,13 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
               <div className="flex gap-3">
                 <button
                   onClick={() => setValidation(null)}
-                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md flex-1"
+                  className="bg-transparent text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md flex-1 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleImport}
-                  className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium flex-1"
+                  className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium flex-1 cursor-pointer"
                 >
                   Import Data
                 </button>
@@ -210,7 +210,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
                   <button
                     onClick={handleValidate}
                     disabled={validating}
-                    className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 w-full"
+                    className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 w-full cursor-pointer"
                   >
                     {validating ? 'Validating...' : 'Validate'}
                   </button>
