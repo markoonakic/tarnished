@@ -63,7 +63,7 @@ export default function HistoryViewer({ applicationId }: Props) {
             {history && history.length > 0 && (
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className={`px-4 py-2 rounded font-medium transition-all duration-200 cursor-pointer ${
+                className={`transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium ${
                   isEditing
                     ? 'bg-aqua text-bg0 hover:bg-aqua-bright'
                     : 'bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0'
@@ -75,7 +75,7 @@ export default function HistoryViewer({ applicationId }: Props) {
             <button
               onClick={() => setIsModalOpen(true)}
               disabled={!history || history.length === 0}
-              className="px-4 py-2 bg-transparent text-fg1 rounded font-medium hover:bg-bg2 hover:text-fg0 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               View All History
             </button>
@@ -134,7 +134,7 @@ export default function HistoryViewer({ applicationId }: Props) {
                   <button
                     onClick={() => handleDelete(entry.id)}
                     disabled={deleteMutation.isPending}
-                    className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-colors duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 flex-shrink-0"
+                    className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-xs disabled:opacity-50 flex-shrink-0"
                     title="Delete"
                   >
                     <i className="bi-trash text-xs"></i>
@@ -147,7 +147,7 @@ export default function HistoryViewer({ applicationId }: Props) {
               <div className="text-center pt-2">
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="text-sm text-muted hover:text-fg0 hover:bg-bg2 transition-all duration-200 cursor-pointer px-2 py-1 rounded"
+                  className="text-muted hover:text-fg0 hover:bg-bg2 transition-all duration-200 ease-in-out px-2 py-1 rounded text-sm"
                 >
                   View {history.length - 3} more entr{history.length - 3 === 1 ? 'y' : 'ies'}
                 </button>

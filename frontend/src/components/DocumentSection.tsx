@@ -150,13 +150,13 @@ export default function DocumentSection({ application, onUpdate }: Props) {
               <button
                 onClick={() => handlePreview(type)}
                 disabled={!canPreview || isUploading}
-                className="px-3 py-1.5 bg-transparent text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200 ease-in-out flex items-center gap-1.5 text-sm cursor-pointer"
+                className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50"
                 title={canPreview ? 'Preview' : 'Preview not available for this file type'}
               >
                 <i className="bi-eye text-sm"></i>
                 Preview
               </button>
-              <label className="px-3 py-1.5 bg-transparent text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200 ease-in-out cursor-pointer flex items-center gap-1.5 text-sm">
+              <label className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded disabled:opacity-50 flex items-center gap-1.5 text-sm">
                 <i className="bi-arrow-repeat text-sm"></i>
                 Replace
                 <input
@@ -173,7 +173,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
               <button
                 onClick={() => handleDelete(type)}
                 disabled={isUploading}
-                className="px-3 py-1.5 bg-transparent text-red rounded hover:bg-bg2 hover:text-red-bright disabled:opacity-50 transition-all duration-200 ease-in-out flex items-center gap-1.5 text-sm cursor-pointer"
+                className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50"
               >
                 <i className="bi-trash text-sm"></i>
                 Delete
@@ -183,7 +183,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
         ) : (
           <div className="flex flex-col gap-2 items-end">
             {isProgressActive && <ProgressBar progress={uploadProgress} fileName={uploadingFile?.name} />}
-            <label className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright disabled:opacity-50 transition-all duration-200 cursor-pointer flex items-center gap-1.5">
+            <label className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 flex items-center gap-1.5">
               <i className="bi-upload"></i>
               {isUploading ? 'Uploading...' : 'Upload'}
               <input

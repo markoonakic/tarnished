@@ -204,14 +204,14 @@ export default function ApplicationDetail() {
           <div className="flex items-center justify-end gap-2 pt-4 border-t border-tertiary">
             <Link
               to={`/applications/${id}/edit`}
-              className="px-3 py-1.5 bg-transparent text-fg1 text-sm rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+              className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm"
             >
               <i className="bi-pencil text-sm"></i>
               Edit
             </Link>
             <button
               onClick={handleDelete}
-              className="px-3 py-1.5 bg-transparent text-red text-sm rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+              className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm"
             >
               <i className="bi-trash text-sm"></i>
               Delete
@@ -236,7 +236,7 @@ export default function ApplicationDetail() {
             {application.rounds && application.rounds.length > 0 && (
               <button
                 onClick={() => setShowRoundForm(true)}
-                className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
+                className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
               >
                 Add Round
               </button>

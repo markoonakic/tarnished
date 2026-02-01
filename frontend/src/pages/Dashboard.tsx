@@ -74,13 +74,13 @@ export default function Dashboard() {
               <div className="flex gap-3">
                 <button
                   onClick={handleDismissPrompt}
-                  className="px-4 py-2 bg-transparent text-fg1 rounded font-medium hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out cursor-pointer"
+                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
                 >
                   Skip
                 </button>
                 <button
                   onClick={handleOpenImportModal}
-                  className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-colors"
+                  className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
                 >
                   Import Data
                 </button>
