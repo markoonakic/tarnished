@@ -157,8 +157,8 @@ export default function Applications() {
                   </tr>
                 </thead>
                 <tbody>
-                  {applications.map((app) => (
-                    <tr key={app.id} className="transition-colors duration-200 border-b border-tertiary">
+                  {applications.map((app, index) => (
+                    <tr key={app.id} className={`transition-colors duration-200 ${index < applications.length - 1 ? 'border-b border-tertiary' : ''}`}>
                       <td className="py-3 px-4 text-sm">
                         <Link
                           to={`/applications/${app.id}`}

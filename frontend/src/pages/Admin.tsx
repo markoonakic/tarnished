@@ -118,8 +118,8 @@ export default function Admin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredUsers.map((u) => (
-                      <tr key={u.id} className="transition-colors duration-200 border-b border-tertiary">
+                    {filteredUsers.map((u, index) => (
+                      <tr key={u.id} className={`transition-colors duration-200 ${index < filteredUsers.length - 1 ? 'border-b border-tertiary' : ''}`}>
                         <td className="py-3 px-4 text-sm text-primary">{u.email}</td>
                         <td className="py-3 px-4 text-sm text-secondary">{formatDate(u.created_at)}</td>
                         <td className="py-3 px-4 text-sm text-center">
