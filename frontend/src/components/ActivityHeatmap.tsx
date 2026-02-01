@@ -144,7 +144,7 @@ export default function ActivityHeatmap() {
           <select
             value={viewMode}
             onChange={(e) => setViewMode(e.target.value === 'rolling' ? 'rolling' : parseInt(e.target.value))}
-            className="px-3 py-1 bg-bg1 text-primary rounded text-sm focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+            className="px-3 py-1 bg-bg1 text-primary rounded text-sm focus:outline-none focus:border-aqua-bright transition-all duration-200 ease-in-out"
           >
             <option value="rolling">Last 12 months</option>
             {years.map((y) => (
@@ -200,7 +200,7 @@ export default function ActivityHeatmap() {
                   {week.map((cell, dayIndex) => (
                     <div
                       key={`${weekIndex}-${dayIndex}`}
-                      className="rounded-sm cursor-pointer transition-opacity opacity-60 hover:opacity-100"
+                      className="rounded-sm cursor-pointer transition-all duration-200 ease-in-out opacity-60 hover:opacity-100"
                       style={{
                         width: cellSize,
                         height: cellSize,
