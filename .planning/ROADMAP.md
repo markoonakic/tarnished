@@ -13,7 +13,8 @@ This roadmap delivers improvements to the existing Job Tracker application in fo
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: UI/UX & CSS Fixes** - Visual consistency and styling improvements
-- [ ] **Phase 1.1: Theme System Refactor (INSERTED)** - Fix color system for seamless theme switching
+- [x] **Phase 1.1: Theme System Refactor (INSERTED)** - Fix color system for seamless theme switching
+- [ ] **Phase 1.1.1: Frontend refactor - complete theme system migration (INSERTED)** - Ensure all components use theme system and follow design guidelines
 - [ ] **Phase 1.2: Repository Cleanup (INSERTED)** - Clean repository before push
 - [ ] **Phase 2: Complete Data Import** - Finish the import feature backend
 - [ ] **Phase 3: Code Refactoring & Modals** - Component cleanup and UX patterns
@@ -69,17 +70,44 @@ Plans:
 **Plans**: 2 plans in 2 waves
 
 Plans:
-- [ ] 01.1-01: Refactor color system and fix dual variable issue (THEME-01, THEME-02, THEME-03) — 3 tasks
-- [ ] 01.1-02: Remove hardcoded colors and add React Context (THEME-04, THEME-05) — 4 tasks
+- [x] 01.1-01: Refactor color system and fix dual variable issue (THEME-01, THEME-02, THEME-03) — 4 tasks
+- [x] 01.1-02: Remove hardcoded colors and add React Context (THEME-04, THEME-05) — 4 tasks
 
 **Details**:
 Refactor the theme system to use CSS variables + React Context hybrid. Fix the dual variable system (--bg0 vs --color-bg0), remove hardcoded colors from components, and structure theme files for easy community contributions. Minimal approach (CSS + human review) like Dracula/Nord themes.
+
+### Phase 1.1.1: Frontend refactor - complete theme system migration (INSERTED)
+
+**Goal:** Entire frontend uses theme system consistently and follows design guidelines
+**Depends on:** Phase 1.1 (Theme System Refactor)
+**Requirements**: THEME-06, THEME-07, THEME-08, THEME-09, THEME-10
+
+**Success Criteria** (what must be TRUE):
+1. All modals use bg-bg2 background (modal reset rule) with bg-bg3 inputs
+2. All inputs have 'border' class for visible focus:border-aqua-bright states
+3. All buttons follow 4 standard variants (Primary, Neutral, Danger, Icon-only)
+4. All table rows use border-b border-tertiary except last row
+5. No hardcoded hex colors in components (only database status.color as inline styles)
+6. All interactive elements use transition-all duration-200 ease-in-out
+7. ThemeDropdown follows theme dropdown pattern (bg-bg1 container, bg-bg2 selected, hover:bg-bg3)
+
+**Plans**: 5 plans in 3 waves
+
+Plans:
+- [ ] 01.1.1-01: Migrate modal components to theme system — 4 tasks (CreateUserModal, EditUserModal, ImportModal, StatusHistoryModal)
+- [ ] 01.1.1-02: Migrate form components to theme system — 4 tasks (RoundForm, DocumentSection, PasswordInput, ApplicationForm)
+- [ ] 01.1.1-03: Migrate page components to theme system — 5 tasks (Dashboard, Applications, ApplicationDetail, Admin, Analytics)
+- [ ] 01.1.1-04: Migrate analytics and dashboard components — 7 tasks (AnalyticsKPIs, WeeklyBarChart, PeriodSelector, KPICards, NeedsAttention, QuickActions, ActivityHeatmap)
+- [ ] 01.1.1-05: Migrate utility components to theme system — 5 tasks (EmptyState, Loading, Spinner, ProgressBar, MediaPlayer, RoundCard, SankeyChart, ThemeDropdown, Layout, HistoryViewer, FeatureToggles, icon components)
+
+**Details**:
+Continuation of Phase 1.1 work - systematic frontend refactor to ensure all components use the new theme architecture and comply with design guidelines. Migration organized by functional area (modals → forms → pages → analytics → utilities) with wave-based parallel execution.
 
 ### Phase 1.2: Repository Cleanup (INSERTED)
 
 **Goal**: Repository is clean and ready for push before continuing
 
-**Depends on**: Phase 1.1 (Theme System Refactor)
+**Depends on**: Phase 1.1.1 (Frontend refactor - complete theme system migration)
 
 **Requirements**: CLEANUP-01, CLEANUP-02, CLEANUP-03
 
@@ -101,6 +129,21 @@ Urgent cleanup discovered during Phase 2 CONTEXT AUDIT. Root directory has dupli
 **Goal**: Users can import job application data from exported files
 
 **Depends on**: Phase 1.2 (Repository Cleanup)
+
+**Requirements**: IMPORT-01, IMPORT-02, IMPORT-03, IMPORT-04, IMPORT-05, IMPORT-06, IMPORT-07
+
+**Success Criteria** (what must be TRUE):
+1. User can upload a JSON or ZIP export file through the Settings import modal
+2. Import progress displays in real-time via SSE updates
+3. Imported applications appear in the dashboard with all data intact
+4. Override mode correctly replaces existing data when selected
+5. Import attempts are rate-limited and audit-logged
+
+**Plans**: TBD
+
+Plans:
+- [ ] 02-01: Implement backend import endpoint and core utilities (IMPORT-01, IMPORT-02, IMPORT-03, IMPORT-04)
+- [ ] 02-02: Add security (rate limiting, audit logging) and tests (IMPORT-05, IMPORT-06, IMPORT-07)
 
 **Requirements**: IMPORT-01, IMPORT-02, IMPORT-03, IMPORT-04, IMPORT-05, IMPORT-06, IMPORT-07
 
@@ -171,7 +214,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. UI/UX & CSS Fixes | 11/11 | ✓ Complete | 2026-01-31 |
-| 1.1. Theme System Refactor (INSERTED) | 0/2 | Not started | - |
+| 1.1. Theme System Refactor (INSERTED) | 2/2 | ✓ Complete | 2026-02-01 |
+| 1.1.1. Frontend refactor - complete theme system migration (INSERTED) | 0/5 | Not started | - |
 | 1.2. Repository Cleanup (INSERTED) | 0/0 | Not started | - |
 | 2. Complete Data Import | 0/2 | Not started | - |
 | 3. Code Refactoring & Modals | 0/3 | Not started | - |
