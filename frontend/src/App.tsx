@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { useScrollRestoration } from './hooks/useScrollRestoration';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -11,13 +12,6 @@ import ApplicationForm from './pages/ApplicationForm';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Admin from './pages/Admin';
-
-function initTheme() {
-  const stored = localStorage.getItem('theme');
-  if (stored && stored !== 'gruvbox-dark') {
-    document.documentElement.setAttribute('data-theme', stored);
-  }
-}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -75,15 +69,13 @@ function AppRoutes() {
 }
 
 function App() {
-  useEffect(() => {
-    initTheme();
-  }, []);
-
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }
