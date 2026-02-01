@@ -36,7 +36,7 @@ export default function Login() {
         </h1>
 
         {error && (
-          <div className="mb-4 p-3 rounded border border-accent-red text-accent-red" style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)' }}>
+          <div className="mb-4 p-3 rounded border border-accent-red text-accent-red bg-red/20">
             {error}
           </div>
         )}

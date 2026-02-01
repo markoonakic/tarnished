@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { colors } from '@/lib/theme';
 
 interface StreakData {
   current_streak: number;
@@ -118,23 +117,23 @@ export default function FlameEmblem() {
 
           {/* Days display */}
           <div className="text-center">
-            <div className="text-3xl font-bold" style={{ color: colors.fg1 }}>
+            <div className="text-3xl font-bold text-fg1">
               {data.current_streak} DAYS
             </div>
             {flameState === 'EMBER' && (
-              <p className="text-sm mt-1" style={{ color: colors.orange }}>
+              <p className="text-sm mt-1 text-orange">
                 ⚠ EMBER — Apply today to rekindle
               </p>
             )}
             {flameState === 'EXTINGUISHED' && (
-              <p className="text-sm mt-1" style={{ color: colors.fg4 }}>
+              <p className="text-sm mt-1 text-fg4">
                 {isRecentlyExhausted
                   ? "The embers still warm..."
                   : "The fire has gone cold..."}
               </p>
             )}
             {flameState === 'COLD' && (
-              <p className="text-sm mt-1" style={{ color: colors.fg4 }}>
+              <p className="text-sm mt-1 text-fg4">
                 ❄️ COLD — Awaiting the first spark...
               </p>
             )}
@@ -145,16 +144,16 @@ export default function FlameEmblem() {
         {flameState === 'BURNING' && (
           <>
             <div className="text-center mt-4">
-              <div className="text-sm font-semibold" style={{ color: colors.fg4 }}>
+              <div className="text-sm font-semibold text-fg4">
                 {data.flame_name}
               </div>
-              <div className="text-xs mt-1" style={{ color: colors.fg4 }}>
+              <div className="text-xs mt-1 text-fg4">
                 "{flameMessages[data.flame_stage] || 'Keep it up...'}"
               </div>
             </div>
 
             {/* Stats */}
-            <div className="flex gap-6 mt-4 text-xs" style={{ color: colors.fg4 }}>
+            <div className="flex gap-6 mt-4 text-xs text-fg4">
               <span>Best: {data.longest_streak} days</span>
               <span>Total: {data.total_activity_days} days</span>
             </div>
