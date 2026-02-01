@@ -36,7 +36,7 @@ export default function HistoryViewer({ applicationId }: Props) {
 
   if (isLoading) {
     return (
-      <div className="bg-secondary rounded-lg p-6">
+      <div className="bg-bg1 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-primary mb-4">Status History</h2>
         <div className="flex items-center justify-center py-8">
           <div className="text-muted">Loading history...</div>
@@ -47,7 +47,7 @@ export default function HistoryViewer({ applicationId }: Props) {
 
   if (error) {
     return (
-      <div className="bg-secondary rounded-lg p-6">
+      <div className="bg-bg1 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-primary mb-4">Status History</h2>
         <div className="text-accent-red">Failed to load history</div>
       </div>
@@ -56,7 +56,7 @@ export default function HistoryViewer({ applicationId }: Props) {
 
   return (
     <>
-      <div className="bg-secondary rounded-lg p-6">
+      <div className="bg-bg1 rounded-lg p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-primary">Status History</h2>
           <div className="flex gap-2">
@@ -93,7 +93,7 @@ export default function HistoryViewer({ applicationId }: Props) {
             {history.slice(0, 3).map((entry: ApplicationStatusHistory) => (
               <div
                 key={entry.id}
-                className="bg-tertiary rounded-lg p-4 flex items-start justify-between gap-4"
+                className="bg-bg2 rounded-lg p-4 flex items-start justify-between gap-4"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -127,7 +127,7 @@ export default function HistoryViewer({ applicationId }: Props) {
                     {formatDateTime(entry.changed_at)}
                   </p>
                   {entry.note && (
-                    <p className="text-sm text-secondary mt-2 whitespace-pre-wrap">{entry.note}</p>
+                    <p className="text-sm text-fg1 mt-2 whitespace-pre-wrap">{entry.note}</p>
                   )}
                 </div>
                 {isEditing && (
