@@ -73,7 +73,7 @@ export default function FeatureToggles() {
               <button
                 onClick={() => handleToggle(toggle.key)}
                 disabled={updateMutation.isPending}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-aqua focus:ring-offset-2 focus:ring-offset-bg0 ${
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-aqua focus:ring-offset-2 focus:ring-offset-bg0 ${
                   isEnabled ? 'bg-aqua' : 'bg-tertiary'
                 } ${updateMutation.isPending ? 'opacity-50 cursor-wait' : ''}`}
                 role="switch"

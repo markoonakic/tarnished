@@ -89,7 +89,7 @@ export default function Register() {
 
           <p className="mt-4 text-center text-muted">
             Already have an account?{' '}
-            <Link to="/login" className="text-aqua hover:text-aqua-bright transition-colors duration-200 cursor-pointer">Sign in</Link>
+            <Link to="/login" className="text-aqua hover:text-aqua-bright transition-all duration-200 ease-in-out">Sign in</Link>
           </p>
       </div>
     </div>

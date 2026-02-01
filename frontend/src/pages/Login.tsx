@@ -73,7 +73,7 @@ export default function Login() {
 
           <p className="mt-4 text-center text-muted">
             Don't have an account?{' '}
-            <Link to="/register" className="text-aqua hover:text-aqua-bright transition-colors duration-200 cursor-pointer">Register</Link>
+            <Link to="/register" className="text-aqua hover:text-aqua-bright transition-all duration-200 ease-in-out">Register</Link>
           </p>
       </div>
     </div>

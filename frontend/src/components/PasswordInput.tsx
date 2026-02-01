@@ -28,7 +28,7 @@ export default function PasswordInput({ value, onChange, label, required = false
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted hover:text-primary transition-colors duration-200"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted hover:text-primary transition-all duration-200 ease-in-out"
           aria-label={showPassword ? 'Hide password' : 'Show password'}
         >
           <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'} text-lg`} />
