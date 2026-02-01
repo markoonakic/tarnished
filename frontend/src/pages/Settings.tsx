@@ -274,7 +274,7 @@ export default function Settings() {
           <select
             value={activeSection}
             onChange={(e) => setActiveSection(e.target.value)}
-            className="w-full px-3 py-2 bg-bg2 text-fg1 border border-tertiary focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+            className="w-full px-3 py-2 bg-bg2 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
           >
             <option value="theme">Theme</option>
             <option value="features">Features</option>
@@ -343,7 +343,7 @@ export default function Settings() {
                         {!status.is_default && (
                           <button
                             onClick={() => startEditStatus(status)}
-                            className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+                            className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5"
                           >
                             <i className="bi-pencil text-xs"></i>
                             Edit
@@ -352,7 +352,7 @@ export default function Settings() {
                         {!status.is_default && (
                           <button
                             onClick={() => handleDeleteStatus(status)}
-                            className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+                            className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5"
                           >
                             <i className="bi-trash text-xs"></i>
                             Delete
@@ -364,7 +364,7 @@ export default function Settings() {
                 </div>
 
                 {editingStatus ? (
-                  <form onSubmit={handleUpdateStatus} className="mb-4 p-3 bg-secondary border border-muted rounded">
+                  <form onSubmit={handleUpdateStatus} className="mb-4 p-3 bg-secondary rounded">
                     <div className="text-sm text-muted mb-2">Edit Status</div>
                     <div className="flex gap-2">
                       <input
@@ -372,7 +372,7 @@ export default function Settings() {
                         value={editStatusName}
                         onChange={(e) => setEditStatusName(e.target.value)}
                         placeholder="Status name"
-                        className="flex-1 px-3 py-2 bg-bg2 text-fg1 border border-tertiary placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                        className="flex-1 px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
                       />
                       <input
                         type="color"
@@ -382,14 +382,14 @@ export default function Settings() {
                       />
                       <button
                         type="submit"
-                        className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
+                        className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
                       >
                         Save
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditingStatus(null)}
-                        className="px-4 py-2 bg-transparent text-fg1 rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 cursor-pointer"
+                        className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md"
                       >
                         Cancel
                       </button>
@@ -402,7 +402,7 @@ export default function Settings() {
                       value={newStatusName}
                       onChange={(e) => setNewStatusName(e.target.value)}
                       placeholder="New status name"
-                      className="flex-1 px-3 py-2 bg-bg2 rounded text-primary border border-tertiary placeholder-muted focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+                      className="flex-1 px-3 py-2 bg-bg2 rounded text-primary placeholder-muted focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
                     />
                     <input
                       type="color"
@@ -412,7 +412,7 @@ export default function Settings() {
                     />
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
+                      className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
                     >
                       Add
                     </button>
@@ -455,14 +455,14 @@ export default function Settings() {
                           <>
                             <button
                               onClick={() => startEditRoundType(type)}
-                              className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+                              className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5"
                             >
                               <i className="bi-pencil text-xs"></i>
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteRoundType(type)}
-                              className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+                              className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5"
                             >
                               <i className="bi-trash text-xs"></i>
                               Delete
@@ -483,18 +483,18 @@ export default function Settings() {
                         value={editRoundTypeName}
                         onChange={(e) => setEditRoundTypeName(e.target.value)}
                         placeholder="Round type name"
-                        className="flex-1 px-3 py-2 bg-bg2 text-fg1 border border-tertiary placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                        className="flex-1 px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
                       />
                       <button
                         type="submit"
-                        className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
+                        className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
                       >
                         Save
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditingRoundType(null)}
-                        className="px-4 py-2 bg-transparent text-fg1 rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 cursor-pointer"
+                        className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md"
                       >
                         Cancel
                       </button>
@@ -507,11 +507,11 @@ export default function Settings() {
                     value={newRoundTypeName}
                     onChange={(e) => setNewRoundTypeName(e.target.value)}
                     placeholder="New round type name"
-                    className="flex-1 px-3 py-2 bg-tertiary rounded text-primary border border-tertiary placeholder-muted focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+                    className="flex-1 px-3 py-2 bg-tertiary rounded text-primary placeholder-muted focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
+                    className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
                   >
                     Add
                   </button>
@@ -532,14 +532,14 @@ export default function Settings() {
               <button
                 onClick={handleExportJSON}
                 disabled={exporting}
-                className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright disabled:opacity-50 transition-all duration-200 cursor-pointer"
+                className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50"
               >
                 {exporting ? 'Exporting...' : 'Export JSON'}
               </button>
               <button
                 onClick={handleExportCSV}
                 disabled={exporting}
-                className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright disabled:opacity-50 transition-all duration-200 cursor-pointer"
+                className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50"
               >
                 {exporting ? 'Exporting...' : 'Export CSV'}
               </button>
@@ -555,7 +555,7 @@ export default function Settings() {
             </p>
             <button
               onClick={() => setShowImportModal(true)}
-              className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
+              className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
             >
               Import Data
             </button>

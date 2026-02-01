@@ -84,7 +84,7 @@ export default function Applications() {
           <h1 className="text-2xl font-bold text-primary">Applications</h1>
           <Link
             to="/applications/new"
-            className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 ease-in-out cursor-pointer"
+            className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
           >
             New Application
           </Link>
@@ -98,14 +98,14 @@ export default function Applications() {
                 placeholder="Search company or job title..."
                 value={search}
                 onChange={(e) => updateParams({ search: e.target.value })}
-                className="w-full px-3 py-2 bg-bg2 text-fg1 border border-tertiary placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
             </div>
             <div>
               <select
                 value={statusFilter}
                 onChange={(e) => updateParams({ status: e.target.value })}
-                className="px-3 py-2 bg-bg2 text-fg1 border border-tertiary focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="px-3 py-2 bg-bg2 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               >
                 <option value="">All Statuses</option>
                 {statuses.map((status) => (
@@ -196,7 +196,7 @@ export default function Applications() {
                 <button
                   onClick={() => updateParams({ page: String(page - 1) })}
                   disabled={page === 1}
-                  className="px-4 py-2 bg-transparent text-fg1 rounded hover:bg-bg2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ease-in-out cursor-pointer"
+                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
@@ -206,7 +206,7 @@ export default function Applications() {
                 <button
                   onClick={() => updateParams({ page: String(page + 1) })}
                   disabled={page === totalPages}
-                  className="px-4 py-2 bg-transparent text-fg1 rounded hover:bg-bg2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ease-in-out cursor-pointer"
+                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>

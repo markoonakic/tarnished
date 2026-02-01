@@ -118,13 +118,13 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
         className="bg-bg2 rounded-lg max-w-md w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center p-4 border-b border-tertiary">
+        <div className="flex justify-between items-center p-4 border-b border-primary">
           <h3 id="import-modal-title" className="text-primary font-medium">Import Data</h3>
           <button
             onClick={handleClose}
             disabled={importing}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 px-2 py-1 rounded transition-all duration-200 ease-in-out cursor-pointer disabled:opacity-50"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded disabled:opacity-50"
           >
             <i className="bi bi-x-lg text-xl" />
           </button>
@@ -179,13 +179,13 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
               <div className="flex gap-3">
                 <button
                   onClick={() => setValidation(null)}
-                  className="flex-1 px-4 py-2 bg-transparent text-fg1 rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 cursor-pointer"
+                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md flex-1"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleImport}
-                  className="flex-1 px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
+                  className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium flex-1"
                 >
                   Import Data
                 </button>
@@ -202,7 +202,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
                 type="file"
                 accept=".zip"
                 onChange={handleFileSelect}
-                className="w-full px-3 py-2 bg-bg3 text-fg1 border border-tertiary focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-3 py-2 bg-bg3 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
 
               {file && (
@@ -210,7 +210,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
                   <button
                     onClick={handleValidate}
                     disabled={validating}
-                    className="w-full px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer disabled:opacity-50"
+                    className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 w-full"
                   >
                     {validating ? 'Validating...' : 'Validate'}
                   </button>

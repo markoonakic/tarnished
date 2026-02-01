@@ -88,19 +88,19 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
       aria-labelledby="edit-modal-title"
     >
       <div className="bg-bg2 rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b border-tertiary">
+        <div className="flex justify-between items-center p-4 border-b border-primary">
           <h3 id="edit-modal-title" className="text-primary font-medium">Edit User</h3>
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 px-2 py-1 rounded transition-all duration-200 ease-in-out cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded"
           >
             <i className="bi bi-x-lg text-xl" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="pb-4 border-b border-tertiary">
+          <div className="pb-4 border-b border-primary">
             <p className="text-sm text-muted">Email</p>
             <p className="text-primary font-medium">{user.email}</p>
           </div>
@@ -152,18 +152,18 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-bg3 text-fg1 border border-tertiary placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               placeholder="Leave blank to keep current password"
               minLength={8}
             />
           </div>
 
-          <div className="flex justify-between items-center pt-4 border-t border-tertiary">
+          <div className="flex justify-between items-center pt-4 border-t border-primary">
             <button
               type="button"
               onClick={handleDelete}
               disabled={isCurrentUser || loading}
-              className="px-4 py-2 bg-transparent text-red rounded font-medium hover:bg-bg2 hover:text-red-bright disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer flex items-center gap-1.5"
+              className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
               <i className="bi-trash" />
               Delete
@@ -172,14 +172,14 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-transparent text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200 ease-in-out cursor-pointer"
+                className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright disabled:opacity-50 transition-all duration-200 cursor-pointer"
+                className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50"
               >
                 {loading ? 'Saving...' : 'Save'}
               </button>

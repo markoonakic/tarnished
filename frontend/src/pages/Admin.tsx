@@ -92,7 +92,7 @@ export default function Admin() {
                 <h2 className="text-xl font-bold text-primary">Users</h2>
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright transition-all duration-200 cursor-pointer"
+                  className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
                 >
                   Create User
                 </button>
@@ -103,7 +103,7 @@ export default function Admin() {
                 placeholder="Search by email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 bg-bg2 text-fg1 border border-tertiary placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-4 py-2 bg-bg2 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
 
               <div className="bg-secondary rounded-lg overflow-hidden mt-4">
@@ -144,14 +144,14 @@ export default function Admin() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => setEditingUser(u)}
-                              className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+                              className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5"
                             >
                               <i className="bi-pencil text-xs"></i>
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteUser(u)}
-                              className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+                              className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5"
                             >
                               <i className="bi-trash text-xs"></i>
                               Delete

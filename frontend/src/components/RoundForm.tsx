@@ -155,7 +155,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
           <select
             value={roundTypeId}
             onChange={(e) => setRoundTypeId(e.target.value)}
-            className="w-full px-3 py-2 bg-bg3 text-fg1 border border-tertiary focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
           >
             <option value="">Select type</option>
             {roundTypes.map((type) => (
@@ -172,7 +172,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             type="date"
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
-            className="w-full px-3 py-2 bg-bg3 text-fg1 border border-tertiary focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
           />
         </div>
 
@@ -183,7 +183,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
             placeholder="e.g. 2:30 PM"
-            className="w-full px-3 py-2 bg-bg3 text-fg1 border border-tertiary placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
           />
         </div>
 
@@ -194,7 +194,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
               <select
                 value={outcome}
                 onChange={(e) => setOutcome(e.target.value)}
-                className="w-full px-3 py-2 bg-bg3 text-fg1 border border-tertiary focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-3 py-2 bg-bg3 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               >
                 <option value="">Pending</option>
                 <option value="passed">Passed</option>
@@ -209,7 +209,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
                 type="date"
                 value={completedDate}
                 onChange={(e) => setCompletedDate(e.target.value)}
-                className="w-full px-3 py-2 bg-bg3 text-fg1 border border-tertiary focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-3 py-2 bg-bg3 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
             </div>
 
@@ -220,7 +220,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
                 value={completedTime}
                 onChange={(e) => setCompletedTime(e.target.value)}
                 placeholder="e.g. 2:30 PM"
-                className="w-full px-3 py-2 bg-bg3 text-fg1 border border-tertiary placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
             </div>
           </>
@@ -233,7 +233,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             onChange={(e) => setNotesSummary(e.target.value)}
             rows={3}
             placeholder="Key points, questions asked, feedback..."
-            className="w-full px-3 py-2 bg-bg3 text-fg1 border border-tertiary placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
           />
         </div>
 
@@ -243,7 +243,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             type="file"
             accept=".pdf"
             onChange={(e) => setTranscriptFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 bg-bg3 text-fg1 border border-tertiary focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
           />
           {uploadProgress > 0 && uploadProgress < 100 && (
             <div className="mt-2">
@@ -265,7 +265,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             onChange={(e) => setTranscriptSummary(e.target.value)}
             rows={3}
             placeholder="Summary of key discussion points from transcript..."
-            className="w-full px-3 py-2 bg-bg3 text-fg1 border border-tertiary placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
           />
         </div>
       </div>
@@ -274,14 +274,14 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 bg-transparent text-fg1 rounded hover:bg-bg2 hover:text-fg0 disabled:opacity-50 transition-all duration-200 cursor-pointer"
+          className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 bg-aqua text-bg0 rounded font-medium hover:bg-aqua-bright disabled:opacity-50 transition-all duration-200 cursor-pointer"
+          className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50"
         >
           {loading ? 'Saving...' : isEditing ? 'Save' : 'Add Round'}
         </button>

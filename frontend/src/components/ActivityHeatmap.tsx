@@ -144,7 +144,7 @@ export default function ActivityHeatmap() {
           <select
             value={viewMode}
             onChange={(e) => setViewMode(e.target.value === 'rolling' ? 'rolling' : parseInt(e.target.value))}
-            className="px-3 py-1 bg-bg1 text-primary rounded text-sm border border-tertiary focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
+            className="px-3 py-1 bg-bg1 text-primary rounded text-sm focus:outline-none focus:border-aqua-bright transition-colors duration-200 ease-out"
           >
             <option value="rolling">Last 12 months</option>
             {years.map((y) => (

@@ -86,14 +86,14 @@ export default function MediaPlayer({ media, onClose }: Props) {
   return (
     <div className="fixed inset-0 bg-bg0/80 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-bg2 rounded-lg max-w-4xl w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b border-tertiary">
+        <div className="flex justify-between items-center p-4 border-b border-primary">
           <h3 className="text-primary font-medium truncate">
             {media.file_path.split('/').pop()}
           </h3>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 px-2 py-1 rounded transition-all duration-200 cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded"
           >
             <i className="bi bi-x-lg text-xl" />
           </button>
