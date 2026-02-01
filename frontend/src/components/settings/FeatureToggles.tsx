@@ -48,7 +48,7 @@ export default function FeatureToggles() {
 
   if (isLoading) {
     return (
-      <div className="bg-secondary rounded-lg p-6">
+      <div className="bg-bg1 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-primary mb-4">Feature Toggles</h2>
         <div className="text-muted">Loading preferences...</div>
       </div>
@@ -56,7 +56,7 @@ export default function FeatureToggles() {
   }
 
   return (
-    <div className="bg-secondary rounded-lg p-6">
+    <div className="bg-bg1 rounded-lg p-6">
       <h2 className="text-lg font-semibold text-primary mb-4">Feature Toggles</h2>
       <p className="text-sm text-muted mb-6">
         Control which features appear on your dashboard and analytics pages.
