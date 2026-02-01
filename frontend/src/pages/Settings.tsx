@@ -7,45 +7,10 @@ import ThemeDropdown from '../components/ThemeDropdown';
 import Loading from '../components/Loading';
 import FeatureToggles from '../components/settings/FeatureToggles';
 import ImportModal from '../components/ImportModal';
-
-const THEMES = [
-  {
-    id: 'gruvbox-dark',
-    name: 'Gruvbox Dark',
-    swatches: ['#282828', '#ebdbb2', '#8ec07c', '#b8bb26', '#fb4934'],
-  },
-  {
-    id: 'gruvbox-light',
-    name: 'Gruvbox Light',
-    swatches: ['#fbf1c7', '#3c3836', '#689d6a', '#98971a', '#cc241d'],
-  },
-  {
-    id: 'nord',
-    name: 'Nord',
-    swatches: ['#2e3440', '#eceff4', '#88c0d0', '#a3be8c', '#bf616a'],
-  },
-  {
-    id: 'dracula',
-    name: 'Dracula',
-    swatches: ['#282a36', '#f8f8f2', '#8be9fd', '#50fa7b', '#ff5555'],
-  },
-];
-
-function getStoredTheme(): string {
-  return localStorage.getItem('theme') || 'gruvbox-dark';
-}
-
-function setTheme(themeId: string) {
-  localStorage.setItem('theme', themeId);
-  if (themeId === 'gruvbox-dark') {
-    document.documentElement.removeAttribute('data-theme');
-  } else {
-    document.documentElement.setAttribute('data-theme', themeId);
-  }
-}
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function Settings() {
-  const [currentTheme, setCurrentTheme] = useState(getStoredTheme());
+  const { currentTheme, setTheme: handleThemeChange, themes } = useTheme();
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [roundTypes, setRoundTypes] = useState<RoundType[]>([]);
   const [newStatusName, setNewStatusName] = useState('');
@@ -79,11 +44,6 @@ export default function Settings() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function handleThemeChange(themeId: string) {
-    setTheme(themeId);
-    setCurrentTheme(themeId);
   }
 
   async function handleAddStatus(e: React.FormEvent) {
@@ -299,7 +259,7 @@ export default function Settings() {
             <div className="bg-secondary rounded-lg p-6">
               <h2 className="text-lg font-semibold text-primary mb-4">Theme</h2>
               <ThemeDropdown
-                themes={THEMES}
+                themes={themes}
                 currentTheme={currentTheme}
                 onChange={handleThemeChange}
               />
