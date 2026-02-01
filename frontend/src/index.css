@@ -1,63 +1,64 @@
 @import "tailwindcss";
+@import "../styles/themes/index.css";
 
-/* Tailwind v4 theme definition - must come immediately after @import */
-@theme {
+/* Tailwind v4 theme definition - uses var() references to theme CSS variables */
+@theme inline {
   /* Backgrounds */
-  --color-bg0: #282828;
-  --color-bg1: #3c3836;
-  --color-bg2: #504945;
-  --color-bg3: #665c54;
-  --color-bg4: #7c6f64;
+  --color-bg0: var(--bg0);
+  --color-bg1: var(--bg1);
+  --color-bg2: var(--bg2);
+  --color-bg3: var(--bg3);
+  --color-bg4: var(--bg4);
 
   /* Foregrounds */
-  --color-fg0: #fbf1c7;
-  --color-fg1: #ebdbb2;
-  --color-fg2: #d5c4a1;
-  --color-fg3: #bdae93;
-  --color-fg4: #a89984;
-  --color-gray: #928374;
-  --color-primary: #ebdbb2;
-  --color-secondary: #928374;  /* gray - visible against bg-bg1 (#3c3836) */
-  --color-tertiary: #a89984;   /* fg4 - visible against bg-bg2 (#504945) */
-  --color-muted: #a89984;
+  --color-fg0: var(--fg0);
+  --color-fg1: var(--fg1);
+  --color-fg2: var(--fg2);
+  --color-fg3: var(--fg3);
+  --color-fg4: var(--fg4);
+  --color-gray: var(--gray);
+  --color-primary: var(--fg1);
+  --color-secondary: var(--gray);
+  --color-tertiary: var(--fg4);
+  --color-muted: var(--fg4);
 
   /* Accent colors */
-  --color-aqua: #689d6a;
-  --color-aqua-bright: #8ec07c;
-  --color-red: #cc241d;
-  --color-red-bright: #fb4934;
-  --color-green: #98971a;
-  --color-green-bright: #b8bb26;
+  --color-aqua: var(--aqua);
+  --color-aqua-bright: var(--aqua-bright);
+  --color-red: var(--red);
+  --color-red-bright: var(--red-bright);
+  --color-green: var(--green);
+  --color-green-bright: var(--green-bright);
 }
 
 /* Font Faces - CommitMonoFunky */
 @font-face {
-  font-family: 'CommitMonoFunky';
-  src: url('/fonts/CommitMonoFunky-400-Regular.otf') format('opentype');
+  font-family: "CommitMonoFunky";
+  src: url("/fonts/CommitMonoFunky-400-Regular.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'CommitMonoFunky';
-  src: url('/fonts/CommitMonoFunky-400-Italic.otf') format('opentype');
+  font-family: "CommitMonoFunky";
+  src: url("/fonts/CommitMonoFunky-400-Italic.otf") format("opentype");
   font-weight: 400;
   font-style: italic;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'CommitMonoFunky';
-  src: url('/fonts/CommitMonoFunky-700-Regular.otf') format('opentype');
+  font-family: "CommitMonoFunky";
+  src: url("/fonts/CommitMonoFunky-700-Regular.otf") format("opentype");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'CommitMonoFunky';
-  src: url('/fonts/CommitMonoFunky-700-Italic.otf') format('opentype');
+  font-family: "CommitMonoFunky";
+  src: url("/fonts/CommitMonoFunky-700-Italic.otf") format("opentype");
   font-weight: 700;
   font-style: italic;
   font-display: swap;
@@ -65,32 +66,32 @@
 
 /* Font Faces - Manrope */
 @font-face {
-  font-family: 'Manrope';
-  src: url('/fonts/Manrope-Regular.ttf') format('truetype');
+  font-family: "Manrope";
+  src: url("/fonts/Manrope-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Manrope';
-  src: url('/fonts/Manrope-Medium.ttf') format('truetype');
+  font-family: "Manrope";
+  src: url("/fonts/Manrope-Medium.ttf") format("truetype");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Manrope';
-  src: url('/fonts/Manrope-SemiBold.ttf') format('truetype');
+  font-family: "Manrope";
+  src: url("/fonts/Manrope-SemiBold.ttf") format("truetype");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Manrope';
-  src: url('/fonts/Manrope-Bold.ttf') format('truetype');
+  font-family: "Manrope";
+  src: url("/fonts/Manrope-Bold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -102,33 +103,33 @@
   /* Min: 16px, Max: 18px */
 
   /* Font families */
-  --font-display: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'CommitMonoFunky', 'Monaco', 'Menlo', monospace;
+  --font-display: "Manrope", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "CommitMonoFunky", "Monaco", "Menlo", monospace;
 
   /* Type scale (rem) */
-  --font-h1: 2rem;        /* 32px at base */
-  --font-h2: 1.5rem;      /* 24px */
-  --font-h3: 1.25rem;     /* 20px */
-  --font-base: 0.875rem;  /* 14px */
-  --font-small: 0.75rem;  /* 12px */
+  --font-h1: 2rem; /* 32px at base */
+  --font-h2: 1.5rem; /* 24px */
+  --font-h3: 1.25rem; /* 20px */
+  --font-base: 0.875rem; /* 14px */
+  --font-small: 0.75rem; /* 12px */
   --font-tiny: 0.6875rem; /* 11px */
 
   /* Spacing system (all rem - scales with font) */
-  --spacing-xs: 0.25rem;   /* 4px */
-  --spacing-sm: 0.5rem;    /* 8px */
-  --spacing-md: 0.75rem;   /* 12px */
-  --spacing-lg: 1rem;      /* 16px */
-  --spacing-xl: 1.5rem;    /* 24px */
-  --spacing-2xl: 2rem;     /* 32px */
+  --spacing-xs: 0.25rem; /* 4px */
+  --spacing-sm: 0.5rem; /* 8px */
+  --spacing-md: 0.75rem; /* 12px */
+  --spacing-lg: 1rem; /* 16px */
+  --spacing-xl: 1.5rem; /* 24px */
+  --spacing-2xl: 2rem; /* 32px */
 
   /* Borders (px only - sub-pixel borders look broken) */
   --border-thin: 1px;
   --border-medium: 2px;
 
   /* Border radius */
-  --border-radius-sm: 0.25rem;   /* 4px */
-  --border-radius-md: 0.5rem;    /* 8px */
-  --border-radius-lg: 0.75rem;   /* 12px */
+  --border-radius-sm: 0.25rem; /* 4px */
+  --border-radius-md: 0.5rem; /* 8px */
+  --border-radius-lg: 0.75rem; /* 12px */
 
   /* Transitions - consistent 0.2s ease throughout */
   --transition-fast: 0.2s ease;
@@ -173,89 +174,7 @@
   --orange-bright: #fe8019;
 }
 
-[data-theme="gruvbox-light"] {
-  --bg0: #fbf1c7;
-  --bg1: #ebdbb2;
-  --bg2: #d5c4a1;
-  --bg3: #bdae93;
-  --bg4: #a89984;
-  --fg0: #282828;
-  --fg1: #3c3836;
-  --fg2: #504945;
-  --fg3: #665c54;
-  --fg4: #7c6f64;
-  --gray: #928374;
-  --red: #9d0006;
-  --green: #79740e;
-  --yellow: #b57614;
-  --blue: #076678;
-  --purple: #8f3f71;
-  --aqua: #427b58;
-  --orange: #af3a03;
-  --red-bright: #cc241d;
-  --green-bright: #98971a;
-  --yellow-bright: #d79921;
-  --blue-bright: #458588;
-  --purple-bright: #b16286;
-  --aqua-bright: #689d6a;
-  --orange-bright: #d65d0e;
-}
-
-[data-theme="nord"] {
-  --bg0: #2e3440;
-  --bg1: #3b4252;
-  --bg2: #434c5e;
-  --bg3: #4c566a;
-  --bg4: #4c566a;
-  --fg0: #eceff4;
-  --fg1: #eceff4;
-  --fg2: #e5e9f0;
-  --fg3: #d8dee9;
-  --fg4: #d8dee9;
-  --gray: #4c566a;
-  --red: #bf616a;
-  --green: #a3be8c;
-  --yellow: #ebcb8b;
-  --blue: #81a1c1;
-  --purple: #b48ead;
-  --aqua: #88c0d0;
-  --orange: #d08770;
-  --red-bright: #bf616a;
-  --green-bright: #a3be8c;
-  --yellow-bright: #ebcb8b;
-  --blue-bright: #81a1c1;
-  --purple-bright: #b48ead;
-  --aqua-bright: #88c0d0;
-  --orange-bright: #d08770;
-}
-
-[data-theme="dracula"] {
-  --bg0: #282a36;
-  --bg1: #44475a;
-  --bg2: #6272a4;
-  --bg3: #6272a4;
-  --bg4: #6272a4;
-  --fg0: #f8f8f2;
-  --fg1: #f8f8f2;
-  --fg2: #f8f8f2;
-  --fg3: #f8f8f2;
-  --fg4: #6272a4;
-  --gray: #6272a4;
-  --red: #ff5555;
-  --green: #50fa7b;
-  --yellow: #f1fa8c;
-  --blue: #8be9fd;
-  --purple: #bd93f9;
-  --aqua: #8be9fd;
-  --orange: #ffb86c;
-  --red-bright: #ff5555;
-  --green-bright: #50fa7b;
-  --yellow-bright: #f1fa8c;
-  --blue-bright: #8be9fd;
-  --purple-bright: #bd93f9;
-  --aqua-bright: #8be9fd;
-  --orange-bright: #ffb86c;
-}
+/* Theme colors are now defined in frontend/styles/themes/*.css files */
 
 /* Links - standardized pattern */
 /* Note: Removed global 'a' selector - it was overriding Tailwind text utilities */
@@ -287,7 +206,12 @@ body {
 }
 
 /* Headings use display font */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-display);
   font-weight: 600;
 }
@@ -314,49 +238,119 @@ h3 {
 }
 
 /* Background utilities */
-.bg-primary { background-color: var(--bg0); }
-.bg-secondary { background-color: var(--bg1); }
-.bg-tertiary { background-color: var(--bg2); }
-.bg-accent-red { background-color: var(--red-bright); }
-.bg-accent-green { background-color: var(--green-bright); }
-.bg-accent-yellow { background-color: var(--yellow-bright); }
-.bg-accent-blue { background-color: var(--blue-bright); }
-.bg-accent-purple { background-color: var(--purple-bright); }
-.bg-accent-aqua { background-color: var(--aqua-bright); }
-.bg-accent-orange { background-color: var(--orange-bright); }
+.bg-primary {
+  background-color: var(--bg0);
+}
+.bg-secondary {
+  background-color: var(--bg1);
+}
+.bg-tertiary {
+  background-color: var(--bg2);
+}
+.bg-accent-red {
+  background-color: var(--red-bright);
+}
+.bg-accent-green {
+  background-color: var(--green-bright);
+}
+.bg-accent-yellow {
+  background-color: var(--yellow-bright);
+}
+.bg-accent-blue {
+  background-color: var(--blue-bright);
+}
+.bg-accent-purple {
+  background-color: var(--purple-bright);
+}
+.bg-accent-aqua {
+  background-color: var(--aqua-bright);
+}
+.bg-accent-orange {
+  background-color: var(--orange-bright);
+}
 
 /* Text color utilities */
-.text-primary { color: var(--fg1); }
-.text-secondary { color: var(--fg4); }
-.text-muted { color: var(--fg4); }
-.text-bg-primary { color: var(--bg0); }
-.text-accent-red { color: var(--red-bright); }
-.text-accent-green { color: var(--green-bright); }
-.text-accent-yellow { color: var(--yellow-bright); }
-.text-accent-blue { color: var(--blue-bright); }
-.text-accent-purple { color: var(--purple-bright); }
-.text-accent-aqua { color: var(--aqua-bright); }
-.text-accent-orange { color: var(--orange-bright); }
+.text-primary {
+  color: var(--fg1);
+}
+.text-secondary {
+  color: var(--fg4);
+}
+.text-muted {
+  color: var(--fg4);
+}
+.text-bg-primary {
+  color: var(--bg0);
+}
+.text-accent-red {
+  color: var(--red-bright);
+}
+.text-accent-green {
+  color: var(--green-bright);
+}
+.text-accent-yellow {
+  color: var(--yellow-bright);
+}
+.text-accent-blue {
+  color: var(--blue-bright);
+}
+.text-accent-purple {
+  color: var(--purple-bright);
+}
+.text-accent-aqua {
+  color: var(--aqua-bright);
+}
+.text-accent-orange {
+  color: var(--orange-bright);
+}
 
 /* Border utilities - REMOVED to let Tailwind handle them via @theme */
 /* .border-primary, .border-secondary, .border-tertiary, .border-muted are now generated by Tailwind */
 
 /* Border color utilities - explicit for Tailwind v4 custom colors */
 @layer utilities {
-  .border-aqua { border-color: var(--aqua); }
-  .border-aqua-bright { border-color: var(--aqua-bright); }
-  .border-red { border-color: var(--red); }
-  .border-red-bright { border-color: var(--red-bright); }
-  .border-green { border-color: var(--green); }
-  .border-green-bright { border-color: var(--green-bright); }
-  .border-blue { border-color: var(--blue); }
-  .border-blue-bright { border-color: var(--blue-bright); }
-  .border-orange { border-color: var(--orange); }
-  .border-orange-bright { border-color: var(--orange-bright); }
-  .border-yellow { border-color: var(--yellow); }
-  .border-yellow-bright { border-color: var(--yellow-bright); }
-  .border-purple { border-color: var(--purple); }
-  .border-purple-bright { border-color: var(--purple-bright); }
+  .border-aqua {
+    border-color: var(--aqua);
+  }
+  .border-aqua-bright {
+    border-color: var(--aqua-bright);
+  }
+  .border-red {
+    border-color: var(--red);
+  }
+  .border-red-bright {
+    border-color: var(--red-bright);
+  }
+  .border-green {
+    border-color: var(--green);
+  }
+  .border-green-bright {
+    border-color: var(--green-bright);
+  }
+  .border-blue {
+    border-color: var(--blue);
+  }
+  .border-blue-bright {
+    border-color: var(--blue-bright);
+  }
+  .border-orange {
+    border-color: var(--orange);
+  }
+  .border-orange-bright {
+    border-color: var(--orange-bright);
+  }
+  .border-yellow {
+    border-color: var(--yellow);
+  }
+  .border-yellow-bright {
+    border-color: var(--yellow-bright);
+  }
+  .border-purple {
+    border-color: var(--purple);
+  }
+  .border-purple-bright {
+    border-color: var(--purple-bright);
+  }
 }
 
 input[type="date"],
@@ -381,18 +375,22 @@ table {
   table-layout: fixed;
 }
 
-td, th {
+td,
+th {
   overflow-wrap: break-word;
   max-width: 0;
 }
 
 /* Progressive enhancement for modern browsers */
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   text-wrap: balance;
 }
 
 @supports (text-wrap: pretty) {
-  p, li {
+  p,
+  li {
     text-wrap: pretty;
   }
 }
@@ -401,7 +399,8 @@ table {
   table-layout: fixed;
 }
 
-td, th {
+td,
+th {
   white-space: normal;
   overflow-wrap: break-word;
   word-break: break-word;
@@ -451,10 +450,23 @@ a:focus-visible {
 
 /* Flicker animation for Flame of Focus */
 @keyframes flicker {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  25% { opacity: 0.95; transform: scale(0.98); }
-  50% { opacity: 1; transform: scale(1.02); }
-  75% { opacity: 0.97; transform: scale(0.99); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  25% {
+    opacity: 0.95;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  75% {
+    opacity: 0.97;
+    transform: scale(0.99);
+  }
 }
 
 /* Screen reader only utility */
