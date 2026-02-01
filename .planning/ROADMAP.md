@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: UI/UX & CSS Fixes** - Visual consistency and styling improvements
 - [x] **Phase 1.1: Theme System Refactor (INSERTED)** - Fix color system for seamless theme switching
-- [ ] **Phase 1.1.1: Frontend refactor - complete theme system migration (INSERTED)** - Ensure all components use theme system and follow design guidelines
+- [x] **Phase 1.1.1: Frontend refactor - complete theme system migration (INSERTED)** - Ensure all components use theme system and follow design guidelines
 - [ ] **Phase 1.2: Repository Cleanup (INSERTED)** - Clean repository before push
 - [ ] **Phase 2: Complete Data Import** - Finish the import feature backend
 - [ ] **Phase 3: Code Refactoring & Modals** - Component cleanup and UX patterns
@@ -83,25 +83,47 @@ Refactor the theme system to use CSS variables + React Context hybrid. Fix the d
 **Requirements**: THEME-06, THEME-07, THEME-08, THEME-09, THEME-10
 
 **Success Criteria** (what must be TRUE):
-1. All modals use bg-bg2 background (modal reset rule) with bg-bg3 inputs
-2. All inputs have 'border' class for visible focus:border-aqua-bright states
-3. All buttons follow 4 standard variants (Primary, Neutral, Danger, Icon-only)
+1. All modals use bg-bg1 background (modal reset rule) with bg-bg2 inputs
+2. All inputs have NO default border - border only appears on focus
+3. All buttons follow 4 standard variants with visible hover backgrounds and cursor-pointer
 4. All table rows use border-b border-tertiary except last row
 5. No hardcoded hex colors in components (only database status.color as inline styles)
-6. All interactive elements use transition-all duration-200 ease-in-out
-7. ThemeDropdown follows theme dropdown pattern (bg-bg1 container, bg-bg2 selected, hover:bg-bg3)
+6. All interactive elements use transition-all duration-200 ease-in-out (navigation: duration-100)
+7. All dropdowns use universal Dropdown component with 6-layer rule
 
-**Plans**: 5 plans in 3 waves
+**Plans**: 13 plans in 2 waves
 
 Plans:
-- [ ] 01.1.1-01: Migrate modal components to theme system — 4 tasks (CreateUserModal, EditUserModal, ImportModal, StatusHistoryModal)
-- [ ] 01.1.1-02: Migrate form components to theme system — 4 tasks (RoundForm, DocumentSection, PasswordInput, ApplicationForm)
-- [ ] 01.1.1-03: Migrate page components to theme system — 5 tasks (Dashboard, Applications, ApplicationDetail, Admin, Analytics)
-- [ ] 01.1.1-04: Migrate analytics and dashboard components — 7 tasks (AnalyticsKPIs, WeeklyBarChart, PeriodSelector, KPICards, NeedsAttention, QuickActions, ActivityHeatmap)
-- [ ] 01.1.1-05: Migrate utility components to theme system — 5 tasks (EmptyState, Loading, Spinner, ProgressBar, MediaPlayer, RoundCard, SankeyChart, ThemeDropdown, Layout, HistoryViewer, FeatureToggles, icon components)
+- [x] 01.1.1-01: Migrate modal components to theme system — 4 tasks (CreateUserModal, EditUserModal, ImportModal, StatusHistoryModal)
+- [x] 01.1.1-02: Migrate form components to theme system — 4 tasks (RoundForm, DocumentSection, PasswordInput, ApplicationForm)
+- [x] 01.1.1-03: Migrate page components to theme system — 5 tasks (Dashboard, Applications, ApplicationDetail, Admin, Analytics)
+- [x] 01.1.1-04: Migrate analytics and dashboard components — 7 tasks (AnalyticsKPIs, WeeklyBarChart, PeriodSelector, KPICards, NeedsAttention, QuickActions, ActivityHeatmap)
+- [x] 01.1.1-05: Migrate basic utility components — 4 tasks (EmptyState, Loading, Spinner, ProgressBar)
+- [x] 01.1.1-06: Migrate complex utility components — 4 tasks (MediaPlayer, RoundCard, SankeyChart, Layout)
+- [x] 01.1.1-07: Migrate ThemeDropdown and icon components — 4 tasks (ThemeDropdown, HistoryViewer, FeatureToggles, icon components)
+- [x] 01.1.1-08: Gap closure - Add border class to 5 inputs and fix bg-white — 2 tasks (Gap Closure: border class + hardcoded colors)
+- [x] 01.1.1-09: Gap closure - Fix transition inconsistencies — 2 tasks (Gap Closure: transition standard + navigation exception)
+- [ ] 01.1.1-10: Gap closure - Fix modal backgrounds (bg-bg2 → bg-bg1) — 2 tasks (UAT Gap 1)
+- [ ] 01.1.1-11: Gap closure - Fix button hovers and remove input borders — 4 tasks (UAT Gaps 2, 3)
+- [ ] 01.1.1-12: Gap closure - Create universal Dropdown component — 4 tasks (UAT Gap 5)
+- [ ] 01.1.1-13: Gap closure - Fix navigation link transitions — 2 tasks (UAT Gap 9)
 
 **Details**:
 Continuation of Phase 1.1 work - systematic frontend refactor to ensure all components use the new theme architecture and comply with design guidelines. Migration organized by functional area (modals → forms → pages → analytics → utilities) with wave-based parallel execution.
+
+**UAT Gap Closure (Plans 10-13):**
+User Acceptance Testing found 7 major gaps requiring closure:
+- Gap 1: Modal backgrounds using bg-bg2 instead of bg-bg1 (wrong STATE.md decision)
+- Gap 2: Inputs have default borders when they should only have borders on focus (wrong STATE.md decision)
+- Gap 3: Buttons missing visible hover backgrounds, cursor-pointer, wrong icon button padding
+- Gap 5: Need universal Dropdown component to replace ThemeDropdown + 7 native selects
+- Gap 6: Theme switching not implemented (deferred to Phase 1.4)
+- Gap 7: 11 text-red instances, 1 hardcoded hex (deferred to Phase 1.4)
+- Gap 9: Navigation links should use duration-100 not duration-200
+
+**Deferred to Phase 1.4:**
+- Theme switching implementation (Gap 6)
+- 12 hardcoded color issues (Gap 7)
 
 ### Phase 1.2: Repository Cleanup (INSERTED)
 
@@ -215,7 +237,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. UI/UX & CSS Fixes | 11/11 | ✓ Complete | 2026-01-31 |
 | 1.1. Theme System Refactor (INSERTED) | 2/2 | ✓ Complete | 2026-02-01 |
-| 1.1.1. Frontend refactor - complete theme system migration (INSERTED) | 0/5 | Not started | - |
+| 1.1.1. Frontend refactor - complete theme system migration (INSERTED) | 9/13 | Gap Closure | 2026-02-01 |
 | 1.2. Repository Cleanup (INSERTED) | 0/0 | Not started | - |
 | 2. Complete Data Import | 0/2 | Not started | - |
 | 3. Code Refactoring & Modals | 0/3 | Not started | - |

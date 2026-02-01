@@ -59,7 +59,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="bg-bg2 rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-bg1 rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center p-4 border-b border-primary">
           <h3 id="modal-title" className="text-primary font-medium">Create User</h3>
           <button
@@ -86,7 +86,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted border focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted border focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               required
               autoFocus
             />
@@ -100,7 +100,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted border focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted border focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               required
               minLength={8}
             />

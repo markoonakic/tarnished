@@ -87,7 +87,7 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
       aria-modal="true"
       aria-labelledby="edit-modal-title"
     >
-      <div className="bg-bg2 rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-bg1 rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center p-4 border-b border-primary">
           <h3 id="edit-modal-title" className="text-primary font-medium">Edit User</h3>
           <button
@@ -152,7 +152,7 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted border focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted border focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               placeholder="Leave blank to keep current password"
               minLength={8}
             />

@@ -115,7 +115,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
       aria-labelledby="import-modal-title"
     >
       <div
-        className="bg-bg2 rounded-lg max-w-md w-full mx-4"
+        className="bg-bg1 rounded-lg max-w-md w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center p-4 border-b border-primary">
@@ -202,7 +202,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
                 type="file"
                 accept=".zip"
                 onChange={handleFileSelect}
-                className="w-full px-3 py-2 bg-bg3 text-fg1 border focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-3 py-2 bg-bg2 text-fg1 border focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
 
               {file && (
