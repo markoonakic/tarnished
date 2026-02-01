@@ -7,15 +7,17 @@ This roadmap delivers improvements to the existing Job Tracker application in fo
 ## Phases
 
 **Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+- Integer phases (1, 2, 3, 4): Planned milestone work
+- Decimal phases (1.1, 1.1.1, 1.2, 1.3, 1.4): Urgent insertions (marked with INSERTED)
 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: UI/UX & CSS Fixes** - Visual consistency and styling improvements
 - [x] **Phase 1.1: Theme System Refactor (INSERTED)** - Fix color system for seamless theme switching
-- [x] **Phase 1.1.1: Frontend refactor - complete theme system migration (INSERTED)** - Ensure all components use theme system and follow design guidelines
+- [ ] **Phase 1.1.1: Frontend refactor - complete theme system migration (INSERTED)** - Ensure all components use theme system and follow design guidelines (Gap Closure: 4/13 plans remaining)
 - [ ] **Phase 1.2: Repository Cleanup (INSERTED)** - Clean repository before push
+- [ ] **Phase 1.3: Analytics Page (INSERTED)** - Analytics page fixes and improvements
+- [ ] **Phase 1.4: Theme Switching Implementation (INSERTED)** - Implement theme switching + fix hardcoded colors
 - [ ] **Phase 2: Complete Data Import** - Finish the import feature backend
 - [ ] **Phase 3: Code Refactoring & Modals** - Component cleanup and UX patterns
 - [ ] **Phase 4: Documentation** - Developer guides and API documentation
@@ -146,26 +148,58 @@ Plans:
 **Details**:
 Urgent cleanup discovered during Phase 2 CONTEXT AUDIT. Root directory has duplicate files, junk files, and scripts that need organizing before continuing.
 
-### Phase 2: Complete Data Import
+### Phase 1.3: Analytics Page (INSERTED)
 
-**Goal**: Users can import job application data from exported files
+**Goal**: Analytics page is polished with consistent theming and improved data visualization
 
 **Depends on**: Phase 1.2 (Repository Cleanup)
 
-**Requirements**: IMPORT-01, IMPORT-02, IMPORT-03, IMPORT-04, IMPORT-05, IMPORT-06, IMPORT-07
+**Requirements**: ANALYTICS-01, ANALYTICS-02, ANALYTICS-03, ANALYTICS-04
 
 **Success Criteria** (what must be TRUE):
-1. User can upload a JSON or ZIP export file through the Settings import modal
-2. Import progress displays in real-time via SSE updates
-3. Imported applications appear in the dashboard with all data intact
-4. Override mode correctly replaces existing data when selected
-5. Import attempts are rate-limited and audit-logged
+1. All charts use theme colors consistently
+2. KPI cards have proper visual hierarchy
+3. Trend indicators use correct colors (positive=green, negative=red)
+4. Error states use accent-red color
+5. Data visualizations are responsive and accessible
 
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: Implement backend import endpoint and core utilities (IMPORT-01, IMPORT-02, IMPORT-03, IMPORT-04)
-- [ ] 02-02: Add security (rate limiting, audit logging) and tests (IMPORT-05, IMPORT-06, IMPORT-07)
+- [ ] TBD (run `/gsd:plan-phase 1.3` to break down)
+
+**Details**:
+Deferred from Phase 1.1.1 UAT (Test 6) - dedicated focus on analytics page fixes and improvements. Charts, KPIs, and trend indicators need consistent theming and better data visualization.
+
+### Phase 1.4: Theme Switching Implementation (INSERTED)
+
+**Goal**: Theme switching works end-to-end with no hardcoded colors
+
+**Depends on**: Phase 1.3 (Analytics Page)
+
+**Requirements**: THEME-11, THEME-12, THEME-13
+
+**Success Criteria** (what must be TRUE):
+1. Selecting different themes in dropdown immediately applies theme changes
+2. Theme preference persists in localStorage
+3. All components respond to theme changes (no stuck colors)
+4. No hardcoded hex colors in components (all use theme variables)
+
+**Plans**: TBD
+
+Plans:
+- [ ] TBD (run `/gsd:plan-phase 1.4` to break down)
+
+**Details**:
+Deferred from Phase 1.1.1 UAT (Tests 8, Gap 6-7). Theme system architecture was refactored (CSS variables, React Context) but actual theme switching functionality not implemented. Also fixes 12 hardcoded color issues:
+- 11 instances of text-red → text-accent-red
+- 1 hardcoded hex #8ec07c → theme color reference
+
+### Phase 2: Complete Data Import
+
+**Goal**: Users can import job application data from exported files
+
+**Depends on**: Phase 1.4 (Theme Switching Implementation)
 
 **Requirements**: IMPORT-01, IMPORT-02, IMPORT-03, IMPORT-04, IMPORT-05, IMPORT-06, IMPORT-07
 
@@ -231,14 +265,16 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 1.1 → 1.1.1 → 1.2 → 1.3 → 1.4 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. UI/UX & CSS Fixes | 11/11 | ✓ Complete | 2026-01-31 |
 | 1.1. Theme System Refactor (INSERTED) | 2/2 | ✓ Complete | 2026-02-01 |
-| 1.1.1. Frontend refactor - complete theme system migration (INSERTED) | 9/13 | Gap Closure | 2026-02-01 |
+| 1.1.1. Frontend refactor (INSERTED) | 9/13 | Gap Closure | 2026-02-01 |
 | 1.2. Repository Cleanup (INSERTED) | 0/0 | Not started | - |
+| 1.3. Analytics Page (INSERTED) | 0/0 | Not started | - |
+| 1.4. Theme Switching (INSERTED) | 0/0 | Not started | - |
 | 2. Complete Data Import | 0/2 | Not started | - |
 | 3. Code Refactoring & Modals | 0/3 | Not started | - |
 | 4. Documentation | 0/3 | Not started | - |
@@ -246,3 +282,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 ---
 
 *Roadmap created: 2026-01-31*
+*Updated: 2026-02-01 (added Phases 1.3, 1.4)*

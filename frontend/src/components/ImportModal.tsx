@@ -202,7 +202,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
                 type="file"
                 accept=".zip"
                 onChange={handleFileSelect}
-                className="w-full px-3 py-2 bg-bg2 text-fg1 border focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-3 py-2 bg-bg2 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
 
               {file && (
