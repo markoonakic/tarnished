@@ -15,7 +15,7 @@ export default function Layout({ children }: Props) {
   }
 
   function linkClass(path: string) {
-    return isActive(path) ? 'text-aqua-bright' : 'text-aqua hover:text-aqua-bright transition-colors duration-200';
+    return isActive(path) ? 'text-aqua-bright' : 'text-aqua hover:text-aqua-bright transition-colors duration-100 ease-in-out';
   }
 
   return (
@@ -29,7 +29,7 @@ export default function Layout({ children }: Props) {
         </a>
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-6">
-            <Link to="/" className="text-xl font-bold text-fg1 hover:text-aqua-bright transition-colors duration-200">
+            <Link to="/" className="text-xl font-bold text-fg1 hover:text-aqua-bright transition-colors duration-100 ease-in-out">
               Job Tracker
             </Link>
             <Link to="/applications" className={linkClass('/applications')}>

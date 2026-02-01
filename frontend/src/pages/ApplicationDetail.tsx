@@ -138,7 +138,7 @@ export default function ApplicationDetail() {
     <Layout>
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <Link to="/applications" className="text-aqua hover:text-aqua-bright transition-colors duration-200">
+          <Link to="/applications" className="text-aqua hover:text-aqua-bright transition-colors duration-100 ease-in-out">
             &larr; Back to Applications
           </Link>
         </div>
@@ -187,7 +187,7 @@ export default function ApplicationDetail() {
                 href={application.job_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-aqua hover:text-aqua-bright transition-colors duration-200 text-sm"
+                className="text-aqua hover:text-aqua-bright transition-colors duration-100 ease-in-out text-sm"
               >
                 View Job Posting &rarr;
               </a>
