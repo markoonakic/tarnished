@@ -84,15 +84,38 @@ Themes switch by changing CSS variable values. Using `var(--color-*)` ensures al
 | Variant       | Base State                | Hover State                                                                    | Usage                              |
 | ------------- | ------------------------- | ------------------------------------------------------------------------------ | ---------------------------------- |
 | **Primary**   | `bg-aqua text-bg0`        | `hover:bg-aqua-bright`                                                         | Save, Add, Create, Sign In, Submit |
-| **Neutral**   | `bg-transparent text-fg1` | `hover:bg based on 5 layer rule hover:text-fg0`                                | Cancel, Edit, Skip                 |
-| **Danger**    | `bg-transparent text-red` | `hover:bg based on 5 layer rule hover:text-red-bright`                         | Delete buttons (ALL variants)      |
-| **Icon-only** | `px-3 py-1.5` transparent | `hover:bg based on 5 layer rule hover: text dependant of type(edit or delete)` | Edit, Delete icon buttons          |
+| **Neutral**   | `bg-transparent text-fg1` | `hover:bg-bg1` (on bg-bg0), `hover:bg-bg2` (on bg-bg1), `hover:bg-bg3` (on bg-bg2), `hover:bg-bg4` (on bg-bg3), `hover:bg-bg0` (on bg-bg4) | `hover:text-fg0` | Cancel, Edit, Skip |
+| **Danger**    | `bg-transparent text-red` | `hover:bg-bg1` (on bg-bg0), `hover:bg-bg2` (on bg-bg1), `hover:bg-bg3` (on bg-bg2), `hover:bg-bg4` (on bg-bg3), `hover:bg-bg0` (on bg-bg4) | `hover:text-red-bright` | Delete buttons (ALL variants) |
+| **Icon-only** | `px-2 py-1` transparent   | `hover:bg-bg1` (on bg-bg0), `hover:bg-bg2` (on bg-bg1), `hover:bg-bg3` (on bg-bg2), `hover:bg-bg4` (on bg-bg3), `hover:bg-bg0` (on bg-bg4) | Edit, Delete icon buttons (text color depends on type) |
+
+### Button Hover Background Rule (5-Layer Rule)
+
+Buttons use the **next darker color** from their container's background for hover states. This ensures visible hover states across all contexts.
+
+**Container → Button hover mapping:**
+- Container `bg-bg0` → Button hover `hover:bg-bg1`
+- Container `bg-bg1` → Button hover `hover:bg-bg2`
+- Container `bg-bg2` → Button hover `hover:bg-bg3`
+- Container `bg-bg3` → Button hover `hover:bg-bg4`
+- Container `bg-bg4` → Button hover `hover:bg-bg0` (wrap around)
+
+**Why:** Buttons with the same hover background as their container are invisible. The next-color rule ensures hover states are always visible while maintaining the theme's layered aesthetic.
 
 ### Button Sizing
 
 - Regular: `px-4 py-2`
 - Small: `px-3 py-1.5`
-- Icon-only: `px-3 py-1.5` (asymmetric for square proportions)
+- Icon-only: `px-2 py-1` (smaller padding for proportional hover area)
+
+### Cursor Pointer
+
+**ALL interactive elements must have `cursor-pointer` class:**
+- `<button>` elements
+- `<a>` elements (links)
+- Elements with `onClick` handlers
+- `<label>` elements wrapping clickable inputs
+
+This ensures users get proper visual feedback for all interactive UI elements.
 
 ### Transition Standard
 
@@ -125,10 +148,13 @@ Inputs must use the **next color in line** from their container's background. Th
 
 **Why:** Inputs with the same background as their container are invisible. The next-color rule ensures inputs stand out while maintaining the theme's layered aesthetic.
 
+**Input borders:** Inputs have NO default border. The border only appears on focus via `focus:border-aqua-bright`. This works in Tailwind without requiring a base `border` class.
+
 **Key elements:**
 
-- `focus:border-aqua-bright` — Aqua-bright border on focus
+- `focus:border-aqua-bright` — Aqua-bright border appears on focus only
 - `transition-all duration-200 ease-in-out` — Smooth transition
+- NO base `border` class — borders only on focus
 
 ## Badge Colors
 

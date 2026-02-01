@@ -68,7 +68,7 @@ Recent decisions affecting current work:
 - [01-04]: Tables use color-only separation, no borders on rows (CHANGED by UAT: add table row separators)
 - [01-04]: Modal overlays use bg-bg0/80 instead of hardcoded bg-black/80
 - [01-04]: Delete buttons use transparent danger pattern: bg-transparent text-red hover:bg-bg2 hover:text-red-bright
-- [Gap Closure 01-05]: All inputs need base 'border' class for focus:border-aqua-bright to work
+- [Gap Closure 01-05]: Inputs do NOT need base 'border' class - focus:border-aqua-bright works fine without it, borders only appear on focus
 - [Gap Closure 01-06]: Modal reset rule - modals reset to bg-bg1 (2nd layer) then follow 5-layer strategy [IMPLEMENTED]
 - [Gap Closure 01-06]: Inputs inside modals use bg-bg2 (next darker from bg-bg1 modal background) [IMPLEMENTED]
 - [Gap Closure 01-07]: Cancel/danger buttons use bg-transparent by default (not bg-bg1) [IMPLEMENTED]
@@ -93,16 +93,16 @@ Recent decisions affecting current work:
 - [Phase 1.1.1 Context]: Wave 2 (sequential after 01/02): Page components (03) and Analytics/Dashboard (04)
 - [Phase 1.1.1 Context]: Wave 3 (parallel after 01/02/03/04): Basic utility (05), Complex utility (06), ThemeDropdown/icons (07)
 - [Phase 1.1.1 Context]: Requirements THEME-06 through THEME-10 track migration goals
-- [01.1.1-01]: Modal components migration complete - all modals use bg-bg2, inputs use bg-bg3 with border class, buttons follow standard variants
-- [01.1.1-01]: Input border class requirement confirmed - all inputs need base 'border' class for focus:border-aqua-bright to work
+- [01.1.1-01]: Modal components migration complete - all modals use bg-bg1, inputs use bg-bg2 without border class (borders only on focus), buttons follow standard variants
+- [01.1.1-01]: Input border class requirement corrected - inputs do NOT need base 'border' class, focus:border-aqua-bright works fine without it (borders only on focus)
 - [01.1.1-01]: ImportModal hardcoded yellow-500 fixed - replaced with CSS variables (bg-yellow/20 border-yellow text-yellow)
 - [01.1.1-02]: Form components migration complete - RoundForm, DocumentSection, PasswordInput, ApplicationForm all theme-compliant
 - [01.1.1-02]: Input layering pattern established - bg-bg1 container → bg-bg2 inputs, bg-bg2 container → bg-bg3 inputs
-- [01.1.1-02]: Button variants confirmed - Primary (bg-aqua), Neutral (bg-transparent), Danger (bg-transparent text-red), Icon-only (px-3 py-1.5)
+- [01.1.1-02]: Button variants confirmed - Primary (bg-aqua), Neutral (bg-transparent), Danger (bg-transparent text-red), Icon-only (px-2 py-1) [UPDATED by 01.1.1-11]
 - [01.1.1-02]: Transitions standardized - all interactive elements use transition-all duration-200 ease-in-out
 - [01.1.1-03]: Page components migration complete - Dashboard, Applications, ApplicationDetail, Admin, Analytics all theme-compliant
 - [01.1.1-03]: Table row separator pattern confirmed - border-b border-tertiary on all rows except last (index < length - 1 check)
-- [01.1.1-03]: Input border class applied to remaining page inputs (Applications.tsx, Admin.tsx)
+- [01.1.1-03]: Input border class removed from all inputs - borders only appear on focus via focus:border-aqua-bright [CORRECTED by 01.1.1-11]
 - [01.1.1-03]: Three pages already compliant - Dashboard, ApplicationDetail, Analytics required no changes
 - [01.1.1-04]: Analytics/Dashboard components migration complete - all 7 components theme-compliant
 - [01.1.1-04]: Error state standardization - all error states use text-accent-red for consistency
@@ -140,6 +140,10 @@ Recent decisions affecting current work:
 - [01.1.1-09]: Gap 2 (transition inconsistencies) closed - FeatureToggles toggle knob and Settings inputs now use standard transition [CLOSED]
 - [01.1.1-09]: Phase 1.1.1 complete - all 7 success criteria verified, 100% theme system compliance achieved [PHASE COMPLETE]
 - [01.1.1-10]: UAT gap #1 closed - modal backgrounds corrected from bg-bg2 to bg-bg1 per modal reset rule, inputs inside modals changed from bg-bg3 to bg-bg2 [CORRECTED]
+- [01.1.1-11]: UAT gap #2 (input default borders) closed - removed 'border' class from all inputs, borders only appear on focus via focus:border-aqua-bright [CLOSED]
+- [01.1.1-11]: UAT gap #3 (button hover states) closed - buttons on bg-bg2 containers now use hover:bg-bg3 (visible), icon buttons use px-2 py-1 padding, all interactive elements have cursor-pointer [CLOSED]
+- [01.1.1-11]: DESIGN_GUIDELINES.md updated with complete button specification - exact hover classes (hover:bg-bg1 through hover:bg-bg4), cursor-pointer requirement, icon button sizing (px-2 py-1) [DOCUMENTED]
+- [01.1.1-11]: Button hover backgrounds follow 5-layer rule with wrap-around - container bg-bg0 → hover:bg-bg1, bg-bg1 → hover:bg-bg2, bg-bg2 → hover:bg-bg3, bg-bg3 → hover:bg-bg4, bg-bg4 → hover:bg-bg0 [IMPLEMENTED]
 
 ### Roadmap Evolution
 
