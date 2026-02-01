@@ -19,25 +19,24 @@ This file defines all frontend design patterns, component standards, and coding 
 All UI elements follow this 5-layer hierarchy:
 
 ┌───────┬──────────┬───────────────────────────────────────┐
-│ Layer │  Color   │                 Usage                 │
+│ Layer │ Color │ Usage │
 ├───────┼──────────┼───────────────────────────────────────┤
-│ bg0   │ Darkest  │ Page background                      │
+│ bg0 │ Darkest │ Page background │
 ├───────┼──────────┼───────────────────────────────────────┤
-│ bg1   │ Dark     │ Base containers (cards, content)      │
+│ bg1 │ Dark │ Base containers (cards, content) │
 ├───────┼──────────┼───────────────────────────────────────┤
-│ bg2   │ Medium   │ Hover states, nested containers, modal content │
+│ bg2 │ Medium │ nested containers
 ├───────┼──────────┼───────────────────────────────────────┤
-│ bg3   │ Light    │ Input backgrounds (on bg2 containers) │
+│ bg3 │ Light │ nested containers
 ├───────┼──────────┼───────────────────────────────────────┤
-│ bg4   │ Lightest │ Nested modal elements                 │
+│ bg4 │ Lightest │ nested containers │
 └───────┴──────────┴───────────────────────────────────────┘
 
 **Layering rule:** Always step one layer lighter for nested/hover states.
 
 **Modal Reset Rule:**
-Modals reset to bg-bg2 (3rd layer from base) and follow the 5-layer strategy from there.
+Modals reset to bg1 and then follow the 5-layer strategy from there.
 This ensures modals stand out from the page while maintaining proper layering.
-From bg-bg2 modal background, inputs use bg-bg3, nested containers use bg-bg4, etc.
 
 **Wrap-Around Rule:**
 If 5 layers are exceeded in nested contexts, start over from base bg-bg0.
@@ -49,17 +48,20 @@ This prevents running out of colors in deeply nested contexts.
 **ALL colors must use CSS variables.** Never hardcode color values.
 
 **Correct:**
+
 ```tsx
-className="text-fg1 bg-bg1"
+className = "text-fg1 bg-bg1";
 ```
 
 **Incorrect:**
+
 ```tsx
 className="text-[#ebdbb2] bg-[#3c3836]"
 style={{ color: '#ebdbb2' }}  // NEVER do this
 ```
 
 **Available color variables:**
+
 - `--bg0`, `--bg1`, `--bg2`, `--bg3`, `--bg4` — Background layers (darkest to lightest)
 - `--fg0`, `--fg1` — Foreground/text (lightest to darker)
 - `--aqua`, `--aqua-bright` — Primary accent color
@@ -79,41 +81,12 @@ Themes switch by changing CSS variable values. Using `var(--color-*)` ensures al
 
 ### Four Standard Button Patterns
 
-| Variant | Base State | Hover State | Usage |
-|---------|---------------|-------------|-------|
-| **Primary** | `bg-aqua text-bg0` | `hover:bg-aqua-bright` | Save, Add, Create, Sign In, Submit |
-| **Neutral** | `bg-transparent text-fg1` | `hover:bg-bg2 hover:text-fg0` | Cancel, Edit, Skip |
-| **Danger** | `bg-transparent text-red` | `hover:bg-bg2 hover:text-red-bright` | Delete buttons (ALL variants) |
-| **Icon-only** | `px-3 py-1.5` transparent | `hover:bg-bg2` | Edit, Delete icon buttons |
-
-### Standard Button Pattern
-
-```tsx
-// Primary button
-<button className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md">
-  Save
-</button>
-
-// Secondary button
-<button className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md">
-  Cancel
-</button>
-
-// Danger button (regular)
-<button className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md">
-  Delete
-</button>
-
-// Danger button (icon-only)
-<button className="px-3 py-1.5 rounded bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out cursor-pointer">
-  <i className="bi-trash" />
-</button>
-
-// Icon-only button (neutral)
-<button className="px-3 py-1.5 rounded bg-transparent text-fg1 hover:bg-bg2 transition-all duration-200 ease-in-out cursor-pointer">
-  <i className="bi-pencil" />
-</button>
-```
+| Variant       | Base State                | Hover State                                                                    | Usage                              |
+| ------------- | ------------------------- | ------------------------------------------------------------------------------ | ---------------------------------- |
+| **Primary**   | `bg-aqua text-bg0`        | `hover:bg-aqua-bright`                                                         | Save, Add, Create, Sign In, Submit |
+| **Neutral**   | `bg-transparent text-fg1` | `hover:bg based on 5 layer rule hover:text-fg0`                                | Cancel, Edit, Skip                 |
+| **Danger**    | `bg-transparent text-red` | `hover:bg based on 5 layer rule hover:text-red-bright`                         | Delete buttons (ALL variants)      |
+| **Icon-only** | `px-3 py-1.5` transparent | `hover:bg based on 5 layer rule hover: text dependant of type(edit or delete)` | Edit, Delete icon buttons          |
 
 ### Button Sizing
 
@@ -131,11 +104,12 @@ Themes switch by changing CSS variable values. Using `var(--color-*)` ensures al
 
 Navigation elements use `transition-transform` only (no background color transition):
 
-```tsx
-className="transition-transform duration-200 ease-in-out hover:scale-110"
-```
+### Navigation Link Exception
 
----
+Navigation links (to other pages) use `transition-colors duration-200` (without ease-in-out) for snappier feel on page navigation.
+This exception applies only to Link components that navigate between pages.
+
+All other interactive elements (buttons, badges, inputs, hover effects) use the standard `transition-all duration-200 ease-in-out`.
 
 ## Form Inputs
 
@@ -144,47 +118,17 @@ className="transition-transform duration-200 ease-in-out hover:scale-110"
 Inputs must use the **next color in line** from their container's background. This creates proper visual hierarchy and ensures inputs are visible.
 
 **Gruvbox background palette:**
+
 - `bg0` (282828) → `bg1` (3c3836) → `bg2` (504945) → `bg3` (665c54) → `bg4` (7c6f64)
 
-**Layering rule:** Always use the next darker background color for inputs.
-
-```tsx
-// On bg-bg0 container: input bg-bg1
-<div className="bg-bg0">
-  <input className="border border-tertiary bg-bg1 text-fg1 focus:border-aqua-bright ..." />
-</div>
-
-// On bg-bg1 container: input bg-bg2
-<div className="bg-bg1">
-  <input className="border border-tertiary bg-bg2 text-fg1 focus:border-aqua-bright ..." />
-</div>
-
-// On bg-bg2 container: input bg-bg3
-<div className="bg-bg2">
-  <input className="border border-tertiary bg-bg3 text-fg1 focus:border-aqua-bright ..." />
-</div>
-```
+**Layering rule:** Always use the next darker background color for inputs (same as with button hover bg)
 
 **Why:** Inputs with the same background as their container are invisible. The next-color rule ensures inputs stand out while maintaining the theme's layered aesthetic.
 
-### Standard Input Pattern
-
-```tsx
-<input
-  type="text"
-  className="border border-tertiary bg-bg2 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded-md px-3 py-2"
-/>
-```
-
 **Key elements:**
-- `border border-tertiary` — Default border color
-- `bg-bg2` (or next color in line from container) — Background color using layering rule
-- `text-fg1` — Text color
-- `focus:border-aqua-bright` — Aqua-bright border on focus
-- `focus:outline-none` — Remove default outline
-- `transition-all duration-200 ease-in-out` — Smooth transition
 
----
+- `focus:border-aqua-bright` — Aqua-bright border on focus
+- `transition-all duration-200 ease-in-out` — Smooth transition
 
 ## Badge Colors
 
@@ -192,12 +136,12 @@ Inputs must use the **next color in line** from their container's background. Th
 
 ```tsx
 const statusColors = {
-  applied: 'bg-[var(--color-green)]/20 text-[var(--color-green)]',
-  interview: 'bg-[var(--color-blue)]/20 text-[var(--color-blue)]',
-  offer: 'bg-[var(--color-aqua)]/20 text-[var(--color-aqua)]',
-  rejected: 'bg-[var(--color-red)]/20 text-[var(--color-red)]',
-  withdrew: 'bg-[var(--color-yellow)]/20 text-[var(--color-yellow)]',
-  pending: 'bg-[var(--color-orange)]/20 text-[var(--color-orange)]',
+  applied: "bg-[var(--color-green)]/20 text-[var(--color-green)]",
+  interview: "bg-[var(--color-blue)]/20 text-[var(--color-blue)]",
+  offer: "bg-[var(--color-aqua)]/20 text-[var(--color-aqua)]",
+  rejected: "bg-[var(--color-red)]/20 text-[var(--color-red)]",
+  withdrew: "bg-[var(--color-yellow)]/20 text-[var(--color-yellow)]",
+  pending: "bg-[var(--color-orange)]/20 text-[var(--color-orange)]",
 };
 ```
 
@@ -235,18 +179,9 @@ const statusColors = {
 
 Icons are typically taller than wide, so equal padding creates upright rectangles. Use **asymmetric padding** (more horizontal than vertical) for square-like proportions:
 
-```tsx
-// Icon-only buttons (taller icons = more horizontal padding)
-<button className="px-3 py-1.5 rounded bg-transparent text-fg1 hover:bg-bg2 transition-all duration-200 ease-in-out cursor-pointer">
-  <i className="bi-pencil" />
-</button>
-```
-
 **Key pattern:** `px-3 py-1.5` (more X, less Y = square-ish appearance)
 
-This applies to edit/delete icon buttons on cards, modals, and any icon-only action button.
-
----
+This applies to edit/delete icon buttons on cards, modals, and any icon-only action button (but only if the button itself is rectangular as opposed to square-ish)
 
 ## Container Borders (Visual Hierarchy)
 
@@ -257,24 +192,12 @@ This applies to edit/delete icon buttons on cards, modals, and any icon-only act
 **Main background:** `bg0` (282828)
 **First-level containers:** `bg1` (3c3836) — **NO border**
 **Nested containers:** Next color in line — **NO border**
-**Tables:** **NO border**
-
-```tsx
-// Correct: Base container without border
-<div className="bg-secondary rounded-lg p-6">
-  {/* Content */}
-</div>
-
-// Incorrect: Base container with border
-<div className="bg-secondary border border-tertiary rounded-lg p-6">
-  {/* Content */}
-</div>
-```
+**Tables:** **NO border** (only lines that are between elements but the last element should not have a line (since there are no more elements bellow it))
 
 **When to use borders:**
+
 - Input fields (for focus states)
-- Modal containers (for emphasis)
-- Dividers/separators (using `border-t` or `border-b`)
+- Dividers/separators (using `border-t` or `border-b`) (remember to make the dividers/semarators follow the 5 layer rule, same as with input fields and button hovers)
 
 **Separation principle:** Use color layering (bg0 → bg1 → bg2 → bg3) to create visual hierarchy, not borders.
 
@@ -286,24 +209,8 @@ This applies to edit/delete icon buttons on cards, modals, and any icon-only act
 
 Theme dropdowns use a consistent layering pattern for visual clarity:
 
-```tsx
-// Dropdown container
-<div className="bg-bg1 border border-tertiary rounded-lg">
-  {/* Dropdown content */}
-</div>
-
-// Selected theme option
-<button className="bg-bg2 text-fg1 hover:bg-bg3">
-  Gruvbox Dark <i className="bi-check-lg" />
-</button>
-
-// Unselected theme options
-<button className="bg-transparent text-fg1 hover:bg-bg3">
-  Gruvbox Light
-</button>
-```
-
 **Pattern:**
+
 - Container: `bg-bg1 border border-tertiary`
 - Selected: `bg-bg2`
 - Unselected: `bg-transparent`
@@ -315,17 +222,17 @@ Theme dropdowns use a consistent layering pattern for visual clarity:
 
 Use consistent terminology:
 
-| Action | Verb | Example |
-|--------|------|---------|
-| Open form | **New** | "New Application" |
-| Add to existing | **Add** | "Add Round" |
-| Create standalone | **Create** | "Create User" |
-| Modify existing | **Edit** | "Edit Application" |
-| Persist changes | **Save** | Form save button |
-| Abort action | **Cancel** | Form cancel button |
+| Action              | Verb       | Example                         |
+| ------------------- | ---------- | ------------------------------- |
+| Open form           | **New**    | "New Application"               |
+| Add to existing     | **Add**    | "Add Round"                     |
+| Create standalone   | **Create** | "Create User"                   |
+| Modify existing     | **Edit**   | "Edit Application"              |
+| Persist changes     | **Save**   | Form save button                |
+| Abort action        | **Cancel** | Form cancel button              |
 | Destroy permanently | **Delete** | Delete buttons (NEVER "Remove") |
-| Bring data in | **Import** | "Import Data" |
-| Send data out | **Export** | "Export JSON" |
+| Bring data in       | **Import** | "Import Data"                   |
+| Send data out       | **Export** | "Export JSON"                   |
 
 **Critical Rule:** Always use "Delete" never "Remove" for destructive actions.
 
@@ -334,6 +241,7 @@ Use consistent terminology:
 ## Hover Transitions (All Interactive Elements)
 
 **Standard across entire application:**
+
 - Property: `transition-all`
 - Duration: `200ms`
 - Timing: `ease-in-out`
@@ -346,41 +254,17 @@ Applies to: buttons, badges, navigation, focus states, all hover effects.
 
 ### Modals
 
-Modal content containers use **bg-bg2** (modal reset rule) — this ensures modals stand out from the page background:
-
-```tsx
-{/* Modal backdrop/overlay */}
-<div className="fixed inset-0 bg-bg0/80 z-50">
-  {/* Modal content container */}
-  <div className="bg-bg2 rounded-lg p-6 max-w-md mx-4">
-    {/* Modal content */}
-    {/* Inputs inside modal use bg-bg3 */}
-    <input className="bg-bg3 border border-tertiary ..." />
-  </div>
-</div>
-```
+Modal content containers use bg1 onwards (modal reset rule) — this ensures modals stand out from the page background:
 
 **Key pattern:**
-- Modal overlay: `bg-bg0/80` (80% opacity for dimming)
-- Modal content: `bg-bg2` (modal reset rule — 3rd layer from base)
-- Modal inputs: `bg-bg3` (next darker from modal background)
-- Close buttons: `px-3 py-1.5` (icon-only proportions)
-- NO borders on modal containers (color-only separation)
 
-**Modal Reset Rule:**
-Modals reset to bg-bg2 (3rd layer from base) instead of continuing as another layer.
-From bg-bg2, modal inputs use bg-bg3, nested containers use bg-bg4, etc.
-This creates proper visual separation between page and modal content.
+- Modal overlay: `bg-bg0/80` (80% opacity for dimming)
+- Modal content: `bg1` (modal reset rule — 3rd layer from base)
+- NO borders on modal containers (color-only separation)
 
 ### Cards
 
 Application cards and similar use **no borders** — color-only separation:
-
-```tsx
-<div className="bg-secondary rounded-lg p-4">
-  {/* Card content */}
-</div>
-```
 
 **Rule:** Base containers should NOT have borders. See "Container Borders" section above.
 
@@ -394,8 +278,8 @@ Use TypeScript interfaces for component props:
 
 ```tsx
 interface ButtonProps {
-  variant: 'primary' | 'secondary' | 'danger' | 'icon-only';
-  size?: 'sm' | 'md' | 'lg';
+  variant: "primary" | "secondary" | "danger" | "icon-only";
+  size?: "sm" | "md" | "lg";
   children: React.ReactNode;
   onClick?: () => void;
   className?: string;
@@ -405,8 +289,9 @@ interface ButtonProps {
 ### Data Types
 
 Import types from the lib directory:
+
 ```tsx
-import type { Application, Status, Round } from '@/lib/types';
+import type { Application, Status, Round } from "@/lib/types";
 ```
 
 ---
@@ -424,15 +309,15 @@ import type { Application, Status, Round } from '@/lib/types';
 
 ```tsx
 // 1. React imports
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 // 2. Third-party imports
-import { clsx } from 'clsx';
+import { clsx } from "clsx";
 
 // 3. Local imports
-import { Button } from '@/components/Button';
-import { api } from '@/lib/api';
-import type { Application } from '@/lib/types';
+import { Button } from "@/components/Button";
+import { api } from "@/lib/api";
+import type { Application } from "@/lib/types";
 ```
 
 ---
@@ -440,6 +325,7 @@ import type { Application } from '@/lib/types';
 ## When to Update This File
 
 Update this file when:
+
 - New component patterns are established
 - Theme variables change
 - New button variants or UI patterns are added
@@ -452,6 +338,7 @@ Update this file when:
 **Quick Reference for AI Agents:**
 
 ### 5-Layer Rule (Memorize This)
+
 ```
 bg0 → Page background
 bg1 → Base containers (cards, content)
@@ -461,10 +348,12 @@ bg4 → Nested modal elements
 ```
 
 **Special Rules:**
+
 - Modal Reset: Modals use bg-bg2 (not bg-bg4) then follow 5-layer from there
 - Wrap-Around: If 5 layers exceeded, start over from bg-bg0
 
 ### All Patterns
+
 - **Colors:** Always use `--color-*` CSS variables
 - **Buttons:** 4 variants (Primary, Neutral, Danger, Icon-only)
   - Icon-only: `px-3 py-1.5` (asymmetric for square proportions)
