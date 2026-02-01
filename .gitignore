@@ -10,8 +10,22 @@ uploads/
 dist/
 build/
 *.egg-info/
+
+
 .worktrees/
+mise.toml
 docs/
+scripts/
+.claude/
+.devcontainer/
+.planning/
+
+# Design guidelines - working documents that vary by environment
+frontend/DESIGN_GUIDELINES.md
+backend/DESIGN_GUIDELINES.md
+
+# Playwright MCP screenshots and snapshots
+.playwright-mcp/
 
 # macOS
 .DS_Store
