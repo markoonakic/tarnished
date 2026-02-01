@@ -84,7 +84,7 @@ export default function Applications() {
           <h1 className="text-2xl font-bold text-primary">Applications</h1>
           <Link
             to="/applications/new"
-            className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium"
+            className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
           >
             New Application
           </Link>
@@ -196,7 +196,7 @@ export default function Applications() {
                 <button
                   onClick={() => updateParams({ page: String(page - 1) })}
                   disabled={page === 1}
-                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   Previous
                 </button>
@@ -206,7 +206,7 @@ export default function Applications() {
                 <button
                   onClick={() => updateParams({ page: String(page + 1) })}
                   disabled={page === totalPages}
-                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   Next
                 </button>
