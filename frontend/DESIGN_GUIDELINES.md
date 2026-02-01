@@ -229,18 +229,95 @@ This applies to edit/delete icon buttons on cards, modals, and any icon-only act
 
 ---
 
-## Theme Dropdown
+## Dropdowns
 
-### Standard Theme Dropdown Pattern
+**DO NOT use native `<select>` elements.** Always use the universal `Dropdown` component for consistency.
 
-Theme dropdowns use a consistent layering pattern for visual clarity:
+### Component API
 
-**Pattern:**
+**Import:**
+```tsx
+import { Dropdown } from '@/components/Dropdown';
+```
 
-- Container: `bg-bg1 border border-tertiary`
-- Selected: `bg-bg2`
-- Unselected: `bg-transparent`
-- Hover (both): `hover:bg-bg3`
+**Props:**
+```tsx
+interface DropdownProps {
+  options: DropdownOption[];  // Array<{ value: string, label: string }>
+  value: string;              // Currently selected value
+  onChange: (value: string) => void;
+  placeholder?: string;       // Default: "Select..."
+  disabled?: boolean;         // Default: false
+  size?: 'sm' | 'md' | 'lg';  // Default: 'md'
+  containerBackground?: 'bg0' | 'bg1' | 'bg2' | 'bg3' | 'bg4';  // Default: 'bg1'
+}
+```
+
+### 6-Layer Rule for Dropdowns
+
+Dropdowns follow a 6-layer color rule with wrap-around:
+
+**Layer sequence:** `bg0` → `bg1` → `bg2` → `bg3` → `bg4` → `bg-h` → (wrap to `bg0`)
+
+**Container mapping:**
+- **Trigger background:** container + 1 layer
+- **Selected option:** container + 2 layers
+- **Hover option:** container + 3 layers (wraps to bg0 if on bg4, uses bg-h if on bg-h)
+
+**Examples:**
+
+| Container | Trigger | Selected | Hover |
+|-----------|---------|----------|-------|
+| `bg-bg1`  | `bg-bg2` | `bg-bg3` | `bg-bg4` |
+| `bg-bg2`  | `bg-bg3` | `bg-bg4` | `bg-h` |
+| `bg-bg4`  | `bg-h` | `bg-bg0` | `bg-bg1` |
+
+The `--bg-h` CSS variable (hard color) extends the palette for contexts beyond bg4:
+- Gruvbox Dark: `#928374`
+- Gruvbox Light: `#7c6f64`
+- Nord: `#5e81ac`
+- Dracula: `#44475a`
+
+### Styling
+
+**No default border:** `border-0`
+**Border on hover/active:** `hover:border-aqua-bright`, `data-active:border-aqua-bright`
+
+**Active state:** Both trigger border AND dropdown menu border use accent color (`aqua-bright`)
+
+### Icon
+
+- Chevron icon scales proportionally to dropdown size
+- Rotates 180deg when open
+- Animation: `transition-transform duration-200 ease-in-out`
+
+### Animation
+
+**Menu:** fade + slide down
+- `opacity-0` → `opacity-100`
+- `translateY-2` → `translateY-0`
+
+**Standard timing:** `transition-all duration-200 ease-in-out`
+
+### Accessibility
+
+**ARIA attributes:**
+- `role="combobox"`
+- `aria-expanded={isOpen}`
+- `aria-selected={selectedValue}`
+- `aria-disabled={disabled}`
+
+**Keyboard navigation:**
+- `ArrowUp` / `ArrowDown` — Navigate options
+- `Enter` / `Space` — Select focused option
+- `Escape` — Close dropdown
+- `Home` — Focus first option
+- `End` — Focus last option
+
+**Behavior:**
+- Click outside to close
+- Position below trigger (flips up if near bottom edge)
+- Controlled component (parent manages state)
 
 ---
 
