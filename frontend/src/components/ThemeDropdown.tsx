@@ -39,7 +39,7 @@ export default function ThemeDropdown({ themes, currentTheme, onChange }: Props)
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 py-2 bg-bg1 rounded text-fg1 hover:border-aqua focus:outline-none focus:border-aqua transition-all duration-200 cursor-pointer"
+        className="w-full flex items-center justify-between px-4 py-2 bg-bg1 border border-tertiary rounded text-fg1 hover:border-aqua focus:outline-none focus:border-aqua transition-all duration-200 ease-in-out cursor-pointer"
       >
         <div className="flex items-center gap-3">
           <span className="text-primary font-medium">{selectedTheme.name}</span>
@@ -53,11 +53,11 @@ export default function ThemeDropdown({ themes, currentTheme, onChange }: Props)
             ))}
           </div>
         </div>
-        <i className={`bi bi-chevron-down text-muted transition-transform inline-block ${isOpen ? 'rotate-180' : ''}`} style={{fontSize: '1.25rem'}} />
+        <i className={`bi bi-chevron-down text-muted transition-transform inline-block text-xl ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       <div
-        className="absolute z-10 w-full mt-1 bg-bg1 rounded-lg overflow-hidden transition-all duration-200"
+        className="absolute z-10 w-full mt-1 bg-bg1 border border-tertiary rounded-lg overflow-hidden transition-all duration-200 ease-in-out"
         style={{
           display: 'grid',
           gridTemplateRows: isOpen ? '1fr' : '0fr',
@@ -87,7 +87,7 @@ export default function ThemeDropdown({ themes, currentTheme, onChange }: Props)
                 </div>
               </div>
               {theme.id === currentTheme && (
-                <i className="bi bi-check-lg text-accent-aqua" style={{fontSize: '1.25rem'}} />
+                <i className="bi bi-check-lg text-accent-aqua text-xl" />
               )}
             </button>
           ))}
