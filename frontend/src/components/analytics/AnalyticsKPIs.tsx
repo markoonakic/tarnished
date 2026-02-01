@@ -75,7 +75,7 @@ export default function AnalyticsKPIs({ period }: AnalyticsKPIsProps) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="col-span-full bg-secondary rounded-lg p-4">
-          <p className="text-red text-sm">Failed to load KPIs</p>
+          <p className="text-accent-red text-sm">Failed to load KPIs</p>
         </div>
       </div>
     );
