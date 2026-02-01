@@ -204,7 +204,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
   }
 
   return (
-    <div className="bg-secondary rounded-lg p-6">
+    <div className="bg-bg1 rounded-lg p-6">
       <h2 className="text-lg font-semibold text-primary mb-4">Documents</h2>
 
       {error && (
