@@ -1,0 +1,35 @@
+/* Gruvbox Light Theme */
+[data-theme="gruvbox-light"] {
+  /* Backgrounds */
+  --bg0: #fbf1c7;
+  --bg1: #ebdbb2;
+  --bg2: #d5c4a1;
+  --bg3: #bdae93;
+  --bg4: #a89984;
+
+  /* Foregrounds */
+  --fg0: #282828;
+  --fg1: #3c3836;
+  --fg2: #504945;
+  --fg3: #665c54;
+  --fg4: #7c6f64;
+  --gray: #928374;
+
+  /* Accent colors - darker */
+  --red: #9d0006;
+  --green: #79740e;
+  --yellow: #b57614;
+  --blue: #076678;
+  --purple: #8f3f71;
+  --aqua: #427b58;
+  --orange: #af3a03;
+
+  /* Accent colors - bright */
+  --red-bright: #cc241d;
+  --green-bright: #98971a;
+  --yellow-bright: #d79921;
+  --blue-bright: #458588;
+  --purple-bright: #b16286;
+  --aqua-bright: #689d6a;
+  --orange-bright: #d65d0e;
+}
