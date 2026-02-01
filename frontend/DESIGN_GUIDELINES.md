@@ -129,7 +129,7 @@ Navigation elements use `transition-transform` only (no background color transit
 
 ### Navigation Link Exception
 
-Navigation links (to other pages) use `transition-colors duration-200` (without ease-in-out) for snappier feel on page navigation.
+Navigation links (to other pages) use `transition-colors duration-100 ease-in-out` (2x faster than standard) for snappier feel on page navigation.
 This exception applies only to Link components that navigate between pages.
 
 All other interactive elements (buttons, badges, inputs, hover effects) use the standard `transition-all duration-200 ease-in-out`.
