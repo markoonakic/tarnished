@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getHeatmapData } from '../lib/analytics';
 import type { HeatmapData } from '../lib/analytics';
+import Dropdown from './Dropdown';
 import Loading from './Loading';
 import EmptyState from './EmptyState';
 
@@ -141,16 +142,17 @@ export default function ActivityHeatmap() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <select
-            value={viewMode}
-            onChange={(e) => setViewMode(e.target.value === 'rolling' ? 'rolling' : parseInt(e.target.value))}
-            className="px-3 py-1 bg-bg1 text-primary rounded text-sm focus:outline-none focus:border-aqua-bright transition-all duration-200 ease-in-out"
-          >
-            <option value="rolling">Last 12 months</option>
-            {years.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+          <Dropdown
+            options={[
+              { value: 'rolling', label: 'Last 12 months' },
+              ...years.map((y) => ({ value: String(y), label: String(y) }))
+            ]}
+            value={typeof viewMode === 'string' ? viewMode : String(viewMode)}
+            onChange={(value) => setViewMode(value === 'rolling' ? 'rolling' : parseInt(value))}
+            placeholder="Select time range"
+            size="sm"
+            containerBackground="bg1"
+          />
         </div>
         <div className="flex items-center gap-2 text-sm text-muted">
           <span>Less</span>

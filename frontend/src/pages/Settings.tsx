@@ -4,6 +4,7 @@ import { exportJSON, exportCSV } from '../lib/export';
 import type { Status, RoundType } from '../lib/types';
 import Layout from '../components/Layout';
 import ThemeDropdown from '../components/ThemeDropdown';
+import Dropdown from '../components/Dropdown';
 import Loading from '../components/Loading';
 import FeatureToggles from '../components/settings/FeatureToggles';
 import ImportModal from '../components/ImportModal';
@@ -231,18 +232,20 @@ export default function Settings() {
         {/* Mobile dropdown */}
         <div className="md:hidden w-full p-4 border-b border-tertiary bg-secondary">
           <h1 className="text-2xl font-bold text-primary mb-4">Settings</h1>
-          <select
+          <Dropdown
+            options={[
+              { value: 'theme', label: 'Theme' },
+              { value: 'features', label: 'Features' },
+              { value: 'statuses', label: 'Application Statuses' },
+              { value: 'rounds', label: 'Interview Round Types' },
+              { value: 'export', label: 'Data Export' },
+              { value: 'import', label: 'Data Import' },
+            ]}
             value={activeSection}
-            onChange={(e) => setActiveSection(e.target.value)}
-            className="w-full px-3 py-2 bg-bg2 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
-          >
-            <option value="theme">Theme</option>
-            <option value="features">Features</option>
-            <option value="statuses">Application Statuses</option>
-            <option value="rounds">Interview Round Types</option>
-            <option value="export">Data Export</option>
-            <option value="import">Data Import</option>
-          </select>
+            onChange={(value) => setActiveSection(value)}
+            placeholder="Select section"
+            containerBackground="bg1"
+          />
         </div>
 
         {/* Content area */}
