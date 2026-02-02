@@ -145,6 +145,7 @@ export default function Dropdown({
           ${triggerBg} border-0 rounded
           text-fg1 hover:border-aqua-bright
           focus:outline-none focus:border-aqua-bright
+          focus:ring-1 focus:ring-aqua-bright
           ${isOpen ? 'border-aqua-bright' : ''}
           ${sizeClasses[size]}
           transition-all duration-200 ease-in-out
@@ -198,9 +199,9 @@ export default function Dropdown({
                   ${
                     isSelected
                       ? `${selectedBg} text-fg0`
-                      : `bg-transparent text-fg1 ${hoverBg} hover:${hoverBg}`
+                      : `bg-transparent text-fg1 hover:${hoverBg}`
                   }
-                  ${isFocused ? hoverBg : ''}
+                  ${isFocused ? 'bg-bg4' : ''}
                 `}
               >
                 {option.label}

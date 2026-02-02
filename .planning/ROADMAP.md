@@ -15,6 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: UI/UX & CSS Fixes** - Visual consistency and styling improvements
 - [x] **Phase 1.1: Theme System Refactor (INSERTED)** - Fix color system for seamless theme switching
 - [ ] **Phase 1.1.1: Frontend refactor - complete theme system migration (INSERTED)** - Ensure all components use theme system and follow design guidelines (Gap Closure: 4/13 plans remaining)
+- [ ] **Phase 1.1.2: UI Inconsistency Fixes (INSERTED)** - Fix dropdowns, interior round sections, and separators
 - [ ] **Phase 1.2: Repository Cleanup (INSERTED)** - Clean repository before push
 - [ ] **Phase 1.3: Analytics Page (INSERTED)** - Analytics page fixes and improvements
 - [ ] **Phase 1.4: Theme Switching Implementation (INSERTED)** - Implement theme switching + fix hardcoded colors
@@ -127,11 +128,39 @@ User Acceptance Testing found 7 major gaps requiring closure:
 - Theme switching implementation (Gap 6)
 - 12 hardcoded color issues (Gap 7)
 
+### Phase 1.1.2: UI Inconsistency Fixes (INSERTED)
+
+**Goal**: UI inconsistencies are fixed across dropdowns, interior round sections, and separators
+
+**Depends on**: Phase 1.1.1 (Frontend refactor - complete theme system migration)
+
+**Requirements**: UI-01, UI-02, UI-03
+
+**Success Criteria** (what must be TRUE):
+1. All dropdowns follow consistent 6-layer rule with proper styling
+2. Interior round sections use consistent backgrounds and borders
+3. All separators follow consistent border pattern (border-tertiary)
+4. No visual inconsistencies across affected components
+
+**Plans**: 4 plans in 3 waves
+
+Plans:
+- [ ] 01.1.2-01: Fix Dropdown hover bug and add focus ring — 2 tasks (dropdown component)
+- [ ] 01.1.2-02: Fix RoundCard backgrounds and separators — 1 task (5-layer rule)
+- [ ] 01.1.2-03: Standardize modal separators — 1 task (5 modal components)
+- [ ] 01.1.2-04: Update DESIGN_GUIDELINES.md — 1 task (documentation)
+
+**Details**:
+Urgent UI fixes discovered during Phase 1.1.1 review. Three specific areas need attention:
+- Dropdowns: Ensure all dropdowns follow universal Dropdown component patterns with 6-layer rule
+- Interior round sections: Fix inconsistent backgrounds and borders in rounded container elements
+- Separator consistency: Ensure all separators use border-tertiary consistently
+
 ### Phase 1.2: Repository Cleanup (INSERTED)
 
 **Goal**: Repository is clean and ready for push before continuing
 
-**Depends on**: Phase 1.1.1 (Frontend refactor - complete theme system migration)
+**Depends on**: Phase 1.1.2 (UI Inconsistency Fixes)
 
 **Requirements**: CLEANUP-01, CLEANUP-02, CLEANUP-03
 
@@ -265,13 +294,14 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 1.1 → 1.1.1 → 1.2 → 1.3 → 1.4 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 1.1 → 1.1.1 → 1.1.2 → 1.2 → 1.3 → 1.4 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. UI/UX & CSS Fixes | 11/11 | ✓ Complete | 2026-01-31 |
 | 1.1. Theme System Refactor (INSERTED) | 2/2 | ✓ Complete | 2026-02-01 |
 | 1.1.1. Frontend refactor (INSERTED) | 9/13 | Gap Closure | 2026-02-01 |
+| 1.1.2. UI Inconsistency Fixes (INSERTED) | 0/0 | Not started | - |
 | 1.2. Repository Cleanup (INSERTED) | 0/0 | Not started | - |
 | 1.3. Analytics Page (INSERTED) | 0/0 | Not started | - |
 | 1.4. Theme Switching (INSERTED) | 0/0 | Not started | - |
