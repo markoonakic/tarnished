@@ -29,3 +29,25 @@ backend/DESIGN_GUIDELINES.md
 
 # macOS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary directories and files
+temp/
+temp2/
+tmp/
+*.tmp
+*~
+
+# Editor swap files
+*.swp
+*.swo
+*.swn
+
+# Session backup files
+*session-is-being-continued*.txt
+*.bak
