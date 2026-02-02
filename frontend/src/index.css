@@ -9,6 +9,7 @@
   --color-bg2: var(--bg2);
   --color-bg3: var(--bg3);
   --color-bg4: var(--bg4);
+  --color-bg-h: var(--bg-h);
 
   /* Foregrounds */
   --color-fg0: var(--fg0);
@@ -446,6 +447,42 @@ textarea:focus-visible {
 a:focus-visible {
   outline: 2px solid var(--aqua-bright);
   outline-offset: 2px;
+}
+
+/* Icon sizing - Bootstrap Icons ::before override */
+/* Bootstrap Icons are font-based and rendered in ::before pseudo-element.
+   The ::before needs to inherit font-size from parent element for sizing to work.
+   This override ensures icon-sizing utilities work correctly. */
+.bi::before {
+  font-size: inherit !important;
+}
+
+/* Icon sizing utilities */
+/* Use these for consistent icon sizing across the application.
+   Bootstrap Icons inherit font-size from parent via .bi::before override. */
+.icon-xs {
+  font-size: 0.75rem;   /* 12px - table action buttons */
+  line-height: 1;
+}
+.icon-sm {
+  font-size: 0.875rem;  /* 14px - standard action buttons */
+  line-height: 1;
+}
+.icon-md {
+  font-size: 1rem;      /* 16px - media type indicators */
+  line-height: 1;
+}
+.icon-lg {
+  font-size: 1.125rem;  /* 18px - larger icons */
+  line-height: 1;
+}
+.icon-xl {
+  font-size: 1.25rem;   /* 20px - modal close buttons, dashboard icons */
+  line-height: 1;
+}
+.icon-2xl {
+  font-size: 3rem;      /* 48px - empty state decorative icons */
+  line-height: 1;
 }
 
 /* Flicker animation for Flame of Focus */
