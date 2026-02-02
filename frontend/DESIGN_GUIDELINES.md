@@ -238,14 +238,45 @@ All icons use the `<i>` element with `bi-*` classes:
 
 ### Icon Sizing
 
-Bootstrap Icons inherit size from parent text. Use Tailwind text size classes:
+Bootstrap Icons are font-based (rendered in ::before pseudo-element) and require dedicated sizing utilities. The project provides icon sizing utilities that work with Bootstrap Icons.
 
-| Context | Size Class | Example |
-|---------|------------|---------|
-| Dashboard icons | `text-lg` or `text-xl` | `<i className="bi-house text-lg" />` |
-| Status icons | `text-base` or `text-sm` | `<i className="bi-check-circle text-sm" />` |
-| Button icons (inline) | Inherit from button text | Determined by button size |
-| Dropdown chevrons | `text-sm`, `text-base`, `text-lg` | Scale with dropdown size |
+**Bootstrap Icons ::before Override:**
+The CSS rule `.bi::before { font-size: inherit !important; }` in index.css ensures icons inherit font-size from parent, enabling the icon utilities to work correctly.
+
+**Icon Sizing Utilities:**
+
+| Utility | Size | Use Case | Example |
+|---------|------|----------|---------|
+| `icon-xs` | 12px | Table action buttons, compact inline icons | `<i className="bi-pencil icon-xs" />` |
+| `icon-sm` | 14px | Standard action buttons, inline icons | `<i className="bi-eye icon-sm" />` |
+| `icon-md` | 16px | Media type indicators, primary actions | `<i className="bi-file-text icon-md" />` |
+| `icon-lg` | 18px | Larger icons, dropdown lg size | `<i className="bi-chevron-down icon-lg" />` |
+| `icon-xl` | 20px | Modal close buttons, dashboard icons | `<i className="bi-x-lg icon-xl" />` |
+| `icon-2xl` | 48px | Empty state decorative icons | `<i className="bi-search icon-2xl" />` |
+
+**Critical Rules:**
+- ALWAYS use icon utilities (.icon-*) for Bootstrap Icons
+- NEVER use Tailwind text-* utilities (text-xs, text-sm, etc.) - they don't work with Bootstrap Icons
+- NEVER use explicit width/height (w-[14px] h-[14px]) - use icon utilities instead
+- All icon utilities include `line-height: 1` for proper vertical alignment
+
+**Usage Examples:**
+```tsx
+// Table action button (compact)
+<button><i className="bi-pencil icon-xs" /></button>
+
+// Standard action button
+<button><i className="bi-trash icon-sm" /></button>
+
+// Modal close button
+<button><i className="bi-x-lg icon-xl" /></button>
+
+// Empty state decorative icon
+<i className="bi-inbox icon-2xl text-muted mb-4" />
+
+// Dropdown icons (scale with dropdown size)
+// xs -> icon-xs, sm -> icon-sm, md -> icon-md, lg -> icon-lg
+```
 
 ### Color
 
@@ -338,7 +369,7 @@ interface DropdownProps {
   onChange: (value: string) => void;
   placeholder?: string;       // Default: "Select..."
   disabled?: boolean;         // Default: false
-  size?: 'sm' | 'md' | 'lg';  // Default: 'md'
+  size?: 'xs' | 'sm' | 'md' | 'lg';  // Default: 'md'
   containerBackground?: 'bg0' | 'bg1' | 'bg2' | 'bg3' | 'bg4';  // Default: 'bg1'
 }
 ```
@@ -350,23 +381,48 @@ Dropdowns follow a 6-layer color rule with wrap-around:
 **Layer sequence:** `bg0` → `bg1` → `bg2` → `bg3` → `bg4` → `bg-h` → (wrap to `bg0`)
 
 **Container mapping:**
-- **Trigger background:** container + 1 layer
+- **Non-selected option:** container + 1 layer (base state)
 - **Selected option:** container + 2 layers
 - **Hover option:** container + 3 layers (wraps to bg0 if on bg4, uses bg-h if on bg-h)
 
 **Examples:**
 
-| Container | Trigger | Selected | Hover |
-|-----------|---------|----------|-------|
+| Container | Non-Selected | Selected | Hover |
+|-----------|-------------|----------|-------|
 | `bg-bg1`  | `bg-bg2` | `bg-bg3` | `bg-bg4` |
 | `bg-bg2`  | `bg-bg3` | `bg-bg4` | `bg-h` |
-| `bg-bg4`  | `bg-h` | `bg-bg0` | `bg-bg1` |
+| `bg-bg4`  | `bg-bg-h` | `bg-bg0` | `bg-bg1` |
 
 The `--bg-h` CSS variable (hard color) extends the palette for contexts beyond bg4:
 - Gruvbox Dark: `#928374`
 - Gruvbox Light: `#7c6f64`
 - Nord: `#5e81ac`
 - Dracula: `#44475a`
+
+### Sizing
+
+Dropdowns come in 4 sizes for different contexts:
+
+| Size | Padding | Text | Use Case |
+|------|---------|------|----------|
+| `xs` | `px-3 py-2` | `text-sm` | Match standard input height (use when dropdown appears next to input with `px-3 py-2`) |
+| `sm` | `px-3 py-1.5` | `text-sm` | Compact layouts, tight spaces |
+| `md` | `px-4 py-2` | `text-base` | Default, most dropdowns |
+| `lg` | `px-5 py-2.5` | `text-lg` | Emphasis, prominent selectors |
+
+**Sizing Guidelines:**
+- When a dropdown appears **next to an input field**, use `size="xs"` to match standard input padding (`px-3 py-2`)
+- In **form layouts**, use `size="sm"` or `size="md"` depending on available space
+- For **standalone dropdowns** (not paired with other elements), use default `size="md"`
+- **Checkmark and chevron icons** automatically scale proportionally with dropdown size
+
+**Example - Dropdown next to input:**
+```tsx
+<div className="flex gap-4">
+  <input className="px-3 py-2 ..." /> {/* Standard input padding */}
+  <Dropdown size="xs" ... />          {/* Matches input height */}
+</div>
+```
 
 ### Styling
 
@@ -386,11 +442,52 @@ Selected state uses Bootstrap Icons checkmark:
 - Icon: `<i className="bi-check"></i>`
 - Default color: `text-green` (#98971a - darker green)
 - Hover/focused color: `text-green-bright` (#b8bb26 - lighter green)
+- **Scales using width/height** (xs=14px, sm=14px, md=16px, lg=18px)
+- **Note:** Bootstrap Icons use explicit `width` and `height` for sizing, NOT Tailwind `text-*` utilities (see Icon section below)
+
+### Implementation Notes
+
+**Tailwind JIT Compatibility:**
+All dropdown classes use **static class strings** for Tailwind JIT compatibility. Dynamic class construction (e.g., `` `hover:${dynamicClass}` ``) does not work because Tailwind cannot evaluate code at build time.
+
+Instead, use **mapping objects** with complete class strings:
+```tsx
+// ✅ Correct - static mappings
+const hoverClasses = {
+  bg0: 'hover:bg-bg1',
+  bg1: 'hover:bg-bg2',
+  bg2: 'hover:bg-bg3',
+  bg3: 'hover:bg-bg4',
+  bg4: 'hover:bg-bg-h',
+} as const;
+
+// ❌ Incorrect - dynamic class won't be compiled
+className={`hover:${getLayerClass(container, 3)}`}
+```
+
+This pattern ensures all classes are generated by Tailwind's JIT compiler while maintaining flexibility for different container backgrounds.
 
 ### Icon
 
-- Chevron icon scales proportionally to dropdown size
-- Rotates 180deg when open
+**Bootstrap Icons Sizing:**
+Bootstrap Icons (`bi-*` classes) do NOT respond to Tailwind `text-*` utilities because they use fixed `width: 1em; height: 1em;` in their CSS. Use explicit width/height instead:
+
+```tsx
+// ❌ Incorrect - text utilities don't work
+<i className="bi-check text-sm"></i>
+
+// ✅ Correct - use width/height
+<i className="bi-check w-4 h-4"></i>           // 16px
+<i className="bi-check w-[14px] h-[14px]"></i>  // 14px custom
+```
+
+**Dropdown icon sizing:**
+- **xs:** `w-[14px] h-[14px]` (14px)
+- **sm:** `w-[14px] h-[14px]` (14px)
+- **md:** `w-[16px] h-[16px]` (16px)
+- **lg:** `w-[18px] h-[18px]` (18px)
+
+- **Chevron icon** rotates 180deg when open
 - Animation: `transition-transform duration-200 ease-in-out`
 
 ### Animation

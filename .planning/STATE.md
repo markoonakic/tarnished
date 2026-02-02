@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 1.1.2 of 8 (UI inconsistency fixes)
-Plan: 07 of 7 in current phase (Page icon sizing refactoring)
-Status: Complete - All 7 plans executed
-Last activity: 2026-02-02T13:53:50Z — Completed 01.1.2-07 (Page icon sizing refactoring)
+Plan: 11 of 13 in current phase (History icon sizing standardization)
+Status: In Progress - 11 of 13 plans executed
+Last activity: 2026-02-02T13:54:37Z — Completed 01.1.2-11 (History icon sizing standardization)
 
-Progress: [██████████] 84% (38/45 plans complete - Phase 1 complete, Phase 1.1 complete, Phase 1.1.1 complete, Phase 1.1.2 complete)
+Progress: [██████████] 89% (40/45 plans complete - Phase 1 complete, Phase 1.1 complete, Phase 1.1.1 complete, Phase 1.1.2 in progress)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 38
+- Total plans completed: 40
 - Average duration: 7 min
-- Total execution time: 3.7 hours
+- Total execution time: 3.9 hours
 
 **By Phase:**
 
@@ -31,14 +31,14 @@ Progress: [██████████] 84% (38/45 plans complete - Phase 1 c
 | 1 | 11/11 executed | 67 min | 6 min |
 | 1.1 | 2/2 executed | 7 min | 4 min |
 | 1.1.1 | 13/13 executed | 32 min | 2 min |
-| 1.1.2 | 7/7 executed | 13 min | 2 min |
+| 1.1.2 | 11/13 executed | 15 min | 2 min |
 | 1.2 | 0/0 | - | - |
 | 2 | 0/2 | - | - |
 | 3 | 0/3 | - | - |
 | 4 | 0/3 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 2 min (01.1.2-03), 1 min (01.1.2-04), 1 min (01.1.2-05), 1 min (01.1.2-06), 1 min (01.1.2-07)
+- Last 5 plans: 1 min (01.1.2-07), 1 min (01.1.2-09), 1 min (01.1.2-11)
 - Trend: Consistent, efficient
 
 *Updated after each plan completion*
@@ -168,14 +168,21 @@ Recent decisions affecting current work:
 - [01.1.2-05]: Icon sizing utilities use rem units for scalability - .icon-xs (12px), .icon-sm (14px), .icon-md (16px), .icon-lg (18px), .icon-xl (20px), .icon-2xl (48px) with line-height: 1 for better vertical alignment [IMPLEMENTED]
 - [01.1.2-06]: Dropdown icon sizing utilities complete - updated iconSizeClasses mapping to use icon utilities (.icon-xs, .icon-sm, .icon-md, .icon-lg) instead of explicit width/height classes (w-[14px] h-[14px], etc.) [IMPLEMENTED]
 - [01.1.2-06]: Dropdown component now uses dedicated icon sizing utilities for consistency with the rest of the application - chevron and checkmark icons scale proportionally with dropdown size (xs=12px, sm=14px, md=16px, lg=18px) [IMPLEMENTED]
+- [01.1.2-11]: Icon sizing utilities migrated to HistoryViewer and StatusHistoryModal components - all 7 icons now use .icon-* utilities instead of ad-hoc text-* classes [IMPLEMENTED]
+- [01.1.2-11]: Empty state decorative icons use icon-2xl (48px), modal close buttons use icon-xl (20px), compact inline icons use icon-xs (12px) [IMPLEMENTED]
+- [01.1.2-11]: Previously unsized delete button icon in StatusHistoryModal now has explicit icon-xs sizing [IMPLEMENTED]
 - [01.1.2-07]: Page icon sizing refactoring complete - migrated 8 icons across Admin.tsx, ApplicationDetail.tsx, and Settings.tsx from text utilities (text-xs/text-sm) to icon utilities (icon-xs/icon-sm) [IMPLEMENTED]
 - [01.1.2-07]: Icon sizing by context established - table action buttons use icon-xs (12px) for compact layout, standard action buttons use icon-sm (14px) for better visibility [IMPLEMENTED]
-- [Phase 1.1.2]: UI Inconsistency Fixes complete - 7 plans executed, icon sizing infrastructure fully implemented and applied to all relevant pages [PHASE COMPLETE]
+- [01.1.2-09]: Modal component icon sizing complete - all 6 icons across 4 modal components (CreateUserModal, EditUserModal, ImportModal, MediaPlayer) refactored to use icon utilities [IMPLEMENTED]
+- [01.1.2-09]: Modal icon sizing pattern established - close buttons use icon-xl (20px) for standard modal close button sizing, decorative empty state icons use icon-2xl (48px), action button icons use icon-sm (14px) [IMPLEMENTED]
+- [Phase 1.1.2]: UI Inconsistency Fixes in progress - 9 of 13 plans executed, icon sizing infrastructure implemented and being applied systematically across all components [IN PROGRESS]
 
 ### Roadmap Evolution
 
+- **2026-02-02**: Phase 1.1.2 plan 01.1.2-09 complete - Modal component icon sizing (CreateUserModal, EditUserModal, ImportModal, MediaPlayer)
 - **2026-02-02**: Phase 1.1.2 plan 01.1.2-07 complete - Page icon sizing refactoring (Admin.tsx, ApplicationDetail.tsx, Settings.tsx)
 - **2026-02-02**: Phase 1.1.2 plan 01.1.2-06 complete - Dropdown icon sizing utilities (updated to use .icon-xs, .icon-sm, .icon-md, .icon-lg)
+- **2026-02-02**: Phase 1.1.2 plan 01.1.2-11 complete - History icon sizing standardization (HistoryViewer.tsx, StatusHistoryModal.tsx migrated to icon utilities)
 - **2026-02-02**: Phase 1.1.2 plan 01.1.2-05 complete - Bootstrap Icons ::before override and icon sizing utilities (.icon-xs through .icon-2xl)
 - **2026-02-02**: Phase 1.1.2 complete - all 6 plans executed (Dropdown bug fixes, RoundCard 5-layer backgrounds, modal separator standardization, DESIGN_GUIDELINES.md documentation, Bootstrap Icons sizing infrastructure, Dropdown icon utilities)
 - **2026-02-02**: Phase 1.1.2 plan 01.1.2-04 complete - DESIGN_GUIDELINES.md documentation (separator 5-layer rule, dropdown focus ring, checkmark icon, RoundCard 5-layer application)
@@ -205,8 +212,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T13:53:50Z
-Stopped at: Completed 01.1.2-07 - Page icon sizing refactoring
+Last session: 2026-02-02T13:54:37Z
+Stopped at: Completed 01.1.2-11 - History icon sizing standardization
 Resume file: None
 
 ## Phase 1.1.1 Gap Closure Summary
