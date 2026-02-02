@@ -153,11 +153,11 @@ export default function DocumentSection({ application, onUpdate }: Props) {
                 className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 cursor-pointer"
                 title={canPreview ? 'Preview' : 'Preview not available for this file type'}
               >
-                <i className="bi-eye text-sm"></i>
+                <i className="bi-eye icon-sm"></i>
                 Preview
               </button>
               <label className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded disabled:opacity-50 flex items-center gap-1.5 text-sm cursor-pointer">
-                <i className="bi-arrow-repeat text-sm"></i>
+                <i className="bi-arrow-repeat icon-sm"></i>
                 Replace
                 <input
                   type="file"
@@ -175,7 +175,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
                 disabled={isUploading}
                 className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 cursor-pointer"
               >
-                <i className="bi-trash text-sm"></i>
+                <i className="bi-trash icon-sm"></i>
                 Delete
               </button>
             </div>
@@ -184,7 +184,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
           <div className="flex flex-col gap-2 items-end">
             {isProgressActive && <ProgressBar progress={uploadProgress} fileName={uploadingFile?.name} />}
             <label className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 flex items-center gap-1.5 cursor-pointer">
-              <i className="bi-upload"></i>
+              <i className="bi-upload icon-sm"></i>
               {isUploading ? 'Uploading...' : 'Upload'}
               <input
                 type="file"
