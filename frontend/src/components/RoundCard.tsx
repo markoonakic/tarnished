@@ -194,7 +194,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
   }
 
   return (
-    <div className="bg-secondary rounded-lg p-4">
+    <div className="bg-bg2 rounded-lg p-4">
       {playingMedia && (
         <MediaPlayer media={playingMedia} onClose={() => setPlayingMedia(null)} />
       )}
@@ -242,7 +242,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
         </div>
       )}
 
-      <div className="border-t border-primary pt-3">
+      <div className="border-t border-tertiary pt-3">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-muted">Media Files</span>
           <label className={`bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded font-medium flex items-center gap-1.5 text-sm ${uploading ? 'opacity-50' : ''} cursor-pointer`}>
@@ -269,7 +269,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
             {round.media.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between bg-secondary rounded px-3 py-2"
+                className="flex items-center justify-between bg-bg3 rounded px-3 py-2"
               >
                 <div className="flex items-center gap-2">
                   {m.media_type === 'video' ? (
@@ -315,7 +315,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
         )}
       </div>
 
-      <div className="border-t border-primary pt-3 mt-3">
+      <div className="border-t border-tertiary pt-3 mt-3">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-muted">Transcript</span>
           {!round.transcript_path && (
@@ -341,7 +341,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
 
         {round.transcript_path ? (
           <>
-            <div className="flex items-center justify-between bg-secondary rounded px-3 py-2">
+            <div className="flex items-center justify-between bg-bg3 rounded px-3 py-2">
               <div className="flex items-center gap-2">
                 <i className="bi-file-text text-base text-accent-red" />
                 <span className="text-sm text-primary truncate max-w-[200px]">
@@ -370,7 +370,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
               </div>
             </div>
             {round.transcript_summary && (
-              <div className="mt-2 bg-secondary rounded px-3 py-2">
+              <div className="mt-2 bg-bg3 rounded px-3 py-2">
                 <p className="text-sm text-muted mb-1">Summary:</p>
                 <p className="text-sm text-secondary whitespace-pre-wrap">{round.transcript_summary}</p>
               </div>
