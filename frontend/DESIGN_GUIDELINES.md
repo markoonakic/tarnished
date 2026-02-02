@@ -375,6 +375,18 @@ The `--bg-h` CSS variable (hard color) extends the palette for contexts beyond b
 
 **Active state:** Both trigger border AND dropdown menu border use accent color (`aqua-bright`)
 
+**Focus Ring:**
+Dropdown triggers use input-like focus ring behavior:
+- `focus:ring-1 focus:ring-aqua-bright focus:outline-none` — 1px aqua-bright ring on focus
+- Menu container: `ring-1 ring-aqua-bright` when `isOpen=true`
+- This matches input focus patterns for consistent UI feedback
+
+**Checkmark Icon:**
+Selected state uses Bootstrap Icons checkmark:
+- Icon: `<i className="bi-check"></i>`
+- Default color: `text-green` (#98971a - darker green)
+- Hover/focused color: `text-green-bright` (#b8bb26 - lighter green)
+
 ### Icon
 
 - Chevron icon scales proportionally to dropdown size
@@ -408,6 +420,34 @@ The `--bg-h` CSS variable (hard color) extends the palette for contexts beyond b
 - Click outside to close
 - Position below trigger (flips up if near bottom edge)
 - Controlled component (parent manages state)
+
+---
+
+## Separators
+
+### 5-Layer Contrast Rule
+
+Separators follow a contrast-based 5-layer rule that varies based on container background.
+
+**Separator mapping table:**
+
+| Container Background | Separator Color | CSS Class    | Hex Value   |
+|---------------------|-----------------|--------------|-------------|
+| bg-bg0 (#282828)    | Subtle          | border-tertiary / border-fg4 | #a89984 |
+| bg-bg1 (#3c3836)    | Subtle          | border-tertiary / border-fg4 | #a89984 |
+| bg-bg2 (#504945)    | Medium          | border-fg3   | #bdae93     |
+| bg-bg3 (#665c54)    | Visible         | border-fg2   | #d5c4a1     |
+| bg-bg4 (#7c6f64)    | Prominent       | border-fg1   | #ebdba2     |
+
+**Key principle:** Separator color should provide sufficient contrast against the container background while remaining subtle.
+
+**Separator pattern:** Use `border-t`, `border-b`, `border-r` utilities (NOT divide-y/divide-x). Border utilities are appropriate for individual element borders.
+
+**Examples:**
+- Table rows: `border-b border-tertiary` (with conditional "no border on last row")
+- Form sections: `border-t border-tertiary` for section dividers
+- Navigation: `border-b border-tertiary` or `border-r border-tertiary` as appropriate
+- Cards: No borders on base containers, use internal `border-tertiary` for separation
 
 ---
 
@@ -460,6 +500,35 @@ Modal content containers use bg1 onwards (modal reset rule) — this ensures mod
 Application cards and similar use **no borders** — color-only separation:
 
 **Rule:** Base containers should NOT have borders. See "Container Borders" section above.
+
+### Interview Rounds
+
+Interview round cards (RoundCard component) follow the 5-layer rule based on nesting context.
+
+**Nesting context:**
+- Page background: `bg-bg0`
+- Parent container (ApplicationDetail): `bg-bg1`
+- RoundCard base container: `bg-bg2` (next darker from parent)
+- Interior elements (media items, transcript items): `bg-bg3` (next darker from RoundCard)
+
+**Separators:**
+- Internal section separators use `border-tertiary`
+- No borders on RoundCard base container (color-only separation per 5-layer rule)
+
+**Example:**
+```tsx
+// RoundCard base (nested in bg-bg1 container)
+<div className="bg-bg2 rounded-lg p-4">
+  {/* Interior elements use bg-bg3 */}
+  <div className="bg-bg3 rounded px-3 py-2">
+    {/* Content */}
+  </div>
+  {/* Separators use border-tertiary */}
+  <div className="border-t border-tertiary pt-3">
+    {/* Content */}
+  </div>
+</div>
+```
 
 ---
 
@@ -562,3 +631,7 @@ bg4 → Nested modal elements
 - **Badges:** Use `bg-[var(--color-*)]/20 text-[var(--color-*)]`
 - **Actions:** "Delete" not "Remove"
 - **Theme dropdown:** Container `bg-bg1 border border-tertiary`, selected `bg-bg2`, hover `bg-bg3`
+- **Separators:** 5-layer contrast rule based on container background (see Separators section)
+- **Dropdown focus ring:** `focus:ring-1 focus:ring-aqua-bright` on trigger, menu ring when open
+- **Dropdown checkmark:** Bootstrap Icons `bi-check` with `text-green` (default) / `text-green-bright` (hover)
+- **RoundCard:** `bg-bg2` base, `bg-bg3` interior, `border-tertiary` separators
