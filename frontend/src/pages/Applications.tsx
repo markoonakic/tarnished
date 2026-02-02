@@ -99,7 +99,7 @@ export default function Applications() {
                 placeholder="Search company or job title..."
                 value={search}
                 onChange={(e) => updateParams({ search: e.target.value })}
-                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
             </div>
             <div>

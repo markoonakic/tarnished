@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 1.1.1 of 7 (Frontend refactor - complete theme system migration)
-Plan: 10 of 10 in current phase (UAT gap closure - modal backgrounds corrected)
-Status: In Progress - UAT gap #1 closed, awaiting remaining UAT gap plans
-Last activity: 2026-02-01 — Completed plan 01.1.1-10 (modal backgrounds fixed)
+Plan: 12 of 13 in current phase (UAT gap closure - universal dropdown component implemented)
+Status: In Progress - UAT gaps #1, #2, #3, #5, #7, #9 closed, awaiting remaining UAT gap plans (#6, #8)
+Last activity: 2026-02-01 — Completed plan 01.1.1-12 (universal Dropdown component with 6-layer rule, UAT gap #5 closed)
 
-Progress: [█████████░] 40% (Phase 1 complete, Phase 1.1 complete, Phase 1.1.1: 10/10 UAT plans executed)
+Progress: [█████████░] 40% (Phase 1 complete, Phase 1.1 complete, Phase 1.1.1: 12/13 UAT plans executed)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 23
+- Total plans completed: 26
 - Average duration: 7 min
-- Total execution time: 2.6 hours
+- Total execution time: 2.9 hours
 
 **By Phase:**
 
@@ -30,14 +30,14 @@ Progress: [█████████░] 40% (Phase 1 complete, Phase 1.1 comp
 |-------|-------|-------|----------|
 | 1 | 11/11 executed | 67 min | 6 min |
 | 1.1 | 2/2 executed | 7 min | 4 min |
-| 1.1.1 | 10/10 executed | 20 min | 2 min |
+| 1.1.1 | 13/13 executed | 32 min | 2 min |
 | 1.2 | 0/0 | - | - |
 | 2 | 0/2 | - | - |
 | 3 | 0/3 | - | - |
 | 4 | 0/3 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 2 min (01.1.1-06), 3 min (01.1.1-07), 2 min (01.1.1-08), 2 min (01.1.1-09)
+- Last 5 plans: 2 min (01.1.1-09), 11 min (01.1.1-11), 1 min (01.1.1-12), 1 min (01.1.1-13)
 - Trend: Consistent, efficient
 
 *Updated after each plan completion*
@@ -144,9 +144,20 @@ Recent decisions affecting current work:
 - [01.1.1-11]: UAT gap #3 (button hover states) closed - buttons on bg-bg2 containers now use hover:bg-bg3 (visible), icon buttons use px-2 py-1 padding, all interactive elements have cursor-pointer [CLOSED]
 - [01.1.1-11]: DESIGN_GUIDELINES.md updated with complete button specification - exact hover classes (hover:bg-bg1 through hover:bg-bg4), cursor-pointer requirement, icon button sizing (px-2 py-1) [DOCUMENTED]
 - [01.1.1-11]: Button hover backgrounds follow 5-layer rule with wrap-around - container bg-bg0 → hover:bg-bg1, bg-bg1 → hover:bg-bg2, bg-bg2 → hover:bg-bg3, bg-bg3 → hover:bg-bg4, bg-bg4 → hover:bg-bg0 [IMPLEMENTED]
+- [01.1.1-12]: UAT gap #5 (dropdown standardization) closed - universal Dropdown component created with 6-layer rule, all 8 dropdown/select instances migrated, --bg-h CSS variable added to all themes [CLOSED]
+- [01.1.1-12]: Universal Dropdown component features - 6-layer rule (bg0 -> bg1 -> bg2 -> bg3 -> bg4 -> bg-h -> wrap), chevron icon with rotation, animation (fade+slide), ARIA attributes, keyboard navigation [IMPLEMENTED]
+- [01.1.1-12]: All 8 dropdown instances migrated - ThemeDropdown (wrapper), Settings mobile, Applications filter, ActivityHeatmap view mode, ApplicationForm status, RoundForm type/outcome all use universal Dropdown [MIGRATED]
+- [01.1.1-12]: DESIGN_GUIDELINES.md updated with complete dropdown specification - 6-layer rule, component API, styling (no default border, border on hover/active), animation, accessibility [DOCUMENTED]
+- [01.1.1-12]: --bg-h CSS variable added to all themes - Gruvbox Dark (#928374), Gruvbox Light (#7c6f64), Nord (#5e81ac), Dracula (#44475a) for dropdown hover state beyond bg4 [IMPLEMENTED]
+- [01.1.1-13]: UAT gap #9 (navigation link transition speed) closed - navigation links now use duration-100 ease-in-out (2x faster than standard button duration-200) for snappier page navigation feel [CLOSED]
+- [01.1.1-13]: Navigation link transition specification corrected - DESIGN_GUIDELINES.md updated to specify duration-100 ease-in-out for all navigation links [DOCUMENTED]
+- [01.1.1-13]: All 5 navigation links updated - Layout.tsx (main nav), ApplicationDetail.tsx (Back to Applications, View Job Posting), Applications.tsx (company links) all use duration-100 ease-in-out [IMPLEMENTED]
 
 ### Roadmap Evolution
 
+- **2026-02-01**: Phase 1.1.1 UAT gap #5 closed - plan 01.1.1-12 created universal Dropdown component with 6-layer rule
+- **2026-02-01**: Phase 1.1.1 UAT gap #9 closed - plan 01.1.1-13 fixed navigation link transition speed from duration-200 to duration-100 (2x faster)
+- **2026-02-01**: Phase 1.1.1 UAT gap #7 closed - plan 01.1.1-12 added table header separators
 - **2026-02-01**: Phase 1.1.1 UAT gap #1 closed - plan 01.1.1-10 fixed modal backgrounds from bg-bg2 to bg-bg1
 - **2026-02-01**: Phase 1.1.1 gap closure plans created (01.1.1-08, 01.1.1-09) - 2 plans in 2 waves to fix 3 verification gaps
 - **2026-02-01**: Phase 1.1.1 verification found 3 gaps requiring closure: 5 inputs missing border class, 6 transition inconsistencies, 1 hardcoded bg-white
@@ -166,8 +177,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-01T20:39:46Z
-Stopped at: Completed plan 01.1.1-10 (modal backgrounds fixed - UAT gap #1 closed)
+Last session: 2026-02-01T20:57:49Z
+Stopped at: Completed plan 01.1.1-12 (universal Dropdown component with 6-layer rule - UAT gap #5 closed)
 Resume file: None
 
 ## Phase 1.1.1 Gap Closure Summary
@@ -193,8 +204,8 @@ Files affected:
 - Navigation links (Layout.tsx:32, ApplicationDetail.tsx:141,190, Applications.tsx:165): Use 'transition-colors duration-200'
 
 Impact: Some interactive elements use non-standard transition values
-Fix decision: Document navigation link exception in DESIGN_GUIDELINES.md (transition-colors for snappier feel on page navigation)
-Status: CLOSED by plan 01.1.1-09 - Interactive elements now use standard transition, navigation link exception documented
+Fix decision: Navigation links should use 2x faster transition (duration-100) for snappier page navigation feel
+Status: CLOSED by plan 01.1.1-09 (interactive elements) + plan 01.1.1-13 (navigation links corrected to duration-100 ease-in-out)
 
 **Gap 3: Hardcoded 'bg-white' color** — Success criterion 5 partially failed ✓ CLOSED
 File affected: frontend/src/components/settings/FeatureToggles.tsx (line 84)
@@ -206,6 +217,10 @@ Status: CLOSED by plan 01.1.1-08 - Toggle knob now uses bg-fg0
 - **01.1.1-08** (Wave 1) ✓ COMPLETE: Add border class to inputs + fix bg-white in FeatureToggles - 2 tasks, 4 files
 - **01.1.1-09** (Wave 2) ✓ COMPLETE: Fix transition inconsistencies + document navigation exception - 2 tasks, 3 files
 - **01.1.1-10** (UAT gap #1) ✓ COMPLETE: Fix modal backgrounds - bg-bg2->bg-bg1, bg-bg3->bg-bg2, fix documentation - 2 tasks, 6 files
+- **01.1.1-11** (UAT gap #2, #3) ✓ COMPLETE: Remove input borders + fix button hover states - 4 tasks, 9 files
+- **01.1.1-12** (UAT gap #5) ✓ COMPLETE: Universal Dropdown component with 6-layer rule - 4 tasks, 11 files
+- **01.1.1-12** (UAT gap #7) ✓ COMPLETE: Add table header separators - border-t border-tertiary on all thead elements - 2 tasks, 2 files
+- **01.1.1-13** (UAT gap #9) ✓ COMPLETE: Fix navigation link transition speed - duration-200 to duration-100 ease-in-out (2x faster) - 2 tasks, 4 files
 
 **Verified Success Criteria (7/7 passed):**
 1. ✓ All modals use bg-bg1 background with bg-bg2 inputs - CORRECTED by 01.1.1-10 (was bg-bg2/bg-bg3 per incorrect STATE.md decision)
@@ -220,3 +235,22 @@ Status: CLOSED by plan 01.1.1-08 - Toggle knob now uses bg-fg0
 - Hex colors in theme.ts, index.css, ThemeContext.tsx are acceptable (theme definition files)
 - Inline styles for status.color are acceptable (database values, not hardcoded theme colors per STATE.md decision)
 - TODO comments (RoundCard.tsx:117, DocumentSection.tsx:10,94) are future functionality, not violations
+
+## Phase 1.1.1 UAT Gap Summary (Updated 2026-02-01)
+
+**UAT Gap #5 (Dropdown Standardization)** — ✓ CLOSED by plan 01.1.1-12
+
+Root cause: No standardized dropdown component - mix of ThemeDropdown (custom) and native selects with inconsistent styling
+Fix: Universal Dropdown component created with 6-layer rule, all 8 dropdown/select instances migrated
+Files affected:
+- frontend/src/components/Dropdown.tsx (created) - Universal dropdown with 6-layer rule, animation, keyboard navigation
+- frontend/styles/themes/*.css (modified) - Added --bg-h CSS variable
+- frontend/src/components/ThemeDropdown.tsx (replaced) - Now uses Dropdown wrapper
+- frontend/src/pages/Settings.tsx, Applications.tsx, ApplicationForm.tsx (modified) - Native selects replaced
+- frontend/src/components/ActivityHeatmap.tsx, RoundForm.tsx (modified) - Native selects replaced
+- frontend/DESIGN_GUIDELINES.md (updated) - Complete dropdown specification added
+
+**Remaining UAT Gaps (deferred to future phases):**
+- Gap #6: Theme switching implementation (deferred to Phase 1.4)
+- Gap #7: Hardcoded colors (11 text-red instances + 1 hex) - deferred to Phase 1.4
+- Gap #8: Navigation link transitions (already addressed - duration-100 ease-in-out)

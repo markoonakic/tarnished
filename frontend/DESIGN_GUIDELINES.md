@@ -2,7 +2,7 @@
 
 **Project:** Job Tracker
 **Stack:** React 19, TypeScript 5.7, Tailwind CSS 4.1, Vite 7
-**Last Updated:** 2026-01-31
+**Last Updated:** 2026-02-02
 
 ---
 
@@ -148,13 +148,14 @@ Inputs must use the **next color in line** from their container's background. Th
 
 **Why:** Inputs with the same background as their container are invisible. The next-color rule ensures inputs stand out while maintaining the theme's layered aesthetic.
 
-**Input borders:** Inputs have NO default border. The border only appears on focus via `focus:border-aqua-bright`. This works in Tailwind without requiring a base `border` class.
+**Input focus state:** Inputs have NO default border. A 1px ring appears on focus using ring utilities (not border). This ensures no visible indicator when not focused, and a clean focus ring when active.
 
 **Key elements:**
 
-- `focus:border-aqua-bright` — Aqua-bright border appears on focus only
+- `focus:ring-1 focus:ring-aqua-bright focus:outline-none` — 1px aqua-bright ring appears on focus only
 - `transition-all duration-200 ease-in-out` — Smooth transition
-- NO base `border` class — borders only on focus
+- NO base `border` or `ring` class — ring only on focus
+- Ring utilities (box-shadow) are used instead of border to avoid layout shifts
 
 ## Badge Colors
 
@@ -195,12 +196,6 @@ const statusColors = {
 - `--font-small: 0.75rem`
 - `--font-tiny: 0.6875rem`
 
-### Icon Sizing
-
-- Dashboard icons: `text-lg` or `text-xl`
-- Status icons: `text-base` or `text-sm`
-- Button icons: `w-4 h-4` or `w-5 h-5`
-
 ### Icon-Only Button Proportions
 
 Icons are typically taller than wide, so equal padding creates upright rectangles. Use **asymmetric padding** (more horizontal than vertical) for square-like proportions:
@@ -208,6 +203,101 @@ Icons are typically taller than wide, so equal padding creates upright rectangle
 **Key pattern:** `px-3 py-1.5` (more X, less Y = square-ish appearance)
 
 This applies to edit/delete icon buttons on cards, modals, and any icon-only action button (but only if the button itself is rectangular as opposed to square-ish)
+
+---
+
+## Icons
+
+### Icon Library: Bootstrap Icons
+
+**This project uses Bootstrap Icons exclusively.** Loaded via CDN in `index.html`:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+```
+
+**Reference:** https://icons.getbootstrap.com/
+
+### Usage Pattern
+
+All icons use the `<i>` element with `bi-*` classes:
+
+```tsx
+<i className="bi-pencil" />
+<i className="bi-trash" />
+<i className="bi-chevron-down" />
+```
+
+### Critical Rules
+
+| Rule | Description |
+|------|-------------|
+| **NO other icon libraries** | Do NOT import `lucide-react`, `react-icons`, `heroicons`, or any other icon library |
+| **Check existing usage first** | Before adding a new icon, search the codebase for similar icons to maintain consistency |
+| **Use semantic icon names** | Choose icons that clearly communicate their purpose (e.g., `bi-trash` for delete, not `bi-x`) |
+
+### Icon Sizing
+
+Bootstrap Icons inherit size from parent text. Use Tailwind text size classes:
+
+| Context | Size Class | Example |
+|---------|------------|---------|
+| Dashboard icons | `text-lg` or `text-xl` | `<i className="bi-house text-lg" />` |
+| Status icons | `text-base` or `text-sm` | `<i className="bi-check-circle text-sm" />` |
+| Button icons (inline) | Inherit from button text | Determined by button size |
+| Dropdown chevrons | `text-sm`, `text-base`, `text-lg` | Scale with dropdown size |
+
+### Color
+
+Icons inherit color from parent or use explicit color classes:
+
+```tsx
+<i className="bi-pencil text-fg1" />           // Default text color
+<i className="bi-trash text-red" />             // Red (destructive)
+<i className="bi-star text-aqua-bright" />      // Accent color
+```
+
+### Common Icons
+
+| Action | Icon | Usage |
+|--------|------|-------|
+| Edit | `bi-pencil` | Edit buttons |
+| Delete | `bi-trash` | Delete buttons |
+| Close/X | `bi-x-lg` | Modal close, dismiss |
+| Plus/Add | `bi-plus-circle` | Add new items |
+| Upload | `bi-upload` | File upload |
+| Download | `bi-download` | Export/download |
+| Eye/View | `bi-eye` | Preview |
+| Search | `bi-search` | Search inputs |
+| Inbox/Empty | `bi-inbox` | Empty state |
+| Chevron Down | `bi-chevron-down` | Dropdown indicators |
+| Chevron Right | `bi-chevron-right` | Expand/collapse |
+| File | `bi-file-text` | Documents |
+| Check | `bi-check-circle` | Success states |
+| Refresh | `bi-arrow-repeat` | Replace/update |
+
+### Rotations & Transforms
+
+Icons can be rotated using Tailwind transform classes:
+
+```tsx
+<i className="bi-chevron-down transition-transform duration-200 ease-in-out" />
+// With rotation state:
+<i className={`bi-chevron-down transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+```
+
+### Spacing with Icons
+
+When icons are paired with text, add gap for proper spacing:
+
+```tsx
+<div className="flex items-center gap-2">
+  <i className="bi-pencil" />
+  <span>Edit</span>
+</div>
+```
+
+---
 
 ## Container Borders (Visual Hierarchy)
 
@@ -458,6 +548,7 @@ bg4 → Nested modal elements
 ### All Patterns
 
 - **Colors:** Always use `--color-*` CSS variables
+- **Icons:** Bootstrap Icons only — `<i className="bi-*" />` — NO other icon libraries
 - **Buttons:** 4 variants (Primary, Neutral, Danger, Icon-only)
   - Icon-only: `px-3 py-1.5` (asymmetric for square proportions)
   - Danger: ALL variants use `bg-transparent text-red hover:bg-bg2 hover:text-red-bright`

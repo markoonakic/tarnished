@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
-import { ChevronDown } from 'lucide-react';
 
 export interface DropdownOption {
   value: string;
@@ -23,9 +22,9 @@ const sizeClasses = {
 };
 
 const iconSizeClasses = {
-  sm: 'w-4 h-4',
-  md: 'w-5 h-5',
-  lg: 'w-6 h-6',
+  sm: 'text-sm',
+  md: 'text-base',
+  lg: 'text-lg',
 };
 
 // Background layer mappings for 6-layer rule: bg0 -> bg1 -> bg2 -> bg3 -> bg4 -> bg-h -> (wrap)
@@ -155,9 +154,9 @@ export default function Dropdown({
         <span className={selectedOption ? 'text-fg1' : 'text-fg4'}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <ChevronDown
+        <i
           className={`
-            ${iconSizeClasses[size]}
+            bi-chevron-down ${iconSizeClasses[size]}
             text-fg4 transition-transform duration-200 ease-in-out
             ${isOpen ? 'rotate-180' : ''}
           `}

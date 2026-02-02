@@ -171,7 +171,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             type="date"
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
-            className="w-full px-3 py-2 bg-bg3 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
           />
         </div>
 
@@ -182,7 +182,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
             placeholder="e.g. 2:30 PM"
-            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
           />
         </div>
 
@@ -210,7 +210,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
                 type="date"
                 value={completedDate}
                 onChange={(e) => setCompletedDate(e.target.value)}
-                className="w-full px-3 py-2 bg-bg3 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-3 py-2 bg-bg3 text-fg1 focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
             </div>
 
@@ -221,7 +221,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
                 value={completedTime}
                 onChange={(e) => setCompletedTime(e.target.value)}
                 placeholder="e.g. 2:30 PM"
-                className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
             </div>
           </>
@@ -234,7 +234,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             onChange={(e) => setNotesSummary(e.target.value)}
             rows={3}
             placeholder="Key points, questions asked, feedback..."
-            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
           />
         </div>
 
@@ -244,7 +244,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             type="file"
             accept=".pdf"
             onChange={(e) => setTranscriptFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 bg-bg3 text-fg1 focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
           />
           {uploadProgress > 0 && uploadProgress < 100 && (
             <div className="mt-2">
@@ -266,7 +266,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             onChange={(e) => setTranscriptSummary(e.target.value)}
             rows={3}
             placeholder="Summary of key discussion points from transcript..."
-            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:border-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
           />
         </div>
       </div>
