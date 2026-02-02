@@ -111,6 +111,7 @@ export default function Applications() {
                 value={statusFilter}
                 onChange={(value) => updateParams({ status: value })}
                 placeholder="All Statuses"
+                size="xs"
                 containerBackground="bg1"
               />
             </div>
