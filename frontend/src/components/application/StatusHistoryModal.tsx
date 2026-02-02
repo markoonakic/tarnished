@@ -44,13 +44,13 @@ export default function StatusHistoryModal({
         <div className="flex justify-between items-center p-4 border-b border-tertiary">
           <h3 id="status-history-title" className="text-lg font-semibold text-primary">Status History</h3>
           <button onClick={onClose} className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded cursor-pointer">
-            <i className="bi bi-x-lg text-xl" />
+            <i className="bi bi-x-lg icon-xl" />
           </button>
         </div>
         <div className="p-6 overflow-y-auto max-h-[60vh]">
           {!history || history.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-              <i className="bi-clock-history text-5xl text-muted mb-4" aria-hidden="true" />
+              <i className="bi-clock-history icon-2xl text-muted mb-4" aria-hidden="true" />
               <p className="text-sm text-muted">No status changes recorded yet.</p>
               <p className="text-xs text-muted mt-2">History will appear here when you update the application status.</p>
             </div>
@@ -74,7 +74,7 @@ export default function StatusHistoryModal({
                           >
                             {entry.from_status.name}
                           </span>
-                          <i className="bi-arrow-right text-muted text-xs" />
+                          <i className="bi-arrow-right text-muted icon-xs" />
                         </>
                       ) : (
                         <span className="text-xs text-muted italic">New</span>
@@ -103,7 +103,7 @@ export default function StatusHistoryModal({
                       className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 flex-shrink-0 cursor-pointer"
                       title="Delete"
                     >
-                      <i className="bi-trash" />
+                      <i className="bi-trash icon-xs" />
                       Delete
                     </button>
                   )}
