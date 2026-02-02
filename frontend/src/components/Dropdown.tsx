@@ -168,7 +168,8 @@ export default function Dropdown({
         className={`
           absolute z-10 w-full mt-1 rounded-lg overflow-hidden
           border-0 transition-all duration-200 ease-in-out
-          ${isOpen ? 'border-aqua-bright' : ''}
+          bg-bg0
+          ${isOpen ? 'ring-1 ring-aqua-bright' : ''}
         `}
         style={{
           display: 'grid',
@@ -206,7 +207,7 @@ export default function Dropdown({
               >
                 {option.label}
                 {isSelected && (
-                  <span className="float-right text-aqua-bright">✓</span>
+                  <i className={`bi-check float-right ${isFocused ? 'text-green-bright' : 'text-green'}`} />
                 )}
               </button>
             );
