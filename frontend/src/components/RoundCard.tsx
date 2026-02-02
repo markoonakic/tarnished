@@ -222,7 +222,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
               aria-label="Edit round"
               title="Edit"
             >
-              <i className="bi-pencil text-base" />
+              <i className="bi-pencil icon-md" />
             </button>
             <button
               onClick={onDelete}
@@ -230,7 +230,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
               aria-label="Delete round"
               title="Delete"
             >
-              <i className="bi-trash text-base" />
+              <i className="bi-trash icon-md" />
             </button>
           </div>
         </div>
@@ -246,7 +246,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-muted">Media Files</span>
           <label className={`bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded font-medium flex items-center gap-1.5 text-sm ${uploading ? 'opacity-50' : ''} cursor-pointer`}>
-            <i className="bi-plus-circle"></i>
+            <i className="bi-plus-circle icon-sm"></i>
             {uploading ? 'Uploading...' : 'Add Media'}
             <input
               type="file"
@@ -273,9 +273,9 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
               >
                 <div className="flex items-center gap-2">
                   {m.media_type === 'video' ? (
-                    <i className="bi-camera-video text-base text-accent-purple" />
+                    <i className="bi-camera-video icon-md text-accent-purple" />
                   ) : (
-                    <i className="bi-music-note-beamed text-base text-accent-orange" />
+                    <i className="bi-music-note-beamed icon-md text-accent-orange" />
                   )}
                   <span className="text-sm text-primary truncate max-w-[200px]">
                     {m.file_path.split('/').pop()}
@@ -287,7 +287,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                     className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
                     title="Play"
                   >
-                    <i className="bi-play-fill" />
+                    <i className="bi-play-fill icon-md" />
                     Play
                   </button>
                   <button
@@ -295,7 +295,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                     className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
                     title="Download"
                   >
-                    <i className="bi-download" />
+                    <i className="bi-download icon-sm" />
                     Download
                   </button>
                   <button
@@ -303,7 +303,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                     className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
                     title="Delete"
                   >
-                    <i className="bi-trash" />
+                    <i className="bi-trash icon-sm" />
                     Delete
                   </button>
                 </div>
@@ -320,7 +320,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
           <span className="text-sm text-muted">Transcript</span>
           {!round.transcript_path && (
             <label className={`bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded font-medium flex items-center gap-1.5 text-sm ${uploadingTranscript ? 'opacity-50' : ''} cursor-pointer`}>
-              <i className="bi-plus-circle"></i>
+              <i className="bi-plus-circle icon-sm"></i>
               {uploadingTranscript ? 'Uploading...' : 'Add Transcript'}
               <input
                 type="file"
@@ -343,7 +343,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
           <>
             <div className="flex items-center justify-between bg-bg3 rounded px-3 py-2">
               <div className="flex items-center gap-2">
-                <i className="bi-file-text text-base text-accent-red" />
+                <i className="bi-file-text icon-md text-accent-red" />
                 <span className="text-sm text-primary truncate max-w-[200px]">
                   {round.transcript_path.split('/').pop()}
                 </span>
@@ -355,7 +355,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                   className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 cursor-pointer"
                   title="View"
                 >
-                  <i className="bi-eye" />
+                  <i className="bi-eye icon-sm" />
                   View
                 </button>
                 <button
@@ -364,7 +364,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                   className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 cursor-pointer"
                   title="Delete"
                 >
-                  <i className="bi-trash" />
+                  <i className="bi-trash icon-sm" />
                   Delete
                 </button>
               </div>
