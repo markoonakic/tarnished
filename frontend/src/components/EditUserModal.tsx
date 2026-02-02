@@ -88,7 +88,7 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
       aria-labelledby="edit-modal-title"
     >
       <div className="bg-bg1 rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b border-primary">
+        <div className="flex justify-between items-center p-4 border-b border-tertiary">
           <h3 id="edit-modal-title" className="text-primary font-medium">Edit User</h3>
           <button
             onClick={onClose}
@@ -100,7 +100,7 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="pb-4 border-b border-primary">
+          <div className="pb-4 border-b border-tertiary">
             <p className="text-sm text-muted">Email</p>
             <p className="text-primary font-medium">{user.email}</p>
           </div>
@@ -158,7 +158,7 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
             />
           </div>
 
-          <div className="flex justify-between items-center pt-4 border-t border-primary">
+          <div className="flex justify-between items-center pt-4 border-t border-tertiary">
             <button
               type="button"
               onClick={handleDelete}

@@ -41,7 +41,7 @@ export default function StatusHistoryModal({
       aria-labelledby="status-history-title"
     >
       <div className="bg-bg1 rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b border-primary">
+        <div className="flex justify-between items-center p-4 border-b border-tertiary">
           <h3 id="status-history-title" className="text-lg font-semibold text-primary">Status History</h3>
           <button onClick={onClose} className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded cursor-pointer">
             <i className="bi bi-x-lg text-xl" />

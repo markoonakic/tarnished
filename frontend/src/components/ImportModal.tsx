@@ -118,7 +118,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
         className="bg-bg1 rounded-lg max-w-md w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center p-4 border-b border-primary">
+        <div className="flex justify-between items-center p-4 border-b border-tertiary">
           <h3 id="import-modal-title" className="text-primary font-medium">Import Data</h3>
           <button
             onClick={handleClose}

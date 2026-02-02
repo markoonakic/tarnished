@@ -60,7 +60,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
       aria-labelledby="modal-title"
     >
       <div className="bg-bg1 rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b border-primary">
+        <div className="flex justify-between items-center p-4 border-b border-tertiary">
           <h3 id="modal-title" className="text-primary font-medium">Create User</h3>
           <button
             onClick={onClose}
@@ -106,7 +106,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-primary">
+          <div className="flex justify-end gap-3 pt-4 border-t border-tertiary">
             <button
               type="button"
               onClick={onClose}
