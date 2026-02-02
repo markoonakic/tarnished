@@ -206,14 +206,14 @@ export default function ApplicationDetail() {
               to={`/applications/${id}/edit`}
               className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
             >
-              <i className="bi-pencil text-sm"></i>
+              <i className="bi-pencil icon-sm"></i>
               Edit
             </Link>
             <button
               onClick={handleDelete}
               className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
             >
-              <i className="bi-trash text-sm"></i>
+              <i className="bi-trash icon-sm"></i>
               Delete
             </button>
           </div>
