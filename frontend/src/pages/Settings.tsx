@@ -308,7 +308,7 @@ export default function Settings() {
                             onClick={() => startEditStatus(status)}
                             className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
                           >
-                            <i className="bi-pencil text-xs"></i>
+                            <i className="bi-pencil icon-xs"></i>
                             Edit
                           </button>
                         )}
@@ -317,7 +317,7 @@ export default function Settings() {
                             onClick={() => handleDeleteStatus(status)}
                             className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
                           >
-                            <i className="bi-trash text-xs"></i>
+                            <i className="bi-trash icon-xs"></i>
                             Delete
                           </button>
                         )}
@@ -420,14 +420,14 @@ export default function Settings() {
                               onClick={() => startEditRoundType(type)}
                               className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
                             >
-                              <i className="bi-pencil text-xs"></i>
+                              <i className="bi-pencil icon-xs"></i>
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteRoundType(type)}
                               className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
                             >
-                              <i className="bi-trash text-xs"></i>
+                              <i className="bi-trash icon-xs"></i>
                               Delete
                             </button>
                           </>
