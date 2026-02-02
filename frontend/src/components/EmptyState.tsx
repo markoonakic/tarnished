@@ -16,7 +16,7 @@ export default function EmptyState({ message, subMessage, icon, action }: Props)
       aria-label={message}
     >
       {icon && (
-        <i className={`${icon} text-5xl text-muted mb-4`} aria-hidden="true" />
+        <i className={`${icon} icon-2xl text-muted mb-4`} aria-hidden="true" />
       )}
 
       <p className="text-sm text-muted leading-relaxed max-w-md">
