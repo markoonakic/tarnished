@@ -10,19 +10,19 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-Phase: 1.1.1 of 7 (Frontend refactor - complete theme system migration)
-Plan: 12 of 13 in current phase (UAT gap closure - universal dropdown component implemented)
-Status: In Progress - UAT gaps #1, #2, #3, #5, #7, #9 closed, awaiting remaining UAT gap plans (#6, #8)
-Last activity: 2026-02-01 — Completed plan 01.1.1-12 (universal Dropdown component with 6-layer rule, UAT gap #5 closed)
+Phase: 1.1.2 of 8 (UI inconsistency fixes)
+Plan: 07 of 7 in current phase (Page icon sizing refactoring)
+Status: Complete - All 7 plans executed
+Last activity: 2026-02-02T13:53:50Z — Completed 01.1.2-07 (Page icon sizing refactoring)
 
-Progress: [█████████░] 40% (Phase 1 complete, Phase 1.1 complete, Phase 1.1.1: 12/13 UAT plans executed)
+Progress: [██████████] 84% (38/45 plans complete - Phase 1 complete, Phase 1.1 complete, Phase 1.1.1 complete, Phase 1.1.2 complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 26
+- Total plans completed: 38
 - Average duration: 7 min
-- Total execution time: 2.9 hours
+- Total execution time: 3.7 hours
 
 **By Phase:**
 
@@ -31,13 +31,14 @@ Progress: [█████████░] 40% (Phase 1 complete, Phase 1.1 comp
 | 1 | 11/11 executed | 67 min | 6 min |
 | 1.1 | 2/2 executed | 7 min | 4 min |
 | 1.1.1 | 13/13 executed | 32 min | 2 min |
+| 1.1.2 | 7/7 executed | 13 min | 2 min |
 | 1.2 | 0/0 | - | - |
 | 2 | 0/2 | - | - |
 | 3 | 0/3 | - | - |
 | 4 | 0/3 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 2 min (01.1.1-09), 11 min (01.1.1-11), 1 min (01.1.1-12), 1 min (01.1.1-13)
+- Last 5 plans: 2 min (01.1.2-03), 1 min (01.1.2-04), 1 min (01.1.2-05), 1 min (01.1.2-06), 1 min (01.1.2-07)
 - Trend: Consistent, efficient
 
 *Updated after each plan completion*
@@ -114,7 +115,8 @@ Recent decisions affecting current work:
 - [01.1.1-05]: PasswordInput uses bg-bg2 for container, proper toggle button with transition-all duration-200 ease-in-out
 - [01.1.1-05]: ProgressBar uses theme colors (bg-bg3 track, bg-aqua fill, text-fg4 label)
 - [01.1.1-06]: Complex utility components migration complete - MediaPlayer, RoundCard, SankeyChart, Layout all theme-compliant
-- [01.1.1-06]: RoundCard base container uses bg-secondary (bg-bg1) per 5-layer rule for base card containers
+- [01.1.1-06]: RoundCard base container uses bg-secondary (bg-bg1) per 5-layer rule for base card containers [CORRECTED by 01.1.2-02: RoundCard uses bg-bg2 since nested in bg-bg1 parent]
+- [01.1.2-02]: RoundCard 5-layer backgrounds and separator colors - base container now uses bg-bg2, interior elements use bg-bg3, separators use border-tertiary [IMPLEMENTED]
 - [01.1.1-06]: MediaPlayer uses bg-bg2 for modal content (per modal reset rule - Gap Closure 01-06)
 - [01.1.1-06]: SankeyChart uses CSS variables + centralized colors constant for theme colors
 - [01.1.1-06]: Layout navigation uses text-aqua with hover:text-aqua-bright, bg-secondary for nav
@@ -152,9 +154,35 @@ Recent decisions affecting current work:
 - [01.1.1-13]: UAT gap #9 (navigation link transition speed) closed - navigation links now use duration-100 ease-in-out (2x faster than standard button duration-200) for snappier page navigation feel [CLOSED]
 - [01.1.1-13]: Navigation link transition specification corrected - DESIGN_GUIDELINES.md updated to specify duration-100 ease-in-out for all navigation links [DOCUMENTED]
 - [01.1.1-13]: All 5 navigation links updated - Layout.tsx (main nav), ApplicationDetail.tsx (Back to Applications, View Job Posting), Applications.tsx (company links) all use duration-100 ease-in-out [IMPLEMENTED]
+- [01.1.2-01]: Dropdown component bug fixes complete - removed ${hoverBg} from base class (was causing permanent hover background), added focus:ring-1 focus:ring-aqua-bright to trigger, added bg-bg0 background + ring to menu, replaced text checkmark with Bootstrap Icons bi-check with text-green/text-green-bright colors [CLOSED]
+- [01.1.2-01]: Focused option background uses explicit bg-bg4 class instead of dynamic hoverBg - prevents permanent background coloring bug [IMPLEMENTED]
+- [01.1.2-01]: Checkmark icon uses Bootstrap Icons bi-check instead of text "✓" - consistent iconography with rest of application [IMPLEMENTED]
+- [01.1.2-01]: Menu has bg-bg0 background and ring-1 ring-aqua-bright when open - matches focused input behavior [IMPLEMENTED]
+- [01.1.2-02]: RoundCard 5-layer backgrounds and separator colors complete - base container changed from bg-secondary to bg-bg2 for proper 5-layer separation from parent bg-bg1, interior elements (media items, transcript items, transcript summary) changed to bg-bg3, separators changed from border-primary to border-tertiary [CLOSED]
+- [01.1.2-02]: RoundCard pattern established - nested containers follow 5-layer rule (parent bg-bgX -> child bg-bg(X+1)), internal separators use border-tertiary for subtle visual division, base containers use color-only separation without borders [IMPLEMENTED]
+- [01.1.2-03]: Modal separator standardization complete - all 8 modal separators (CreateUserModal 2, EditUserModal 3, StatusHistoryModal 1, MediaPlayer 1, ImportModal 1) now use border-tertiary instead of border-primary for consistent, subtler visual separation [CLOSED]
+- [01.1.2-03]: Modal separator pattern confirmed - all modal header, footer, and content separators use border-tertiary per DESIGN_GUIDELINES.md [IMPLEMENTED]
+- [01.1.2-04]: DESIGN_GUIDELINES.md documentation complete - separator 5-layer rule with mapping table, dropdown focus ring specification, checkmark icon details (bi-check with green colors), and RoundCard 5-layer application (bg-bg2 base, bg-bg3 interior) all documented [IMPLEMENTED]
+- [01.1.2-05]: Bootstrap Icons ::before override and icon sizing utilities complete - added .bi::before { font-size: inherit !important; } override, created 6 icon sizing utilities (.icon-xs through .icon-2xl) with rem-based font sizes and line-height: 1 for consistent icon sizing [IMPLEMENTED]
+- [01.1.2-05]: Bootstrap Icons ::before pseudo-element requires font-size: inherit !important to respond to parent sizing utilities - Bootstrap Icons are font-based (rendered in ::before) and don't respond to Tailwind text-* utilities [IMPLEMENTED]
+- [01.1.2-05]: Icon sizing utilities use rem units for scalability - .icon-xs (12px), .icon-sm (14px), .icon-md (16px), .icon-lg (18px), .icon-xl (20px), .icon-2xl (48px) with line-height: 1 for better vertical alignment [IMPLEMENTED]
+- [01.1.2-06]: Dropdown icon sizing utilities complete - updated iconSizeClasses mapping to use icon utilities (.icon-xs, .icon-sm, .icon-md, .icon-lg) instead of explicit width/height classes (w-[14px] h-[14px], etc.) [IMPLEMENTED]
+- [01.1.2-06]: Dropdown component now uses dedicated icon sizing utilities for consistency with the rest of the application - chevron and checkmark icons scale proportionally with dropdown size (xs=12px, sm=14px, md=16px, lg=18px) [IMPLEMENTED]
+- [01.1.2-07]: Page icon sizing refactoring complete - migrated 8 icons across Admin.tsx, ApplicationDetail.tsx, and Settings.tsx from text utilities (text-xs/text-sm) to icon utilities (icon-xs/icon-sm) [IMPLEMENTED]
+- [01.1.2-07]: Icon sizing by context established - table action buttons use icon-xs (12px) for compact layout, standard action buttons use icon-sm (14px) for better visibility [IMPLEMENTED]
+- [Phase 1.1.2]: UI Inconsistency Fixes complete - 7 plans executed, icon sizing infrastructure fully implemented and applied to all relevant pages [PHASE COMPLETE]
 
 ### Roadmap Evolution
 
+- **2026-02-02**: Phase 1.1.2 plan 01.1.2-07 complete - Page icon sizing refactoring (Admin.tsx, ApplicationDetail.tsx, Settings.tsx)
+- **2026-02-02**: Phase 1.1.2 plan 01.1.2-06 complete - Dropdown icon sizing utilities (updated to use .icon-xs, .icon-sm, .icon-md, .icon-lg)
+- **2026-02-02**: Phase 1.1.2 plan 01.1.2-05 complete - Bootstrap Icons ::before override and icon sizing utilities (.icon-xs through .icon-2xl)
+- **2026-02-02**: Phase 1.1.2 complete - all 6 plans executed (Dropdown bug fixes, RoundCard 5-layer backgrounds, modal separator standardization, DESIGN_GUIDELINES.md documentation, Bootstrap Icons sizing infrastructure, Dropdown icon utilities)
+- **2026-02-02**: Phase 1.1.2 plan 01.1.2-04 complete - DESIGN_GUIDELINES.md documentation (separator 5-layer rule, dropdown focus ring, checkmark icon, RoundCard 5-layer application)
+- **2026-02-02**: Phase 1.1.2 plan 01.1.2-02 complete - RoundCard 5-layer backgrounds and separators (bg-bg2 base, bg-bg3 interior, border-tertiary)
+- **2026-02-02**: Phase 1.1.2 plan 01.1.2-03 complete - modal separator standardization (border-primary → border-tertiary) across 5 modal components
+- **2026-02-02**: Phase 1.1.2 plan 01.1.2-01 complete - Dropdown component bug fixes (hover state, focus ring, menu background, Bootstrap Icons checkmark)
+- **2026-02-02**: Phase 1.1.2 inserted after Phase 1.1.1: "UI Inconsistency Fixes" - urgent fixes for dropdowns, interior round sections, and separator consistency (URGENT)
 - **2026-02-01**: Phase 1.1.1 UAT gap #5 closed - plan 01.1.1-12 created universal Dropdown component with 6-layer rule
 - **2026-02-01**: Phase 1.1.1 UAT gap #9 closed - plan 01.1.1-13 fixed navigation link transition speed from duration-200 to duration-100 (2x faster)
 - **2026-02-01**: Phase 1.1.1 UAT gap #7 closed - plan 01.1.1-12 added table header separators
@@ -177,8 +205,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-01T20:57:49Z
-Stopped at: Completed plan 01.1.1-12 (universal Dropdown component with 6-layer rule - UAT gap #5 closed)
+Last session: 2026-02-02T13:53:50Z
+Stopped at: Completed 01.1.2-07 - Page icon sizing refactoring
 Resume file: None
 
 ## Phase 1.1.1 Gap Closure Summary
