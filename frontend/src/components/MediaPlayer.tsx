@@ -95,7 +95,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
             aria-label="Close"
             className="text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded cursor-pointer"
           >
-            <i className="bi bi-x-lg text-xl" />
+            <i className="bi bi-x-lg icon-xl" />
           </button>
         </div>
 
@@ -121,7 +121,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
             <div className="py-8">
               <div className="flex justify-center mb-4">
                 <div className="w-24 h-24 rounded-full bg-tertiary flex items-center justify-center">
-                  <i className="bi bi-music-note-beamed text-5xl text-accent-orange" />
+                  <i className="bi bi-music-note-beamed icon-2xl text-accent-orange" />
                 </div>
               </div>
               <audio
