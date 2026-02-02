@@ -95,7 +95,7 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
             aria-label="Close modal"
             className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded cursor-pointer"
           >
-            <i className="bi bi-x-lg text-xl" />
+            <i className="bi bi-x-lg icon-xl" />
           </button>
         </div>
 
@@ -165,7 +165,7 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
               disabled={isCurrentUser || loading}
               className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
             >
-              <i className="bi-trash" />
+              <i className="bi-trash icon-sm" />
               Delete
             </button>
             <div className="flex gap-3">
