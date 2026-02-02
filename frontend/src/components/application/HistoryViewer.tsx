@@ -84,7 +84,7 @@ export default function HistoryViewer({ applicationId }: Props) {
 
         {!history || history.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <i className="bi-clock-history text-5xl text-muted mb-4" aria-hidden="true" />
+            <i className="bi-clock-history icon-2xl text-muted mb-4" aria-hidden="true" />
             <p className="text-sm text-muted">No status changes recorded yet.</p>
             <p className="text-xs text-muted mt-2">History will appear here when you update the application status.</p>
           </div>
@@ -108,7 +108,7 @@ export default function HistoryViewer({ applicationId }: Props) {
                         >
                           {entry.from_status.name}
                         </span>
-                        <i className="bi-arrow-right text-muted text-xs" />
+                        <i className="bi-arrow-right text-muted icon-xs" />
                       </>
                     ) : (
                       <span className="text-xs text-muted italic">New</span>
@@ -137,7 +137,7 @@ export default function HistoryViewer({ applicationId }: Props) {
                     className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-xs disabled:opacity-50 flex-shrink-0 cursor-pointer"
                     title="Delete"
                   >
-                    <i className="bi-trash text-xs"></i>
+                    <i className="bi-trash icon-xs"></i>
                     Delete
                   </button>
                 )}
