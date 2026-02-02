@@ -14,8 +14,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: UI/UX & CSS Fixes** - Visual consistency and styling improvements
 - [x] **Phase 1.1: Theme System Refactor (INSERTED)** - Fix color system for seamless theme switching
-- [ ] **Phase 1.1.1: Frontend refactor - complete theme system migration (INSERTED)** - Ensure all components use theme system and follow design guidelines (Gap Closure: 4/13 plans remaining)
-- [ ] **Phase 1.1.2: UI Inconsistency Fixes (INSERTED)** - Fix dropdowns, interior round sections, and separators
+- [x] **Phase 1.1.1: Frontend refactor - complete theme system migration (INSERTED)** - All components use theme system and follow design guidelines
+- [x] **Phase 1.1.2: UI Inconsistency Fixes (INSERTED)** - Fix dropdowns, interior round sections, and separators
 - [ ] **Phase 1.2: Repository Cleanup (INSERTED)** - Clean repository before push
 - [ ] **Phase 1.3: Analytics Page (INSERTED)** - Analytics page fixes and improvements
 - [ ] **Phase 1.4: Theme Switching Implementation (INSERTED)** - Implement theme switching + fix hardcoded colors
@@ -130,7 +130,7 @@ User Acceptance Testing found 7 major gaps requiring closure:
 
 ### Phase 1.1.2: UI Inconsistency Fixes (INSERTED)
 
-**Goal**: UI inconsistencies are fixed across dropdowns, interior round sections, and separators
+**Goal**: UI inconsistencies are fixed across dropdowns, interior round sections, separators, and icon sizing
 
 **Depends on**: Phase 1.1.1 (Frontend refactor - complete theme system migration)
 
@@ -140,21 +140,41 @@ User Acceptance Testing found 7 major gaps requiring closure:
 1. All dropdowns follow consistent 6-layer rule with proper styling
 2. Interior round sections use consistent backgrounds and borders
 3. All separators follow consistent border pattern (border-tertiary)
-4. No visual inconsistencies across affected components
+4. Icons use consistent sizing system across entire application
+5. No visual inconsistencies across affected components
 
-**Plans**: 4 plans in 3 waves
+**Plans**: 13 plans in 4 waves
 
 Plans:
-- [ ] 01.1.2-01: Fix Dropdown hover bug and add focus ring — 2 tasks (dropdown component)
-- [ ] 01.1.2-02: Fix RoundCard backgrounds and separators — 1 task (5-layer rule)
-- [ ] 01.1.2-03: Standardize modal separators — 1 task (5 modal components)
-- [ ] 01.1.2-04: Update DESIGN_GUIDELINES.md — 1 task (documentation)
+- [x] 01.1.2-01: Fix Dropdown hover bug and add focus ring — 2 tasks (dropdown component)
+- [x] 01.1.2-02: Fix RoundCard backgrounds and separators — 1 task (5-layer rule)
+- [x] 01.1.2-03: Standardize modal separators — 1 task (5 modal components)
+- [x] 01.1.2-04: Update DESIGN_GUIDELINES.md — 1 task (documentation)
+- [x] 01.1.2-05: Add Bootstrap Icons ::before override and icon sizing utilities — 2 tasks (index.css)
+- [x] 01.1.2-06: Update Dropdown to use icon utilities — 1 task (Dropdown.tsx)
+- [x] 01.1.2-07: Refactor icons in Admin, ApplicationDetail, Settings pages — 3 tasks (8 icons)
+- [x] 01.1.2-08: Refactor icons in Applications, DocumentSection, EmptyState — 3 tasks (7 icons)
+- [x] 01.1.2-09: Refactor icons in modal components — 4 tasks (6 icons)
+- [x] 01.1.2-10: Refactor icons in RoundCard, RoundForm — 2 tasks (12 icons)
+- [x] 01.1.2-11: Refactor icons in HistoryViewer, StatusHistoryModal — 2 tasks (7 icons)
+- [x] 01.1.2-12: Refactor icons in dashboard components — 2 tasks (8 icons)
+- [x] 01.1.2-13: Update DESIGN_GUIDELINES.md with icon sizing system — 4 tasks (documentation)
 
 **Details**:
-Urgent UI fixes discovered during Phase 1.1.1 review. Three specific areas need attention:
+Urgent UI fixes discovered during Phase 1.1.1 review and UAT. Four specific areas need attention:
 - Dropdowns: Ensure all dropdowns follow universal Dropdown component patterns with 6-layer rule
 - Interior round sections: Fix inconsistent backgrounds and borders in rounded container elements
 - Separator consistency: Ensure all separators use border-tertiary consistently
+- Icon sizing system: Bootstrap Icons don't respond to text-* utilities; create dedicated icon sizing utilities (.icon-xs through .icon-2xl) and refactor all 51 icon usages across 19 files
+
+**Gap Closure (Plans 05-13):**
+UAT found a MAJOR gap with icon sizing:
+- Bootstrap Icons are font-based (rendered in ::before pseudo-element) and don't respond to Tailwind text-* utilities or explicit width/height
+- Current codebase has no icon sizing utilities and no consistent system
+- 51 icon usages across 19 files using ad-hoc text utilities (text-xs, text-sm, text-base, text-xl, text-5xl)
+- Dropdown component was the ONLY place using explicit w-[14px] h-[14px] sizing (inconsistent)
+
+Solution: Add .bi::before override, create icon sizing utilities (.icon-xs through .icon-2xl), refactor all 51 icon usages, update documentation.
 
 ### Phase 1.2: Repository Cleanup (INSERTED)
 
@@ -169,13 +189,16 @@ Urgent UI fixes discovered during Phase 1.1.1 review. Three specific areas need 
 2. Duplicate/unused files are deleted
 3. Git status shows only meaningful changes
 
-**Plans**: TBD
+**Plans**: 4 plans in 4 waves
 
 Plans:
-- [ ] TBD (run `/gsd:plan-phase 1.2` to break down)
+- [ ] 01.02-01: Remove junk files and directories — 3 tasks (temp/, temp2/, .playwright-mcp/)
+- [ ] 01.02-02: Delete duplicate and empty phase directories — 4 tasks (01-repository-cleanup, malformed newline dir, 01.1.1-frontend-theme-migration, 01.1-frontend-refactor-cleanup-repo-cleanup)
+- [ ] 01.02-03: Update .gitignore with comprehensive patterns — 2 tasks (temp2/, *.swp, *.swo, session backups, verification)
+- [ ] 01.02-04: Stage deletions and commit cleanup changes — 5 tasks (git add -A, conventional commit, verify clean status)
 
 **Details**:
-Urgent cleanup discovered during Phase 2 CONTEXT AUDIT. Root directory has duplicate files, junk files, and scripts that need organizing before continuing.
+Urgent cleanup discovered during Phase 2 CONTEXT AUDIT. Root directory has duplicate files, junk files, and scripts that need organizing before continuing. Three-wave cleanup approach: (1) Remove obvious junk, (2) Consolidate duplicate phase directories, (3) Stage and commit with proper conventional commit messages.
 
 ### Phase 1.3: Analytics Page (INSERTED)
 
@@ -300,9 +323,9 @@ Phases execute in numeric order: 1 → 1.1 → 1.1.1 → 1.1.2 → 1.2 → 1.3 �
 |-------|----------------|--------|-----------|
 | 1. UI/UX & CSS Fixes | 11/11 | ✓ Complete | 2026-01-31 |
 | 1.1. Theme System Refactor (INSERTED) | 2/2 | ✓ Complete | 2026-02-01 |
-| 1.1.1. Frontend refactor (INSERTED) | 9/13 | Gap Closure | 2026-02-01 |
-| 1.1.2. UI Inconsistency Fixes (INSERTED) | 0/0 | Not started | - |
-| 1.2. Repository Cleanup (INSERTED) | 0/0 | Not started | - |
+| 1.1.1. Frontend refactor (INSERTED) | 13/13 | ✓ Complete | 2026-02-01 |
+| 1.1.2. UI Inconsistency Fixes (INSERTED) | 13/13 | ✓ Complete | 2026-02-02 |
+| 1.2. Repository Cleanup (INSERTED) | 0/3 | Not started | - |
 | 1.3. Analytics Page (INSERTED) | 0/0 | Not started | - |
 | 1.4. Theme Switching (INSERTED) | 0/0 | Not started | - |
 | 2. Complete Data Import | 0/2 | Not started | - |
