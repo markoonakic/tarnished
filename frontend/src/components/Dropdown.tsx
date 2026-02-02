@@ -11,31 +11,65 @@ interface DropdownProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   containerBackground?: 'bg0' | 'bg1' | 'bg2' | 'bg3' | 'bg4';
 }
 
 const sizeClasses = {
+  xs: 'px-3 py-2 text-sm',
   sm: 'px-3 py-1.5 text-sm',
   md: 'px-4 py-2 text-base',
   lg: 'px-5 py-2.5 text-lg',
 };
 
+// Icon sizing using dedicated icon utilities (see index.css)
+// Bootstrap Icons ::before inherits font-size, enabling consistent sizing
 const iconSizeClasses = {
-  sm: 'text-sm',
-  md: 'text-base',
-  lg: 'text-lg',
+  xs: 'icon-xs',  // 12px - match xs dropdown
+  sm: 'icon-sm',  // 14px - match sm dropdown
+  md: 'icon-md',  // 16px - match md dropdown
+  lg: 'icon-lg',  // 18px - match lg dropdown
 };
 
 // Background layer mappings for 6-layer rule: bg0 -> bg1 -> bg2 -> bg3 -> bg4 -> bg-h -> (wrap)
+// Per DESIGN_GUIDELINES.md: Trigger = container + 1, Selected = container + 2, Hover = container + 3
 const getLayerClass = (baseLayer: string, offset: number): string => {
-  const layers = ['bg-bg0', 'bg-bg1', 'bg-bg2', 'bg-bg3', 'bg-bg4', 'bg-h'];
+  const layers = ['bg-bg0', 'bg-bg1', 'bg-bg2', 'bg-bg3', 'bg-bg4', 'bg-bg-h'];
   const baseIndex = layers.indexOf(`bg-${baseLayer}`);
   if (baseIndex === -1) return 'bg-bg1'; // default fallback
 
   const targetIndex = (baseIndex + offset) % 6;
   return layers[targetIndex];
 };
+
+// Static class mappings for Tailwind JIT compatibility
+// These must be complete class strings that Tailwind can detect at build time
+// Per 6-layer rule: non-selected = container + 1 layer (base state)
+const nonSelectedClasses = {
+  bg0: 'bg-bg1',      // bg0 + 1
+  bg1: 'bg-bg2',      // bg1 + 1
+  bg2: 'bg-bg3',      // bg2 + 1
+  bg3: 'bg-bg4',      // bg3 + 1
+  bg4: 'bg-bg-h',     // bg4 + 1
+} as const;
+
+// Per 6-layer rule: hover = container + 3 layers
+const hoverClasses = {
+  bg0: 'hover:bg-bg3',   // bg0 + 3
+  bg1: 'hover:bg-bg4',   // bg1 + 3
+  bg2: 'hover:bg-bg-h',  // bg2 + 3
+  bg3: 'hover:bg-bg0',   // bg3 + 3 (wrap)
+  bg4: 'hover:bg-bg1',   // bg4 + 3 (wrap)
+} as const;
+
+// Per 6-layer rule: selected = container + 2 layers
+const selectedClasses = {
+  bg0: 'bg-bg2',      // bg0 + 2
+  bg1: 'bg-bg3',      // bg1 + 2
+  bg2: 'bg-bg4',      // bg2 + 2
+  bg3: 'bg-bg-h',     // bg3 + 2
+  bg4: 'bg-bg0',      // bg4 + 2 (wrap)
+} as const;
 
 export default function Dropdown({
   options,
@@ -52,10 +86,11 @@ export default function Dropdown({
 
   const selectedOption = options.find((opt) => opt.value === value);
 
-  // Calculate background classes based on 6-layer rule
+  // Use static class mappings for Tailwind JIT compatibility
   const triggerBg = getLayerClass(containerBackground, 1);
-  const selectedBg = getLayerClass(containerBackground, 2);
-  const hoverBg = getLayerClass(containerBackground, 3);
+  const nonSelectedBg = nonSelectedClasses[containerBackground as keyof typeof nonSelectedClasses];
+  const selectedBg = selectedClasses[containerBackground as keyof typeof selectedClasses];
+  const hoverClass = hoverClasses[containerBackground as keyof typeof hoverClasses];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -144,9 +179,8 @@ export default function Dropdown({
           w-full flex items-center justify-between gap-3
           ${triggerBg} border-0 rounded
           text-fg1 hover:border-aqua-bright
-          focus:outline-none focus:border-aqua-bright
-          focus:ring-1 focus:ring-aqua-bright
-          ${isOpen ? 'border-aqua-bright' : ''}
+          focus:outline-none focus:ring-1 focus:ring-aqua-bright
+          ${isOpen ? 'ring-1 ring-aqua-bright' : ''}
           ${sizeClasses[size]}
           transition-all duration-200 ease-in-out
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -200,14 +234,14 @@ export default function Dropdown({
                   ${
                     isSelected
                       ? `${selectedBg} text-fg0`
-                      : `bg-transparent text-fg1 hover:${hoverBg}`
+                      : `${nonSelectedBg} text-fg1 ${hoverClass}`
                   }
                   ${isFocused ? 'bg-bg4' : ''}
                 `}
               >
                 {option.label}
                 {isSelected && (
-                  <i className={`bi-check float-right ${isFocused ? 'text-green-bright' : 'text-green'}`} />
+                  <i className={`bi-check ${iconSizeClasses[size]} float-right ${isFocused ? 'text-green-bright' : 'text-green'}`} />
                 )}
               </button>
             );
