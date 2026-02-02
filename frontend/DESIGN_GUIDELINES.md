@@ -442,8 +442,8 @@ Selected state uses Bootstrap Icons checkmark:
 - Icon: `<i className="bi-check"></i>`
 - Default color: `text-green` (#98971a - darker green)
 - Hover/focused color: `text-green-bright` (#b8bb26 - lighter green)
-- **Scales using width/height** (xs=14px, sm=14px, md=16px, lg=18px)
-- **Note:** Bootstrap Icons use explicit `width` and `height` for sizing, NOT Tailwind `text-*` utilities (see Icon section below)
+- **Scales using icon utilities** (xs=icon-xs, sm=icon-sm, md=icon-md, lg=icon-lg)
+- See Icon Sizing section for details on the icon utility system
 
 ### Implementation Notes
 
