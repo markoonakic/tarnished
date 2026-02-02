@@ -719,6 +719,8 @@ bg4 → Nested modal elements
 
 - **Colors:** Always use `--color-*` CSS variables
 - **Icons:** Bootstrap Icons only — `<i className="bi-*" />` — NO other icon libraries
+  - **Sizing:** Use icon utilities (.icon-xs through .icon-2xl) — NEVER use text-* utilities
+  - .bi::before override enables icon sizing utilities to work correctly
 - **Buttons:** 4 variants (Primary, Neutral, Danger, Icon-only)
   - Icon-only: `px-3 py-1.5` (asymmetric for square proportions)
   - Danger: ALL variants use `bg-transparent text-red hover:bg-bg2 hover:text-red-bright`
