@@ -6,8 +6,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import Application, ApplicationStatus, ApplicationStatusHistory, User
-from app.schemas.analytics import AnalyticsKPIsResponse, HeatmapData, HeatmapDay, SankeyData, SankeyLink, SankeyNode
+from app.models import Application, ApplicationStatus, ApplicationStatusHistory, Round, RoundType, User
+from app.schemas.analytics import (
+    AnalyticsKPIsResponse,
+    CandidateProgress,
+    FunnelData,
+    HeatmapData,
+    HeatmapDay,
+    InterviewRoundsResponse,
+    OutcomeData,
+    RoundProgress,
+    SankeyData,
+    SankeyLink,
+    SankeyNode,
+    TimelineData,
+)
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
@@ -64,13 +77,22 @@ async def get_sankey_data(
             'to_color': transition.to_status_color,
         })
 
-    # Collect all unique statuses that appear in journeys
+    # Terminal statuses that get stage-specific nodes
+    TERMINAL_STATUSES = {"Rejected", "Withdrawn"}
+
+    # Collect all unique statuses and track transitions to terminal statuses
     seen_statuses = set()
+    terminal_transitions = defaultdict(set)  # {terminal_status: {from_status1, from_status2, ...}}
+
     for transitions in app_transitions.values():
         for t in transitions:
             if t['from_status']:
                 seen_statuses.add(t['from_status'])
             seen_statuses.add(t['to_status'])
+
+            # Track which stages lead to terminal statuses
+            if t['to_status'] in TERMINAL_STATUSES and t['from_status']:
+                terminal_transitions[t['to_status']].add(t['from_status'])
 
     # Build nodes: start with Applications source, then each unique status
     nodes = [SankeyNode(id="applications", name="Applications", color=SANKEY_SOURCE_COLOR)]
@@ -87,13 +109,26 @@ async def get_sankey_data(
             if status_name in status_name_to_color:
                 break
 
-        node_id = f"status_{status_name.lower().replace(' ', '_').replace('/', '_')}"
-        status_name_to_node_id[status_name] = node_id
-        nodes.append(SankeyNode(
-            id=node_id,
-            name=status_name,
-            color=status_name_to_color.get(status_name, SANKEY_SOURCE_COLOR)
-        ))
+        # For terminal statuses, create stage-specific nodes
+        if status_name in terminal_transitions:
+            # Create one node per source stage that leads to this terminal status
+            for from_stage in sorted(terminal_transitions[status_name]):
+                node_id = f"terminal_{status_name.lower()}_{from_stage.lower().replace(' ', '_').replace('/', '_')}"
+                status_name_to_node_id[(from_stage, status_name)] = node_id
+                nodes.append(SankeyNode(
+                    id=node_id,
+                    name=status_name,  # Label is just "Rejected" or "Withdrawn"
+                    color=status_name_to_color.get(status_name, SANKEY_SOURCE_COLOR)
+                ))
+        else:
+            # Non-terminal statuses get single node
+            node_id = f"status_{status_name.lower().replace(' ', '_').replace('/', '_')}"
+            status_name_to_node_id[status_name] = node_id
+            nodes.append(SankeyNode(
+                id=node_id,
+                name=status_name,
+                color=status_name_to_color.get(status_name, SANKEY_SOURCE_COLOR)
+            ))
 
     # Count how many applications took each path segment
     # Prevent cycles by tracking visited statuses per application
@@ -113,7 +148,13 @@ async def get_sankey_data(
                     # Status not in our tracked statuses, skip
                     continue
 
-            target_id = status_name_to_node_id.get(t['to_status'])
+            # Determine target node - use stage-specific for terminal statuses
+            if t['to_status'] in TERMINAL_STATUSES and t['from_status']:
+                # Use (from_stage, to_status) tuple key for terminal statuses
+                target_id = status_name_to_node_id.get((t['from_status'], t['to_status']))
+            else:
+                target_id = status_name_to_node_id.get(t['to_status'])
+
             if not target_id:
                 continue
 
@@ -325,9 +366,8 @@ async def get_weekly_data(
         # Note: applications is a list of date objects (from .scalars())
         days_diff = (today - app).days
         week_num = min(days_diff // 7, weeks_count - 1)
-        week_label = f"Week {week_num + 1}"
 
-        weekly_data[week_label]["applications"] += 1
+        weekly_data[week_num]["applications"] += 1
 
         # Check if this application reached interviewing stage
         # We need to query the current status
@@ -352,17 +392,239 @@ async def get_weekly_data(
         # Note: interviewing_apps is a list of date objects (from .scalars())
         days_diff = (today - app).days
         week_num = min(days_diff // 7, weeks_count - 1)
-        week_label = f"Week {week_num + 1}"
-        weekly_data[week_label]["interviews"] += 1
+        weekly_data[week_num]["interviews"] += 1
 
-    # Convert to list format
+    # Convert to list format with numeric sorting
     data = [
         {
-            "week": week,
+            "week": f"Week {week_num + 1}",
             "applications": stats["applications"],
             "interviews": stats["interviews"],
         }
-        for week, stats in sorted(weekly_data.items())
+        for week_num, stats in sorted(weekly_data.items())
     ]
 
     return data
+
+
+@router.get("/interview-rounds", response_model=InterviewRoundsResponse)
+async def get_interview_rounds_analytics(
+    period: str = "all",
+    round_type: str | None = None,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get interview rounds analytics data.
+
+    Returns funnel data (conversion rates), outcome data (Passed/Failed/Pending/Withdrew per round),
+    timeline data (average days in stage), and candidate progression data.
+
+    Period options: 7d, 30d, 3m, all
+    round_type: optional filter by round type name
+    """
+    today = date.today()
+
+    # Calculate date range based on period (applies to round completion date)
+    if period == "7d":
+        start_date = today - timedelta(days=7)
+    elif period == "30d":
+        start_date = today - timedelta(days=30)
+    elif period == "3m":
+        start_date = today - timedelta(days=90)
+    elif period == "all":
+        start_date = date(2000, 1, 1)  # Far past date for "all time"
+    else:
+        start_date = date(2000, 1, 1)  # Default to all
+
+    # Build base conditions for all queries
+    base_conditions = [
+        Application.user_id == user.id,
+        or_(Round.completed_at >= start_date, Round.completed_at.is_(None)),
+    ]
+
+    # Add round_type filter if specified
+    if round_type:
+        base_conditions.append(RoundType.name == round_type)
+
+    # Funnel Data Query: Aggregate rounds by round type
+    funnel_result = await db.execute(
+        select(
+            RoundType.name.label('round_type'),
+            func.count(Round.id).label('total'),
+            func.sum(func.case((Round.outcome == "Passed", 1), else_=0)).label('passed'),
+        )
+        .select_from(Round)
+        .join(RoundType, Round.round_type_id == RoundType.id)
+        .join(Application, Round.application_id == Application.id)
+        .where(*base_conditions)
+        .group_by(RoundType.name)
+        .order_by(RoundType.name)
+    )
+    funnel_rows = funnel_result.all()
+
+    funnel_data = [
+        FunnelData(
+            round=row.round_type,
+            count=row.total,
+            passed=row.passed or 0,
+            conversion_rate=round((row.passed / row.total * 100) if row.total > 0 else 0, 1),
+        )
+        for row in funnel_rows
+    ]
+
+    # Outcome Data Query: Count outcomes by round type
+    outcome_result = await db.execute(
+        select(
+            RoundType.name.label('round_type'),
+            Round.outcome,
+            func.count(Round.id).label('count'),
+        )
+        .select_from(Round)
+        .join(RoundType, Round.round_type_id == RoundType.id)
+        .join(Application, Round.application_id == Application.id)
+        .where(*base_conditions)
+        .group_by(RoundType.name, Round.outcome)
+        .order_by(RoundType.name)
+    )
+    outcome_rows = outcome_result.all()
+
+    # Pivot outcome data to one row per round type
+    outcome_dict: dict[str, dict[str, int]] = {}
+    for row in outcome_rows:
+        round_name = row.round_type
+        outcome_val = row.outcome if row.outcome else "pending"
+
+        if round_name not in outcome_dict:
+            outcome_dict[round_name] = {"passed": 0, "failed": 0, "pending": 0, "withdrew": 0}
+
+        # Map outcome values to categories
+        if outcome_val.lower() == "passed":
+            outcome_dict[round_name]["passed"] = row.count
+        elif outcome_val.lower() == "failed":
+            outcome_dict[round_name]["failed"] = row.count
+        elif outcome_val.lower() == "withdrew":
+            outcome_dict[round_name]["withdrew"] = row.count
+        else:  # pending or any other outcome
+            outcome_dict[round_name]["pending"] = row.count
+
+    outcome_data = [
+        OutcomeData(
+            round=round_name,
+            passed=counts["passed"],
+            failed=counts["failed"],
+            pending=counts["pending"],
+            withdrew=counts["withdrew"],
+        )
+        for round_name, counts in sorted(outcome_dict.items())
+    ]
+
+    # Timeline Data Query: Average days in round by type (only completed rounds)
+    # Get all completed rounds with both scheduled_at and completed_at
+    timeline_result = await db.execute(
+        select(
+            RoundType.name.label('round_type'),
+            Round.scheduled_at,
+            Round.completed_at,
+        )
+        .select_from(Round)
+        .join(RoundType, Round.round_type_id == RoundType.id)
+        .join(Application, Round.application_id == Application.id)
+        .where(
+            *base_conditions,
+            Round.completed_at >= start_date,
+            Round.completed_at.isnot(None),
+            Round.scheduled_at.isnot(None),
+        )
+        .order_by(RoundType.name)
+    )
+    timeline_rows = timeline_result.all()
+
+    # Calculate average days per round type in Python
+    timeline_dict: dict[str, list[float]] = {}
+    for row in timeline_rows:
+        days_diff = (row.completed_at - row.scheduled_at).days
+        if row.round_type not in timeline_dict:
+            timeline_dict[row.round_type] = []
+        timeline_dict[row.round_type].append(days_diff)
+
+    timeline_data = [
+        TimelineData(
+            round=round_type,
+            avg_days=round(sum(days_list) / len(days_list), 1) if days_list else 0.0,
+        )
+        for round_type, days_list in sorted(timeline_dict.items())
+    ]
+
+    # Candidate Progress Query: Get applications with their rounds
+    # First get applications with at least one round
+    apps_with_rounds_result = await db.execute(
+        select(Application.id, ApplicationStatus.name.label('status_name'))
+        .select_from(Application)
+        .join(ApplicationStatus, Application.status_id == ApplicationStatus.id)
+        .join(Round, Round.application_id == Application.id)
+        .where(Application.user_id == user.id)
+        .distinct()
+        .order_by(Application.id)
+    )
+    apps_with_rounds = apps_with_rounds_result.all()
+
+    candidate_progress = []
+
+    for app_row in apps_with_rounds:
+        app_id = app_row.id
+        status_name = app_row.status_name
+
+        # Get all rounds for this application
+        rounds_result = await db.execute(
+            select(
+                RoundType.name.label('round_type'),
+                Round.outcome,
+                Round.completed_at,
+                Round.scheduled_at,
+            )
+            .select_from(Round)
+            .join(RoundType, Round.round_type_id == RoundType.id)
+            .where(Round.application_id == app_id)
+            .order_by(Round.scheduled_at)
+        )
+        rounds = rounds_result.all()
+
+        rounds_completed = []
+        for r in rounds:
+            # Calculate days in round
+            days_in_round = None
+            if r.completed_at and r.scheduled_at:
+                days_in_round = (r.completed_at.date() - r.scheduled_at.date()).days
+
+            rounds_completed.append(
+                RoundProgress(
+                    round_type=r.round_type,
+                    outcome=r.outcome,
+                    completed_at=r.completed_at,
+                    days_in_round=days_in_round,
+                )
+            )
+
+        # Get application details for candidate name and role
+        app_detail_result = await db.execute(
+            select(Application.company, Application.job_title).where(Application.id == app_id)
+        )
+        app_detail = app_detail_result.first()
+
+        candidate_progress.append(
+            CandidateProgress(
+                application_id=app_id,
+                candidate_name=app_detail.company if app_detail else "",
+                role=app_detail.job_title if app_detail else "",
+                rounds_completed=rounds_completed,
+                current_status=status_name,
+            )
+        )
+
+    return InterviewRoundsResponse(
+        funnel_data=funnel_data,
+        outcome_data=outcome_data,
+        timeline_data=timeline_data,
+        candidate_progress=candidate_progress,
+    )
