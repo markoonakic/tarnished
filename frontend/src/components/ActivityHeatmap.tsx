@@ -71,63 +71,50 @@ export default function ActivityHeatmap() {
     }
 
     const today = new Date();
-    // Reset today to midnight for consistent comparison
     today.setHours(0, 0, 0, 0);
 
     let startDate: Date;
     let endDate: Date;
 
     if (viewMode === 'rolling') {
-      // GitHub's algorithm: go back 365 days, then find Sunday on or before that date
+      // Rolling view: 53 weeks from Sunday on-or-before (today-365) to Saturday on-or-after today
       const lookbackDate = new Date(today);
       lookbackDate.setDate(today.getDate() - 365);
-
-      // Find the Sunday on or before the lookback date
-      const dayOfWeek = lookbackDate.getDay(); // 0 = Sunday, 6 = Saturday
+      const dayOfWeek = lookbackDate.getDay();
       startDate = new Date(lookbackDate);
       startDate.setDate(lookbackDate.getDate() - dayOfWeek);
 
-      // End date is today (don't show future dates)
+      // Find Saturday on or after today
+      const endDay = today.getDay();
       endDate = new Date(today);
+      endDate.setDate(today.getDate() + (6 - endDay));
     } else {
-      // Year view: Calculate exact weeks needed to cover the year
-      // Start: Sunday before Jan 1 of the selected year
-      const yearStartDate = new Date(viewMode, 0, 1);
-      const startDay = yearStartDate.getDay();
-      startDate = new Date(yearStartDate);
-      startDate.setDate(yearStartDate.getDate() - startDay); // Go to Sunday before Jan 1
+      // Year view: Sunday before Jan 1 to Saturday after Dec 31
+      const jan1 = new Date(viewMode, 0, 1);
+      const jan1DayOfWeek = jan1.getDay();
+      startDate = new Date(jan1);
+      startDate.setDate(jan1.getDate() - jan1DayOfWeek);
 
-      // End: Saturday after Dec 31 of the selected year (for complete week coverage)
-      const yearEndDate = new Date(viewMode, 11, 31);
-      const endDay = yearEndDate.getDay();
-      endDate = new Date(yearEndDate);
-      endDate.setDate(yearEndDate.getDate() + (6 - endDay)); // Go to Saturday after Dec 31
-
-      // If we're currently in this year, cap at today instead of extending to next year
-      if (viewMode === today.getFullYear() && endDate > today) {
-        endDate = new Date(today);
-      }
+      const dec31 = new Date(viewMode, 11, 31);
+      const dec31DayOfWeek = dec31.getDay();
+      endDate = new Date(dec31);
+      endDate.setDate(dec31.getDate() + (6 - dec31DayOfWeek));
     }
 
-    // Calculate exact number of weeks needed
-    const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const weeksToShow = Math.ceil(daysDiff / 7);
-
-    for (let week = 0; week < weeksToShow; week++) {
+    // GitHub ALWAYS renders complete 53x7 grid
+    for (let week = 0; week < 53; week++) {
       const weekData: CellData[] = [];
-      for (let day = 0; day < DAYS_IN_WEEK; day++) {
+      for (let day = 0; day < 7; day++) {
         const cellDate = new Date(startDate);
-        cellDate.setDate(cellDate.getDate() + week * 7 + day);
+        cellDate.setDate(startDate.getDate() + week * 7 + day);
         cellDate.setHours(0, 0, 0, 0);
 
-        // Only include cells that are within our valid date range
-        if (cellDate <= endDate) {
-          const dateStr = cellDate.toLocaleDateString('en-CA'); // Canadian locale uses YYYY-MM-DD format
-          const count = countMap.get(dateStr) || 0;
-          const level = getLevel(count, data?.max_count ?? 0);
-          weekData.push({ date: dateStr, count, level });
-        }
-        // Don't push placeholder cells - let weeks have variable lengths
+        const dateStr = cellDate.toLocaleDateString('en-CA');
+        const count = countMap.get(dateStr) || 0;
+        const level = getLevel(count, data?.max_count ?? 0);
+
+        // ALWAYS push the cell - GitHub renders all cells
+        weekData.push({ date: dateStr, count, level });
       }
       grid.push(weekData);
     }
@@ -137,27 +124,18 @@ export default function ActivityHeatmap() {
 
   function getMonthLabels(grid: CellData[][]): { label: string; week: number }[] {
     const labels: { label: string; week: number }[] = [];
-    let lastMonth = -1;
-    let lastLabelWeek = -1;
-    const MIN_WEEKS_BETWEEN_LABELS = 3; // 3 weeks * 15px = 45px minimum spacing
+    const seenMonths = new Set<number>();
 
     grid.forEach((week, weekIndex) => {
-      // Skip empty weeks (can happen with variable-length weeks)
       if (week.length === 0) return;
 
       const firstDayOfWeek = new Date(week[0].date);
       const month = firstDayOfWeek.getMonth();
 
-      // Only add label if:
-      // 1. Month changed from previous label, AND
-      // 2. At least MIN_WEEKS_BETWEEN_LABELS weeks since last label
-      if (month !== lastMonth && weekIndex - lastLabelWeek >= MIN_WEEKS_BETWEEN_LABELS) {
+      // Label every month that hasn't been labeled yet
+      if (!seenMonths.has(month)) {
         labels.push({ label: MONTH_LABELS[month], week: weekIndex });
-        lastMonth = month;
-        lastLabelWeek = weekIndex;
-      } else if (month !== lastMonth) {
-        // Month changed but too close to last label - just update lastMonth
-        lastMonth = month;
+        seenMonths.add(month);
       }
     });
 
