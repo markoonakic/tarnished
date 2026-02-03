@@ -137,18 +137,20 @@ export default function ActivityHeatmap() {
 
   function getMonthLabels(grid: CellData[][]): { label: string; week: number }[] {
     const labels: { label: string; week: number }[] = [];
-    const seenMonths = new Set<number>();
+    const seenMonths = new Set<string>();
 
     grid.forEach((week, weekIndex) => {
       if (week.length === 0) return;
 
       const firstDayOfWeek = new Date(week[0].date);
+      const year = firstDayOfWeek.getFullYear();
       const month = firstDayOfWeek.getMonth();
+      const monthKey = `${year}-${month}`;
 
       // Label every month that hasn't been labeled yet
-      if (!seenMonths.has(month)) {
+      if (!seenMonths.has(monthKey)) {
         labels.push({ label: MONTH_LABELS[month], week: weekIndex });
-        seenMonths.add(month);
+        seenMonths.add(monthKey);
       }
     });
 
