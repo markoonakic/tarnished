@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -35,3 +37,48 @@ class AnalyticsKPIsResponse(BaseModel):
     application_to_interview_rate: float
     response_rate: float
     active_opportunities: int
+
+
+# Interview Rounds Analytics Schemas
+
+
+class FunnelData(BaseModel):
+    round: str
+    count: int
+    passed: int
+    conversion_rate: float
+
+
+class OutcomeData(BaseModel):
+    round: str
+    passed: int
+    failed: int
+    pending: int
+    withdrew: int
+
+
+class TimelineData(BaseModel):
+    round: str
+    avg_days: float
+
+
+class RoundProgress(BaseModel):
+    round_type: str
+    outcome: str | None
+    completed_at: datetime | None
+    days_in_round: int | None
+
+
+class CandidateProgress(BaseModel):
+    application_id: str
+    candidate_name: str
+    role: str
+    rounds_completed: list[RoundProgress]
+    current_status: str
+
+
+class InterviewRoundsResponse(BaseModel):
+    funnel_data: list[FunnelData]
+    outcome_data: list[OutcomeData]
+    timeline_data: list[TimelineData]
+    candidate_progress: list[CandidateProgress]
