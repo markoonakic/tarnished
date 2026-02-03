@@ -13,6 +13,7 @@ interface CellData {
   date: string;
   count: number;
   level: number;
+  isPadding?: boolean;  // Marks cells that are for alignment only (not real dates)
 }
 
 export default function ActivityHeatmap() {
@@ -87,39 +88,48 @@ export default function ActivityHeatmap() {
       endDate = new Date(viewMode, 11, 31);  // Dec 31
     }
 
-    // Build grid week by week - weeks may have variable lengths
-    let currentDate = new Date(startDate);
+    // Find the Sunday on or before startDate to ensure proper day-of-week alignment
+    const gridStart = new Date(startDate);
+    const startDayOfWeek = startDate.getDay();  // 0 = Sunday, 1 = Monday, etc.
+    gridStart.setDate(startDate.getDate() - startDayOfWeek);
+
+    // Build complete weeks starting from the Sunday before startDate
+    let currentDate = new Date(gridStart);
 
     while (currentDate <= endDate) {
       const weekData: CellData[] = [];
 
-      // Get the Sunday of the current week (or startDate if it's later)
-      const weekStart = new Date(currentDate);
-      const dayOfWeek = weekStart.getDay();
-      weekStart.setDate(weekStart.getDate() - dayOfWeek);
-
-      // Add days for this week (up to 7 days, but stop at endDate)
+      // Always add exactly 7 cells for this week (Sunday to Saturday)
       for (let i = 0; i < 7; i++) {
-        const cellDate = new Date(weekStart);
-        cellDate.setDate(weekStart.getDate() + i);
+        const cellDate = new Date(currentDate);
+        cellDate.setDate(currentDate.getDate() + i);
         cellDate.setHours(0, 0, 0, 0);
 
-        // Only add if within our date range
+        // Check if this date is within our display range
         if (cellDate >= startDate && cellDate <= endDate) {
           const dateStr = cellDate.toLocaleDateString('en-CA');
           const count = countMap.get(dateStr) || 0;
           const level = getLevel(count, data?.max_count ?? 0);
           weekData.push({ date: dateStr, count, level });
+        } else {
+          // Add a padding cell to maintain alignment
+          weekData.push({
+            date: cellDate.toLocaleDateString('en-CA'),
+            count: 0,
+            level: 0,
+            isPadding: true
+          });
         }
       }
 
-      if (weekData.length > 0) {
+      // Only add week if it has at least one non-padding day
+      const hasRealData = weekData.some(cell => !cell.isPadding);
+      if (hasRealData) {
         grid.push(weekData);
       }
 
-      // Move to next week
-      currentDate = new Date(weekStart);
-      currentDate.setDate(weekStart.getDate() + 7);
+      // Move to next Sunday
+      currentDate.setDate(currentDate.getDate() + 7);
     }
 
     return grid;
@@ -252,8 +262,9 @@ export default function ActivityHeatmap() {
                         width: cellSize,
                         height: cellSize,
                         backgroundColor: getLevelColor(cell.level),
+                        visibility: cell.isPadding ? 'hidden' : 'visible',
                       }}
-                      onMouseEnter={() => setHoveredCell(cell)}
+                      onMouseEnter={() => !cell.isPadding && setHoveredCell(cell)}
                       onMouseLeave={() => setHoveredCell(null)}
                     />
                   ))}
