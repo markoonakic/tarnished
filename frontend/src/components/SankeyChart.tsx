@@ -1,65 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Sankey, Tooltip, Layer, Rectangle } from 'recharts';
+import ReactECharts from 'echarts-for-react';
+import type { EChartsOption } from 'echarts';
 import { getSankeyData } from '../lib/analytics';
 import type { SankeyData } from '../lib/analytics';
 import { colors } from '@/lib/theme';
 import Loading from './Loading';
 import EmptyState from './EmptyState';
-
-interface SankeyNodePayload {
-  name: string;
-  value: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  index: number;
-  color?: string;
-}
-
-function SankeyNode({ x, y, width, height, index, payload }: {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  index: number;
-  payload: SankeyNodePayload;
-}) {
-  // Use node color if available, otherwise fall back to preset colors
-  const fallbackColors = [
-    colors.aqua,
-    colors.green,
-    colors.yellow,
-    colors.orange,
-    colors.red,
-    colors.purple,
-    colors.blue,
-  ];
-  const color = payload.color || fallbackColors[index % fallbackColors.length];
-
-  return (
-    <Layer key={`node-${index}`}>
-      <Rectangle
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={color}
-        fillOpacity={0.9}
-      />
-      <text
-        x={x + width + 6}
-        y={y + height / 2}
-        textAnchor="start"
-        dominantBaseline="middle"
-        fill="var(--fg1)"
-        fontSize={12}
-      >
-        {payload.name}
-      </text>
-    </Layer>
-  );
-}
 
 export default function SankeyChart() {
   const [data, setData] = useState<SankeyData | null>(null);
@@ -95,53 +41,90 @@ export default function SankeyChart() {
     );
   }
 
-  const nodeMap = new Map(data.nodes.map((n, i) => [n.id, i]));
+  // Filter links to ensure both source and target exist in nodes
+  const nodeIds = new Set(data.nodes.map((n) => n.id));
+  const validLinks = data.links.filter(
+    (l) => nodeIds.has(l.source) && nodeIds.has(l.target)
+  );
 
-  const sankeyData = {
-    nodes: data.nodes.map((n) => ({ name: n.name, color: n.color })),
-    links: data.links
-      .filter((l) => nodeMap.has(l.source) && nodeMap.has(l.target))
-      .map((l) => ({
-        source: nodeMap.get(l.source)!,
-        target: nodeMap.get(l.target)!,
-        value: l.value,
-      })),
-  };
-
-  if (sankeyData.links.length === 0) {
+  if (validLinks.length === 0) {
     return (
       <EmptyState message="Not enough data for visualization. Add more applications with different statuses." />
     );
   }
 
+  // ECharts Sankey option with critical parameters for readable visualization
+  const option: EChartsOption = {
+    tooltip: {
+      trigger: 'item',
+      triggerOn: 'mousemove',
+      backgroundColor: colors.bg3,
+      borderColor: colors.aquaBright,
+      borderWidth: 1,
+      borderRadius: 4,
+      textStyle: {
+        color: colors.fg0,
+      },
+      formatter: (params: any) => {
+        if (params.dataType === 'node') {
+          return `${params.name}: ${params.value}`;
+        } else if (params.dataType === 'edge') {
+          return `${params.data.source} → ${params.data.target}: ${params.data.value}`;
+        }
+        return '';
+      },
+    },
+    series: [
+      {
+        type: 'sankey',
+        data: data.nodes.map((n) => ({
+          name: n.name,
+          id: n.id,
+          itemStyle: {
+            color: n.color,
+          },
+        })),
+        links: validLinks.map((l) => ({
+          source: l.source,
+          target: l.target,
+          value: l.value,
+        })),
+        // Critical parameters for readable visualization
+        nodeAlign: 'justify', // Spreads nodes vertically across available space
+        nodeGap: 80, // Vertical spacing between nodes (critical for multiple terminal nodes)
+        layoutIterations: 32, // Layout optimization passes (critical for clean layout)
+        nodeWidth: 20, // Width of each node
+        // Visual styling
+        itemStyle: {
+          borderWidth: 1,
+          borderColor: colors.bg0,
+        },
+        lineStyle: {
+          opacity: 0.4,
+          curveness: 0.5,
+          color: 'gradient', // Uses gradient from source to target node colors
+        },
+        label: {
+          color: colors.fg1,
+          fontSize: 12,
+        },
+        emphasis: {
+          focus: 'adjacency',
+          lineStyle: {
+            opacity: 0.8,
+          },
+        },
+      },
+    ],
+  };
+
   return (
     <div className="w-full overflow-x-auto">
-      <Sankey
-        width={600}
-        height={400}
-        data={sankeyData}
-        node={<SankeyNode x={0} y={0} width={0} height={0} index={0} payload={{ name: '', value: 0, x: 0, y: 0, width: 0, height: 0, index: 0 }} />}
-        nodePadding={50}
-        margin={{ top: 20, right: 200, bottom: 20, left: 20 }}
-        link={{ stroke: 'var(--bg3)' }}
-      >
-        <Tooltip
-          contentStyle={{
-            backgroundColor: colors.bg3,
-            border: `1px solid ${colors.aquaBright}`,
-            borderRadius: '4px',
-            color: colors.fg0,
-            padding: '0.5rem 0.75rem',
-          }}
-          labelStyle={{
-            color: colors.fg0,
-            fontWeight: 600,
-          }}
-          itemStyle={{
-            color: colors.fg0,
-          }}
-        />
-      </Sankey>
+      <ReactECharts
+        option={option}
+        style={{ width: '100%', height: '400px' }}
+        opts={{ renderer: 'svg' }}
+      />
     </div>
   );
 }
