@@ -30,6 +30,10 @@ def get_status_journey(current_status_name: str, statuses: dict) -> list:
     """
     Generate a realistic status journey from 'Applied' to the current status.
 
+    Uses weighted random distribution to create varied journeys for
+    terminal statuses (Rejected, Withdrawn) to test stage-specific
+    Sankey node functionality.
+
     Args:
         current_status_name: The final status of the application
         statuses: Dictionary mapping status names to their IDs
@@ -51,11 +55,45 @@ def get_status_journey(current_status_name: str, statuses: dict) -> list:
     elif current_status_name == 'Accepted':
         journey.extend(['Screening', 'Interviewing', 'Offer', 'Accepted'])
     elif current_status_name == 'Rejected':
-        # Rejection can happen at various stages, add Interviewing for variety
-        journey.extend(['Screening', 'Interviewing', 'Rejected'])
+        # Rejection can happen at various stages - use weighted distribution
+        # ~30% rejected immediately after Applied
+        # ~40% rejected after Screening
+        # ~25% rejected after Interviewing
+        # ~5% rejected after Offer
+        rejection_stage = random.choices(
+            ['Applied', 'Screening', 'Interviewing', 'Offer'],
+            weights=[30, 40, 25, 5],
+            k=1
+        )[0]
+
+        if rejection_stage == 'Applied':
+            journey.append('Rejected')
+        elif rejection_stage == 'Screening':
+            journey.extend(['Screening', 'Rejected'])
+        elif rejection_stage == 'Interviewing':
+            journey.extend(['Screening', 'Interviewing', 'Rejected'])
+        elif rejection_stage == 'Offer':
+            journey.extend(['Screening', 'Interviewing', 'Offer', 'Rejected'])
     elif current_status_name == 'Withdrawn':
-        # Withdrawn can happen at various stages
-        journey.extend(['Withdrawn'])
+        # Withdrawn can happen at various stages - use weighted distribution
+        # ~60% withdrawn immediately after Applied
+        # ~25% withdrawn after Screening
+        # ~10% withdrawn after Interviewing
+        # ~5% withdrawn after Offer
+        withdrawn_stage = random.choices(
+            ['Applied', 'Screening', 'Interviewing', 'Offer'],
+            weights=[60, 25, 10, 5],
+            k=1
+        )[0]
+
+        if withdrawn_stage == 'Applied':
+            journey.append('Withdrawn')
+        elif withdrawn_stage == 'Screening':
+            journey.extend(['Screening', 'Withdrawn'])
+        elif withdrawn_stage == 'Interviewing':
+            journey.extend(['Screening', 'Interviewing', 'Withdrawn'])
+        elif withdrawn_stage == 'Offer':
+            journey.extend(['Screening', 'Interviewing', 'Offer', 'Withdrawn'])
     elif current_status_name == 'No Reply':
         journey.extend(['No Reply'])
     elif current_status_name == 'On Hold':
