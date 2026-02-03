@@ -149,7 +149,10 @@ export default function ActivityHeatmap() {
       const firstDayOfWeek = new Date(firstRealCell.date);
       const year = firstDayOfWeek.getFullYear();
       const month = firstDayOfWeek.getMonth();
-      const monthKey = `${year}-${month}`;
+
+      // For rolling view, track only month names (not year) to avoid duplicates like "Feb 2025" and "Feb 2026"
+      // For year views, track year+month to distinguish months from padding years
+      const monthKey = viewMode === 'rolling' ? String(month) : `${year}-${month}`;
 
       // Label every month that hasn't been labeled yet
       if (!seenMonths.has(monthKey)) {
