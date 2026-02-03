@@ -71,19 +71,38 @@ export default function ActivityHeatmap() {
     }
 
     const today = new Date();
+    // Reset today to midnight for consistent comparison
+    today.setHours(0, 0, 0, 0);
+
     let startDate: Date;
+    let endDate: Date;
     const weeksToShow = 53;
 
     if (viewMode === 'rolling') {
-      // Rolling: 12 months back from today, ending at current week
-      startDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
-      const startDay = startDate.getDay();
-      startDate.setDate(startDate.getDate() - startDay); // Go to Sunday
+      // GitHub's algorithm: go back 365 days, then find Sunday on or before that date
+      const lookbackDate = new Date(today);
+      lookbackDate.setDate(today.getDate() - 365);
+
+      // Find the Sunday on or before the lookback date
+      const dayOfWeek = lookbackDate.getDay(); // 0 = Sunday, 6 = Saturday
+      startDate = new Date(lookbackDate);
+      startDate.setDate(lookbackDate.getDate() - dayOfWeek);
+
+      // End date is today (don't show future dates)
+      endDate = new Date(today);
     } else {
-      // Specific year: Jan 1 to Dec 31
-      startDate = new Date(viewMode, 0, 1);
-      const startDay = startDate.getDay();
-      startDate.setDate(startDate.getDate() - startDay); // Go to Sunday before Jan 1
+      // Specific year: Sunday before Jan 1 to Dec 31
+      const yearStartDate = new Date(viewMode, 0, 1);
+      const startDay = yearStartDate.getDay();
+      startDate = new Date(yearStartDate);
+      startDate.setDate(yearStartDate.getDate() - startDay); // Go to Sunday before Jan 1
+
+      // For year view, end at Dec 31 of that year
+      endDate = new Date(viewMode, 11, 31);
+      // If we're currently in this year and haven't reached Dec 31 yet, cap at today
+      if (viewMode === today.getFullYear() && endDate > today) {
+        endDate = new Date(today);
+      }
     }
 
     for (let week = 0; week < weeksToShow; week++) {
@@ -91,10 +110,16 @@ export default function ActivityHeatmap() {
       for (let day = 0; day < DAYS_IN_WEEK; day++) {
         const cellDate = new Date(startDate);
         cellDate.setDate(cellDate.getDate() + week * 7 + day);
-        const dateStr = cellDate.toISOString().split('T')[0];
-        const count = countMap.get(dateStr) || 0;
-        const level = getLevel(count, data?.max_count ?? 0);
-        weekData.push({ date: dateStr, count, level });
+        cellDate.setHours(0, 0, 0, 0);
+
+        // Only include cells that are within our valid date range
+        if (cellDate <= endDate) {
+          const dateStr = cellDate.toLocaleDateString('en-CA'); // Canadian locale uses YYYY-MM-DD format
+          const count = countMap.get(dateStr) || 0;
+          const level = getLevel(count, data?.max_count ?? 0);
+          weekData.push({ date: dateStr, count, level });
+        }
+        // Don't push placeholder cells - let weeks have variable lengths
       }
       grid.push(weekData);
     }
@@ -126,17 +151,35 @@ export default function ActivityHeatmap() {
     return <div className="text-center py-8 text-accent-red">{error}</div>;
   }
 
-  if (!data || !data.days || data.days.length === 0 || data.max_count === 0) {
-    return (
-      <EmptyState message="Not enough data for visualization. Add more applications with different statuses." />
-    );
-  }
-
   const grid = buildGrid();
   const monthLabels = getMonthLabels(grid);
   const cellSize = 12;
   const cellGap = 3;
   const gridWeeks = grid.length;
+
+  // Check for empty data AFTER building grid so Dropdown is always available
+  if (!data || !data.days || data.days.length === 0 || data.max_count === 0) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Dropdown
+              options={[
+                { value: 'rolling', label: 'Last 12 months' },
+                ...years.map((y) => ({ value: String(y), label: String(y) }))
+              ]}
+              value={typeof viewMode === 'string' ? viewMode : String(viewMode)}
+              onChange={(value) => setViewMode(value === 'rolling' ? 'rolling' : parseInt(value))}
+              placeholder="Select time range"
+              size="sm"
+              containerBackground="bg1"
+            />
+          </div>
+        </div>
+        <EmptyState message="Not enough data for visualization. Add more applications with different statuses." />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -202,7 +245,7 @@ export default function ActivityHeatmap() {
                   {week.map((cell, dayIndex) => (
                     <div
                       key={`${weekIndex}-${dayIndex}`}
-                      className="rounded-sm cursor-pointer transition-all duration-200 ease-in-out opacity-60 hover:opacity-100"
+                      className="rounded-sm transition-all duration-200 ease-in-out cursor-pointer opacity-60 hover:opacity-100"
                       style={{
                         width: cellSize,
                         height: cellSize,
