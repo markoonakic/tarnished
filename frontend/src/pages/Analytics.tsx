@@ -4,7 +4,11 @@ import ActivityHeatmap from '../components/ActivityHeatmap';
 import Layout from '../components/Layout';
 import PeriodSelector from '../components/analytics/PeriodSelector';
 import AnalyticsKPIs from '../components/analytics/AnalyticsKPIs';
-import WeeklyBarChart from '../components/analytics/WeeklyBarChart';
+import WeeklyActivityChart from '../components/analytics/WeeklyActivityChart';
+import InterviewFunnel from '../components/analytics/InterviewFunnel';
+import InterviewOutcomes from '../components/analytics/InterviewOutcomes';
+import InterviewTimeline from '../components/analytics/InterviewTimeline';
+import CandidateProgression from '../components/analytics/CandidateProgression';
 
 export default function Analytics() {
   const [searchParams] = useSearchParams();
@@ -13,46 +17,65 @@ export default function Analytics() {
   return (
     <Layout>
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-primary mb-6">Analytics</h1>
-
-        <PeriodSelector />
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-fg1">Analytics</h1>
+          <PeriodSelector />
+        </div>
 
         <div className="space-y-6">
-          {/* KPIs Section */}
-          <div className="bg-secondary rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-primary mb-4">Key Performance Indicators</h2>
-            <p className="text-sm text-muted mb-4">
-              Track your job application metrics and conversion rates.
-            </p>
-            <AnalyticsKPIs period={period} />
-          </div>
+          {/* SECTION 1: Pipeline Overview */}
+          <section>
+            <h2 className="text-lg font-semibold text-fg1 mb-4">Pipeline Overview</h2>
 
-          {/* Sankey Chart Section */}
-          <div className="bg-secondary rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-primary mb-4">Application Flow</h2>
-            <p className="text-sm text-muted mb-4">
-              Visualize how your applications progress through different stages.
-            </p>
-            <SankeyChart />
-          </div>
+            {/* TIER 1: Executive Summary KPIs */}
+            <div className="bg-bg1 rounded-lg p-6 mb-4">
+              <AnalyticsKPIs period={period} />
+            </div>
 
-          {/* Weekly Bar Chart Section */}
-          <div className="bg-secondary rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-primary mb-4">Weekly Activity</h2>
-            <p className="text-sm text-muted mb-4">
-              Track your application and interview activity over time.
-            </p>
-            <WeeklyBarChart period={period} />
-          </div>
+            {/* TIER 1: Pipeline Funnel (Sankey) */}
+            <div className="bg-bg1 rounded-lg p-6">
+              <SankeyChart />
+            </div>
+          </section>
 
-          {/* Activity Heatmap Section */}
-          <div className="bg-secondary rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-primary mb-4">Activity Overview</h2>
-            <p className="text-sm text-muted mb-4">
-              Track your job application activity throughout the year.
-            </p>
-            <ActivityHeatmap />
-          </div>
+          {/* SECTION 2: Interview Deep Dive */}
+          <section>
+            <h2 className="text-lg font-semibold text-fg1 mb-4">Interview Analytics</h2>
+
+            {/* TIER 2: Round Performance (3-chart grid) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+              <div className="bg-bg1 rounded-lg p-4">
+                <InterviewFunnel period={period} />
+              </div>
+              <div className="bg-bg1 rounded-lg p-4">
+                <InterviewOutcomes period={period} />
+              </div>
+              <div className="bg-bg1 rounded-lg p-4">
+                <InterviewTimeline period={period} />
+              </div>
+            </div>
+
+            {/* TIER 3: Candidate Progression */}
+            <div className="bg-bg1 rounded-lg p-4">
+              <CandidateProgression period={period} />
+            </div>
+          </section>
+
+          {/* SECTION 3: Activity Tracking */}
+          <section>
+            <h2 className="text-lg font-semibold text-fg1 mb-4">Activity Tracking</h2>
+
+            {/* Weekly Activity (migrated to ECharts) */}
+            <div className="bg-bg1 rounded-lg p-6 mb-4">
+              <WeeklyActivityChart period={period} />
+            </div>
+
+            {/* Activity Heatmap */}
+            <div className="bg-bg1 rounded-lg p-6">
+              <ActivityHeatmap />
+            </div>
+          </section>
         </div>
       </div>
     </Layout>
