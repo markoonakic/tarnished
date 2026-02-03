@@ -58,7 +58,7 @@ export default function ActivityHeatmap() {
       case 1: return 'var(--green)';
       case 2: return 'var(--aqua)';
       case 3: return 'var(--blue)';
-      case 4: return 'var(--purple)';
+      case 4: return 'var(--aqua-bright)';
       default: return 'var(--bg2)';
     }
   }
