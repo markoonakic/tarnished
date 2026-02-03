@@ -132,12 +132,25 @@ export default function ActivityHeatmap() {
   function getMonthLabels(grid: CellData[][]): { label: string; week: number }[] {
     const labels: { label: string; week: number }[] = [];
     let lastMonth = -1;
+    let lastLabelWeek = -1;
+    const MIN_WEEKS_BETWEEN_LABELS = 3; // 3 weeks * 15px = 45px minimum spacing
 
     grid.forEach((week, weekIndex) => {
+      // Skip empty weeks (can happen with variable-length weeks)
+      if (week.length === 0) return;
+
       const firstDayOfWeek = new Date(week[0].date);
       const month = firstDayOfWeek.getMonth();
-      if (month !== lastMonth) {
+
+      // Only add label if:
+      // 1. Month changed from previous label, AND
+      // 2. At least MIN_WEEKS_BETWEEN_LABELS weeks since last label
+      if (month !== lastMonth && weekIndex - lastLabelWeek >= MIN_WEEKS_BETWEEN_LABELS) {
         labels.push({ label: MONTH_LABELS[month], week: weekIndex });
+        lastMonth = month;
+        lastLabelWeek = weekIndex;
+      } else if (month !== lastMonth) {
+        // Month changed but too close to last label - just update lastMonth
         lastMonth = month;
       }
     });
