@@ -76,9 +76,6 @@ export default function ActivityHeatmap() {
 
     let startDate: Date;
     let endDate: Date;
-    // Use 52 weeks for rolling mode (364 days ~ 12 months, avoids duplicate months)
-    // Use 53 weeks for year views to ensure full year coverage
-    const weeksToShow = viewMode === 'rolling' ? 52 : 53;
 
     if (viewMode === 'rolling') {
       // GitHub's algorithm: go back 365 days, then find Sunday on or before that date
@@ -93,19 +90,28 @@ export default function ActivityHeatmap() {
       // End date is today (don't show future dates)
       endDate = new Date(today);
     } else {
-      // Specific year: Sunday before Jan 1 to Dec 31
+      // Year view: Calculate exact weeks needed to cover the year
+      // Start: Sunday before Jan 1 of the selected year
       const yearStartDate = new Date(viewMode, 0, 1);
       const startDay = yearStartDate.getDay();
       startDate = new Date(yearStartDate);
       startDate.setDate(yearStartDate.getDate() - startDay); // Go to Sunday before Jan 1
 
-      // For year view, end at Dec 31 of that year
-      endDate = new Date(viewMode, 11, 31);
-      // If we're currently in this year and haven't reached Dec 31 yet, cap at today
+      // End: Saturday after Dec 31 of the selected year (for complete week coverage)
+      const yearEndDate = new Date(viewMode, 11, 31);
+      const endDay = yearEndDate.getDay();
+      endDate = new Date(yearEndDate);
+      endDate.setDate(yearEndDate.getDate() + (6 - endDay)); // Go to Saturday after Dec 31
+
+      // If we're currently in this year, cap at today instead of extending to next year
       if (viewMode === today.getFullYear() && endDate > today) {
         endDate = new Date(today);
       }
     }
+
+    // Calculate exact number of weeks needed
+    const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const weeksToShow = Math.ceil(daysDiff / 7);
 
     for (let week = 0; week < weeksToShow; week++) {
       const weekData: CellData[] = [];
