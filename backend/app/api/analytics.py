@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, select, or_
+from sqlalchemy import func, select, or_, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -452,7 +452,7 @@ async def get_interview_rounds_analytics(
         select(
             RoundType.name.label('round_type'),
             func.count(Round.id).label('total'),
-            func.sum(func.case((Round.outcome == "Passed", 1), else_=0)).label('passed'),
+            func.sum(case((Round.outcome == "Passed", 1), else_=0)).label('passed'),
         )
         .select_from(Round)
         .join(RoundType, Round.round_type_id == RoundType.id)
