@@ -77,46 +77,49 @@ export default function ActivityHeatmap() {
     let endDate: Date;
 
     if (viewMode === 'rolling') {
-      // Rolling view: 53 weeks from Sunday on-or-before (today-365) to Saturday on-or-after today
-      const lookbackDate = new Date(today);
-      lookbackDate.setDate(today.getDate() - 365);
-      const dayOfWeek = lookbackDate.getDay();
-      startDate = new Date(lookbackDate);
-      startDate.setDate(lookbackDate.getDate() - dayOfWeek);
-
-      // Find Saturday on or after today
-      const endDay = today.getDay();
+      // Exactly 365 days: from (today - 365) to today
+      startDate = new Date(today);
+      startDate.setDate(today.getDate() - 365);
       endDate = new Date(today);
-      endDate.setDate(today.getDate() + (6 - endDay));
     } else {
-      // Year view: Sunday before Jan 1 to Saturday after Dec 31
-      const jan1 = new Date(viewMode, 0, 1);
-      const jan1DayOfWeek = jan1.getDay();
-      startDate = new Date(jan1);
-      startDate.setDate(jan1.getDate() - jan1DayOfWeek);
-
-      const dec31 = new Date(viewMode, 11, 31);
-      const dec31DayOfWeek = dec31.getDay();
-      endDate = new Date(dec31);
-      endDate.setDate(dec31.getDate() + (6 - dec31DayOfWeek));
+      // Year view: exactly Jan 1 to Dec 31 of selected year
+      startDate = new Date(viewMode, 0, 1);  // Jan 1
+      endDate = new Date(viewMode, 11, 31);  // Dec 31
     }
 
-    // GitHub ALWAYS renders complete 53x7 grid
-    for (let week = 0; week < 53; week++) {
+    // Build grid week by week - weeks may have variable lengths
+    let currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
       const weekData: CellData[] = [];
-      for (let day = 0; day < 7; day++) {
-        const cellDate = new Date(startDate);
-        cellDate.setDate(startDate.getDate() + week * 7 + day);
+
+      // Get the Sunday of the current week (or startDate if it's later)
+      const weekStart = new Date(currentDate);
+      const dayOfWeek = weekStart.getDay();
+      weekStart.setDate(weekStart.getDate() - dayOfWeek);
+
+      // Add days for this week (up to 7 days, but stop at endDate)
+      for (let i = 0; i < 7; i++) {
+        const cellDate = new Date(weekStart);
+        cellDate.setDate(weekStart.getDate() + i);
         cellDate.setHours(0, 0, 0, 0);
 
-        const dateStr = cellDate.toLocaleDateString('en-CA');
-        const count = countMap.get(dateStr) || 0;
-        const level = getLevel(count, data?.max_count ?? 0);
-
-        // ALWAYS push the cell - GitHub renders all cells
-        weekData.push({ date: dateStr, count, level });
+        // Only add if within our date range
+        if (cellDate >= startDate && cellDate <= endDate) {
+          const dateStr = cellDate.toLocaleDateString('en-CA');
+          const count = countMap.get(dateStr) || 0;
+          const level = getLevel(count, data?.max_count ?? 0);
+          weekData.push({ date: dateStr, count, level });
+        }
       }
-      grid.push(weekData);
+
+      if (weekData.length > 0) {
+        grid.push(weekData);
+      }
+
+      // Move to next week
+      currentDate = new Date(weekStart);
+      currentDate.setDate(weekStart.getDate() + 7);
     }
 
     return grid;
