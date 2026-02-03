@@ -76,7 +76,9 @@ export default function ActivityHeatmap() {
 
     let startDate: Date;
     let endDate: Date;
-    const weeksToShow = 53;
+    // Use 52 weeks for rolling mode (364 days ~ 12 months, avoids duplicate months)
+    // Use 53 weeks for year views to ensure full year coverage
+    const weeksToShow = viewMode === 'rolling' ? 52 : 53;
 
     if (viewMode === 'rolling') {
       // GitHub's algorithm: go back 365 days, then find Sunday on or before that date
