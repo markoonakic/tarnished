@@ -42,3 +42,57 @@ export async function getHeatmapData(year?: number | 'rolling'): Promise<Heatmap
   const response = await api.get('/api/analytics/heatmap', { params });
   return response.data;
 }
+
+// Interview Rounds Analytics Types
+
+export interface FunnelData {
+  round: string;
+  count: number;
+  passed: number;
+  conversion_rate: number;
+}
+
+export interface OutcomeData {
+  round: string;
+  passed: number;
+  failed: number;
+  pending: number;
+  withdrew: number;
+}
+
+export interface TimelineData {
+  round: string;
+  avg_days: number;
+}
+
+export interface RoundProgress {
+  round_type: string;
+  outcome: string | null;
+  completed_at: string | null;
+  days_in_round: number | null;
+}
+
+export interface CandidateProgress {
+  application_id: string;
+  candidate_name: string;
+  role: string;
+  rounds_completed: RoundProgress[];
+  current_status: string;
+}
+
+export interface InterviewRoundsResponse {
+  funnel_data: FunnelData[];
+  outcome_data: OutcomeData[];
+  timeline_data: TimelineData[];
+  candidate_progress: CandidateProgress[];
+}
+
+export async function getInterviewRoundsData(
+  period: string = 'all',
+  roundType?: string
+): Promise<InterviewRoundsResponse> {
+  const params: Record<string, string> = { period };
+  if (roundType) params.round_type = roundType;
+  const response = await api.get('/api/analytics/interview-rounds', { params });
+  return response.data;
+}
