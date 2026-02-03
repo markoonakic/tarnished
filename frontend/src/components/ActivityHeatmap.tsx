@@ -142,7 +142,11 @@ export default function ActivityHeatmap() {
     grid.forEach((week, weekIndex) => {
       if (week.length === 0) return;
 
-      const firstDayOfWeek = new Date(week[0].date);
+      // Find the first non-padding cell to determine the month label
+      const firstRealCell = week.find(cell => !cell.isPadding);
+      if (!firstRealCell) return;
+
+      const firstDayOfWeek = new Date(firstRealCell.date);
       const year = firstDayOfWeek.getFullYear();
       const month = firstDayOfWeek.getMonth();
       const monthKey = `${year}-${month}`;
