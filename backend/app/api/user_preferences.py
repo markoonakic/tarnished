@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 from pydantic import BaseModel
 
 from app.core.database import get_db
@@ -63,6 +64,7 @@ async def update_preferences(
             current[key] = defaults[key]
 
     user.settings = current
+    flag_modified(user, "settings")
     await db.commit()
 
     return UserPreferencesResponse(
