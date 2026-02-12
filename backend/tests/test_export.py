@@ -701,7 +701,7 @@ class TestExportHeaders:
         assert response.status_code == 200
         assert "content-disposition" in response.headers
         assert "attachment" in response.headers["content-disposition"]
-        assert "job-tracker-export.json" in response.headers["content-disposition"]
+        assert "tarnished-export.json" in response.headers["content-disposition"]
 
     async def test_csv_export_content_disposition(
         self,
@@ -714,7 +714,7 @@ class TestExportHeaders:
         assert response.status_code == 200
         assert "content-disposition" in response.headers
         assert "attachment" in response.headers["content-disposition"]
-        assert "job-tracker-export.csv" in response.headers["content-disposition"]
+        assert "tarnished-export.csv" in response.headers["content-disposition"]
 
     async def test_json_export_content_type(
         self,
@@ -910,5 +910,5 @@ class TestZIPExport:
         assert response.status_code == 200
 
         content_disposition = response.headers.get("content-disposition", "")
-        assert "job-tracker-export-" in content_disposition
+        assert "tarnished-export-" in content_disposition
         assert ".zip" in content_disposition

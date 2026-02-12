@@ -51,7 +51,7 @@ async def list_users(
     ]
 
 
-@router.put("/users/{user_id}", response_model=AdminUserResponse)
+@router.patch("/users/{user_id}", response_model=AdminUserResponse)
 async def update_user(
     user_id: str,
     data: AdminUserUpdate,
@@ -59,13 +59,13 @@ async def update_user(
     db: AsyncSession = Depends(get_db),
 ):
     if user_id == admin.id:
-        raise HTTPException(status_code=400, detail="Cannot modify your own account")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot modify your own account")
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     update_data = data.model_dump(exclude_unset=True)
 
@@ -137,13 +137,13 @@ async def delete_user(
     db: AsyncSession = Depends(get_db),
 ):
     if user_id == admin.id:
-        raise HTTPException(status_code=400, detail="Cannot delete your own account")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete your own account")
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     await db.delete(user)
     await db.commit()
@@ -199,7 +199,7 @@ async def list_all_applications(
     )
 
 
-@router.put("/statuses/{status_id}")
+@router.patch("/statuses/{status_id}")
 async def update_default_status(
     status_id: str,
     data: AdminStatusUpdate,
@@ -214,7 +214,7 @@ async def update_default_status(
     status_obj = result.scalars().first()
 
     if not status_obj:
-        raise HTTPException(status_code=404, detail="Default status not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Default status not found")
 
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
@@ -225,7 +225,7 @@ async def update_default_status(
     return status_obj
 
 
-@router.put("/round-types/{round_type_id}")
+@router.patch("/round-types/{round_type_id}")
 async def update_default_round_type(
     round_type_id: str,
     data: AdminRoundTypeUpdate,
@@ -240,7 +240,7 @@ async def update_default_round_type(
     round_type = result.scalars().first()
 
     if not round_type:
-        raise HTTPException(status_code=404, detail="Default round type not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Default round type not found")
 
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():

@@ -76,7 +76,7 @@ async def create_status(
     return status_obj
 
 
-@router.put("/statuses/{status_id}", response_model=StatusFullResponse)
+@router.patch("/statuses/{status_id}", response_model=StatusFullResponse)
 async def update_status(
     status_id: str,
     data: StatusUpdate,
