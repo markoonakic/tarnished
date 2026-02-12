@@ -25,6 +25,7 @@ DEFAULT_ROUND_TYPES = [
 
 
 async def seed_defaults(db: AsyncSession) -> None:
+    """Seed default application statuses and round types if none exist."""
     result = await db.execute(select(ApplicationStatus).where(ApplicationStatus.is_default == True))
     if result.scalars().first():
         return
