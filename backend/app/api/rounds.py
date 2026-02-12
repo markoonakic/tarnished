@@ -71,7 +71,7 @@ async def create_round(
     return result.scalars().first()
 
 
-@router.put("/api/rounds/{round_id}", response_model=RoundResponse)
+@router.patch("/api/rounds/{round_id}", response_model=RoundResponse)
 async def update_round(
     round_id: str,
     data: RoundUpdate,
@@ -170,6 +170,12 @@ async def upload_media(
 
     with open(file_path, "wb") as f:
         content = await file.read()
+        max_size = settings.max_media_size_mb * 1024 * 1024
+        if len(content) > max_size:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File exceeds maximum size of {settings.max_media_size_mb}MB",
+            )
         f.write(content)
 
     media = RoundMedia(
@@ -247,6 +253,12 @@ async def upload_transcript(
     # Save file
     with open(file_path, "wb") as f:
         content = await file.read()
+        max_size = settings.max_document_size_mb * 1024 * 1024
+        if len(content) > max_size:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File exceeds maximum size of {settings.max_document_size_mb}MB",
+            )
         f.write(content)
 
     # Update round
