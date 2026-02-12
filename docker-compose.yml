@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${APP_PORT:-5577}:5577"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - APP_URL=${APP_URL:-http://localhost:5577}
+    restart: unless-stopped

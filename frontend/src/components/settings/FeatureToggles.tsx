@@ -48,7 +48,7 @@ export default function FeatureToggles() {
 
   if (isLoading) {
     return (
-      <div className="bg-bg1 rounded-lg p-6">
+      <div className="bg-bg1 rounded-lg p-4 md:p-6">
         <h2 className="text-lg font-semibold text-primary mb-4">Feature Toggles</h2>
         <div className="text-muted">Loading preferences...</div>
       </div>
@@ -73,8 +73,8 @@ export default function FeatureToggles() {
               <button
                 onClick={() => handleToggle(toggle.key)}
                 disabled={updateMutation.isPending}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-aqua focus:ring-offset-2 focus:ring-offset-bg0 ${
-                  isEnabled ? 'bg-aqua' : 'bg-tertiary'
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg0 ${
+                  isEnabled ? 'bg-accent' : 'bg-tertiary'
                 } ${updateMutation.isPending ? 'opacity-50 cursor-wait' : ''}`}
                 role="switch"
                 aria-checked={isEnabled}

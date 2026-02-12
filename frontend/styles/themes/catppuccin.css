@@ -1,0 +1,42 @@
+/* Catppuccin Mocha Theme */
+[data-theme="catppuccin"] {
+  /* Backgrounds - Catppuccin Mocha palette */
+  --bg0-hard: #0d0d14;
+  --bg0: #11111b;  /* Crust */
+  --bg0-soft: #151520;
+  --bg1: #181825;  /* Mantle */
+  --bg2: #1e1e2e;  /* Base */
+  --bg3: #313244;  /* Surface0 */
+  --bg4: #45475a;  /* Surface1 */
+  --bg-h: #585b70;  /* Surface2 */
+
+  /* Foregrounds - Catppuccin Mocha palette */
+  --fg0: #cdd6f4;  /* Text */
+  --fg1: #cdd6f4;  /* Text */
+  --fg2: #bac2de;  /* Subtext1 */
+  --fg3: #a6adc8;  /* Subtext0 */
+  --fg4: #9399b2;  /* Overlay2 */
+  --gray: #6c7086;  /* Overlay0 */
+
+  /* Accent colors - base (Catppuccin Mocha) */
+  --red: #f38ba8;
+  --green: #a6e3a1;
+  --yellow: #f9e2af;
+  --blue: #89b4fa;
+  --purple: #cba6f7;
+  --aqua: #89dceb;
+  --orange: #fab387;
+
+  /* Accent colors - bright (generated with color-mix) */
+  --red-bright: color-mix(in srgb, var(--red), white 15%);
+  --green-bright: color-mix(in srgb, var(--green), white 15%);
+  --yellow-bright: color-mix(in srgb, var(--yellow), white 15%);
+  --blue-bright: color-mix(in srgb, var(--blue), white 15%);
+  --purple-bright: color-mix(in srgb, var(--purple), white 15%);
+  --aqua-bright: color-mix(in srgb, var(--aqua), white 15%);
+  --orange-bright: color-mix(in srgb, var(--orange), white 15%);
+
+  /* Configurable accent - defaults to aqua */
+  --accent: var(--aqua);
+  --accent-bright: var(--aqua-bright);
+}

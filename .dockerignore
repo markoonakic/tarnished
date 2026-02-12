@@ -1,0 +1,37 @@
+# Version control
+.git
+.gitignore
+
+# CI/CD and tooling
+.github
+.serena
+.vscode
+core
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# Frontend build artifacts and dependencies
+frontend/node_modules
+frontend/.yarn
+frontend/dist
+
+# Backend artifacts
+backend/__pycache__
+backend/**/__pycache__
+backend/.env*
+backend/*.db
+backend/data/
+backend/.venv
+backend/tests
+
+# Docker/Compose files (prevent recursive inclusion)
+Dockerfile
+docker-compose*.yml
+.env*
+.dockerignore
+
+# Helm chart (not needed in image)
+chart/
