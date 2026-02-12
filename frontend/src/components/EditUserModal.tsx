@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { updateUser, deleteUser } from '../lib/admin';
-import type { User } from '../lib/admin';
+import type { AdminUser } from '../lib/admin';
 
 interface Props {
-  user: User | null;
+  user: AdminUser | null;
   onClose: () => void;
   onSuccess: () => void;
   currentUserId: string | undefined;
@@ -87,26 +87,26 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
       aria-modal="true"
       aria-labelledby="edit-modal-title"
     >
-      <div className="bg-bg1 rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b border-tertiary">
+      <div className="bg-bg1 rounded-lg max-w-md w-full mx-4 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex-shrink-0 flex justify-between items-center p-4 border-b border-tertiary">
           <h3 id="edit-modal-title" className="text-primary font-medium">Edit User</h3>
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out p-2 rounded cursor-pointer"
           >
             <i className="bi bi-x-lg icon-xl" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4">
           <div className="pb-4 border-b border-tertiary">
             <p className="text-sm text-muted">Email</p>
             <p className="text-primary font-medium">{user.email}</p>
           </div>
 
           {error && (
-            <div className="bg-accent-red/20 border border-accent-red text-accent-red px-4 py-3 rounded">
+            <div className="bg-red-bright/20 border border-red-bright text-red-bright px-4 py-3 rounded">
               {error}
             </div>
           )}
@@ -152,18 +152,18 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               placeholder="Leave blank to keep current password"
               minLength={8}
             />
           </div>
 
-          <div className="flex justify-between items-center pt-4 border-t border-tertiary">
+          <div className="flex flex-col-reverse sm:flex-row justify-between sm:items-center gap-3 pt-4 border-t border-tertiary">
             <button
               type="button"
               onClick={handleDelete}
               disabled={isCurrentUser || loading}
-              className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+              className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <i className="bi-trash icon-sm" />
               Delete
@@ -172,14 +172,14 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
               <button
                 type="button"
                 onClick={onClose}
-                className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 cursor-pointer"
+                className="flex-1 sm:flex-initial bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
+                className="flex-1 sm:flex-initial bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
               >
                 {loading ? 'Saving...' : 'Save'}
               </button>

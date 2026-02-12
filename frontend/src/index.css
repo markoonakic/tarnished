@@ -26,10 +26,20 @@
   /* Accent colors */
   --color-aqua: var(--aqua);
   --color-aqua-bright: var(--aqua-bright);
+  --color-accent: var(--accent);
+  --color-accent-bright: var(--accent-bright);
   --color-red: var(--red);
   --color-red-bright: var(--red-bright);
   --color-green: var(--green);
   --color-green-bright: var(--green-bright);
+  --color-blue: var(--blue);
+  --color-blue-bright: var(--blue-bright);
+  --color-yellow: var(--yellow);
+  --color-yellow-bright: var(--yellow-bright);
+  --color-purple: var(--purple);
+  --color-purple-bright: var(--purple-bright);
+  --color-orange: var(--orange);
+  --color-orange-bright: var(--orange-bright);
 }
 
 /* Font Faces - CommitMonoFunky */
@@ -139,40 +149,8 @@
   /* Touch targets (accessibility) */
   --touch-target-min: 2.75rem; /* 44px minimum for mobile */
 
-  /* Backgrounds */
-  --bg0-hard: #1d2021;
-  --bg0: #282828;
-  --bg0-soft: #32302f;
-  --bg1: #3c3836;
-  --bg2: #504945;
-  --bg3: #665c54;
-  --bg4: #7c6f64;
-
-  /* Foregrounds */
-  --fg0: #fbf1c7;
-  --fg1: #ebdbb2;
-  --fg2: #d5c4a1;
-  --fg3: #bdae93;
-  --fg4: #a89984;
-  --gray: #928374;
-
-  /* Accent colors - darker (row 1) */
-  --red: #cc241d;
-  --green: #98971a;
-  --yellow: #d79921;
-  --blue: #458588;
-  --purple: #b16286;
-  --aqua: #689d6a;
-  --orange: #d65d0e;
-
-  /* Accent colors - bright (row 2) */
-  --red-bright: #fb4934;
-  --green-bright: #b8bb26;
-  --yellow-bright: #fabd2f;
-  --blue-bright: #83a598;
-  --purple-bright: #d3869b;
-  --aqua-bright: #8ec07c;
-  --orange-bright: #fe8019;
+  /* Color variables are defined in frontend/styles/themes/*.css files */
+  /* gruvbox-dark.css provides :root defaults for all colors */
 }
 
 /* Theme colors are now defined in frontend/styles/themes/*.css files */
@@ -185,16 +163,16 @@ a {
   text-decoration: none;
 }
 
-/* Navigation links (top nav, sidebar) - use dark aqua by default */
+/* Navigation links (top nav, sidebar) - use accent by default */
 .nav-link {
-  color: var(--aqua);
+  color: var(--accent);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 .nav-link:hover,
 .nav-link.active {
-  color: var(--aqua-bright);
+  color: var(--accent-bright);
 }
 
 body {
@@ -248,27 +226,6 @@ h3 {
 .bg-tertiary {
   background-color: var(--bg2);
 }
-.bg-accent-red {
-  background-color: var(--red-bright);
-}
-.bg-accent-green {
-  background-color: var(--green-bright);
-}
-.bg-accent-yellow {
-  background-color: var(--yellow-bright);
-}
-.bg-accent-blue {
-  background-color: var(--blue-bright);
-}
-.bg-accent-purple {
-  background-color: var(--purple-bright);
-}
-.bg-accent-aqua {
-  background-color: var(--aqua-bright);
-}
-.bg-accent-orange {
-  background-color: var(--orange-bright);
-}
 
 /* Text color utilities */
 .text-primary {
@@ -282,27 +239,6 @@ h3 {
 }
 .text-bg-primary {
   color: var(--bg0);
-}
-.text-accent-red {
-  color: var(--red-bright);
-}
-.text-accent-green {
-  color: var(--green-bright);
-}
-.text-accent-yellow {
-  color: var(--yellow-bright);
-}
-.text-accent-blue {
-  color: var(--blue-bright);
-}
-.text-accent-purple {
-  color: var(--purple-bright);
-}
-.text-accent-aqua {
-  color: var(--aqua-bright);
-}
-.text-accent-orange {
-  color: var(--orange-bright);
 }
 
 /* Border utilities - REMOVED to let Tailwind handle them via @theme */
@@ -352,6 +288,12 @@ h3 {
   .border-purple-bright {
     border-color: var(--purple-bright);
   }
+  .border-accent {
+    border-color: var(--accent);
+  }
+  .border-accent-bright {
+    border-color: var(--accent-bright);
+  }
 }
 
 input[type="date"],
@@ -362,6 +304,28 @@ input[type="datetime-local"] {
 [data-theme="gruvbox-light"] input[type="date"],
 [data-theme="gruvbox-light"] input[type="datetime-local"] {
   color-scheme: light;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+input[type="date"]:hover::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]:hover::-webkit-calendar-picker-indicator {
+  filter: invert(0.9);
+}
+
+[data-theme="gruvbox-light"] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="gruvbox-light"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: none;
+}
+
+[data-theme="gruvbox-light"] input[type="date"]:hover::-webkit-calendar-picker-indicator,
+[data-theme="gruvbox-light"] input[type="datetime-local"]:hover::-webkit-calendar-picker-indicator {
+  filter: invert(0.2);
 }
 
 /* Systematic text wrapping - prevents overflow everywhere */
@@ -421,7 +385,7 @@ th {
 
 /* Focus indicators - visible and consistent */
 :focus-visible {
-  outline: 2px solid var(--aqua-bright);
+  outline: 2px solid var(--accent-bright);
   outline-offset: 2px;
 }
 
@@ -432,7 +396,7 @@ th {
 
 /* Button focus */
 button:focus-visible {
-  outline: 2px solid var(--aqua-bright);
+  outline: 2px solid var(--accent-bright);
   outline-offset: 2px;
 }
 
@@ -445,7 +409,7 @@ textarea:focus-visible {
 
 /* Link focus */
 a:focus-visible {
-  outline: 2px solid var(--aqua-bright);
+  outline: 2px solid var(--accent-bright);
   outline-offset: 2px;
 }
 

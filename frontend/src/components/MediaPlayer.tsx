@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import type { RoundMedia } from '../lib/types';
 import { getMediaSignedUrl } from '../lib/rounds';
+import { API_BASE } from '../lib/api';
 
 interface Props {
   media: RoundMedia;
@@ -10,12 +11,14 @@ interface Props {
 export default function MediaPlayer({ media, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
 
   const isVideo = media.media_type === 'video';
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const apiBase = API_BASE;
 
   useEffect(() => {
     async function fetchSignedUrl() {
@@ -34,11 +37,10 @@ export default function MediaPlayer({ media, onClose }: Props) {
   useEffect(() => {
     // Focus management - store and restore focus
     const previouslyFocused = document.activeElement as HTMLElement;
-    
+
     // Focus close button when modal opens
-    const closeButton = document.querySelector('[aria-label^="Close"]') as HTMLElement;
-    closeButton?.focus();
-    
+    closeButtonRef.current?.focus();
+
     // Return focus when modal closes
     return () => {
       previouslyFocused?.focus();
@@ -53,15 +55,15 @@ export default function MediaPlayer({ media, onClose }: Props) {
     }
     
     function handleTab(event: KeyboardEvent) {
-      if (event.key !== 'Tab') return;
-      
-      const focusableElements = document.querySelectorAll(
+      if (event.key !== 'Tab' || !modalRef.current) return;
+
+      const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
         'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
-      
-      const firstElement = focusableElements[0] as HTMLElement;
-      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-      
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
       if (event.shiftKey && document.activeElement === firstElement) {
         event.preventDefault();
         lastElement.focus();
@@ -85,12 +87,13 @@ export default function MediaPlayer({ media, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-bg0/80 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-bg2 rounded-lg max-w-4xl w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div ref={modalRef} className="bg-bg2 rounded-lg max-w-4xl w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center p-4 border-b border-tertiary">
           <h3 className="text-primary font-medium truncate">
             {media.file_path.split('/').pop()}
           </h3>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
             aria-label="Close"
             className="text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded cursor-pointer"
@@ -103,7 +106,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
           {loading ? (
             <div className="text-center py-12 text-muted">Loading...</div>
           ) : error || !mediaUrl ? (
-            <div className="text-center py-12 text-accent-red">
+            <div className="text-center py-12 text-red-bright">
               Failed to load media file
             </div>
           ) : isVideo ? (
@@ -121,7 +124,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
             <div className="py-8">
               <div className="flex justify-center mb-4">
                 <div className="w-24 h-24 rounded-full bg-tertiary flex items-center justify-center">
-                  <i className="bi bi-music-note-beamed icon-2xl text-accent-orange" />
+                  <i className="bi bi-music-note-beamed icon-2xl text-orange-bright" />
                 </div>
               </div>
               <audio

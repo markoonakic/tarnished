@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import { login } from '../lib/auth';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordInput from '../components/PasswordInput';
@@ -21,8 +22,8 @@ export default function Login() {
       await login({ email, password });
       await refreshUser();
       navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed');
+    } catch (err: unknown) {
+      setError(axios.isAxiosError(err) ? err.response?.data?.detail || 'Login failed' : 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -31,12 +32,12 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md p-8 rounded-lg bg-secondary">
-        <h1 className="text-2xl font-bold mb-6 text-accent-aqua">
+        <h1 className="text-2xl font-bold mb-6 text-accent-bright">
           Sign In
         </h1>
 
         {error && (
-          <div className="mb-4 p-3 rounded border border-accent-red text-accent-red bg-red/20">
+          <div className="mb-4 p-3 rounded bg-red-bright/20 border border-red-bright text-red-bright">
             {error}
           </div>
         )}
@@ -49,7 +50,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoFocus
-              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               required
             />
           </div>
@@ -65,7 +66,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 w-full cursor-pointer"
+            className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 w-full cursor-pointer"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
@@ -73,7 +74,7 @@ export default function Login() {
 
           <p className="mt-4 text-center text-muted">
             Don't have an account?{' '}
-            <Link to="/register" className="text-aqua hover:text-aqua-bright transition-all duration-200 ease-in-out">Register</Link>
+            <Link to="/register" className="text-accent hover:text-accent-bright transition-all duration-200 ease-in-out">Register</Link>
           </p>
       </div>
     </div>

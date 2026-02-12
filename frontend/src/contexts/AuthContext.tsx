@@ -2,12 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import api from '../lib/api';
 import { isAuthenticated, logout } from '../lib/auth';
-
-interface User {
-  id: string;
-  email: string;
-  is_admin: boolean;
-}
+import type { User } from '../lib/types';
 
 interface AuthContextType {
   user: User | null;
@@ -23,6 +18,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshUser = async () => {
+    // Check if setup is needed first (before auth check)
+    try {
+      const setupResponse = await api.get('/api/auth/setup-status');
+      if (setupResponse.data.needs_setup) {
+        setUser(null);
+        setLoading(false);
+        window.location.href = '/register?setup=true';
+        return;
+      }
+    } catch {
+      // If setup-status check fails, continue with normal auth flow
+    }
+
     if (!isAuthenticated()) {
       setUser(null);
       setLoading(false);

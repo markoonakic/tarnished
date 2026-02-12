@@ -13,11 +13,11 @@ export interface UserPreferencesUpdate {
 }
 
 export async function getPreferences(): Promise<UserPreferences> {
-  const response = await api.get('/user-preferences');
+  const response = await api.get('/api/user-preferences');
   return response.data;
 }
 
 export async function updatePreferences(updates: UserPreferencesUpdate): Promise<UserPreferences> {
-  const response = await api.put('/user-preferences', updates);
+  const response = await api.put('/api/user-preferences', updates);
   return response.data;
 }

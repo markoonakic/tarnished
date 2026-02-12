@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   uploadCV,
   uploadCoverLetter,
@@ -7,8 +7,7 @@ import {
   getSignedUrl,
 } from '../lib/applications';
 import type { Application } from '../lib/types';
-// TODO: downloadFile imported but unused - may be needed for future download functionality
-// import { downloadFile } from '../lib/downloadFile';
+import { API_BASE } from '../lib/api';
 import ProgressBar from './ProgressBar';
 
 interface Props {
@@ -22,6 +21,13 @@ export default function DocumentSection({ application, onUpdate }: Props) {
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
   const [justReplaced, setJustReplaced] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (progressRef.current) clearInterval(progressRef.current);
+    };
+  }, []);
 
   async function handleUpload(
     type: 'cv' | 'cover-letter',
@@ -33,7 +39,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
     setUploadProgress(0);
     setError('');
 
-    const progressInterval = setInterval(() => {
+    progressRef.current = setInterval(() => {
       setUploadProgress((prev) => {
         if (prev >= 90) return prev;
         return prev + 10;
@@ -47,7 +53,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
       } else {
         updated = await uploadCoverLetter(application.id, file);
       }
-      clearInterval(progressInterval);
+      if (progressRef.current) clearInterval(progressRef.current);
       setUploadProgress(100);
       onUpdate(updated);
       if (isReplace) {
@@ -56,7 +62,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
       }
       setTimeout(() => setUploadProgress(0), 500);
     } catch {
-      clearInterval(progressInterval);
+      if (progressRef.current) clearInterval(progressRef.current);
       setError(`Failed to upload ${type}`);
       setUploadProgress(0);
     } finally {
@@ -84,41 +90,11 @@ export default function DocumentSection({ application, onUpdate }: Props) {
   async function handlePreview(type: 'cv' | 'cover-letter') {
     try {
       const { url } = await getSignedUrl(application.id, type, 'inline');
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      window.open(`${baseUrl}${url}`, '_blank');
+      window.open(`${API_BASE}${url}`, '_blank');
     } catch {
       setError(`Failed to get preview URL for ${type}`);
     }
   }
-
-  // TODO: handleDownload is currently unused but may be needed for future download functionality
-  // async function handleDownload(type: 'cv' | 'cover-letter') {
-  //   try {
-  //     const { url } = await getSignedUrl(application.id, type, 'attachment');
-  //     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-  //     const fullUrl = `${baseUrl}${url}`;
-  //
-  //     const response = await fetch(fullUrl);
-  //     if (!response.ok) throw new Error('Download failed');
-  //
-  //     // Extract filename from Content-Disposition header
-  //     const contentDisposition = response.headers.get('Content-Disposition');
-  //     let filename = `${type}.pdf`;
-  //     if (contentDisposition) {
-  //       const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-  //       if (filenameMatch) {
-  //         filename = filenameMatch[1];
-  //       }
-  //     }
-  //
-  //     const blob = await response.blob();
-  //     const blobUrl = URL.createObjectURL(blob);
-  //
-  //     downloadFile(blobUrl, filename);
-  //   } catch {
-  //     setError(`Failed to download ${type}`);
-  //   }
-  // }
 
   function isPreviewable(path: string | null): boolean {
     if (!path) return false;
@@ -138,13 +114,13 @@ export default function DocumentSection({ application, onUpdate }: Props) {
     const isProgressActive = isUploading && uploadProgress > 0 && uploadProgress < 100;
 
     return (
-      <div className="flex items-center justify-between py-3">
-        <span className="text-primary font-medium w-28">{label}</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3">
+        <span className="text-primary font-medium">{label}</span>
         {hasFile ? (
-          <div className="flex flex-col gap-2 items-end">
+          <div className="flex flex-col gap-2 items-start sm:items-end">
             {isProgressActive && <ProgressBar progress={uploadProgress} fileName={uploadingFile?.name} />}
             <div className="flex items-center gap-2">
-              <span className={`text-sm ${wasJustReplaced ? 'text-accent-aqua' : 'text-accent-green'}`}>
+              <span className={`text-sm ${wasJustReplaced ? 'text-accent-bright' : 'text-green-bright'}`}>
                 {wasJustReplaced ? 'Replaced!' : 'Uploaded'}
               </span>
               <button
@@ -181,9 +157,9 @@ export default function DocumentSection({ application, onUpdate }: Props) {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-2 items-end">
+          <div className="flex flex-col gap-2 items-start sm:items-end">
             {isProgressActive && <ProgressBar progress={uploadProgress} fileName={uploadingFile?.name} />}
-            <label className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 flex items-center gap-1.5 cursor-pointer">
+            <label className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 flex items-center gap-1.5 cursor-pointer">
               <i className="bi-upload icon-sm"></i>
               {isUploading ? 'Uploading...' : 'Upload'}
               <input
@@ -208,7 +184,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
       <h2 className="text-lg font-semibold text-primary mb-4">Documents</h2>
 
       {error && (
-        <div className="bg-accent-red/20 border border-accent-red text-accent-red px-3 py-2 rounded mb-4 text-sm">
+        <div className="bg-red-bright/20 border border-red-bright text-red-bright px-3 py-2 rounded mb-4 text-sm">
           {error}
         </div>
       )}

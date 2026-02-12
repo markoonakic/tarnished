@@ -1,11 +1,7 @@
 import api from './api';
-import type { Application, Status, RoundType } from './types';
+import type { Application, Status, RoundType, User } from './types';
 
-export interface User {
-  id: string;
-  email: string;
-  is_admin: boolean;
-  is_active: boolean;
+export interface AdminUser extends User {
   created_at: string;
 }
 
@@ -15,7 +11,7 @@ export interface AdminStats {
   applications_by_status: { status: string; count: number }[];
 }
 
-export async function listUsers(): Promise<User[]> {
+export async function listUsers(): Promise<AdminUser[]> {
   const response = await api.get('/api/admin/users');
   return response.data;
 }
@@ -23,15 +19,15 @@ export async function listUsers(): Promise<User[]> {
 export async function updateUser(
   userId: string,
   data: { is_admin?: boolean; is_active?: boolean; password?: string }
-): Promise<User> {
-  const response = await api.put(`/api/admin/users/${userId}`, data);
+): Promise<AdminUser> {
+  const response = await api.patch(`/api/admin/users/${userId}`, data);
   return response.data;
 }
 
 export async function createUser(data: {
   email: string;
   password: string;
-}): Promise<User> {
+}): Promise<AdminUser> {
   const response = await api.post('/api/admin/users', data);
   return response.data;
 }

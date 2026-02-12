@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { API_BASE } from './api';
 
 export interface ImportValidation {
   valid: boolean;
@@ -47,7 +47,8 @@ export async function validateImport(file: File): Promise<ImportValidation> {
   });
 
   if (!response.ok) {
-    throw new Error('Validation failed');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.errors?.join(', ') || 'Validation failed');
   }
 
   return response.json();
@@ -68,7 +69,8 @@ export async function importData(
   });
 
   if (!response.ok) {
-    throw new Error('Import failed');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Import failed');
   }
 
   return response.json();

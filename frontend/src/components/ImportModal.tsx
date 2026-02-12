@@ -7,6 +7,8 @@ interface ImportModalProps {
   onSuccess: () => void;
 }
 
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB (matches backend limit per file)
+
 export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -15,12 +17,14 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
   const [validation, setValidation] = useState<any>(null);
   const [progress, setProgress] = useState<ImportProgress | null>(null);
   const [error, setError] = useState('');
+  const [override, setOverride] = useState(false);
 
   const reset = () => {
     setFile(null);
     setValidation(null);
     setProgress(null);
     setError('');
+    setOverride(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -50,7 +54,9 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
-    if (selected && !selected.name.endsWith('.zip')) {
+    if (!selected) return;
+
+    if (!selected.name.endsWith('.zip')) {
       setError('Please select a ZIP file');
       setFile(null);
       if (fileInputRef.current) {
@@ -58,7 +64,17 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
       }
       return;
     }
-    setFile(selected || null);
+
+    if (selected.size > MAX_FILE_SIZE) {
+      setError(`File too large (${(selected.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 100MB.`);
+      setFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    setFile(selected);
     setError('');
   };
 
@@ -71,8 +87,8 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
     try {
       const result = await validateImport(file);
       setValidation(result);
-    } catch {
-      setError('Validation failed. Please check your file.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Validation failed. Please check your file.');
     } finally {
       setValidating(false);
     }
@@ -85,7 +101,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
     setError('');
 
     try {
-      const { import_id } = await importData(file, false);
+      const { import_id } = await importData(file, override);
 
       connectToImportProgress(
         import_id,
@@ -98,8 +114,8 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
           reset();
         }
       );
-    } catch {
-      setError('Import failed. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Import failed. Please try again.');
       setImporting(false);
     }
   };
@@ -115,35 +131,35 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
       aria-labelledby="import-modal-title"
     >
       <div
-        className="bg-bg1 rounded-lg max-w-md w-full mx-4"
+        className="bg-bg1 rounded-lg max-w-md w-full mx-4 max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center p-4 border-b border-tertiary">
+        <div className="flex-shrink-0 flex justify-between items-center p-4 border-b border-tertiary">
           <h3 id="import-modal-title" className="text-primary font-medium">Import Data</h3>
           <button
             onClick={handleClose}
             disabled={importing}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded disabled:opacity-50 cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out p-2 rounded disabled:opacity-50 cursor-pointer"
           >
             <i className="bi bi-x-lg icon-xl" />
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="overflow-y-auto flex-1 p-6">
           {error && (
-            <div className="bg-accent-red/20 border border-accent-red text-accent-red px-4 py-3 rounded mb-4">
+            <div className="bg-red-bright/20 border border-red-bright text-red-bright px-4 py-3 rounded mb-4">
               {error}
             </div>
           )}
 
           {progress ? (
             <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-aqua border-t-transparent mb-4"></div>
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-accent border-t-transparent mb-4"></div>
               <p className="text-primary">{progress.message || 'Importing...'}</p>
               <div className="w-full bg-tertiary rounded-full h-2 mt-4">
                 <div
-                  className="bg-aqua h-2 rounded-full transition-all"
+                  className="bg-accent h-2 rounded-full transition-all"
                   style={{ width: `${progress.percent}%` }}
                 />
               </div>
@@ -152,7 +168,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
             <div>
               <h4 className="text-lg font-semibold text-primary mb-3">Import Summary</h4>
               <div className="bg-tertiary rounded-lg p-4 mb-4 text-sm">
-                <div className="grid grid-cols-2 gap-2 text-secondary">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-secondary">
                   <span>Applications:</span>
                   <span className="text-primary text-right">{validation.summary.applications}</span>
                   <span>Rounds:</span>
@@ -176,16 +192,28 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
                 </div>
               )}
 
+              {validation.warnings.some((w: string) => w.includes('existing applications')) && (
+                <label className="flex items-center gap-2 text-sm mb-4 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={override}
+                    onChange={(e) => setOverride(e.target.checked)}
+                    className="rounded bg-bg2 border-tertiary text-accent focus:ring-accent-bright cursor-pointer"
+                  />
+                  <span className="text-yellow">Replace existing data (warning: this deletes current applications)</span>
+                </label>
+              )}
+
               <div className="flex gap-3">
                 <button
                   onClick={() => setValidation(null)}
-                  className="bg-transparent text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md flex-1 cursor-pointer"
+                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md flex-1 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleImport}
-                  className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium flex-1 cursor-pointer"
+                  className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium flex-1 cursor-pointer"
                 >
                   Import Data
                 </button>
@@ -202,7 +230,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
                 type="file"
                 accept=".zip"
                 onChange={handleFileSelect}
-                className="w-full px-3 py-2 bg-bg2 text-fg1 focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-3 py-2 bg-bg2 text-fg1 focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
 
               {file && (
@@ -210,7 +238,7 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
                   <button
                     onClick={handleValidate}
                     disabled={validating}
-                    className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 w-full cursor-pointer"
+                    className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 w-full cursor-pointer"
                   >
                     {validating ? 'Validating...' : 'Validate'}
                   </button>

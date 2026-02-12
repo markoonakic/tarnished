@@ -8,7 +8,6 @@ import WeeklyActivityChart from '../components/analytics/WeeklyActivityChart';
 import InterviewFunnel from '../components/analytics/InterviewFunnel';
 import InterviewOutcomes from '../components/analytics/InterviewOutcomes';
 import InterviewTimeline from '../components/analytics/InterviewTimeline';
-import CandidateProgression from '../components/analytics/CandidateProgression';
 
 export default function Analytics() {
   const [searchParams] = useSearchParams();
@@ -18,7 +17,7 @@ export default function Analytics() {
     <Layout>
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Page Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="text-2xl font-bold text-fg1">Analytics</h1>
           <PeriodSelector />
         </div>
@@ -43,22 +42,18 @@ export default function Analytics() {
           <section>
             <h2 className="text-lg font-semibold text-fg1 mb-4">Interview Analytics</h2>
 
-            {/* TIER 2: Round Performance (3-chart grid) */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-              <div className="bg-bg1 rounded-lg p-4">
+            <div className="space-y-6">
+              <div className="bg-bg1 rounded-lg p-6">
                 <InterviewFunnel period={period} />
               </div>
-              <div className="bg-bg1 rounded-lg p-4">
+
+              <div className="bg-bg1 rounded-lg p-6">
                 <InterviewOutcomes period={period} />
               </div>
-              <div className="bg-bg1 rounded-lg p-4">
+
+              <div className="bg-bg1 rounded-lg p-6">
                 <InterviewTimeline period={period} />
               </div>
-            </div>
-
-            {/* TIER 3: Candidate Progression */}
-            <div className="bg-bg1 rounded-lg p-4">
-              <CandidateProgression period={period} />
             </div>
           </section>
 

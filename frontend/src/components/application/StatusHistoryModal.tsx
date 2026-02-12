@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import type { ApplicationStatusHistory } from '../../lib/types';
+import { getStatusColor } from '../../lib/statusColors';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 interface StatusHistoryModalProps {
   isOpen: boolean;
@@ -22,6 +24,8 @@ export default function StatusHistoryModal({
   onDelete,
   deleteIsPending,
 }: StatusHistoryModalProps) {
+  const colors = useThemeColors();
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -40,14 +44,14 @@ export default function StatusHistoryModal({
       aria-modal="true"
       aria-labelledby="status-history-title"
     >
-      <div className="bg-bg1 rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b border-tertiary">
+      <div className="bg-bg1 rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex-shrink-0 flex justify-between items-center p-4 border-b border-tertiary">
           <h3 id="status-history-title" className="text-lg font-semibold text-primary">Status History</h3>
-          <button onClick={onClose} className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded cursor-pointer">
+          <button onClick={onClose} className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out p-2 rounded cursor-pointer">
             <i className="bi bi-x-lg icon-xl" />
           </button>
         </div>
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
+        <div className="overflow-y-auto flex-1 p-6">
           {!history || history.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
               <i className="bi-clock-history icon-2xl text-muted mb-4" aria-hidden="true" />
@@ -68,8 +72,8 @@ export default function StatusHistoryModal({
                           <span
                             className="text-xs px-2 py-1 rounded font-medium"
                             style={{
-                              backgroundColor: `${entry.from_status.color}20`,
-                              color: entry.from_status.color,
+                              backgroundColor: `${getStatusColor(entry.from_status.name, colors, entry.from_status.color)}20`,
+                              color: getStatusColor(entry.from_status.name, colors, entry.from_status.color),
                             }}
                           >
                             {entry.from_status.name}
@@ -82,8 +86,8 @@ export default function StatusHistoryModal({
                       <span
                         className="text-xs px-2 py-1 rounded font-medium"
                         style={{
-                          backgroundColor: `${entry.to_status.color}20`,
-                          color: entry.to_status.color,
+                          backgroundColor: `${getStatusColor(entry.to_status.name, colors, entry.to_status.color)}20`,
+                          color: getStatusColor(entry.to_status.name, colors, entry.to_status.color),
                         }}
                       >
                         {entry.to_status.name}

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { getHeatmapData } from '../lib/analytics';
 import type { HeatmapData } from '../lib/analytics';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import Dropdown from './Dropdown';
 import Loading from './Loading';
 import EmptyState from './EmptyState';
 
-const DAYS_IN_WEEK = 7;
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -22,6 +22,7 @@ export default function ActivityHeatmap() {
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState<'rolling' | number>('rolling');
   const [hoveredCell, setHoveredCell] = useState<CellData | null>(null);
+  const colors = useThemeColors();
 
   const currentYear = new Date().getFullYear();
   const years = [currentYear, currentYear - 1, currentYear - 2];
@@ -54,12 +55,12 @@ export default function ActivityHeatmap() {
 
   function getLevelColor(level: number): string {
     switch (level) {
-      case 0: return 'var(--bg2)';
-      case 1: return 'var(--green)';
-      case 2: return 'var(--aqua)';
-      case 3: return 'var(--blue)';
-      case 4: return 'var(--aqua-bright)';
-      default: return 'var(--bg2)';
+      case 0: return colors.bg2;
+      case 1: return colors.green;
+      case 2: return colors.aqua;
+      case 3: return colors.blue;
+      case 4: return colors.aquaBright;
+      default: return colors.bg2;
     }
   }
 
@@ -169,7 +170,7 @@ export default function ActivityHeatmap() {
   }
 
   if (error) {
-    return <div className="text-center py-8 text-accent-red">{error}</div>;
+    return <div className="text-center py-8 text-red-bright">{error}</div>;
   }
 
   const grid = buildGrid();

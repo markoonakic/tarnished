@@ -3,21 +3,26 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getApplication, deleteApplication } from '../lib/applications';
 import { deleteRound } from '../lib/rounds';
 import type { Application, Round } from '../lib/types';
+import { getStatusColor } from '../lib/statusColors';
+import { useThemeColors } from '../hooks/useThemeColors';
 import RoundForm from '../components/RoundForm';
 import RoundCard from '../components/RoundCard';
 import DocumentSection from '../components/DocumentSection';
 import HistoryViewer from '../components/application/HistoryViewer';
 import Layout from '../components/Layout';
 import EmptyState from '../components/EmptyState';
+import ApplicationModal from '../components/ApplicationModal';
 
 export default function ApplicationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const colors = useThemeColors();
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showRoundForm, setShowRoundForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     if (id) loadApplication();
@@ -128,7 +133,7 @@ export default function ApplicationDetail() {
     return (
       <Layout>
         <div className="flex items-center justify-center py-20">
-          <div className="text-accent-red">Application not found</div>
+          <div className="text-red-bright">Application not found</div>
         </div>
       </Layout>
     );
@@ -138,19 +143,19 @@ export default function ApplicationDetail() {
     <Layout>
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <Link to="/applications" className="text-aqua hover:text-aqua-bright transition-colors duration-100 ease-in-out">
+          <Link to="/applications" className="text-accent hover:text-accent-bright transition-all duration-200 ease-in-out cursor-pointer">
             &larr; Back to Applications
           </Link>
         </div>
 
         {error && (
-          <div className="bg-accent-red/20 border border-accent-red text-accent-red px-4 py-3 rounded mb-6">
+          <div className="bg-red-bright/20 border border-red-bright text-red-bright px-4 py-3 rounded mb-6">
             {error}
           </div>
         )}
 
         <div className="bg-secondary rounded-lg p-6 mb-6">
-          <div className="flex justify-between items-start mb-4">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 mb-4">
             <div>
               <h1 className="text-2xl font-bold text-primary mb-1">{application.company}</h1>
               <p className="text-xl text-secondary">{application.job_title}</p>
@@ -158,19 +163,19 @@ export default function ApplicationDetail() {
             <span
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold"
               style={{
-                backgroundColor: `${application.status.color}20`,
-                color: application.status.color,
+                backgroundColor: `${getStatusColor(application.status.name, colors, application.status.color)}20`,
+                color: getStatusColor(application.status.name, colors, application.status.color),
               }}
             >
               <span
                 className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: application.status.color }}
+                style={{ backgroundColor: getStatusColor(application.status.name, colors, application.status.color) }}
               />
               {application.status.name}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-sm">
             <div>
               <span className="text-muted">Applied:</span>
               <span className="text-primary ml-2">{formatDate(application.applied_at)}</span>
@@ -187,7 +192,7 @@ export default function ApplicationDetail() {
                 href={application.job_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-aqua hover:text-aqua-bright transition-colors duration-100 ease-in-out text-sm"
+                className="text-accent hover:text-accent-bright transition-all duration-200 ease-in-out text-sm cursor-pointer"
               >
                 View Job Posting &rarr;
               </a>
@@ -201,14 +206,14 @@ export default function ApplicationDetail() {
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-tertiary">
-            <Link
-              to={`/applications/${id}/edit`}
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-4 border-t border-tertiary">
+            <button
+              onClick={() => setShowEditModal(true)}
               className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
             >
               <i className="bi-pencil icon-sm"></i>
               Edit
-            </Link>
+            </button>
             <button
               onClick={handleDelete}
               className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
@@ -236,7 +241,7 @@ export default function ApplicationDetail() {
             {application.rounds && application.rounds.length > 0 && (
               <button
                 onClick={() => setShowRoundForm(true)}
-                className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
+                className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
               >
                 Add Round
               </button>
@@ -287,6 +292,17 @@ export default function ApplicationDetail() {
           )}
         </div>
       </div>
+      {application && (
+        <ApplicationModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={() => {
+            setShowEditModal(false);
+            loadApplication();
+          }}
+          application={application}
+        />
+      )}
     </Layout>
   );
 }

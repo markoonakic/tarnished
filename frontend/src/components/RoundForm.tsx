@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createRound, updateRound, uploadRoundTranscript } from '../lib/rounds';
 import { listRoundTypes } from '../lib/settings';
 import type { Round, RoundType, RoundCreate, RoundUpdate } from '../lib/types';
@@ -58,6 +58,13 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
   const [notesSummary, setNotesSummary] = useState(round?.notes_summary || '');
   const [transcriptFile, setTranscriptFile] = useState<File | null>(null);
   const [transcriptSummary, setTranscriptSummary] = useState(round?.transcript_summary || '');
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (progressRef.current) clearInterval(progressRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     loadRoundTypes();
@@ -111,7 +118,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
       // Upload transcript if file is selected
       if (transcriptFile) {
         setUploadProgress(0);
-        const progressInterval = setInterval(() => {
+        progressRef.current = setInterval(() => {
           setUploadProgress((prev) => {
             if (prev >= 90) return prev;
             return prev + 10;
@@ -120,11 +127,11 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
 
         try {
           savedRound = await uploadRoundTranscript(savedRound.id, transcriptFile);
-          clearInterval(progressInterval);
+          if (progressRef.current) clearInterval(progressRef.current);
           setUploadProgress(100);
           setTimeout(() => setUploadProgress(0), 500);
         } catch {
-          clearInterval(progressInterval);
+          if (progressRef.current) clearInterval(progressRef.current);
           setUploadProgress(0);
           throw new Error('Failed to upload transcript');
         }
@@ -145,12 +152,12 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
       </h3>
 
       {error && (
-        <div className="bg-accent-red/20 border border-accent-red text-accent-red px-3 py-2 rounded mb-4 text-sm">
+        <div className="bg-red-bright/20 border border-red-bright text-red-bright px-3 py-2 rounded mb-4 text-sm">
           {error}
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block mb-1 text-sm font-semibold text-muted">Round Type</label>
           <Dropdown
@@ -171,7 +178,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             type="date"
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
-            className="w-full px-3 py-2 bg-bg3 text-fg1 focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
           />
         </div>
 
@@ -182,7 +189,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
             placeholder="e.g. 2:30 PM"
-            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
           />
         </div>
 
@@ -210,7 +217,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
                 type="date"
                 value={completedDate}
                 onChange={(e) => setCompletedDate(e.target.value)}
-                className="w-full px-3 py-2 bg-bg3 text-fg1 focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-3 py-2 bg-bg3 text-fg1 focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
             </div>
 
@@ -221,31 +228,35 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
                 value={completedTime}
                 onChange={(e) => setCompletedTime(e.target.value)}
                 placeholder="e.g. 2:30 PM"
-                className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
             </div>
           </>
         )}
 
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <label className="block mb-1 text-sm font-semibold text-muted">Notes</label>
           <textarea
             value={notesSummary}
             onChange={(e) => setNotesSummary(e.target.value)}
             rows={3}
             placeholder="Key points, questions asked, feedback..."
-            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
           />
         </div>
 
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <label className="block mb-1 text-sm font-semibold text-muted">Transcript (PDF)</label>
-          <input
-            type="file"
-            accept=".pdf"
-            onChange={(e) => setTranscriptFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 bg-bg3 text-fg1 focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
-          />
+          <label className="bg-transparent text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer w-fit">
+            <i className="bi-upload icon-sm"></i>
+            {transcriptFile ? transcriptFile.name : 'Choose PDF...'}
+            <input
+              type="file"
+              accept=".pdf"
+              onChange={(e) => setTranscriptFile(e.target.files?.[0] || null)}
+              className="hidden"
+            />
+          </label>
           {uploadProgress > 0 && uploadProgress < 100 && (
             <div className="mt-2">
               <ProgressBar progress={uploadProgress} fileName={transcriptFile?.name} />
@@ -253,20 +264,20 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
           )}
           {round?.transcript_path && !transcriptFile && (
             <div className="flex items-center gap-2 p-2 bg-secondary rounded border border-tertiary mt-2">
-              <i className="bi-file-text icon-md text-accent-red"></i>
+              <i className="bi-file-text icon-md text-red-bright"></i>
               <span className="text-sm text-primary truncate">Current: {round.transcript_path.split('/').pop()}</span>
             </div>
           )}
         </div>
 
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <label className="block mb-1 text-sm font-semibold text-muted">Transcript Summary</label>
           <textarea
             value={transcriptSummary}
             onChange={(e) => setTranscriptSummary(e.target.value)}
             rows={3}
             placeholder="Summary of key discussion points from transcript..."
-            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
+            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
           />
         </div>
       </div>
@@ -282,7 +293,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
         <button
           type="submit"
           disabled={loading}
-          className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
+          className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
         >
           {loading ? 'Saving...' : isEditing ? 'Save' : 'Add Round'}
         </button>

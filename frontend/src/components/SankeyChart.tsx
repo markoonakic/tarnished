@@ -1,10 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
-import type { CallbackDataParams } from 'echarts/types/dist/shared';
 import { getSankeyData } from '../lib/analytics';
 import type { SankeyData } from '../lib/analytics';
-import { colors } from '@/lib/theme';
+import { getSankeyNodeColor } from '../lib/statusColors';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from './Loading';
 import EmptyState from './EmptyState';
 
@@ -12,6 +12,7 @@ export default function SankeyChart() {
   const [data, setData] = useState<SankeyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const colors = useThemeColors();
 
   useEffect(() => {
     loadData();
@@ -69,7 +70,7 @@ export default function SankeyChart() {
     const nodes = filteredNodes.map((n) => ({
       name: n.id,
       depth: getDepth(n.id),
-      itemStyle: { color: n.color },
+      itemStyle: { color: getSankeyNodeColor(n.id, colors, n.color) },
     }));
 
     // Filter out links from/to applications and use string names
@@ -90,7 +91,7 @@ export default function SankeyChart() {
         borderWidth: 1,
         borderRadius: 4,
         textStyle: { color: colors.fg0 },
-        formatter: (params: CallbackDataParams) => {
+        formatter: (params: any) => {
           const nodeId = params.name;
           let label: string;
 
@@ -101,7 +102,7 @@ export default function SankeyChart() {
             const stage = nodeId.split('_').pop()?.replace(/_/g, ' ') || '';
             label = `Withdrawn after ${stage.charAt(0).toUpperCase() + stage.slice(1)}`;
           } else if (nodeId.startsWith('status_')) {
-            label = nodeId.replace('status_', '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            label = nodeId.replace('status_', '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
           } else {
             label = nodeId;
           }
@@ -132,7 +133,7 @@ export default function SankeyChart() {
               return 'Withdrawn';
             }
             if (params.name.startsWith('status_')) {
-              return params.name.replace('status_', '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              return params.name.replace('status_', '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
             }
             return params.name;
           },
@@ -142,14 +143,14 @@ export default function SankeyChart() {
         layoutIterations: 50,
       }],
     };
-  }, [data]);
+  }, [data, colors]);
 
   if (loading) {
     return <Loading message="Loading chart data..." size="sm" />;
   }
 
   if (error) {
-    return <div className="text-center py-8 text-accent-red">{error}</div>;
+    return <div className="text-center py-8 text-red-bright">{error}</div>;
   }
 
   if (!data || data.nodes.length === 0 || data.links.length === 0) {

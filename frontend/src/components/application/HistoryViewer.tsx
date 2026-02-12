@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getApplicationHistory, deleteHistoryEntry } from '../../lib/history';
 import type { ApplicationStatusHistory } from '../../lib/types';
+import { getStatusColor } from '../../lib/statusColors';
+import { useThemeColors } from '../../hooks/useThemeColors';
 import StatusHistoryModal from './StatusHistoryModal';
 
 interface Props {
@@ -10,6 +12,7 @@ interface Props {
 
 export default function HistoryViewer({ applicationId }: Props) {
   const queryClient = useQueryClient();
+  const colors = useThemeColors();
   const [isEditing, setIsEditing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -49,7 +52,7 @@ export default function HistoryViewer({ applicationId }: Props) {
     return (
       <div className="bg-bg1 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-primary mb-4">Status History</h2>
-        <div className="text-accent-red">Failed to load history</div>
+        <div className="text-red-bright">Failed to load history</div>
       </div>
     );
   }
@@ -57,15 +60,15 @@ export default function HistoryViewer({ applicationId }: Props) {
   return (
     <>
       <div className="bg-bg1 rounded-lg p-6">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
           <h2 className="text-lg font-semibold text-primary">Status History</h2>
           <div className="flex gap-2">
             {history && history.length > 0 && (
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className={`transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium ${
+                className={`transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer ${
                   isEditing
-                    ? 'bg-aqua text-bg0 hover:bg-aqua-bright'
+                    ? 'bg-accent text-bg0 hover:bg-accent-bright'
                     : 'bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0'
                 }`}
               >
@@ -102,8 +105,8 @@ export default function HistoryViewer({ applicationId }: Props) {
                         <span
                           className="text-xs px-2 py-1 rounded font-medium"
                           style={{
-                            backgroundColor: `${entry.from_status.color}20`,
-                            color: entry.from_status.color,
+                            backgroundColor: `${getStatusColor(entry.from_status.name, colors, entry.from_status.color)}20`,
+                            color: getStatusColor(entry.from_status.name, colors, entry.from_status.color),
                           }}
                         >
                           {entry.from_status.name}
@@ -116,8 +119,8 @@ export default function HistoryViewer({ applicationId }: Props) {
                     <span
                       className="text-xs px-2 py-1 rounded font-medium"
                       style={{
-                        backgroundColor: `${entry.to_status.color}20`,
-                        color: entry.to_status.color,
+                        backgroundColor: `${getStatusColor(entry.to_status.name, colors, entry.to_status.color)}20`,
+                        color: getStatusColor(entry.to_status.name, colors, entry.to_status.color),
                       }}
                     >
                       {entry.to_status.name}
@@ -134,7 +137,7 @@ export default function HistoryViewer({ applicationId }: Props) {
                   <button
                     onClick={() => handleDelete(entry.id)}
                     disabled={deleteMutation.isPending}
-                    className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-xs disabled:opacity-50 flex-shrink-0 cursor-pointer"
+                    className="bg-transparent text-red hover:bg-bg3 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-xs disabled:opacity-50 flex-shrink-0 cursor-pointer"
                     title="Delete"
                   >
                     <i className="bi-trash icon-xs"></i>

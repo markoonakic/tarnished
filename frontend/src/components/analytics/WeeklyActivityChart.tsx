@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import api from '@/lib/api';
-import { colors } from '@/lib/theme';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
 
@@ -20,6 +20,7 @@ export default function WeeklyActivityChart({ period }: WeeklyActivityChartProps
   const [data, setData] = useState<WeeklyData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const colors = useThemeColors();
 
   useEffect(() => {
     async function fetchData() {
@@ -28,8 +29,7 @@ export default function WeeklyActivityChart({ period }: WeeklyActivityChartProps
       try {
         const response = await api.get(`/api/analytics/weekly?period=${period}`);
         setData(response.data);
-      } catch (err) {
-        console.error('Error fetching weekly data:', err);
+      } catch {
         setError('Failed to load chart data');
         setData(getMockData(period));
       } finally {
@@ -112,14 +112,14 @@ export default function WeeklyActivityChart({ period }: WeeklyActivityChartProps
         },
       ],
     };
-  }, [data]);
+  }, [data, colors]);
 
   if (loading) {
     return <Loading message="Loading chart data..." size="sm" />;
   }
 
   if (error) {
-    return <div className="text-center py-8 text-accent-red">{error}</div>;
+    return <div className="text-center py-8 text-red-bright">{error}</div>;
   }
 
   if (data.length === 0) {

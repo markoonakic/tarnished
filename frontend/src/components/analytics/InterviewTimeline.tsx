@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import { getInterviewRoundsData, type TimelineData } from '@/lib/analytics';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
 
@@ -14,6 +15,7 @@ export default function InterviewTimeline({ period = 'all', roundType }: Intervi
   const [data, setData] = useState<TimelineData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const colors = useThemeColors();
 
   useEffect(() => {
     loadData();
@@ -25,69 +27,163 @@ export default function InterviewTimeline({ period = 'all', roundType }: Intervi
       const result = await getInterviewRoundsData(period, roundType);
       setData(result.timeline_data);
       setError('');
-    } catch (err) {
+    } catch {
       setError('Failed to load interview timeline data');
-      console.error('Error loading timeline data:', err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  function getSpeedInfo(avgDays: number): { label: string; color: string } {
+    if (avgDays <= 3) {
+      return { label: 'Fast', color: colors.green };
+    } else if (avgDays <= 7) {
+      return { label: 'Normal', color: colors.aqua };
+    } else {
+      return { label: 'Slow', color: colors.orange };
     }
   }
 
   const option: EChartsOption = useMemo(() => {
     if (data.length === 0) return {};
 
+    // Calculate max value for proper scaling
+    const maxValue = Math.max(...data.map((d) => d.avg_days));
+    const xAxisMax = Math.max(maxValue * 1.2, 10); // Ensure at least 10 days range
+
     return {
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
-        backgroundColor: 'var(--bg3)',
-        borderColor: 'var(--aqua-bright)',
+        backgroundColor: colors.bg3,
+        borderColor: colors.aquaBright,
         borderWidth: 1,
         borderRadius: 4,
-        textStyle: { color: 'var(--fg0)' },
-        formatter: '{b}: {c} days average',
+        textStyle: { color: colors.fg0 },
+        formatter: (params: any) => {
+          const param = params[0];
+          const value = param.value as number;
+          const speedInfo = getSpeedInfo(value);
+          return `
+            <div style="padding: 4px 0;">
+              <div style="font-weight: 600; margin-bottom: 4px;">${param.name}</div>
+              <div>Average: <span style="color: ${colors.aquaBright}; font-weight: 600;">${value.toFixed(1)}</span> days</div>
+              <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid ${colors.bg2};">
+                <span style="color: ${speedInfo.color};">●</span> ${speedInfo.label} process
+                ${value > 7 ? `<br/><span style="color: ${colors.orange}; font-size: 11px;">⚠ Exceeds 7-day target</span>` : ''}
+              </div>
+            </div>
+          `;
+        },
       },
       grid: {
         left: '3%',
-        right: '4%',
-        bottom: '3%',
-        top: '3%',
+        right: '8%',
+        bottom: '10%',
+        top: '5%',
         containLabel: true,
       },
       xAxis: {
         type: 'value',
-        name: 'Days',
-        nameTextStyle: { color: 'var(--fg4)' },
-        axisLabel: { color: 'var(--fg4)' },
-        axisLine: { lineStyle: { color: 'var(--bg2)' } },
-        splitLine: { lineStyle: { color: 'var(--bg2)' } },
+        name: 'Days Between Rounds',
+        nameTextStyle: { color: colors.fg4, fontSize: 12, padding: [0, 0, 0, 0] },
+        nameGap: 5,
+        max: xAxisMax,
+        axisLabel: { color: colors.fg4 },
+        axisLine: { lineStyle: { color: colors.bg2 } },
+        splitLine: {
+          lineStyle: {
+            color: colors.bg2,
+            type: 'dashed',
+          }
+        },
       },
       yAxis: {
         type: 'category',
         data: data.map((d) => d.round),
-        axisLabel: { color: 'var(--fg4)' },
-        axisLine: { lineStyle: { color: 'var(--bg2)' } },
-      },
-      series: [{
-        type: 'bar',
-        data: data.map((d) => d.avg_days),
-        itemStyle: { color: 'var(--aqua)' },
-        label: {
-          show: true,
-          position: 'right',
-          formatter: '{c}d',
-          color: 'var(--fg1)',
+        axisLabel: {
+          color: colors.fg4,
+          fontSize: 13,
         },
-      }],
+        axisLine: { lineStyle: { color: colors.bg2 } },
+      },
+      series: [
+        {
+          type: 'bar',
+          data: data.map((d) => d.avg_days),
+          itemStyle: {
+            color: (params: any) => {
+              const value = params.value as number;
+              return getSpeedInfo(value).color;
+            },
+            borderRadius: [0, 4, 4, 0],
+          },
+          label: {
+            show: true,
+            position: 'right',
+            formatter: (params: any) => {
+              const value = params.value as number;
+              const speedInfo = getSpeedInfo(value);
+              return `{value|${value.toFixed(1)}d} {speed|${speedInfo.label}}`;
+            },
+            color: colors.fg1,
+            rich: {
+              value: {
+                fontSize: 14,
+                fontWeight: 600,
+                color: colors.fg0,
+              },
+              speed: {
+                fontSize: 11,
+                fontWeight: 500,
+                padding: [0, 0, 0, 8],
+              },
+            },
+          },
+          barWidth: '60%',
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowColor: 'rgba(0, 0, 0, 0.3)',
+            },
+          },
+        },
+        // Benchmark line at 7 days
+        {
+          type: 'line',
+          markLine: {
+            silent: true,
+            symbol: 'none',
+            data: [
+              {
+                xAxis: 7,
+                lineStyle: {
+                  color: colors.orange,
+                  type: 'solid',
+                  width: 2,
+                },
+                label: {
+                  show: true,
+                  position: 'end',
+                  formatter: '7d Target',
+                  color: colors.orange,
+                  fontSize: 11,
+                  fontWeight: 500,
+                },
+              },
+            ],
+          },
+        },
+      ],
     };
-  }, [data]);
+  }, [data, colors]);
 
   if (loading) {
     return <Loading message="Loading interview timeline..." size="sm" />;
   }
 
   if (error) {
-    return <div className="text-center py-8 text-red">{error}</div>;
+    return <div className="text-center py-8 text-red-bright">{error}</div>;
   }
 
   if (data.length === 0) {
@@ -101,12 +197,23 @@ export default function InterviewTimeline({ period = 'all', roundType }: Intervi
   }
 
   return (
-    <div className="w-full overflow-x-auto">
-      <ReactECharts
-        option={option}
-        style={{ width: '100%', height: '400px' }}
-        opts={{ renderer: 'svg' }}
-      />
+    <div className="w-full">
+      {/* Description */}
+      <p className="text-sm text-fg4 mb-4">
+        Average number of days between interview rounds. Color indicates process speed:
+        <span className="text-green ml-1">● Fast (≤3 days)</span>,
+        <span className="text-aqua mx-1">● Normal (4-7 days)</span>,
+        <span className="text-orange mx-1">● Slow (8+ days)</span>
+      </p>
+
+      {/* Chart */}
+      <div className="w-full overflow-x-auto">
+        <ReactECharts
+          option={option}
+          style={{ width: '100%', height: '500px' }}
+          opts={{ renderer: 'svg' }}
+        />
+      </div>
     </div>
   );
 }

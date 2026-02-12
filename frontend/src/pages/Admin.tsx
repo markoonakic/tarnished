@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { listUsers, getAdminStats, deleteUser } from '../lib/admin';
-import type { User, AdminStats } from '../lib/admin';
+import type { AdminUser, AdminStats } from '../lib/admin';
 import Layout from '../components/Layout';
 import Loading from '../components/Loading';
 import CreateUserModal from '../components/CreateUserModal';
@@ -9,13 +9,13 @@ import EditUserModal from '../components/EditUserModal';
 
 export default function Admin() {
   const { user } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
 
   useEffect(() => {
     loadData();
@@ -41,7 +41,7 @@ export default function Admin() {
     return new Date(dateStr).toLocaleDateString();
   }
 
-  async function handleDeleteUser(user: User) {
+  async function handleDeleteUser(user: AdminUser) {
     if (!confirm(`Delete user "${user.email}"? This action cannot be undone.`)) {
       return;
     }
@@ -64,7 +64,7 @@ export default function Admin() {
         <h1 className="text-2xl font-bold text-primary mb-6">Admin Panel</h1>
 
         {error && (
-          <div className="bg-accent-red/20 border border-accent-red text-accent-red px-4 py-3 rounded mb-6">
+          <div className="bg-red-bright/20 border border-red-bright text-red-bright px-4 py-3 rounded mb-6">
             {error}
           </div>
         )}
@@ -88,11 +88,11 @@ export default function Admin() {
             </section>
 
             <section>
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
                 <h2 className="text-xl font-bold text-primary">Users</h2>
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
+                  className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
                 >
                   Create User
                 </button>
@@ -103,10 +103,11 @@ export default function Admin() {
                 placeholder="Search by email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full px-4 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
 
-              <div className="bg-secondary rounded-lg overflow-hidden mt-4">
+              {/* Desktop table */}
+              <div className="hidden md:block bg-secondary rounded-lg overflow-hidden mt-4">
                 <table className="w-full border-collapse">
                   <thead>
                     <tr>
@@ -124,7 +125,7 @@ export default function Admin() {
                         <td className="py-3 px-4 text-sm text-secondary">{formatDate(u.created_at)}</td>
                         <td className="py-3 px-4 text-sm text-center">
                           {u.is_admin ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-accent-purple/20 text-accent-purple">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-purple-bright/20 text-purple-bright">
                               Admin
                             </span>
                           ) : (
@@ -134,8 +135,8 @@ export default function Admin() {
                         <td className="py-3 px-4 text-sm text-center">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold ${
                             u.is_active
-                              ? 'bg-accent-green/20 text-accent-green'
-                              : 'bg-accent-red/20 text-accent-red'
+                              ? 'bg-green-bright/20 text-green-bright'
+                              : 'bg-red-bright/20 text-red-bright'
                           }`}>
                             {u.is_active ? 'Active' : 'Inactive'}
                           </span>
@@ -162,6 +163,50 @@ export default function Admin() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="md:hidden space-y-3 mt-4">
+                {filteredUsers.map((u) => (
+                  <div key={u.id} className="bg-secondary rounded-lg p-4">
+                    <div className="flex justify-between items-start gap-2 mb-2">
+                      <span className="text-sm text-primary font-medium truncate">{u.email}</span>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {u.is_admin && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-purple-bright/20 text-purple-bright">
+                            Admin
+                          </span>
+                        )}
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold ${
+                          u.is_active
+                            ? 'bg-green-bright/20 text-green-bright'
+                            : 'bg-red-bright/20 text-red-bright'
+                        }`}>
+                          {u.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-secondary mb-3">
+                      Joined {formatDate(u.created_at)}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setEditingUser(u)}
+                        className="flex-1 px-3 py-2 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <i className="bi-pencil icon-xs"></i>
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(u)}
+                        className="flex-1 px-3 py-2 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <i className="bi-trash icon-xs"></i>
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
           </div>

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { uploadMedia, deleteMedia, getMediaSignedUrl, getRoundTranscriptSignedUrl, deleteRoundTranscript, uploadRoundTranscript } from '../lib/rounds';
 import type { Round, RoundMedia } from '../lib/types';
+import { API_BASE } from '../lib/api';
 import MediaPlayer from './MediaPlayer';
 import { downloadFile } from '../lib/downloadFile';
 import ProgressBar from './ProgressBar';
@@ -20,6 +21,15 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
   const [uploadingTranscriptFile, setUploadingTranscriptFile] = useState<File | null>(null);
   const [uploadingTranscriptProgress, setUploadingTranscriptProgress] = useState(0);
   const [playingMedia, setPlayingMedia] = useState<RoundMedia | null>(null);
+  const mediaProgressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const transcriptProgressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (mediaProgressRef.current) clearInterval(mediaProgressRef.current);
+      if (transcriptProgressRef.current) clearInterval(transcriptProgressRef.current);
+    };
+  }, []);
 
   function formatDateTime(dateStr: string | null) {
     if (!dateStr) return '-';
@@ -29,13 +39,13 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
   function getOutcomeStyle(outcome: string | null) {
     switch (outcome) {
       case 'passed':
-        return 'text-accent-green';
+        return 'text-green-bright';
       case 'failed':
-        return 'text-accent-red';
+        return 'text-red-bright';
       case 'cancelled':
         return 'text-muted';
       default:
-        return 'text-accent-yellow';
+        return 'text-yellow-bright';
     }
   }
 
@@ -51,7 +61,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
     setUploadingMediaFile(file);
     setUploadingMediaProgress(0);
 
-    const progressInterval = setInterval(() => {
+    mediaProgressRef.current = setInterval(() => {
       setUploadingMediaProgress((prev) => {
         if (prev >= 90) return prev;
         return prev + 10;
@@ -60,12 +70,12 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
 
     try {
       await uploadMedia(round.id, file);
-      clearInterval(progressInterval);
+      if (mediaProgressRef.current) clearInterval(mediaProgressRef.current);
       setUploadingMediaProgress(100);
       onMediaChange();
       setTimeout(() => setUploadingMediaProgress(0), 500);
     } catch {
-      clearInterval(progressInterval);
+      if (mediaProgressRef.current) clearInterval(mediaProgressRef.current);
       alert('Failed to upload media');
       setUploadingMediaProgress(0);
     } finally {
@@ -88,20 +98,23 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
   async function handleMediaDownload(media: RoundMedia, e: React.MouseEvent) {
     e.stopPropagation();
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiBase = API_BASE;
       const { url } = await getMediaSignedUrl(media.id, 'attachment');
       const fullUrl = `${apiBase}${url}`;
 
       const response = await fetch(fullUrl);
       if (!response.ok) throw new Error('Download failed');
 
-      // Extract filename from Content-Disposition header
+      // Extract filename from Content-Disposition header (supports RFC 5987)
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = 'media';
       if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-        if (filenameMatch) {
-          filename = filenameMatch[1];
+        const utf8Match = contentDisposition.match(/filename\*=UTF-8''(.+)/i);
+        const stdMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (utf8Match) {
+          filename = decodeURIComponent(utf8Match[1]);
+        } else if (stdMatch) {
+          filename = stdMatch[1];
         }
       }
 
@@ -114,37 +127,9 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
     }
   }
 
-  // TODO: handleTranscriptDownload is currently unused but may be needed for future download functionality
-  // async function handleTranscriptDownload() {
-  //   try {
-  //     const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-  //     const { url } = await getRoundTranscriptSignedUrl(round.id, 'attachment');
-  //     const fullUrl = `${apiBase}${url}`;
-  //
-  //     const response = await fetch(fullUrl);
-  //     if (!response.ok) throw new Error('Download failed');
-  //
-  //     const contentDisposition = response.headers.get('Content-Disposition');
-  //     let filename = 'transcript.pdf';
-  //     if (contentDisposition) {
-  //       const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-  //       if (filenameMatch) {
-  //         filename = filenameMatch[1];
-  //       }
-  //     }
-  //
-  //     const blob = await response.blob();
-  //     const blobUrl = URL.createObjectURL(blob);
-  //
-  //     downloadFile(blobUrl, filename);
-  //   } catch {
-  //     alert('Failed to download transcript');
-  //   }
-  // }
-
   async function handleTranscriptPreview() {
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiBase = API_BASE;
       const { url } = await getRoundTranscriptSignedUrl(round.id, 'inline');
       const fullUrl = `${apiBase}${url}`;
       window.open(fullUrl, '_blank');
@@ -170,7 +155,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
     setUploadingTranscriptFile(file);
     setUploadingTranscriptProgress(0);
 
-    const progressInterval = setInterval(() => {
+    transcriptProgressRef.current = setInterval(() => {
       setUploadingTranscriptProgress((prev) => {
         if (prev >= 90) return prev;
         return prev + 10;
@@ -179,12 +164,12 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
 
     try {
       await uploadRoundTranscript(round.id, file);
-      clearInterval(progressInterval);
+      if (transcriptProgressRef.current) clearInterval(transcriptProgressRef.current);
       setUploadingTranscriptProgress(100);
       onMediaChange();
       setTimeout(() => setUploadingTranscriptProgress(0), 500);
     } catch {
-      clearInterval(progressInterval);
+      if (transcriptProgressRef.current) clearInterval(transcriptProgressRef.current);
       alert('Failed to upload transcript');
       setUploadingTranscriptProgress(0);
     } finally {
@@ -199,7 +184,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
         <MediaPlayer media={playingMedia} onClose={() => setPlayingMedia(null)} />
       )}
 
-      <div className="flex justify-between items-start mb-3">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 mb-3">
         <div>
           <h4 className="text-primary font-medium">{round.round_type.name}</h4>
           <p className="text-sm text-muted">
@@ -218,7 +203,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
           <div className="flex items-center gap-1.5">
             <button
               onClick={onEdit}
-              className="px-2 py-1 rounded bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out cursor-pointer"
+              className="px-3 py-1.5 rounded bg-transparent text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center justify-center cursor-pointer"
               aria-label="Edit round"
               title="Edit"
             >
@@ -226,7 +211,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
             </button>
             <button
               onClick={onDelete}
-              className="px-2 py-1 rounded bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out cursor-pointer"
+              className="px-3 py-1.5 rounded bg-transparent text-red hover:bg-bg3 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center justify-center cursor-pointer"
               aria-label="Delete round"
               title="Delete"
             >
@@ -243,9 +228,9 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
       )}
 
       <div className="border-t border-tertiary pt-3">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
           <span className="text-sm text-muted">Media Files</span>
-          <label className={`bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded font-medium flex items-center gap-1.5 text-sm ${uploading ? 'opacity-50' : ''} cursor-pointer`}>
+          <label className={`bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded font-medium flex items-center gap-1.5 text-sm ${uploading ? 'opacity-50' : ''} cursor-pointer`}>
             <i className="bi-plus-circle icon-sm"></i>
             {uploading ? 'Uploading...' : 'Add Media'}
             <input
@@ -269,22 +254,22 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
             {round.media.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between bg-bg3 rounded px-3 py-2"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-bg3 rounded px-3 py-2"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   {m.media_type === 'video' ? (
-                    <i className="bi-camera-video icon-md text-accent-purple" />
+                    <i className="bi-camera-video icon-md text-purple-bright flex-shrink-0" />
                   ) : (
-                    <i className="bi-music-note-beamed icon-md text-accent-orange" />
+                    <i className="bi-music-note-beamed icon-md text-orange-bright flex-shrink-0" />
                   )}
-                  <span className="text-sm text-primary truncate max-w-[200px]">
+                  <span className="text-sm text-primary truncate">
                     {m.file_path.split('/').pop()}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={() => setPlayingMedia(m)}
-                    className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
+                    className="bg-transparent text-fg1 hover:bg-bg4 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
                     title="Play"
                   >
                     <i className="bi-play-fill icon-md" />
@@ -292,7 +277,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                   </button>
                   <button
                     onClick={(e) => handleMediaDownload(m, e)}
-                    className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
+                    className="bg-transparent text-fg1 hover:bg-bg4 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
                     title="Download"
                   >
                     <i className="bi-download icon-sm" />
@@ -300,7 +285,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                   </button>
                   <button
                     onClick={(e) => handleMediaDelete(m.id, e)}
-                    className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
+                    className="bg-transparent text-red hover:bg-bg4 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
                     title="Delete"
                   >
                     <i className="bi-trash icon-sm" />
@@ -316,10 +301,10 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
       </div>
 
       <div className="border-t border-tertiary pt-3 mt-3">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
           <span className="text-sm text-muted">Transcript</span>
           {!round.transcript_path && (
-            <label className={`bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded font-medium flex items-center gap-1.5 text-sm ${uploadingTranscript ? 'opacity-50' : ''} cursor-pointer`}>
+            <label className={`bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded font-medium flex items-center gap-1.5 text-sm ${uploadingTranscript ? 'opacity-50' : ''} cursor-pointer`}>
               <i className="bi-plus-circle icon-sm"></i>
               {uploadingTranscript ? 'Uploading...' : 'Add Transcript'}
               <input
@@ -341,18 +326,18 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
 
         {round.transcript_path ? (
           <>
-            <div className="flex items-center justify-between bg-bg3 rounded px-3 py-2">
-              <div className="flex items-center gap-2">
-                <i className="bi-file-text icon-md text-accent-red" />
-                <span className="text-sm text-primary truncate max-w-[200px]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-bg3 rounded px-3 py-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <i className="bi-file-text icon-md text-red-bright flex-shrink-0" />
+                <span className="text-sm text-primary truncate">
                   {round.transcript_path.split('/').pop()}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={handleTranscriptPreview}
                   disabled={uploadingTranscript}
-                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 cursor-pointer"
+                  className="bg-transparent text-fg1 hover:bg-bg4 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 cursor-pointer"
                   title="View"
                 >
                   <i className="bi-eye icon-sm" />
@@ -361,7 +346,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                 <button
                   onClick={handleTranscriptDelete}
                   disabled={uploadingTranscript}
-                  className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 cursor-pointer"
+                  className="bg-transparent text-red hover:bg-bg4 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 cursor-pointer"
                   title="Delete"
                 >
                   <i className="bi-trash icon-sm" />

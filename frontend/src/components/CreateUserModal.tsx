@@ -59,34 +59,34 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="bg-bg1 rounded-lg max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b border-tertiary">
+      <div className="bg-bg1 rounded-lg max-w-md w-full mx-4 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex-shrink-0 flex justify-between items-center p-4 border-b border-tertiary">
           <h3 id="modal-title" className="text-primary font-medium">Create User</h3>
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out p-2 rounded cursor-pointer"
           >
             <i className="bi bi-x-lg icon-xl" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4">
           {error && (
-            <div className="bg-accent-red/20 border border-accent-red text-accent-red px-4 py-3 rounded">
+            <div className="bg-red-bright/20 border border-red-bright text-red-bright px-4 py-3 rounded">
               {error}
             </div>
           )}
 
           <div>
             <label className="block mb-1 text-sm font-semibold text-muted">
-              Email <span className="text-accent-red">*</span>
+              Email <span className="text-red-bright">*</span>
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               required
               autoFocus
             />
@@ -94,13 +94,13 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
 
           <div>
             <label className="block mb-1 text-sm font-semibold text-muted">
-              Password <span className="text-accent-red">*</span>
+              Password <span className="text-red-bright">*</span>
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               required
               minLength={8}
             />
@@ -117,7 +117,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
             <button
               type="submit"
               disabled={loading}
-              className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
+              className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
             >
               {loading ? 'Creating...' : 'Create'}
             </button>

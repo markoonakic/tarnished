@@ -26,7 +26,7 @@ export async function createApplication(data: ApplicationCreate): Promise<Applic
 }
 
 export async function updateApplication(id: string, data: ApplicationUpdate): Promise<Application> {
-  const response = await api.put(`/api/applications/${id}`, data);
+  const response = await api.patch(`/api/applications/${id}`, data);
   return response.data;
 }
 
@@ -62,19 +62,6 @@ export async function deleteCoverLetter(applicationId: string): Promise<Applicat
   return response.data;
 }
 
-export async function uploadTranscript(applicationId: string, file: File): Promise<Application> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const response = await api.post(`/api/applications/${applicationId}/transcript`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return response.data;
-}
-
-export async function deleteTranscript(applicationId: string): Promise<Application> {
-  const response = await api.delete(`/api/applications/${applicationId}/transcript`);
-  return response.data;
-}
 
 export function getFileUrl(applicationId: string, docType: 'cv' | 'cover-letter' | 'transcript'): string {
   return `/api/files/${applicationId}/${docType}`;

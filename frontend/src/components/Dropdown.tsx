@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
 
 export interface DropdownOption {
   value: string;
@@ -178,9 +178,9 @@ export default function Dropdown({
         className={`
           w-full flex items-center justify-between gap-3
           ${triggerBg} border-0 rounded
-          text-fg1 hover:border-aqua-bright
-          focus:outline-none focus:ring-1 focus:ring-aqua-bright
-          ${isOpen ? 'ring-1 ring-aqua-bright' : ''}
+          text-fg1 hover:border-accent-bright
+          focus:outline-none focus:ring-1 focus:ring-accent-bright
+          ${isOpen ? 'ring-1 ring-accent-bright' : ''}
           ${sizeClasses[size]}
           transition-all duration-200 ease-in-out
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -203,7 +203,7 @@ export default function Dropdown({
           absolute z-10 w-full mt-1 rounded-lg overflow-hidden
           border-0 transition-all duration-200 ease-in-out
           bg-bg0
-          ${isOpen ? 'ring-1 ring-aqua-bright' : ''}
+          ${isOpen ? 'ring-1 ring-accent-bright' : ''}
         `}
         style={{
           display: 'grid',
@@ -229,7 +229,7 @@ export default function Dropdown({
                 role="option"
                 aria-selected={isSelected}
                 className={`
-                  w-full text-left transition-all duration-200 ease-in-out cursor-pointer
+                  w-full text-left flex items-center justify-between transition-all duration-200 ease-in-out cursor-pointer
                   ${sizeClasses[size]}
                   ${
                     isSelected
@@ -241,7 +241,7 @@ export default function Dropdown({
               >
                 {option.label}
                 {isSelected && (
-                  <i className={`bi-check ${iconSizeClasses[size]} float-right ${isFocused ? 'text-green-bright' : 'text-green'}`} />
+                  <i className={`bi-check ${iconSizeClasses[size]} ${isFocused ? 'text-green-bright' : 'text-green'}`} />
                 )}
               </button>
             );

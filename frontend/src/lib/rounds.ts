@@ -7,7 +7,7 @@ export async function createRound(applicationId: string, data: RoundCreate): Pro
 }
 
 export async function updateRound(roundId: string, data: RoundUpdate): Promise<Round> {
-  const response = await api.put(`/api/rounds/${roundId}`, data);
+  const response = await api.patch(`/api/rounds/${roundId}`, data);
   return response.data;
 }
 

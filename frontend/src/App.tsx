@@ -1,17 +1,22 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { useScrollRestoration } from './hooks/useScrollRestoration';
+import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Applications from './pages/Applications';
 import ApplicationDetail from './pages/ApplicationDetail';
-import ApplicationForm from './pages/ApplicationForm';
 import Analytics from './pages/Analytics';
-import Settings from './pages/Settings';
 import Admin from './pages/Admin';
+import SettingsLayout from './components/settings/SettingsLayout';
+import SettingsTheme from './components/settings/SettingsTheme';
+import SettingsFeatures from './components/settings/SettingsFeatures';
+import SettingsStatuses from './components/settings/SettingsStatuses';
+import SettingsRoundTypes from './components/settings/SettingsRoundTypes';
+import SettingsExport from './components/settings/SettingsExport';
+import SettingsImport from './components/settings/SettingsImport';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -58,11 +63,16 @@ function AppRoutes() {
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
-      <Route path="/applications/new" element={<ProtectedRoute><ApplicationForm /></ProtectedRoute>} />
       <Route path="/applications/:id" element={<ProtectedRoute><ApplicationDetail /></ProtectedRoute>} />
-      <Route path="/applications/:id/edit" element={<ProtectedRoute><ApplicationForm /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><SettingsLayout /></ProtectedRoute>}>
+        <Route path="theme" element={<SettingsTheme />} />
+        <Route path="features" element={<SettingsFeatures />} />
+        <Route path="statuses" element={<SettingsStatuses />} />
+        <Route path="round-types" element={<SettingsRoundTypes />} />
+        <Route path="export" element={<SettingsExport />} />
+        <Route path="import" element={<SettingsImport />} />
+      </Route>
       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
     </Routes>
   );
@@ -70,13 +80,15 @@ function AppRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ThemeProvider>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

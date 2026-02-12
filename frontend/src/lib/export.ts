@@ -10,7 +10,13 @@ export async function exportCSV(): Promise<void> {
   downloadBlob(response.data, 'applications.csv', 'text/csv');
 }
 
-function downloadBlob(blob: Blob, filename: string, mimeType: string) {
+export async function exportZIP(): Promise<void> {
+  const response = await api.get('/api/export/zip', { responseType: 'blob' });
+  const timestamp = new Date().toISOString().slice(0, 10);
+  downloadBlob(response.data, `tarnished-export-${timestamp}.zip`, 'application/zip');
+}
+
+export function downloadBlob(blob: Blob, filename: string, mimeType: string) {
   const url = window.URL.createObjectURL(new Blob([blob], { type: mimeType }));
   const link = document.createElement('a');
   link.href = url;

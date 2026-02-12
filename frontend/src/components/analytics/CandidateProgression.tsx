@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getInterviewRoundsData, type CandidateProgress } from '@/lib/analytics';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
@@ -14,6 +15,7 @@ export default function CandidateProgression({
   period = 'all',
   roundType,
 }: CandidateProgressionProps) {
+  const navigate = useNavigate();
   const [data, setData] = useState<CandidateProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -30,9 +32,8 @@ export default function CandidateProgression({
       setData(result.candidate_progress);
       setError('');
       setCurrentPage(1); // Reset to first page on new data
-    } catch (err) {
+    } catch {
       setError('Failed to load candidate progression data');
-      console.error('Error loading candidate progression:', err);
     } finally {
       setLoading(false);
     }
@@ -64,7 +65,7 @@ export default function CandidateProgression({
   }
 
   if (error) {
-    return <div className="text-center py-8 text-red">{error}</div>;
+    return <div className="text-center py-8 text-red-bright">{error}</div>;
   }
 
   if (data.length === 0) {
@@ -121,11 +122,8 @@ export default function CandidateProgression({
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
-                    className="bg-aqua text-bg0 px-3 py-1 rounded text-sm hover:bg-aqua-bright cursor-pointer transition-all duration-200 ease-in-out"
-                    onClick={() => {
-                      // Placeholder for view details action
-                      console.log('View details for application:', candidate.application_id);
-                    }}
+                    className="bg-accent text-bg0 px-3 py-1 rounded text-sm hover:bg-accent-bright cursor-pointer transition-all duration-200 ease-in-out"
+                    onClick={() => navigate(`/applications/${candidate.application_id}`)}
                   >
                     View
                   </button>
@@ -146,7 +144,7 @@ export default function CandidateProgression({
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 rounded text-sm bg-aqua text-bg0 hover:bg-aqua-bright disabled:bg-bg4 disabled:cursor-not-allowed cursor-pointer transition-all duration-200 ease-in-out"
+              className="px-3 py-1 rounded text-sm bg-accent text-bg0 hover:bg-accent-bright disabled:bg-bg4 disabled:cursor-not-allowed cursor-pointer transition-all duration-200 ease-in-out"
             >
               Previous
             </button>
@@ -156,7 +154,7 @@ export default function CandidateProgression({
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded text-sm bg-aqua text-bg0 hover:bg-aqua-bright disabled:bg-bg4 disabled:cursor-not-allowed cursor-pointer transition-all duration-200 ease-in-out"
+              className="px-3 py-1 rounded text-sm bg-accent text-bg0 hover:bg-accent-bright disabled:bg-bg4 disabled:cursor-not-allowed cursor-pointer transition-all duration-200 ease-in-out"
             >
               Next
             </button>

@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
-import type { CallbackDataParams } from 'echarts/types/dist/shared';
 import { getInterviewRoundsData, type FunnelData } from '@/lib/analytics';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
 
@@ -15,6 +15,7 @@ export default function InterviewFunnel({ period = 'all', roundType }: Interview
   const [data, setData] = useState<FunnelData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const colors = useThemeColors();
 
   useEffect(() => {
     loadData();
@@ -26,9 +27,8 @@ export default function InterviewFunnel({ period = 'all', roundType }: Interview
       const result = await getInterviewRoundsData(period, roundType);
       setData(result.funnel_data);
       setError('');
-    } catch (err) {
+    } catch {
       setError('Failed to load interview funnel data');
-      console.error('Error loading funnel data:', err);
     } finally {
       setLoading(false);
     }
@@ -40,12 +40,12 @@ export default function InterviewFunnel({ period = 'all', roundType }: Interview
     return {
       tooltip: {
         trigger: 'item',
-        backgroundColor: 'var(--bg3)',
-        borderColor: 'var(--aqua-bright)',
+        backgroundColor: colors.bg3,
+        borderColor: colors.aquaBright,
         borderWidth: 1,
         borderRadius: 4,
-        textStyle: { color: 'var(--fg0)' },
-        formatter: (params: CallbackDataParams) => {
+        textStyle: { color: colors.fg0 },
+        formatter: (params: any) => {
           const dataIndex = params.dataIndex as number;
           const item = data[dataIndex];
           if (!item) return '';
@@ -57,14 +57,21 @@ export default function InterviewFunnel({ period = 'all', roundType }: Interview
         left: '10%',
         width: '80%',
         label: {
-          formatter: '{b}: {c}',
-          color: 'var(--fg0)',
+          formatter: (params: any) => {
+            const dataIndex = params.dataIndex as number;
+            const item = data[dataIndex];
+            if (!item) return `${params.name}: ${params.value}`;
+            return `${item.round}: ${item.count}\n(${item.passed} passed - ${item.conversion_rate}%)`;
+          },
+          color: colors.fg0,
+          fontSize: 14,
+          lineHeight: 18,
         },
         labelLine: {
-          lineStyle: { color: 'var(--fg4)' },
+          lineStyle: { color: colors.fg4 },
         },
         itemStyle: {
-          borderColor: 'var(--aqua-bright)',
+          borderColor: colors.aquaBright,
           borderWidth: 1,
         },
         emphasis: {
@@ -74,21 +81,33 @@ export default function InterviewFunnel({ period = 'all', roundType }: Interview
             shadowColor: 'rgba(0, 0, 0, 0.5)',
           },
         },
-        data: data.map((d) => ({
-          value: d.count,
-          name: d.round,
-          itemStyle: { color: 'var(--aqua)' },
-        })),
+        data: data.map((d, index) => {
+          const funnelColors = [
+            colors.aquaBright,
+            colors.aqua,
+            colors.blueBright,
+            colors.blue,
+            colors.greenBright,
+            colors.green,
+          ];
+          const color = funnelColors[index % funnelColors.length];
+
+          return {
+            value: d.count,
+            name: d.round,
+            itemStyle: { color },
+          };
+        }),
       }],
     };
-  }, [data]);
+  }, [data, colors]);
 
   if (loading) {
     return <Loading message="Loading interview funnel..." size="sm" />;
   }
 
   if (error) {
-    return <div className="text-center py-8 text-red">{error}</div>;
+    return <div className="text-center py-8 text-red-bright">{error}</div>;
   }
 
   if (data.length === 0) {
@@ -103,9 +122,13 @@ export default function InterviewFunnel({ period = 'all', roundType }: Interview
 
   return (
     <div className="w-full overflow-x-auto">
+      <p className="text-sm text-fg4 mb-4">
+        Visualizes the conversion rate of candidates through each interview round stage.
+        Each bar shows the count of interviews at that stage, with the percentage of candidates who advanced to the next round.
+      </p>
       <ReactECharts
         option={option}
-        style={{ width: '100%', height: '400px' }}
+        style={{ width: '100%', height: '500px' }}
         opts={{ renderer: 'svg' }}
       />
     </div>

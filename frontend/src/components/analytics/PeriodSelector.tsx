@@ -30,7 +30,7 @@ export default function PeriodSelector({ onPeriodChange }: PeriodSelectorProps) 
           onClick={() => handlePeriodChange(period.value)}
           className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-in-out cursor-pointer ${
             currentPeriod === period.value
-              ? 'bg-aqua text-bg1'
+              ? 'bg-accent text-bg1'
               : 'bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0'
           }`}
         >

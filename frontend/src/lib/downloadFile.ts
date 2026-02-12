@@ -14,6 +14,6 @@ export function downloadFile(blobUrl: string, filename: string): void {
   link.click();
   document.body.removeChild(link);
 
-  // Clean up blob URL after download starts
-  setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+  // Clean up blob URL after download starts (10s to allow large files)
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 }

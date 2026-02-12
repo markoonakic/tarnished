@@ -1,22 +1,24 @@
 /* Dracula Theme */
 [data-theme="dracula"] {
-  /* Backgrounds */
+  /* Backgrounds - expanded layers for better contrast */
+  --bg0-hard: #1e1f29;
   --bg0: #282a36;
+  --bg0-soft: #333344;
   --bg1: #44475a;
-  --bg2: #6272a4;
-  --bg3: #6272a4;
+  --bg2: #525a7d;
+  --bg3: #5a6285;
   --bg4: #6272a4;
-  --bg-h: #44475a;
+  --bg-h: #6f7a9e;
 
-  /* Foregrounds */
-  --fg0: #f8f8f2;
+  /* Foregrounds - expanded layers */
+  --fg0: #ffffff;
   --fg1: #f8f8f2;
-  --fg2: #f8f8f2;
-  --fg3: #f8f8f2;
+  --fg2: #e4e4dc;
+  --fg3: #d0d0c8;
   --fg4: #6272a4;
   --gray: #6272a4;
 
-  /* Accent colors - darker */
+  /* Accent colors - base */
   --red: #ff5555;
   --green: #50fa7b;
   --yellow: #f1fa8c;
@@ -25,12 +27,16 @@
   --aqua: #8be9fd;
   --orange: #ffb86c;
 
-  /* Accent colors - bright */
-  --red-bright: #ff5555;
-  --green-bright: #50fa7b;
-  --yellow-bright: #f1fa8c;
-  --blue-bright: #8be9fd;
-  --purple-bright: #bd93f9;
-  --aqua-bright: #8be9fd;
-  --orange-bright: #ffb86c;
+  /* Accent colors - bright (generated with color-mix) */
+  --red-bright: color-mix(in srgb, var(--red), white 15%);
+  --green-bright: color-mix(in srgb, var(--green), white 15%);
+  --yellow-bright: color-mix(in srgb, var(--yellow), white 15%);
+  --blue-bright: color-mix(in srgb, var(--blue), white 15%);
+  --purple-bright: color-mix(in srgb, var(--purple), white 15%);
+  --aqua-bright: color-mix(in srgb, var(--aqua), white 15%);
+  --orange-bright: color-mix(in srgb, var(--orange), white 15%);
+
+  /* Configurable accent - defaults to aqua */
+  --accent: var(--aqua);
+  --accent-bright: var(--aqua-bright);
 }

@@ -1,11 +1,5 @@
 import api from './api';
-
-export interface User {
-  id: string;
-  email: string;
-  is_admin: boolean;
-  is_active: boolean;
-}
+export type { User } from './types';
 
 export interface LoginData {
   email: string;
@@ -24,8 +18,9 @@ export async function login(data: LoginData) {
   return response.data;
 }
 
-export async function register(data: RegisterData) {
-  const response = await api.post('/api/auth/register', data);
+export async function register(data: RegisterData, needsSetup = false) {
+  const params = needsSetup ? '?needs_setup=true' : '';
+  const response = await api.post(`/api/auth/register${params}`, data);
   return response.data;
 }
 

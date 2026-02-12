@@ -15,7 +15,7 @@ export async function updateStatus(
   id: string,
   data: { name?: string; color?: string }
 ): Promise<Status> {
-  const response = await api.put(`/api/statuses/${id}`, data);
+  const response = await api.patch(`/api/statuses/${id}`, data);
   return response.data;
 }
 

@@ -58,7 +58,7 @@ function AttentionSection({
           <button
             key={item.id}
             onClick={() => navigate(`/applications/${item.id}`)}
-            className="w-full text-left bg-tertiary rounded-lg p-4 hover:-translate-y-0.5 transition-all duration-200 ease-in-out cursor-pointer"
+            className="w-full text-left bg-tertiary rounded-lg p-4 hover:-translate-y-0.5 hover:bg-bg3 will-change-transform transition-[translate,background-color] duration-200 ease-in-out cursor-pointer"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
@@ -115,7 +115,7 @@ export default function NeedsAttention() {
   if (error || !data) {
     return (
       <div className="bg-secondary rounded-lg p-6">
-        <p className="text-accent-red">Failed to load items needing attention</p>
+        <p className="text-red-bright">Failed to load items needing attention</p>
       </div>
     );
   }
@@ -134,14 +134,14 @@ export default function NeedsAttention() {
         items={data.no_responses}
         emptyMessage="No pending responses"
         icon="bi-clock-history"
-        iconColor="text-orange"
+        iconColor="text-red"
       />
       <AttentionSection
         title="Interviewing"
         items={data.interviewing}
         emptyMessage="No active interviews"
         icon="bi-chat-square-quote"
-        iconColor="text-aqua"
+        iconColor="text-green"
       />
     </div>
   );
