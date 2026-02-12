@@ -24,8 +24,8 @@ from app.schemas.analytics import (
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
-# Sankey diagram source node color (matches frontend aqua-bright: #8ec07c)
-SANKEY_SOURCE_COLOR = "#8ec07c"
+# Node colors are now handled by the frontend using theme-aware colors
+FAR_PAST_DATE = date(2000, 1, 1)
 
 
 @router.get("/sankey", response_model=SankeyData)
@@ -95,7 +95,8 @@ async def get_sankey_data(
                 terminal_transitions[t['to_status']].add(t['from_status'])
 
     # Build nodes: start with Applications source, then each unique status
-    nodes = [SankeyNode(id="applications", name="Applications", color=SANKEY_SOURCE_COLOR)]
+    # Note: Frontend handles actual colors using theme-aware mapping
+    nodes = [SankeyNode(id="applications", name="Applications", color="#8ec07c")]  # Placeholder, frontend uses theme
     status_name_to_node_id = {}
     status_name_to_color = {}
 
@@ -118,7 +119,7 @@ async def get_sankey_data(
                 nodes.append(SankeyNode(
                     id=node_id,
                     name=status_name,  # Label is just "Rejected" or "Withdrawn"
-                    color=status_name_to_color.get(status_name, SANKEY_SOURCE_COLOR)
+                    color=status_name_to_color.get(status_name, "#8ec07c")  # Fallback, frontend uses theme
                 ))
         else:
             # Non-terminal statuses get single node
@@ -127,7 +128,7 @@ async def get_sankey_data(
             nodes.append(SankeyNode(
                 id=node_id,
                 name=status_name,
-                color=status_name_to_color.get(status_name, SANKEY_SOURCE_COLOR)
+                color=status_name_to_color.get(status_name, "#8ec07c")  # Fallback, frontend uses theme
             ))
 
     # Count how many applications took each path segment
@@ -237,7 +238,7 @@ async def get_analytics_kpis(
     elif period == "3m":
         start_date = today - timedelta(days=90)
     elif period == "all":
-        start_date = date(2000, 1, 1)  # Far past date for "all time"
+        start_date = FAR_PAST_DATE
     else:
         start_date = today - timedelta(days=30)  # Default to 30d
 
@@ -340,7 +341,7 @@ async def get_weekly_data(
         start_date = today - timedelta(days=90)
     elif period == "all":
         weeks_count = 52
-        start_date = date(2000, 1, 1)
+        start_date = FAR_PAST_DATE
     else:
         weeks_count = 4
         start_date = today - timedelta(days=30)
@@ -433,9 +434,9 @@ async def get_interview_rounds_analytics(
     elif period == "3m":
         start_date = today - timedelta(days=90)
     elif period == "all":
-        start_date = date(2000, 1, 1)  # Far past date for "all time"
+        start_date = FAR_PAST_DATE
     else:
-        start_date = date(2000, 1, 1)  # Default to all
+        start_date = FAR_PAST_DATE  # Default to all
 
     # Build base conditions for all queries
     base_conditions = [
