@@ -8,23 +8,23 @@ import aiofiles
 import asyncio
 import io
 import json
+import logging
 import os
 import tempfile
 import uuid
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import select
 from typing import Dict, Callable
 from sqlalchemy.ext.asyncio import AsyncSession
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.rate_limit import limiter
 from app.models import (
     Application,
     ApplicationStatus,
@@ -41,21 +41,9 @@ ImportDataSchema = import_schemas.ImportDataSchema
 ImportValidationResponse = import_schemas.ImportValidationResponse
 from app.api.utils.zip_utils import validate_zip_safety
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/import", tags=["import"])
-
-
-def get_rate_limit_key(request: Request) -> str:
-    """Get rate limit key, disabled during testing."""
-    import os
-    # Check if rate limiting is explicitly disabled via environment variable
-    # Default to enabled unless explicitly disabled
-    if os.environ.get("ENABLE_RATE_LIMITING", "true").lower() == "false":
-        # Use the request path as part of the key to avoid rate limiting during tests
-        return f"test_override_{request.url.path}"
-    return get_remote_address(request)
-
-
-limiter = Limiter(key_func=get_rate_limit_key)
 
 
 def conditional_rate_limit(limit_string: str):
@@ -82,6 +70,9 @@ async def log_import_event(db: AsyncSession, user_id: str, event: str, details: 
     await db.commit()
 
 
+UPLOAD_CHUNK_SIZE = 1024 * 1024  # 1MB
+SSE_POLL_MAX_SECONDS = 300  # 5 minutes
+
 SECURE_TEMP_DIR = "/tmp/secure_imports"
 os.makedirs(SECURE_TEMP_DIR, mode=0o700, exist_ok=True)
 UPLOAD_DIR = os.getenv('UPLOAD_DIR', './uploads')
@@ -106,13 +97,25 @@ def secure_delete(file_path: str):
         try:
             os.remove(file_path)
         except Exception:
-            pass
+            logger.warning("Failed to delete temporary file: %s", file_path)
 
 
 class ImportProgress:
     """Track import progress for SSE streaming."""
 
     _active_imports: Dict[str, dict] = {}
+    MAX_AGE_MINUTES = 5
+
+    @classmethod
+    def _cleanup_old_entries(cls):
+        """Remove entries older than MAX_AGE_MINUTES to prevent memory leaks."""
+        cutoff = datetime.utcnow() - timedelta(minutes=cls.MAX_AGE_MINUTES)
+        to_delete = [
+            import_id for import_id, data in cls._active_imports.items()
+            if datetime.fromisoformat(data.get("created_at", "2000-01-01")) < cutoff
+        ]
+        for import_id in to_delete:
+            del cls._active_imports[import_id]
 
     @classmethod
     def get_progress(cls, import_id: str) -> dict:
@@ -120,11 +123,15 @@ class ImportProgress:
 
     @classmethod
     def create(cls, import_id: str) -> dict:
+        # Clean up old entries first
+        cls._cleanup_old_entries()
+
         progress = {
             "status": "pending",
             "stage": "initializing",
             "percent": 0,
-            "message": "Starting import..."
+            "message": "Starting import...",
+            "created_at": datetime.utcnow().isoformat()
         }
         cls._active_imports[import_id] = progress
         return progress
@@ -140,7 +147,8 @@ class ImportProgress:
             cls._active_imports[import_id] = {
                 "status": "complete",
                 "success": success,
-                "result": result or {}
+                "result": result or {},
+                "created_at": cls._active_imports[import_id].get("created_at", datetime.utcnow().isoformat())
             }
 
     @classmethod
@@ -354,7 +362,7 @@ async def validate_import(
         temp_path = create_secure_temp_file(file.filename or 'import.zip')
 
         async with aiofiles.open(temp_path, 'wb') as f:
-            while chunk := await file.read(1024 * 1024):  # 1MB chunks
+            while chunk := await file.read(UPLOAD_CHUNK_SIZE):
                 await f.write(chunk)
 
         # Validate ZIP safety
@@ -365,7 +373,7 @@ async def validate_import(
             try:
                 data_json = zip_ref.read('data.json')
             except KeyError:
-                raise HTTPException(400, "ZIP must contain data.json")
+                raise HTTPException(status_code=400, detail="ZIP must contain data.json")
 
             data = json.loads(data_json)
 
@@ -475,7 +483,7 @@ async def import_progress(import_id: str):
 
         # Poll for updates
         last_status = progress.get("status")
-        for _ in range(300):  # 5 minutes max
+        for _ in range(SSE_POLL_MAX_SECONDS):
             await asyncio.sleep(1)
             progress = ImportProgress.get_progress(import_id)
 
@@ -521,7 +529,7 @@ async def import_data(
         temp_path = create_secure_temp_file(file.filename or 'import.zip')
 
         async with aiofiles.open(temp_path, 'wb') as f:
-            while chunk := await file.read(1024 * 1024):
+            while chunk := await file.read(UPLOAD_CHUNK_SIZE):
                 await f.write(chunk)
 
         # Stage 2: Validate
@@ -666,7 +674,7 @@ async def import_data(
             request
         )
         ImportProgress.complete(import_id, success=False, result={"error": str(e)})
-        raise HTTPException(500, f"Import failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
     finally:
         if temp_path and os.path.exists(temp_path):
             secure_delete(temp_path)

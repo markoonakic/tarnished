@@ -132,7 +132,7 @@ async def export_json(
     return StreamingResponse(
         io.BytesIO(json.dumps(data, indent=2).encode()),
         media_type="application/json",
-        headers={"Content-Disposition": "attachment; filename=job-tracker-export.json"},
+        headers={"Content-Disposition": "attachment; filename=tarnished-export.json"},
     )
 
 
@@ -298,7 +298,7 @@ async def export_csv(
     return StreamingResponse(
         io.BytesIO(output.getvalue().encode()),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=job-tracker-export.csv"},
+        headers={"Content-Disposition": "attachment; filename=tarnished-export.csv"},
     )
 
 
@@ -409,7 +409,7 @@ async def export_zip(
     # Create ZIP with all media files
     zip_bytes = await create_zip_export(json_data, str(user.id), settings.upload_dir)
 
-    filename = f"job-tracker-export-{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip"
+    filename = f"tarnished-export-{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip"
     return StreamingResponse(
         io.BytesIO(zip_bytes),
         media_type="application/zip",
