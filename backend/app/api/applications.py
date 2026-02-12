@@ -89,7 +89,7 @@ async def create_application(
         )
     )
     if not result.scalars().first():
-        raise HTTPException(status_code=400, detail="Invalid status")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
 
     application = Application(
         user_id=user.id,
@@ -130,12 +130,12 @@ async def get_application(
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
 
     return application
 
 
-@router.put("/{application_id}", response_model=ApplicationListItem)
+@router.patch("/{application_id}", response_model=ApplicationListItem)
 async def update_application(
     application_id: str,
     data: ApplicationUpdate,
@@ -149,7 +149,7 @@ async def update_application(
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
 
     if data.status_id:
         result = await db.execute(
@@ -159,7 +159,7 @@ async def update_application(
             )
         )
         if not result.scalars().first():
-            raise HTTPException(status_code=400, detail="Invalid status")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
 
     # Track status change if status_id is being updated
     old_status_id = application.status_id
@@ -205,7 +205,7 @@ async def delete_application(
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
 
     await db.delete(application)
     await db.commit()
@@ -225,7 +225,7 @@ async def upload_cv(
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
 
     allowed_types = [
         "application/pdf",
@@ -233,7 +233,7 @@ async def upload_cv(
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ]
     if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="File must be PDF or Word document")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be PDF or Word document")
 
     if application.cv_path and os.path.exists(application.cv_path):
         os.remove(application.cv_path)
@@ -246,6 +246,12 @@ async def upload_cv(
 
     with open(file_path, "wb") as f:
         content = await file.read()
+        max_size = settings.max_document_size_mb * 1024 * 1024
+        if len(content) > max_size:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File exceeds maximum size of {settings.max_document_size_mb}MB",
+            )
         f.write(content)
 
     application.cv_path = file_path
@@ -272,7 +278,7 @@ async def delete_cv(
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
 
     if application.cv_path and os.path.exists(application.cv_path):
         os.remove(application.cv_path)
@@ -302,7 +308,7 @@ async def upload_cover_letter(
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
 
     allowed_types = [
         "application/pdf",
@@ -310,7 +316,7 @@ async def upload_cover_letter(
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ]
     if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="File must be PDF or Word document")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be PDF or Word document")
 
     if application.cover_letter_path and os.path.exists(application.cover_letter_path):
         os.remove(application.cover_letter_path)
@@ -323,6 +329,12 @@ async def upload_cover_letter(
 
     with open(file_path, "wb") as f:
         content = await file.read()
+        max_size = settings.max_document_size_mb * 1024 * 1024
+        if len(content) > max_size:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File exceeds maximum size of {settings.max_document_size_mb}MB",
+            )
         f.write(content)
 
     application.cover_letter_path = file_path
@@ -349,89 +361,12 @@ async def delete_cover_letter(
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
 
     if application.cover_letter_path and os.path.exists(application.cover_letter_path):
         os.remove(application.cover_letter_path)
 
     application.cover_letter_path = None
-    await db.commit()
-
-    result = await db.execute(
-        select(Application)
-        .where(Application.id == application_id)
-        .options(selectinload(Application.status))
-    )
-    return result.scalars().first()
-
-
-@router.post("/{application_id}/transcript", response_model=ApplicationListItem)
-async def upload_transcript(
-    application_id: str,
-    file: UploadFile,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(Application)
-        .where(Application.id == application_id, Application.user_id == user.id)
-    )
-    application = result.scalars().first()
-
-    if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
-
-    allowed_types = [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ]
-    if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="File must be PDF or Word document")
-
-    if application.transcript_path and os.path.exists(application.transcript_path):
-        os.remove(application.transcript_path)
-
-    settings = get_settings()
-    os.makedirs(settings.upload_dir, exist_ok=True)
-    ext = os.path.splitext(file.filename or "")[1] or ".pdf"
-    file_name = f"transcript_{application_id}{ext}"
-    file_path = os.path.join(settings.upload_dir, file_name)
-
-    with open(file_path, "wb") as f:
-        content = await file.read()
-        f.write(content)
-
-    application.transcript_path = file_path
-    await db.commit()
-
-    result = await db.execute(
-        select(Application)
-        .where(Application.id == application_id)
-        .options(selectinload(Application.status))
-    )
-    return result.scalars().first()
-
-
-@router.delete("/{application_id}/transcript", response_model=ApplicationListItem)
-async def delete_transcript(
-    application_id: str,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(Application)
-        .where(Application.id == application_id, Application.user_id == user.id)
-    )
-    application = result.scalars().first()
-
-    if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
-
-    if application.transcript_path and os.path.exists(application.transcript_path):
-        os.remove(application.transcript_path)
-
-    application.transcript_path = None
     await db.commit()
 
     result = await db.execute(

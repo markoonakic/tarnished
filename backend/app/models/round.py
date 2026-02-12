@@ -17,7 +17,7 @@ class Round(Base):
     __tablename__ = "rounds"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    application_id: Mapped[str] = mapped_column(String(36), ForeignKey("applications.id"), nullable=False)
+    application_id: Mapped[str] = mapped_column(String(36), ForeignKey("applications.id"), nullable=False, index=True)
     round_type_id: Mapped[str] = mapped_column(String(36), ForeignKey("round_types.id"), nullable=False)
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
