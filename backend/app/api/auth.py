@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -20,7 +21,22 @@ settings = get_settings()
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/hour")
+async def register(
+    request: Request,
+    user_data: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    needs_setup: bool = False,
+):
+    # Prevent abuse: if needs_setup=true but users exist, reject
+    if needs_setup:
+        result = await db.execute(select(User))
+        if result.scalars().first() is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Setup already completed",
+            )
+
     result = await db.execute(select(User).where(User.email == user_data.email))
     if result.scalars().first():
         raise HTTPException(
@@ -45,7 +61,8 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def login(request: Request, credentials: UserLogin, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == credentials.email))
     user = result.scalars().first()
 
@@ -68,7 +85,8 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token(token_data: TokenRefresh, db: AsyncSession = Depends(get_db)):
+@limiter.limit("20/minute")
+async def refresh_token(request: Request, token_data: TokenRefresh, db: AsyncSession = Depends(get_db)):
     payload = decode_token(token_data.refresh_token)
 
     if not payload or payload.get("type") != "refresh":
@@ -96,3 +114,11 @@ async def refresh_token(token_data: TokenRefresh, db: AsyncSession = Depends(get
 @router.get("/me", response_model=UserResponse)
 async def get_me(user: User = Depends(get_current_user)):
     return user
+
+
+@router.get("/setup-status")
+async def setup_status(db: AsyncSession = Depends(get_db)):
+    """Check if the application needs initial setup (no users exist)."""
+    result = await db.execute(select(User))
+    has_users = result.scalars().first() is not None
+    return {"needs_setup": not has_users}
