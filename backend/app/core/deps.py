@@ -14,6 +14,7 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
 ) -> User:
+    """Extract and validate the current user from the Bearer token."""
     token = credentials.credentials
     payload = decode_token(token)
 
@@ -49,6 +50,7 @@ async def get_current_user(
 
 
 async def get_current_admin(user: User = Depends(get_current_user)) -> User:
+    """Require admin privileges on the current user."""
     if not user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

@@ -21,7 +21,6 @@ scripts/
 .planning/
 .serena/
 CLAUDE.md
-core
 
 # Design guidelines - working documents that vary by environment
 frontend/DESIGN_GUIDELINES.md

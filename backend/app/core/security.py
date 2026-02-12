@@ -9,14 +9,17 @@ settings = get_settings()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a plain password against a bcrypt hash."""
     return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
 
 
 def get_password_hash(password: str) -> str:
+    """Hash a password using bcrypt."""
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 
 def create_access_token(data: dict) -> str:
+    """Create a JWT access token with configured expiration."""
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
     to_encode.update({"exp": expire, "type": "access"})
@@ -24,6 +27,7 @@ def create_access_token(data: dict) -> str:
 
 
 def create_refresh_token(data: dict) -> str:
+    """Create a JWT refresh token with configured expiration."""
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
     to_encode.update({"exp": expire, "type": "refresh"})
@@ -31,6 +35,7 @@ def create_refresh_token(data: dict) -> str:
 
 
 def decode_token(token: str) -> dict | None:
+    """Decode and validate a JWT token, returning payload or None."""
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         return payload
