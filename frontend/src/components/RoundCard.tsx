@@ -5,6 +5,7 @@ import { API_BASE } from '../lib/api';
 import MediaPlayer from './MediaPlayer';
 import { downloadFile } from '../lib/downloadFile';
 import ProgressBar from './ProgressBar';
+import { useToast } from '@/hooks/useToast';
 
 interface Props {
   round: Round;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Props) {
+  const toast = useToast();
   const [uploading, setUploading] = useState(false);
   const [uploadingMediaFile, setUploadingMediaFile] = useState<File | null>(null);
   const [uploadingMediaProgress, setUploadingMediaProgress] = useState(0);
@@ -76,7 +78,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
       setTimeout(() => setUploadingMediaProgress(0), 500);
     } catch {
       if (mediaProgressRef.current) clearInterval(mediaProgressRef.current);
-      alert('Failed to upload media');
+      toast.error('Failed to upload media');
       setUploadingMediaProgress(0);
     } finally {
       setUploading(false);
@@ -91,7 +93,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
       await deleteMedia(mediaId);
       onMediaChange();
     } catch {
-      alert('Failed to delete media');
+      toast.error('Failed to delete media');
     }
   }
 
@@ -123,7 +125,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
 
       downloadFile(blobUrl, filename);
     } catch {
-      alert('Failed to download media');
+      toast.error('Failed to download media');
     }
   }
 
@@ -134,7 +136,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
       const fullUrl = `${apiBase}${url}`;
       window.open(fullUrl, '_blank');
     } catch {
-      alert('Failed to preview transcript');
+      toast.error('Failed to preview transcript');
     }
   }
 
@@ -144,7 +146,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
       await deleteRoundTranscript(round.id);
       onMediaChange();
     } catch {
-      alert('Failed to delete transcript');
+      toast.error('Failed to delete transcript');
     }
   }
 
@@ -170,7 +172,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
       setTimeout(() => setUploadingTranscriptProgress(0), 500);
     } catch {
       if (transcriptProgressRef.current) clearInterval(transcriptProgressRef.current);
-      alert('Failed to upload transcript');
+      toast.error('Failed to upload transcript');
       setUploadingTranscriptProgress(0);
     } finally {
       setUploadingTranscript(false);

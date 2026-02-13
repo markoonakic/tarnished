@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { useScrollRestoration } from './hooks/useScrollRestoration';
 import ErrorBoundary from './components/ErrorBoundary';
+import ToastContainer from './components/ToastContainer';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -84,7 +86,10 @@ function App() {
       <BrowserRouter>
         <ThemeProvider>
           <AuthProvider>
-            <AppRoutes />
+            <ToastProvider>
+              <AppRoutes />
+              <ToastContainer />
+            </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>
