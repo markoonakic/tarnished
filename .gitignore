@@ -22,6 +22,16 @@ scripts/
 .serena/
 CLAUDE.md
 
+.firecrawl/
+
+# Ralph Loop (autonomous implementation)
+ralph.yml
+ralph-loop.sh
+PROMPT.md
+specs/
+.ralph/
+.claude/handoff*.md
+
 # Design guidelines - working documents that vary by environment
 frontend/DESIGN_GUIDELINES.md
 backend/DESIGN_GUIDELINES.md
@@ -44,6 +54,9 @@ temp2/
 tmp/
 *.tmp
 *~
+
+# Core dumps
+core
 
 # Editor swap files
 *.swp

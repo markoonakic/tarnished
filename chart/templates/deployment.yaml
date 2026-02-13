@@ -1,0 +1,120 @@
+{{/* Validate replica count for SQLite mode */}}
+{{- if and (gt (int .Values.replicaCount) 1) (not .Values.postgresql.enabled) }}
+{{- fail "Multiple replicas require postgresql.enabled=true (SQLite does not support concurrent writes)" }}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "job-tracker.fullname" . }}
+  labels:
+    {{- include "job-tracker.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "job-tracker.selectorLabels" . | nindent 6 }}
+  strategy:
+    {{- include "job-tracker.deploymentStrategy" . | nindent 4 }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "job-tracker.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "job-tracker.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: migrate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["alembic", "upgrade", "head"]
+          env:
+            {{- if .Values.postgresql.enabled }}
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://{{ .Values.postgresql.user }}:{{ .Values.postgresql.password }}@{{ .Values.postgresql.host }}:5432/{{ .Values.postgresql.database }}"
+            {{- end }}
+            {{- if and .Values.secretKey.existingSecret (not .Values.postgresql.enabled) }}
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretKey.existingSecret }}
+                  key: {{ .Values.secretKey.existingSecretKey }}
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 5577
+              protocol: TCP
+          env:
+            {{- if .Values.postgresql.enabled }}
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://{{ .Values.postgresql.user }}:{{ .Values.postgresql.password }}@{{ .Values.postgresql.host }}:5432/{{ .Values.postgresql.database }}"
+            {{- end }}
+            {{- if .Values.secretKey.existingSecret }}
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretKey.existingSecret }}
+                  key: {{ .Values.secretKey.existingSecretKey }}
+            {{- end }}
+            - name: UPLOAD_DIR
+              value: /app/data/uploads
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          envFrom:
+            {{- with .Values.envFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: data
+          {{- if and .Values.persistence.enabled .Values.persistence.existingClaim }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim }}
+          {{- else if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "job-tracker.fullname" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

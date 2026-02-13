@@ -1,0 +1,152 @@
+# -- Number of replicas. Must be 1 when using SQLite (default).
+# Requires postgresql.enabled=true for multiple replicas.
+replicaCount: 1
+
+image:
+  # -- Container image repository
+  repository: ghcr.io/owner/job-tracker
+  # -- Container image tag
+  tag: latest
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+
+# -- Image pull secrets for private registries
+imagePullSecrets: []
+
+# -- Override the chart name
+nameOverride: ""
+# -- Override the full release name
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Create a ServiceAccount
+  create: true
+  # -- Automount API credentials
+  automount: true
+  # -- ServiceAccount annotations
+  annotations: {}
+  # -- ServiceAccount name (generated if empty)
+  name: ""
+
+# -- Pod-level annotations (e.g. prometheus.io/scrape)
+podAnnotations: {}
+
+# -- Pod-level labels
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false  # App writes to /app/data
+  capabilities:
+    drop: ["ALL"]
+
+service:
+  # -- Service type
+  type: ClusterIP
+  # -- Service port
+  port: 5577
+
+ingress:
+  # -- Enable ingress
+  enabled: false
+  # -- Ingress class name (e.g. "nginx", "traefik")
+  className: ""
+  # -- Ingress annotations (e.g. cert-manager, nginx config)
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  # -- Hostname
+  host: job-tracker.local
+  # -- Ingress paths
+  paths:
+    - path: /
+      pathType: Prefix
+  tls:
+    # -- Enable TLS
+    enabled: false
+    # -- TLS secret name (cert-manager auto-creates if annotations set)
+    secretName: job-tracker-tls
+
+persistence:
+  # -- Enable persistent storage
+  enabled: true
+  # -- Storage class (empty = cluster default)
+  storageClass: ""
+  # -- PVC size
+  size: 1Gi
+  # -- Access mode (must be ReadWriteOnce for SQLite)
+  accessMode: ReadWriteOnce
+  # -- Use an existing PVC instead of creating one
+  existingClaim: ""
+  annotations:
+    # Prevent PVC deletion on helm uninstall
+    helm.sh/resource-policy: keep
+
+postgresql:
+  # -- Enable external PostgreSQL (disables SQLite)
+  enabled: false
+  # -- PostgreSQL host
+  host: ""
+  # -- Database name
+  database: jobtracker
+  # -- Database user
+  user: jobtracker
+  # -- Database password
+  password: ""
+
+secretKey:
+  # -- Use an existing Kubernetes Secret for SECRET_KEY
+  # If empty, the app auto-generates a key on first run
+  existingSecret: ""
+  # -- Key within the existing secret
+  existingSecretKey: "secret-key"
+
+# -- Additional environment variables
+env: []
+  # - name: APP_URL
+  #   value: https://jobs.example.com
+
+# -- Additional environment variables from ConfigMaps/Secrets
+envFrom: []
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# -- Node selector
+nodeSelector: {}
+
+# -- Tolerations
+tolerations: []
+
+# -- Affinity rules
+affinity: {}
