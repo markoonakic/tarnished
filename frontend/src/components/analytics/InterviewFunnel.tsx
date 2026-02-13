@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
+import type { CallbackDataParams } from 'echarts/types/dist/shared';
 import { getInterviewRoundsData, type FunnelData } from '@/lib/analytics';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
@@ -45,7 +46,7 @@ export default function InterviewFunnel({ period = 'all', roundType }: Interview
         borderWidth: 1,
         borderRadius: 4,
         textStyle: { color: colors.fg0 },
-        formatter: (params: any) => {
+        formatter: (params: CallbackDataParams) => {
           const dataIndex = params.dataIndex as number;
           const item = data[dataIndex];
           if (!item) return '';
@@ -57,7 +58,7 @@ export default function InterviewFunnel({ period = 'all', roundType }: Interview
         left: '10%',
         width: '80%',
         label: {
-          formatter: (params: any) => {
+          formatter: (params: CallbackDataParams) => {
             const dataIndex = params.dataIndex as number;
             const item = data[dataIndex];
             if (!item) return `${params.name}: ${params.value}`;

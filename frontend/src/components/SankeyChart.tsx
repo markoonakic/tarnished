@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
+import type { CallbackDataParams } from 'echarts/types/dist/shared';
 import { getSankeyData } from '../lib/analytics';
 import type { SankeyData } from '../lib/analytics';
 import { getSankeyNodeColor } from '../lib/statusColors';
@@ -91,7 +92,7 @@ export default function SankeyChart() {
         borderWidth: 1,
         borderRadius: 4,
         textStyle: { color: colors.fg0 },
-        formatter: (params: any) => {
+        formatter: (params: CallbackDataParams) => {
           const nodeId = params.name;
           let label: string;
 
@@ -124,7 +125,7 @@ export default function SankeyChart() {
         label: {
           color: colors.fg1,
           fontSize: 12,
-          formatter: (params: any) => {
+          formatter: (params: CallbackDataParams) => {
             // Simple labels: "Rejected", "Withdrawn", or the status name
             if (params.name.startsWith('terminal_rejected_')) {
               return 'Rejected';

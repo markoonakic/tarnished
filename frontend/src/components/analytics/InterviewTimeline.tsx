@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
+import type { CallbackDataParams, TopLevelFormatterParams } from 'echarts/types/dist/shared';
 import { getInterviewRoundsData, type TimelineData } from '@/lib/analytics';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
@@ -60,8 +61,8 @@ export default function InterviewTimeline({ period = 'all', roundType }: Intervi
         borderWidth: 1,
         borderRadius: 4,
         textStyle: { color: colors.fg0 },
-        formatter: (params: any) => {
-          const param = params[0];
+        formatter: (params: TopLevelFormatterParams) => {
+          const param = (params as CallbackDataParams[])[0];
           const value = param.value as number;
           const speedInfo = getSpeedInfo(value);
           return `
@@ -112,7 +113,7 @@ export default function InterviewTimeline({ period = 'all', roundType }: Intervi
           type: 'bar',
           data: data.map((d) => d.avg_days),
           itemStyle: {
-            color: (params: any) => {
+            color: (params: CallbackDataParams) => {
               const value = params.value as number;
               return getSpeedInfo(value).color;
             },
@@ -121,7 +122,7 @@ export default function InterviewTimeline({ period = 'all', roundType }: Intervi
           label: {
             show: true,
             position: 'right',
-            formatter: (params: any) => {
+            formatter: (params: CallbackDataParams) => {
               const value = params.value as number;
               const speedInfo = getSpeedInfo(value);
               return `{value|${value.toFixed(1)}d} {speed|${speedInfo.label}}`;

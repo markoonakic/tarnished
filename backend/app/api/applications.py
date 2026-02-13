@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.lib.streak import record_activity_streak
+from app.api.streak import record_streak_activity
 from app.models import Application, ApplicationStatus, ApplicationStatusHistory, Round, User
 from app.schemas.application import (
     ApplicationCreate,
@@ -102,7 +102,7 @@ async def create_application(
     )
     db.add(application)
     await db.commit()
-    await record_activity_streak(db=db, user=user)
+    await record_streak_activity(user=user, db=db)
 
     result = await db.execute(
         select(Application)
@@ -182,7 +182,7 @@ async def update_application(
         )
         db.add(history_entry)
         await db.commit()
-        await record_activity_streak(db=db, user=user)
+        await record_streak_activity(user=user, db=db)
 
     result = await db.execute(
         select(Application)

@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.lib.streak import record_activity_streak
+from app.api.streak import record_streak_activity
 from app.models import Application, Round, RoundMedia, RoundType, User
 from app.schemas.round import RoundCreate, RoundResponse, RoundUpdate
 
@@ -61,7 +61,7 @@ async def create_round(
     )
     db.add(round)
     await db.commit()
-    await record_activity_streak(db=db, user=user)
+    await record_streak_activity(user=user, db=db)
 
     result = await db.execute(
         select(Round)
@@ -103,7 +103,7 @@ async def update_round(
         setattr(round, key, value)
 
     await db.commit()
-    await record_activity_streak(db=db, user=user)
+    await record_streak_activity(user=user, db=db)
 
     result = await db.execute(
         select(Round)
@@ -185,7 +185,7 @@ async def upload_media(
     )
     db.add(media)
     await db.commit()
-    await record_activity_streak(db=db, user=user)
+    await record_streak_activity(user=user, db=db)
 
     result = await db.execute(
         select(Round)
@@ -264,7 +264,7 @@ async def upload_transcript(
     # Update round
     round.transcript_path = file_path
     await db.commit()
-    await record_activity_streak(db=db, user=user)
+    await record_streak_activity(user=user, db=db)
 
     result = await db.execute(
         select(Round)
