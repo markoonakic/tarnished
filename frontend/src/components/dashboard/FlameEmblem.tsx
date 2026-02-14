@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useRef, useEffect, useState } from 'react';
 import api from '@/lib/api';
 
 interface StreakData {
@@ -52,14 +53,24 @@ export default function FlameEmblem() {
     queryFn: () => api.get('/api/streak').then(r => r.data),
   });
 
-  const isRecentlyExhausted = !data || !data.streak_exhausted_at || data.longest_streak === 0
-    ? false
-    : (() => {
-        const daysSinceExhausted = Math.floor(
-          (Date.now() - new Date(data.streak_exhausted_at).getTime()) / (1000 * 60 * 60 * 24)
-        );
-        return daysSinceExhausted <= 7;
-      })();
+  // Store the current timestamp when data changes to avoid calling Date.now() during render
+  // Using lazy initialization for useRef to avoid calling Date.now() during render
+  const nowRef = useRef<number | null>(null);
+  const [isRecentlyExhausted, setIsRecentlyExhausted] = useState(false);
+
+  useEffect(() => {
+    if (!data || !data.streak_exhausted_at || data.longest_streak === 0) {
+      setIsRecentlyExhausted(false);
+      return;
+    }
+    if (nowRef.current === null) {
+      nowRef.current = Date.now();
+    }
+    const daysSinceExhausted = Math.floor(
+      (nowRef.current - new Date(data.streak_exhausted_at).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    setIsRecentlyExhausted(daysSinceExhausted <= 7);
+  }, [data]);
 
   if (isLoading) {
     return (

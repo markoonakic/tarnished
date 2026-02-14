@@ -115,7 +115,7 @@ export default function JobLeadModal({
   }
 
   function handleConfirmDelete() {
-    if (onDelete) {
+    if (onDelete && lead) {
       onDelete(lead.id);
     }
     setShowDeleteConfirm(false);
@@ -130,8 +130,8 @@ export default function JobLeadModal({
     setShowConvertModal(true);
   }
 
-  function handleConverted(applicationId: string) {
-    if (onConvert) {
+  function handleConverted(_applicationId: string) {
+    if (onConvert && lead) {
       onConvert(lead.id);
     }
     setShowConvertModal(false);

@@ -52,6 +52,6 @@ export async function retryJobLead(id: string): Promise<JobLead> {
  * Convert a job lead to an application.
  * @throws Error - Convert endpoint not yet implemented on backend.
  */
-export async function convertToApplication(id: string): Promise<Application> {
+export async function convertToApplication(_id: string): Promise<Application> {
   throw new Error('Convert endpoint not yet implemented');
 }

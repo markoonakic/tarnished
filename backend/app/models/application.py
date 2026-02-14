@@ -59,4 +59,5 @@ class Application(Base):
     status = relationship("ApplicationStatus", back_populates="applications")
     rounds = relationship("Round", back_populates="application", cascade="all, delete-orphan")
     status_history = relationship("ApplicationStatusHistory", back_populates="application", cascade="all, delete-orphan", order_by="desc(ApplicationStatusHistory.changed_at)")
-    job_lead = relationship("JobLead", back_populates="converted_application")
+    # The job lead this application was created from (via job_lead_id FK)
+    job_lead = relationship("JobLead", foreign_keys=[job_lead_id])

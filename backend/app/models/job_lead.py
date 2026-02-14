@@ -49,7 +49,14 @@ class JobLead(Base):
 
     # Relationships
     user = relationship("User", backref="job_leads")
-    converted_application = relationship("Application", back_populates="job_lead")
+    # This relationship points to the Application this lead was converted to
+    # (via converted_to_application_id). Note: Application.job_lead is a different
+    # relationship based on job_lead_id FK, so we use foreign_keys to disambiguate.
+    converted_application = relationship(
+        "Application", 
+        foreign_keys=[converted_to_application_id],
+        backref="source_job_lead"
+    )
 
     def __repr__(self) -> str:
         return f"<JobLead(id={self.id}, status={self.status}, title={self.title}, company={self.company})>"
