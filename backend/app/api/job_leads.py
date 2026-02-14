@@ -91,6 +91,42 @@ async def list_job_leads(
     )
 
 
+@router.get("/{job_lead_id}", response_model=JobLeadResponse)
+async def get_job_lead(
+    job_lead_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a single job lead by ID.
+
+    Args:
+        job_lead_id: The UUID of the job lead.
+        user: The authenticated user.
+        db: Database session.
+
+    Returns:
+        The job lead details.
+
+    Raises:
+        HTTPException: 404 if job lead not found or doesn't belong to user.
+    """
+    result = await db.execute(
+        select(JobLead).where(
+            JobLead.id == job_lead_id,
+            JobLead.user_id == user.id,
+        )
+    )
+    job_lead = result.scalars().first()
+
+    if not job_lead:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job lead not found",
+        )
+
+    return job_lead
+
+
 @router.post("", response_model=JobLeadResponse, status_code=status.HTTP_201_CREATED)
 async def create_job_lead(
     data: JobLeadCreate,
