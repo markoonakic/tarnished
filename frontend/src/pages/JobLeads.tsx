@@ -135,7 +135,7 @@ export default function JobLeads() {
     return new Date(dateStr).toLocaleDateString();
   }
 
-  function truncate(str: string | null, length: number) {
+  function truncate(str: string | null | undefined, length: number) {
     if (!str) return '-';
     return str.length > length ? str.slice(0, length) + '...' : str;
   }

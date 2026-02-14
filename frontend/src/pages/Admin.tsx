@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { listUsers, getAdminStats, deleteUser } from '../lib/admin';
 import type { AdminUser, AdminStats } from '../lib/admin';
+import { getAISettings, updateAISettings } from '../lib/aiSettings';
+import type { AISettingsResponse } from '../lib/aiSettings';
+import { useToast } from '../hooks/useToast';
 import Layout from '../components/Layout';
 import Loading from '../components/Loading';
 import CreateUserModal from '../components/CreateUserModal';
@@ -9,13 +12,22 @@ import EditUserModal from '../components/EditUserModal';
 
 export default function Admin() {
   const { user } = useAuth();
+  const toast = useToast();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [aiSettings, setAiSettings] = useState<AISettingsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+
+  // AI Settings form state
+  const [aiModel, setAiModel] = useState('');
+  const [aiApiKey, setAiApiKey] = useState('');
+  const [aiBaseUrl, setAiBaseUrl] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [savingAi, setSavingAi] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -24,12 +36,19 @@ export default function Admin() {
   async function loadData() {
     setLoading(true);
     try {
-      const [usersData, statsData] = await Promise.all([
+      const [usersData, statsData, aiSettingsData] = await Promise.all([
         listUsers(),
         getAdminStats(),
+        getAISettings(),
       ]);
       setUsers(usersData);
       setStats(statsData);
+      setAiSettings(aiSettingsData);
+
+      // Populate form with existing settings
+      setAiModel(aiSettingsData.litellm_model || '');
+      setAiBaseUrl(aiSettingsData.litellm_base_url || '');
+      // Don't populate API key - it's masked for security
     } catch {
       setError('Failed to load admin data. You may not have admin privileges.');
     } finally {
@@ -51,6 +70,34 @@ export default function Admin() {
       loadData();
     } catch {
       setError('Failed to delete user');
+    }
+  }
+
+  async function handleSaveAISettings() {
+    setSavingAi(true);
+    try {
+      const updateData: {
+        litellm_model?: string | null;
+        litellm_api_key?: string | null;
+        litellm_base_url?: string | null;
+      } = {
+        litellm_model: aiModel || null,
+        litellm_base_url: aiBaseUrl || null,
+      };
+
+      // Only include API key if user entered a new value
+      if (aiApiKey) {
+        updateData.litellm_api_key = aiApiKey;
+      }
+
+      const updated = await updateAISettings(updateData);
+      setAiSettings(updated);
+      setAiApiKey(''); // Clear the API key field after save
+      toast.success('AI settings saved successfully');
+    } catch {
+      toast.error('Failed to save AI settings');
+    } finally {
+      setSavingAi(false);
     }
   }
 
@@ -83,6 +130,101 @@ export default function Admin() {
                 <div className="bg-secondary rounded-lg p-6">
                   <h3 className="text-muted text-sm mb-1">Total Applications</h3>
                   <p className="text-3xl font-bold text-primary">{stats?.total_applications || 0}</p>
+                </div>
+              </div>
+            </section>
+
+            {/* AI Configuration Section */}
+            <section>
+              <div className="flex items-center gap-3 mb-6">
+                <i className="bi-robot icon-lg text-accent"></i>
+                <h2 className="text-xl font-bold text-primary">AI Configuration</h2>
+                {aiSettings?.is_configured && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-green-bright/20 text-green-bright">
+                    Configured
+                  </span>
+                )}
+              </div>
+
+              <div className="bg-secondary rounded-lg p-6">
+                <div className="space-y-4">
+                  {/* Model Input */}
+                  <div>
+                    <label className="block text-sm font-medium text-secondary mb-2">
+                      <i className="bi-cpu icon-xs mr-1.5"></i>
+                      Model
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g., gpt-4o, claude-3-sonnet"
+                      value={aiModel}
+                      onChange={(e) => setAiModel(e.target.value)}
+                      className="w-full px-4 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                    />
+                    <p className="text-xs text-muted mt-1">
+                      The LiteLLM model identifier for AI features
+                    </p>
+                  </div>
+
+                  {/* API Key Input */}
+                  <div>
+                    <label className="block text-sm font-medium text-secondary mb-2">
+                      <i className="bi-key icon-xs mr-1.5"></i>
+                      API Key
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showApiKey ? 'text' : 'password'}
+                        placeholder={aiSettings?.litellm_api_key_masked ? `Current: ${aiSettings.litellm_api_key_masked}` : 'Enter API key'}
+                        value={aiApiKey}
+                        onChange={(e) => setAiApiKey(e.target.value)}
+                        className="w-full px-4 py-2 pr-10 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted hover:text-fg1 transition-all duration-200 ease-in-out cursor-pointer"
+                        title={showApiKey ? 'Hide API key' : 'Show API key'}
+                      >
+                        <i className={`bi-${showApiKey ? 'eye-slash' : 'eye'} icon-sm`}></i>
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted mt-1">
+                      {aiSettings?.litellm_api_key_masked
+                        ? 'Leave empty to keep the current API key'
+                        : 'The API key will be encrypted and stored securely'}
+                    </p>
+                  </div>
+
+                  {/* Base URL Input */}
+                  <div>
+                    <label className="block text-sm font-medium text-secondary mb-2">
+                      <i className="bi-globe icon-xs mr-1.5"></i>
+                      Base URL <span className="text-muted font-normal">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g., http://localhost:4000"
+                      value={aiBaseUrl}
+                      onChange={(e) => setAiBaseUrl(e.target.value)}
+                      className="w-full px-4 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                    />
+                    <p className="text-xs text-muted mt-1">
+                      Custom endpoint for self-hosted LiteLLM instances
+                    </p>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="pt-2">
+                    <button
+                      onClick={handleSaveAISettings}
+                      disabled={savingAi}
+                      className="bg-accent text-bg0 hover:bg-accent-bright disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer flex items-center gap-2"
+                    >
+                      {savingAi && <i className="bi-arrow-repeat icon-sm animate-spin"></i>}
+                      {savingAi ? 'Saving...' : 'Save Settings'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>
