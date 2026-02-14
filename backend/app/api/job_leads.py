@@ -15,6 +15,7 @@ import logging
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -74,6 +75,21 @@ async def create_job_lead(
     """
     url = data.url
     logger.info(f"Creating job lead for URL: {url} (user: {user.id})")
+
+    # Check for existing job lead with same URL for this user
+    result = await db.execute(
+        select(JobLead).where(
+            JobLead.user_id == user.id,
+            JobLead.url == url,
+        )
+    )
+    existing = result.scalars().first()
+    if existing:
+        logger.info(f"Duplicate job lead URL detected: {url} (existing ID: {existing.id})")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"A job lead already exists for this URL. ID: {existing.id}",
+        )
 
     # Step 1: Fetch HTML content (use provided HTML or fetch from URL)
     if data.html:
