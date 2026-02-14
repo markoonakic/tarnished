@@ -14,8 +14,8 @@ browser extension authentication (API token).
 import logging
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -44,6 +44,51 @@ router = APIRouter(prefix="/api/job-leads", tags=["job-leads"])
 HTTP_TIMEOUT_SECONDS = 30
 HTTP_MAX_REDIRECTS = 5
 HTTP_USER_AGENT = "Mozilla/5.0 (compatible; JobTrackerBot/1.0)"
+
+
+@router.get("", response_model=JobLeadListResponse)
+async def list_job_leads(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    status_filter: str | None = Query(None, alias="status"),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List job leads for the authenticated user with pagination.
+
+    Args:
+        page: Page number (1-indexed).
+        per_page: Items per page (max 100).
+        status_filter: Optional status filter (pending, extracted, failed).
+        user: The authenticated user.
+        db: Database session.
+
+    Returns:
+        Paginated list of job leads.
+    """
+    query = select(JobLead).where(JobLead.user_id == user.id)
+
+    if status_filter:
+        query = query.where(JobLead.status == status_filter)
+
+    # Get total count
+    count_query = select(func.count()).select_from(query.subquery())
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # Order by most recent first, then apply pagination
+    query = query.order_by(JobLead.scraped_at.desc())
+    query = query.offset((page - 1) * per_page).limit(per_page)
+
+    result = await db.execute(query)
+    job_leads = result.scalars().all()
+
+    return JobLeadListResponse(
+        items=job_leads,
+        total=total,
+        page=page,
+        per_page=per_page,
+    )
 
 
 @router.post("", response_model=JobLeadResponse, status_code=status.HTTP_201_CREATED)
