@@ -38,6 +38,40 @@ from app.schemas.job_lead import JobLeadExtractionInput
 logger = logging.getLogger(__name__)
 
 
+def _extract_source_from_url(url: str) -> str | None:
+    """Extract the source platform name from a URL.
+
+    Args:
+        url: The job posting URL.
+
+    Returns:
+        A source platform name (e.g., "LinkedIn", "Indeed") or None if unknown.
+    """
+    url_lower = url.lower()
+    known_sources = {
+        "linkedin": "LinkedIn",
+        "indeed": "Indeed",
+        "glassdoor": "Glassdoor",
+        "monster": "Monster",
+        "ziprecruiter": "ZipRecruiter",
+        "dice": "Dice",
+        "angel.co": "Wellfound",
+        "wellfound": "Wellfound",
+        "lever.co": "Lever",
+        "greenhouse": "Greenhouse",
+        "workday": "Workday",
+        "smartrecruiters": "SmartRecruiters",
+        "jobvite": "Jobvite",
+        "brassring": "BrassRing",
+        "icims": "iCIMS",
+        "myworkdayjobs": "Workday",
+    }
+    for domain, source in known_sources.items():
+        if domain in url_lower:
+            return source
+    return None
+
+
 class ExtractionError(Exception):
     """Base exception for extraction errors."""
 
@@ -123,14 +157,37 @@ def extract_with_llm(
         ExtractionInvalidResponseError: If the response cannot be parsed.
         NoJobFoundError: If no job data could be extracted.
     """
-    # TODO: Implement LLM extraction logic
+    # TODO: Implement LLM extraction logic (Task 3.5)
     # 1. Build prompt with markdown content and schema
     # 2. Call litellm.completion with response_format
     # 3. Parse and validate response
     # 4. Handle errors appropriately
 
-    # Placeholder - will be implemented in Task 3.5
-    raise NotImplementedError("LLM extraction not yet implemented")
+    # Placeholder implementation - returns empty extraction for testing
+    # This will be replaced with actual LLM extraction in Task 3.5
+    logger.warning(
+        "LLM extraction not yet implemented - returning placeholder result. "
+        "This will be implemented in Task 3.5."
+    )
+    return JobLeadExtractionInput(
+        title=None,
+        company=None,
+        description=markdown_content[:1000] if markdown_content else None,
+        location=None,
+        salary_min=None,
+        salary_max=None,
+        salary_currency=None,
+        recruiter_name=None,
+        recruiter_title=None,
+        recruiter_linkedin_url=None,
+        requirements_must_have=[],
+        requirements_nice_to_have=[],
+        skills=[],
+        years_experience_min=None,
+        years_experience_max=None,
+        source=_extract_source_from_url(url),
+        posted_date=None,
+    )
 
 
 async def extract_job_data(
