@@ -99,11 +99,24 @@ class NoJobFoundError(ExtractionError):
     pass
 
 
+# Size limits for HTML preprocessing
+MAX_HTML_SIZE = 100_000  # 100KB max input HTML size
+MAX_MARKDOWN_SIZE = 50_000  # 50KB max output markdown size
+
+
 def preprocess_html(html: str) -> str:
     """Preprocess HTML content for LLM extraction.
 
     Uses Readability to extract the main content and converts it to
     clean markdown format for better LLM processing.
+
+    The preprocessing pipeline:
+    1. Validate input (non-empty, within size limits)
+    2. Truncate if over size limit (preserves partial content)
+    3. Extract main content using Readability
+    4. Convert to markdown using Markdownify
+    5. Validate output (non-empty after processing)
+    6. Truncate markdown if necessary
 
     Args:
         html: Raw HTML content from a job posting page.
@@ -112,23 +125,123 @@ def preprocess_html(html: str) -> str:
         Cleaned markdown string containing the main content.
 
     Raises:
-        ValueError: If the HTML content is empty or invalid.
+        ValueError: If the HTML content is empty, invalid, or results in
+            empty markdown after processing.
     """
+    # Step 1: Validate input is not empty
     if not html or not html.strip():
         raise ValueError("HTML content cannot be empty")
 
-    # TODO: Implement preprocessing logic
-    # 1. Use Readability to extract main article content
-    # 2. Convert to markdown using markdownify
-    # 3. Clean up and truncate if necessary
+    original_size = len(html)
+    logger.debug(f"Processing HTML content: {original_size} characters")
 
-    # Placeholder implementation
-    doc = Document(html)
-    article_html = doc.summary()
-    markdown_content = md(article_html)
+    # Step 2: Truncate if over size limit
+    if original_size > MAX_HTML_SIZE:
+        logger.warning(
+            f"HTML content ({original_size} chars) exceeds limit "
+            f"({MAX_HTML_SIZE} chars), truncating"
+        )
+        html = html[:MAX_HTML_SIZE]
+        # Try to close any unclosed tags by appending basic closing tags
+        # This is a best-effort attempt to maintain valid HTML structure
+        html += "</div></body></html>"
 
-    logger.debug(f"Preprocessed HTML to {len(markdown_content)} chars of markdown")
+    # Step 3: Extract main content using Readability
+    try:
+        doc = Document(html)
+        article_html = doc.summary()
+    except Exception as e:
+        logger.error(f"Readability failed to parse HTML: {e}")
+        raise ValueError(f"Failed to extract content from HTML: {e}") from e
+
+    # Validate Readability extracted something
+    if not article_html or not article_html.strip():
+        raise ValueError("Readability extracted empty content from HTML")
+
+    logger.debug(f"Readability extracted {len(article_html)} chars of HTML")
+
+    # Step 4: Convert to markdown
+    try:
+        markdown_content = md(article_html)
+    except Exception as e:
+        logger.error(f"Markdownify failed to convert HTML: {e}")
+        raise ValueError(f"Failed to convert HTML to markdown: {e}") from e
+
+    # Step 5: Validate output is not empty
+    if not markdown_content or not markdown_content.strip():
+        raise ValueError("Markdown conversion resulted in empty content")
+
+    # Clean up excessive whitespace while preserving structure
+    markdown_content = _clean_markdown(markdown_content)
+
+    # Step 6: Truncate markdown if necessary
+    if len(markdown_content) > MAX_MARKDOWN_SIZE:
+        logger.warning(
+            f"Markdown content ({len(markdown_content)} chars) exceeds limit "
+            f"({MAX_MARKDOWN_SIZE} chars), truncating"
+        )
+        markdown_content = _truncate_markdown(markdown_content, MAX_MARKDOWN_SIZE)
+
+    logger.debug(
+        f"Preprocessed HTML: {original_size} -> {len(markdown_content)} chars "
+        f"({len(markdown_content) / original_size * 100:.1f}% of original)"
+    )
+
     return markdown_content
+
+
+def _clean_markdown(markdown: str) -> str:
+    """Clean up markdown content by removing excessive whitespace.
+
+    Args:
+        markdown: Raw markdown string.
+
+    Returns:
+        Cleaned markdown with normalized whitespace.
+    """
+    import re
+
+    # Replace 3+ consecutive newlines with 2 (preserve paragraph breaks)
+    markdown = re.sub(r"\n{3,}", "\n\n", markdown)
+
+    # Remove trailing whitespace from each line
+    markdown = "\n".join(line.rstrip() for line in markdown.split("\n"))
+
+    # Remove leading/trailing whitespace from the whole document
+    markdown = markdown.strip()
+
+    return markdown
+
+
+def _truncate_markdown(markdown: str, max_length: int) -> str:
+    """Truncate markdown while preserving document structure.
+
+    Attempts to truncate at a paragraph boundary to avoid cutting
+    off in the middle of content.
+
+    Args:
+        markdown: Markdown string to truncate.
+        max_length: Maximum allowed length.
+
+    Returns:
+        Truncated markdown string with ellipsis indicator.
+    """
+    if len(markdown) <= max_length:
+        return markdown
+
+    # Try to find a good break point (paragraph boundary)
+    # Look for double newline before the max length
+    truncate_point = max_length
+    paragraph_break = markdown.rfind("\n\n", 0, max_length)
+
+    if paragraph_break > max_length // 2:
+        # Use paragraph break if it's in the latter half
+        truncate_point = paragraph_break
+
+    truncated = markdown[:truncate_point].rstrip()
+    truncation_notice = "\n\n... [Content truncated due to size limit] ..."
+
+    return truncated + truncation_notice
 
 
 def extract_with_llm(
