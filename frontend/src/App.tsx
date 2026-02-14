@@ -8,6 +8,7 @@ import ToastContainer from './components/ToastContainer';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import JobLeads from './pages/JobLeads';
 import Applications from './pages/Applications';
 import ApplicationDetail from './pages/ApplicationDetail';
 import Analytics from './pages/Analytics';
@@ -19,17 +20,7 @@ import SettingsStatuses from './components/settings/SettingsStatuses';
 import SettingsRoundTypes from './components/settings/SettingsRoundTypes';
 import SettingsExport from './components/settings/SettingsExport';
 import SettingsImport from './components/settings/SettingsImport';
-
-// Placeholder for JobLeads page (to be implemented in a later task)
-function JobLeadsPlaceholder() {
-  return (
-    <div className="p-8 text-center text-muted">
-      <i className="bi-bookmark-star icon-2xl mb-4" />
-      <h1 className="text-xl font-bold text-fg1 mb-2">Job Leads</h1>
-      <p>Coming soon...</p>
-    </div>
-  );
-}
+import SettingsAPIKey from './components/settings/SettingsAPIKey';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -75,13 +66,14 @@ function AppRoutes() {
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/job-leads" element={<ProtectedRoute><JobLeadsPlaceholder /></ProtectedRoute>} />
+      <Route path="/job-leads" element={<ProtectedRoute><JobLeads /></ProtectedRoute>} />
       <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
       <Route path="/applications/:id" element={<ProtectedRoute><ApplicationDetail /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsLayout /></ProtectedRoute>}>
         <Route path="theme" element={<SettingsTheme />} />
         <Route path="features" element={<SettingsFeatures />} />
+        <Route path="api-key" element={<SettingsAPIKey />} />
         <Route path="statuses" element={<SettingsStatuses />} />
         <Route path="round-types" element={<SettingsRoundTypes />} />
         <Route path="export" element={<SettingsExport />} />

@@ -4,7 +4,10 @@ import type { Application, JobLead } from './types';
 export interface JobLeadsParams {
   page?: number;
   per_page?: number;
+  search?: string;
   status?: 'pending' | 'extracted' | 'failed';
+  source?: string;
+  sort?: 'newest' | 'oldest';
 }
 
 export interface JobLeadsListResponse {
