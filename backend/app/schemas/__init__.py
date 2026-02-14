@@ -51,6 +51,10 @@ from app.schemas.user_profile import (
     WorkHistoryItem,
     EducationItem,
 )
+from app.schemas.ai_settings import (
+    AISettingsUpdate,
+    AISettingsResponse,
+)
 
 from typing import List
 
@@ -137,4 +141,7 @@ __all__ = [
     "UserProfileResponse",
     "WorkHistoryItem",
     "EducationItem",
+    # AI Settings schemas
+    "AISettingsUpdate",
+    "AISettingsResponse",
 ]
