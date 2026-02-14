@@ -3,12 +3,39 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { getJobLeads } from '../lib/jobLeads';
 import type { JobLead, JobLeadStatus } from '../lib/types';
 import Layout from '../components/Layout';
-import Loading from '../components/Loading';
 import EmptyState from '../components/EmptyState';
 import JobLeadsFilters, { type JobLeadsFiltersValue } from '../components/JobLeadsFilters';
+import { JobLeadCardSkeleton } from '../components/JobLeadCard';
 import { useToastContext } from '../contexts/ToastContext';
 
 const PER_PAGE = 20;
+
+// Table row skeleton component for desktop loading
+function TableRowSkeleton({ count = 5 }: { count?: number }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, index) => (
+        <tr key={index} className={index < count - 1 ? 'border-b border-tertiary' : ''}>
+          <td className="py-3 px-4">
+            <div className="h-4 bg-bg2 rounded w-32 animate-pulse" />
+          </td>
+          <td className="py-3 px-4">
+            <div className="h-4 bg-bg2 rounded w-40 animate-pulse" />
+          </td>
+          <td className="py-3 px-4">
+            <div className="h-6 w-20 bg-bg2 rounded animate-pulse" />
+          </td>
+          <td className="py-3 px-4">
+            <div className="h-4 bg-bg2 rounded w-20 animate-pulse" />
+          </td>
+          <td className="py-3 px-4">
+            <div className="h-4 bg-bg2 rounded w-24 animate-pulse" />
+          </td>
+        </tr>
+      ))}
+    </>
+  );
+}
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -193,7 +220,40 @@ export default function JobLeads() {
 
         {/* Loading State */}
         {loading ? (
-          <Loading message="Loading job leads..." />
+          <>
+            {/* Desktop Table Skeleton */}
+            <div className="hidden md:block bg-secondary rounded-lg overflow-hidden">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">
+                      Company
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">
+                      Position
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">
+                      Source
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">
+                      Added
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <TableRowSkeleton count={5} />
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards Skeleton */}
+            <div className="md:hidden space-y-3">
+              <JobLeadCardSkeleton count={5} />
+            </div>
+          </>
         ) : jobLeads.length === 0 ? (
           /* Empty States */
           isFiltered ? (
@@ -246,7 +306,7 @@ export default function JobLeads() {
                         <td className="py-3 px-4 text-sm">
                           <Link
                             to={`/job-leads/${lead.id}`}
-                            className="text-fg1 hover:text-accent-bright transition-all duration-200 ease-in-out font-medium"
+                            className="text-fg1 hover:text-accent-bright transition-all duration-200 ease-in-out font-medium cursor-pointer"
                           >
                             {lead.company || truncate(lead.url, 40)}
                           </Link>
