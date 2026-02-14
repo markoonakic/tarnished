@@ -1,0 +1,126 @@
+:root {
+  --bg0: #282828;
+  --bg1: #3c3836;
+  --bg2: #504945;
+  --bg3: #665c54;
+  --fg0: #fbf1c7;
+  --fg1: #ebdbb2;
+  --aqua: #458588;
+  --aqua-bright: #83a598;
+  --green: #98971a;
+  --green-bright: #b8bb26;
+  --red: #cc241d;
+  --red-bright: #fb4934;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg0);
+  color: var(--fg1);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+h1 {
+  color: var(--fg0);
+  margin-bottom: 24px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: var(--fg1);
+}
+
+input[type="url"],
+input[type="password"] {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--bg3);
+  border-radius: 6px;
+  color: var(--fg0);
+  font-size: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input[type="url"]::placeholder,
+input[type="password"]::placeholder {
+  color: var(--fg1);
+  opacity: 0.5;
+}
+
+input[type="url"]:focus,
+input[type="password"]:focus {
+  outline: none;
+  border-color: var(--aqua);
+  box-shadow: 0 0 0 2px rgba(69, 133, 136, 0.3);
+}
+
+small {
+  display: block;
+  margin-top: 6px;
+  color: var(--fg1);
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+small a {
+  color: var(--aqua-bright);
+  text-decoration: none;
+}
+
+small a:hover {
+  text-decoration: underline;
+}
+
+button {
+  padding: 10px 20px;
+  background: var(--aqua);
+  color: var(--fg0);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+button:hover {
+  background: var(--aqua-bright);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+#status {
+  margin-left: 12px;
+  font-size: 14px;
+}
+
+.success {
+  color: var(--green-bright);
+}
+
+.error {
+  color: var(--red-bright);
+}

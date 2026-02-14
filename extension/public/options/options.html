@@ -3,24 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Job Tracker - Options</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: #282828;
-      color: #ebdbb2;
-      padding: 20px;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-  </style>
+  <title>Job Tracker Settings</title>
+  <link rel="stylesheet" href="options.css">
 </head>
 <body>
-  <div id="root"></div>
+  <div class="container">
+    <h1>Job Tracker Settings</h1>
+
+    <div class="form-group">
+      <label for="serverUrl">Server URL</label>
+      <input type="url" id="serverUrl" placeholder="http://localhost:8000">
+    </div>
+
+    <div class="form-group">
+      <label for="apiKey">API Key</label>
+      <input type="password" id="apiKey" placeholder="Your API key">
+      <small>Get your API key from <a href="#" id="apiKeyLink">Job Tracker Settings</a></small>
+    </div>
+
+    <div class="form-group">
+      <button id="saveBtn">Save Settings</button>
+      <span id="status"></span>
+    </div>
+  </div>
+
+  <script type="module" src="../options/index.js"></script>
 </body>
 </html>
