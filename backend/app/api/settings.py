@@ -67,6 +67,7 @@ async def regenerate_api_key(
     new_token = generate_api_token()
     user.api_token = new_token
     await db.commit()
+    await db.refresh(user)
 
     return APIKeyResponse(
         has_api_key=True,
