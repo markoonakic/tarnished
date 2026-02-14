@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, String, Text
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -41,7 +41,22 @@ class Application(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Job Lead relationship (for converted leads)
+    job_lead_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("job_leads.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    # Rich extraction fields (populated from JobLead conversion)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    salary_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    salary_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    salary_currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    recruiter_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    recruiter_linkedin_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    requirements_must_have: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    requirements_nice_to_have: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    source: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
     user = relationship("User", back_populates="applications")
     status = relationship("ApplicationStatus", back_populates="applications")
     rounds = relationship("Round", back_populates="application", cascade="all, delete-orphan")
     status_history = relationship("ApplicationStatusHistory", back_populates="application", cascade="all, delete-orphan", order_by="desc(ApplicationStatusHistory.changed_at)")
+    job_lead = relationship("JobLead", back_populates="converted_application")

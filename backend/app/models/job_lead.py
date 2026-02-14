@@ -49,7 +49,7 @@ class JobLead(Base):
 
     # Relationships
     user = relationship("User", backref="job_leads")
-    converted_application = relationship("Application", backref="converted_from_lead")
+    converted_application = relationship("Application", back_populates="job_lead")
 
     def __repr__(self) -> str:
         return f"<JobLead(id={self.id}, status={self.status}, title={self.title}, company={self.company})>"
