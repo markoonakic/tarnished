@@ -167,3 +167,16 @@ def decrypt_api_key(encrypted_key: str) -> str | None:
     except Exception as e:
         logger.error(f"Failed to decrypt API key: {e}")
         return None
+
+
+def generate_api_token() -> str:
+    """Generate a secure random API token.
+
+    Creates a 32-character hexadecimal string using cryptographically
+    secure random bytes. This is used for authenticating external API
+    requests.
+
+    Returns:
+        A 32-character hexadecimal string (16 random bytes).
+    """
+    return secrets.token_hex(16)
