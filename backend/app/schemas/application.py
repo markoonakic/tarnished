@@ -12,6 +12,17 @@ class ApplicationCreate(BaseModel):
     job_url: str | None = None
     status_id: str
     applied_at: date | None = None
+    # New fields for manual entry or job lead conversion
+    job_lead_id: str | None = None
+    description: str | None = None
+    salary_min: int | None = None
+    salary_max: int | None = None
+    salary_currency: str | None = None
+    recruiter_name: str | None = None
+    recruiter_linkedin_url: str | None = None
+    requirements_must_have: list[str] = []
+    requirements_nice_to_have: list[str] = []
+    source: str | None = None
 
 
 class ApplicationUpdate(BaseModel):
@@ -21,6 +32,16 @@ class ApplicationUpdate(BaseModel):
     job_url: str | None = None
     status_id: str | None = None
     applied_at: date | None = None
+    # New fields for updates
+    description: str | None = None
+    salary_min: int | None = None
+    salary_max: int | None = None
+    salary_currency: str | None = None
+    recruiter_name: str | None = None
+    recruiter_linkedin_url: str | None = None
+    requirements_must_have: list[str] | None = None
+    requirements_nice_to_have: list[str] | None = None
+    source: str | None = None
 
 
 class StatusResponse(BaseModel):
@@ -44,6 +65,17 @@ class ApplicationListItem(BaseModel):
     applied_at: date
     created_at: datetime
     updated_at: datetime
+    # New fields from job lead conversion
+    job_lead_id: str | None
+    description: str | None
+    salary_min: int | None
+    salary_max: int | None
+    salary_currency: str | None
+    recruiter_name: str | None
+    recruiter_linkedin_url: str | None
+    requirements_must_have: list[str]
+    requirements_nice_to_have: list[str]
+    source: str | None
 
     class Config:
         from_attributes = True
