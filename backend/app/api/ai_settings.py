@@ -21,6 +21,35 @@ async def _get_setting(db: AsyncSession, key: str) -> str | None:
     return setting.value if setting else None
 
 
+async def _upsert_setting(db: AsyncSession, key: str, value: str | None) -> None:
+    """Upsert a setting value in the database.
+
+    Creates the setting if it doesn't exist, updates it if it does.
+    If value is None, the setting is deleted from the database.
+
+    Args:
+        db: Database session.
+        key: Setting key.
+        value: Setting value, or None to delete.
+    """
+    result = await db.execute(
+        select(SystemSettings).where(SystemSettings.key == key)
+    )
+    setting = result.scalars().first()
+
+    if value is None:
+        # Delete the setting if it exists and value is None
+        if setting:
+            await db.delete(setting)
+    elif setting:
+        # Update existing setting
+        setting.value = value
+    else:
+        # Create new setting
+        setting = SystemSettings(key=key, value=value)
+        db.add(setting)
+
+
 def _mask_api_key(api_key: str | None) -> str | None:
     """Mask API key, showing only last 4 characters.
 
@@ -73,12 +102,20 @@ async def update_ai_settings(
     Accepts optional fields to update. API key will be encrypted before storage.
     Admin only.
     """
-    # TODO: Implement settings storage (Task 4.4)
-    # TODO: Encrypt API key before storing (Task 4.5)
-    # For now, return placeholder with the updated values
+    # Store settings in database (upsert logic)
+    await _upsert_setting(db, SystemSettings.KEY_LITELLM_MODEL, data.litellm_model)
+    await _upsert_setting(db, SystemSettings.KEY_LITELLM_API_KEY, data.litellm_api_key)
+    await _upsert_setting(db, SystemSettings.KEY_LITELLM_BASE_URL, data.litellm_base_url)
+
+    # Commit the changes
+    await db.commit()
+
+    # Determine if fully configured (need both model and API key)
+    is_configured = bool(data.litellm_model and data.litellm_api_key)
+
     return AISettingsResponse(
         litellm_model=data.litellm_model,
-        litellm_api_key_masked=f"...{data.litellm_api_key[-4:]}" if data.litellm_api_key else None,
+        litellm_api_key_masked=_mask_api_key(data.litellm_api_key),
         litellm_base_url=data.litellm_base_url,
-        is_configured=bool(data.litellm_model and data.litellm_api_key),
+        is_configured=is_configured,
     )
