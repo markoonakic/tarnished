@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import ConvertToApplicationModal from './ConvertToApplicationModal';
 import type { JobLead } from '@/lib/types';
 
 interface JobLeadModalProps {
@@ -64,6 +65,7 @@ export default function JobLeadModal({
   onDelete,
 }: JobLeadModalProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
 
   // Escape key handler
   useEffect(() => {
@@ -72,6 +74,8 @@ export default function JobLeadModal({
         if (e.key === 'Escape') {
           if (showDeleteConfirm) {
             setShowDeleteConfirm(false);
+          } else if (showConvertModal) {
+            setShowConvertModal(false);
           } else {
             onClose();
           }
@@ -80,12 +84,13 @@ export default function JobLeadModal({
       window.addEventListener('keydown', handleEscape);
       return () => window.removeEventListener('keydown', handleEscape);
     }
-  }, [isOpen, onClose, showDeleteConfirm]);
+  }, [isOpen, onClose, showDeleteConfirm, showConvertModal]);
 
-  // Reset delete confirmation when modal opens/closes
+  // Reset confirmation modals when main modal opens/closes
   useEffect(() => {
     if (!isOpen) {
       setShowDeleteConfirm(false);
+      setShowConvertModal(false);
     }
   }, [isOpen]);
 
@@ -121,11 +126,15 @@ export default function JobLeadModal({
     setShowDeleteConfirm(false);
   }
 
-  function handleConvert() {
+  function handleConvertClick() {
+    setShowConvertModal(true);
+  }
+
+  function handleConverted(applicationId: string) {
     if (onConvert) {
       onConvert(lead.id);
     }
-    onClose();
+    setShowConvertModal(false);
   }
 
   return (
@@ -340,7 +349,7 @@ export default function JobLeadModal({
               <>
                 {lead.converted_to_application_id === null && onConvert && (
                   <button
-                    onClick={handleConvert}
+                    onClick={handleConvertClick}
                     className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded text-sm flex items-center gap-1.5 cursor-pointer"
                   >
                     <i className="bi bi-arrow-repeat icon-sm" />
@@ -372,6 +381,14 @@ export default function JobLeadModal({
           </div>
         </div>
       </div>
+
+      {/* Convert to Application Modal */}
+      <ConvertToApplicationModal
+        isOpen={showConvertModal}
+        onClose={() => setShowConvertModal(false)}
+        lead={lead}
+        onConverted={handleConverted}
+      />
     </div>
   );
 }
