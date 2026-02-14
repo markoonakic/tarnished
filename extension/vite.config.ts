@@ -9,6 +9,7 @@ function copyPublicFiles() {
     closeBundle() {
       const distDir = resolve(__dirname, 'dist');
       const publicDir = resolve(__dirname, 'public');
+      const srcDir = resolve(__dirname, 'src');
 
       // Ensure dist directory exists
       if (!existsSync(distDir)) {
@@ -34,8 +35,16 @@ function copyPublicFiles() {
         }
       }
 
+      // Copy public files to dist
       if (existsSync(publicDir)) {
         copyRecursive(publicDir, distDir);
+      }
+
+      // Copy manifest.json to dist
+      const manifestSrc = resolve(srcDir, 'manifest.json');
+      const manifestDest = resolve(distDir, 'manifest.json');
+      if (existsSync(manifestSrc)) {
+        copyFileSync(manifestSrc, manifestDest);
       }
     }
   };
