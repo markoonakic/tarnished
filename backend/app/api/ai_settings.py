@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_admin
+from app.core.security import decrypt_api_key, encrypt_api_key
 from app.models import SystemSettings, User
 from app.schemas.ai_settings import AISettingsResponse, AISettingsUpdate
 
@@ -77,10 +78,15 @@ async def get_ai_settings(
     """
     # Read settings from database
     model = await _get_setting(db, SystemSettings.KEY_LITELLM_MODEL)
-    api_key = await _get_setting(db, SystemSettings.KEY_LITELLM_API_KEY)
+    encrypted_api_key = await _get_setting(db, SystemSettings.KEY_LITELLM_API_KEY)
     base_url = await _get_setting(db, SystemSettings.KEY_LITELLM_BASE_URL)
 
-    # Determine if fully configured (need both model and API key)
+    # Decrypt the API key if present
+    api_key = None
+    if encrypted_api_key:
+        api_key = decrypt_api_key(encrypted_api_key)
+
+    # Determine if fully configured (need both model and decrypted API key)
     is_configured = bool(model and api_key)
 
     return AISettingsResponse(
@@ -102,9 +108,14 @@ async def update_ai_settings(
     Accepts optional fields to update. API key will be encrypted before storage.
     Admin only.
     """
+    # Encrypt the API key before storing if provided
+    encrypted_api_key = None
+    if data.litellm_api_key:
+        encrypted_api_key = encrypt_api_key(data.litellm_api_key)
+
     # Store settings in database (upsert logic)
     await _upsert_setting(db, SystemSettings.KEY_LITELLM_MODEL, data.litellm_model)
-    await _upsert_setting(db, SystemSettings.KEY_LITELLM_API_KEY, data.litellm_api_key)
+    await _upsert_setting(db, SystemSettings.KEY_LITELLM_API_KEY, encrypted_api_key)
     await _upsert_setting(db, SystemSettings.KEY_LITELLM_BASE_URL, data.litellm_base_url)
 
     # Commit the changes

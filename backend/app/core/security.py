@@ -1,11 +1,16 @@
+import base64
+import hashlib
+import logging
 from datetime import datetime, timedelta
 
 import bcrypt
+from cryptography.fernet import Fernet, InvalidToken
 from jose import JWTError, jwt
 
 from app.core.config import get_settings
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -110,4 +115,54 @@ def decode_round_transcript_token(token: str) -> dict | None:
             return None
         return payload
     except JWTError:
+        return None
+
+
+def _get_fernet_key() -> bytes:
+    """Derive a Fernet-compatible key from the SECRET_KEY.
+
+    Fernet requires a 32-byte base64-encoded key. We derive this from
+    the application's SECRET_KEY using SHA-256.
+
+    Returns:
+        A 32-byte base64-encoded key suitable for Fernet.
+    """
+    # Hash the secret key to get a consistent 32 bytes
+    key_hash = hashlib.sha256(settings.secret_key.encode()).digest()
+    # Base64 encode to get valid Fernet key format
+    return base64.urlsafe_b64encode(key_hash)
+
+
+def encrypt_api_key(api_key: str) -> str:
+    """Encrypt an API key using Fernet symmetric encryption.
+
+    Args:
+        api_key: The plaintext API key to encrypt.
+
+    Returns:
+        The encrypted API key as a string.
+    """
+    fernet = Fernet(_get_fernet_key())
+    encrypted = fernet.encrypt(api_key.encode())
+    return encrypted.decode()
+
+
+def decrypt_api_key(encrypted_key: str) -> str | None:
+    """Decrypt an API key that was encrypted with Fernet.
+
+    Args:
+        encrypted_key: The encrypted API key string.
+
+    Returns:
+        The decrypted API key, or None if decryption fails.
+    """
+    try:
+        fernet = Fernet(_get_fernet_key())
+        decrypted = fernet.decrypt(encrypted_key.encode())
+        return decrypted.decode()
+    except InvalidToken:
+        logger.error("Failed to decrypt API key - invalid token or wrong secret key")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to decrypt API key: {e}")
         return None
