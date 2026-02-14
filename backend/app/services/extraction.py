@@ -55,6 +55,20 @@ Instructions:
 
 The source URL is provided for context but the actual data should come from the content."""
 
+# Correction prompt for retry when LLM returns invalid JSON
+CORRECTION_PROMPT_TEMPLATE = """The previous response could not be parsed as valid JSON. Please try again with a properly formatted JSON response.
+
+Error encountered: {error_message}
+
+Original response (first 500 chars):
+{original_response}
+
+Remember:
+1. Return ONLY valid JSON - no extra text, no markdown code blocks
+2. Ensure all string values are properly quoted
+3. Ensure all brackets and braces are properly closed
+4. Use null for missing optional fields, empty lists [] for missing list fields"""
+
 
 def _extract_source_from_url(url: str) -> str | None:
     """Extract the source platform name from a URL.
@@ -273,6 +287,9 @@ def extract_with_llm(
     Uses structured output with the JobLeadExtractionInput schema to ensure
     the LLM returns valid, parseable job data.
 
+    Includes retry logic: if the LLM returns invalid JSON, it will retry once
+    with a correction prompt before failing.
+
     Args:
         markdown_content: Preprocessed markdown content from the job posting.
         url: The source URL (included in prompt for context).
@@ -300,108 +317,172 @@ def extract_with_llm(
 Job Posting Content:
 {markdown_content}"""
 
-    try:
-        # Call LiteLLM with structured output
-        response = completion(
-            model=extraction_model,
-            messages=[
-                {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
-                {"role": "user", "content": user_message},
-            ],
-            response_format=JobLeadExtractionInput,
-            timeout=timeout,
-        )
+    # Track retry state
+    is_retry = False
+    messages = [
+        {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
+        {"role": "user", "content": user_message},
+    ]
 
-        # Extract the content from the response
-        raw_content = response.choices[0].message.content
+    # Allow one retry for invalid JSON responses
+    max_attempts = 2
+    last_parse_error: tuple[str, str] | None = None  # (error_message, raw_response)
 
-        if not raw_content:
-            raise ExtractionInvalidResponseError(
-                "LLM returned empty response",
-                details={"model": extraction_model, "url": url},
+    for attempt in range(max_attempts):
+        try:
+            # Call LiteLLM with structured output
+            response = completion(
+                model=extraction_model,
+                messages=messages,
+                response_format=JobLeadExtractionInput,
+                timeout=timeout,
             )
 
-        logger.debug(f"Raw LLM response: {raw_content[:500]}...")
+            # Extract the content from the response
+            raw_content = response.choices[0].message.content
 
-        # Parse the JSON response
-        try:
-            parsed_data = json.loads(raw_content)
-        except json.JSONDecodeError as e:
+            if not raw_content:
+                raise ExtractionInvalidResponseError(
+                    "LLM returned empty response",
+                    details={"model": extraction_model, "url": url},
+                )
+
+            logger.debug(f"Raw LLM response (attempt {attempt + 1}): {raw_content[:500]}...")
+
+            # Parse the JSON response
+            try:
+                parsed_data = json.loads(raw_content)
+            except json.JSONDecodeError as e:
+                # Store error for potential retry
+                last_parse_error = (str(e), raw_content)
+                if attempt < max_attempts - 1:
+                    # Retry with correction prompt
+                    logger.warning(
+                        f"JSON parse error on attempt {attempt + 1}, retrying with correction prompt"
+                    )
+                    correction_prompt = CORRECTION_PROMPT_TEMPLATE.format(
+                        error_message=str(e),
+                        original_response=raw_content[:500],
+                    )
+                    messages = [
+                        {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
+                        {"role": "user", "content": user_message},
+                        {"role": "assistant", "content": raw_content},
+                        {"role": "user", "content": correction_prompt},
+                    ]
+                    is_retry = True
+                    continue
+                else:
+                    # Final attempt failed
+                    raise ExtractionInvalidResponseError(
+                        f"Failed to parse LLM response as JSON after {max_attempts} attempts: {e}",
+                        details={
+                            "model": extraction_model,
+                            "url": url,
+                            "raw_response": raw_content[:1000],
+                            "attempts": max_attempts,
+                        },
+                    ) from e
+
+            # Validate and create the Pydantic model
+            try:
+                job_data = JobLeadExtractionInput(**parsed_data)
+            except Exception as e:
+                # Store error for potential retry
+                last_parse_error = (str(e), raw_content)
+                if attempt < max_attempts - 1:
+                    # Retry with correction prompt for schema validation errors
+                    logger.warning(
+                        f"Schema validation error on attempt {attempt + 1}, retrying with correction prompt"
+                    )
+                    correction_prompt = CORRECTION_PROMPT_TEMPLATE.format(
+                        error_message=f"Schema validation failed: {e}",
+                        original_response=raw_content[:500],
+                    )
+                    messages = [
+                        {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
+                        {"role": "user", "content": user_message},
+                        {"role": "assistant", "content": raw_content},
+                        {"role": "user", "content": correction_prompt},
+                    ]
+                    is_retry = True
+                    continue
+                else:
+                    # Final attempt failed
+                    raise ExtractionInvalidResponseError(
+                        f"LLM response failed schema validation after {max_attempts} attempts: {e}",
+                        details={
+                            "model": extraction_model,
+                            "url": url,
+                            "parsed_data": parsed_data,
+                            "validation_error": str(e),
+                            "attempts": max_attempts,
+                        },
+                    ) from e
+
+            # Check if this appears to be an actual job posting
+            # If both title and company are None, likely not a job posting
+            if job_data.title is None and job_data.company is None:
+                raise NoJobFoundError(
+                    "No job posting data could be extracted from the content",
+                    details={
+                        "url": url,
+                        "content_preview": markdown_content[:500],
+                    },
+                )
+
+            # Override source with URL-derived source if not extracted
+            if job_data.source is None:
+                job_data.source = _extract_source_from_url(url)
+
+            if is_retry:
+                logger.info(
+                    f"Successfully extracted job after retry: {job_data.title} at {job_data.company}"
+                )
+            else:
+                logger.info(
+                    f"Successfully extracted job: {job_data.title} at {job_data.company}"
+                )
+            return job_data
+
+        except openai.APITimeoutError as e:
+            logger.error(f"LLM request timed out: {e}")
+            raise ExtractionTimeoutError(
+                f"LLM request timed out after {timeout} seconds",
+                details={"model": extraction_model, "url": url, "timeout": timeout},
+            ) from e
+
+        except openai.APIError as e:
+            logger.error(f"LLM API error: {e}")
             raise ExtractionInvalidResponseError(
-                f"Failed to parse LLM response as JSON: {e}",
+                f"LLM API error: {e}",
                 details={
                     "model": extraction_model,
                     "url": url,
-                    "raw_response": raw_content[:1000],
+                    "error_type": type(e).__name__,
                 },
             ) from e
 
-        # Validate and create the Pydantic model
-        try:
-            job_data = JobLeadExtractionInput(**parsed_data)
+        except (ExtractionTimeoutError, ExtractionInvalidResponseError, NoJobFoundError):
+            # Re-raise our custom exceptions
+            raise
+
         except Exception as e:
+            logger.error(f"Unexpected error during LLM extraction: {e}")
             raise ExtractionInvalidResponseError(
-                f"LLM response failed schema validation: {e}",
+                f"Unexpected error during extraction: {e}",
                 details={
                     "model": extraction_model,
                     "url": url,
-                    "parsed_data": parsed_data,
-                    "validation_error": str(e),
+                    "error_type": type(e).__name__,
                 },
             ) from e
 
-        # Check if this appears to be an actual job posting
-        # If both title and company are None, likely not a job posting
-        if job_data.title is None and job_data.company is None:
-            raise NoJobFoundError(
-                "No job posting data could be extracted from the content",
-                details={
-                    "url": url,
-                    "content_preview": markdown_content[:500],
-                },
-            )
-
-        # Override source with URL-derived source if not extracted
-        if job_data.source is None:
-            job_data.source = _extract_source_from_url(url)
-
-        logger.info(
-            f"Successfully extracted job: {job_data.title} at {job_data.company}"
-        )
-        return job_data
-
-    except openai.APITimeoutError as e:
-        logger.error(f"LLM request timed out: {e}")
-        raise ExtractionTimeoutError(
-            f"LLM request timed out after {timeout} seconds",
-            details={"model": extraction_model, "url": url, "timeout": timeout},
-        ) from e
-
-    except openai.APIError as e:
-        logger.error(f"LLM API error: {e}")
-        raise ExtractionInvalidResponseError(
-            f"LLM API error: {e}",
-            details={
-                "model": extraction_model,
-                "url": url,
-                "error_type": type(e).__name__,
-            },
-        ) from e
-
-    except (ExtractionTimeoutError, ExtractionInvalidResponseError, NoJobFoundError):
-        # Re-raise our custom exceptions
-        raise
-
-    except Exception as e:
-        logger.error(f"Unexpected error during LLM extraction: {e}")
-        raise ExtractionInvalidResponseError(
-            f"Unexpected error during extraction: {e}",
-            details={
-                "model": extraction_model,
-                "url": url,
-                "error_type": type(e).__name__,
-            },
-        ) from e
+    # This should never be reached, but satisfy the type checker
+    raise ExtractionInvalidResponseError(
+        "Extraction failed after all attempts",
+        details={"model": extraction_model, "url": url},
+    )
 
 
 async def extract_job_data(
