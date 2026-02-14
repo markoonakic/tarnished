@@ -1,0 +1,20 @@
+{
+  "name": "job-tracker-extension",
+  "version": "1.0.0",
+  "description": "Browser extension for detecting and saving job listings to Job Tracker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "webextension-polyfill": "^0.12.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "@types/webextension-polyfill": "^0.10.7",
+    "typescript": "^5.4.0",
+    "vite": "^5.4.0"
+  }
+}
