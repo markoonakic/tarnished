@@ -53,6 +53,18 @@ export interface Application {
   created_at: string;
   updated_at: string;
   rounds?: Round[];
+  // New fields from job lead conversion
+  job_lead_id: string | null;
+  description: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  recruiter_name: string | null;
+  recruiter_title: string | null;
+  recruiter_linkedin_url: string | null;
+  requirements_must_have: string[];
+  requirements_nice_to_have: string[];
+  source: string | null;
 }
 
 export interface ApplicationListResponse {

@@ -206,6 +206,104 @@ export default function ApplicationDetail() {
             </div>
           )}
 
+          {/* Source Badge - if converted from job lead */}
+          {application.source && (
+            <div className="mb-4">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-bg2 text-fg1">
+                <i className="bi-link-45deg icon-xs"></i>
+                Source: {application.source}
+              </span>
+            </div>
+          )}
+
+          {/* Salary Information */}
+          {(application.salary_min || application.salary_max) && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-currency-dollar icon-sm"></i>
+                Salary Range
+              </h3>
+              <p className="text-primary font-medium">
+                {application.salary_currency || 'USD'}{' '}
+                {application.salary_min?.toLocaleString() || '???'}
+                {' - '}
+                {application.salary_max?.toLocaleString() || '???'}
+              </p>
+            </div>
+          )}
+
+          {/* Recruiter Information */}
+          {(application.recruiter_name || application.recruiter_title || application.recruiter_linkedin_url) && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-person icon-sm"></i>
+                Recruiter
+              </h3>
+              <div className="space-y-1">
+                {application.recruiter_name && (
+                  <p className="text-primary font-medium">{application.recruiter_name}</p>
+                )}
+                {application.recruiter_title && (
+                  <p className="text-secondary text-sm">{application.recruiter_title}</p>
+                )}
+                {application.recruiter_linkedin_url && (
+                  <a
+                    href={application.recruiter_linkedin_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:text-accent-bright transition-all duration-200 ease-in-out text-sm cursor-pointer flex items-center gap-1"
+                  >
+                    <i className="bi-linkedin icon-sm"></i>
+                    LinkedIn Profile
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Requirements - Must Have */}
+          {application.requirements_must_have && application.requirements_must_have.length > 0 && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-check-circle icon-sm"></i>
+                Must-Have Requirements
+              </h3>
+              <ul className="list-disc list-inside text-primary space-y-1">
+                {application.requirements_must_have.map((req, index) => (
+                  <li key={index} className="text-sm">{req}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Requirements - Nice to Have */}
+          {application.requirements_nice_to_have && application.requirements_nice_to_have.length > 0 && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-star icon-sm"></i>
+                Nice-to-Have Requirements
+              </h3>
+              <ul className="list-disc list-inside text-primary space-y-1">
+                {application.requirements_nice_to_have.map((req, index) => (
+                  <li key={index} className="text-sm">{req}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Full Description - if available (from job lead extraction) */}
+          {application.description && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-file-text icon-sm"></i>
+                Full Description
+              </h3>
+              <div className="text-primary whitespace-pre-wrap break-words text-sm">
+                {application.description}
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-end gap-2 pt-4 border-t border-tertiary">
             <button
               onClick={() => setShowEditModal(true)}
