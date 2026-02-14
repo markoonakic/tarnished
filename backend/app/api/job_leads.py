@@ -314,3 +314,40 @@ async def _fetch_html(url: str) -> str:
             )
 
         return response.text
+
+
+@router.delete("/{job_lead_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_job_lead(
+    job_lead_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a job lead by ID.
+
+    Args:
+        job_lead_id: The UUID of the job lead to delete.
+        user: The authenticated user.
+        db: Database session.
+
+    Returns:
+        204 No Content on success.
+
+    Raises:
+        HTTPException: 404 if job lead not found or doesn't belong to user.
+    """
+    result = await db.execute(
+        select(JobLead).where(
+            JobLead.id == job_lead_id,
+            JobLead.user_id == user.id,
+        )
+    )
+    job_lead = result.scalars().first()
+
+    if not job_lead:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job lead not found",
+        )
+
+    await db.delete(job_lead)
+    await db.commit()
