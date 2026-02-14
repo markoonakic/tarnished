@@ -1,11 +1,19 @@
 /**
  * Popup script for Job Tracker extension
  * Handles the popup UI state management and user interactions
- *
- * This is a placeholder - full logic will be implemented in Task 21
  */
 
-// Popup state types
+import browser from 'webextension-polyfill';
+import { getSettings, type Settings } from '../lib/storage';
+import { checkExistingLead, type JobLeadResponse } from '../lib/api';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+/**
+ * Popup state types
+ */
 type PopupState =
   | 'loading'
   | 'no-settings'
@@ -16,7 +24,46 @@ type PopupState =
   | 'saving'
   | 'error';
 
-// DOM element references
+/**
+ * Tab status from background script
+ */
+interface TabStatus {
+  isJobPage: boolean;
+  score: number;
+  signals: string[];
+  url: string;
+}
+
+/**
+ * Job info to display in the UI
+ */
+interface JobInfo {
+  title: string | null;
+  company: string | null;
+  location: string | null;
+}
+
+// ============================================================================
+// State
+// ============================================================================
+
+/** Current job info for detected jobs */
+let currentJobInfo: JobInfo = { title: null, company: null, location: null };
+
+/** Current tab ID */
+let currentTabId: number | null = null;
+
+/** Current tab URL */
+let currentTabUrl: string | null = null;
+
+/** Existing lead info (if any) */
+let existingLead: JobLeadResponse | null = null;
+
+
+// ============================================================================
+// DOM Elements
+// ============================================================================
+
 const elements = {
   // State containers
   stateLoading: document.getElementById('state-loading'),
@@ -63,6 +110,10 @@ const stateContainers: Record<PopupState, HTMLElement | null> = {
   error: elements.stateError,
 };
 
+// ============================================================================
+// State Management
+// ============================================================================
+
 /**
  * Shows the specified state and hides all others
  */
@@ -82,49 +133,370 @@ function showState(state: PopupState): void {
 }
 
 /**
- * Opens the extension settings/options page
+ * Update job info display in the UI
  */
-function openSettings(): void {
-  if (chrome.runtime && chrome.runtime.openOptionsPage) {
-    chrome.runtime.openOptionsPage();
-  } else {
-    console.error('chrome.runtime.openOptionsPage not available');
+function updateJobInfoDisplay(info: JobInfo, prefix: 'job' | 'savedJob' | 'updateJob'): void {
+  const titleEl = elements[`${prefix}Title` as keyof typeof elements] as HTMLElement | null;
+  const companyEl = elements[`${prefix}Company` as keyof typeof elements] as HTMLElement | null;
+  const locationEl = elements[`${prefix}Location` as keyof typeof elements] as HTMLElement | null;
+
+  if (titleEl) {
+    titleEl.textContent = info.title || 'Unknown Position';
+  }
+  if (companyEl) {
+    companyEl.textContent = info.company || '';
+  }
+  if (locationEl) {
+    locationEl.textContent = info.location || '';
   }
 }
 
 /**
- * Initializes the popup
- * Full implementation will be in Task 21
+ * Shows the error state with a specific message
  */
-function init(): void {
-  console.log('Job Tracker popup loaded');
+function showError(message: string): void {
+  if (elements.errorText) {
+    elements.errorText.textContent = message;
+  }
+  showState('error');
+}
 
-  // Set up button click handlers
+// ============================================================================
+// Actions
+// ============================================================================
+
+/**
+ * Opens the extension settings/options page
+ */
+function openSettings(): void {
+  browser.runtime.openOptionsPage().catch((error) => {
+    console.error('Failed to open settings:', error);
+  });
+}
+
+/**
+ * Opens the Job Leads page in the web app
+ */
+function openJobLeads(): void {
+  getSettings()
+    .then((settings: Settings) => {
+      const serverUrl = settings.serverUrl || 'http://localhost:8000';
+      const url = existingLead
+        ? `${serverUrl}/job-leads/${existingLead.id}`
+        : `${serverUrl}/job-leads`;
+      browser.tabs.create({ url }).catch((error) => {
+        console.error('Failed to open job leads:', error);
+      });
+    })
+    .catch((error) => {
+      console.error('Failed to get settings for opening job leads:', error);
+    });
+}
+
+/**
+ * Saves the current job lead to the backend
+ * (Full implementation in Task 22)
+ */
+async function saveJobLead(): Promise<void> {
+  if (!currentTabUrl) {
+    showError('No URL to save');
+    return;
+  }
+
+  showState('saving');
+
+  try {
+    // Get HTML from content script
+    const html = await getHtmlFromContentScript();
+
+    // Import the save function (will be properly wired in Task 22)
+    const { saveJobLead: saveLead } = await import('../lib/api');
+    const result = await saveLead(currentTabUrl, html);
+
+    // Update existing lead info
+    existingLead = result;
+    currentJobInfo = {
+      title: result.title,
+      company: result.company,
+      location: result.location || null,
+    };
+
+    // Show saved state
+    updateJobInfoDisplay(currentJobInfo, 'savedJob');
+    showState('saved');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to save job lead';
+    showError(message);
+  }
+}
+
+/**
+ * Updates an existing job lead
+ * (Full implementation in Task 22)
+ */
+async function updateJobLead(): Promise<void> {
+  // For now, same as save - backend will handle update
+  await saveJobLead();
+}
+
+/**
+ * Retries the last failed action
+ */
+async function retryAction(): Promise<void> {
+  // Re-determine the state
+  await determineState();
+}
+
+// ============================================================================
+// Content Script Communication
+// ============================================================================
+
+/**
+ * Get HTML content from the content script
+ */
+async function getHtmlFromContentScript(): Promise<string> {
+  if (!currentTabId) {
+    throw new Error('No active tab');
+  }
+
+  try {
+    const response = await browser.tabs.sendMessage(currentTabId, {
+      type: 'GET_HTML',
+    });
+
+    if (response && response.html) {
+      return response.html;
+    }
+
+    throw new Error('No HTML content received');
+  } catch (error) {
+    throw new Error('Failed to get page content');
+  }
+}
+
+// ============================================================================
+// State Determination
+// ============================================================================
+
+/**
+ * Main state determination logic
+ * Determines which state to show based on settings, detection, and existing leads
+ */
+async function determineState(): Promise<void> {
+  showState('loading');
+
+  try {
+    // Step 1: Check if settings are configured
+    const settings = await getSettings();
+    if (!settings.serverUrl || !settings.apiKey) {
+      showState('no-settings');
+      return;
+    }
+
+    // Step 2: Get current tab
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    const currentTab = tabs[0];
+
+    if (!currentTab || !currentTab.id || !currentTab.url) {
+      showError('No active tab found');
+      return;
+    }
+
+    currentTabId = currentTab.id;
+    currentTabUrl = currentTab.url;
+
+    // Step 3: Check for restricted URLs
+    if (isRestrictedUrl(currentTabUrl)) {
+      showError('Cannot access this page (restricted URL)');
+      return;
+    }
+
+    // Step 4: Get detection status from background script
+    let tabStatus: TabStatus | null = null;
+    try {
+      tabStatus = await browser.runtime.sendMessage({
+        type: 'GET_TAB_STATUS',
+        tabId: currentTabId,
+      });
+    } catch (error) {
+      console.warn('Failed to get tab status from background:', error);
+    }
+
+    // Step 5: Check if this URL already exists as a job lead
+    try {
+      existingLead = await checkExistingLead(currentTabUrl);
+    } catch (error) {
+      console.warn('Failed to check existing lead:', error);
+      // Continue without existing lead info - user can still try to save
+    }
+
+    // Step 6: Determine the state to show
+    if (existingLead) {
+      // URL already saved
+      currentJobInfo = {
+        title: existingLead.title,
+        company: existingLead.company,
+        location: existingLead.location || null,
+      };
+
+      // Check if update is available (job page detected and content may have changed)
+      if (tabStatus && tabStatus.isJobPage) {
+        // Job page detected again - offer update
+        updateJobInfoDisplay(currentJobInfo, 'updateJob');
+        showState('update');
+      } else {
+        // Just show already saved
+        updateJobInfoDisplay(currentJobInfo, 'savedJob');
+        showState('saved');
+      }
+    } else if (tabStatus && tabStatus.isJobPage) {
+      // Job detected and not yet saved
+      // Extract job info from detection signals (placeholder for now)
+      currentJobInfo = {
+        title: extractTitleFromPage(),
+        company: extractCompanyFromPage(),
+        location: extractLocationFromPage(),
+      };
+      updateJobInfoDisplay(currentJobInfo, 'job');
+      showState('detected');
+    } else {
+      // Not a job page
+      showState('not-detected');
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+    showError(message);
+  }
+}
+
+/**
+ * Check if URL is restricted (chrome://, about:, etc.)
+ */
+function isRestrictedUrl(url: string): boolean {
+  const restrictedPrefixes = [
+    'chrome://',
+    'chrome-extension://',
+    'about:',
+    'edge://',
+    'brave://',
+    'opera://',
+    'vivaldi://',
+    'moz-extension://',
+    'resource://',
+    'about:',
+  ];
+
+  return restrictedPrefixes.some((prefix) => url.startsWith(prefix));
+}
+
+/**
+ * Extract job title from page (placeholder implementation)
+ * Uses common selectors to find job title
+ */
+function extractTitleFromPage(): string | null {
+  // Try common job title selectors
+  const selectors = [
+    '[data-testid="job-title"]',
+    '.job-title',
+    '.jobTitle',
+    'h1[data-job-id]',
+    'h1.job-search-title',
+    '.posting-headline h2',
+    '.job-posting h1',
+    'h1.title',
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (element && element.textContent) {
+      return element.textContent.trim();
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Extract company name from page (placeholder implementation)
+ */
+function extractCompanyFromPage(): string | null {
+  const selectors = [
+    '[data-testid="company-name"]',
+    '.company-name',
+    '.companyName',
+    '.posting-headline .company',
+    '.job-posting .company',
+    '.company-link',
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (element && element.textContent) {
+      return element.textContent.trim();
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Extract location from page (placeholder implementation)
+ */
+function extractLocationFromPage(): string | null {
+  const selectors = [
+    '[data-testid="job-location"]',
+    '.job-location',
+    '.location',
+    '.jobLocation',
+    '.posting-headline .location',
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (element && element.textContent) {
+      return element.textContent.trim();
+    }
+  }
+
+  return null;
+}
+
+// ============================================================================
+// Initialization
+// ============================================================================
+
+/**
+ * Set up button click handlers
+ */
+function setupEventListeners(): void {
   elements.settingsBtn?.addEventListener('click', openSettings);
   elements.openSettingsBtn?.addEventListener('click', openSettings);
+  elements.saveBtn?.addEventListener('click', saveJobLead);
+  elements.viewBtn?.addEventListener('click', openJobLeads);
+  elements.updateBtn?.addEventListener('click', updateJobLead);
+  elements.retryBtn?.addEventListener('click', retryAction);
+}
 
-  elements.saveBtn?.addEventListener('click', () => {
-    console.log('Save button clicked - will be implemented in Task 21');
-  });
+/**
+ * Initialize the popup
+ */
+async function init(): Promise<void> {
+  console.log('Job Tracker popup loaded');
 
-  elements.viewBtn?.addEventListener('click', () => {
-    console.log('View button clicked - will be implemented in Task 21');
-  });
+  // Set up event listeners
+  setupEventListeners();
 
-  elements.updateBtn?.addEventListener('click', () => {
-    console.log('Update button clicked - will be implemented in Task 21');
-  });
-
-  elements.retryBtn?.addEventListener('click', () => {
-    console.log('Retry button clicked - will be implemented in Task 21');
-  });
-
-  // Show loading state initially
-  // Full state detection logic will be implemented in Task 21
-  showState('loading');
+  // Determine and show the appropriate state
+  await determineState();
 }
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  init().catch((error) => {
+    console.error('Failed to initialize popup:', error);
+    showError('Failed to initialize');
+  });
+});
 
+// Export for module detection
 export {};
