@@ -30,3 +30,4 @@ class User(Base):
     applications = relationship("Application", back_populates="user", cascade="all, delete-orphan")
     custom_statuses = relationship("ApplicationStatus", back_populates="user", cascade="all, delete-orphan")
     custom_round_types = relationship("RoundType", back_populates="user", cascade="all, delete-orphan")
+    user_profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
