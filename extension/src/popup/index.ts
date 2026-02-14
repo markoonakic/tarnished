@@ -162,6 +162,45 @@ function showError(message: string): void {
 }
 
 // ============================================================================
+// Notifications
+// ============================================================================
+
+/**
+ * Show a browser notification
+ */
+async function showNotification(
+  title: string,
+  message: string
+): Promise<void> {
+  try {
+    await browser.notifications.create({
+      type: 'basic',
+      iconUrl: '/icons/icon48.png',
+      title,
+      message,
+    });
+  } catch (error) {
+    console.warn('Failed to show notification:', error);
+  }
+}
+
+/**
+ * Show a success notification for saved job lead
+ */
+function showSuccessNotification(title: string | null, company: string | null): void {
+  const jobTitle = title || 'Job Lead';
+  const companyText = company ? ` at ${company}` : '';
+  showNotification('Job Saved!', `${jobTitle}${companyText} has been saved to Job Leads.`);
+}
+
+/**
+ * Show an error notification
+ */
+function showErrorNotification(message: string): void {
+  showNotification('Error', message);
+}
+
+// ============================================================================
 // Actions
 // ============================================================================
 
@@ -195,11 +234,12 @@ function openJobLeads(): void {
 
 /**
  * Saves the current job lead to the backend
- * (Full implementation in Task 22)
  */
 async function saveJobLead(): Promise<void> {
   if (!currentTabUrl) {
-    showError('No URL to save');
+    const errorMsg = 'No URL to save';
+    showError(errorMsg);
+    showErrorNotification(errorMsg);
     return;
   }
 
@@ -209,7 +249,7 @@ async function saveJobLead(): Promise<void> {
     // Get HTML from content script
     const html = await getHtmlFromContentScript();
 
-    // Import the save function (will be properly wired in Task 22)
+    // Import the save function
     const { saveJobLead: saveLead } = await import('../lib/api');
     const result = await saveLead(currentTabUrl, html);
 
@@ -221,12 +261,16 @@ async function saveJobLead(): Promise<void> {
       location: result.location || null,
     };
 
+    // Show success notification
+    showSuccessNotification(result.title, result.company);
+
     // Show saved state
     updateJobInfoDisplay(currentJobInfo, 'savedJob');
     showState('saved');
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to save job lead';
     showError(message);
+    showErrorNotification(message);
   }
 }
 
