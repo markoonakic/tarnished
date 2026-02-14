@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.security import generate_api_token
 from app.models import ApplicationStatus, RoundType, User
 from app.schemas.settings import (
     APIKeyResponse,
@@ -50,6 +51,26 @@ async def get_api_key(
     return APIKeyResponse(
         has_api_key=has_api_key,
         api_key_masked=api_key_masked,
+    )
+
+
+@router.post("/settings/api-key/regenerate", response_model=APIKeyResponse)
+async def regenerate_api_key(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIKeyResponse:
+    """Regenerate the current user's API key.
+
+    Generates a new API token for the user and saves it to the database.
+    Returns the masked version of the new token.
+    """
+    new_token = generate_api_token()
+    user.api_token = new_token
+    await db.commit()
+
+    return APIKeyResponse(
+        has_api_key=True,
+        api_key_masked=_mask_api_token(new_token),
     )
 
 
