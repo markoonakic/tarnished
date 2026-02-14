@@ -36,6 +36,21 @@ from app.schemas.admin import (
     AdminStatusUpdate,
     AdminRoundTypeUpdate,
 )
+from app.schemas.job_lead import (
+    JobLeadCreate,
+    JobLeadResponse,
+    JobLeadListItem,
+    JobLeadListResponse,
+    JobLeadExtractionInput,
+    JobLeadStatus,
+)
+from app.schemas.user_profile import (
+    UserProfileCreate,
+    UserProfileUpdate,
+    UserProfileResponse,
+    WorkHistoryItem,
+    EducationItem,
+)
 
 from typing import List
 
@@ -109,4 +124,17 @@ __all__ = [
     "ApplicationStatusHistoryResponse",
     "NeedsAttentionItem",
     "NeedsAttentionResponse",
+    # Job Lead schemas
+    "JobLeadCreate",
+    "JobLeadResponse",
+    "JobLeadListItem",
+    "JobLeadListResponse",
+    "JobLeadExtractionInput",
+    "JobLeadStatus",
+    # User Profile schemas
+    "UserProfileCreate",
+    "UserProfileUpdate",
+    "UserProfileResponse",
+    "WorkHistoryItem",
+    "EducationItem",
 ]
