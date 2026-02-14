@@ -23,6 +23,9 @@ dependencies = [
     "aiofiles>=25.1.0",
     "slowapi>=0.1.9",
     "python-json-logger>=2.0.0",
+    "litellm>=1.81.11",
+    "readability-lxml>=0.8.4.1",
+    "markdownify>=1.2.2",
 ]
 
 [build-system]
