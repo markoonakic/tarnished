@@ -7,7 +7,7 @@ from alembic import context
 
 from app.core.config import get_settings
 from app.core.database import Base
-from app.models import User, ApplicationStatus, RoundType, Application, Round, RoundMedia
+from app.models import User, ApplicationStatus, RoundType, Application, Round, RoundMedia, JobLead, UserProfile
 
 config = context.config
 
