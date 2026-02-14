@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models import ApplicationStatus, RoundType, User
 from app.schemas.settings import (
+    APIKeyResponse,
     RoundTypeCreate,
     RoundTypeFullResponse,
     StatusCreate,
@@ -14,6 +15,42 @@ from app.schemas.settings import (
 )
 
 router = APIRouter(prefix="/api", tags=["settings"])
+
+
+def _mask_api_token(token: str | None) -> str | None:
+    """Mask API token, showing first 4 and last 4 characters.
+
+    Args:
+        token: The API token to mask.
+
+    Returns:
+        Masked token in format "abcd...wxyz" or None if no token provided.
+    """
+    if not token:
+        return None
+    if len(token) <= 8:
+        # For short tokens, show first half and last half with ellipsis
+        half = len(token) // 2
+        return f"{token[:half]}...{token[-half:]}" if half > 0 else "****"
+    return f"{token[:4]}...{token[-4:]}"
+
+
+@router.get("/settings/api-key", response_model=APIKeyResponse)
+async def get_api_key(
+    user: User = Depends(get_current_user),
+) -> APIKeyResponse:
+    """Get the current user's API key status.
+
+    Returns whether the user has an API key configured, and if so,
+    a masked version showing only the first and last few characters.
+    """
+    has_api_key = bool(user.api_token)
+    api_key_masked = _mask_api_token(user.api_token)
+
+    return APIKeyResponse(
+        has_api_key=has_api_key,
+        api_key_masked=api_key_masked,
+    )
 
 
 @router.get("/statuses", response_model=list[StatusFullResponse])
