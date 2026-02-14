@@ -25,17 +25,35 @@ various error conditions including timeouts, invalid responses, and
 cases where no job data can be found.
 """
 
+import json
 import logging
 from typing import Any
 
+import openai
 from markdownify import markdownify as md
 from readability import Document
-
 from litellm import completion
 
 from app.schemas.job_lead import JobLeadExtractionInput
 
 logger = logging.getLogger(__name__)
+
+# Default model for extraction (can be overridden via parameter or env var)
+DEFAULT_EXTRACTION_MODEL = "gpt-4o-mini"
+
+# System prompt for job extraction
+EXTRACTION_SYSTEM_PROMPT = """You are a job posting data extractor. Your task is to extract structured job posting information from the provided markdown content.
+
+Instructions:
+1. Carefully analyze the job posting content
+2. Extract all available information matching the schema
+3. If a field cannot be found in the content, set it to null (for optional fields) or an empty list (for list fields)
+4. For salary information, extract the numeric values only (no currency symbols or text)
+5. For dates, use ISO format (YYYY-MM-DD)
+6. If the content does not appear to be a job posting (e.g., it's a login page, error page, or unrelated content), set all fields to null/empty
+7. Be precise and only extract information that is clearly stated in the posting
+
+The source URL is provided for context but the actual data should come from the content."""
 
 
 def _extract_source_from_url(url: str) -> str | None:
@@ -259,7 +277,7 @@ def extract_with_llm(
         markdown_content: Preprocessed markdown content from the job posting.
         url: The source URL (included in prompt for context).
         model: Optional model override (e.g., "gpt-4", "claude-3-opus").
-               Falls back to environment default if not specified.
+               Falls back to DEFAULT_EXTRACTION_MODEL if not specified.
         timeout: Request timeout in seconds.
 
     Returns:
@@ -270,37 +288,120 @@ def extract_with_llm(
         ExtractionInvalidResponseError: If the response cannot be parsed.
         NoJobFoundError: If no job data could be extracted.
     """
-    # TODO: Implement LLM extraction logic (Task 3.5)
-    # 1. Build prompt with markdown content and schema
-    # 2. Call litellm.completion with response_format
-    # 3. Parse and validate response
-    # 4. Handle errors appropriately
+    import os
 
-    # Placeholder implementation - returns empty extraction for testing
-    # This will be replaced with actual LLM extraction in Task 3.5
-    logger.warning(
-        "LLM extraction not yet implemented - returning placeholder result. "
-        "This will be implemented in Task 3.5."
-    )
-    return JobLeadExtractionInput(
-        title=None,
-        company=None,
-        description=markdown_content[:1000] if markdown_content else None,
-        location=None,
-        salary_min=None,
-        salary_max=None,
-        salary_currency=None,
-        recruiter_name=None,
-        recruiter_title=None,
-        recruiter_linkedin_url=None,
-        requirements_must_have=[],
-        requirements_nice_to_have=[],
-        skills=[],
-        years_experience_min=None,
-        years_experience_max=None,
-        source=_extract_source_from_url(url),
-        posted_date=None,
-    )
+    # Determine which model to use
+    extraction_model = model or os.getenv("LITELLM_MODEL", DEFAULT_EXTRACTION_MODEL)
+    logger.info(f"Starting LLM extraction with model: {extraction_model}")
+
+    # Build the user message with URL context and content
+    user_message = f"""Source URL: {url}
+
+Job Posting Content:
+{markdown_content}"""
+
+    try:
+        # Call LiteLLM with structured output
+        response = completion(
+            model=extraction_model,
+            messages=[
+                {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
+                {"role": "user", "content": user_message},
+            ],
+            response_format=JobLeadExtractionInput,
+            timeout=timeout,
+        )
+
+        # Extract the content from the response
+        raw_content = response.choices[0].message.content
+
+        if not raw_content:
+            raise ExtractionInvalidResponseError(
+                "LLM returned empty response",
+                details={"model": extraction_model, "url": url},
+            )
+
+        logger.debug(f"Raw LLM response: {raw_content[:500]}...")
+
+        # Parse the JSON response
+        try:
+            parsed_data = json.loads(raw_content)
+        except json.JSONDecodeError as e:
+            raise ExtractionInvalidResponseError(
+                f"Failed to parse LLM response as JSON: {e}",
+                details={
+                    "model": extraction_model,
+                    "url": url,
+                    "raw_response": raw_content[:1000],
+                },
+            ) from e
+
+        # Validate and create the Pydantic model
+        try:
+            job_data = JobLeadExtractionInput(**parsed_data)
+        except Exception as e:
+            raise ExtractionInvalidResponseError(
+                f"LLM response failed schema validation: {e}",
+                details={
+                    "model": extraction_model,
+                    "url": url,
+                    "parsed_data": parsed_data,
+                    "validation_error": str(e),
+                },
+            ) from e
+
+        # Check if this appears to be an actual job posting
+        # If both title and company are None, likely not a job posting
+        if job_data.title is None and job_data.company is None:
+            raise NoJobFoundError(
+                "No job posting data could be extracted from the content",
+                details={
+                    "url": url,
+                    "content_preview": markdown_content[:500],
+                },
+            )
+
+        # Override source with URL-derived source if not extracted
+        if job_data.source is None:
+            job_data.source = _extract_source_from_url(url)
+
+        logger.info(
+            f"Successfully extracted job: {job_data.title} at {job_data.company}"
+        )
+        return job_data
+
+    except openai.APITimeoutError as e:
+        logger.error(f"LLM request timed out: {e}")
+        raise ExtractionTimeoutError(
+            f"LLM request timed out after {timeout} seconds",
+            details={"model": extraction_model, "url": url, "timeout": timeout},
+        ) from e
+
+    except openai.APIError as e:
+        logger.error(f"LLM API error: {e}")
+        raise ExtractionInvalidResponseError(
+            f"LLM API error: {e}",
+            details={
+                "model": extraction_model,
+                "url": url,
+                "error_type": type(e).__name__,
+            },
+        ) from e
+
+    except (ExtractionTimeoutError, ExtractionInvalidResponseError, NoJobFoundError):
+        # Re-raise our custom exceptions
+        raise
+
+    except Exception as e:
+        logger.error(f"Unexpected error during LLM extraction: {e}")
+        raise ExtractionInvalidResponseError(
+            f"Unexpected error during extraction: {e}",
+            details={
+                "model": extraction_model,
+                "url": url,
+                "error_type": type(e).__name__,
+            },
+        ) from e
 
 
 async def extract_job_data(
