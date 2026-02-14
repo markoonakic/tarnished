@@ -14,6 +14,7 @@ from slowapi.errors import RateLimitExceeded
 from app.api.auth import router as auth_router
 from app.api.applications import router as applications_router
 from app.api.application_history import router as application_history_router
+from app.api.profile import router as profile_router
 from app.api.rounds import router as rounds_router
 from app.api.settings import router as settings_router
 from app.api.analytics import router as analytics_router
@@ -115,6 +116,7 @@ async def add_security_headers(request: Request, call_next):
 app.include_router(auth_router)
 app.include_router(applications_router)
 app.include_router(application_history_router)
+app.include_router(profile_router)
 app.include_router(rounds_router)
 app.include_router(settings_router)
 app.include_router(analytics_router)
