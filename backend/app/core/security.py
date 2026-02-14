@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import logging
+import secrets
 from datetime import datetime, timedelta
 
 import bcrypt
