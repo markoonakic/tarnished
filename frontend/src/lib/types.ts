@@ -103,3 +103,48 @@ export interface ApplicationStatusHistory {
   changed_at: string;
   note: string | null;
 }
+
+export type JobLeadStatus = "pending" | "extracted" | "failed";
+
+export interface JobLead {
+  id: string;
+  title: string | null;
+  company: string | null;
+  url: string;
+  status: JobLeadStatus;
+  description: string | null;
+  location: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  recruiter_name: string | null;
+  recruiter_title: string | null;
+  recruiter_linkedin_url: string | null;
+  requirements_must_have: string[];
+  requirements_nice_to_have: string[];
+  skills: string[];
+  years_experience_min: number | null;
+  years_experience_max: number | null;
+  source: string | null;
+  posted_date: string | null;
+  scraped_at: string;
+  converted_to_application_id: string | null;
+  error_message: string | null;
+}
+
+export interface UserProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  location: string | null;
+  linkedin_url: string | null;
+  authorized_to_work: string | null;
+  requires_sponsorship: boolean | null;
+}
+
+export interface APIKeyResponse {
+  has_api_key: boolean;
+  api_key_masked: string | null;
+}
