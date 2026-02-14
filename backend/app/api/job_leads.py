@@ -12,6 +12,7 @@ browser extension authentication (API token).
 """
 
 import logging
+from datetime import datetime
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -314,6 +315,157 @@ async def _fetch_html(url: str) -> str:
             )
 
         return response.text
+
+
+@router.post("/{job_lead_id}/retry", response_model=JobLeadResponse)
+async def retry_job_lead_extraction(
+    job_lead_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Retry extraction for a failed job lead.
+
+    This endpoint:
+    1. Finds the job lead by ID and verifies it belongs to the user
+    2. Verifies the job lead has status "failed"
+    3. Re-fetches HTML content from the URL
+    4. Re-runs extraction with fresh data
+    5. Updates the job lead with new extracted data
+    6. Sets status to "extracted" on success or "failed" on error
+
+    Args:
+        job_lead_id: The UUID of the job lead to retry.
+        user: The authenticated user.
+        db: Database session.
+
+    Returns:
+        The updated JobLead record with new extraction data.
+
+    Raises:
+        HTTPException: 404 if job lead not found or doesn't belong to user,
+                     400 if job lead status is not "failed".
+    """
+    # Step 1: Find the job lead and verify it exists and belongs to user
+    result = await db.execute(
+        select(JobLead).where(
+            JobLead.id == job_lead_id,
+            JobLead.user_id == user.id,
+        )
+    )
+    job_lead = result.scalars().first()
+
+    if not job_lead:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job lead not found",
+        )
+
+    # Step 2: Verify the job lead has status "failed"
+    if job_lead.status != "failed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Job lead must have status 'failed' to retry",
+        )
+
+    logger.info(f"Retrying extraction for job lead {job_lead_id}: {job_lead.title or 'Untitled'}")
+
+    try:
+        # Step 3: Re-fetch HTML content from the URL
+        html_content = await _fetch_html(job_lead.url)
+        logger.debug(f"Re-fetched HTML content ({len(html_content)} chars)")
+
+        # Step 4: Extract job data using AI
+        try:
+            extracted = await extract_job_data(html_content, job_lead.url)
+            logger.info(f"Successfully re-extracted job: {extracted.title} at {extracted.company}")
+        except ExtractionTimeoutError as e:
+            logger.error(f"Extraction timeout for {job_lead.url}: {e.message}")
+            # Update job lead status to failed with error
+            job_lead.status = "failed"
+            job_lead.error_message = "Job data extraction timed out. Please try again later."
+            await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail="Job data extraction timed out. Please try again later.",
+            )
+        except NoJobFoundError as e:
+            logger.warning(f"No job found at {job_lead.url}: {e.message}")
+            # Update job lead status to failed with error
+            job_lead.status = "failed"
+            job_lead.error_message = "Could not extract job posting data. Please ensure the URL points to a valid job posting."
+            await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Could not extract job posting data from the provided URL. "
+                "Please ensure the URL points to a valid job posting.",
+            )
+        except ExtractionInvalidResponseError as e:
+            logger.error(f"Invalid extraction response for {job_lead.url}: {e.message}")
+            # Update job lead status to failed with error
+            job_lead.status = "failed"
+            job_lead.error_message = "Failed to extract job data due to an AI service error. Please try again later."
+            await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Failed to extract job data due to an AI service error. Please try again later.",
+            )
+        except ExtractionError as e:
+            logger.error(f"Extraction error for {job_lead.url}: {e.message}")
+            # Update job lead status to failed with error
+            job_lead.status = "failed"
+            job_lead.error_message = f"Failed to extract job data: {e.message}"
+            await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Failed to extract job data: {e.message}",
+            )
+
+        # Step 5: Update job lead fields with new extraction
+        job_lead.status = "extracted"
+        job_lead.error_message = None  # Clear any previous error
+
+        # Update all fields that might have changed
+        job_lead.title = extracted.title
+        job_lead.company = extracted.company
+        job_lead.description = extracted.description
+        job_lead.location = extracted.location
+        job_lead.salary_min = extracted.salary_min
+        job_lead.salary_max = extracted.salary_max
+        job_lead.salary_currency = extracted.salary_currency
+        job_lead.recruiter_name = extracted.recruiter_name
+        job_lead.recruiter_title = extracted.recruiter_title
+        job_lead.recruiter_linkedin_url = extracted.recruiter_linkedin_url
+        job_lead.requirements_must_have = extracted.requirements_must_have
+        job_lead.requirements_nice_to_have = extracted.requirements_nice_to_have
+        job_lead.skills = extracted.skills
+        job_lead.years_experience_min = extracted.years_experience_min
+        job_lead.years_experience_max = extracted.years_experience_max
+        job_lead.source = extracted.source
+        job_lead.posted_date = extracted.posted_date
+        job_lead.scraped_at = datetime.utcnow()  # Update timestamp
+
+        await db.commit()
+        await db.refresh(job_lead)
+
+        logger.info(
+            f"Successfully re-extracted job lead {job_lead.id}: {job_lead.title} at {job_lead.company}"
+        )
+
+        return job_lead
+
+    except HTTPException:
+        # Re-raise HTTP exceptions from fetch/extract
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during retry for job lead {job_lead_id}: {e}")
+        # Update job lead status to failed with error
+        job_lead.status = "failed"
+        job_lead.error_message = f"Unexpected error during retry: {str(e)}"
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during retry. Please try again.",
+        )
 
 
 @router.delete("/{job_lead_id}", status_code=status.HTTP_204_NO_CONTENT)
