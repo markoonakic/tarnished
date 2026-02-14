@@ -4,8 +4,10 @@ These schemas handle request/response validation for the job leads API endpoints
 and structured extraction with LiteLLM.
 """
 
+import ipaddress
 from datetime import date, datetime
 from typing import Annotated
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -28,7 +30,8 @@ class JobLeadCreate(BaseModel):
     )
     html: str | None = Field(
         None,
-        description="Optional pre-fetched HTML content of the job posting",
+        max_length=500_000,
+        description="Optional pre-fetched HTML content of the job posting (max 500KB)",
     )
 
     @field_validator("url")
@@ -37,6 +40,37 @@ class JobLeadCreate(BaseModel):
         """Ensure URL starts with http:// or https://."""
         if v and not v.startswith(("http://", "https://")):
             raise ValueError("URL must start with http:// or https://")
+        return v
+
+    @field_validator("url")
+    @classmethod
+    def validate_url_not_internal(cls, v: str) -> str:
+        """Block SSRF attempts by rejecting internal/private IP addresses."""
+        if not v:
+            return v
+
+        parsed = urlparse(v)
+        hostname = parsed.hostname
+
+        if not hostname:
+            raise ValueError("Invalid URL format")
+
+        # Block localhost variants
+        blocked_hosts = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
+        if hostname.lower() in blocked_hosts:
+            raise ValueError("Cannot access internal resources")
+
+        # Block private IP ranges and special addresses
+        try:
+            ip = ipaddress.ip_address(hostname)
+        except ValueError:
+            # Not an IP address, likely a domain name - allowed
+            return v
+
+        # If we reach here, it's a valid IP - check if it's internal
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            raise ValueError("Cannot access internal IP addresses")
+
         return v
 
 
