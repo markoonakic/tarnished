@@ -22,7 +22,6 @@ type PopupState =
   | 'not-detected'
   | 'detected'
   | 'saved'
-  | 'update'
   | 'saving'
   | 'error';
 
@@ -73,7 +72,6 @@ const elements = {
   stateNotDetected: document.getElementById('state-not-detected'),
   stateDetected: document.getElementById('state-detected'),
   stateSaved: document.getElementById('state-saved'),
-  stateUpdate: document.getElementById('state-update'),
   stateSaving: document.getElementById('state-saving'),
   stateError: document.getElementById('state-error'),
 
@@ -82,7 +80,6 @@ const elements = {
   openSettingsBtn: document.getElementById('openSettingsBtn'),
   saveBtn: document.getElementById('saveBtn'),
   viewBtn: document.getElementById('viewBtn'),
-  updateBtn: document.getElementById('updateBtn'),
   retryBtn: document.getElementById('retryBtn'),
   autofillBtnDetected: document.getElementById('autofillBtnDetected'),
   autofillBtnSaved: document.getElementById('autofillBtnSaved'),
@@ -94,10 +91,6 @@ const elements = {
   savedJobTitle: document.getElementById('savedJobTitle'),
   savedJobCompany: document.getElementById('savedJobCompany'),
   savedJobLocation: document.getElementById('savedJobLocation'),
-  updateJobTitle: document.getElementById('updateJobTitle'),
-  updateJobCompany: document.getElementById('updateJobCompany'),
-  updateJobLocation: document.getElementById('updateJobLocation'),
-
   // Error display
   errorText: document.getElementById('errorText'),
 };
@@ -109,7 +102,6 @@ const stateContainers: Record<PopupState, HTMLElement | null> = {
   'not-detected': elements.stateNotDetected,
   detected: elements.stateDetected,
   saved: elements.stateSaved,
-  update: elements.stateUpdate,
   saving: elements.stateSaving,
   error: elements.stateError,
 };
@@ -139,7 +131,7 @@ function showState(state: PopupState): void {
 /**
  * Update job info display in the UI
  */
-function updateJobInfoDisplay(info: JobInfo, prefix: 'job' | 'savedJob' | 'updateJob'): void {
+function updateJobInfoDisplay(info: JobInfo, prefix: 'job' | 'savedJob'): void {
   const titleEl = elements[`${prefix}Title` as keyof typeof elements] as HTMLElement | null;
   const companyEl = elements[`${prefix}Company` as keyof typeof elements] as HTMLElement | null;
   const locationEl = elements[`${prefix}Location` as keyof typeof elements] as HTMLElement | null;
@@ -256,12 +248,12 @@ async function saveJobLead(): Promise<void> {
   showState('saving');
 
   try {
-    // Get HTML from content script
-    const html = await getHtmlFromContentScript();
+    // Get text content from content script (preferred over HTML)
+    const text = await getTextFromContentScript();
 
     // Import the save function
     const { saveJobLead: saveLead } = await import('../lib/api');
-    const result = await saveLead(currentTabUrl, html);
+    const result = await saveLead(currentTabUrl, text);
 
     // Update existing lead info
     existingLead = result;
@@ -294,15 +286,6 @@ async function saveJobLead(): Promise<void> {
     showError(message, isRecoverable(extensionError));
     showErrorNotification(message);
   }
-}
-
-/**
- * Updates an existing job lead
- * (Full implementation in Task 22)
- */
-async function updateJobLead(): Promise<void> {
-  // For now, same as save - backend will handle update
-  await saveJobLead();
 }
 
 /**
@@ -370,23 +353,23 @@ async function autofillFormHandler(): Promise<void> {
 // ============================================================================
 
 /**
- * Get HTML content from the content script
+ * Get text content from the content script
  */
-async function getHtmlFromContentScript(): Promise<string> {
+async function getTextFromContentScript(): Promise<string> {
   if (!currentTabId) {
     throw new Error('No active tab');
   }
 
   try {
     const response = await browser.tabs.sendMessage(currentTabId, {
-      type: 'GET_HTML',
+      type: 'GET_TEXT',
     });
 
-    if (response && response.html) {
-      return response.html;
+    if (response && response.text) {
+      return response.text;
     }
 
-    throw new Error('No HTML content received');
+    throw new Error('No text content received');
   } catch (error) {
     throw new Error('Failed to get page content');
   }
@@ -469,23 +452,14 @@ async function determineState(): Promise<void> {
 
     // Step 6: Determine the state to show
     if (existingLead) {
-      // URL already saved
+      // URL already saved - just show saved state
       currentJobInfo = {
         title: existingLead.title,
         company: existingLead.company,
         location: existingLead.location || null,
       };
-
-      // Check if update is available (job page detected and content may have changed)
-      if (tabStatus && tabStatus.isJobPage) {
-        // Job page detected again - offer update
-        updateJobInfoDisplay(currentJobInfo, 'updateJob');
-        showState('update');
-      } else {
-        // Just show already saved
-        updateJobInfoDisplay(currentJobInfo, 'savedJob');
-        showState('saved');
-      }
+      updateJobInfoDisplay(currentJobInfo, 'savedJob');
+      showState('saved');
     } else if (tabStatus && tabStatus.isJobPage) {
       // Job detected and not yet saved
       // Extract job info from detection signals (placeholder for now)
@@ -610,7 +584,6 @@ function setupEventListeners(): void {
   elements.openSettingsBtn?.addEventListener('click', openSettings);
   elements.saveBtn?.addEventListener('click', saveJobLead);
   elements.viewBtn?.addEventListener('click', openJobLeads);
-  elements.updateBtn?.addEventListener('click', updateJobLead);
   elements.retryBtn?.addEventListener('click', retryAction);
   elements.autofillBtnDetected?.addEventListener('click', autofillFormHandler);
   elements.autofillBtnSaved?.addEventListener('click', autofillFormHandler);
