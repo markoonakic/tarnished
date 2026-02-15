@@ -492,7 +492,6 @@ function isRestrictedUrl(url: string): boolean {
     'vivaldi://',
     'moz-extension://',
     'resource://',
-    'about:',
   ];
 
   return restrictedPrefixes.some((prefix) => url.startsWith(prefix));
