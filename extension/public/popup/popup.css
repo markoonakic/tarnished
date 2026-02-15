@@ -227,6 +227,18 @@ body {
   gap: 8px;
 }
 
+/* Button row for side-by-side buttons */
+.button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.button-row .btn {
+  flex: 1;
+  font-size: 13px;
+  padding: 8px 12px;
+}
+
 .btn:active {
   transform: translateY(1px);
 }

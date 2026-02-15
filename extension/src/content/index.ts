@@ -5,6 +5,7 @@
 
 import browser from 'webextension-polyfill';
 import { detectJobPage, type DetectionResult } from '../lib/detection';
+import { autofillForm, type AutofillProfile } from '../lib/autofill';
 
 /**
  * Runs job detection and sends the result to the background script
@@ -35,10 +36,10 @@ if (document.readyState === 'complete') {
 
 /**
  * Message listener for requests from popup/background scripts
- * Handles GET_HTML and GET_DETECTION message types
+ * Handles GET_HTML, GET_DETECTION, and AUTOFILL_FORM message types
  */
 browser.runtime.onMessage.addListener(
-  (message: { type: string }): Promise<{ html?: string } | DetectionResult | undefined> => {
+  (message: { type: string; profile?: AutofillProfile }): Promise<{ html?: string; filledCount?: number } | DetectionResult | undefined> => {
     if (message.type === 'GET_HTML') {
       return Promise.resolve({
         html: document.documentElement.outerHTML,
@@ -47,6 +48,12 @@ browser.runtime.onMessage.addListener(
 
     if (message.type === 'GET_DETECTION') {
       return Promise.resolve(detectJobPage());
+    }
+
+    if (message.type === 'AUTOFILL_FORM' && message.profile) {
+      return autofillForm(message.profile).then((filledCount) => ({
+        filledCount,
+      }));
     }
 
     return Promise.resolve(undefined);

@@ -5,7 +5,8 @@
 
 import browser from 'webextension-polyfill';
 import { getSettings, type Settings } from '../lib/storage';
-import { checkExistingLead, type JobLeadResponse } from '../lib/api';
+import { checkExistingLead, getProfile, type JobLeadResponse } from '../lib/api';
+import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
 
 // ============================================================================
 // Types
@@ -82,6 +83,8 @@ const elements = {
   viewBtn: document.getElementById('viewBtn'),
   updateBtn: document.getElementById('updateBtn'),
   retryBtn: document.getElementById('retryBtn'),
+  autofillBtnDetected: document.getElementById('autofillBtnDetected'),
+  autofillBtnSaved: document.getElementById('autofillBtnSaved'),
 
   // Job info displays
   jobTitle: document.getElementById('jobTitle'),
@@ -289,6 +292,57 @@ async function updateJobLead(): Promise<void> {
 async function retryAction(): Promise<void> {
   // Re-determine the state
   await determineState();
+}
+
+/**
+ * Autofills the form on the current page with user profile data.
+ * Fetches the profile from the backend and sends it to the content script
+ * for autofill.
+ */
+async function autofillFormHandler(): Promise<void> {
+  if (!currentTabId) {
+    showErrorNotification('No active tab');
+    return;
+  }
+
+  try {
+    // Fetch profile from backend
+    const profile = await getProfile();
+
+    // Check if profile has any data
+    const autofillProfile: AutofillProfile = {
+      first_name: profile.first_name,
+      last_name: profile.last_name,
+      email: profile.email,
+      phone: profile.phone,
+      location: profile.location,
+      linkedin_url: profile.linkedin_url,
+    };
+
+    if (!hasAutofillData(autofillProfile)) {
+      showNotification('No Profile Data', 'Please fill in your profile first in the Job Tracker app.');
+      return;
+    }
+
+    // Send autofill request to content script
+    const response = await browser.tabs.sendMessage(currentTabId, {
+      type: 'AUTOFILL_FORM',
+      profile: autofillProfile,
+    });
+
+    if (response && typeof response.filledCount === 'number') {
+      if (response.filledCount > 0) {
+        showNotification('Autofill Complete', `Filled ${response.filledCount} field${response.filledCount !== 1 ? 's' : ''}.`);
+      } else {
+        showNotification('No Fields Found', 'No empty form fields found to fill.');
+      }
+    } else {
+      showNotification('Autofill Failed', 'Could not complete autofill. Try refreshing the page.');
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch profile';
+    showErrorNotification(message);
+  }
 }
 
 // ============================================================================
@@ -519,6 +573,8 @@ function setupEventListeners(): void {
   elements.viewBtn?.addEventListener('click', openJobLeads);
   elements.updateBtn?.addEventListener('click', updateJobLead);
   elements.retryBtn?.addEventListener('click', retryAction);
+  elements.autofillBtnDetected?.addEventListener('click', autofillFormHandler);
+  elements.autofillBtnSaved?.addEventListener('click', autofillFormHandler);
 }
 
 /**

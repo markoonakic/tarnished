@@ -73,6 +73,7 @@ const REQUEST_TIMEOUT_MS = 30_000;
 /** API endpoints */
 const API_ENDPOINTS = {
   JOB_LEADS: '/api/job-leads',
+  PROFILE: '/api/profile',
 } as const;
 
 // ============================================================================
@@ -353,6 +354,69 @@ export async function checkExistingLead(url: string): Promise<JobLeadResponse | 
     // For check operations, log and return null instead of throwing
     console.warn('Error checking existing lead:', error);
     return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * User profile response from the API.
+ */
+export interface UserProfileResponse {
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  location: string | null;
+  linkedin_url: string | null;
+}
+
+/**
+ * Fetches the user's profile from the backend.
+ *
+ * @returns The user profile response
+ * @throws AuthenticationError if the API key is invalid
+ * @throws TimeoutError if the request times out
+ * @throws NetworkError if there's a network error
+ */
+export async function getProfile(): Promise<UserProfileResponse> {
+  const settings = (await getSettings()) as Settings;
+  const { serverUrl, apiKey } = settings;
+
+  if (!serverUrl || !apiKey) {
+    throw new AuthenticationError('Server URL or API key not configured. Please check your extension settings.');
+  }
+
+  const { controller, timeoutId } = createTimeoutController();
+
+  try {
+    const response = await fetch(`${serverUrl}${API_ENDPOINTS.PROFILE}`, {
+      method: 'GET',
+      headers: {
+        'X-API-Key': apiKey,
+      },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const error = await parseErrorResponse(response);
+
+      switch (response.status) {
+        case 401:
+          throw new AuthenticationError(error.detail);
+        case 408:
+          throw new TimeoutError(error.detail);
+        default:
+          if (response.status >= 500) {
+            throw new ServerError(error.message, response.status);
+          }
+          throw new ApiClientError(error.message, response.status);
+      }
+    }
+
+    return response.json();
+  } catch (error) {
+    handleFetchError(error);
   } finally {
     clearTimeout(timeoutId);
   }
