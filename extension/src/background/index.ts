@@ -98,7 +98,4 @@ browser.tabs.onRemoved.addListener((tabId) => {
   tabStatus.delete(tabId);
 });
 
-// Log that background script is loaded (for debugging)
-console.log('Job Tracker extension background script loaded');
-
 export {};

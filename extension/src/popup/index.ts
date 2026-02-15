@@ -596,8 +596,6 @@ function setupEventListeners(): void {
  * Initialize the popup
  */
 async function init(): Promise<void> {
-  console.log('Job Tracker popup loaded');
-
   // Set up event listeners
   setupEventListeners();
 
