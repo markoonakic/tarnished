@@ -177,11 +177,28 @@ export function detectJobPage(): DetectionResult {
   if (jsonLd) {
     try {
       const data = JSON.parse(jsonLd.textContent || '{}');
-      // Check for JobPosting type (handles both single objects and @graph arrays)
-      const types = Array.isArray(data['@type'])
-        ? data['@type']
-        : [data['@type']];
+
+      // Check for JobPosting type in multiple formats
+      let foundJobPosting = false;
+
+      // Check direct @type (single or array)
+      const types = Array.isArray(data['@type']) ? data['@type'] : [data['@type']];
       if (types.includes('JobPosting')) {
+        foundJobPosting = true;
+      }
+
+      // Check @graph array (common pattern for multiple entities)
+      if (!foundJobPosting && data['@graph'] && Array.isArray(data['@graph'])) {
+        for (const item of data['@graph']) {
+          const itemTypes = Array.isArray(item['@type']) ? item['@type'] : [item['@type']];
+          if (itemTypes.includes('JobPosting')) {
+            foundJobPosting = true;
+            break;
+          }
+        }
+      }
+
+      if (foundJobPosting) {
         score += 50;
         signals.push('JSON-LD JobPosting');
       }
