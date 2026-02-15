@@ -8,6 +8,13 @@
  * - Helper functions for error classification
  */
 
+// V8-specific stack trace capture (available in Chrome/Node.js)
+declare global {
+  interface ErrorConstructor {
+    captureStackTrace?(targetObject: object, constructorOpt?: Function): void;
+  }
+}
+
 // ============================================================================
 // Error Codes
 // ============================================================================
@@ -60,10 +67,15 @@ export class ExtensionError extends Error {
   public readonly recoverable: boolean;
 
   constructor(code: ErrorCode, options?: { cause?: Error; recoverable?: boolean }) {
-    super(ERROR_MESSAGES[code], options);
+    super(ERROR_MESSAGES[code]);
     this.name = 'ExtensionError';
     this.code = code;
     this.recoverable = options?.recoverable ?? false;
+
+    // Set cause if provided (ES2022 feature, but we handle it manually for compatibility)
+    if (options?.cause) {
+      (this as { cause?: Error }).cause = options.cause;
+    }
 
     // Maintains proper stack trace for where error was thrown (only available on V8)
     if (Error.captureStackTrace) {

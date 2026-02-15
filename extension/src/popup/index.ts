@@ -7,7 +7,7 @@ import browser from 'webextension-polyfill';
 import { getSettings, type Settings } from '../lib/storage';
 import { checkExistingLead, getProfile, type JobLeadResponse } from '../lib/api';
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
-import { getErrorMessage, isRecoverable, mapApiError, ERROR_CODES, ExtensionError } from '../lib/errors';
+import { getErrorMessage, isRecoverable, mapApiError } from '../lib/errors';
 
 // ============================================================================
 // Types
@@ -60,9 +60,6 @@ let currentTabUrl: string | null = null;
 
 /** Existing lead info (if any) */
 let existingLead: JobLeadResponse | null = null;
-
-/** Current error is recoverable (user can retry) */
-let currentErrorRecoverable = true;
 
 
 // ============================================================================
@@ -165,13 +162,12 @@ function showError(message: string, recoverable: boolean = true): void {
   if (elements.errorText) {
     elements.errorText.textContent = message;
   }
-  currentErrorRecoverable = recoverable;
-  
+
   // Show/hide retry button based on recoverability
   if (elements.retryBtn) {
     elements.retryBtn.classList.toggle('hidden', !recoverable);
   }
-  
+
   showState('error');
 }
 
