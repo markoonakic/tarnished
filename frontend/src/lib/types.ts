@@ -87,6 +87,9 @@ export interface ApplicationCreate {
   recruiter_name?: string;
   recruiter_title?: string;
   recruiter_linkedin_url?: string;
+  requirements_must_have?: string[];
+  requirements_nice_to_have?: string[];
+  source?: string;
 }
 
 export interface ApplicationUpdate {
@@ -102,6 +105,9 @@ export interface ApplicationUpdate {
   recruiter_name?: string | null;
   recruiter_title?: string | null;
   recruiter_linkedin_url?: string | null;
+  requirements_must_have?: string[] | null;
+  requirements_nice_to_have?: string[] | null;
+  source?: string | null;
 }
 
 export interface RoundCreate {

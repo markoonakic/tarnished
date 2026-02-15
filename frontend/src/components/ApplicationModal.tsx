@@ -36,6 +36,9 @@ export default function ApplicationModal({
   const [recruiterName, setRecruiterName] = useState('');
   const [recruiterTitle, setRecruiterTitle] = useState('');
   const [recruiterLinkedinUrl, setRecruiterLinkedinUrl] = useState('');
+  const [requirementsMustHave, setRequirementsMustHave] = useState('');
+  const [requirementsNiceToHave, setRequirementsNiceToHave] = useState('');
+  const [source, setSource] = useState('');
 
   function normalizeUrl(url: string): string {
     if (!url) return url;
@@ -100,6 +103,9 @@ export default function ApplicationModal({
         setRecruiterName(application.recruiter_name || '');
         setRecruiterTitle(application.recruiter_title || '');
         setRecruiterLinkedinUrl(application.recruiter_linkedin_url || '');
+        setRequirementsMustHave(application.requirements_must_have?.join('\n') || '');
+        setRequirementsNiceToHave(application.requirements_nice_to_have?.join('\n') || '');
+        setSource(application.source || '');
       } else {
         // Create mode - set defaults
         setCompany('');
@@ -112,6 +118,9 @@ export default function ApplicationModal({
         setRecruiterName('');
         setRecruiterTitle('');
         setRecruiterLinkedinUrl('');
+        setRequirementsMustHave('');
+        setRequirementsNiceToHave('');
+        setSource('');
         setAppliedAt(new Date().toISOString().split('T')[0]);
         // Set default status after statuses are loaded
         if (statuses.length > 0) {
@@ -154,6 +163,12 @@ export default function ApplicationModal({
     try {
       const salaryMinNum = salaryMin ? parseInt(salaryMin, 10) * 1000 : null;
       const salaryMaxNum = salaryMax ? parseInt(salaryMax, 10) * 1000 : null;
+      const requirementsMustHaveArray = requirementsMustHave.trim()
+        ? requirementsMustHave.split('\n').map(s => s.trim()).filter(Boolean)
+        : null;
+      const requirementsNiceToHaveArray = requirementsNiceToHave.trim()
+        ? requirementsNiceToHave.split('\n').map(s => s.trim()).filter(Boolean)
+        : null;
 
       if (isEditing && application) {
         const data: ApplicationUpdate = {
@@ -169,6 +184,9 @@ export default function ApplicationModal({
           recruiter_name: recruiterName || null,
           recruiter_title: recruiterTitle || null,
           recruiter_linkedin_url: recruiterLinkedinUrl || null,
+          requirements_must_have: requirementsMustHaveArray,
+          requirements_nice_to_have: requirementsNiceToHaveArray,
+          source: source || null,
         };
         await updateApplication(application.id, data);
         onSuccess(application.id);
@@ -187,6 +205,9 @@ export default function ApplicationModal({
           recruiter_name: recruiterName || undefined,
           recruiter_title: recruiterTitle || undefined,
           recruiter_linkedin_url: recruiterLinkedinUrl || undefined,
+          requirements_must_have: requirementsMustHaveArray ?? undefined,
+          requirements_nice_to_have: requirementsNiceToHaveArray ?? undefined,
+          source: source || undefined,
         };
         const created = await createApplication(data);
         onSuccess(created.id);
@@ -378,6 +399,44 @@ export default function ApplicationModal({
                   value={recruiterLinkedinUrl}
                   onChange={(e) => setRecruiterLinkedinUrl(e.target.value)}
                   placeholder="https://linkedin.com/in/..."
+                  className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-tertiary pt-4">
+            <h4 className="text-sm font-semibold text-muted mb-3">Requirements (Optional)</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-1 text-sm font-semibold text-muted">Must Have</label>
+                <textarea
+                  value={requirementsMustHave}
+                  onChange={(e) => setRequirementsMustHave(e.target.value)}
+                  rows={3}
+                  placeholder="One requirement per line&#10;e.g. React experience&#10;5+ years TypeScript"
+                  className="w-full px-3 py-2 bg-bg2 rounded text-fg1 placeholder-muted focus:outline-none focus:ring-1 focus:ring-accent-bright transition-all duration-200 ease-in-out resize-y"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1 text-sm font-semibold text-muted">Nice to Have</label>
+                <textarea
+                  value={requirementsNiceToHave}
+                  onChange={(e) => setRequirementsNiceToHave(e.target.value)}
+                  rows={3}
+                  placeholder="One requirement per line&#10;e.g. Docker experience&#10;AWS certification"
+                  className="w-full px-3 py-2 bg-bg2 rounded text-fg1 placeholder-muted focus:outline-none focus:ring-1 focus:ring-accent-bright transition-all duration-200 ease-in-out resize-y"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block mb-1 text-sm font-semibold text-muted">Source</label>
+                <input
+                  type="text"
+                  value={source}
+                  onChange={(e) => setSource(e.target.value)}
+                  placeholder="e.g. LinkedIn, Indeed, Referral"
                   className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
                 />
               </div>
