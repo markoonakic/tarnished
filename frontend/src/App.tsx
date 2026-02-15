@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import JobLeads from './pages/JobLeads';
 import Applications from './pages/Applications';
 import ApplicationDetail from './pages/ApplicationDetail';
+import JobLeadDetail from './pages/JobLeadDetail';
 import Analytics from './pages/Analytics';
 import Admin from './pages/Admin';
 import SettingsLayout from './components/settings/SettingsLayout';
@@ -67,6 +68,7 @@ function AppRoutes() {
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/job-leads" element={<ProtectedRoute><JobLeads /></ProtectedRoute>} />
+      <Route path="/job-leads/:id" element={<ProtectedRoute><JobLeadDetail /></ProtectedRoute>} />
       <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
       <Route path="/applications/:id" element={<ProtectedRoute><ApplicationDetail /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
