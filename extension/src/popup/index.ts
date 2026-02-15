@@ -322,7 +322,7 @@ async function autofillFormHandler(): Promise<void> {
     };
 
     if (!hasAutofillData(autofillProfile)) {
-      showNotification('No Profile Data', 'Please fill in your profile first in the Job Tracker app.');
+      showErrorNotification('Set up your profile in the app to enable autofill');
       return;
     }
 
