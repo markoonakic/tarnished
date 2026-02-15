@@ -7,6 +7,7 @@ import browser from 'webextension-polyfill';
 import { getSettings, type Settings } from '../lib/storage';
 import { checkExistingLead, getProfile, type JobLeadResponse } from '../lib/api';
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
+import { getErrorMessage, isRecoverable, mapApiError, ERROR_CODES, ExtensionError } from '../lib/errors';
 
 // ============================================================================
 // Types
@@ -59,6 +60,9 @@ let currentTabUrl: string | null = null;
 
 /** Existing lead info (if any) */
 let existingLead: JobLeadResponse | null = null;
+
+/** Current error is recoverable (user can retry) */
+let currentErrorRecoverable = true;
 
 
 // ============================================================================
@@ -157,10 +161,17 @@ function updateJobInfoDisplay(info: JobInfo, prefix: 'job' | 'savedJob' | 'updat
 /**
  * Shows the error state with a specific message
  */
-function showError(message: string): void {
+function showError(message: string, recoverable: boolean = true): void {
   if (elements.errorText) {
     elements.errorText.textContent = message;
   }
+  currentErrorRecoverable = recoverable;
+  
+  // Show/hide retry button based on recoverability
+  if (elements.retryBtn) {
+    elements.retryBtn.classList.toggle('hidden', !recoverable);
+  }
+  
   showState('error');
 }
 
@@ -271,8 +282,10 @@ async function saveJobLead(): Promise<void> {
     updateJobInfoDisplay(currentJobInfo, 'savedJob');
     showState('saved');
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to save job lead';
-    showError(message);
+    // Map API errors to user-friendly messages
+    const extensionError = mapApiError(error);
+    const message = getErrorMessage(extensionError);
+    showError(message, isRecoverable(extensionError));
     showErrorNotification(message);
   }
 }
@@ -340,7 +353,8 @@ async function autofillFormHandler(): Promise<void> {
       showNotification('Autofill Failed', 'Could not complete autofill. Try refreshing the page.');
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch profile';
+    const extensionError = mapApiError(error);
+    const message = getErrorMessage(extensionError);
     showErrorNotification(message);
   }
 }
@@ -462,8 +476,9 @@ async function determineState(): Promise<void> {
       showState('not-detected');
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
-    showError(message);
+    const message = getErrorMessage(error);
+    const recoverable = isRecoverable(error);
+    showError(message, recoverable);
   }
 }
 

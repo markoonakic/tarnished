@@ -9,6 +9,13 @@
  */
 
 import { getSettings } from './storage';
+import {
+  AuthFailedError,
+  AlreadySavedError,
+  TimeoutErrorCode,
+  NetworkErrorCode,
+  type ExtensionError,
+} from './errors';
 
 // ============================================================================
 // Types
@@ -82,6 +89,7 @@ const API_ENDPOINTS = {
 
 /**
  * Base error class for API errors.
+ * Extends the ExtensionError system with HTTP status codes.
  */
 export class ApiClientError extends Error {
   public readonly status: number;
@@ -93,18 +101,30 @@ export class ApiClientError extends Error {
   }
 }
 
+// Re-export error types from errors.ts for convenience
+export type { ExtensionError } from './errors';
+
 /**
  * Error thrown when authentication fails.
+ * Maps to AuthFailedError in the errors module.
  */
 export class AuthenticationError extends ApiClientError {
   constructor(message: string = 'Authentication failed. Please check your API key.') {
     super(message, 401);
     this.name = 'AuthenticationError';
   }
+
+  /**
+   * Converts to an ExtensionError for user-friendly messaging.
+   */
+  toExtensionError(): AuthFailedError {
+    return new AuthFailedError({ cause: this });
+  }
 }
 
 /**
  * Error thrown when a job lead already exists.
+ * Maps to AlreadySavedError in the errors module.
  */
 export class DuplicateLeadError extends ApiClientError {
   public readonly existingId?: string;
@@ -114,35 +134,66 @@ export class DuplicateLeadError extends ApiClientError {
     this.name = 'DuplicateLeadError';
     this.existingId = existingId;
   }
+
+  /**
+   * Converts to an ExtensionError for user-friendly messaging.
+   */
+  toExtensionError(): AlreadySavedError {
+    return new AlreadySavedError(this.existingId, { cause: this });
+  }
 }
 
 /**
  * Error thrown when the request times out.
+ * Maps to TimeoutErrorCode in the errors module.
  */
 export class TimeoutError extends ApiClientError {
   constructor(message: string = 'Request timed out. Please try again.') {
     super(message, 408);
     this.name = 'TimeoutError';
   }
+
+  /**
+   * Converts to an ExtensionError for user-friendly messaging.
+   */
+  toExtensionError(): TimeoutErrorCode {
+    return new TimeoutErrorCode({ cause: this });
+  }
 }
 
 /**
  * Error thrown when there's a network error.
+ * Maps to NetworkErrorCode in the errors module.
  */
 export class NetworkError extends ApiClientError {
   constructor(message: string = 'Network error. Please check your connection.') {
     super(message, 0);
     this.name = 'NetworkError';
   }
+
+  /**
+   * Converts to an ExtensionError for user-friendly messaging.
+   */
+  toExtensionError(): NetworkErrorCode {
+    return new NetworkErrorCode({ cause: this });
+  }
 }
 
 /**
  * Error thrown when the server returns an error.
+ * Maps to NetworkErrorCode in the errors module.
  */
 export class ServerError extends ApiClientError {
   constructor(message: string, status: number) {
     super(message, status);
     this.name = 'ServerError';
+  }
+
+  /**
+   * Converts to an ExtensionError for user-friendly messaging.
+   */
+  toExtensionError(): NetworkErrorCode {
+    return new NetworkErrorCode({ cause: this });
   }
 }
 
