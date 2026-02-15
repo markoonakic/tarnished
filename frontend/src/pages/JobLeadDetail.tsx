@@ -4,6 +4,7 @@ import { getJobLead, deleteJobLead, retryJobLead } from '../lib/jobLeads';
 import type { JobLead } from '../lib/types';
 import { useToastContext } from '../contexts/ToastContext';
 import Layout from '../components/Layout';
+import ConvertToApplicationModal from '../components/ConvertToApplicationModal';
 
 export default function JobLeadDetail() {
   const { id } = useParams<{ id: string }>();
@@ -12,6 +13,7 @@ export default function JobLeadDetail() {
   const [jobLead, setJobLead] = useState<JobLead | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showConvertModal, setShowConvertModal] = useState(false);
 
   useEffect(() => {
     if (id) loadJobLead();
@@ -55,6 +57,11 @@ export default function JobLeadDetail() {
       setError(errorMsg);
       toast.error(errorMsg);
     }
+  }
+
+  async function handleConverted(applicationId: string) {
+    // Refresh the job lead to get the updated converted_to_application_id
+    await loadJobLead();
   }
 
   function formatDateTime(dateStr: string | null) {
@@ -310,6 +317,15 @@ export default function JobLeadDetail() {
           )}
 
           <div className="flex flex-wrap items-center justify-end gap-2 pt-4 border-t border-tertiary">
+            {canConvert && (
+              <button
+                onClick={() => setShowConvertModal(true)}
+                className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
+              >
+                <i className="bi-arrow-repeat icon-sm"></i>
+                Convert to Application
+              </button>
+            )}
             {jobLead.status === 'failed' && (
               <button
                 onClick={handleRetry}
@@ -329,6 +345,14 @@ export default function JobLeadDetail() {
           </div>
         </div>
       </div>
+      {jobLead && (
+        <ConvertToApplicationModal
+          isOpen={showConvertModal}
+          onClose={() => setShowConvertModal(false)}
+          lead={jobLead}
+          onConverted={handleConverted}
+        />
+      )}
     </Layout>
   );
 }

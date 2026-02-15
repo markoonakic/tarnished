@@ -84,6 +84,9 @@ export interface ApplicationCreate {
   salary_min?: number;
   salary_max?: number;
   salary_currency?: string;
+  recruiter_name?: string;
+  recruiter_title?: string;
+  recruiter_linkedin_url?: string;
 }
 
 export interface ApplicationUpdate {
@@ -96,6 +99,9 @@ export interface ApplicationUpdate {
   salary_min?: number | null;
   salary_max?: number | null;
   salary_currency?: string | null;
+  recruiter_name?: string | null;
+  recruiter_title?: string | null;
+  recruiter_linkedin_url?: string | null;
 }
 
 export interface RoundCreate {

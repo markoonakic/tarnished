@@ -33,6 +33,9 @@ export default function ApplicationModal({
   const [salaryMin, setSalaryMin] = useState('');
   const [salaryMax, setSalaryMax] = useState('');
   const [salaryCurrency, setSalaryCurrency] = useState('USD');
+  const [recruiterName, setRecruiterName] = useState('');
+  const [recruiterTitle, setRecruiterTitle] = useState('');
+  const [recruiterLinkedinUrl, setRecruiterLinkedinUrl] = useState('');
 
   function normalizeUrl(url: string): string {
     if (!url) return url;
@@ -94,6 +97,9 @@ export default function ApplicationModal({
         setSalaryMin(application.salary_min !== null ? String(application.salary_min / 1000) : '');
         setSalaryMax(application.salary_max !== null ? String(application.salary_max / 1000) : '');
         setSalaryCurrency(application.salary_currency || 'USD');
+        setRecruiterName(application.recruiter_name || '');
+        setRecruiterTitle(application.recruiter_title || '');
+        setRecruiterLinkedinUrl(application.recruiter_linkedin_url || '');
       } else {
         // Create mode - set defaults
         setCompany('');
@@ -103,6 +109,9 @@ export default function ApplicationModal({
         setSalaryMin('');
         setSalaryMax('');
         setSalaryCurrency('USD');
+        setRecruiterName('');
+        setRecruiterTitle('');
+        setRecruiterLinkedinUrl('');
         setAppliedAt(new Date().toISOString().split('T')[0]);
         // Set default status after statuses are loaded
         if (statuses.length > 0) {
@@ -157,6 +166,9 @@ export default function ApplicationModal({
           salary_min: salaryMinNum,
           salary_max: salaryMaxNum,
           salary_currency: salaryCurrency || null,
+          recruiter_name: recruiterName || null,
+          recruiter_title: recruiterTitle || null,
+          recruiter_linkedin_url: recruiterLinkedinUrl || null,
         };
         await updateApplication(application.id, data);
         onSuccess(application.id);
@@ -172,6 +184,9 @@ export default function ApplicationModal({
           salary_min: salaryMinNum ?? undefined,
           salary_max: salaryMaxNum ?? undefined,
           salary_currency: salaryCurrency,
+          recruiter_name: recruiterName || undefined,
+          recruiter_title: recruiterTitle || undefined,
+          recruiter_linkedin_url: recruiterLinkedinUrl || undefined,
         };
         const created = await createApplication(data);
         onSuccess(created.id);
@@ -329,7 +344,47 @@ export default function ApplicationModal({
                 size="xs"
               />
             </div>
+          </div>
 
+          <div className="border-t border-tertiary pt-4">
+            <h4 className="text-sm font-semibold text-muted mb-3">Recruiter (Optional)</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-1 text-sm font-semibold text-muted">Recruiter Name</label>
+                <input
+                  type="text"
+                  value={recruiterName}
+                  onChange={(e) => setRecruiterName(e.target.value)}
+                  placeholder="e.g. John Smith"
+                  className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1 text-sm font-semibold text-muted">Recruiter Title</label>
+                <input
+                  type="text"
+                  value={recruiterTitle}
+                  onChange={(e) => setRecruiterTitle(e.target.value)}
+                  placeholder="e.g. Senior Recruiter"
+                  className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block mb-1 text-sm font-semibold text-muted">LinkedIn URL</label>
+                <input
+                  type="text"
+                  value={recruiterLinkedinUrl}
+                  onChange={(e) => setRecruiterLinkedinUrl(e.target.value)}
+                  placeholder="https://linkedin.com/in/..."
+                  className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <label className="block mb-1 text-sm font-semibold text-muted">Job Description</label>
               <textarea
