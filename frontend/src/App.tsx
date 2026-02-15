@@ -22,6 +22,7 @@ import SettingsRoundTypes from './components/settings/SettingsRoundTypes';
 import SettingsExport from './components/settings/SettingsExport';
 import SettingsImport from './components/settings/SettingsImport';
 import SettingsAPIKey from './components/settings/SettingsAPIKey';
+import SettingsProfile from './components/settings/SettingsProfile';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -75,6 +76,7 @@ function AppRoutes() {
       <Route path="/settings" element={<ProtectedRoute><SettingsLayout /></ProtectedRoute>}>
         <Route path="theme" element={<SettingsTheme />} />
         <Route path="features" element={<SettingsFeatures />} />
+        <Route path="profile" element={<SettingsProfile />} />
         <Route path="api-key" element={<SettingsAPIKey />} />
         <Route path="statuses" element={<SettingsStatuses />} />
         <Route path="round-types" element={<SettingsRoundTypes />} />
