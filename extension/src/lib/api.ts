@@ -14,7 +14,6 @@ import {
   AlreadySavedError,
   TimeoutErrorCode,
   NetworkErrorCode,
-  type ExtensionError,
 } from './errors';
 
 // ============================================================================
@@ -101,8 +100,6 @@ export class ApiClientError extends Error {
   }
 }
 
-// Re-export error types from errors.ts for convenience
-export type { ExtensionError } from './errors';
 
 /**
  * Error thrown when authentication fails.
