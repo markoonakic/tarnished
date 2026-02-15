@@ -5,6 +5,7 @@ import { deleteRound } from '../lib/rounds';
 import type { Application, Round } from '../lib/types';
 import { getStatusColor } from '../lib/statusColors';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { useToastContext } from '../contexts/ToastContext';
 import RoundForm from '../components/RoundForm';
 import RoundCard from '../components/RoundCard';
 import DocumentSection from '../components/DocumentSection';
@@ -17,6 +18,7 @@ export default function ApplicationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const colors = useThemeColors();
+  const toast = useToastContext();
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -30,11 +32,14 @@ export default function ApplicationDetail() {
 
   async function loadApplication() {
     setLoading(true);
+    setError('');
     try {
       const data = await getApplication(id!);
       setApplication(data);
     } catch {
-      setError('Failed to load application');
+      const errorMsg = 'Failed to load application';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -44,9 +49,12 @@ export default function ApplicationDetail() {
     if (!confirm('Are you sure you want to delete this application?')) return;
     try {
       await deleteApplication(id!);
+      toast.success('Application deleted');
       navigate('/applications');
     } catch {
-      setError('Failed to delete application');
+      const errorMsg = 'Failed to delete application';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   }
 
@@ -64,8 +72,11 @@ export default function ApplicationDetail() {
         ...prev,
         rounds: prev.rounds?.filter(r => r.id !== roundId) || []
       } : null);
+      toast.success('Round deleted');
     } catch {
-      setError('Failed to delete round');
+      const errorMsg = 'Failed to delete round';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   }
 
@@ -105,7 +116,9 @@ export default function ApplicationDetail() {
         };
       });
     } catch {
-      setError('Failed to refresh media');
+      const errorMsg = 'Failed to refresh media';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   }
 

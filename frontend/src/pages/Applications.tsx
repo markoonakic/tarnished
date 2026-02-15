@@ -6,6 +6,7 @@ import { listStatuses } from '../lib/settings';
 import type { Application, Status } from '../lib/types';
 import { getStatusColor } from '../lib/statusColors';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { useToastContext } from '../contexts/ToastContext';
 import Layout from '../components/Layout';
 import Dropdown from '../components/Dropdown';
 import Loading from '../components/Loading';
@@ -15,6 +16,7 @@ import ApplicationModal from '../components/ApplicationModal';
 export default function Applications() {
   const navigate = useNavigate();
   const colors = useThemeColors();
+  const toast = useToastContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [applications, setApplications] = useState<Application[]>([]);
   const [statuses, setStatuses] = useState<Status[]>([]);
@@ -48,6 +50,7 @@ export default function Applications() {
 
   async function loadApplications() {
     setLoading(true);
+    setError('');
     try {
       const params: ListParams = { page, per_page: perPage };
       if (statusFilter) params.status_id = statusFilter;
@@ -57,7 +60,9 @@ export default function Applications() {
       setApplications(data.items);
       setTotal(data.total);
     } catch {
-      setError('Failed to load applications');
+      const errorMsg = 'Failed to load applications';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
