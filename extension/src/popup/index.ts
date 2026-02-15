@@ -271,6 +271,16 @@ async function saveJobLead(): Promise<void> {
       location: result.location || null,
     };
 
+    // Update cached job status to reflect that this job is now saved
+    const { setJobStatus } = await import('../lib/storage');
+    await setJobStatus(currentTabUrl, {
+      url: currentTabUrl,
+      isJobPage: true,
+      existingLeadId: result.id,
+      title: result.title,
+      company: result.company,
+    });
+
     // Show success notification
     showSuccessNotification(result.title, result.company);
 
@@ -428,6 +438,25 @@ async function determineState(): Promise<void> {
       });
     } catch (error) {
       console.warn('Failed to get tab status from background:', error);
+    }
+
+    // Fallback: If no cached status, request detection directly from content script
+    if (!tabStatus) {
+      try {
+        const detectionResult = await browser.tabs.sendMessage(currentTabId, {
+          type: 'GET_DETECTION',
+        });
+        if (detectionResult) {
+          tabStatus = {
+            isJobPage: detectionResult.isJobPage,
+            score: detectionResult.score,
+            signals: detectionResult.signals,
+            url: currentTabUrl,
+          };
+        }
+      } catch (error) {
+        console.warn('Failed to get detection from content script:', error);
+      }
     }
 
     // Step 5: Check if this URL already exists as a job lead

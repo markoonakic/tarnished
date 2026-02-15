@@ -62,7 +62,7 @@ async def regenerate_api_key(
     """Regenerate the current user's API key.
 
     Generates a new API token for the user and saves it to the database.
-    Returns the masked version of the new token.
+    Returns the FULL token (only time it's shown) and the masked version.
     """
     new_token = generate_api_token()
     user.api_token = new_token
@@ -72,6 +72,7 @@ async def regenerate_api_key(
     return APIKeyResponse(
         has_api_key=True,
         api_key_masked=_mask_api_token(new_token),
+        api_key_full=new_token,  # Return full key - only shown once!
     )
 
 

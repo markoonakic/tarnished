@@ -11,6 +11,7 @@ export default function SettingsAPIKey() {
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showFullKey, setShowFullKey] = useState(false);
 
   useEffect(() => {
     loadAPIKey();
@@ -28,10 +29,12 @@ export default function SettingsAPIKey() {
   }
 
   async function handleCopyKey() {
-    if (!apiKeyData?.api_key_masked) return;
+    // Copy full key if available, otherwise copy masked
+    const keyToCopy = apiKeyData?.api_key_full || apiKeyData?.api_key_masked;
+    if (!keyToCopy) return;
 
     try {
-      await navigator.clipboard.writeText(apiKeyData.api_key_masked);
+      await navigator.clipboard.writeText(keyToCopy);
       setCopied(true);
       toast.success('API key copied to clipboard');
       setTimeout(() => setCopied(false), 2000);
@@ -49,13 +52,19 @@ export default function SettingsAPIKey() {
     try {
       const data = await regenerateAPIKey();
       setApiKeyData(data);
-      toast.success('API key regenerated successfully');
+      setShowFullKey(true); // Show the full key after regeneration
+      toast.success('API key regenerated - copy it now! It won\'t be shown again.');
     } catch {
       toast.error('Failed to regenerate API key');
     } finally {
       setRegenerating(false);
     }
   }
+
+  // Determine what to display
+  const displayKey = (showFullKey && apiKeyData?.api_key_full)
+    ? apiKeyData.api_key_full
+    : apiKeyData?.api_key_masked;
 
   return (
     <>
@@ -75,10 +84,16 @@ export default function SettingsAPIKey() {
           <div className="space-y-4">
             {/* API Key Display */}
             <div className="bg-tertiary rounded-lg p-4">
-              <label className="text-sm text-muted block mb-2">Your API Key</label>
+              <label className="text-sm text-muted block mb-2">
+                {showFullKey && apiKeyData?.api_key_full ? (
+                  <span className="text-yellow">⚠️ Copy this key now - it won't be shown again!</span>
+                ) : (
+                  'Your API Key'
+                )}
+              </label>
               <div className="flex items-center gap-2">
-                <div className="flex-1 font-mono text-sm text-fg1 bg-bg2 px-3 py-2 rounded overflow-x-auto">
-                  {apiKeyData.api_key_masked}
+                <div className="flex-1 font-mono text-sm text-fg1 bg-bg2 px-3 py-2 rounded overflow-x-auto break-all">
+                  {displayKey}
                 </div>
                 <button
                   onClick={handleCopyKey}

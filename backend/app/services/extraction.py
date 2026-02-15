@@ -42,18 +42,37 @@ logger = logging.getLogger(__name__)
 DEFAULT_EXTRACTION_MODEL = "gpt-4o-mini"
 
 # System prompt for job extraction
-EXTRACTION_SYSTEM_PROMPT = """You are a job posting data extractor. Your task is to extract structured job posting information from the provided markdown content.
+EXTRACTION_SYSTEM_PROMPT = """You are a job posting data extractor. Your task is to extract structured job posting information from the provided markdown content and return it as valid JSON.
+
+You must respond with ONLY a valid JSON object (no markdown code blocks, no extra text) with these fields:
+- title: string or null - The job title (e.g., "Senior Software Engineer")
+- company: string or null - The company name
+- description: string or null - Full job description in markdown format
+- location: string or null - Job location (e.g., "San Francisco, CA" or "Remote")
+- salary_min: integer or null - Minimum salary (numeric only, no currency symbols)
+- salary_max: integer or null - Maximum salary (numeric only, no currency symbols)
+- salary_currency: string or null - Currency code (e.g., "USD", "EUR")
+- recruiter_name: string or null - Name of recruiter if mentioned
+- recruiter_title: string or null - Title of recruiter (e.g., "Technical Recruiter")
+- recruiter_linkedin_url: string or null - LinkedIn URL of recruiter if available
+- requirements_must_have: array of strings - Must-have requirements
+- requirements_nice_to_have: array of strings - Nice-to-have requirements
+- skills: array of strings - Technical or soft skills required
+- years_experience_min: integer or null - Minimum years of experience
+- years_experience_max: integer or null - Maximum years of experience
+- source: string or null - Source platform (e.g., "LinkedIn", "Indeed")
+- posted_date: string or null - Date posted in YYYY-MM-DD format
 
 Instructions:
 1. Carefully analyze the job posting content
-2. Extract all available information matching the schema
-3. If a field cannot be found in the content, set it to null (for optional fields) or an empty list (for list fields)
-4. For salary information, extract the numeric values only (no currency symbols or text)
+2. Extract all available information
+3. If a field cannot be found, use null for optional fields or empty array [] for list fields
+4. For salary, extract only numeric values (no currency symbols or text)
 5. For dates, use ISO format (YYYY-MM-DD)
-6. If the content does not appear to be a job posting (e.g., it's a login page, error page, or unrelated content), set all fields to null/empty
-7. Be precise and only extract information that is clearly stated in the posting
+6. If content is not a job posting, set all fields to null/empty
+7. Return ONLY valid JSON, no markdown code blocks or extra text
 
-The source URL is provided for context but the actual data should come from the content."""
+The source URL is provided for context but data should come from the content."""
 
 # Correction prompt for retry when LLM returns invalid JSON
 CORRECTION_PROMPT_TEMPLATE = """The previous response could not be parsed as valid JSON. Please try again with a properly formatted JSON response.
@@ -280,6 +299,8 @@ def extract_with_llm(
     markdown_content: str,
     url: str,
     model: str | None = None,
+    api_key: str | None = None,
+    api_base: str | None = None,
     timeout: int = 60,
 ) -> JobLeadExtractionInput:
     """Extract structured job data using LiteLLM.
@@ -293,8 +314,10 @@ def extract_with_llm(
     Args:
         markdown_content: Preprocessed markdown content from the job posting.
         url: The source URL (included in prompt for context).
-        model: Optional model override (e.g., "gpt-4", "claude-3-opus").
+        model: Optional model override (e.g., "gpt-4", "cerebras/llama-3.3-70b").
                Falls back to DEFAULT_EXTRACTION_MODEL if not specified.
+        api_key: Optional API key for the LLM provider.
+        api_base: Optional base URL for the LLM provider.
         timeout: Request timeout in seconds.
 
     Returns:
@@ -324,6 +347,22 @@ Job Posting Content:
         {"role": "user", "content": user_message},
     ]
 
+    # Build kwargs for LiteLLM completion
+    # Use json_object mode instead of full schema for broader compatibility
+    # (Cerebras and other providers don't support full JSON schema)
+    completion_kwargs = {
+        "model": extraction_model,
+        "messages": messages,
+        "response_format": {"type": "json_object"},
+        "timeout": timeout,
+    }
+
+    # Add API key and base URL if provided
+    if api_key:
+        completion_kwargs["api_key"] = api_key
+    if api_base:
+        completion_kwargs["api_base"] = api_base
+
     # Allow one retry for invalid JSON responses
     max_attempts = 2
     last_parse_error: tuple[str, str] | None = None  # (error_message, raw_response)
@@ -331,12 +370,7 @@ Job Posting Content:
     for attempt in range(max_attempts):
         try:
             # Call LiteLLM with structured output
-            response = completion(
-                model=extraction_model,
-                messages=messages,
-                response_format=JobLeadExtractionInput,
-                timeout=timeout,
-            )
+            response = completion(**completion_kwargs)
 
             # Extract the content from the response
             raw_content = response.choices[0].message.content
@@ -370,6 +404,7 @@ Job Posting Content:
                         {"role": "assistant", "content": raw_content},
                         {"role": "user", "content": correction_prompt},
                     ]
+                    completion_kwargs["messages"] = messages
                     is_retry = True
                     continue
                 else:
@@ -405,6 +440,7 @@ Job Posting Content:
                         {"role": "assistant", "content": raw_content},
                         {"role": "user", "content": correction_prompt},
                     ]
+                    completion_kwargs["messages"] = messages
                     is_retry = True
                     continue
                 else:
@@ -489,6 +525,8 @@ async def extract_job_data(
     html: str,
     url: str,
     model: str | None = None,
+    api_key: str | None = None,
+    api_base: str | None = None,
     timeout: int = 60,
 ) -> JobLeadExtractionInput:
     """Main entry point for job data extraction.
@@ -502,6 +540,8 @@ async def extract_job_data(
         html: Raw HTML content from the job posting page.
         url: The source URL of the job posting.
         model: Optional LLM model override.
+        api_key: Optional API key for the LLM provider.
+        api_base: Optional base URL for the LLM provider.
         timeout: LLM request timeout in seconds.
 
     Returns:
@@ -535,11 +575,12 @@ async def extract_job_data(
         raise ExtractionError(f"Failed to preprocess HTML: {e}")
 
     # Step 2: Extract with LLM
-    # TODO: Make this async once LLM extraction is implemented
     job_data = extract_with_llm(
         markdown_content=markdown_content,
         url=url,
         model=model,
+        api_key=api_key,
+        api_base=api_base,
         timeout=timeout,
     )
 

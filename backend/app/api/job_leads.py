@@ -20,9 +20,13 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, get_current_user_by_api_token
-from app.models import User
+from app.core.deps import get_current_user, get_current_user_by_api_token, get_current_user_flexible
+from app.core.security import decrypt_api_key
+from app.models import SystemSettings, User
+from app.models.application import Application
 from app.models.job_lead import JobLead
+from app.models.status import ApplicationStatus
+from app.schemas.application import ApplicationResponse
 from app.schemas.job_lead import (
     JobLeadCreate,
     JobLeadListResponse,
@@ -47,12 +51,45 @@ HTTP_MAX_REDIRECTS = 5
 HTTP_USER_AGENT = "Mozilla/5.0 (compatible; JobTrackerBot/1.0)"
 
 
+async def _get_ai_settings(db: AsyncSession) -> tuple[str | None, str | None, str | None]:
+    """Get AI settings from the database.
+
+    Returns:
+        Tuple of (model, api_key, api_base) - all may be None if not configured.
+    """
+    # Fetch all AI settings in one query
+    result = await db.execute(
+        select(SystemSettings).where(
+            SystemSettings.key.in_([
+                SystemSettings.KEY_LITELLM_MODEL,
+                SystemSettings.KEY_LITELLM_API_KEY,
+                SystemSettings.KEY_LITELLM_BASE_URL,
+            ])
+        )
+    )
+    settings = {s.key: s.value for s in result.scalars().all()}
+
+    # Get model
+    model = settings.get(SystemSettings.KEY_LITELLM_MODEL)
+
+    # Decrypt API key if present
+    api_key = None
+    encrypted_key = settings.get(SystemSettings.KEY_LITELLM_API_KEY)
+    if encrypted_key:
+        api_key = decrypt_api_key(encrypted_key)
+
+    # Get base URL
+    api_base = settings.get(SystemSettings.KEY_LITELLM_BASE_URL)
+
+    return model, api_key, api_base
+
+
 @router.get("", response_model=JobLeadListResponse)
 async def list_job_leads(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     status_filter: str | None = Query(None, alias="status"),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user_flexible),
     db: AsyncSession = Depends(get_db),
 ):
     """List job leads for the authenticated user with pagination.
@@ -182,8 +219,17 @@ async def create_job_lead(
         logger.debug(f"Fetched HTML content ({len(html_content)} chars)")
 
     # Step 2: Extract job data using AI
+    # Get AI settings from database
+    ai_model, ai_api_key, ai_api_base = await _get_ai_settings(db)
+
     try:
-        extracted = await extract_job_data(html_content, url)
+        extracted = await extract_job_data(
+            html_content,
+            url,
+            model=ai_model,
+            api_key=ai_api_key,
+            api_base=ai_api_base,
+        )
     except ExtractionTimeoutError as e:
         logger.error(f"Extraction timeout for {url}: {e.message}")
         raise HTTPException(
@@ -375,8 +421,17 @@ async def retry_job_lead_extraction(
         logger.debug(f"Re-fetched HTML content ({len(html_content)} chars)")
 
         # Step 4: Extract job data using AI
+        # Get AI settings from database
+        ai_model, ai_api_key, ai_api_base = await _get_ai_settings(db)
+
         try:
-            extracted = await extract_job_data(html_content, job_lead.url)
+            extracted = await extract_job_data(
+                html_content,
+                job_lead.url,
+                model=ai_model,
+                api_key=ai_api_key,
+                api_base=ai_api_base,
+            )
             logger.info(f"Successfully re-extracted job: {extracted.title} at {extracted.company}")
         except ExtractionTimeoutError as e:
             logger.error(f"Extraction timeout for {job_lead.url}: {e.message}")
@@ -503,3 +558,117 @@ async def delete_job_lead(
 
     await db.delete(job_lead)
     await db.commit()
+
+
+@router.post("/{job_lead_id}/convert", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
+async def convert_job_lead_to_application(
+    job_lead_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Convert a job lead to an application.
+
+    This endpoint:
+    1. Finds the job lead by ID and verifies it belongs to the user
+    2. Verifies the job lead has status "extracted" and hasn't been converted yet
+    3. Creates an Application from the job lead data
+    4. Sets job_lead_id and copies all relevant fields
+    5. Marks the job lead as converted
+
+    Args:
+        job_lead_id: The UUID of the job lead to convert.
+        user: The authenticated user.
+        db: Database session.
+
+    Returns:
+        The created Application record.
+
+    Raises:
+        HTTPException: 404 if job lead not found or doesn't belong to user,
+                     400 if job lead status is not "extracted" or already converted.
+    """
+    # Step 1: Find the job lead and verify it exists and belongs to user
+    result = await db.execute(
+        select(JobLead).where(
+            JobLead.id == job_lead_id,
+            JobLead.user_id == user.id,
+        )
+    )
+    job_lead = result.scalars().first()
+
+    if not job_lead:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job lead not found",
+        )
+
+    # Step 2: Verify the job lead has status "extracted" and hasn't been converted yet
+    if job_lead.status != "extracted":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Job lead must have status 'extracted' to convert",
+        )
+
+    if job_lead.converted_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Job lead has already been converted to an application",
+        )
+
+    logger.info(f"Converting job lead {job_lead_id} to application: {job_lead.title} at {job_lead.company}")
+
+    # Step 3: Get the user's default status (or first user status, or first default status)
+    from sqlalchemy import or_
+    status_result = await db.execute(
+        select(ApplicationStatus)
+        .where(
+            or_(
+                ApplicationStatus.user_id == user.id,
+                ApplicationStatus.user_id.is_(None),
+            )
+        )
+        .order_by(ApplicationStatus.user_id.desc().nulls_last(), ApplicationStatus.order)
+        .limit(1)
+    )
+    default_status = status_result.scalars().first()
+
+    if not default_status:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="No application status found. Please create at least one status.",
+        )
+
+    # Step 4: Create an Application from the job lead data
+    application = Application(
+        user_id=user.id,
+        company=job_lead.company,
+        job_title=job_lead.title,
+        job_url=job_lead.url,
+        job_lead_id=job_lead.id,
+        status_id=default_status.id,
+        applied_at=datetime.utcnow().date(),
+        # Rich extraction fields
+        description=job_lead.description,
+        salary_min=job_lead.salary_min,
+        salary_max=job_lead.salary_max,
+        salary_currency=job_lead.salary_currency,
+        recruiter_name=job_lead.recruiter_name,
+        recruiter_linkedin_url=job_lead.recruiter_linkedin_url,
+        requirements_must_have=job_lead.requirements_must_have or [],
+        requirements_nice_to_have=job_lead.requirements_nice_to_have or [],
+        source=job_lead.source,
+    )
+
+    db.add(application)
+
+    # Step 5: Mark the job lead as converted
+    job_lead.converted_at = datetime.utcnow()
+
+    await db.commit()
+    await db.refresh(application)
+
+    logger.info(
+        f"Successfully converted job lead {job_lead.id} to application {application.id}: {application.job_title} at {application.company}"
+    )
+
+    return application

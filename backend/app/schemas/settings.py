@@ -42,6 +42,7 @@ class APIKeyResponse(BaseModel):
 
     Returns whether the user has an API token set, and if so,
     a masked version showing only the first and last few characters.
+    When regenerating, the full key is returned once.
     """
 
     has_api_key: bool = Field(
@@ -50,6 +51,10 @@ class APIKeyResponse(BaseModel):
     api_key_masked: Optional[str] = Field(
         default=None,
         description="Masked API key showing first 4 and last 4 characters (e.g., 'abcd...wxyz')",
+    )
+    api_key_full: Optional[str] = Field(
+        default=None,
+        description="Full API key (only returned when regenerating, shown once)",
     )
 
     class Config:

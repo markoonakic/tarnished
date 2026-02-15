@@ -133,3 +133,69 @@ async def get_current_user_by_api_token(
         )
 
     return user
+
+
+async def get_current_user_flexible(
+    credentials: HTTPAuthorizationCredentials | None = Depends(
+        HTTPBearer(auto_error=False)
+    ),
+    authorization: Annotated[str | None, Header()] = None,
+    x_api_key: Annotated[str | None, Header()] = None,
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Authenticate user via either JWT Bearer token or API key.
+
+    This combined dependency supports both web app authentication (JWT Bearer token)
+    and browser extension authentication (API key via X-API-Key header).
+
+    Authentication methods (tried in order):
+    1. JWT Bearer token from Authorization header (web app)
+    2. API key from X-API-Key header (extension)
+    3. API key from Authorization header as Bearer token (extension alternative)
+
+    Args:
+        credentials: Optional Bearer token credentials from HTTPBearer.
+        authorization: Optional raw Authorization header.
+        x_api_key: Optional X-API-Key header.
+        db: Database session dependency.
+
+    Returns:
+        The authenticated User.
+
+    Raises:
+        HTTPException: 401 if authentication fails.
+    """
+    # Method 1: Try JWT Bearer token authentication (web app)
+    if credentials:
+        payload = decode_token(credentials.credentials)
+        if payload and payload.get("type") == "access":
+            user_id = payload.get("sub")
+            if user_id:
+                result = await db.execute(select(User).where(User.id == user_id))
+                user = result.scalars().first()
+                if user and user.is_active:
+                    return user
+
+    # Method 2 & 3: Try API key authentication (extension)
+    api_token = None
+    if x_api_key:
+        api_token = x_api_key
+    elif authorization and authorization.startswith("Bearer "):
+        api_token = authorization[7:]
+
+    if api_token:
+        result = await db.execute(select(User).where(User.api_token == api_token))
+        user = result.scalars().first()
+        if user:
+            if not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User account is disabled",
+                )
+            return user
+
+    # No valid authentication found
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Not authenticated",
+    )

@@ -30,6 +30,9 @@ export default function ApplicationModal({
   const [jobUrlError, setJobUrlError] = useState('');
   const [statusId, setStatusId] = useState('');
   const [appliedAt, setAppliedAt] = useState('');
+  const [salaryMin, setSalaryMin] = useState('');
+  const [salaryMax, setSalaryMax] = useState('');
+  const [salaryCurrency, setSalaryCurrency] = useState('USD');
 
   function normalizeUrl(url: string): string {
     if (!url) return url;
@@ -88,12 +91,18 @@ export default function ApplicationModal({
         setJobUrl(application.job_url || '');
         setStatusId(application.status.id);
         setAppliedAt(application.applied_at.split('T')[0]);
+        setSalaryMin(application.salary_min !== null ? String(application.salary_min / 1000) : '');
+        setSalaryMax(application.salary_max !== null ? String(application.salary_max / 1000) : '');
+        setSalaryCurrency(application.salary_currency || 'USD');
       } else {
         // Create mode - set defaults
         setCompany('');
         setJobTitle('');
         setJobDescription('');
         setJobUrl('');
+        setSalaryMin('');
+        setSalaryMax('');
+        setSalaryCurrency('USD');
         setAppliedAt(new Date().toISOString().split('T')[0]);
         // Set default status after statuses are loaded
         if (statuses.length > 0) {
@@ -134,6 +143,9 @@ export default function ApplicationModal({
     setError('');
 
     try {
+      const salaryMinNum = salaryMin ? parseInt(salaryMin, 10) * 1000 : null;
+      const salaryMaxNum = salaryMax ? parseInt(salaryMax, 10) * 1000 : null;
+
       if (isEditing && application) {
         const data: ApplicationUpdate = {
           company,
@@ -142,6 +154,9 @@ export default function ApplicationModal({
           job_url: normalizedUrl || null,
           status_id: statusId,
           applied_at: appliedAt,
+          salary_min: salaryMinNum,
+          salary_max: salaryMaxNum,
+          salary_currency: salaryCurrency || null,
         };
         await updateApplication(application.id, data);
         onSuccess(application.id);
@@ -154,6 +169,9 @@ export default function ApplicationModal({
           job_url: normalizedUrl || undefined,
           status_id: statusId,
           applied_at: appliedAt,
+          salary_min: salaryMinNum ?? undefined,
+          salary_max: salaryMaxNum ?? undefined,
+          salary_currency: salaryCurrency,
         };
         const created = await createApplication(data);
         onSuccess(created.id);
@@ -270,6 +288,46 @@ export default function ApplicationModal({
               {jobUrlError && (
                 <p className="text-red-bright text-sm mt-1">{jobUrlError}</p>
               )}
+            </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-semibold text-muted">Min Salary (k)</label>
+              <input
+                type="number"
+                value={salaryMin}
+                onChange={(e) => setSalaryMin(e.target.value)}
+                placeholder="e.g. 100"
+                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              />
+            </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-semibold text-muted">Max Salary (k)</label>
+              <input
+                type="number"
+                value={salaryMax}
+                onChange={(e) => setSalaryMax(e.target.value)}
+                placeholder="e.g. 150"
+                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              />
+            </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-semibold text-muted">Currency</label>
+              <Dropdown
+                options={[
+                  { value: 'USD', label: 'USD' },
+                  { value: 'EUR', label: 'EUR' },
+                  { value: 'GBP', label: 'GBP' },
+                  { value: 'CAD', label: 'CAD' },
+                  { value: 'AUD', label: 'AUD' },
+                ]}
+                value={salaryCurrency}
+                onChange={(value) => setSalaryCurrency(value)}
+                placeholder="Currency"
+                containerBackground="bg1"
+                size="xs"
+              />
             </div>
 
             <div className="sm:col-span-2">

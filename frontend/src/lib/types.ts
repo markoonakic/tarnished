@@ -81,6 +81,9 @@ export interface ApplicationCreate {
   job_url?: string;
   status_id: string;
   applied_at?: string;
+  salary_min?: number;
+  salary_max?: number;
+  salary_currency?: string;
 }
 
 export interface ApplicationUpdate {
@@ -90,6 +93,9 @@ export interface ApplicationUpdate {
   job_url?: string | null;
   status_id?: string;
   applied_at?: string;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  salary_currency?: string | null;
 }
 
 export interface RoundCreate {
@@ -159,4 +165,5 @@ export interface UserProfile {
 export interface APIKeyResponse {
   has_api_key: boolean;
   api_key_masked: string | null;
+  api_key_full?: string | null;
 }

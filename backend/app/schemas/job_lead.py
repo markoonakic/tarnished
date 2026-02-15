@@ -179,17 +179,14 @@ class JobLeadExtractionInput(BaseModel):
     )
     salary_min: int | None = Field(
         None,
-        ge=0,
         description="Minimum salary in the posted range",
     )
     salary_max: int | None = Field(
         None,
-        ge=0,
         description="Maximum salary in the posted range",
     )
     salary_currency: str | None = Field(
         None,
-        max_length=10,
         description="Currency code (e.g., 'USD', 'EUR')",
     )
     recruiter_name: str | None = Field(
@@ -202,7 +199,6 @@ class JobLeadExtractionInput(BaseModel):
     )
     recruiter_linkedin_url: str | None = Field(
         None,
-        max_length=512,
         description="LinkedIn URL of the recruiter if available",
     )
     requirements_must_have: list[str] = Field(
@@ -219,17 +215,14 @@ class JobLeadExtractionInput(BaseModel):
     )
     years_experience_min: int | None = Field(
         None,
-        ge=0,
         description="Minimum years of experience required",
     )
     years_experience_max: int | None = Field(
         None,
-        ge=0,
         description="Maximum years of experience (for senior roles)",
     )
     source: str | None = Field(
         None,
-        max_length=100,
         description="Source platform (e.g., 'LinkedIn', 'Indeed', 'Company Website')",
     )
     posted_date: date | None = Field(

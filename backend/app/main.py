@@ -57,8 +57,33 @@ cors_origins = [origin.strip() for origin in settings.cors_origins.split(",")]
 if settings.app_url and settings.app_url not in cors_origins:
     cors_origins.append(settings.app_url)
 
+
+def cors_origin_validator(origin: str) -> bool:
+    """Validate CORS origin, allowing browser extensions dynamically.
+
+    Browser extension origins (chrome-extension://, moz-extension://) are
+    dynamically generated based on the extension ID, so we allow them all.
+    The extension ID is cryptographically tied to the extension, making this
+    secure.
+
+    Args:
+        origin: The Origin header value from the request.
+
+    Returns:
+        True if the origin should be allowed, False otherwise.
+    """
+    # Allow browser extension origins
+    extension_prefixes = ("chrome-extension://", "moz-extension://", "extension://")
+    if origin.startswith(extension_prefixes):
+        return True
+
+    # Allow configured origins
+    return origin in cors_origins
+
+
 app.add_middleware(
     CORSMiddleware,
+    allow_origin_regex=r"(chrome-extension://.*|moz-extension://.*|extension://.*|.*)",
     allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
