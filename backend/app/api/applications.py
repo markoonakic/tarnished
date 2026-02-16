@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_current_user_flexible
 from app.api.streak import record_streak_activity
 from app.models import Application, ApplicationStatus, ApplicationStatusHistory, Round, User
 from app.schemas.application import (
@@ -62,7 +62,7 @@ async def list_applications(
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
-    query = query.order_by(Application.applied_at.desc())
+    query = query.order_by(Application.applied_at.desc(), Application.created_at.desc())
     query = query.offset((page - 1) * per_page).limit(per_page)
 
     result = await db.execute(query)
@@ -79,7 +79,7 @@ async def list_applications(
 @router.post("", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED)
 async def create_application(
     data: ApplicationCreate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user_flexible),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
