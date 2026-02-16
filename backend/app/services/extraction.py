@@ -42,12 +42,12 @@ logger = logging.getLogger(__name__)
 DEFAULT_EXTRACTION_MODEL = "gpt-4o-mini"
 
 # System prompt for job extraction
-EXTRACTION_SYSTEM_PROMPT = """You are a job posting data extractor. Your task is to extract structured job posting information from the provided markdown content and return it as valid JSON.
+EXTRACTION_SYSTEM_PROMPT = """You are a job posting data extractor. Your task is to extract structured job posting information from the provided text content and return it as valid JSON.
 
 You must respond with ONLY a valid JSON object (no markdown code blocks, no extra text) with these fields:
 - title: string or null - The job title (e.g., "Senior Software Engineer")
 - company: string or null - The company name
-- description: string or null - Full job description in markdown format
+- description: string or null - Full job description (plain text summary of the role)
 - location: string or null - Job location (e.g., "San Francisco, CA" or "Remote")
 - salary_min: integer or null - Minimum salary (numeric only, no currency symbols)
 - salary_max: integer or null - Maximum salary (numeric only, no currency symbols)
@@ -55,8 +55,8 @@ You must respond with ONLY a valid JSON object (no markdown code blocks, no extr
 - recruiter_name: string or null - Name of recruiter if mentioned
 - recruiter_title: string or null - Title of recruiter (e.g., "Technical Recruiter")
 - recruiter_linkedin_url: string or null - LinkedIn URL of recruiter if available
-- requirements_must_have: array of strings - Must-have requirements
-- requirements_nice_to_have: array of strings - Nice-to-have requirements
+- requirements_must_have: array of strings - Must-have requirements (required qualifications)
+- requirements_nice_to_have: array of strings - Nice-to-have requirements (preferred qualifications)
 - skills: array of strings - Technical or soft skills required
 - years_experience_min: integer or null - Minimum years of experience
 - years_experience_max: integer or null - Maximum years of experience
@@ -64,13 +64,14 @@ You must respond with ONLY a valid JSON object (no markdown code blocks, no extr
 - posted_date: string or null - Date posted in YYYY-MM-DD format
 
 Instructions:
-1. Carefully analyze the job posting content
-2. Extract all available information
+1. Carefully analyze the job posting content - ignore navigation, headers, footers, and unrelated text
+2. Extract ALL available information - be thorough, don't skip fields
 3. If a field cannot be found, use null for optional fields or empty array [] for list fields
 4. For salary, extract only numeric values (no currency symbols or text)
 5. For dates, use ISO format (YYYY-MM-DD)
-6. If content is not a job posting, set all fields to null/empty
-7. Return ONLY valid JSON, no markdown code blocks or extra text
+6. Look for sections like "Requirements", "Qualifications", "Responsibilities", "Skills", "About the Role"
+7. If content is not a job posting, set all fields to null/empty
+8. Return ONLY valid JSON, no markdown code blocks or extra text
 
 The source URL is provided for context but data should come from the content."""
 
@@ -296,7 +297,7 @@ def _truncate_markdown(markdown: str, max_length: int) -> str:
 
 
 def extract_with_llm(
-    markdown_content: str,
+    content: str,
     url: str,
     model: str | None = None,
     api_key: str | None = None,
@@ -312,7 +313,7 @@ def extract_with_llm(
     with a correction prompt before failing.
 
     Args:
-        markdown_content: Preprocessed markdown content from the job posting.
+        content: Text content from the job posting (plain text or preprocessed).
         url: The source URL (included in prompt for context).
         model: Optional model override (e.g., "gpt-4", "cerebras/llama-3.3-70b").
                Falls back to DEFAULT_EXTRACTION_MODEL if not specified.
@@ -338,7 +339,7 @@ def extract_with_llm(
     user_message = f"""Source URL: {url}
 
 Job Posting Content:
-{markdown_content}"""
+{content}"""
 
     # Track retry state
     is_retry = False
@@ -522,8 +523,9 @@ Job Posting Content:
 
 
 async def extract_job_data(
-    html: str,
-    url: str,
+    html: str | None = None,
+    text: str | None = None,
+    url: str = "",
     model: str | None = None,
     api_key: str | None = None,
     api_base: str | None = None,
@@ -531,13 +533,13 @@ async def extract_job_data(
 ) -> JobLeadExtractionInput:
     """Main entry point for job data extraction.
 
-    Orchestrates the full extraction pipeline:
-    1. Preprocess HTML to clean markdown
-    2. Extract structured data using LLM
-    3. Validate and return results
+    Supports two modes:
+    1. Text mode (preferred): Pass text directly, skips preprocessing entirely
+    2. HTML mode (legacy): Pass HTML, preprocesses to markdown first
 
     Args:
-        html: Raw HTML content from the job posting page.
+        html: Raw HTML content from the job posting page (legacy mode).
+        text: Plain text content from the job posting page (preferred mode).
         url: The source URL of the job posting.
         model: Optional LLM model override.
         api_key: Optional API key for the LLM provider.
@@ -555,28 +557,40 @@ async def extract_job_data(
 
     Example:
         ```python
+        # Preferred: text mode
+        text = document.body.innerText
+        job_data = await extract_job_data(text=text, url=url)
+
+        # Legacy: HTML mode
         html = await fetch_job_posting(url)
-        try:
-            job_data = await extract_job_data(html, url)
-            print(f"Found job: {job_data.title} at {job_data.company}")
-        except NoJobFoundError:
-            print("No job posting found at this URL")
-        except ExtractionError as e:
-            print(f"Extraction failed: {e.message}")
+        job_data = await extract_job_data(html=html, url=url)
         ```
     """
     logger.info(f"Starting extraction for URL: {url}")
 
-    # Step 1: Preprocess HTML
-    try:
-        markdown_content = preprocess_html(html)
-    except ValueError as e:
-        logger.error(f"HTML preprocessing failed: {e}")
-        raise ExtractionError(f"Failed to preprocess HTML: {e}")
+    # Determine content to use
+    content: str
 
-    # Step 2: Extract with LLM
+    if text:
+        # Preferred: use text directly, no preprocessing
+        logger.info(f"Using text mode ({len(text)} chars)")
+        content = text.strip()
+        if not content:
+            raise ExtractionError("Text content is empty")
+    elif html:
+        # Legacy: preprocess HTML to markdown
+        logger.info(f"Using HTML mode ({len(html)} chars)")
+        try:
+            content = preprocess_html(html)
+        except ValueError as e:
+            logger.error(f"HTML preprocessing failed: {e}")
+            raise ExtractionError(f"Failed to preprocess HTML: {e}")
+    else:
+        raise ExtractionError("Either 'text' or 'html' must be provided")
+
+    # Extract with LLM
     job_data = extract_with_llm(
-        markdown_content=markdown_content,
+        content=content,
         url=url,
         model=model,
         api_key=api_key,

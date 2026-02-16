@@ -1,6 +1,7 @@
 from datetime import date, datetime
+from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.schemas.round import RoundResponse
 
@@ -73,9 +74,17 @@ class ApplicationListItem(BaseModel):
     salary_currency: str | None
     recruiter_name: str | None
     recruiter_linkedin_url: str | None
-    requirements_must_have: list[str]
-    requirements_nice_to_have: list[str]
+    requirements_must_have: list[str] = []
+    requirements_nice_to_have: list[str] = []
     source: str | None
+
+    @field_validator('requirements_must_have', 'requirements_nice_to_have', mode='before')
+    @classmethod
+    def convert_none_to_list(cls, v: Any) -> list[str]:
+        """Convert None to empty list for database compatibility."""
+        if v is None:
+            return []
+        return v
 
     class Config:
         from_attributes = True

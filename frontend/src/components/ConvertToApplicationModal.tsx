@@ -55,19 +55,16 @@ export default function ConvertToApplicationModal({
     try {
       const application = await convertToApplication(lead.id);
 
-      // Show success toast
-      toast.success('Job lead converted to application successfully');
-
       // Close modal
       onClose();
 
-      // Call callback if provided
+      // Call callback if provided (parent handles toast and navigation)
       if (onConverted) {
         onConverted(application.id);
+      } else {
+        // If no callback, navigate directly
+        navigate(`/applications/${application.id}`);
       }
-
-      // Navigate to the new application
-      navigate(`/applications/${application.id}`);
     } catch (err) {
       // Handle the case where backend endpoint is not implemented
       const errorMessage = err instanceof Error ? err.message : 'Failed to convert job lead';
