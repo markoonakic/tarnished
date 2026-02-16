@@ -62,3 +62,21 @@ export interface AutofillResult {
     score: number;
   }[];
 }
+
+/**
+ * Checks if the profile has any data that can be used for autofill.
+ */
+export function hasAutofillData(profile: AutofillProfile | null): boolean {
+  if (!profile) {
+    return false;
+  }
+
+  return (
+    !!profile.first_name ||
+    !!profile.last_name ||
+    !!profile.email ||
+    !!profile.phone ||
+    !!profile.location ||
+    !!profile.linkedin_url
+  );
+}
