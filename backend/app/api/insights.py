@@ -324,40 +324,31 @@ async def _get_analytics_for_insights(
         avg_days_between_rounds[round_type] = round(sum(days_list) / len(days_list), 1) if days_list else 0.0
 
     # Speed indicators - average time from application to first interview
+    # Use a subquery to get the minimum scheduled_at per application (avoids N+1 query)
+    earliest_round_subq = (
+        select(
+            Round.application_id,
+            func.min(Round.scheduled_at).label("first_scheduled")
+        )
+        .where(Round.scheduled_at.isnot(None))
+        .group_by(Round.application_id)
+        .subquery()
+    )
+
     result = await db.execute(
-        select(Application.id, Application.applied_at)
-        .join(Round, Round.application_id == Application.id)
-        .join(RoundType, Round.round_type_id == RoundType.id)
+        select(Application.id, Application.applied_at, earliest_round_subq.c.first_scheduled)
+        .join(earliest_round_subq, Application.id == earliest_round_subq.c.application_id)
         .where(
             Application.user_id == user_id,
             Application.applied_at >= start_date,
-            Round.scheduled_at.isnot(None),
         )
-        .distinct()
     )
     app_first_interview = result.all()
 
-    # Get earliest interview per application
-    app_to_first_round: dict[str, date] = {}
-    for app_row in app_first_interview:
-        app_id = app_row.id
-        if app_id not in app_to_first_interview:
-            # Query for earliest round for this app
-            round_result = await db.execute(
-                select(Round.scheduled_at)
-                .where(Round.application_id == app_id, Round.scheduled_at.isnot(None))
-                .order_by(Round.scheduled_at)
-                .limit(1)
-            )
-            first_round = round_result.first()
-            if first_round and first_round.scheduled_at:
-                app_to_first_round[app_id] = first_round.scheduled_at.date()
-
     days_to_first_interview = []
     for app_row in app_first_interview:
-        app_id = app_row.id
-        if app_id in app_to_first_round:
-            days = (app_to_first_round[app_id] - app_row.applied_at).days
+        if app_row.first_scheduled:
+            days = (app_row.first_scheduled.date() - app_row.applied_at).days
             if days >= 0:  # Only count positive values
                 days_to_first_interview.append(days)
 
@@ -445,7 +436,15 @@ async def _get_analytics_for_insights(
     weekday_rows = result.all()
 
     weekday_names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-    weekday_counts = {weekday_names[int(row.weekday)]: row.count for row in weekday_rows if row.weekday}
+    weekday_counts = {}
+    for row in weekday_rows:
+        if row.weekday is not None:
+            try:
+                idx = int(row.weekday)
+                if 0 <= idx < len(weekday_names):
+                    weekday_counts[weekday_names[idx]] = row.count
+            except (ValueError, TypeError):
+                pass
 
     # Find most active day
     most_active_day = max(weekday_counts, key=weekday_counts.get) if weekday_counts else None

@@ -5,7 +5,14 @@
 
 import browser from 'webextension-polyfill';
 import { getSettings, type Settings } from '../lib/storage';
-import { checkExistingLead, getProfile, type JobLeadResponse } from '../lib/api';
+import {
+  checkExistingLead,
+  getProfile,
+  createApplicationFromJob,
+  getStatuses,
+  type JobLeadResponse,
+  type StatusResponse,
+} from '../lib/api';
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
 import { getErrorMessage, isRecoverable, mapApiError } from '../lib/errors';
 
@@ -36,6 +43,14 @@ interface TabStatus {
 }
 
 /**
+ * Form detection state from content script
+ */
+interface FormDetectionState {
+  hasApplicationForm: boolean;
+  fillableFieldCount: number;
+}
+
+/**
  * Job info to display in the UI
  */
 interface JobInfo {
@@ -60,6 +75,20 @@ let currentTabUrl: string | null = null;
 /** Existing lead info (if any) */
 let existingLead: JobLeadResponse | null = null;
 
+/** Form detection state */
+let formDetection: FormDetectionState = {
+  hasApplicationForm: false,
+  fillableFieldCount: 0,
+};
+
+/** Settings dropdown open state */
+let settingsOpen = false;
+
+/** Auto-fill on page load setting */
+let autoFillOnLoad = false;
+
+/** Cached "Applied" status ID */
+let appliedStatusId: string | null = null;
 
 // ============================================================================
 // DOM Elements
@@ -78,11 +107,25 @@ const elements = {
   // Buttons
   settingsBtn: document.getElementById('settingsBtn'),
   openSettingsBtn: document.getElementById('openSettingsBtn'),
-  saveBtn: document.getElementById('saveBtn'),
+  saveAsLeadBtn: document.getElementById('saveAsLeadBtn'),
+  saveAsApplicationBtn: document.getElementById('saveAsApplicationBtn'),
   viewBtn: document.getElementById('viewBtn'),
   retryBtn: document.getElementById('retryBtn'),
   autofillBtnDetected: document.getElementById('autofillBtnDetected'),
   autofillBtnSaved: document.getElementById('autofillBtnSaved'),
+  autofillBtnOnly: document.getElementById('autofillBtnOnly'),
+
+  // Settings dropdown
+  settingsDropdown: document.getElementById('settingsDropdown'),
+  autoFillToggle: document.getElementById('autoFillToggle') as HTMLInputElement | null,
+
+  // Autofill sections
+  autofillDetectedSection: document.getElementById('autofillDetectedSection'),
+  autofillSavedSection: document.getElementById('autofillSavedSection'),
+  autofillOnlySection: document.getElementById('autofillOnlySection'),
+  autofillDetectedCount: document.getElementById('autofillDetectedCount'),
+  autofillSavedCount: document.getElementById('autofillSavedCount'),
+  autofillOnlyCount: document.getElementById('autofillOnlyCount'),
 
   // Job info displays
   jobTitle: document.getElementById('jobTitle'),
@@ -91,6 +134,8 @@ const elements = {
   savedJobTitle: document.getElementById('savedJobTitle'),
   savedJobCompany: document.getElementById('savedJobCompany'),
   savedJobLocation: document.getElementById('savedJobLocation'),
+  savedMessage: document.getElementById('savedMessage'),
+
   // Error display
   errorText: document.getElementById('errorText'),
 };
@@ -125,6 +170,39 @@ function showState(state: PopupState): void {
   const targetContainer = stateContainers[state];
   if (targetContainer) {
     targetContainer.classList.remove('hidden');
+  }
+
+  // Update autofill section visibility based on form detection
+  updateAutofillVisibility(state);
+}
+
+/**
+ * Updates the visibility of autofill sections based on form detection state
+ */
+function updateAutofillVisibility(state: PopupState): void {
+  const showAutofill = formDetection.hasApplicationForm && formDetection.fillableFieldCount >= 2;
+
+  // Update field counts
+  const countText = `${formDetection.fillableFieldCount} field${formDetection.fillableFieldCount !== 1 ? 's' : ''}`;
+  if (elements.autofillDetectedCount) {
+    elements.autofillDetectedCount.textContent = countText;
+  }
+  if (elements.autofillSavedCount) {
+    elements.autofillSavedCount.textContent = countText;
+  }
+  if (elements.autofillOnlyCount) {
+    elements.autofillOnlyCount.textContent = countText;
+  }
+
+  // Show/hide sections based on state
+  if (state === 'detected' && elements.autofillDetectedSection) {
+    elements.autofillDetectedSection.classList.toggle('hidden', !showAutofill);
+  }
+  if (state === 'saved' && elements.autofillSavedSection) {
+    elements.autofillSavedSection.classList.toggle('hidden', !showAutofill);
+  }
+  if (state === 'not-detected' && elements.autofillOnlySection) {
+    elements.autofillOnlySection.classList.toggle('hidden', !showAutofill);
   }
 }
 
@@ -164,6 +242,62 @@ function showError(message: string, recoverable: boolean = true): void {
 }
 
 // ============================================================================
+// Settings Dropdown
+// ============================================================================
+
+/**
+ * Toggles the settings dropdown visibility
+ */
+function toggleSettingsDropdown(): void {
+  settingsOpen = !settingsOpen;
+  if (elements.settingsDropdown) {
+    elements.settingsDropdown.classList.toggle('hidden', !settingsOpen);
+  }
+}
+
+/**
+ * Closes the settings dropdown if clicking outside
+ */
+function handleDocumentClick(event: MouseEvent): void {
+  const target = event.target as HTMLElement;
+  if (settingsOpen && elements.settingsBtn && !elements.settingsBtn.contains(target)) {
+    settingsOpen = false;
+    if (elements.settingsDropdown) {
+      elements.settingsDropdown.classList.add('hidden');
+    }
+  }
+}
+
+/**
+ * Handles the auto-fill toggle change
+ */
+async function handleAutoFillToggle(): Promise<void> {
+  autoFillOnLoad = elements.autoFillToggle?.checked ?? false;
+
+  // Save to storage
+  try {
+    await browser.storage.local.set({ autoFillOnLoad });
+  } catch (error) {
+    console.warn('Failed to save autoFillOnLoad setting:', error);
+  }
+}
+
+/**
+ * Loads the auto-fill on load setting from storage
+ */
+async function loadAutoFillSetting(): Promise<void> {
+  try {
+    const result = await browser.storage.local.get('autoFillOnLoad');
+    autoFillOnLoad = result.autoFillOnLoad ?? false;
+    if (elements.autoFillToggle) {
+      elements.autoFillToggle.checked = autoFillOnLoad;
+    }
+  } catch (error) {
+    console.warn('Failed to load autoFillOnLoad setting:', error);
+  }
+}
+
+// ============================================================================
 // Notifications
 // ============================================================================
 
@@ -193,6 +327,15 @@ function showSuccessNotification(title: string | null, company: string | null): 
   const jobTitle = title || 'Job Lead';
   const companyText = company ? ` at ${company}` : '';
   showNotification('Job Saved!', `${jobTitle}${companyText} has been saved to Job Leads.`);
+}
+
+/**
+ * Show a success notification for saved application
+ */
+function showApplicationSuccessNotification(title: string | null, company: string | null): void {
+  const jobTitle = title || 'Application';
+  const companyText = company ? ` at ${company}` : '';
+  showNotification('Application Added!', `${jobTitle}${companyText} has been added as an application.`);
 }
 
 /**
@@ -231,6 +374,25 @@ function openJobLeads(): void {
     })
     .catch((error) => {
       console.error('Failed to get settings for opening job leads:', error);
+    });
+}
+
+/**
+ * Opens the Applications page in the web app
+ */
+function openApplications(applicationId?: string): void {
+  getSettings()
+    .then((settings: Settings) => {
+      const serverUrl = settings.serverUrl || 'http://localhost:8000';
+      const url = applicationId
+        ? `${serverUrl}/applications/${applicationId}`
+        : `${serverUrl}/applications`;
+      browser.tabs.create({ url }).catch((error) => {
+        console.error('Failed to open applications:', error);
+      });
+    })
+    .catch((error) => {
+      console.error('Failed to get settings for opening applications:', error);
     });
 }
 
@@ -276,11 +438,105 @@ async function saveJobLead(): Promise<void> {
     // Show success notification
     showSuccessNotification(result.title, result.company);
 
-    // Show saved state
+    // Update saved message and show saved state
+    if (elements.savedMessage) {
+      elements.savedMessage.textContent = 'Saved to Job Leads';
+    }
     updateJobInfoDisplay(currentJobInfo, 'savedJob');
     showState('saved');
   } catch (error) {
     // Map API errors to user-friendly messages
+    const extensionError = mapApiError(error);
+    const message = getErrorMessage(extensionError);
+    showError(message, isRecoverable(extensionError));
+    showErrorNotification(message);
+  }
+}
+
+/**
+ * Gets the "Applied" status ID from the backend (cached)
+ */
+async function getAppliedStatusId(): Promise<string | null> {
+  if (appliedStatusId) {
+    return appliedStatusId;
+  }
+
+  try {
+    const statuses: StatusResponse[] = await getStatuses();
+    const appliedStatus = statuses.find(
+      (s) => s.name.toLowerCase() === 'applied'
+    );
+    if (appliedStatus) {
+      appliedStatusId = appliedStatus.id;
+    }
+    return appliedStatusId;
+  } catch (error) {
+    console.warn('Failed to get statuses:', error);
+    return null;
+  }
+}
+
+/**
+ * Saves the job directly as an application with "Applied" status
+ */
+async function saveAsApplication(): Promise<void> {
+  if (!currentTabUrl) {
+    const errorMsg = 'No URL to save';
+    showError(errorMsg);
+    showErrorNotification(errorMsg);
+    return;
+  }
+
+  showState('saving');
+
+  try {
+    // Get the "Applied" status ID
+    const statusId = await getAppliedStatusId();
+    if (!statusId) {
+      throw new Error('Could not find "Applied" status. Please ensure it exists in your application settings.');
+    }
+
+    // Get text content for job description
+    let jobDescription: string | undefined;
+    try {
+      jobDescription = await getTextFromContentScript();
+    } catch {
+      // Continue without description
+    }
+
+    // Create the application
+    const result = await createApplicationFromJob({
+      job_title: currentJobInfo.title || 'Unknown Position',
+      company: currentJobInfo.company || 'Unknown Company',
+      status_id: statusId,
+      job_url: currentTabUrl,
+      job_description: jobDescription,
+      applied_at: new Date().toISOString().split('T')[0],
+    });
+
+    // Show success notification
+    showApplicationSuccessNotification(result.job_title, result.company);
+
+    // Update saved message and show saved state
+    if (elements.savedMessage) {
+      elements.savedMessage.textContent = 'Added as Application';
+    }
+    currentJobInfo = {
+      title: result.job_title,
+      company: result.company,
+      location: null,
+    };
+    updateJobInfoDisplay(currentJobInfo, 'savedJob');
+
+    // Update view button to open applications page
+    if (elements.viewBtn) {
+      elements.viewBtn.textContent = 'View in App';
+      // Store the application ID for viewing
+      elements.viewBtn.dataset.applicationId = result.id;
+    }
+
+    showState('saved');
+  } catch (error) {
     const extensionError = mapApiError(error);
     const message = getErrorMessage(extensionError);
     showError(message, isRecoverable(extensionError));
@@ -375,6 +631,33 @@ async function getTextFromContentScript(): Promise<string> {
   }
 }
 
+/**
+ * Get form detection state from content script
+ */
+async function getFormDetectionFromContentScript(): Promise<FormDetectionState | null> {
+  if (!currentTabId) {
+    return null;
+  }
+
+  try {
+    const response = await browser.tabs.sendMessage(currentTabId, {
+      type: 'SCAN_FIELDS',
+    });
+
+    if (response && typeof response.fillableFieldCount === 'number') {
+      return {
+        hasApplicationForm: response.hasApplicationForm ?? false,
+        fillableFieldCount: response.fillableFieldCount,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.warn('Failed to get form detection from content script:', error);
+    return null;
+  }
+}
+
 // ============================================================================
 // State Determination
 // ============================================================================
@@ -442,7 +725,13 @@ async function determineState(): Promise<void> {
       }
     }
 
-    // Step 5: Check if this URL already exists as a job lead
+    // Step 5: Get form detection state
+    const formDetectionResult = await getFormDetectionFromContentScript();
+    if (formDetectionResult) {
+      formDetection = formDetectionResult;
+    }
+
+    // Step 6: Check if this URL already exists as a job lead
     try {
       existingLead = await checkExistingLead(currentTabUrl);
     } catch (error) {
@@ -450,7 +739,7 @@ async function determineState(): Promise<void> {
       // Continue without existing lead info - user can still try to save
     }
 
-    // Step 6: Determine the state to show
+    // Step 7: Determine the state to show
     if (existingLead) {
       // URL already saved - just show saved state
       currentJobInfo = {
@@ -458,6 +747,9 @@ async function determineState(): Promise<void> {
         company: existingLead.company,
         location: existingLead.location || null,
       };
+      if (elements.savedMessage) {
+        elements.savedMessage.textContent = 'Saved to Job Leads';
+      }
       updateJobInfoDisplay(currentJobInfo, 'savedJob');
       showState('saved');
     } else if (tabStatus && tabStatus.isJobPage) {
@@ -580,19 +872,43 @@ function extractLocationFromPage(): string | null {
  * Set up button click handlers
  */
 function setupEventListeners(): void {
-  elements.settingsBtn?.addEventListener('click', openSettings);
+  // Settings
+  elements.settingsBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleSettingsDropdown();
+  });
   elements.openSettingsBtn?.addEventListener('click', openSettings);
-  elements.saveBtn?.addEventListener('click', saveJobLead);
-  elements.viewBtn?.addEventListener('click', openJobLeads);
+  elements.autoFillToggle?.addEventListener('change', handleAutoFillToggle);
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', handleDocumentClick);
+
+  // Job actions
+  elements.saveAsLeadBtn?.addEventListener('click', saveJobLead);
+  elements.saveAsApplicationBtn?.addEventListener('click', saveAsApplication);
+  elements.viewBtn?.addEventListener('click', () => {
+    const applicationId = elements.viewBtn?.dataset.applicationId;
+    if (applicationId) {
+      openApplications(applicationId);
+    } else {
+      openJobLeads();
+    }
+  });
   elements.retryBtn?.addEventListener('click', retryAction);
+
+  // Autofill buttons
   elements.autofillBtnDetected?.addEventListener('click', autofillFormHandler);
   elements.autofillBtnSaved?.addEventListener('click', autofillFormHandler);
+  elements.autofillBtnOnly?.addEventListener('click', autofillFormHandler);
 }
 
 /**
  * Initialize the popup
  */
 async function init(): Promise<void> {
+  // Load auto-fill setting
+  await loadAutoFillSetting();
+
   // Set up event listeners
   setupEventListeners();
 
