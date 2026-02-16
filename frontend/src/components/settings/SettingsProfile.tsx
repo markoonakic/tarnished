@@ -4,7 +4,31 @@ import { useToast } from '@/hooks/useToast';
 import { getProfile, updateProfile } from '@/lib/profile';
 import type { UserProfile } from '@/lib/types';
 import Loading from '../Loading';
+import Dropdown, { type DropdownOption } from '../Dropdown';
 import { SettingsBackLink } from './SettingsLayout';
+
+// Common countries for the dropdown
+const COUNTRY_OPTIONS: DropdownOption[] = [
+  { value: '', label: 'Select country...' },
+  { value: 'United States', label: 'United States' },
+  { value: 'Canada', label: 'Canada' },
+  { value: 'United Kingdom', label: 'United Kingdom' },
+  { value: 'Germany', label: 'Germany' },
+  { value: 'France', label: 'France' },
+  { value: 'Australia', label: 'Australia' },
+  { value: 'India', label: 'India' },
+  { value: 'Netherlands', label: 'Netherlands' },
+  { value: 'Spain', label: 'Spain' },
+  { value: 'Italy', label: 'Italy' },
+  { value: 'Switzerland', label: 'Switzerland' },
+  { value: 'Singapore', label: 'Singapore' },
+  { value: 'Japan', label: 'Japan' },
+  { value: 'Ireland', label: 'Ireland' },
+  { value: 'Sweden', label: 'Sweden' },
+  { value: 'Brazil', label: 'Brazil' },
+  { value: 'Mexico', label: 'Mexico' },
+  { value: 'Other', label: 'Other' },
+];
 
 export default function SettingsProfile() {
   const toast = useToast();
@@ -40,6 +64,8 @@ export default function SettingsProfile() {
         phone: profile.phone,
         location: profile.location,
         linkedin_url: profile.linkedin_url,
+        city: profile.city,
+        country: profile.country,
       });
       toast.success('Profile saved successfully');
     } catch {
@@ -160,6 +186,31 @@ export default function SettingsProfile() {
               onChange={(e) => handleInputChange('linkedin_url', e.target.value)}
               placeholder="https://linkedin.com/in/johndoe"
               className="w-full bg-bg2 text-fg1 rounded px-3 py-2 focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out"
+            />
+          </div>
+
+          {/* City */}
+          <div>
+            <label className="text-sm text-muted block mb-1.5">City</label>
+            <input
+              type="text"
+              value={profile?.city || ''}
+              onChange={(e) => handleInputChange('city', e.target.value)}
+              placeholder="San Francisco"
+              className="w-full bg-bg2 text-fg1 rounded px-3 py-2 focus:ring-1 focus:ring-aqua-bright focus:outline-none transition-all duration-200 ease-in-out"
+            />
+          </div>
+
+          {/* Country */}
+          <div>
+            <label className="text-sm text-muted block mb-1.5">Country</label>
+            <Dropdown
+              options={COUNTRY_OPTIONS}
+              value={profile?.country || ''}
+              onChange={(value) => handleInputChange('country', value)}
+              placeholder="Select country..."
+              size="sm"
+              containerBackground="bg1"
             />
           </div>
         </div>
