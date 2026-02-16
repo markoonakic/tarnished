@@ -177,7 +177,7 @@ async def create_application_from_url(
     except ExtractionError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message)
 
-    # 4. Create the application with extracted data
+    # 4. Create the application with all extracted data
     application = Application(
         user_id=user.id,
         company=extracted.company or "Unknown Company",
@@ -186,9 +186,18 @@ async def create_application_from_url(
         job_url=data.url,
         status_id=data.status_id,
         applied_at=data.applied_at or date.today(),
+        # Salary fields
         salary_min=extracted.salary_min,
         salary_max=extracted.salary_max,
         salary_currency=extracted.salary_currency,
+        # Recruiter info
+        recruiter_name=extracted.recruiter_name,
+        recruiter_linkedin_url=extracted.recruiter_linkedin_url,
+        # Requirements
+        requirements_must_have=extracted.requirements_must_have or [],
+        requirements_nice_to_have=extracted.requirements_nice_to_have or [],
+        # Source
+        source=extracted.source,
     )
 
     db.add(application)
