@@ -3,7 +3,7 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_current_user_flexible
 from app.core.security import generate_api_token
 from app.models import ApplicationStatus, RoundType, User
 from app.schemas.settings import (
@@ -78,7 +78,7 @@ async def regenerate_api_key(
 
 @router.get("/statuses", response_model=list[StatusFullResponse])
 async def list_statuses(
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user_flexible),
     db: AsyncSession = Depends(get_db),
 ):
     # Get user's custom statuses first
