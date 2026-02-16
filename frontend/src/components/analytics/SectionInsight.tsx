@@ -10,7 +10,7 @@ export function SectionInsight({
   priorityActions,
 }: SectionInsightProps) {
   return (
-    <div className="bg-bg1 rounded-lg p-4 border-l-2 border-accent space-y-3 h-full">
+    <div className="bg-bg1 rounded-lg p-4 border-l-2 border-accent space-y-3 h-full flex flex-col">
       {/* Key Insight */}
       <div className="space-y-1">
         <div className="flex items-center gap-2">

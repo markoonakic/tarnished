@@ -52,45 +52,51 @@ export default function Analytics() {
 
         {/* Grouped Section Insights */}
         {insights && (
-          <section className="mb-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <section className="mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
               {/* Pipeline Guidance */}
-              <div>
+              <div className="flex flex-col">
                 <h3 className="text-fg1 font-medium mb-3 flex items-center gap-2">
                   <i className="bi-funnel text-accent icon-sm" />
                   Pipeline Guidance
                 </h3>
-                <SectionInsight
-                  keyInsight={insights.pipeline_overview.key_insight}
-                  trend={insights.pipeline_overview.trend}
-                  priorityActions={insights.pipeline_overview.priority_actions}
-                />
+                <div className="flex-1">
+                  <SectionInsight
+                    keyInsight={insights.pipeline_overview.key_insight}
+                    trend={insights.pipeline_overview.trend}
+                    priorityActions={insights.pipeline_overview.priority_actions}
+                  />
+                </div>
               </div>
 
               {/* Interview Guidance */}
-              <div>
+              <div className="flex flex-col">
                 <h3 className="text-fg1 font-medium mb-3 flex items-center gap-2">
                   <i className="bi-people text-accent icon-sm" />
                   Interview Guidance
                 </h3>
-                <SectionInsight
-                  keyInsight={insights.interview_analytics.key_insight}
-                  trend={insights.interview_analytics.trend}
-                  priorityActions={insights.interview_analytics.priority_actions}
-                />
+                <div className="flex-1">
+                  <SectionInsight
+                    keyInsight={insights.interview_analytics.key_insight}
+                    trend={insights.interview_analytics.trend}
+                    priorityActions={insights.interview_analytics.priority_actions}
+                  />
+                </div>
               </div>
 
               {/* Activity Guidance */}
-              <div>
+              <div className="flex flex-col">
                 <h3 className="text-fg1 font-medium mb-3 flex items-center gap-2">
                   <i className="bi-calendar-week text-accent icon-sm" />
                   Activity Guidance
                 </h3>
-                <SectionInsight
-                  keyInsight={insights.activity_tracking.key_insight}
-                  trend={insights.activity_tracking.trend}
-                  priorityActions={insights.activity_tracking.priority_actions}
-                />
+                <div className="flex-1">
+                  <SectionInsight
+                    keyInsight={insights.activity_tracking.key_insight}
+                    trend={insights.activity_tracking.trend}
+                    priorityActions={insights.activity_tracking.priority_actions}
+                  />
+                </div>
               </div>
             </div>
           </section>
