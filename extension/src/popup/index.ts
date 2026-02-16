@@ -90,6 +90,9 @@ let autoFillOnLoad = false;
 /** Cached "Applied" status ID */
 let appliedStatusId: string | null = null;
 
+/** Current popup state (for message handler updates) */
+let currentState: PopupState = 'loading';
+
 // ============================================================================
 // DOM Elements
 // ============================================================================
@@ -159,6 +162,9 @@ const stateContainers: Record<PopupState, HTMLElement | null> = {
  * Shows the specified state and hides all others
  */
 function showState(state: PopupState): void {
+  // Update current state tracking
+  currentState = state;
+
   // Hide all states
   Object.values(stateContainers).forEach((container) => {
     if (container) {
@@ -923,6 +929,27 @@ document.addEventListener('DOMContentLoaded', () => {
     showError('Failed to initialize');
   });
 });
+
+// ============================================================================
+// Runtime Message Listener
+// ============================================================================
+
+/**
+ * Listen for FORM_DETECTION_UPDATE messages from content script
+ * This allows the popup to update its UI when forms are dynamically detected
+ */
+browser.runtime.onMessage.addListener(
+  (message: { type: string; hasApplicationForm?: boolean; fillableFieldCount?: number }) => {
+    if (message.type === 'FORM_DETECTION_UPDATE') {
+      formDetection = {
+        hasApplicationForm: message.hasApplicationForm ?? false,
+        fillableFieldCount: message.fillableFieldCount ?? 0,
+      };
+      // Update autofill visibility based on new form detection state
+      updateAutofillVisibility(currentState);
+    }
+  }
+);
 
 // Export for module detection
 export {};
