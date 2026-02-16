@@ -24,15 +24,30 @@ function scanForFields(): void {
   formDetected = result.hasApplicationForm;
   fillableFieldCount = result.fillableFields.length;
 
-  // Debug logging
+  // Get all inputs on page for debugging
+  const allInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+    'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]):not([type="file"]), textarea'
+  );
+
+  // Debug logging - show all inputs found on page
   console.log('[Job Tracker] Field scan result:', {
+    totalInputsOnPage: allInputs.length,
     hasApplicationForm: result.hasApplicationForm,
     totalRelevantFields: result.totalRelevantFields,
     fillableFieldCount: result.fillableFieldCount,
-    fields: result.fillableFields.map(f => ({
+    fillableFields: result.fillableFields.map(f => ({
       type: f.fieldType,
       score: f.score,
       element: f.element.id || f.element.name || f.element.placeholder || 'unnamed',
+    })),
+    allInputs: Array.from(allInputs).slice(0, 10).map(input => ({
+      tag: input.tagName,
+      type: input.type,
+      id: input.id,
+      name: input.name,
+      placeholder: input.placeholder,
+      autocomplete: input.getAttribute('autocomplete'),
+      ariaLabel: input.getAttribute('aria-label'),
     })),
   });
 
