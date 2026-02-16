@@ -1,6 +1,4 @@
 interface SectionInsightProps {
-  title: string;
-  icon: string;
   keyInsight: string;
   trend: string;
   priorityActions: string[];
@@ -8,8 +6,6 @@ interface SectionInsightProps {
 }
 
 export function SectionInsight({
-  title,
-  icon,
   keyInsight,
   trend,
   priorityActions,
@@ -21,40 +17,37 @@ export function SectionInsight({
     neutral: 'bi-dash',
   }[trendDirection];
 
-  const trendColor = {
-    up: 'text-green',
-    down: 'text-red',
-    neutral: 'text-fg2',
-  }[trendDirection];
-
   return (
-    <div className="bg-bg1 rounded-lg p-4 border-l-2 border-accent">
-      {/* Title */}
-      <div className="flex items-center gap-2 mb-3">
-        <i className={`${icon} text-accent icon-sm`} />
-        <span className="text-fg1 font-medium text-sm">{title}</span>
+    <div className="bg-bg1 rounded-lg p-4 border-l-2 border-accent space-y-3">
+      {/* Key Insight */}
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <i className="bi-lightning-charge text-accent icon-sm" />
+          <span className="text-fg1 font-medium text-sm">Key Insight</span>
+        </div>
+        <p className="text-fg2 text-sm leading-relaxed">{keyInsight}</p>
       </div>
 
-      <div className="space-y-2">
-        {/* Key Insight */}
-        <div className="flex items-start gap-2">
-          <i className="bi-lightning-charge text-accent icon-xs mt-0.5 flex-shrink-0" />
-          <span className="text-fg1 text-sm">{keyInsight}</span>
+      {/* Trend */}
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <i className={`${trendIcon} text-accent icon-sm`} />
+          <span className="text-fg1 font-medium text-sm">Trend</span>
         </div>
+        <p className="text-fg2 text-sm leading-relaxed">{trend}</p>
+      </div>
 
-        {/* Trend */}
-        <div className="flex items-start gap-2">
-          <i className={`${trendIcon} ${trendColor} icon-xs mt-0.5 flex-shrink-0`} />
-          <span className="text-fg2 text-xs">{trend}</span>
+      {/* Priority Actions */}
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <i className="bi-signpost-2 text-accent icon-sm" />
+          <span className="text-fg1 font-medium text-sm">Priority Actions</span>
         </div>
-
-        {/* Actions */}
-        {priorityActions.map((action, i) => (
-          <div key={i} className="flex items-start gap-2">
-            <i className="bi-arrow-right text-fg2 icon-xs mt-0.5 flex-shrink-0" />
-            <span className="text-fg2 text-xs">{action}</span>
-          </div>
-        ))}
+        <ol className="list-decimal list-inside text-fg2 text-sm space-y-1">
+          {priorityActions.map((action, i) => (
+            <li key={i}>{action}</li>
+          ))}
+        </ol>
       </div>
     </div>
   );
