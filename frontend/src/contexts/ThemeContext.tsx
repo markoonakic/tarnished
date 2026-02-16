@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { api } from '../lib/api';
 
 interface Theme {
   id: string;
@@ -117,6 +118,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     initTheme();
   }, []);
 
+  // Sync theme settings to backend
+  const syncSettingsToBackend = useCallback(async (theme: string, accent: string) => {
+    try {
+      await api.patch('/users/settings', { theme, accent });
+    } catch (error) {
+      // Silent fail - backend sync is nice-to-have, not critical
+      console.warn('Failed to sync theme settings to backend:', error);
+    }
+  }, []);
+
   const setTheme = useCallback((themeId: string) => {
     localStorage.setItem('theme', themeId);
     document.documentElement.setAttribute('data-theme', themeId);
@@ -130,7 +141,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     requestAnimationFrame(() => {
       updateFavicon(getResolvedAccentColor(accentForTheme));
     });
-  }, [accentOverrides]);
+
+    // Sync to backend
+    syncSettingsToBackend(themeId, accentForTheme);
+  }, [accentOverrides, syncSettingsToBackend]);
 
   const setAccentColor = useCallback((colorName: string) => {
     // Update localStorage
@@ -145,7 +159,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     requestAnimationFrame(() => {
       updateFavicon(getResolvedAccentColor(colorName));
     });
-  }, [currentTheme, accentOverrides]);
+
+    // Sync to backend
+    syncSettingsToBackend(currentTheme, colorName);
+  }, [currentTheme, accentOverrides, syncSettingsToBackend]);
 
   const currentAccent = accentOverrides[currentTheme] || 'aqua';
 
