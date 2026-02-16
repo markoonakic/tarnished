@@ -49,18 +49,39 @@ export interface JobLeadListResponse {
 }
 
 /**
+ * Status response embedded in application responses.
+ */
+export interface StatusResponse {
+  id: string;
+  name: string;
+  color: string;
+}
+
+/**
  * Response from the applications API for a single application.
  */
 export interface ApplicationResponse {
   id: string;
-  title: string;
   company: string;
-  status: string;
-  location?: string | null;
-  salary?: string | null;
-  description?: string | null;
-  url?: string | null;
-  applied_at?: string | null;
+  job_title: string;
+  job_description: string | null;
+  job_url: string | null;
+  status: StatusResponse;
+  applied_at: string;
+  created_at: string;
+  updated_at: string;
+  cv_path: string | null;
+  cover_letter_path: string | null;
+  job_lead_id: string | null;
+  description: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  recruiter_name: string | null;
+  recruiter_linkedin_url: string | null;
+  requirements_must_have: string[];
+  requirements_nice_to_have: string[];
+  source: string | null;
 }
 
 /**
@@ -96,6 +117,7 @@ const API_ENDPOINTS = {
   JOB_LEADS: '/api/job-leads',
   PROFILE: '/api/profile',
   APPLICATIONS: '/api/applications',
+  STATUSES: '/api/statuses',
 } as const;
 
 // ============================================================================
@@ -543,6 +565,7 @@ export async function testConnection(): Promise<boolean> {
  * Create an application directly (skipping job lead conversion).
  *
  * @param data - The application data to create
+ * @param data.status_id - UUID of the status to use (e.g., "Applied" status)
  * @returns The created application response
  * @throws AuthenticationError if the API key is invalid
  * @throws TimeoutError if the request times out
@@ -550,12 +573,15 @@ export async function testConnection(): Promise<boolean> {
  * @throws ServerError if the server returns an error
  */
 export async function createApplicationFromJob(data: {
-  title: string;
+  job_title: string;
   company: string;
-  location?: string;
-  salary?: string;
-  description?: string;
-  url?: string;
+  status_id: string;
+  job_url?: string;
+  job_description?: string;
+  salary_min?: number;
+  salary_max?: number;
+  salary_currency?: string;
+  applied_at?: string;
 }): Promise<ApplicationResponse> {
   const settings = (await getSettings()) as Settings;
   const { serverUrl, apiKey } = settings;
@@ -576,15 +602,67 @@ export async function createApplicationFromJob(data: {
         'X-API-Key': apiKey,
       },
       body: JSON.stringify({
-        title: data.title,
+        job_title: data.job_title,
         company: data.company,
-        location: data.location || null,
-        salary: data.salary || null,
-        description: data.description || null,
-        url: data.url || null,
-        status: 'Applied',
-        applied_at: new Date().toISOString().split('T')[0],
+        status_id: data.status_id,
+        job_url: data.job_url || null,
+        job_description: data.job_description || null,
+        salary_min: data.salary_min || null,
+        salary_max: data.salary_max || null,
+        salary_currency: data.salary_currency || null,
+        applied_at: data.applied_at || new Date().toISOString().split('T')[0],
       }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const error = await parseErrorResponse(response);
+
+      switch (response.status) {
+        case 401:
+          throw new AuthenticationError(error.detail);
+        case 408:
+          throw new TimeoutError(error.detail);
+        default:
+          if (response.status >= 500) {
+            throw new ServerError(error.message, response.status);
+          }
+          throw new ApiClientError(error.message, response.status);
+      }
+    }
+
+    return response.json();
+  } catch (error) {
+    handleFetchError(error);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Fetches the list of application statuses from the backend.
+ *
+ * @returns Array of status objects with id, name, color, is_default, order
+ * @throws AuthenticationError if the API key is invalid
+ * @throws TimeoutError if the request times out
+ * @throws NetworkError if there's a network error
+ */
+export async function getStatuses(): Promise<StatusResponse[]> {
+  const settings = (await getSettings()) as Settings;
+  const { serverUrl, apiKey } = settings;
+
+  if (!serverUrl || !apiKey) {
+    throw new AuthenticationError('Server URL or API key not configured. Please check your extension settings.');
+  }
+
+  const { controller, timeoutId } = createTimeoutController();
+
+  try {
+    const response = await fetch(`${serverUrl}${API_ENDPOINTS.STATUSES}`, {
+      method: 'GET',
+      headers: {
+        'X-API-Key': apiKey,
+      },
       signal: controller.signal,
     });
 
