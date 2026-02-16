@@ -6,6 +6,48 @@
 import browser from 'webextension-polyfill';
 import { getProfile } from '../lib/api';
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
+import { ThemeColors, UserSettings, DEFAULT_COLORS } from '../lib/theme';
+
+const SETTINGS_STORAGE_KEY = 'themeSettings';
+
+async function fetchThemeSettings(): Promise<ThemeColors> {
+  const { apiUrl, apiKey } = await browser.storage.local.get(['apiUrl', 'apiKey']);
+
+  if (!apiUrl || !apiKey) {
+    console.log('Extension not configured, using default colors');
+    return DEFAULT_COLORS;
+  }
+
+  try {
+    const response = await fetch(`${apiUrl}/users/settings`, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch settings: ${response.status}`);
+    }
+
+    const settings: UserSettings = await response.json();
+
+    // Cache settings for popup
+    await browser.storage.local.set({ [SETTINGS_STORAGE_KEY]: settings.colors });
+
+    return settings.colors;
+  } catch (error) {
+    console.error('Failed to fetch theme settings:', error);
+
+    // Try to use cached settings
+    const cached = await browser.storage.local.get(SETTINGS_STORAGE_KEY);
+    if (cached[SETTINGS_STORAGE_KEY]) {
+      return cached[SETTINGS_STORAGE_KEY];
+    }
+
+    return DEFAULT_COLORS;
+  }
+}
 
 /**
  * Status information for a tracked tab
