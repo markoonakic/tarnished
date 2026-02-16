@@ -19,7 +19,9 @@ JobLeadStatus = Annotated[str, Field(pattern="^(pending|extracted|failed)$")]
 class JobLeadCreate(BaseModel):
     """Request schema for creating a new job lead.
 
-    Users submit a URL and optional HTML content for extraction.
+    Users submit a URL and optional content for extraction.
+    Prefer 'text' (plain text from page) for simpler, more reliable extraction.
+    'html' is kept for backward compatibility but not recommended.
     """
 
     url: str = Field(
@@ -28,10 +30,15 @@ class JobLeadCreate(BaseModel):
         max_length=2048,
         description="The URL of the job posting",
     )
+    text: str | None = Field(
+        None,
+        max_length=100_000,
+        description="Plain text content from the job posting page (preferred, max 100KB)",
+    )
     html: str | None = Field(
         None,
         max_length=500_000,
-        description="Optional pre-fetched HTML content of the job posting (max 500KB)",
+        description="Optional pre-fetched HTML content (legacy, max 500KB)",
     )
 
     @field_validator("url")

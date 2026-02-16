@@ -3,7 +3,7 @@
   "name": "Job Tracker",
   "version": "1.0.0",
   "description": "Save job postings to Job Tracker",
-  "permissions": ["activeTab", "storage", "notifications"],
+  "permissions": ["activeTab", "storage", "notifications", "scripting"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup/popup.html",
@@ -23,13 +23,18 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content/index.js"],
-      "run_at": "document_idle",
-      "all_frames": true
+      "run_at": "document_idle"
     }
   ],
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["content/iframe-scanner.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

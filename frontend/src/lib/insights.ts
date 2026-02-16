@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { API_BASE } from './api';
 
 export interface SectionInsight {
   key_insight: string;
@@ -18,8 +18,15 @@ export interface GraceInsights {
  * Check if AI is configured for insights
  */
 export async function isAIConfigured(): Promise<boolean> {
+  const token = localStorage.getItem('access_token');
+  if (!token) {
+    return false;
+  }
+
   const response = await fetch(`${API_BASE}/api/analytics/insights/configured`, {
-    credentials: 'include',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 
   if (!response.ok) {
@@ -34,12 +41,17 @@ export async function isAIConfigured(): Promise<boolean> {
  * Generate AI insights for analytics
  */
 export async function generateInsights(period: string): Promise<GraceInsights> {
+  const token = localStorage.getItem('access_token');
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
   const response = await fetch(`${API_BASE}/api/analytics/insights`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
     },
-    credentials: 'include',
     body: JSON.stringify({ period }),
   });
 

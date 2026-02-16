@@ -26,7 +26,7 @@ from app.models import SystemSettings, User
 from app.models.application import Application
 from app.models.job_lead import JobLead
 from app.models.status import ApplicationStatus
-from app.schemas.application import ApplicationResponse
+from app.schemas.application import ApplicationListItem
 from app.schemas.job_lead import (
     JobLeadCreate,
     JobLeadListResponse,
@@ -210,13 +210,20 @@ async def create_job_lead(
             detail=f"A job lead already exists for this URL. ID: {existing.id}",
         )
 
-    # Step 1: Fetch HTML content (use provided HTML or fetch from URL)
-    if data.html:
+    # Step 1: Get content for extraction
+    # Prefer text (direct from extension), fall back to HTML, then fetch from URL
+    if data.text:
+        logger.debug(f"Using provided text content ({len(data.text)} chars)")
+        html_content = None
+        text_content = data.text
+    elif data.html:
+        logger.debug(f"Using provided HTML content ({len(data.html)} chars)")
         html_content = data.html
-        logger.debug(f"Using provided HTML content ({len(html_content)} chars)")
+        text_content = None
     else:
         html_content = await _fetch_html(url)
         logger.debug(f"Fetched HTML content ({len(html_content)} chars)")
+        text_content = None
 
     # Step 2: Extract job data using AI
     # Get AI settings from database
@@ -224,8 +231,9 @@ async def create_job_lead(
 
     try:
         extracted = await extract_job_data(
-            html_content,
-            url,
+            html=html_content,
+            text=text_content,
+            url=url,
             model=ai_model,
             api_key=ai_api_key,
             api_base=ai_api_base,
@@ -560,7 +568,7 @@ async def delete_job_lead(
     await db.commit()
 
 
-@router.post("/{job_lead_id}/convert", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/{job_lead_id}/convert", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED)
 async def convert_job_lead_to_application(
     job_lead_id: str,
     user: User = Depends(get_current_user),
@@ -609,7 +617,7 @@ async def convert_job_lead_to_application(
             detail="Job lead must have status 'extracted' to convert",
         )
 
-    if job_lead.converted_at is not None:
+    if job_lead.converted_to_application_id is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Job lead has already been converted to an application",
@@ -661,14 +669,30 @@ async def convert_job_lead_to_application(
 
     db.add(application)
 
-    # Step 5: Mark the job lead as converted
-    job_lead.converted_at = datetime.utcnow()
+    # Flush to get the application ID before committing
+    await db.flush()
+
+    # Step 5: Set the job_lead_id on the application (for reference)
+    # Note: We keep the job lead until the application is successfully created,
+    # then delete it to clean up
 
     await db.commit()
-    await db.refresh(application)
+
+    # Eagerly load the status relationship before returning
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(Application)
+        .options(selectinload(Application.status))
+        .where(Application.id == application.id)
+    )
+    application = result.scalars().first()
+
+    # Step 6: Delete the job lead after successful conversion
+    await db.delete(job_lead)
+    await db.commit()
 
     logger.info(
-        f"Successfully converted job lead {job_lead.id} to application {application.id}: {application.job_title} at {application.company}"
+        f"Successfully converted job lead to application {application.id}: {application.job_title} at {application.company}"
     )
 
     return application

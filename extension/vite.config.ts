@@ -58,6 +58,7 @@ export default defineConfig({
       input: {
         background: resolve(__dirname, 'src/background/index.ts'),
         content: resolve(__dirname, 'src/content/index.ts'),
+        'iframe-scanner': resolve(__dirname, 'src/content/iframe-scanner.ts'),
         popup: resolve(__dirname, 'src/popup/index.ts'),
         options: resolve(__dirname, 'src/options/index.ts'),
       },
@@ -70,6 +71,9 @@ export default defineConfig({
           if (chunkInfo.name === 'content') {
             return 'content/index.js';
           }
+          if (chunkInfo.name === 'iframe-scanner') {
+            return 'content/iframe-scanner.js';
+          }
           if (chunkInfo.name === 'popup') {
             return 'popup/index.js';
           }
@@ -80,6 +84,18 @@ export default defineConfig({
         },
         chunkFileNames: 'chunks/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
+        // Ensure content scripts are self-contained
+        manualChunks: (id) => {
+          // Don't split code that's used by content scripts
+          if (id.includes('src/content/') || id.includes('src/lib/autofill/')) {
+            return undefined; // Keep in the entry chunk
+          }
+          // Split shared vendor code for popup/options/background
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+          return undefined;
+        },
       },
     },
     target: 'es2020',
@@ -88,56 +104,59 @@ export default defineConfig({
   },
   plugins: [
     copyPublicFiles(),
-    // Plugin to inline content script dependencies (but keep shared chunks for others)
+    // Plugin to inline content script and iframe-scanner dependencies (but keep shared chunks for others)
     {
-      name: 'inline-content-script',
+      name: 'inline-content-scripts',
       enforce: 'post',
       generateBundle(options, bundle) {
-        // Find the content script
-        const contentScript = bundle['content/index.js'];
-        if (!contentScript || contentScript.type !== 'chunk') return;
+        // Scripts that need to be self-contained (inlined)
+        const scriptsToInline = ['content/index.js', 'content/iframe-scanner.js'];
 
-        // Get all imports from content script
-        const imports = [...(contentScript.imports || [])];
-        if (imports.length === 0) return;
+        for (const scriptName of scriptsToInline) {
+          const script = bundle[scriptName];
+          if (!script || script.type !== 'chunk') continue;
 
-        // Inline all imported chunks into content script
-        let code = contentScript.code;
-        const chunksToDelete = new Set<string>();
+          // Get all imports from script
+          const imports = [...(script.imports || [])];
+          if (imports.length === 0) continue;
 
-        for (const importPath of imports) {
-          const chunk = bundle[importPath];
-          if (chunk && chunk.type === 'chunk') {
-            // Prepend the chunk's code
-            code = chunk.code + '\n' + code;
-            chunksToDelete.add(importPath);
-          }
-        }
+          // Inline all imported chunks into script
+          let code = script.code;
+          const chunksToDelete = new Set<string>();
 
-        // Remove import statements from code
-        code = code.replace(/^import\s+.*?;\s*$/gm, '');
-        code = code.replace(/^import\s+.*?from\s+['"].*?['"];\s*$/gm, '');
-
-        // Remove export statements
-        code = code.replace(/^export\s+\{[^}]*\};\s*$/gm, '');
-        code = code.replace(/^export\s+default\s+[^;]+;\s*$/gm, '');
-
-        contentScript.code = code.trim();
-        contentScript.imports = [];
-
-        // Only delete chunks that are ONLY used by content script
-        // Check if any other entry point uses these chunks
-        for (const chunkPath of chunksToDelete) {
-          let usedByOther = false;
-          for (const [name, item] of Object.entries(bundle)) {
-            if (item.type === 'chunk' && name !== 'content/index.js' && item.imports?.includes(chunkPath)) {
-              usedByOther = true;
-              break;
+          for (const importPath of imports) {
+            const chunk = bundle[importPath];
+            if (chunk && chunk.type === 'chunk') {
+              // Prepend the chunk's code
+              code = chunk.code + '\n' + code;
+              chunksToDelete.add(importPath);
             }
           }
-          if (!usedByOther) {
-            delete bundle[chunkPath];
-            delete bundle[chunkPath + '.map'];
+
+          // Remove import statements from code
+          code = code.replace(/^import\s+.*?;\s*$/gm, '');
+          code = code.replace(/^import\s+.*?from\s+['"].*?['"];\s*$/gm, '');
+
+          // Remove export statements
+          code = code.replace(/^export\s+\{[^}]*\};\s*$/gm, '');
+          code = code.replace(/^export\s+default\s+[^;]+;\s*$/gm, '');
+
+          script.code = code.trim();
+          script.imports = [];
+
+          // Only delete chunks that are ONLY used by inlined scripts
+          for (const chunkPath of chunksToDelete) {
+            let usedByOther = false;
+            for (const [name, item] of Object.entries(bundle)) {
+              if (item.type === 'chunk' && !scriptsToInline.includes(name) && item.imports?.includes(chunkPath)) {
+                usedByOther = true;
+                break;
+              }
+            }
+            if (!usedByOther) {
+              delete bundle[chunkPath];
+              delete bundle[chunkPath + '.map'];
+            }
           }
         }
       },

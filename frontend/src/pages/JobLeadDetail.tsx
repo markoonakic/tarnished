@@ -60,8 +60,9 @@ export default function JobLeadDetail() {
   }
 
   async function handleConverted(applicationId: string) {
-    // Refresh the job lead to get the updated converted_to_application_id
-    await loadJobLead();
+    // Job lead is deleted after conversion, so navigate to the new application
+    toast.success('Job lead converted to application');
+    navigate(`/applications/${applicationId}`);
   }
 
   function formatDateTime(dateStr: string | null) {
