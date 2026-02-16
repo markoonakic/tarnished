@@ -8,6 +8,8 @@ export interface UserProfileUpdate {
   phone?: string | null;
   location?: string | null;
   linkedin_url?: string | null;
+  city?: string | null;
+  country?: string | null;
   authorized_to_work?: string | null;
   requires_sponsorship?: boolean | null;
 }
