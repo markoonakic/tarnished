@@ -32,9 +32,9 @@ specs/
 .ralph/
 .claude/handoff*.md
 
-# Design guidelines - working documents that vary by environment
-frontend/DESIGN_GUIDELINES.md
-backend/DESIGN_GUIDELINES.md
+# Design guidelines are committed to the repo for consistency
+# frontend/DESIGN_GUIDELINES.md
+# backend/DESIGN_GUIDELINES.md
 
 # Playwright MCP screenshots and snapshots
 .playwright-mcp/
