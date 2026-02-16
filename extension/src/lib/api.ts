@@ -453,7 +453,8 @@ export interface UserProfileResponse {
   last_name: string | null;
   email: string | null;
   phone: string | null;
-  location: string | null;
+  city: string | null;
+  country: string | null;
   linkedin_url: string | null;
 }
 

@@ -6,7 +6,8 @@ export interface AutofillProfile {
   last_name: string | null;
   email: string | null;
   phone: string | null;
-  location: string | null;
+  city: string | null;
+  country: string | null;
   linkedin_url: string | null;
 }
 
@@ -77,7 +78,8 @@ export function hasAutofillData(profile: AutofillProfile | null): boolean {
     !!profile.last_name ||
     !!profile.email ||
     !!profile.phone ||
-    !!profile.location ||
+    !!profile.city ||
+    !!profile.country ||
     !!profile.linkedin_url
   );
 }

@@ -34,6 +34,9 @@ const tabFormDetectionState = new Map<number, FormDetectionState>();
 // Auto-fill on page load setting
 let autoFillOnLoad = false;
 
+// Track pending iframe injection requests
+const pendingIframeInjections = new Map<number, string[]>();
+
 // ============================================================================
 // Auto-Fill Setting Management
 // ============================================================================
@@ -65,7 +68,8 @@ async function triggerAutoFill(tabId: number): Promise<void> {
       last_name: profile.last_name,
       email: profile.email,
       phone: profile.phone,
-      location: profile.location,
+      city: profile.city,
+      country: profile.country,
       linkedin_url: profile.linkedin_url,
     };
 
@@ -187,6 +191,23 @@ browser.runtime.onMessage.addListener((message, sender) => {
     return Promise.resolve(tabStatus.get(message.tabId) || null);
   }
 
+  // From content script: request injection into iframe
+  if (message.type === 'INJECT_INTO_IFRAME' && sender.tab?.id) {
+    // We need to use scripting API to inject into iframes
+    // Note: This requires the iframe to be same-origin with a host_permissions match
+    // For truly cross-origin iframes, the content script already handles it via postMessage
+    console.log('[Job Tracker] Received iframe injection request:', message.frameSrc);
+
+    // Store the frame src for potential retry
+    const tabId = sender.tab.id;
+    if (!pendingIframeInjections.has(tabId)) {
+      pendingIframeInjections.set(tabId, []);
+    }
+    pendingIframeInjections.get(tabId)?.push(message.frameSrc);
+
+    return Promise.resolve({ success: true });
+  }
+
   return Promise.resolve(undefined);
 });
 
@@ -215,6 +236,7 @@ function updateBadge(tabId: number, isJobPage: boolean): void {
 browser.tabs.onRemoved.addListener((tabId) => {
   tabStatus.delete(tabId);
   tabFormDetectionState.delete(tabId);
+  pendingIframeInjections.delete(tabId);
 });
 
 export {};
