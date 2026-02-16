@@ -512,11 +512,20 @@ async function saveAsApplication(): Promise<void> {
       return;
     }
 
+    // Get text content from content script (same as job leads)
+    let text: string | undefined;
+    try {
+      text = await getTextFromContentScript();
+    } catch {
+      // Continue without text - backend will try to fetch HTML
+    }
+
     // Extract and create application using server-side LLM extraction
     const result = await extractApplication({
       url: currentTabUrl,
       status_id: statusId,
       applied_at: new Date().toISOString().split('T')[0],
+      text,
     });
 
     // Show success notification

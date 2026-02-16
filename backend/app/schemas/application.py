@@ -11,6 +11,7 @@ class ApplicationExtractRequest(BaseModel):
     url: str
     status_id: str
     applied_at: date | None = None
+    text: str | None = None  # Optional page text content from extension
 
 
 class ApplicationCreate(BaseModel):

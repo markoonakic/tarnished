@@ -647,6 +647,7 @@ export interface ApplicationExtractRequest {
   url: string;
   status_id: string;
   applied_at?: string;
+  text?: string; // Optional page text content - recommended for better extraction
 }
 
 /**

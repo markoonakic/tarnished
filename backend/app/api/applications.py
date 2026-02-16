@@ -141,11 +141,16 @@ async def create_application_from_url(
     if not result.scalars().first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
 
-    # 2. Fetch HTML from URL
-    try:
-        html_content = await _fetch_html(data.url)
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Failed to fetch URL: {str(e)}")
+    # 2. Get content for extraction - prefer text from extension, fall back to fetching HTML
+    if data.text:
+        html_content = None
+        text_content = data.text
+    else:
+        try:
+            html_content = await _fetch_html(data.url)
+            text_content = None
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Failed to fetch URL: {str(e)}")
 
     # 3. Get AI settings and extract job data
     ai_model, ai_api_key, ai_api_base = await _get_ai_settings(db)
@@ -153,7 +158,7 @@ async def create_application_from_url(
     try:
         extracted = await extract_job_data(
             html=html_content,
-            text=None,
+            text=text_content,
             url=data.url,
             model=ai_model,
             api_key=ai_api_key,
