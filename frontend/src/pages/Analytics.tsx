@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import SankeyChart from '../components/SankeyChart';
 import ActivityHeatmap from '../components/ActivityHeatmap';
@@ -8,24 +9,46 @@ import WeeklyActivityChart from '../components/analytics/WeeklyActivityChart';
 import InterviewFunnel from '../components/analytics/InterviewFunnel';
 import InterviewOutcomes from '../components/analytics/InterviewOutcomes';
 import InterviewTimeline from '../components/analytics/InterviewTimeline';
-import { GraceInsights } from '@/components/analytics/GraceInsights';
+import { SeekGraceButton } from '@/components/analytics/SeekGraceButton';
+import { OverallGrace } from '@/components/analytics/OverallGrace';
+import { SectionInsight } from '@/components/analytics/SectionInsight';
+import { useGraceInsights } from '@/hooks/useGraceInsights';
+import { useToast } from '@/hooks/useToast';
 
 export default function Analytics() {
   const [searchParams] = useSearchParams();
   const period = searchParams.get('period') || '7d';
+
+  const { configured, loading, insights, error, seekGrace } = useGraceInsights(period);
+  const toast = useToast();
+
+  // Show error toast when error occurs
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error, toast]);
 
   return (
     <Layout>
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-fg1">Analytics</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-fg1">Analytics</h1>
+            {configured && (
+              <SeekGraceButton onSeekGrace={seekGrace} loading={loading} />
+            )}
+          </div>
           <PeriodSelector />
         </div>
 
+        {/* Overall Grace Message */}
+        {insights && (
+          <OverallGrace message={insights.overall_grace} />
+        )}
+
         <div className="space-y-6">
-          {/* Grace Period Analysis */}
-          <GraceInsights period={period} />
 
           {/* SECTION 1: Pipeline Overview */}
           <section>
@@ -34,6 +57,14 @@ export default function Analytics() {
             {/* TIER 1: Executive Summary KPIs */}
             <div className="bg-bg1 rounded-lg p-6 mb-4">
               <AnalyticsKPIs period={period} />
+              {insights?.pipeline_overview && (
+                <SectionInsight
+                  keyInsight={insights.pipeline_overview.key_insight}
+                  trend={insights.pipeline_overview.trend}
+                  priorityActions={insights.pipeline_overview.priority_actions}
+                  trendDirection="neutral"
+                />
+              )}
             </div>
 
             {/* TIER 1: Pipeline Funnel (Sankey) */}
@@ -57,6 +88,14 @@ export default function Analytics() {
 
               <div className="bg-bg1 rounded-lg p-6">
                 <InterviewTimeline period={period} />
+                {insights?.interview_analytics && (
+                  <SectionInsight
+                    keyInsight={insights.interview_analytics.key_insight}
+                    trend={insights.interview_analytics.trend}
+                    priorityActions={insights.interview_analytics.priority_actions}
+                    trendDirection="neutral"
+                  />
+                )}
               </div>
             </div>
           </section>
@@ -68,6 +107,14 @@ export default function Analytics() {
             {/* Weekly Activity (migrated to ECharts) */}
             <div className="bg-bg1 rounded-lg p-6 mb-4">
               <WeeklyActivityChart period={period} />
+              {insights?.activity_tracking && (
+                <SectionInsight
+                  keyInsight={insights.activity_tracking.key_insight}
+                  trend={insights.activity_tracking.trend}
+                  priorityActions={insights.activity_tracking.priority_actions}
+                  trendDirection="neutral"
+                />
+              )}
             </div>
 
             {/* Activity Heatmap */}
