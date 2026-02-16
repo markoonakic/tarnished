@@ -64,7 +64,6 @@ export default function Analytics() {
                   keyInsight={insights.pipeline_overview.key_insight}
                   trend={insights.pipeline_overview.trend}
                   priorityActions={insights.pipeline_overview.priority_actions}
-                  trendDirection="neutral"
                 />
               </div>
 
@@ -78,7 +77,6 @@ export default function Analytics() {
                   keyInsight={insights.interview_analytics.key_insight}
                   trend={insights.interview_analytics.trend}
                   priorityActions={insights.interview_analytics.priority_actions}
-                  trendDirection="neutral"
                 />
               </div>
 
@@ -92,7 +90,6 @@ export default function Analytics() {
                   keyInsight={insights.activity_tracking.key_insight}
                   trend={insights.activity_tracking.trend}
                   priorityActions={insights.activity_tracking.priority_actions}
-                  trendDirection="neutral"
                 />
               </div>
             </div>
