@@ -439,3 +439,28 @@ button:focus-visible {
 .btn.secondary.green:hover {
   background: var(--green-bright);
 }
+
+/* Settings dropdown divider and link */
+.settings-divider {
+  height: 1px;
+  background: var(--bg2);
+  margin: 4px 0;
+}
+
+.settings-link {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 13px;
+  color: var(--fg2);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.settings-link:hover {
+  background: var(--bg2);
+  color: var(--fg0);
+}

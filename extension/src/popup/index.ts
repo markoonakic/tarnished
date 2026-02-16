@@ -121,6 +121,7 @@ const elements = {
   // Settings dropdown
   settingsDropdown: document.getElementById('settingsDropdown'),
   autoFillToggle: document.getElementById('autoFillToggle') as HTMLInputElement | null,
+  openSettingsFromDropdown: document.getElementById('openSettingsFromDropdown'),
 
   // Autofill sections
   autofillDetectedSection: document.getElementById('autofillDetectedSection'),
@@ -266,11 +267,16 @@ function toggleSettingsDropdown(): void {
  */
 function handleDocumentClick(event: MouseEvent): void {
   const target = event.target as HTMLElement;
-  if (settingsOpen && elements.settingsBtn && !elements.settingsBtn.contains(target)) {
+  // Don't close if clicking inside the dropdown or on the settings button
+  if (
+    settingsOpen &&
+    elements.settingsBtn &&
+    !elements.settingsBtn.contains(target) &&
+    elements.settingsDropdown &&
+    !elements.settingsDropdown.contains(target)
+  ) {
     settingsOpen = false;
-    if (elements.settingsDropdown) {
-      elements.settingsDropdown.classList.add('hidden');
-    }
+    elements.settingsDropdown.classList.add('hidden');
   }
 }
 
@@ -499,7 +505,10 @@ async function saveAsApplication(): Promise<void> {
     // Get the "Applied" status ID
     const statusId = await getAppliedStatusId();
     if (!statusId) {
-      throw new Error('Could not find "Applied" status. Please ensure it exists in your application settings.');
+      const errorMsg = 'Could not find "Applied" status. Please ensure it exists in your application settings.';
+      showError(errorMsg, true);
+      showErrorNotification(errorMsg);
+      return;
     }
 
     // Get text content for job description
@@ -884,6 +893,14 @@ function setupEventListeners(): void {
     toggleSettingsDropdown();
   });
   elements.openSettingsBtn?.addEventListener('click', openSettings);
+  elements.openSettingsFromDropdown?.addEventListener('click', () => {
+    // Close dropdown and open settings
+    settingsOpen = false;
+    if (elements.settingsDropdown) {
+      elements.settingsDropdown.classList.add('hidden');
+    }
+    openSettings();
+  });
   elements.autoFillToggle?.addEventListener('change', handleAutoFillToggle);
 
   // Close dropdown when clicking outside
