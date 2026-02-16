@@ -29,6 +29,7 @@ from app.api.user_preferences import router as user_preferences_router
 from app.api.streak import router as streak_router
 from app.api.ai_settings import router as ai_settings_router
 from app.api.insights import router as insights_router
+from app.api.users import router as users_router
 from app.core.config import get_settings
 from app.core.database import async_session_maker
 from app.core.logging_config import setup_logging
@@ -156,6 +157,7 @@ app.include_router(user_preferences_router)
 app.include_router(streak_router)
 app.include_router(ai_settings_router)
 app.include_router(insights_router, prefix="/api/analytics", tags=["insights"])
+app.include_router(users_router)
 
 
 @app.get("/health")
