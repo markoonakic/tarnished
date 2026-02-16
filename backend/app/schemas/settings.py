@@ -59,3 +59,40 @@ class APIKeyResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ThemeColors(BaseModel):
+    """Resolved color values for extension consumption."""
+    bg0: str
+    bg1: str
+    bg2: str
+    bg3: str
+    bg4: str
+    fg0: str
+    fg1: str
+    fg2: str
+    fg3: str
+    fg4: str
+    accent: str
+    accent_bright: str
+    red: str
+    green: str
+
+
+class UserSettings(BaseModel):
+    """User theme and accent preferences."""
+    theme: Optional[str] = None
+    accent: Optional[str] = None
+
+
+class UserSettingsResponse(BaseModel):
+    """Full settings response with resolved colors."""
+    theme: str
+    accent: str
+    colors: ThemeColors
+
+
+class UserSettingsUpdate(BaseModel):
+    """Payload for updating settings."""
+    theme: Optional[str] = None
+    accent: Optional[str] = None
