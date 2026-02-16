@@ -1,6 +1,8 @@
 """Import service using introspective deserialization."""
+from datetime import datetime, date
 from typing import Any
-from sqlalchemy.orm import Session
+from sqlalchemy import inspect, DateTime, Date
+from sqlalchemy.orm import Session, Mapper
 from uuid import uuid4
 
 from app.services.export_registry import ExportRegistry
@@ -15,6 +17,7 @@ class ImportService:
     """
 
     SUPPORTED_VERSION = "1.0"
+    RELATIONSHIP_PREFIX = "__rel__"
 
     def __init__(self, registry: ExportRegistry, id_mapper: IDMapper):
         """
@@ -88,6 +91,10 @@ class ImportService:
             model_class = exportable_model.model_class
             model_name = model_class.__name__
 
+            # Skip User model - we're importing for an existing user
+            if model_name == "User":
+                continue
+
             if model_name not in export_data["models"]:
                 continue
 
@@ -107,6 +114,59 @@ class ImportService:
             counts[model_name] = imported
 
         return counts
+
+    def _get_column_info(self, model_class: type) -> dict[str, Any]:
+        """
+        Get column information for a model.
+
+        Args:
+            model_class: SQLAlchemy model class
+
+        Returns:
+            Dictionary mapping column names to column objects
+        """
+        mapper: Mapper = inspect(model_class)
+        return {column.key: column for column in mapper.columns}
+
+    def _deserialize_value(self, value: Any, column) -> Any:
+        """
+        Deserialize a value based on the column type.
+
+        Args:
+            value: The serialized value
+            column: SQLAlchemy column object
+
+        Returns:
+            Deserialized value appropriate for the column type
+        """
+        if value is None:
+            return None
+
+        # Check for datetime types
+        column_type = column.type
+        if isinstance(column_type, DateTime):
+            if isinstance(value, datetime):
+                return value
+            if isinstance(value, str):
+                # Parse ISO format datetime string
+                try:
+                    # Handle strings with Z suffix
+                    if value.endswith('Z'):
+                        value = value[:-1] + '+00:00'
+                    return datetime.fromisoformat(value)
+                except ValueError:
+                    pass
+        elif isinstance(column_type, Date):
+            if isinstance(value, date):
+                return value
+            if isinstance(value, str):
+                # Parse ISO format date string
+                try:
+                    return date.fromisoformat(value)
+                except ValueError:
+                    pass
+
+        return value
 
     def _import_record(
         self,
@@ -133,11 +193,23 @@ class ImportService:
         # Generate new ID
         new_id = str(uuid4())
 
-        # Build data for new record
+        # Get column info for this model
+        columns = self._get_column_info(model_class)
+
+        # Build data for new record - only include valid column fields
         new_data: dict[str, Any] = {}
 
         for key, value in record_data.items():
+            # Skip metadata fields
             if key == "__original_id__":
+                continue
+
+            # Skip relationship-prefixed fields (they're serialized separately)
+            if key.startswith(self.RELATIONSHIP_PREFIX):
+                continue
+
+            # Only include fields that are actual columns on the model
+            if key not in columns:
                 continue
 
             # Remap foreign keys if this looks like an FK field
@@ -148,13 +220,16 @@ class ImportService:
                     new_value = self.id_mapper.get(ref_model, value)
                     value = new_value if new_value else value
 
+            # Deserialize value based on column type
+            value = self._deserialize_value(value, columns[key])
+
             new_data[key] = value
 
         # Set new ID
         new_data["id"] = new_id
 
         # Set user_id if model has it
-        if hasattr(model_class, 'user_id'):
+        if 'user_id' in columns:
             new_data["user_id"] = user_id
 
         # Create instance
