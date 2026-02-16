@@ -88,26 +88,32 @@ export function fillField(
 
   const truncatedValue = truncateToMaxLength(value, element);
 
-  // 1. Focus - initializes framework handlers ("touched" state)
-  element.focus();
+  try {
+    // 1. Focus - initializes framework handlers ("touched" state)
+    element.focus();
 
-  // 2. Set value using native setter (bypasses React interception)
-  setNativeValue(element, truncatedValue);
+    // 2. Set value using native setter (bypasses React interception)
+    setNativeValue(element, truncatedValue);
 
-  // 3. Dispatch input event (triggers React onChange)
-  element.dispatchEvent(
-    new Event('input', { bubbles: true, composed: true })
-  );
+    // 3. Dispatch input event (triggers React onChange)
+    element.dispatchEvent(
+      new Event('input', { bubbles: true, composed: true })
+    );
 
-  // 4. Dispatch change event (triggers legacy validation)
-  element.dispatchEvent(
-    new Event('change', { bubbles: true, composed: true })
-  );
+    // 4. Dispatch change event (triggers legacy validation)
+    element.dispatchEvent(
+      new Event('change', { bubbles: true, composed: true })
+    );
 
-  // 5. Blur - triggers final validation and "enable submit" logic
-  element.blur();
+    // 5. Blur - triggers final validation and "enable submit" logic
+    element.blur();
 
-  return true;
+    return true;
+  } catch {
+    // If the page's event handlers throw errors, still consider it filled
+    // if the value was set
+    return element.value === truncatedValue;
+  }
 }
 
 /**

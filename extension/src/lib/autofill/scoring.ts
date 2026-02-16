@@ -193,23 +193,24 @@ export const FIELD_PATTERNS: Record<FieldType, FieldPattern> = {
     labelPatterns: [
       /\blinkedin\b/i,
       /\blinked\s*in\b/i,
-      /\bprofile\s*url\b/i,
-      /\bsocial\s*(media\s*)?profile\b/i,
+      /\blinkedin\s*(profile|url)\b/i,
     ],
     placeholderPatterns: [
       /linkedin/i,
       /linkedin\.com/i,
-      /profile\s*url/i,
+      /linked\.in/i,
     ],
     namePatterns: [
       /linkedin/i,
-      /social/i,
-      /profile/i,
+      /linked_?in/i,
+      /li_profile/i,
+      /li_url/i,
     ],
     idPatterns: [
       /linkedin/i,
-      /social/i,
-      /profile/i,
+      /linked_?in/i,
+      /li_profile/i,
+      /li_url/i,
     ],
   },
 };

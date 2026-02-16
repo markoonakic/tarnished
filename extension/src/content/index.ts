@@ -19,6 +19,13 @@ const MAX_SCAN_RETRIES = 5;
 const SCAN_RETRY_DELAY = 1000; // 1 second
 
 /**
+ * Check if this is the top-level frame (not an iframe)
+ */
+function isTopFrame(): boolean {
+  return window.self === window.top;
+}
+
+/**
  * Scan for fillable fields and update state.
  */
 function scanForFields(): void {
@@ -36,47 +43,51 @@ function scanForFields(): void {
   const iframes = document.querySelectorAll('iframe');
   const hasIframes = iframes.length > 0;
 
-  // Debug logging - show all inputs found on page
-  console.log('[Job Tracker] Field scan result:', {
-    totalInputsOnPage: allInputs.length,
-    hasApplicationForm: result.hasApplicationForm,
-    totalRelevantFields: result.totalRelevantFields,
-    fillableFieldCount: result.fillableFields.length,
-    hasIframes,
-    iframeCount: iframes.length,
-    fillableFields: result.fillableFields.map(f => ({
-      type: f.fieldType,
-      score: f.score,
-      element: f.element.id || f.element.name || f.element.placeholder || 'unnamed',
-    })),
-    allInputs: Array.from(allInputs).slice(0, 10).map(input => ({
-      tag: input.tagName,
-      type: input.type,
-      id: input.id,
-      name: input.name,
-      placeholder: input.placeholder,
-      autocomplete: input.getAttribute('autocomplete'),
-      ariaLabel: input.getAttribute('aria-label'),
-    })),
-  });
+  // Debug logging - only in top frame to reduce noise
+  if (isTopFrame()) {
+    console.log('[Job Tracker] Field scan result:', {
+      totalInputsOnPage: allInputs.length,
+      hasApplicationForm: result.hasApplicationForm,
+      totalRelevantFields: result.totalRelevantFields,
+      fillableFieldCount: result.fillableFields.length,
+      hasIframes,
+      iframeCount: iframes.length,
+      fillableFields: result.fillableFields.map(f => ({
+        type: f.fieldType,
+        score: f.score,
+        element: f.element.id || f.element.name || f.element.placeholder || 'unnamed',
+      })),
+      allInputs: Array.from(allInputs).slice(0, 10).map(input => ({
+        tag: input.tagName,
+        type: input.type,
+        id: input.id,
+        name: input.name,
+        placeholder: input.placeholder,
+        autocomplete: input.getAttribute('autocomplete'),
+        ariaLabel: input.getAttribute('aria-label'),
+      })),
+    });
+  }
 
   // If no inputs found and we haven't exhausted retries, try again later
   // (handles lazy-loaded forms like iCIMS)
-  if (allInputs.length === 0 && scanRetryCount < MAX_SCAN_RETRIES) {
+  if (allInputs.length === 0 && scanRetryCount < MAX_SCAN_RETRIES && isTopFrame()) {
     scanRetryCount++;
     console.log(`[Job Tracker] No inputs found, retrying in ${SCAN_RETRY_DELAY}ms (attempt ${scanRetryCount}/${MAX_SCAN_RETRIES})`);
     setTimeout(scanForFields, SCAN_RETRY_DELAY);
     return;
   }
 
-  // Notify background script of form detection state
-  browser.runtime.sendMessage({
-    type: 'FORM_DETECTION_UPDATE',
-    hasApplicationForm: formDetected,
-    fillableFieldCount,
-  }).catch(() => {
-    // Ignore errors if background script not ready
-  });
+  // Only send updates from top frame to avoid conflicting with iframe scans
+  if (isTopFrame()) {
+    browser.runtime.sendMessage({
+      type: 'FORM_DETECTION_UPDATE',
+      hasApplicationForm: formDetected,
+      fillableFieldCount,
+    }).catch(() => {
+      // Ignore errors if background script not ready
+    });
+  }
 }
 
 // ============================================================================
