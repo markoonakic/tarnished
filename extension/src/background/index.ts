@@ -153,6 +153,13 @@ browser.runtime.onMessage.addListener((message, sender) => {
   if (message.type === 'FORM_DETECTION_UPDATE' && sender.tab?.id) {
     const tabId = sender.tab.id;
 
+    console.log('[Job Tracker] Form detection update:', {
+      tabId,
+      hasApplicationForm: message.hasApplicationForm,
+      fillableFieldCount: message.fillableFieldCount,
+      autoFillOnLoad,
+    });
+
     // Store form detection state for this tab
     tabFormDetectionState.set(tabId, {
       hasApplicationForm: message.hasApplicationForm,
@@ -165,6 +172,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
       message.hasApplicationForm &&
       message.fillableFieldCount >= 2
     ) {
+      console.log('[Job Tracker] Triggering auto-fill for tab', tabId);
       // Small delay to ensure the form is fully rendered
       setTimeout(() => {
         triggerAutoFill(tabId);

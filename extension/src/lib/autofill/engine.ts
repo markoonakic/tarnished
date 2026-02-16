@@ -9,14 +9,29 @@ import { fillField } from './filling';
 /**
  * Field type to profile field mapping.
  */
-const FIELD_TO_PROFILE: Record<FieldType, keyof AutofillProfile> = {
+const FIELD_TO_PROFILE: Record<FieldType, keyof AutofillProfile | '__combined__'> = {
   first_name: 'first_name',
   last_name: 'last_name',
+  full_name: '__combined__', // Special handling: combines first_name + last_name
   email: 'email',
   phone: 'phone',
   location: 'location',
   linkedin_url: 'linkedin_url',
 };
+
+/**
+ * Get the value for a field type from the profile.
+ * Handles combined fields like full_name.
+ */
+function getFieldValue(fieldType: FieldType, profile: AutofillProfile): string | null {
+  if (fieldType === 'full_name') {
+    const parts = [profile.first_name, profile.last_name].filter(Boolean);
+    return parts.length > 0 ? parts.join(' ') : null;
+  }
+
+  const profileKey = FIELD_TO_PROFILE[fieldType] as keyof AutofillProfile;
+  return profile[profileKey];
+}
 
 /**
  * Autofill engine class.
@@ -51,8 +66,7 @@ export class AutofillEngine {
     };
 
     for (const scoredField of scanResult.fillableFields) {
-      const profileKey = FIELD_TO_PROFILE[scoredField.fieldType];
-      const value = profile[profileKey];
+      const value = getFieldValue(scoredField.fieldType, profile);
 
       const fieldResult = {
         fieldType: scoredField.fieldType,

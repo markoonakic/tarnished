@@ -14,7 +14,7 @@ import type { FieldType, FieldPattern, ScoredField } from './types';
 /**
  * Score thresholds.
  */
-export const SCORE_THRESHOLD = 50;
+export const SCORE_THRESHOLD = 30;
 
 /**
  * Score weights for each signal type.
@@ -82,6 +82,35 @@ export const FIELD_PATTERNS: Record<FieldType, FieldPattern> = {
       /lname/i,
       /surname/i,
       /family_?name/i,
+    ],
+  },
+  full_name: {
+    autocomplete: ['name', 'full-name', 'fullname'],
+    labelPatterns: [
+      /\bfull\s*name\b/i,
+      /\byour\s*name\b/i,
+      /\bname\b/i,
+      /\bapplicant\s*name\b/i,
+      /\bcandidate\s*name\b/i,
+    ],
+    placeholderPatterns: [
+      /full\s*name/i,
+      /your\s*name/i,
+      /e\.g\.\s*john\s*doe/i,
+      /enter\s*your\s*name/i,
+    ],
+    namePatterns: [
+      /full_?name/i,
+      /applicant_?name/i,
+      /candidate_?name/i,
+      /user_?name/i,
+      /^name$/i,
+    ],
+    idPatterns: [
+      /full_?name/i,
+      /applicant_?name/i,
+      /candidate_?name/i,
+      /user_?name/i,
     ],
   },
   email: {

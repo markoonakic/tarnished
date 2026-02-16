@@ -16,6 +16,7 @@ export interface AutofillProfile {
 export type FieldType =
   | 'first_name'
   | 'last_name'
+  | 'full_name'
   | 'email'
   | 'phone'
   | 'location'

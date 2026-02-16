@@ -24,6 +24,18 @@ function scanForFields(): void {
   formDetected = result.hasApplicationForm;
   fillableFieldCount = result.fillableFields.length;
 
+  // Debug logging
+  console.log('[Job Tracker] Field scan result:', {
+    hasApplicationForm: result.hasApplicationForm,
+    totalRelevantFields: result.totalRelevantFields,
+    fillableFieldCount: result.fillableFieldCount,
+    fields: result.fillableFields.map(f => ({
+      type: f.fieldType,
+      score: f.score,
+      element: f.element.id || f.element.name || f.element.placeholder || 'unnamed',
+    })),
+  });
+
   // Notify background script of form detection state
   browser.runtime.sendMessage({
     type: 'FORM_DETECTION_UPDATE',

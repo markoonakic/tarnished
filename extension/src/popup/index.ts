@@ -187,7 +187,8 @@ function showState(state: PopupState): void {
  * Updates the visibility of autofill sections based on form detection state
  */
 function updateAutofillVisibility(state: PopupState): void {
-  const showAutofill = formDetection.hasApplicationForm && formDetection.fillableFieldCount >= 2;
+  // Show autofill section if we have at least 1 fillable field OR if we detected an application form
+  const showAutofill = formDetection.hasApplicationForm || formDetection.fillableFieldCount >= 1;
 
   // Update field counts
   const countText = `${formDetection.fillableFieldCount} field${formDetection.fillableFieldCount !== 1 ? 's' : ''}`;
