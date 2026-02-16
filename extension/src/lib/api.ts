@@ -49,6 +49,21 @@ export interface JobLeadListResponse {
 }
 
 /**
+ * Response from the applications API for a single application.
+ */
+export interface ApplicationResponse {
+  id: string;
+  title: string;
+  company: string;
+  status: string;
+  location?: string | null;
+  salary?: string | null;
+  description?: string | null;
+  url?: string | null;
+  applied_at?: string | null;
+}
+
+/**
  * Error response from the API.
  */
 export interface ApiError {
@@ -70,8 +85,8 @@ interface Settings {
 // Constants
 // ============================================================================
 
-/** Maximum HTML content size (100KB) */
-const MAX_HTML_SIZE = 100_000;
+/** Maximum text content size (100KB) */
+const MAX_TEXT_SIZE = 100_000;
 
 /** Request timeout in milliseconds (30 seconds) */
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -80,6 +95,7 @@ const REQUEST_TIMEOUT_MS = 30_000;
 const API_ENDPOINTS = {
   JOB_LEADS: '/api/job-leads',
   PROFILE: '/api/profile',
+  APPLICATIONS: '/api/applications',
 } as const;
 
 // ============================================================================
@@ -199,16 +215,16 @@ export class ServerError extends ApiClientError {
 // ============================================================================
 
 /**
- * Truncates HTML content if it exceeds the maximum size.
- * @param html - The HTML content to truncate
- * @returns Truncated HTML content
+ * Truncates text content if it exceeds the maximum size.
+ * @param text - The text content to truncate
+ * @returns Truncated text content
  */
-function truncateHtml(html: string): string {
-  if (html.length > MAX_HTML_SIZE) {
-    console.warn(`HTML content truncated from ${html.length} to ${MAX_HTML_SIZE} characters`);
-    return html.substring(0, MAX_HTML_SIZE);
+function truncateText(text: string): string {
+  if (text.length > MAX_TEXT_SIZE) {
+    console.warn(`Text content truncated from ${text.length} to ${MAX_TEXT_SIZE} characters`);
+    return text.substring(0, MAX_TEXT_SIZE);
   }
-  return html;
+  return text;
 }
 
 /**
@@ -288,7 +304,7 @@ function extractExistingId(message: string): string | undefined {
  * Saves a job lead to the backend.
  *
  * @param url - The URL of the job posting
- * @param html - The HTML content of the job posting (will be truncated if too large)
+ * @param text - The text content of the job posting (will be truncated if too large)
  * @returns The created job lead response
  * @throws AuthenticationError if the API key is invalid
  * @throws DuplicateLeadError if a job lead already exists for this URL
@@ -296,7 +312,7 @@ function extractExistingId(message: string): string | undefined {
  * @throws NetworkError if there's a network error
  * @throws ServerError if the server returns an error
  */
-export async function saveJobLead(url: string, html: string): Promise<JobLeadResponse> {
+export async function saveJobLead(url: string, text: string): Promise<JobLeadResponse> {
   const settings = (await getSettings()) as Settings;
   const { serverUrl, apiKey } = settings;
 
@@ -304,7 +320,7 @@ export async function saveJobLead(url: string, html: string): Promise<JobLeadRes
     throw new AuthenticationError('Server URL or API key not configured. Please check your extension settings.');
   }
 
-  const truncatedHtml = truncateHtml(html);
+  const truncatedText = truncateText(text);
   const { controller, timeoutId } = createTimeoutController();
 
   try {
@@ -314,7 +330,7 @@ export async function saveJobLead(url: string, html: string): Promise<JobLeadRes
         'Content-Type': 'application/json',
         'X-API-Key': apiKey,
       },
-      body: JSON.stringify({ url, html: truncatedHtml }),
+      body: JSON.stringify({ url, text: truncatedText }),
       signal: controller.signal,
     });
 
@@ -518,6 +534,79 @@ export async function testConnection(): Promise<boolean> {
     }
 
     throw new NetworkError(error instanceof Error ? error.message : 'Connection failed');
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Create an application directly (skipping job lead conversion).
+ *
+ * @param data - The application data to create
+ * @returns The created application response
+ * @throws AuthenticationError if the API key is invalid
+ * @throws TimeoutError if the request times out
+ * @throws NetworkError if there's a network error
+ * @throws ServerError if the server returns an error
+ */
+export async function createApplicationFromJob(data: {
+  title: string;
+  company: string;
+  location?: string;
+  salary?: string;
+  description?: string;
+  url?: string;
+}): Promise<ApplicationResponse> {
+  const settings = (await getSettings()) as Settings;
+  const { serverUrl, apiKey } = settings;
+
+  if (!serverUrl || !apiKey) {
+    throw new AuthenticationError(
+      'Server URL or API key not configured. Please check your extension settings.'
+    );
+  }
+
+  const { controller, timeoutId } = createTimeoutController();
+
+  try {
+    const response = await fetch(`${serverUrl}${API_ENDPOINTS.APPLICATIONS}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+      },
+      body: JSON.stringify({
+        title: data.title,
+        company: data.company,
+        location: data.location || null,
+        salary: data.salary || null,
+        description: data.description || null,
+        url: data.url || null,
+        status: 'Applied',
+        applied_at: new Date().toISOString().split('T')[0],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const error = await parseErrorResponse(response);
+
+      switch (response.status) {
+        case 401:
+          throw new AuthenticationError(error.detail);
+        case 408:
+          throw new TimeoutError(error.detail);
+        default:
+          if (response.status >= 500) {
+            throw new ServerError(error.message, response.status);
+          }
+          throw new ApiClientError(error.message, response.status);
+      }
+    }
+
+    return response.json();
+  } catch (error) {
+    handleFetchError(error);
   } finally {
     clearTimeout(timeoutId);
   }
