@@ -207,25 +207,31 @@ export default function ApplicationDetail() {
                 rel="noopener noreferrer"
                 className="text-accent hover:text-accent-bright transition-all duration-200 ease-in-out text-sm cursor-pointer"
               >
-                View Job Posting &rarr;
+                Open Job Page &rarr;
               </a>
             </div>
           )}
 
-          {application.job_description && (
-            <div className="mb-4">
-              <h3 className="text-muted text-sm mb-2">Job Description</h3>
-              <p className="text-primary whitespace-pre-wrap break-words">{application.job_description}</p>
+          {/* Source Badge - inline with header like job leads */}
+          {application.source && (
+            <div className="mb-4 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-bg2 text-fg1">
+                <i className="bi-link-45deg icon-xs"></i>
+                {application.source}
+              </span>
             </div>
           )}
 
-          {/* Source Badge - if converted from job lead */}
-          {application.source && (
-            <div className="mb-4">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-bg2 text-fg1">
-                <i className="bi-link-45deg icon-xs"></i>
-                Source: {application.source}
-              </span>
+          {/* Job Description - styled like job leads */}
+          {application.job_description && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-file-text icon-sm"></i>
+                Description
+              </h3>
+              <div className="text-primary whitespace-pre-wrap break-words text-sm">
+                {application.job_description}
+              </div>
             </div>
           )}
 
@@ -301,19 +307,6 @@ export default function ApplicationDetail() {
                   <li key={index} className="text-sm">{req}</li>
                 ))}
               </ul>
-            </div>
-          )}
-
-          {/* Full Description - if available (from job lead extraction) */}
-          {application.description && (
-            <div className="mb-4 p-4 bg-bg2 rounded-lg">
-              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
-                <i className="bi-file-text icon-sm"></i>
-                Full Description
-              </h3>
-              <div className="text-primary whitespace-pre-wrap break-words text-sm">
-                {application.description}
-              </div>
             </div>
           )}
 
