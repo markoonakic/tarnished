@@ -8,6 +8,7 @@ import WeeklyActivityChart from '../components/analytics/WeeklyActivityChart';
 import InterviewFunnel from '../components/analytics/InterviewFunnel';
 import InterviewOutcomes from '../components/analytics/InterviewOutcomes';
 import InterviewTimeline from '../components/analytics/InterviewTimeline';
+import { GraceInsights } from '@/components/analytics/GraceInsights';
 
 export default function Analytics() {
   const [searchParams] = useSearchParams();
@@ -23,6 +24,9 @@ export default function Analytics() {
         </div>
 
         <div className="space-y-6">
+          {/* Grace Period Analysis */}
+          <GraceInsights period={period} />
+
           {/* SECTION 1: Pipeline Overview */}
           <section>
             <h2 className="text-lg font-semibold text-fg1 mb-4">Pipeline Overview</h2>
