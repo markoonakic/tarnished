@@ -516,9 +516,13 @@ async function saveAsApplication(): Promise<void> {
     let text: string | undefined;
     try {
       text = await getTextFromContentScript();
-    } catch {
+      console.log('Got text from content script:', text?.substring(0, 100));
+    } catch (e) {
+      console.warn('Failed to get text from content script:', e);
       // Continue without text - backend will try to fetch HTML
     }
+
+    console.log('Calling extractApplication with text:', !!text, 'length:', text?.length);
 
     // Extract and create application using server-side LLM extraction
     const result = await extractApplication({

@@ -688,6 +688,7 @@ export async function extractApplication(
         url: data.url,
         status_id: data.status_id,
         applied_at: data.applied_at || new Date().toISOString().split('T')[0],
+        text: data.text ? truncateText(data.text) : undefined,
       }),
       signal: controller.signal,
     });

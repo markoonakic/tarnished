@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.deps import get_current_user, get_current_user_flexible
+from app.core.deps import get_current_user, get_current_user_flexible, get_current_user_by_api_token
 from app.api.streak import record_streak_activity
 from app.models import Application, ApplicationStatus, ApplicationStatusHistory, Round, User
 from app.schemas.application import (
@@ -124,7 +124,7 @@ async def create_application(
 @router.post("/extract", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED)
 async def create_application_from_url(
     data: ApplicationExtractRequest,
-    user: User = Depends(get_current_user_flexible),
+    user: User = Depends(get_current_user_by_api_token),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -142,6 +142,10 @@ async def create_application_from_url(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
 
     # 2. Get content for extraction - prefer text from extension, fall back to fetching HTML
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Extract request - URL: {data.url}, has_text: {bool(data.text)}, text_length: {len(data.text) if data.text else 0}")
+
     if data.text:
         html_content = None
         text_content = data.text
