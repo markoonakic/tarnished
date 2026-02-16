@@ -2,10 +2,12 @@
 
 import asyncio
 import logging
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import create_engine, select
+from sqlalchemy import case, create_engine, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session as SyncSession
 
@@ -13,7 +15,7 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.security import decrypt_api_key
-from app.models import SystemSettings, User
+from app.models import Application, ApplicationStatus, Round, RoundType, SystemSettings, User
 from app.schemas.insights import GraceInsights, InsightsRequest
 from app.services.insights import generate_insights
 
@@ -28,6 +30,9 @@ settings = get_settings()
 
 # Module-level sync engine (lazy initialization)
 _sync_engine = None
+
+# Far past date for "all time" queries
+FAR_PAST_DATE = date(2000, 1, 1)
 
 
 def _get_sync_engine():
@@ -104,7 +109,6 @@ async def get_insights(
 ):
     """Generate AI-powered insights for analytics data."""
     try:
-        # TODO: Fetch analytics data - will be implemented in Task 4
         analytics = await _get_analytics_for_insights(db, current_user.id, request.period)
 
         # Run sync AI generation in thread pool to avoid blocking
@@ -131,10 +135,360 @@ async def _get_analytics_for_insights(
 ) -> dict:
     """Get analytics data formatted for insights generation.
 
-    Placeholder - will be implemented in Task 4.
+    This function fetches data from the async session, then delegates to a sync helper
+    for processing. Returns structured data for the AI insights service.
     """
+    today = date.today()
+
+    # Calculate date range based on period
+    if period == "7d":
+        start_date = today - timedelta(days=7)
+    elif period == "30d":
+        start_date = today - timedelta(days=30)
+    elif period == "3m":
+        start_date = today - timedelta(days=90)
+    elif period == "all":
+        start_date = FAR_PAST_DATE
+    else:
+        start_date = today - timedelta(days=30)  # Default to 30d
+
+    # Fetch all the data we need using async queries
+    # Then process it synchronously for consistency
+
+    # --- Pipeline Overview Data ---
+    # Total applications in period
+    result = await db.execute(
+        select(func.count(Application.id))
+        .where(
+            Application.user_id == user_id,
+            Application.applied_at >= start_date,
+        )
+    )
+    total_applications = result.scalar() or 0
+
+    # Interviews (status = Interviewing)
+    result = await db.execute(
+        select(func.count(Application.id))
+        .join(ApplicationStatus)
+        .where(
+            Application.user_id == user_id,
+            Application.applied_at >= start_date,
+            ApplicationStatus.name == "Interviewing",
+        )
+    )
+    interviews = result.scalar() or 0
+
+    # Offers (status = Offer)
+    result = await db.execute(
+        select(func.count(Application.id))
+        .join(ApplicationStatus)
+        .where(
+            Application.user_id == user_id,
+            Application.applied_at >= start_date,
+            ApplicationStatus.name == "Offer",
+        )
+    )
+    offers = result.scalar() or 0
+
+    # Response rate: applications that got any response (not "No Reply" status)
+    result = await db.execute(
+        select(func.count(Application.id))
+        .join(ApplicationStatus)
+        .where(
+            Application.user_id == user_id,
+            Application.applied_at >= start_date,
+            ApplicationStatus.name != "No Reply",
+        )
+    )
+    responded = result.scalar() or 0
+    response_rate = (responded / total_applications * 100) if total_applications > 0 else 0
+
+    # Interview rate
+    interview_rate = (interviews / total_applications * 100) if total_applications > 0 else 0
+
+    # Active applications (not Rejected or Withdrawn)
+    result = await db.execute(
+        select(func.count(Application.id))
+        .join(ApplicationStatus)
+        .where(
+            Application.user_id == user_id,
+            Application.applied_at >= start_date,
+            ApplicationStatus.name.not_in(["Rejected", "Withdrawn"]),
+        )
+    )
+    active_applications = result.scalar() or 0
+
+    # Stage breakdown - count applications by status
+    result = await db.execute(
+        select(ApplicationStatus.name, func.count(Application.id).label("count"))
+        .join(Application, Application.status_id == ApplicationStatus.id)
+        .where(
+            Application.user_id == user_id,
+            Application.applied_at >= start_date,
+        )
+        .group_by(ApplicationStatus.name)
+    )
+    stage_rows = result.all()
+    stage_breakdown = {row.name: row.count for row in stage_rows}
+
+    # --- Interview Analytics Data ---
+    # Conversion rates by round type (funnel data)
+    result = await db.execute(
+        select(
+            RoundType.name.label("round_type"),
+            func.count(Round.id).label("total"),
+            func.sum(case((Round.outcome == "Passed", 1), else_=0)).label("passed"),
+        )
+        .select_from(Round)
+        .join(RoundType, Round.round_type_id == RoundType.id)
+        .join(Application, Round.application_id == Application.id)
+        .where(
+            Application.user_id == user_id,
+            or_(Round.completed_at >= start_date, Round.completed_at.is_(None)),
+        )
+        .group_by(RoundType.name)
+        .order_by(RoundType.name)
+    )
+    funnel_rows = result.all()
+
+    conversion_rates = {}
+    for row in funnel_rows:
+        conversion_rates[row.round_type] = {
+            "total": row.total,
+            "passed": row.passed or 0,
+            "rate": round((row.passed / row.total * 100) if row.total > 0 else 0, 1),
+        }
+
+    # Outcomes by round type
+    result = await db.execute(
+        select(
+            RoundType.name.label("round_type"),
+            Round.outcome,
+            func.count(Round.id).label("count"),
+        )
+        .select_from(Round)
+        .join(RoundType, Round.round_type_id == RoundType.id)
+        .join(Application, Round.application_id == Application.id)
+        .where(
+            Application.user_id == user_id,
+            or_(Round.completed_at >= start_date, Round.completed_at.is_(None)),
+        )
+        .group_by(RoundType.name, Round.outcome)
+        .order_by(RoundType.name)
+    )
+    outcome_rows = result.all()
+
+    outcomes = {}
+    for row in outcome_rows:
+        if row.round_type not in outcomes:
+            outcomes[row.round_type] = {"passed": 0, "failed": 0, "pending": 0, "withdrew": 0}
+        outcome_val = (row.outcome or "pending").lower()
+        if outcome_val == "passed":
+            outcomes[row.round_type]["passed"] = row.count
+        elif outcome_val == "failed":
+            outcomes[row.round_type]["failed"] = row.count
+        elif outcome_val == "withdrew":
+            outcomes[row.round_type]["withdrew"] = row.count
+        else:
+            outcomes[row.round_type]["pending"] = row.count
+
+    # Average days between rounds (timeline data)
+    result = await db.execute(
+        select(
+            RoundType.name.label("round_type"),
+            Round.scheduled_at,
+            Round.completed_at,
+        )
+        .select_from(Round)
+        .join(RoundType, Round.round_type_id == RoundType.id)
+        .join(Application, Round.application_id == Application.id)
+        .where(
+            Application.user_id == user_id,
+            Round.completed_at >= start_date,
+            Round.completed_at.isnot(None),
+            Round.scheduled_at.isnot(None),
+        )
+        .order_by(RoundType.name)
+    )
+    timeline_rows = result.all()
+
+    avg_days_between_rounds = {}
+    timeline_dict: dict[str, list[float]] = {}
+    for row in timeline_rows:
+        days_diff = (row.completed_at - row.scheduled_at).days
+        if row.round_type not in timeline_dict:
+            timeline_dict[row.round_type] = []
+        timeline_dict[row.round_type].append(days_diff)
+
+    for round_type, days_list in timeline_dict.items():
+        avg_days_between_rounds[round_type] = round(sum(days_list) / len(days_list), 1) if days_list else 0.0
+
+    # Speed indicators - average time from application to first interview
+    result = await db.execute(
+        select(Application.id, Application.applied_at)
+        .join(Round, Round.application_id == Application.id)
+        .join(RoundType, Round.round_type_id == RoundType.id)
+        .where(
+            Application.user_id == user_id,
+            Application.applied_at >= start_date,
+            Round.scheduled_at.isnot(None),
+        )
+        .distinct()
+    )
+    app_first_interview = result.all()
+
+    # Get earliest interview per application
+    app_to_first_round: dict[str, date] = {}
+    for app_row in app_first_interview:
+        app_id = app_row.id
+        if app_id not in app_to_first_interview:
+            # Query for earliest round for this app
+            round_result = await db.execute(
+                select(Round.scheduled_at)
+                .where(Round.application_id == app_id, Round.scheduled_at.isnot(None))
+                .order_by(Round.scheduled_at)
+                .limit(1)
+            )
+            first_round = round_result.first()
+            if first_round and first_round.scheduled_at:
+                app_to_first_round[app_id] = first_round.scheduled_at.date()
+
+    days_to_first_interview = []
+    for app_row in app_first_interview:
+        app_id = app_row.id
+        if app_id in app_to_first_round:
+            days = (app_to_first_round[app_id] - app_row.applied_at).days
+            if days >= 0:  # Only count positive values
+                days_to_first_interview.append(days)
+
+    avg_days_to_first = round(sum(days_to_first_interview) / len(days_to_first_interview), 1) if days_to_first_interview else 0
+
+    speed_indicators = {
+        "avg_days_to_first_interview": avg_days_to_first,
+        "fastest_response_days": min(days_to_first_interview) if days_to_first_interview else 0,
+        "slowest_response_days": max(days_to_first_interview) if days_to_first_interview else 0,
+    }
+
+    # --- Activity Tracking Data ---
+    # Calculate weeks count based on period
+    if period == "7d":
+        weeks_count = 1
+    elif period == "30d":
+        weeks_count = 4
+    elif period == "3m":
+        weeks_count = 12
+    elif period == "all":
+        weeks_count = 52
+    else:
+        weeks_count = 4
+
+    # Weekly applications
+    result = await db.execute(
+        select(Application.applied_at)
+        .where(
+            Application.user_id == user_id,
+            Application.applied_at >= start_date,
+        )
+        .order_by(Application.applied_at)
+    )
+    application_dates = result.scalars().all()
+
+    weekly_data = defaultdict(lambda: {"applications": 0, "interviews": 0})
+    for app_date in application_dates:
+        days_diff = (today - app_date).days
+        week_num = min(days_diff // 7, weeks_count - 1)
+        weekly_data[week_num]["applications"] += 1
+
+    # Weekly interviews
+    result = await db.execute(
+        select(Application.applied_at)
+        .join(ApplicationStatus)
+        .where(
+            Application.user_id == user_id,
+            Application.applied_at >= start_date,
+            ApplicationStatus.name == "Interviewing",
+        )
+        .order_by(Application.applied_at)
+    )
+    interviewing_dates = result.scalars().all()
+
+    for app_date in interviewing_dates:
+        days_diff = (today - app_date).days
+        week_num = min(days_diff // 7, weeks_count - 1)
+        weekly_data[week_num]["interviews"] += 1
+
+    weekly_applications = [
+        {
+            "week": f"Week {week_num + 1}",
+            "applications": stats["applications"],
+        }
+        for week_num, stats in sorted(weekly_data.items())
+    ]
+
+    weekly_interviews = [
+        {
+            "week": f"Week {week_num + 1}",
+            "interviews": stats["interviews"],
+        }
+        for week_num, stats in sorted(weekly_data.items())
+    ]
+
+    # Activity patterns - which days are most active
+    result = await db.execute(
+        select(func.strftime("%w", Application.applied_at).label("weekday"), func.count(Application.id).label("count"))
+        .where(
+            Application.user_id == user_id,
+            Application.applied_at >= start_date,
+        )
+        .group_by(func.strftime("%w", Application.applied_at))
+    )
+    weekday_rows = result.all()
+
+    weekday_names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    weekday_counts = {weekday_names[int(row.weekday)]: row.count for row in weekday_rows if row.weekday}
+
+    # Find most active day
+    most_active_day = max(weekday_counts, key=weekday_counts.get) if weekday_counts else None
+
+    patterns = {
+        "most_active_day": most_active_day,
+        "weekday_distribution": weekday_counts,
+        "avg_applications_per_week": round(total_applications / weeks_count, 1) if weeks_count > 0 else 0,
+    }
+
+    # Active days (days with at least one application)
+    result = await db.execute(
+        select(Application.applied_at)
+        .where(
+            Application.user_id == user_id,
+            Application.applied_at >= start_date,
+        )
+        .distinct()
+    )
+    active_day_rows = result.scalars().all()
+    active_days = [str(d) for d in active_day_rows]
+
+    # Build and return the structured data
     return {
-        "pipeline_overview": {},
-        "interview_analytics": {},
-        "activity_tracking": {},
+        "pipeline_overview": {
+            "total_applications": total_applications,
+            "interviews": interviews,
+            "offers": offers,
+            "response_rate": round(response_rate, 1),
+            "interview_rate": round(interview_rate, 1),
+            "active_applications": active_applications,
+            "stage_breakdown": stage_breakdown,
+        },
+        "interview_analytics": {
+            "conversion_rates": conversion_rates,
+            "outcomes": outcomes,
+            "avg_days_between_rounds": avg_days_between_rounds,
+            "speed_indicators": speed_indicators,
+        },
+        "activity_tracking": {
+            "weekly_applications": weekly_applications,
+            "weekly_interviews": weekly_interviews,
+            "patterns": patterns,
+            "active_days": active_days,
+        },
     }
