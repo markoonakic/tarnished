@@ -6,7 +6,7 @@
  */
 
 export * from './types';
-export { AutofillEngine } from './engine';
-export { scoreField, FIELD_PATTERNS } from './scoring';
-export { fillField, setNativeValue } from './filling';
-export { scanForFillableFields, detectApplicationForm } from './detection';
+export { AutofillEngine, getAutofillEngine, resetAutofillEngine } from './engine';
+export { scoreField, calculateFieldTypeScore, FIELD_PATTERNS, SCORE_WEIGHTS, SCORE_THRESHOLD } from './scoring';
+export { fillField, fillFields, setNativeValue } from './filling';
+export { scanForFillableFields, detectApplicationForm, rescanForFields } from './detection';
