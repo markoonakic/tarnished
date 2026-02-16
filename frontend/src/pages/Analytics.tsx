@@ -45,37 +45,58 @@ export default function Analytics() {
 
         {/* Overall Grace Message */}
         {insights && (
-          <OverallGrace message={insights.overall_grace} />
+          <div className="mb-6">
+            <OverallGrace message={insights.overall_grace} />
+          </div>
         )}
 
         {/* Grouped Section Insights */}
         {insights && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <SectionInsight
-              title="Pipeline Guidance"
-              icon="bi-funnel"
-              keyInsight={insights.pipeline_overview.key_insight}
-              trend={insights.pipeline_overview.trend}
-              priorityActions={insights.pipeline_overview.priority_actions}
-              trendDirection="neutral"
-            />
-            <SectionInsight
-              title="Interview Guidance"
-              icon="bi-people"
-              keyInsight={insights.interview_analytics.key_insight}
-              trend={insights.interview_analytics.trend}
-              priorityActions={insights.interview_analytics.priority_actions}
-              trendDirection="neutral"
-            />
-            <SectionInsight
-              title="Activity Guidance"
-              icon="bi-calendar-week"
-              keyInsight={insights.activity_tracking.key_insight}
-              trend={insights.activity_tracking.trend}
-              priorityActions={insights.activity_tracking.priority_actions}
-              trendDirection="neutral"
-            />
-          </div>
+          <section className="mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Pipeline Guidance */}
+              <div>
+                <h3 className="text-fg1 font-medium mb-3 flex items-center gap-2">
+                  <i className="bi-funnel text-accent icon-sm" />
+                  Pipeline Guidance
+                </h3>
+                <SectionInsight
+                  keyInsight={insights.pipeline_overview.key_insight}
+                  trend={insights.pipeline_overview.trend}
+                  priorityActions={insights.pipeline_overview.priority_actions}
+                  trendDirection="neutral"
+                />
+              </div>
+
+              {/* Interview Guidance */}
+              <div>
+                <h3 className="text-fg1 font-medium mb-3 flex items-center gap-2">
+                  <i className="bi-people text-accent icon-sm" />
+                  Interview Guidance
+                </h3>
+                <SectionInsight
+                  keyInsight={insights.interview_analytics.key_insight}
+                  trend={insights.interview_analytics.trend}
+                  priorityActions={insights.interview_analytics.priority_actions}
+                  trendDirection="neutral"
+                />
+              </div>
+
+              {/* Activity Guidance */}
+              <div>
+                <h3 className="text-fg1 font-medium mb-3 flex items-center gap-2">
+                  <i className="bi-calendar-week text-accent icon-sm" />
+                  Activity Guidance
+                </h3>
+                <SectionInsight
+                  keyInsight={insights.activity_tracking.key_insight}
+                  trend={insights.activity_tracking.trend}
+                  priorityActions={insights.activity_tracking.priority_actions}
+                  trendDirection="neutral"
+                />
+              </div>
+            </div>
+          </section>
         )}
 
         <div className="space-y-6">
