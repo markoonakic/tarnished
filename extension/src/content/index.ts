@@ -111,8 +111,14 @@ function debouncedScan(): void {
 
 /**
  * Set up MutationObserver to detect dynamically added fields.
+ * Only runs in the top frame to avoid duplicate observers.
  */
 function setupMutationObserver(): void {
+  // Only set up observer in top frame
+  if (!isTopFrame()) {
+    return;
+  }
+
   const observer = new MutationObserver((mutations) => {
     let shouldScan = false;
 
@@ -153,8 +159,14 @@ function setupMutationObserver(): void {
 
 /**
  * Runs job detection and sends the result to the background script
+ * Only runs in the top frame to avoid iframe conflicts
  */
 function runDetection(): void {
+  // Only run detection in top frame to avoid iframes overwriting results
+  if (!isTopFrame()) {
+    return;
+  }
+
   const result = detectJobPage();
 
   // Send result to background script
@@ -174,7 +186,7 @@ function runDetection(): void {
   scanForFields();
 }
 
-// Run detection when DOM is ready
+// Run detection when DOM is ready (only in top frame)
 if (document.readyState === 'complete') {
   runDetection();
   setupMutationObserver();
