@@ -334,3 +334,108 @@ button:focus-visible {
   outline: 2px solid var(--aqua-bright);
   outline-offset: 2px;
 }
+
+/* Header actions container */
+.header-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Settings dropdown */
+.settings-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg1);
+  border: 1px solid var(--bg2);
+  border-radius: 6px;
+  padding: 8px 0;
+  min-width: 180px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.settings-item {
+  padding: 8px 12px;
+}
+
+/* Toggle switch */
+.toggle-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--fg1);
+}
+
+.toggle-label input {
+  display: none;
+}
+
+.toggle-slider {
+  width: 36px;
+  height: 20px;
+  background: var(--bg3);
+  border-radius: 10px;
+  position: relative;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: var(--fg2);
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.toggle-label input:checked + .toggle-slider {
+  background: var(--aqua);
+}
+
+.toggle-label input:checked + .toggle-slider::after {
+  transform: translateX(16px);
+  background: var(--fg0);
+}
+
+/* Autofill section */
+.autofill-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bg2);
+}
+
+.autofill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--fg3);
+}
+
+.field-count {
+  background: var(--bg2);
+  color: var(--fg2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* Button variant for Add as Application */
+.btn.secondary.green {
+  background: var(--green);
+  color: var(--fg0);
+}
+
+.btn.secondary.green:hover {
+  background: var(--green-bright);
+}
