@@ -7,8 +7,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import JSON
 
 from app.core.database import Base
+from app.services.export_registry import exportable
 
 
+@exportable(order=0)
 class User(Base):
     __tablename__ = "users"
 

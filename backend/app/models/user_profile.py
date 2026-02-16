@@ -4,8 +4,10 @@ from sqlalchemy import Boolean, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.services.export_registry import exportable
 
 
+@exportable(order=1)
 class UserProfile(Base):
     __tablename__ = "user_profiles"
 

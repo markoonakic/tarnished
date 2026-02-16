@@ -4,8 +4,10 @@ from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.services.export_registry import exportable
 
 
+@exportable(order=3)
 class RoundType(Base):
     __tablename__ = "round_types"
 

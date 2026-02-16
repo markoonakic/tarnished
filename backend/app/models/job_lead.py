@@ -5,8 +5,10 @@ from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.services.export_registry import exportable
 
 
+@exportable(order=8)
 class JobLead(Base):
     __tablename__ = "job_leads"
 

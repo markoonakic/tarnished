@@ -5,8 +5,10 @@ from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.services.export_registry import exportable
 
 
+@exportable(order=5)
 class ApplicationStatusHistory(Base):
     __tablename__ = "application_status_history"
 
@@ -25,6 +27,7 @@ class ApplicationStatusHistory(Base):
         return f"<ApplicationStatusHistory(id={self.id}, application_id={self.application_id}, from_status_id={self.from_status_id}, to_status_id={self.to_status_id}, changed_at={self.changed_at})>"
 
 
+@exportable(order=4)
 class Application(Base):
     __tablename__ = "applications"
 
