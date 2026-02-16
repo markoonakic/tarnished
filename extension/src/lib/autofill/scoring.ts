@@ -163,30 +163,19 @@ export const FIELD_PATTERNS: Record<FieldType, FieldPattern> = {
       /tel/i,
     ],
   },
-  location: {
+  city: {
     autocomplete: ['address-level2', 'city', 'locality'],
-    labelPatterns: [
-      /\bcity\b/i,
-      /\blocation\b/i,
-      /\bcurrent\s*location\b/i,
-      /\bwhere\s*(are|do)\s*you\s*live\b/i,
-    ],
-    placeholderPatterns: [
-      /city/i,
-      /location/i,
-      /e\.g\.\s*(new\s*york|san\s*francisco|london)/i,
-    ],
-    namePatterns: [
-      /city/i,
-      /location/i,
-      /locality/i,
-      /address/i,
-    ],
-    idPatterns: [
-      /city/i,
-      /location/i,
-      /locality/i,
-    ],
+    labelPatterns: [/\bcity\b/i, /\blocation\b/i, /\bcurrent\s*city\b/i],
+    placeholderPatterns: [/city/i, /e\.g\.\s*(new\s*york|san\s*francisco|london)/i],
+    namePatterns: [/city/i, /locality/i],
+    idPatterns: [/city/i, /locality/i],
+  },
+  country: {
+    autocomplete: ['country', 'country-name', 'country-name-code'],
+    labelPatterns: [/\bcountry\b/i, /\bnation\b/i],
+    placeholderPatterns: [/country/i, /select\s*country/i],
+    namePatterns: [/country/i, /nation/i],
+    idPatterns: [/country/i, /nation/i],
   },
   linkedin_url: {
     autocomplete: ['url', 'linkedin'],

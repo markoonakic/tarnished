@@ -589,7 +589,8 @@ async function autofillFormHandler(): Promise<void> {
       last_name: profile.last_name,
       email: profile.email,
       phone: profile.phone,
-      location: profile.location,
+      city: profile.city,
+      country: profile.country,
       linkedin_url: profile.linkedin_url,
     };
 

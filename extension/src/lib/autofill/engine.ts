@@ -15,7 +15,8 @@ const FIELD_TO_PROFILE: Record<FieldType, keyof AutofillProfile | '__combined__'
   full_name: '__combined__', // Special handling: combines first_name + last_name
   email: 'email',
   phone: 'phone',
-  location: 'location',
+  city: 'city',
+  country: 'country',
   linkedin_url: 'linkedin_url',
 };
 

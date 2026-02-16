@@ -20,7 +20,8 @@ export type FieldType =
   | 'full_name'
   | 'email'
   | 'phone'
-  | 'location'
+  | 'city'
+  | 'country'
   | 'linkedin_url';
 
 /**
