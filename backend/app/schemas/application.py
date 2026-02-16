@@ -6,6 +6,13 @@ from pydantic import BaseModel, field_validator
 from app.schemas.round import RoundResponse
 
 
+class ApplicationExtractRequest(BaseModel):
+    """Request to extract job data from URL and create an application."""
+    url: str
+    status_id: str
+    applied_at: date | None = None
+
+
 class ApplicationCreate(BaseModel):
     company: str
     job_title: str
