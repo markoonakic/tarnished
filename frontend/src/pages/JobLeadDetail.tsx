@@ -196,6 +196,19 @@ export default function JobLeadDetail() {
             </div>
           )}
 
+          {/* Description - at the top like Applications */}
+          {jobLead.description && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-file-text icon-sm"></i>
+                Description
+              </h3>
+              <div className="text-primary whitespace-pre-wrap break-words text-sm">
+                {jobLead.description}
+              </div>
+            </div>
+          )}
+
           {/* Salary Information */}
           {(jobLead.salary_min || jobLead.salary_max) && (
             <div className="mb-4 p-4 bg-bg2 rounded-lg">
@@ -301,19 +314,6 @@ export default function JobLeadDetail() {
               <p className="text-primary font-medium">
                 {jobLead.years_experience_min ?? '?'}-{jobLead.years_experience_max ?? '?'} years
               </p>
-            </div>
-          )}
-
-          {/* Full Description */}
-          {jobLead.description && (
-            <div className="mb-4 p-4 bg-bg2 rounded-lg">
-              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
-                <i className="bi-file-text icon-sm"></i>
-                Description
-              </h3>
-              <div className="text-primary whitespace-pre-wrap break-words text-sm">
-                {jobLead.description}
-              </div>
             </div>
           )}
 
