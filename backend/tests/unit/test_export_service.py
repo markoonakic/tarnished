@@ -228,13 +228,13 @@ class TestExportService:
         """_get_user_records should return empty list for unhandleable models."""
         mock_session = Mock()
 
-        # Create a model without user_id or user relationship
+        # Create a model without user_id or any known relationship
         mock_model = Mock()
         mock_model.__name__ = "OrphanModel"
-        if hasattr(mock_model, 'user_id'):
-            delattr(mock_model, 'user_id')
-        if hasattr(mock_model, 'user'):
-            delattr(mock_model, 'user')
+        # Remove all attributes that the service checks for
+        for attr in ['user_id', 'user', 'application', 'round']:
+            if hasattr(mock_model, attr):
+                delattr(mock_model, attr)
 
         result = export_service._get_user_records(
             model_class=mock_model,

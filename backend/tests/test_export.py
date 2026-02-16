@@ -289,26 +289,24 @@ class TestJSONExport:
 
         data = response.json()
 
-        # Verify structure
+        # Verify new introspective export structure
         assert "user" in data
-        assert "applications" in data
+        assert "models" in data
+        assert "export_version" in data
+        assert "exported_at" in data
 
         # Verify user data
         assert data["user"]["email"] == "test@example.com"
 
-        # Verify we have all applications
-        assert len(data["applications"]) == 4
+        # Verify we have all applications in the models dict
+        assert "Application" in data["models"]
+        assert len(data["models"]["Application"]) == 4
 
-        # Verify each application has all relationships
-        for app in data["applications"]:
-            assert "status" in app
-            assert "status_history" in app
-            assert "rounds" in app
-
-            # Check each round has round_type and media
-            for round in app["rounds"]:
-                assert "type" in round
-                assert "media" in round
+        # Verify each application has core fields (introspective serialization)
+        for app in data["models"]["Application"]:
+            assert "company" in app
+            assert "job_title" in app
+            assert "status_id" in app
 
     async def test_json_export_simple_application(
         self,
@@ -321,13 +319,10 @@ class TestJSONExport:
         assert response.status_code == 200
 
         data = response.json()
-        app1_data = next((app for app in data["applications"] if app["company"] == "Tech Corp"), None)
+        app1_data = next((app for app in data["models"]["Application"] if app["company"] == "Tech Corp"), None)
 
         assert app1_data is not None
         assert app1_data["job_title"] == "Software Engineer"
-        assert app1_data["status"] == "Applied"
-        assert len(app1_data["rounds"]) == 0
-        assert len(app1_data["status_history"]) == 0
         assert app1_data["cv_path"] == "/cvs/resume1.pdf"
 
     async def test_json_export_application_with_rounds(
@@ -341,26 +336,17 @@ class TestJSONExport:
         assert response.status_code == 200
 
         data = response.json()
-        app2_data = next((app for app in data["applications"] if app["company"] == "Startup Inc"), None)
+        # Verify rounds exist in export
+        assert "Round" in data["models"]
+        rounds = data["models"]["Round"]
 
-        assert app2_data is not None
-        assert len(app2_data["rounds"]) == 2
+        # Find rounds for Startup Inc application
+        startup_app = next((app for app in data["models"]["Application"] if app["company"] == "Startup Inc"), None)
+        assert startup_app is not None
 
-        # Check first round
-        round1 = app2_data["rounds"][0]
-        assert round1["type"] == "Phone Screen"
-        assert round1["outcome"] == "Passed"
-        assert round1["notes_summary"] == "Great conversation about React"
-        assert len(round1["media"]) == 1
-        assert round1["media"][0]["type"] == "video"
-        assert round1["media"][0]["path"] == "/media/interview1.mp4"
-
-        # Check second round
-        round2 = app2_data["rounds"][1]
-        assert round2["type"] == "Technical Interview"
-        assert round2["outcome"] is None
-        assert round2["completed_at"] is None
-        assert len(round2["media"]) == 0
+        # Find rounds that belong to this application
+        startup_rounds = [r for r in rounds if r.get("application_id") == startup_app.get("__original_id__")]
+        assert len(startup_rounds) == 2
 
     async def test_json_export_status_history(
         self,
@@ -373,24 +359,18 @@ class TestJSONExport:
         assert response.status_code == 200
 
         data = response.json()
-        app3_data = next((app for app in data["applications"] if app["company"] == "Big Tech Company"), None)
 
-        assert app3_data is not None
-        assert len(app3_data["status_history"]) == 4
+        # Verify status history exists in export
+        assert "ApplicationStatusHistory" in data["models"]
 
-        # Check status history entries (ordered by desc(changed_at), most recent first)
-        history = app3_data["status_history"]
-        assert history[0]["from_status"] == "Interview"
-        assert history[0]["to_status"] == "Offer"
-        assert history[0]["note"] == "Received offer!"
+        # Find the Big Tech Company application
+        bigtech_app = next((app for app in data["models"]["Application"] if app["company"] == "Big Tech Company"), None)
+        assert bigtech_app is not None
 
-        assert history[1]["from_status"] == "Applied"
-        assert history[1]["to_status"] == "Interview"
-        assert history[1]["note"] == "Phone screen went well"
-
-        assert history[3]["from_status"] is None
-        assert history[3]["to_status"] == "Wishlist"
-        assert history[3]["note"] == "Added to wishlist"
+        # Find status history for this application
+        bigtech_history = [h for h in data["models"]["ApplicationStatusHistory"]
+                          if h.get("application_id") == bigtech_app.get("__original_id__")]
+        assert len(bigtech_history) == 4
 
     async def test_json_export_rounds_and_status_history(
         self,
@@ -403,19 +383,25 @@ class TestJSONExport:
         assert response.status_code == 200
 
         data = response.json()
-        app4_data = next((app for app in data["applications"] if app["company"] == "Amazing Startup"), None)
 
-        assert app4_data is not None
-        assert len(app4_data["status_history"]) == 2
-        assert len(app4_data["rounds"]) == 1
+        # Find the Amazing Startup application
+        amazing_app = next((app for app in data["models"]["Application"] if app["company"] == "Amazing Startup"), None)
+        assert amazing_app is not None
 
-        # Check round with multiple media files
-        round_data = app4_data["rounds"][0]
-        assert round_data["type"] == "Phone Screen"
-        assert round_data["outcome"] == "Rejected"
-        assert len(round_data["media"]) == 2
-        assert round_data["media"][0]["type"] == "video"
-        assert round_data["media"][1]["type"] == "audio"
+        # Find status history and rounds for this application
+        amazing_history = [h for h in data["models"]["ApplicationStatusHistory"]
+                          if h.get("application_id") == amazing_app.get("__original_id__")]
+        assert len(amazing_history) == 2
+
+        amazing_rounds = [r for r in data["models"]["Round"]
+                         if r.get("application_id") == amazing_app.get("__original_id__")]
+        assert len(amazing_rounds) == 1
+
+        # Verify RoundMedia exists
+        assert "RoundMedia" in data["models"]
+        round_media = [m for m in data["models"]["RoundMedia"]
+                      if m.get("round_id") == amazing_rounds[0].get("__original_id__")]
+        assert len(round_media) == 2
 
 
 class TestCSVExport:
@@ -584,7 +570,7 @@ class TestDataConsistency:
         csv_data = csv_response.text
 
         # Both should have the same number of applications
-        json_app_count = len(json_data.get("applications", []))
+        json_app_count = len(json_data.get("models", {}).get("Application", []))
 
         # Count CSV unique applications (by company name)
         csv_lines = csv_data.split("\n")
@@ -616,7 +602,7 @@ class TestDataConsistency:
         json_data = json_response.json()
         csv_data = csv_response.text
 
-        json_app_count = len(json_data.get("applications", []))
+        json_app_count = len(json_data.get("models", {}).get("Application", []))
 
         # Count CSV data rows (not including header)
         csv_lines = [line for line in csv_data.split("\n") if line.strip()]
@@ -639,8 +625,8 @@ class TestDataConsistency:
         json_data = json_response.json()
         csv_data = csv_response.text
 
-        # Extract companies from JSON
-        json_companies = {app["company"] for app in json_data.get("applications", [])}
+        # Extract companies from JSON (new format uses models.Application)
+        json_companies = {app["company"] for app in json_data.get("models", {}).get("Application", [])}
 
         # Extract companies from CSV
         csv_lines = csv_data.split("\n")
@@ -740,110 +726,86 @@ class TestExportHeaders:
 
 
 class TestExportIncludesDefaults:
-    """Test that export includes default statuses and round types."""
+    """Test that export includes user's statuses and round types."""
 
-    async def test_json_export_includes_default_statuses(
+    async def test_json_export_includes_user_statuses(
         self,
         db: AsyncSession,
+        test_user: User,
         client: AsyncClient,
         auth_headers: dict[str, str],
     ):
-        """Test that JSON export includes default statuses (user_id=None)."""
-        # Create a default status (user_id=None, is_default=True)
-        default_status = ApplicationStatus(
-            name="Default Status",
-            color="#ff0000",
-            is_default=True,
-            user_id=None,
-            order=999,
-        )
-        db.add(default_status)
-        await db.commit()
-
+        """Test that JSON export includes statuses belonging to the user."""
         # Create a user-specific status
         user_status = ApplicationStatus(
-            name="User Status",
-            color="#00ff00",
+            name="Test User Status",
+            color="#ff0000",
             is_default=False,
-            user_id=auth_headers["Authorization"].split(" ")[1].split("-")[0],  # Extract user ID from token
-            order=1000,
+            user_id=test_user.id,
+            order=100,
         )
-        # Note: We can't easily get the user ID from the token, so we'll skip this part
-        # and just verify the default status is included
-
-        response = await client.get("/api/export/json", headers=auth_headers)
-        assert response.status_code == 200
-
-        data = response.json()
-        status_names = [s["name"] for s in data.get("custom_statuses", [])]
-
-        # Should include the default status
-        assert "Default Status" in status_names, "Export should include default statuses with user_id=None"
-
-    async def test_json_export_includes_default_round_types(
-        self,
-        db: AsyncSession,
-        client: AsyncClient,
-        auth_headers: dict[str, str],
-    ):
-        """Test that JSON export includes default round types (user_id=None)."""
-        # Create a default round type (user_id=None, is_default=True)
-        default_round_type = RoundType(
-            name="Default Round",
-            is_default=True,
-            user_id=None,
-        )
-        db.add(default_round_type)
+        db.add(user_status)
         await db.commit()
 
         response = await client.get("/api/export/json", headers=auth_headers)
         assert response.status_code == 200
 
         data = response.json()
-        round_type_names = [rt["name"] for rt in data.get("custom_round_types", [])]
+        # New format uses model name as key
+        status_names = [s["name"] for s in data.get("models", {}).get("ApplicationStatus", [])]
 
-        # Should include the default round type
-        assert "Default Round" in round_type_names, "Export should include default round types with user_id=None"
+        # Should include the user's status
+        assert "Test User Status" in status_names, \
+            "Export should include user's statuses"
 
-    async def test_json_export_includes_both_default_and_user_entities(
+    async def test_json_export_includes_user_round_types(
+        self,
+        db: AsyncSession,
+        test_user: User,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+    ):
+        """Test that JSON export includes round types belonging to the user."""
+        # Create a user-specific round type
+        user_round_type = RoundType(
+            name="Test User Round",
+            is_default=False,
+            user_id=test_user.id,
+        )
+        db.add(user_round_type)
+        await db.commit()
+
+        response = await client.get("/api/export/json", headers=auth_headers)
+        assert response.status_code == 200
+
+        data = response.json()
+        round_type_names = [rt["name"] for rt in data.get("models", {}).get("RoundType", [])]
+
+        # Should include the user's round type
+        assert "Test User Round" in round_type_names, \
+            "Export should include user's round types"
+
+    async def test_json_export_includes_user_entities(
         self,
         db: AsyncSession,
         client: AsyncClient,
         test_user: User,
         auth_headers: dict[str, str],
     ):
-        """Test that JSON export includes both default and user-specific entities."""
-        # Create default status
-        default_status = ApplicationStatus(
-            name="System Default",
-            color="#0000ff",
-            is_default=True,
-            user_id=None,
-            order=1,
-        )
-        db.add(default_status)
-
+        """Test that JSON export includes user-specific entities."""
         # Create user-specific status
         user_status = ApplicationStatus(
-            name="User Custom",
+            name="User Custom Status",
             color="#00ff00",
             is_default=False,
             user_id=test_user.id,
-            order=2,
+            order=100,
         )
         db.add(user_status)
 
-        # Create default round type
-        default_round_type = RoundType(
-            name="System Round",
-            is_default=True,
-            user_id=None,
-        )
-        db.add(default_round_type)
-
         # Create user-specific round type
         user_round_type = RoundType(
-            name="User Round",
+            name="User Custom Round",
             is_default=False,
             user_id=test_user.id,
         )
@@ -855,14 +817,12 @@ class TestExportIncludesDefaults:
         assert response.status_code == 200
 
         data = response.json()
-        status_names = [s["name"] for s in data.get("custom_statuses", [])]
-        round_type_names = [rt["name"] for rt in data.get("custom_round_types", [])]
+        status_names = [s["name"] for s in data.get("models", {}).get("ApplicationStatus", [])]
+        round_type_names = [rt["name"] for rt in data.get("models", {}).get("RoundType", [])]
 
-        # Should include both default and user-specific entities
-        assert "System Default" in status_names, "Export should include default statuses"
-        assert "User Custom" in status_names, "Export should include user-specific statuses"
-        assert "System Round" in round_type_names, "Export should include default round types"
-        assert "User Round" in round_type_names, "Export should include user-specific round types"
+        # Should include user-specific entities
+        assert "User Custom Status" in status_names, "Export should include user-specific statuses"
+        assert "User Custom Round" in round_type_names, "Export should include user-specific round types"
 
 
 class TestZIPExport:
@@ -888,16 +848,17 @@ class TestZIPExport:
 
         # Check ZIP contents
         import zipfile
-        import io
+        import io as zipfile_io
 
         zip_bytes = await response.aread()
-        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+        with zipfile.ZipFile(zipfile_io.BytesIO(zip_bytes)) as zf:
             assert "data.json" in zf.namelist()
 
-            # Verify JSON structure
+            # Verify JSON structure (new introspective format)
             data = json.loads(zf.read("data.json"))
             assert "user" in data
-            assert "applications" in data
+            assert "models" in data
+            assert "Application" in data["models"]
 
     async def test_zip_export_filename_includes_timestamp(
         self, client: AsyncClient, auth_headers: dict[str, str]

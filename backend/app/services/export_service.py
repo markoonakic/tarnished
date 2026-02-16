@@ -71,6 +71,8 @@ class ExportService:
         session: Session
     ) -> list:
         """Get all records for a model belonging to a user."""
+        from app.models import Application
+
         # Check if model has user_id column
         if hasattr(model_class, 'user_id'):
             return session.query(model_class).filter(
@@ -88,6 +90,21 @@ class ExportService:
             return session.query(model_class).join(
                 model_class.user
             ).filter(model_class.user.id == user_id).all()
+
+        # For models linked via Application (Round, ApplicationStatusHistory)
+        if hasattr(model_class, 'application'):
+            return session.query(model_class).join(
+                Application, model_class.application_id == Application.id
+            ).filter(Application.user_id == user_id).all()
+
+        # For models linked via Round -> Application (RoundMedia)
+        if hasattr(model_class, 'round') and not hasattr(model_class, 'application'):
+            from app.models import Round
+            return session.query(model_class).join(
+                Round, model_class.round_id == Round.id
+            ).join(
+                Application, Round.application_id == Application.id
+            ).filter(Application.user_id == user_id).all()
 
         return []
 
