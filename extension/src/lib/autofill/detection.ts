@@ -14,6 +14,11 @@ import { scoreField, FIELD_PATTERNS } from './scoring';
 const MIN_RELEVANT_FIELDS = 2;
 
 /**
+ * Low score threshold for "relevant" fields (not necessarily fillable).
+ */
+const RELEVANT_SCORE_THRESHOLD = 30;
+
+/**
  * Check if an element has any relevant patterns (low threshold).
  */
 function hasRelevantPatterns(
