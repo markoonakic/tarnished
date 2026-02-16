@@ -246,6 +246,9 @@ export function mapApiError(error: unknown): ExtensionError {
         return new NetworkErrorCode({ cause: error });
       case 'ServerError':
         return new NetworkErrorCode({ cause: error });
+      case 'ApiClientError':
+        // 422 and other client errors from API - likely extraction failures
+        return new ExtractionFailedError({ cause: error });
       default:
         // For other errors, create a generic network error
         return new NetworkErrorCode({ cause: error });
