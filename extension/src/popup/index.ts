@@ -8,7 +8,7 @@ import { getSettings, type Settings } from '../lib/storage';
 import {
   checkExistingLead,
   getProfile,
-  createApplicationFromJob,
+  extractApplication,
   getStatuses,
   type JobLeadResponse,
   type StatusResponse,
@@ -512,21 +512,10 @@ async function saveAsApplication(): Promise<void> {
       return;
     }
 
-    // Get text content for job description
-    let jobDescription: string | undefined;
-    try {
-      jobDescription = await getTextFromContentScript();
-    } catch {
-      // Continue without description
-    }
-
-    // Create the application
-    const result = await createApplicationFromJob({
-      job_title: currentJobInfo.title || 'Unknown Position',
-      company: currentJobInfo.company || 'Unknown Company',
+    // Extract and create application using server-side LLM extraction
+    const result = await extractApplication({
+      url: currentTabUrl,
       status_id: statusId,
-      job_url: currentTabUrl,
-      job_description: jobDescription,
       applied_at: new Date().toISOString().split('T')[0],
     });
 
