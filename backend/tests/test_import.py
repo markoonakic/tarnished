@@ -1084,17 +1084,25 @@ class TestEndToEnd:
 
         zip_bytes = await response.aread()
 
-        # Verify the exported JSON contains media metadata
+        # Verify the exported JSON contains media metadata (new format)
         import zipfile
         import io
         with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
             data = json.loads(zf.read("data.json"))
-            assert len(data["applications"]) > 0
-            app_data = data["applications"][0]
+            # New format uses "models" with model names as keys
+            assert "models" in data
+            assert "Application" in data["models"]
+            assert len(data["models"]["Application"]) > 0
+            app_data = data["models"]["Application"][0]
+            # Relationships are included directly (not with __rel__ prefix since prefix is empty)
+            assert "rounds" in app_data
             assert len(app_data["rounds"]) > 0
-            # Media metadata should be in the export even if file doesn't exist
             round_data = app_data["rounds"][0]
-            assert "media" in round_data
+            # Note: media is NOT nested in round_data since nested relationships
+            # are not serialized (only first level). RoundMedia is exported
+            # separately in models["RoundMedia"].
+            assert "RoundMedia" in data["models"]
+            assert len(data["models"]["RoundMedia"]) > 0
 
         # Save to temp file
         with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
