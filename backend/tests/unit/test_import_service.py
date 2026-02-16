@@ -1,10 +1,18 @@
 """Tests for ImportService."""
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 from app.services.import_service import ImportService
 from app.services.export_registry import ExportRegistry
 from app.services.import_id_mapper import IDMapper
+
+
+def make_mock_column(name):
+    """Create a mock column object for testing."""
+    mock_col = Mock()
+    mock_col.key = name
+    mock_col.type = Mock()  # Mock type, doesn't need specific type for most tests
+    return mock_col
 
 
 class TestImportService:
@@ -110,7 +118,6 @@ class TestImportService:
         # Create a mock model class
         mock_model_class = Mock()
         mock_model_class.__name__ = "Application"
-        mock_model_class.user_id = "user_id"  # hasattr check
         mock_instance = Mock()
         mock_model_class.return_value = mock_instance
 
@@ -123,15 +130,23 @@ class TestImportService:
             }
         }
 
+        # Mock _get_column_info to return valid columns
+        mock_columns = {
+            "id": make_mock_column("id"),
+            "company": make_mock_column("company"),
+            "user_id": make_mock_column("user_id"),
+        }
+
         from app.services.export_registry import ExportableModel
         with patch.object(import_service.registry, 'get_models') as mock_get:
-            mock_get.return_value = [ExportableModel(mock_model_class, 1)]
+            with patch.object(import_service, '_get_column_info', return_value=mock_columns):
+                mock_get.return_value = [ExportableModel(mock_model_class, 1)]
 
-            counts = import_service.import_user_data(
-                export_data=export_data,
-                user_id="user-1",
-                session=mock_session
-            )
+                counts = import_service.import_user_data(
+                    export_data=export_data,
+                    user_id="user-1",
+                    session=mock_session
+                )
 
         assert import_service.id_mapper.has_mapping("Application", "old-app-1")
         assert counts["Application"] == 1
@@ -142,7 +157,6 @@ class TestImportService:
 
         mock_model_class = Mock()
         mock_model_class.__name__ = "TestModel"
-        mock_model_class.user_id = "user_id"
         mock_instance = Mock()
         mock_model_class.return_value = mock_instance
 
@@ -156,15 +170,22 @@ class TestImportService:
             }
         }
 
+        mock_columns = {
+            "id": make_mock_column("id"),
+            "name": make_mock_column("name"),
+            "user_id": make_mock_column("user_id"),
+        }
+
         from app.services.export_registry import ExportableModel
         with patch.object(import_service.registry, 'get_models') as mock_get:
-            mock_get.return_value = [ExportableModel(mock_model_class, 1)]
+            with patch.object(import_service, '_get_column_info', return_value=mock_columns):
+                mock_get.return_value = [ExportableModel(mock_model_class, 1)]
 
-            counts = import_service.import_user_data(
-                export_data=export_data,
-                user_id="user-1",
-                session=mock_session
-            )
+                counts = import_service.import_user_data(
+                    export_data=export_data,
+                    user_id="user-1",
+                    session=mock_session
+                )
 
         assert counts["TestModel"] == 2
 
@@ -174,12 +195,10 @@ class TestImportService:
 
         mock_parent = Mock()
         mock_parent.__name__ = "Parent"
-        mock_parent.user_id = "user_id"
         mock_parent.return_value = Mock()
 
         mock_child = Mock()
         mock_child.__name__ = "Child"
-        mock_child.user_id = "user_id"
         mock_child.return_value = Mock()
 
         export_data = {
@@ -190,18 +209,24 @@ class TestImportService:
             }
         }
 
+        mock_columns = {
+            "id": make_mock_column("id"),
+            "user_id": make_mock_column("user_id"),
+        }
+
         from app.services.export_registry import ExportableModel
         with patch.object(import_service.registry, 'get_models') as mock_get:
-            mock_get.return_value = [
-                ExportableModel(mock_parent, 1),
-                ExportableModel(mock_child, 2)
-            ]
+            with patch.object(import_service, '_get_column_info', return_value=mock_columns):
+                mock_get.return_value = [
+                    ExportableModel(mock_parent, 1),
+                    ExportableModel(mock_child, 2)
+                ]
 
-            import_service.import_user_data(
-                export_data=export_data,
-                user_id="user-1",
-                session=mock_session
-            )
+                import_service.import_user_data(
+                    export_data=export_data,
+                    user_id="user-1",
+                    session=mock_session
+                )
 
         # Verify parents were processed first
         assert import_service.id_mapper.has_mapping("Parent", "p1")
@@ -213,12 +238,10 @@ class TestImportService:
 
         mock_model_a = Mock()
         mock_model_a.__name__ = "ModelA"
-        mock_model_a.user_id = "user_id"
         mock_model_a.return_value = Mock()
 
         mock_model_b = Mock()
         mock_model_b.__name__ = "ModelB"
-        mock_model_b.user_id = "user_id"
         mock_model_b.return_value = Mock()
 
         export_data = {
@@ -229,18 +252,24 @@ class TestImportService:
             }
         }
 
+        mock_columns = {
+            "id": make_mock_column("id"),
+            "user_id": make_mock_column("user_id"),
+        }
+
         from app.services.export_registry import ExportableModel
         with patch.object(import_service.registry, 'get_models') as mock_get:
-            mock_get.return_value = [
-                ExportableModel(mock_model_a, 1),
-                ExportableModel(mock_model_b, 2)
-            ]
+            with patch.object(import_service, '_get_column_info', return_value=mock_columns):
+                mock_get.return_value = [
+                    ExportableModel(mock_model_a, 1),
+                    ExportableModel(mock_model_b, 2)
+                ]
 
-            counts = import_service.import_user_data(
-                export_data=export_data,
-                user_id="user-1",
-                session=mock_session
-            )
+                counts = import_service.import_user_data(
+                    export_data=export_data,
+                    user_id="user-1",
+                    session=mock_session
+                )
 
         assert "ModelA" in counts
         assert "ModelB" not in counts
@@ -253,7 +282,6 @@ class TestImportService:
 
         mock_model_class = Mock()
         mock_model_class.__name__ = "Application"
-        mock_model_class.user_id = "column"  # hasattr check
         mock_instance = Mock()
         mock_model_class.return_value = mock_instance
 
@@ -263,12 +291,19 @@ class TestImportService:
             "company": "Acme"
         }
 
-        result = import_service._import_record(
-            model_class=mock_model_class,
-            record_data=record_data,
-            user_id="new-user-id",
-            session=mock_session
-        )
+        mock_columns = {
+            "id": make_mock_column("id"),
+            "company": make_mock_column("company"),
+            "user_id": make_mock_column("user_id"),
+        }
+
+        with patch.object(import_service, '_get_column_info', return_value=mock_columns):
+            result = import_service._import_record(
+                model_class=mock_model_class,
+                record_data=record_data,
+                user_id="new-user-id",
+                session=mock_session
+            )
 
         # Verify the model was created with user_id
         call_kwargs = mock_model_class.call_args[1]
@@ -284,7 +319,6 @@ class TestImportService:
 
         mock_model_class = Mock()
         mock_model_class.__name__ = "Interview"
-        mock_model_class.user_id = "column"
         mock_instance = Mock()
         mock_model_class.return_value = mock_instance
 
@@ -295,12 +329,20 @@ class TestImportService:
             "notes": "Test interview"
         }
 
-        result = import_service._import_record(
-            model_class=mock_model_class,
-            record_data=record_data,
-            user_id="user-1",
-            session=mock_session
-        )
+        mock_columns = {
+            "id": make_mock_column("id"),
+            "application_id": make_mock_column("application_id"),
+            "notes": make_mock_column("notes"),
+            "user_id": make_mock_column("user_id"),
+        }
+
+        with patch.object(import_service, '_get_column_info', return_value=mock_columns):
+            result = import_service._import_record(
+                model_class=mock_model_class,
+                record_data=record_data,
+                user_id="user-1",
+                session=mock_session
+            )
 
         # Verify FK was remapped
         call_kwargs = mock_model_class.call_args[1]
@@ -312,7 +354,6 @@ class TestImportService:
 
         mock_model_class = Mock()
         mock_model_class.__name__ = "Interview"
-        mock_model_class.user_id = "column"
         mock_instance = Mock()
         mock_model_class.return_value = mock_instance
 
@@ -323,12 +364,20 @@ class TestImportService:
             "notes": "Test interview"
         }
 
-        result = import_service._import_record(
-            model_class=mock_model_class,
-            record_data=record_data,
-            user_id="user-1",
-            session=mock_session
-        )
+        mock_columns = {
+            "id": make_mock_column("id"),
+            "application_id": make_mock_column("application_id"),
+            "notes": make_mock_column("notes"),
+            "user_id": make_mock_column("user_id"),
+        }
+
+        with patch.object(import_service, '_get_column_info', return_value=mock_columns):
+            result = import_service._import_record(
+                model_class=mock_model_class,
+                record_data=record_data,
+                user_id="user-1",
+                session=mock_session
+            )
 
         # FK should be kept as-is
         call_kwargs = mock_model_class.call_args[1]
@@ -340,7 +389,6 @@ class TestImportService:
 
         mock_model_class = Mock()
         mock_model_class.__name__ = "Application"
-        mock_model_class.user_id = "column"
         mock_instance = Mock()
         mock_model_class.return_value = mock_instance
 
@@ -350,12 +398,19 @@ class TestImportService:
             "company": "Acme"
         }
 
-        result = import_service._import_record(
-            model_class=mock_model_class,
-            record_data=record_data,
-            user_id="user-1",
-            session=mock_session
-        )
+        mock_columns = {
+            "id": make_mock_column("id"),
+            "company": make_mock_column("company"),
+            "user_id": make_mock_column("user_id"),
+        }
+
+        with patch.object(import_service, '_get_column_info', return_value=mock_columns):
+            result = import_service._import_record(
+                model_class=mock_model_class,
+                record_data=record_data,
+                user_id="user-1",
+                session=mock_session
+            )
 
         # Verify a new ID was set (UUID format)
         call_kwargs = mock_model_class.call_args[1]
@@ -370,7 +425,6 @@ class TestImportService:
 
         mock_model_class = Mock()
         mock_model_class.__name__ = "Application"
-        mock_model_class.user_id = "column"
         mock_instance = Mock()
         mock_model_class.return_value = mock_instance
 
@@ -380,12 +434,19 @@ class TestImportService:
             "company": "Acme"
         }
 
-        import_service._import_record(
-            model_class=mock_model_class,
-            record_data=record_data,
-            user_id="user-1",
-            session=mock_session
-        )
+        mock_columns = {
+            "id": make_mock_column("id"),
+            "company": make_mock_column("company"),
+            "user_id": make_mock_column("user_id"),
+        }
+
+        with patch.object(import_service, '_get_column_info', return_value=mock_columns):
+            import_service._import_record(
+                model_class=mock_model_class,
+                record_data=record_data,
+                user_id="user-1",
+                session=mock_session
+            )
 
         # Mapping should be stored
         assert import_service.id_mapper.has_mapping("Application", "old-id")
@@ -396,7 +457,6 @@ class TestImportService:
 
         mock_model_class = Mock()
         mock_model_class.__name__ = "Application"
-        mock_model_class.user_id = "column"
         mock_instance = Mock()
         mock_model_class.return_value = mock_instance
 
@@ -406,12 +466,19 @@ class TestImportService:
             "company": "Acme"
         }
 
-        result = import_service._import_record(
-            model_class=mock_model_class,
-            record_data=record_data,
-            user_id="user-1",
-            session=mock_session
-        )
+        mock_columns = {
+            "id": make_mock_column("id"),
+            "company": make_mock_column("company"),
+            "user_id": make_mock_column("user_id"),
+        }
+
+        with patch.object(import_service, '_get_column_info', return_value=mock_columns):
+            result = import_service._import_record(
+                model_class=mock_model_class,
+                record_data=record_data,
+                user_id="user-1",
+                session=mock_session
+            )
 
         # Should still create the record
         mock_session.add.assert_called_once()
@@ -423,7 +490,6 @@ class TestImportService:
 
         mock_model_class = Mock()
         mock_model_class.__name__ = "RoundType"
-        # No user_id attribute
         mock_instance = Mock()
         mock_model_class.return_value = mock_instance
 
@@ -433,13 +499,13 @@ class TestImportService:
             "name": "Phone Screen"
         }
 
-        # Make hasattr return False for user_id
-        def mock_hasattr(obj, name):
-            if name == 'user_id':
-                return False
-            return hasattr(obj, name)
+        # No user_id column
+        mock_columns = {
+            "id": make_mock_column("id"),
+            "name": make_mock_column("name"),
+        }
 
-        with patch('builtins.hasattr', side_effect=mock_hasattr):
+        with patch.object(import_service, '_get_column_info', return_value=mock_columns):
             result = import_service._import_record(
                 model_class=mock_model_class,
                 record_data=record_data,
