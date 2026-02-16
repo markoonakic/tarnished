@@ -25,6 +25,35 @@ from app.schemas.user_profile import (
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
 
+def _build_profile_response(profile: UserProfile, user: User) -> dict:
+    """Build a profile response dict including user-level city/country fields.
+
+    Args:
+        profile: The user's UserProfile record
+        user: The User record with city/country fields
+
+    Returns:
+        A dict that matches UserProfileResponse schema
+    """
+    return {
+        "id": profile.id,
+        "user_id": profile.user_id,
+        "first_name": profile.first_name,
+        "last_name": profile.last_name,
+        "email": profile.email,
+        "phone": profile.phone,
+        "location": profile.location,
+        "linkedin_url": profile.linkedin_url,
+        "city": user.city,
+        "country": user.country,
+        "authorized_to_work": profile.authorized_to_work,
+        "requires_sponsorship": profile.requires_sponsorship,
+        "work_history": profile.work_history,
+        "education": profile.education,
+        "skills": profile.skills,
+    }
+
+
 @router.get("", response_model=UserProfileResponse)
 async def get_profile(
     user: User = Depends(get_current_user_flexible),
@@ -51,7 +80,7 @@ async def get_profile(
         await db.commit()
         await db.refresh(profile)
 
-    return profile
+    return _build_profile_response(profile, user)
 
 
 @router.put("", response_model=UserProfileResponse)
@@ -88,7 +117,13 @@ async def update_profile(
     # Extract only the fields that were provided in the request
     update_data = profile_update.model_dump(exclude_unset=True)
 
-    # Update only the provided fields
+    # Handle city and country separately (they're on the User model)
+    if "city" in update_data:
+        user.city = update_data.pop("city")
+    if "country" in update_data:
+        user.country = update_data.pop("country")
+
+    # Update only the provided fields on the profile
     for field, value in update_data.items():
         setattr(profile, field, value)
 
@@ -96,4 +131,4 @@ async def update_profile(
     await db.commit()
     await db.refresh(profile)
 
-    return profile
+    return _build_profile_response(profile, user)

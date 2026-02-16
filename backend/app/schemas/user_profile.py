@@ -47,6 +47,10 @@ class UserProfileBase(BaseModel):
     location: str | None = Field(None, max_length=255, description="Location (city, state/country)")
     linkedin_url: str | None = Field(None, max_length=512, description="LinkedIn profile URL")
 
+    # User-level location fields
+    city: str | None = Field(None, max_length=100, description="City")
+    country: str | None = Field(None, max_length=100, description="Country")
+
     # Work authorization
     authorized_to_work: str | None = Field(
         None,
@@ -156,6 +160,10 @@ class UserProfileResponse(BaseModel):
     phone: str | None
     location: str | None
     linkedin_url: str | None
+
+    # User-level location fields
+    city: str | None = None
+    country: str | None = None
 
     # Work authorization
     authorized_to_work: str | None
