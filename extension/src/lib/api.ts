@@ -641,6 +641,81 @@ export async function createApplicationFromJob(data: {
 }
 
 /**
+ * Request to extract job data from URL and create an application.
+ */
+export interface ApplicationExtractRequest {
+  url: string;
+  status_id: string;
+  applied_at?: string;
+}
+
+/**
+ * Extract job data from URL using LLM and create an application.
+ *
+ * @param data - The extraction request data
+ * @param data.url - The URL of the job posting to extract
+ * @param data.status_id - UUID of the status to use (e.g., "Applied" status)
+ * @param data.applied_at - Optional applied date (defaults to today)
+ * @returns The created application response
+ * @throws AuthenticationError if the API key is invalid
+ * @throws TimeoutError if the request times out
+ * @throws NetworkError if there's a network error
+ * @throws ServerError if the server returns an error
+ */
+export async function extractApplication(
+  data: ApplicationExtractRequest
+): Promise<ApplicationResponse> {
+  const settings = (await getSettings()) as Settings;
+  const { serverUrl, apiKey } = settings;
+
+  if (!serverUrl || !apiKey) {
+    throw new AuthenticationError(
+      'Server URL or API key not configured. Please check your extension settings.'
+    );
+  }
+
+  const { controller, timeoutId } = createTimeoutController();
+
+  try {
+    const response = await fetch(`${serverUrl}${API_ENDPOINTS.APPLICATIONS}/extract`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+      },
+      body: JSON.stringify({
+        url: data.url,
+        status_id: data.status_id,
+        applied_at: data.applied_at || new Date().toISOString().split('T')[0],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const error = await parseErrorResponse(response);
+
+      switch (response.status) {
+        case 401:
+          throw new AuthenticationError(error.detail);
+        case 408:
+          throw new TimeoutError(error.detail);
+        default:
+          if (response.status >= 500) {
+            throw new ServerError(error.message, response.status);
+          }
+          throw new ApiClientError(error.message, response.status);
+      }
+    }
+
+    return response.json();
+  } catch (error) {
+    handleFetchError(error);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
  * Fetches the list of application statuses from the backend.
  *
  * @returns Array of status objects with id, name, color, is_default, order
