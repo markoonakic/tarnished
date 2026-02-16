@@ -13,11 +13,20 @@ from app.api.streak import record_streak_activity
 from app.models import Application, ApplicationStatus, ApplicationStatusHistory, Round, User
 from app.schemas.application import (
     ApplicationCreate,
+    ApplicationExtractRequest,
     ApplicationListItem,
     ApplicationListResponse,
     ApplicationResponse,
     ApplicationUpdate,
 )
+from app.services.extraction import (
+    extract_job_data,
+    ExtractionError,
+    ExtractionTimeoutError,
+    ExtractionInvalidResponseError,
+    NoJobFoundError,
+)
+from app.api.job_leads import _fetch_html, _get_ai_settings
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
 
@@ -110,6 +119,78 @@ async def create_application(
         .options(selectinload(Application.status))
     )
     return result.scalars().first()
+
+
+@router.post("/extract", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED)
+async def create_application_from_url(
+    data: ApplicationExtractRequest,
+    user: User = Depends(get_current_user_flexible),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Extract job data from a URL using LLM and create an application.
+    This provides the same extraction quality as job leads.
+    """
+    # 1. Validate status exists
+    result = await db.execute(
+        select(ApplicationStatus).where(
+            ApplicationStatus.id == data.status_id,
+            or_(ApplicationStatus.user_id == user.id, ApplicationStatus.user_id.is_(None)),
+        )
+    )
+    if not result.scalars().first():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
+
+    # 2. Fetch HTML from URL
+    try:
+        html_content = await _fetch_html(data.url)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Failed to fetch URL: {str(e)}")
+
+    # 3. Get AI settings and extract job data
+    ai_model, ai_api_key, ai_api_base = await _get_ai_settings(db)
+
+    try:
+        extracted = await extract_job_data(
+            html=html_content,
+            text=None,
+            url=data.url,
+            model=ai_model,
+            api_key=ai_api_key,
+            api_base=ai_api_base,
+        )
+    except ExtractionTimeoutError as e:
+        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=e.message)
+    except ExtractionInvalidResponseError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.message)
+    except NoJobFoundError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.message)
+    except ExtractionError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message)
+
+    # 4. Create the application with extracted data
+    application = Application(
+        user_id=user.id,
+        company=extracted.company or "Unknown Company",
+        job_title=extracted.title or "Unknown Position",
+        job_description=extracted.description,
+        job_url=data.url,
+        status_id=data.status_id,
+        applied_at=data.applied_at or date.today(),
+        salary_min=extracted.salary_min,
+        salary_max=extracted.salary_max,
+        salary_currency=extracted.salary_currency,
+    )
+
+    db.add(application)
+    await db.commit()
+    await db.refresh(application)
+    await db.refresh(application, ["status"])
+
+    # 5. Record streak activity
+    await record_streak_activity(user=user, db=db)
+
+    return application
 
 
 @router.get("/{application_id}", response_model=ApplicationResponse)
