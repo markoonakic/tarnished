@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autofill Test Form</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+    button {
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+      display: none;
+    }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <h1>Job Application Form (Test)</h1>
+  <p>Use this form to test the autofill extension.</p>
+
+  <form id="appForm">
+    <div class="form-group">
+      <label for="firstName">First Name</label>
+      <input type="text" id="firstName" name="first_name" placeholder="John" autocomplete="given-name">
+    </div>
+
+    <div class="form-group">
+      <label for="lastName">Last Name</label>
+      <input type="text" id="lastName" name="last_name" placeholder="Doe" autocomplete="family-name">
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input type="email" id="email" name="email" placeholder="john@example.com" autocomplete="email">
+    </div>
+
+    <div class="form-group">
+      <label for="phone">Phone Number</label>
+      <input type="tel" id="phone" name="phone" placeholder="+1 (555) 123-4567" autocomplete="tel">
+    </div>
+
+    <div class="form-group">
+      <label for="location">Current Location</label>
+      <input type="text" id="location" name="location" placeholder="San Francisco, CA" autocomplete="address-level2">
+    </div>
+
+    <div class="form-group">
+      <label for="linkedin">LinkedIn Profile URL</label>
+      <input type="url" id="linkedin" name="linkedin_url" placeholder="https://linkedin.com/in/johndoe">
+    </div>
+
+    <button type="submit" id="submitBtn" disabled>Submit Application</button>
+  </form>
+
+  <div id="status"></div>
+
+  <script>
+    // React-like form validation
+    const form = document.getElementById('appForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const status = document.getElementById('status');
+    const inputs = form.querySelectorAll('input');
+
+    function checkFormValidity() {
+      let allFilled = true;
+      inputs.forEach(input => {
+        if (!input.value.trim()) {
+          allFilled = false;
+        }
+      });
+      submitBtn.disabled = !allFilled;
+    }
+
+    // Listen for input events (like React does)
+    inputs.forEach(input => {
+      input.addEventListener('input', checkFormValidity);
+      input.addEventListener('change', checkFormValidity);
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      status.className = 'success';
+      status.style.display = 'block';
+      status.textContent = 'Form submitted successfully! (This is a test form)';
+    });
+  </script>
+</body>
+</html>
