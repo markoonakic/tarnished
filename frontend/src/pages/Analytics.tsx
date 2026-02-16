@@ -48,6 +48,36 @@ export default function Analytics() {
           <OverallGrace message={insights.overall_grace} />
         )}
 
+        {/* Grouped Section Insights */}
+        {insights && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <SectionInsight
+              title="Pipeline Guidance"
+              icon="bi-funnel"
+              keyInsight={insights.pipeline_overview.key_insight}
+              trend={insights.pipeline_overview.trend}
+              priorityActions={insights.pipeline_overview.priority_actions}
+              trendDirection="neutral"
+            />
+            <SectionInsight
+              title="Interview Guidance"
+              icon="bi-people"
+              keyInsight={insights.interview_analytics.key_insight}
+              trend={insights.interview_analytics.trend}
+              priorityActions={insights.interview_analytics.priority_actions}
+              trendDirection="neutral"
+            />
+            <SectionInsight
+              title="Activity Guidance"
+              icon="bi-calendar-week"
+              keyInsight={insights.activity_tracking.key_insight}
+              trend={insights.activity_tracking.trend}
+              priorityActions={insights.activity_tracking.priority_actions}
+              trendDirection="neutral"
+            />
+          </div>
+        )}
+
         <div className="space-y-6">
 
           {/* SECTION 1: Pipeline Overview */}
@@ -57,14 +87,6 @@ export default function Analytics() {
             {/* TIER 1: Executive Summary KPIs */}
             <div className="bg-bg1 rounded-lg p-6 mb-4">
               <AnalyticsKPIs period={period} />
-              {insights?.pipeline_overview && (
-                <SectionInsight
-                  keyInsight={insights.pipeline_overview.key_insight}
-                  trend={insights.pipeline_overview.trend}
-                  priorityActions={insights.pipeline_overview.priority_actions}
-                  trendDirection="neutral"
-                />
-              )}
             </div>
 
             {/* TIER 1: Pipeline Funnel (Sankey) */}
@@ -88,14 +110,6 @@ export default function Analytics() {
 
               <div className="bg-bg1 rounded-lg p-6">
                 <InterviewTimeline period={period} />
-                {insights?.interview_analytics && (
-                  <SectionInsight
-                    keyInsight={insights.interview_analytics.key_insight}
-                    trend={insights.interview_analytics.trend}
-                    priorityActions={insights.interview_analytics.priority_actions}
-                    trendDirection="neutral"
-                  />
-                )}
               </div>
             </div>
           </section>
@@ -107,14 +121,6 @@ export default function Analytics() {
             {/* Weekly Activity (migrated to ECharts) */}
             <div className="bg-bg1 rounded-lg p-6 mb-4">
               <WeeklyActivityChart period={period} />
-              {insights?.activity_tracking && (
-                <SectionInsight
-                  keyInsight={insights.activity_tracking.key_insight}
-                  trend={insights.activity_tracking.trend}
-                  priorityActions={insights.activity_tracking.priority_actions}
-                  trendDirection="neutral"
-                />
-              )}
             </div>
 
             {/* Activity Heatmap */}
