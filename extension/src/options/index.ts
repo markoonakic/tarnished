@@ -120,13 +120,21 @@ async function handleSave(): Promise<void> {
 
   try {
     await setSettings(newSettings);
-    showStatus('Settings saved!', 'success');
+    // Show "Saved!" briefly on button
+    saveBtn.textContent = 'Saved!';
+    // Clear status element entirely
+    statusEl.textContent = '';
+    statusEl.className = '';
+    // Revert button after 1.5 seconds
+    setTimeout(() => {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Settings';
+    }, 1500);
   } catch (error) {
     console.error('Failed to save settings:', error);
-    showStatus('Failed to save settings', 'error');
-  } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = 'Save Settings';
+    showStatus('Failed to save settings', 'error');
   }
 }
 

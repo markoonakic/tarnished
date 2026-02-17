@@ -96,7 +96,7 @@ body {
 }
 
 .header button:hover {
-  background: var(--bg2);
+  background: var(--bg3);
   color: var(--fg0);
 }
 
@@ -454,6 +454,7 @@ button:focus-visible {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--bg2);
+  text-align: center;
 }
 
 .autofill-header {
@@ -494,13 +495,15 @@ button:focus-visible {
   display: block;
   width: 100%;
   padding: 8px 12px;
+  margin: 0 4px;
   background: none;
   border: none;
+  border-radius: 4px;
   text-align: left;
   font-size: 13px;
   color: var(--fg2);
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: all 200ms ease-in-out;
 }
 
 .settings-link:hover {
