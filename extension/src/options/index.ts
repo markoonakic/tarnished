@@ -5,7 +5,6 @@
  * - Loading existing settings from storage
  * - Saving new settings to storage
  * - Validation of user input
- * - Connection testing
  * - User feedback on save operations
  */
 
@@ -20,7 +19,6 @@ import { getThemeColors, applyThemeToDocument } from '../lib/theme-utils';
 const appUrlInput = document.getElementById('appUrl') as HTMLInputElement;
 const apiKeyInput = document.getElementById('apiKey') as HTMLInputElement;
 const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
-const statusEl = document.getElementById('status') as HTMLSpanElement;
 const apiKeyLink = document.getElementById('apiKeyLink') as HTMLAnchorElement;
 
 // ============================================================================
@@ -32,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const colors = await getThemeColors();
     applyThemeToDocument(colors);
-    console.log('[Options] Applied theme');
+    console.log('[Options] Applied theme, accent:', colors.accent);
   } catch (error) {
     console.warn('[Options] Failed to load theme:', error);
   }
@@ -51,7 +49,6 @@ async function loadSettings(): Promise<void> {
     apiKeyInput.value = settings.apiKey;
   } catch (error) {
     console.error('Failed to load settings:', error);
-    showStatus('Failed to load settings', 'error');
   }
 }
 
@@ -93,7 +90,6 @@ async function handleSave(): Promise<void> {
 
   // Validate app URL
   if (!newSettings.appUrl) {
-    showStatus('Please enter an App URL', 'error');
     appUrlInput.focus();
     return;
   }
@@ -102,39 +98,40 @@ async function handleSave(): Promise<void> {
   try {
     new URL(newSettings.appUrl);
   } catch {
-    showStatus('Please enter a valid URL', 'error');
     appUrlInput.focus();
     return;
   }
 
   // Validate API key
   if (!newSettings.apiKey) {
-    showStatus('Please enter an API key', 'error');
     apiKeyInput.focus();
     return;
   }
 
   // Disable save button while saving
   saveBtn.disabled = true;
+  const originalWidth = saveBtn.offsetWidth;
+  saveBtn.style.width = `${originalWidth}px`;
   saveBtn.textContent = 'Saving...';
 
   try {
     await setSettings(newSettings);
     // Show "Saved!" briefly on button
     saveBtn.textContent = 'Saved!';
-    // Clear status element entirely
-    statusEl.textContent = '';
-    statusEl.className = '';
     // Revert button after 1.5 seconds
     setTimeout(() => {
       saveBtn.disabled = false;
-      saveBtn.textContent = 'Save Settings';
+      saveBtn.style.width = '';
+      saveBtn.textContent = 'Save';
     }, 1500);
   } catch (error) {
     console.error('Failed to save settings:', error);
     saveBtn.disabled = false;
-    saveBtn.textContent = 'Save Settings';
-    showStatus('Failed to save settings', 'error');
+    saveBtn.style.width = '';
+    saveBtn.textContent = 'Error!';
+    setTimeout(() => {
+      saveBtn.textContent = 'Save';
+    }, 1500);
   }
 }
 
@@ -148,27 +145,6 @@ function handleApiKeyLinkClick(e: Event): void {
   if (appUrl) {
     browser.tabs.create({ url: `${appUrl}/settings/api-key` });
   }
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Show a status message to the user.
- *
- * @param message - The message to display
- * @param type - The type of message (success or error)
- */
-function showStatus(message: string, type: 'success' | 'error'): void {
-  statusEl.textContent = message;
-  statusEl.className = type;
-
-  // Clear status after 3 seconds
-  setTimeout(() => {
-    statusEl.textContent = '';
-    statusEl.className = '';
-  }, 3000);
 }
 
 // Export for module detection

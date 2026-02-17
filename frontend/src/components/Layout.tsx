@@ -59,8 +59,7 @@ export default function Layout({ children }: Props) {
             </Link>
             {/* Desktop nav links */}
             <div className="hidden md:flex items-center gap-6">
-              <Link to="/job-leads" className={`flex items-center gap-1.5 ${linkClass('/job-leads')}`}>
-                <i className="bi-bookmark-star icon-sm" />
+              <Link to="/job-leads" className={linkClass('/job-leads')}>
                 Job Leads
               </Link>
               <Link to="/applications" className={linkClass('/applications')}>
@@ -110,8 +109,7 @@ export default function Layout({ children }: Props) {
         >
           <div style={{ overflow: 'hidden' }}>
             <div className="px-4 pb-4">
-              <Link to="/job-leads" className={`flex items-center gap-1.5 ${mobileLinkClass('/job-leads')}`}>
-                <i className="bi-bookmark-star icon-sm" />
+              <Link to="/job-leads" className={mobileLinkClass('/job-leads')}>
                 Job Leads
               </Link>
               <Link to="/applications" className={mobileLinkClass('/applications')}>
