@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import Dropdown from './Dropdown';
 
 interface PaginationProps {
   currentPage: number;
@@ -62,6 +63,12 @@ export default function Pagination({
     return pages;
   }, [currentPage, totalPages]);
 
+  // Convert perPage to string for Dropdown
+  const perPageOptionsForDropdown = perPageOptions.map((option) => ({
+    value: String(option),
+    label: String(option),
+  }));
+
   // If only one page or fewer items than perPage, show only item count
   const showPaginationControls = totalPages > 1 || totalItems > perPage;
 
@@ -78,17 +85,13 @@ export default function Pagination({
           {/* Per-page selector */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted">Per page:</span>
-            <select
-              value={perPage}
-              onChange={(e) => onPerPageChange(Number(e.target.value))}
-              className="bg-bg2 border border-tertiary rounded px-2 py-1 text-sm text-fg1 cursor-pointer transition-all duration-200 ease-in-out hover:bg-bg3 focus:outline-none focus:ring-1 focus:ring-accent"
-            >
-              {perPageOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+            <Dropdown
+              options={perPageOptionsForDropdown}
+              value={String(perPage)}
+              onChange={(value) => onPerPageChange(Number(value))}
+              size="xs"
+              containerBackground="bg0"
+            />
           </div>
 
           {/* Page navigation */}
@@ -99,10 +102,12 @@ export default function Pagination({
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
               className={`
-                flex items-center justify-center w-8 h-8 rounded
-                bg-bg2 text-fg1 border border-tertiary
-                transition-all duration-200 ease-in-out
-                ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-bg3'}
+                flex items-center justify-center w-8 h-8 rounded-lg
+                transition-all duration-200 ease-in-out cursor-pointer
+                ${currentPage === 1
+                  ? 'bg-bg2 text-muted opacity-50 cursor-not-allowed'
+                  : 'bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3'
+                }
               `}
               aria-label="Previous page"
             >
@@ -129,11 +134,11 @@ export default function Pagination({
                   type="button"
                   onClick={() => onPageChange(page)}
                   className={`
-                    w-8 h-8 flex items-center justify-center rounded
-                    border transition-all duration-200 ease-in-out cursor-pointer
+                    w-8 h-8 flex items-center justify-center rounded-lg
+                    transition-all duration-200 ease-in-out cursor-pointer
                     ${isActive
-                      ? 'bg-accent text-bg0 border-accent'
-                      : 'bg-bg2 text-fg1 border-tertiary hover:bg-bg3'
+                      ? 'bg-accent text-bg1'
+                      : 'bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3'
                     }
                   `}
                   aria-label={`Page ${page}`}
@@ -150,10 +155,12 @@ export default function Pagination({
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
               className={`
-                flex items-center justify-center w-8 h-8 rounded
-                bg-bg2 text-fg1 border border-tertiary
-                transition-all duration-200 ease-in-out
-                ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-bg3'}
+                flex items-center justify-center w-8 h-8 rounded-lg
+                transition-all duration-200 ease-in-out cursor-pointer
+                ${currentPage === totalPages
+                  ? 'bg-bg2 text-muted opacity-50 cursor-not-allowed'
+                  : 'bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3'
+                }
               `}
               aria-label="Next page"
             >
