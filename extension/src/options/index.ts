@@ -11,6 +11,7 @@
 
 import browser from 'webextension-polyfill';
 import { getSettings, setSettings, type Settings } from '../lib/storage';
+import { getThemeColors, applyThemeToDocument } from '../lib/theme-utils';
 
 // ============================================================================
 // DOM Elements
@@ -27,6 +28,15 @@ const apiKeyLink = document.getElementById('apiKeyLink') as HTMLAnchorElement;
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Apply theme first (before any UI renders)
+  try {
+    const colors = await getThemeColors();
+    applyThemeToDocument(colors);
+    console.log('[Options] Applied theme');
+  } catch (error) {
+    console.warn('[Options] Failed to load theme:', error);
+  }
+
   await loadSettings();
   setupEventListeners();
 });
