@@ -4,6 +4,7 @@ export interface JobLeadsFiltersValue {
   status: string;
   source: string;
   sort: string;
+  perPage: number;
 }
 
 interface JobLeadsFiltersProps {
@@ -24,6 +25,13 @@ const sortOptions: DropdownOption[] = [
   { value: 'oldest', label: 'Oldest First' },
 ];
 
+const perPageOptions: DropdownOption[] = [
+  { value: '10', label: '10 / page' },
+  { value: '25', label: '25 / page' },
+  { value: '50', label: '50 / page' },
+  { value: '100', label: '100 / page' },
+];
+
 export default function JobLeadsFilters({ value, onChange, sources }: JobLeadsFiltersProps) {
   const sourceOptions: DropdownOption[] = [
     { value: '', label: 'All Sources' },
@@ -42,42 +50,45 @@ export default function JobLeadsFilters({ value, onChange, sources }: JobLeadsFi
     onChange({ ...value, sort });
   }
 
+  function handlePerPageChange(perPageStr: string) {
+    onChange({ ...value, perPage: Number(perPageStr) });
+  }
+
   return (
-    <div className="flex flex-wrap gap-3">
-      <div className="min-w-[140px]">
-        <label className="block text-xs font-medium text-muted mb-1">Status</label>
-        <Dropdown
-          options={statusOptions}
-          value={value.status}
-          onChange={handleStatusChange}
-          placeholder="All Statuses"
-          size="xs"
-          containerBackground="bg1"
-        />
-      </div>
-      <div className="min-w-[140px]">
-        <label className="block text-xs font-medium text-muted mb-1">Source</label>
-        <Dropdown
-          options={sourceOptions}
-          value={value.source}
-          onChange={handleSourceChange}
-          placeholder="All Sources"
-          size="xs"
-          containerBackground="bg1"
-          disabled={sources.length === 0}
-        />
-      </div>
-      <div className="min-w-[140px]">
-        <label className="block text-xs font-medium text-muted mb-1">Sort</label>
-        <Dropdown
-          options={sortOptions}
-          value={value.sort}
-          onChange={handleSortChange}
-          placeholder="Newest First"
-          size="xs"
-          containerBackground="bg1"
-        />
-      </div>
+    <div className="flex flex-wrap items-center gap-3">
+      <Dropdown
+        options={statusOptions}
+        value={value.status}
+        onChange={handleStatusChange}
+        placeholder="All Statuses"
+        size="xs"
+        containerBackground="bg1"
+      />
+      <Dropdown
+        options={sourceOptions}
+        value={value.source}
+        onChange={handleSourceChange}
+        placeholder="All Sources"
+        size="xs"
+        containerBackground="bg1"
+        disabled={sources.length === 0}
+      />
+      <Dropdown
+        options={sortOptions}
+        value={value.sort}
+        onChange={handleSortChange}
+        placeholder="Newest First"
+        size="xs"
+        containerBackground="bg1"
+      />
+      <Dropdown
+        options={perPageOptions}
+        value={String(value.perPage)}
+        onChange={handlePerPageChange}
+        placeholder="25 / page"
+        size="xs"
+        containerBackground="bg1"
+      />
     </div>
   );
 }

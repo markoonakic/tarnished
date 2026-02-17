@@ -151,14 +151,13 @@ export default function JobLeads() {
         source: filters.source,
         sort: filters.sort,
       });
+      if (filters.perPage !== perPage) {
+        setPerPage(filters.perPage);
+        updateParams({ page: '1' });
+      }
     },
-    [searchParams]
+    [searchParams, perPage]
   );
-
-  const handlePerPageChange = (newPerPage: number) => {
-    setPerPage(newPerPage);
-    updateParams({ page: '1' });
-  };
 
   function formatDate(dateStr: string | null) {
     if (!dateStr) return '-';
@@ -174,38 +173,30 @@ export default function JobLeads() {
     <Layout>
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-primary">Job Leads</h1>
-          <div className="text-sm text-muted">
-            {total} lead{total !== 1 ? 's' : ''}
-          </div>
-        </div>
+        <h1 className="text-2xl font-bold text-primary mb-6">Job Leads</h1>
 
         {/* Filters Section */}
-        <div className="bg-secondary rounded-lg p-4 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+        <div className="bg-bg1 rounded-lg p-4 mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
             {/* Search Input */}
-            <div className="flex-1 min-w-0">
-              <label className="block text-xs font-medium text-muted mb-1">Search</label>
-              <div className="relative">
-                <i className="bi-search absolute left-3 top-1/2 -translate-y-1/2 icon-sm text-muted" />
-                <input
-                  type="text"
-                  placeholder="Search company or job title..."
-                  value={search}
-                  onChange={(e) => updateParams({ search: e.target.value })}
-                  className="w-full pl-9 pr-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
-                />
-                {search && (
-                  <button
-                    onClick={() => updateParams({ search: '' })}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-fg1 transition-all duration-200 ease-in-out cursor-pointer"
-                    aria-label="Clear search"
-                  >
-                    <i className="bi-x icon-sm" />
-                  </button>
-                )}
-              </div>
+            <div className="flex-1 min-w-0 relative">
+              <i className="bi-search absolute left-3 top-1/2 -translate-y-1/2 icon-sm text-muted" />
+              <input
+                type="text"
+                placeholder="Search company or job title..."
+                value={search}
+                onChange={(e) => updateParams({ search: e.target.value })}
+                className="w-full pl-9 pr-9 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              />
+              {search && (
+                <button
+                  onClick={() => updateParams({ search: '' })}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-fg1 transition-all duration-200 ease-in-out cursor-pointer"
+                  aria-label="Clear search"
+                >
+                  <i className="bi-x icon-sm" />
+                </button>
+              )}
             </div>
 
             {/* Filters */}
@@ -214,6 +205,7 @@ export default function JobLeads() {
                 status: statusFilter,
                 source: sourceFilter,
                 sort: sortFilter,
+                perPage: perPage,
               }}
               onChange={handleFiltersChange}
               sources={sources}
@@ -379,7 +371,6 @@ export default function JobLeads() {
                 perPage={perPage}
                 totalItems={total}
                 onPageChange={(newPage) => updateParams({ page: String(newPage) })}
-                onPerPageChange={handlePerPageChange}
               />
             </div>
           </>

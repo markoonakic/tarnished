@@ -86,11 +86,6 @@ export default function Applications() {
 
   const totalPages = Math.ceil(total / perPage);
 
-  function handlePerPageChange(newPerPage: number) {
-    setPerPage(newPerPage);
-    updateParams({ page: '1' });
-  }
-
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString();
   }
@@ -108,18 +103,31 @@ export default function Applications() {
           </button>
         </div>
 
-        <div className="bg-secondary rounded-lg p-4 mb-6">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-0 sm:min-w-[200px]">
+        <div className="bg-bg1 rounded-lg p-4 mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+            {/* Search Input */}
+            <div className="flex-1 min-w-0 relative">
+              <i className="bi-search absolute left-3 top-1/2 -translate-y-1/2 icon-sm text-muted" />
               <input
                 type="text"
                 placeholder="Search company or job title..."
                 value={search}
                 onChange={(e) => updateParams({ search: e.target.value })}
-                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full pl-9 pr-9 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
+              {search && (
+                <button
+                  onClick={() => updateParams({ search: '' })}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-fg1 transition-all duration-200 ease-in-out cursor-pointer"
+                  aria-label="Clear search"
+                >
+                  <i className="bi-x icon-sm" />
+                </button>
+              )}
             </div>
-            <div>
+
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-3">
               <Dropdown
                 options={[
                   { value: '', label: 'All Statuses' },
@@ -128,6 +136,22 @@ export default function Applications() {
                 value={statusFilter}
                 onChange={(value) => updateParams({ status: value })}
                 placeholder="All Statuses"
+                size="xs"
+                containerBackground="bg1"
+              />
+              <Dropdown
+                options={[
+                  { value: '10', label: '10 / page' },
+                  { value: '25', label: '25 / page' },
+                  { value: '50', label: '50 / page' },
+                  { value: '100', label: '100 / page' },
+                ]}
+                value={String(perPage)}
+                onChange={(value) => {
+                  setPerPage(Number(value));
+                  updateParams({ page: '1' });
+                }}
+                placeholder="25 / page"
                 size="xs"
                 containerBackground="bg1"
               />
@@ -248,7 +272,6 @@ export default function Applications() {
                 perPage={perPage}
                 totalItems={total}
                 onPageChange={(newPage) => updateParams({ page: String(newPage) })}
-                onPerPageChange={handlePerPageChange}
               />
             </div>
           </>
