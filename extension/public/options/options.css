@@ -73,9 +73,8 @@ input[type="password"]::placeholder {
 
 input[type="url"]:focus,
 input[type="password"]:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(104, 157, 106, 0.3);
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
 }
 
 small {
@@ -126,4 +125,26 @@ button:active {
 
 .error {
   color: var(--red);
+}
+
+button.primary,
+.btn.primary {
+  background: var(--accent);
+  color: var(--bg0);
+  border: none;
+}
+
+button.primary:hover {
+  background: var(--accent-bright);
+}
+
+button.danger,
+.btn.danger {
+  background: transparent;
+  color: var(--red);
+  border: none;
+}
+
+button.danger:hover {
+  background: var(--bg2);
 }
