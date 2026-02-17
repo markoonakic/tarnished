@@ -77,16 +77,21 @@ class ApplicationListItem(BaseModel):
     # New fields from job lead conversion
     job_lead_id: str | None
     description: str | None
+    location: str | None
     salary_min: int | None
     salary_max: int | None
     salary_currency: str | None
     recruiter_name: str | None
+    recruiter_title: str | None
     recruiter_linkedin_url: str | None
     requirements_must_have: list[str] = []
     requirements_nice_to_have: list[str] = []
+    skills: list[str] = []
+    years_experience_min: int | None
+    years_experience_max: int | None
     source: str | None
 
-    @field_validator('requirements_must_have', 'requirements_nice_to_have', mode='before')
+    @field_validator('requirements_must_have', 'requirements_nice_to_have', 'skills', mode='before')
     @classmethod
     def convert_none_to_list(cls, v: Any) -> list[str]:
         """Convert None to empty list for database compatibility."""

@@ -169,23 +169,39 @@ export default function ApplicationDetail() {
 
         <div className="bg-secondary rounded-lg p-6 mb-6">
           <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-primary mb-1">{application.company}</h1>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h1 className="text-2xl font-bold text-primary">{application.company}</h1>
+                {application.source && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-bg2 text-fg1">
+                    <i className="bi-link-45deg icon-xs"></i>
+                    {application.source}
+                  </span>
+                )}
+              </div>
               <p className="text-xl text-secondary">{application.job_title}</p>
+              {application.location && (
+                <p className="text-muted text-sm mt-1 flex items-center gap-1">
+                  <i className="bi-geo-alt icon-sm"></i>
+                  {application.location}
+                </p>
+              )}
             </div>
-            <span
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold"
-              style={{
-                backgroundColor: `${getStatusColor(application.status.name, colors, application.status.color)}20`,
-                color: getStatusColor(application.status.name, colors, application.status.color),
-              }}
-            >
+            <div className="flex flex-col items-end gap-2">
               <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: getStatusColor(application.status.name, colors, application.status.color) }}
-              />
-              {application.status.name}
-            </span>
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold"
+                style={{
+                  backgroundColor: `${getStatusColor(application.status.name, colors, application.status.color)}20`,
+                  color: getStatusColor(application.status.name, colors, application.status.color),
+                }}
+              >
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: getStatusColor(application.status.name, colors, application.status.color) }}
+                />
+                {application.status.name}
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-sm">
@@ -209,16 +225,6 @@ export default function ApplicationDetail() {
               >
                 Open Job Page &rarr;
               </a>
-            </div>
-          )}
-
-          {/* Source Badge - inline with header like job leads */}
-          {application.source && (
-            <div className="mb-4 flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-bg2 text-fg1">
-                <i className="bi-link-45deg icon-xs"></i>
-                {application.source}
-              </span>
             </div>
           )}
 
@@ -307,6 +313,39 @@ export default function ApplicationDetail() {
                   <li key={index} className="text-sm">{req}</li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {/* Skills */}
+          {application.skills && application.skills.length > 0 && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-lightning icon-sm"></i>
+                Skills
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {application.skills.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-bg3 text-fg1"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Experience Range */}
+          {(application.years_experience_min !== null || application.years_experience_max !== null) && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-clock-history icon-sm"></i>
+                Experience Required
+              </h3>
+              <p className="text-primary font-medium">
+                {application.years_experience_min ?? '?'}-{application.years_experience_max ?? '?'} years
+              </p>
             </div>
           )}
 

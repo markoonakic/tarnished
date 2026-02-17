@@ -56,6 +56,7 @@ export interface Application {
   // New fields from job lead conversion
   job_lead_id: string | null;
   description: string | null;
+  location: string | null;
   salary_min: number | null;
   salary_max: number | null;
   salary_currency: string | null;
@@ -64,6 +65,9 @@ export interface Application {
   recruiter_linkedin_url: string | null;
   requirements_must_have: string[];
   requirements_nice_to_have: string[];
+  skills: string[];
+  years_experience_min: number | null;
+  years_experience_max: number | null;
   source: string | null;
 }
 
