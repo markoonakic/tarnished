@@ -212,7 +212,7 @@ body {
 
 /* Buttons */
 .btn {
-  width: 100%;
+  width: auto;
   padding: 10px 16px;
   border: none;
   border-radius: 6px;
@@ -224,6 +224,11 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+/* Full-width modifier for standalone primary actions */
+.btn.full {
+  width: 100%;
 }
 
 /* Button row for side-by-side buttons */
