@@ -657,13 +657,18 @@ async def convert_job_lead_to_application(
         applied_at=datetime.utcnow().date(),
         # Rich extraction fields
         description=job_lead.description,
+        location=job_lead.location,
         salary_min=job_lead.salary_min,
         salary_max=job_lead.salary_max,
         salary_currency=job_lead.salary_currency,
         recruiter_name=job_lead.recruiter_name,
+        recruiter_title=job_lead.recruiter_title,
         recruiter_linkedin_url=job_lead.recruiter_linkedin_url,
         requirements_must_have=job_lead.requirements_must_have or [],
         requirements_nice_to_have=job_lead.requirements_nice_to_have or [],
+        skills=job_lead.skills or [],
+        years_experience_min=job_lead.years_experience_min,
+        years_experience_max=job_lead.years_experience_max,
         source=job_lead.source,
     )
 
