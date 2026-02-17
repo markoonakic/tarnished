@@ -17,6 +17,7 @@ import { getSettings, setSettings, type Settings } from '../lib/storage';
 // ============================================================================
 
 const serverUrlInput = document.getElementById('serverUrl') as HTMLInputElement;
+const frontendUrlInput = document.getElementById('frontendUrl') as HTMLInputElement;
 const apiKeyInput = document.getElementById('apiKey') as HTMLInputElement;
 const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
 const statusEl = document.getElementById('status') as HTMLSpanElement;
@@ -38,6 +39,7 @@ async function loadSettings(): Promise<void> {
   try {
     const settings = await getSettings();
     serverUrlInput.value = settings.serverUrl;
+    frontendUrlInput.value = settings.frontendUrl;
     apiKeyInput.value = settings.apiKey;
   } catch (error) {
     console.error('Failed to load settings:', error);
@@ -61,6 +63,11 @@ function setupEventListeners(): void {
       handleSave();
     }
   });
+  frontendUrlInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    }
+  });
   apiKeyInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       handleSave();
@@ -78,6 +85,7 @@ function setupEventListeners(): void {
 async function handleSave(): Promise<void> {
   const newSettings: Settings = {
     serverUrl: serverUrlInput.value.trim(),
+    frontendUrl: frontendUrlInput.value.trim(),
     apiKey: apiKeyInput.value.trim(),
   };
 
@@ -88,13 +96,24 @@ async function handleSave(): Promise<void> {
     return;
   }
 
-  // Validate URL format
+  // Validate server URL format
   try {
     new URL(newSettings.serverUrl);
   } catch {
-    showStatus('Please enter a valid URL', 'error');
+    showStatus('Please enter a valid server URL', 'error');
     serverUrlInput.focus();
     return;
+  }
+
+  // Validate frontend URL if provided
+  if (newSettings.frontendUrl) {
+    try {
+      new URL(newSettings.frontendUrl);
+    } catch {
+      showStatus('Please enter a valid frontend URL', 'error');
+      frontendUrlInput.focus();
+      return;
+    }
   }
 
   // Validate API key

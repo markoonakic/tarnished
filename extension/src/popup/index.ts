@@ -373,15 +373,33 @@ function openSettings(): void {
 }
 
 /**
+ * Gets the frontend URL from settings, with fallback logic.
+ * If frontendUrl is set, use it.
+ * If not, try to derive from serverUrl (replace port 8000 with 5173 for localhost).
+ */
+function getFrontendUrl(settings: Settings): string {
+  if (settings.frontendUrl) {
+    return settings.frontendUrl;
+  }
+  // Fallback: derive from serverUrl for local development
+  const serverUrl = settings.serverUrl || 'http://localhost:8000';
+  if (serverUrl.includes(':8000')) {
+    return serverUrl.replace(':8000', ':5173');
+  }
+  // If we can't derive, return the serverUrl (won't work but better than nothing)
+  return serverUrl;
+}
+
+/**
  * Opens the Job Leads page in the web app
  */
 function openJobLeads(): void {
   getSettings()
     .then((settings: Settings) => {
-      const serverUrl = settings.serverUrl || 'http://localhost:8000';
+      const frontendUrl = getFrontendUrl(settings);
       const url = existingLead
-        ? `${serverUrl}/job-leads/${existingLead.id}`
-        : `${serverUrl}/job-leads`;
+        ? `${frontendUrl}/job-leads/${existingLead.id}`
+        : `${frontendUrl}/job-leads`;
       browser.tabs.create({ url }).catch((error) => {
         console.error('Failed to open job leads:', error);
       });
@@ -397,10 +415,10 @@ function openJobLeads(): void {
 function openApplications(applicationId?: string): void {
   getSettings()
     .then((settings: Settings) => {
-      const serverUrl = settings.serverUrl || 'http://localhost:8000';
+      const frontendUrl = getFrontendUrl(settings);
       const url = applicationId
-        ? `${serverUrl}/applications/${applicationId}`
-        : `${serverUrl}/applications`;
+        ? `${frontendUrl}/applications/${applicationId}`
+        : `${frontendUrl}/applications`;
       browser.tabs.create({ url }).catch((error) => {
         console.error('Failed to open applications:', error);
       });
