@@ -939,6 +939,9 @@ async function init(): Promise<void> {
     applyThemeToDocument(colors);
     console.log('[Popup] Applied theme, accent:', colors.accent);
 
+    // Update favicon with accent color
+    await updateFavicon(colors.accent);
+
     // Debug: Verify CSS variables were set
     const root = document.documentElement;
     console.log('[Popup] CSS var --accent:', root.style.getPropertyValue('--accent'));
@@ -957,6 +960,34 @@ async function init(): Promise<void> {
 
   // Determine and show the appropriate state
   await determineState();
+}
+
+/**
+ * Update the page favicon with the accent color
+ */
+async function updateFavicon(accentColor: string): Promise<void> {
+  try {
+    // Fetch the tree SVG
+    const svgUrl = browser.runtime.getURL('icons/tree.svg');
+    const response = await fetch(svgUrl);
+    let svg = await response.text();
+
+    // Replace fill color with accent color
+    svg = svg.replace(/fill="[^"]*"/g, `fill="${accentColor}"`);
+
+    // Create data URL
+    const svgDataUrl = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+
+    // Update favicon
+    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    if (favicon) {
+      favicon.href = svgDataUrl;
+    }
+
+    console.log('[Popup] Updated favicon with accent color:', accentColor);
+  } catch (error) {
+    console.warn('[Popup] Failed to update favicon:', error);
+  }
 }
 
 // Initialize when DOM is ready
