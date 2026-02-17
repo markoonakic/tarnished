@@ -7,18 +7,18 @@ import browser from 'webextension-polyfill';
 import { getProfile } from '../lib/api';
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
 import { ThemeColors, UserSettings, DEFAULT_COLORS } from '../lib/theme';
-
-const SETTINGS_STORAGE_KEY = 'themeSettings';
+import { SETTINGS_STORAGE_KEY } from '../lib/theme-utils';
 
 async function fetchThemeSettings(): Promise<ThemeColors> {
   const { apiUrl, apiKey } = await browser.storage.local.get(['apiUrl', 'apiKey']);
 
   if (!apiUrl || !apiKey) {
-    console.log('Extension not configured, using default colors');
+    console.log('[Theme] Extension not configured, using default colors');
     return DEFAULT_COLORS;
   }
 
   try {
+    console.log('[Theme] Fetching from:', `${apiUrl}/users/settings`);
     const response = await fetch(`${apiUrl}/users/settings`, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -27,21 +27,23 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch settings: ${response.status}`);
+      throw new Error(`HTTP ${response.status}`);
     }
 
     const settings: UserSettings = await response.json();
+    console.log('[Theme] Loaded theme:', settings.theme, 'accent:', settings.accent);
 
     // Cache settings for popup
     await browser.storage.local.set({ [SETTINGS_STORAGE_KEY]: settings.colors });
 
     return settings.colors;
   } catch (error) {
-    console.error('Failed to fetch theme settings:', error);
+    console.error('[Theme] Fetch failed:', error);
 
     // Try to use cached settings
     const cached = await browser.storage.local.get(SETTINGS_STORAGE_KEY);
     if (cached[SETTINGS_STORAGE_KEY]) {
+      console.log('[Theme] Using cached colors');
       return cached[SETTINGS_STORAGE_KEY];
     }
 
@@ -286,6 +288,14 @@ browser.runtime.onMessage.addListener((message, sender) => {
   // From popup: get tab status
   if (message.type === 'GET_TAB_STATUS') {
     return Promise.resolve(tabStatus.get(message.tabId) || null);
+  }
+
+  // From popup: refresh theme settings
+  if (message.type === 'REFRESH_THEME') {
+    fetchThemeSettings().then(colors => {
+      updateIconColor(colors.accent);
+    });
+    return Promise.resolve(undefined);
   }
 
   // From content script: request injection into iframe
