@@ -9,6 +9,7 @@ import Layout from '../components/Layout';
 import Loading from '../components/Loading';
 import CreateUserModal from '../components/CreateUserModal';
 import EditUserModal from '../components/EditUserModal';
+import Pagination from '../components/Pagination';
 
 export default function Admin() {
   const { user } = useAuth();
@@ -22,6 +23,12 @@ export default function Admin() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
   // AI Settings form state
   const [aiModel, setAiModel] = useState('');
   const [aiApiKey, setAiApiKey] = useState('');
@@ -31,17 +38,19 @@ export default function Admin() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [page, perPage]);
 
   async function loadData() {
     setLoading(true);
     try {
       const [usersData, statsData, aiSettingsData] = await Promise.all([
-        listUsers(),
+        listUsers({ page, per_page: perPage }),
         getAdminStats(),
         getAISettings(),
       ]);
-      setUsers(usersData);
+      setUsers(usersData.items);
+      setTotalUsers(usersData.total);
+      setTotalPages(usersData.total_pages);
       setStats(statsData);
       setAiSettings(aiSettingsData);
 
@@ -54,6 +63,11 @@ export default function Admin() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handlePerPageChange(newPerPage: number) {
+    setPerPage(newPerPage);
+    setPage(1); // Reset to first page when changing per-page
   }
 
   function formatDate(dateStr: string) {
@@ -349,6 +363,18 @@ export default function Admin() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Pagination */}
+              <div className="mt-4">
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  perPage={perPage}
+                  totalItems={totalUsers}
+                  onPageChange={setPage}
+                  onPerPageChange={handlePerPageChange}
+                />
               </div>
             </section>
           </div>

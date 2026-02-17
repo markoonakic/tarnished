@@ -11,8 +11,19 @@ export interface AdminStats {
   applications_by_status: { status: string; count: number }[];
 }
 
-export async function listUsers(): Promise<AdminUser[]> {
-  const response = await api.get('/api/admin/users');
+export interface AdminUserListResponse {
+  items: AdminUser[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}
+
+export async function listUsers(params?: {
+  page?: number;
+  per_page?: number;
+}): Promise<AdminUserListResponse> {
+  const response = await api.get('/api/admin/users', { params });
   return response.data;
 }
 

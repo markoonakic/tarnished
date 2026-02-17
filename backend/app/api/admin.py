@@ -14,6 +14,7 @@ from app.schemas.admin import (
     AdminStatsResponse,
     AdminStatusUpdate,
     AdminUserCreate,
+    AdminUserListResponse,
     AdminUserResponse,
     AdminUserUpdate,
 )
@@ -22,11 +23,22 @@ from app.schemas.application import ApplicationListResponse
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
-@router.get("/users", response_model=list[AdminUserResponse])
+@router.get("/users", response_model=AdminUserListResponse)
 async def list_users(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(25, ge=1, le=100),
     _: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    # Get total count
+    count_result = await db.execute(select(func.count(User.id)))
+    total = count_result.scalar() or 0
+
+    # Calculate total pages
+    total_pages = (total + per_page - 1) // per_page if total > 0 else 1
+
+    # Get paginated users with application counts
+    offset = (page - 1) * per_page
     result = await db.execute(
         select(
             User,
@@ -35,10 +47,12 @@ async def list_users(
         .outerjoin(Application)
         .group_by(User.id)
         .order_by(User.created_at.desc())
+        .offset(offset)
+        .limit(per_page)
     )
     rows = result.all()
 
-    return [
+    items = [
         AdminUserResponse(
             id=user.id,
             email=user.email,
@@ -49,6 +63,14 @@ async def list_users(
         )
         for user, app_count in rows
     ]
+
+    return AdminUserListResponse(
+        items=items,
+        total=total,
+        page=page,
+        per_page=per_page,
+        total_pages=total_pages,
+    )
 
 
 @router.patch("/users/{user_id}", response_model=AdminUserResponse)

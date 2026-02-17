@@ -43,3 +43,11 @@ class AdminStatusUpdate(BaseModel):
 
 class AdminRoundTypeUpdate(BaseModel):
     name: str | None = None
+
+
+class AdminUserListResponse(BaseModel):
+    items: list[AdminUserResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
