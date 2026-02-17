@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.database import get_db
-from app.core.deps import get_current_user_by_api_token
+from app.core.deps import get_current_user_by_api_token, get_current_user_flexible
 from app.core.themes import get_theme_colors, DEFAULT_THEME, DEFAULT_ACCENT, THEMES, ACCENT_OPTIONS
 from app.models import User
 from app.schemas.settings import UserSettingsResponse, UserSettingsUpdate
@@ -32,7 +32,7 @@ async def get_user_settings(
 @router.patch("/settings")
 async def update_user_settings(
     update: UserSettingsUpdate,
-    current_user: User = Depends(get_current_user_by_api_token),
+    current_user: User = Depends(get_current_user_flexible),
     db: AsyncSession = Depends(get_db)
 ):
     """Update user theme settings."""
