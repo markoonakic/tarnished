@@ -32,9 +32,11 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
 
     const settings: UserSettings = await response.json();
     console.log('[Theme] Loaded theme:', settings.theme, 'accent:', settings.accent);
+    console.log('[Theme] Colors object:', settings.colors);
 
     // Cache settings for popup
     await browser.storage.local.set({ [SETTINGS_STORAGE_KEY]: settings.colors });
+    console.log('[Theme] Saved to storage with key:', SETTINGS_STORAGE_KEY);
 
     return settings.colors;
   } catch (error) {
