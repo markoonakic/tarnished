@@ -18,8 +18,8 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
   }
 
   try {
-    console.log('[Theme] Fetching from:', `${appUrl}/users/settings`);
-    const response = await fetch(`${appUrl}/users/settings`, {
+    console.log('[Theme] Fetching from:', `${appUrl}/api/users/settings`);
+    const response = await fetch(`${appUrl}/api/users/settings`, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
@@ -64,24 +64,9 @@ async function getAccentColor(): Promise<string> {
 }
 
 async function updateIconColor(accentHex: string): Promise<void> {
-  try {
-    // Fetch the tree SVG
-    const svgUrl = browser.runtime.getURL('icons/tree.svg');
-    const response = await fetch(svgUrl);
-    let svg = await response.text();
-
-    // Replace fill color
-    svg = svg.replace(/fill="[^"]*"/g, `fill="${accentHex}"`);
-
-    // Create a data URL from the modified SVG
-    const svgDataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
-
-    // Use path with data URL - this works in service workers
-    await browser.action.setIcon({ path: svgDataUrl });
-    console.log('[Icon] Updated with accent color:', accentHex);
-  } catch (error) {
-    console.error('[Icon] Failed to update:', error);
-  }
+  // Icon color update disabled - SVG data URLs don't work reliably in Chrome service workers
+  // The extension will use the default icon from manifest
+  console.log('[Icon] Accent color:', accentHex, '(icon update disabled)');
 }
 
 /**
@@ -113,6 +98,10 @@ let autoFillOnLoad = false;
 
 // Track pending iframe injection requests
 const pendingIframeInjections = new Map<number, string[]>();
+
+// Theme fetch throttle - only fetch once every 30 seconds
+let lastThemeFetch = 0;
+const THEME_FETCH_INTERVAL = 30000;
 
 // ============================================================================
 // Auto-Fill Setting Management
@@ -268,18 +257,22 @@ browser.runtime.onMessage.addListener((message, sender) => {
     return Promise.resolve(tabStatus.get(message.tabId) || null);
   }
 
-  // From popup: refresh theme settings
+  // From popup: refresh theme settings (throttled)
   if (message.type === 'REFRESH_THEME') {
-    fetchThemeSettings().then(async colors => {
-      updateIconColor(colors.accent);
-      // Update badge color for all tabs that have job pages
-      const accentColor = colors.accent;
-      for (const [tabId, status] of tabStatus.entries()) {
-        if (status.isJobPage) {
-          await browser.action.setBadgeBackgroundColor({ color: accentColor, tabId: Number(tabId) });
+    const now = Date.now();
+    if (now - lastThemeFetch > THEME_FETCH_INTERVAL) {
+      lastThemeFetch = now;
+      fetchThemeSettings().then(async colors => {
+        updateIconColor(colors.accent);
+        // Update badge color for all tabs that have job pages
+        const accentColor = colors.accent;
+        for (const [tabId, status] of tabStatus.entries()) {
+          if (status.isJobPage) {
+            await browser.action.setBadgeBackgroundColor({ color: accentColor, tabId: Number(tabId) });
+          }
         }
-      }
-    });
+      });
+    }
     return Promise.resolve(undefined);
   }
 

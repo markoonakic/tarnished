@@ -84,15 +84,17 @@ small {
   font-size: 12px;
 }
 
-small a {
-  color: var(--accent);
+small a,
+small a:link,
+small a:visited {
+  color: var(--accent) !important;
   text-decoration: none;
   cursor: pointer;
   transition: all 200ms ease-in-out;
 }
 
 small a:hover {
-  color: var(--accent-bright);
+  color: var(--accent-bright) !important;
   text-decoration: underline;
 }
 
