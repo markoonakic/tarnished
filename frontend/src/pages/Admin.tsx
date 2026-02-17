@@ -6,6 +6,7 @@ import { getAISettings, updateAISettings } from '../lib/aiSettings';
 import type { AISettingsResponse } from '../lib/aiSettings';
 import { useToast } from '../hooks/useToast';
 import Layout from '../components/Layout';
+import Dropdown from '../components/Dropdown';
 import Loading from '../components/Loading';
 import CreateUserModal from '../components/CreateUserModal';
 import EditUserModal from '../components/EditUserModal';
@@ -254,13 +255,46 @@ export default function Admin() {
                 </button>
               </div>
 
-              <input
-                type="text"
-                placeholder="Search by email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
-              />
+              {/* Filters */}
+              <div className="bg-bg1 rounded-lg p-4 mb-6">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                  {/* Search Input */}
+                  <div className="flex-1 min-w-0 relative">
+                    <i className="bi-search absolute left-3 top-1/2 -translate-y-1/2 icon-sm text-muted" />
+                    <input
+                      type="text"
+                      placeholder="Search by email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-9 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-fg1 transition-all duration-200 ease-in-out cursor-pointer"
+                        aria-label="Clear search"
+                      >
+                        <i className="bi-x icon-sm" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Per-page dropdown */}
+                  <Dropdown
+                    options={[
+                      { value: '10', label: '10 / page' },
+                      { value: '25', label: '25 / page' },
+                      { value: '50', label: '50 / page' },
+                      { value: '100', label: '100 / page' },
+                    ]}
+                    value={String(perPage)}
+                    onChange={(value) => handlePerPageChange(Number(value))}
+                    placeholder="25 / page"
+                    size="xs"
+                    containerBackground="bg1"
+                  />
+                </div>
+              </div>
 
               {/* Desktop table */}
               <div className="hidden md:block bg-secondary rounded-lg overflow-hidden mt-4">
@@ -373,7 +407,6 @@ export default function Admin() {
                   perPage={perPage}
                   totalItems={totalUsers}
                   onPageChange={setPage}
-                  onPerPageChange={handlePerPageChange}
                 />
               </div>
             </section>
