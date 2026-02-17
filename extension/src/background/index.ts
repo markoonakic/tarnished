@@ -71,38 +71,28 @@ async function updateIconColor(accentHex: string): Promise<void> {
     // Replace fill color
     svg = svg.replace(/fill="[^"]*"/g, `fill="${accentHex}"`);
 
-    // Create image from SVG
-    const img = new Image();
+    // Create blob and bitmap (works in service worker)
     const svgBlob = new Blob([svg], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(svgBlob);
+    const bitmap = await createImageBitmap(svgBlob);
 
     // Generate ImageData for multiple sizes
     const sizes = [16, 32, 48, 128] as const;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const imageData: Record<string, any> = {};
 
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => {
-        for (const size of sizes) {
-          const canvas = new OffscreenCanvas(size, size);
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, size, size);
-            imageData[size.toString()] = ctx.getImageData(0, 0, size, size);
-          }
-        }
-        URL.revokeObjectURL(url);
-        resolve();
-      };
-      img.onerror = reject;
-      img.src = url;
-    });
+    for (const size of sizes) {
+      const canvas = new OffscreenCanvas(size, size);
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(bitmap, 0, 0, size, size);
+        imageData[size.toString()] = ctx.getImageData(0, 0, size, size);
+      }
+    }
 
-    // Set the icon
     await browser.action.setIcon({ imageData });
-    console.log('Icon updated with accent color:', accentHex);
+    console.log('[Icon] Updated with accent color:', accentHex);
   } catch (error) {
-    console.error('Failed to update icon color:', error);
+    console.error('[Icon] Failed to update:', error);
   }
 }
 
