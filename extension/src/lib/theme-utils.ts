@@ -1,9 +1,10 @@
+import browser from 'webextension-polyfill';
 import { ThemeColors, DEFAULT_COLORS } from './theme';
 
 const SETTINGS_STORAGE_KEY = 'themeSettings';
 
 export async function getThemeColors(): Promise<ThemeColors> {
-  const cached = await chrome.storage.local.get(SETTINGS_STORAGE_KEY);
+  const cached = await browser.storage.local.get(SETTINGS_STORAGE_KEY);
   return cached[SETTINGS_STORAGE_KEY] || DEFAULT_COLORS;
 }
 
