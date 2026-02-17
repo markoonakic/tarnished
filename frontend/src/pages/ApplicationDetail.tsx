@@ -423,7 +423,7 @@ export default function ApplicationDetail() {
                 )
               ))}
             </div>
-          ) : (
+          ) : !showRoundForm ? (
             <EmptyState
               message="No interview rounds yet."
               icon="bi-calendar-x"
@@ -432,7 +432,7 @@ export default function ApplicationDetail() {
                 onClick: () => setShowRoundForm(true),
               }}
             />
-          )}
+          ) : null}
         </div>
       </div>
       {application && (
