@@ -6,6 +6,7 @@
  * - Saving new settings to storage
  * - Validation of user input
  * - User feedback on save operations
+ * - Dynamic favicon with theme accent color
  */
 
 import browser from 'webextension-polyfill';
@@ -31,6 +32,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const colors = await getThemeColors();
     applyThemeToDocument(colors);
     console.log('[Options] Applied theme, accent:', colors.accent);
+
+    // Update favicon with accent color
+    await updateFavicon(colors.accent);
   } catch (error) {
     console.warn('[Options] Failed to load theme:', error);
   }
@@ -38,6 +42,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadSettings();
   setupEventListeners();
 });
+
+/**
+ * Update the page favicon with the accent color
+ */
+async function updateFavicon(accentColor: string): Promise<void> {
+  try {
+    // Fetch the tree SVG
+    const svgUrl = browser.runtime.getURL('icons/tree.svg');
+    const response = await fetch(svgUrl);
+    let svg = await response.text();
+
+    // Replace fill color with accent color
+    svg = svg.replace(/fill="[^"]*"/g, `fill="${accentColor}"`);
+
+    // Create data URL
+    const svgDataUrl = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+
+    // Update favicon
+    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    if (favicon) {
+      favicon.href = svgDataUrl;
+    }
+
+    console.log('[Options] Updated favicon with accent color:', accentColor);
+  } catch (error) {
+    console.warn('[Options] Failed to update favicon:', error);
+  }
+}
 
 /**
  * Load existing settings from storage and populate the form.

@@ -97,7 +97,6 @@ small a:visited {
 small a:hover {
   color: #8ec07c !important;
   color: var(--accent-bright, #8ec07c) !important;
-  text-decoration: underline;
 }
 
 button.primary {
