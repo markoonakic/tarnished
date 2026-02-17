@@ -15,6 +15,7 @@ import {
 } from '../lib/api';
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
 import { getErrorMessage, isRecoverable, mapApiError } from '../lib/errors';
+import { getThemeColors, applyThemeToDocument } from './lib/theme';
 
 // ============================================================================
 // Types
@@ -933,6 +934,14 @@ function setupEventListeners(): void {
  * Initialize the popup
  */
 async function init(): Promise<void> {
+  // Load and apply theme colors
+  try {
+    const colors = await getThemeColors();
+    applyThemeToDocument(colors);
+  } catch (error) {
+    console.warn('Failed to load theme:', error);
+  }
+
   // Load auto-fill setting
   await loadAutoFillSetting();
 
