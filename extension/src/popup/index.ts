@@ -935,8 +935,13 @@ async function init(): Promise<void> {
   // Load and apply theme colors
   try {
     const colors = await getThemeColors();
+    console.log('[Popup] Theme colors loaded:', colors);
     applyThemeToDocument(colors);
     console.log('[Popup] Applied theme, accent:', colors.accent);
+
+    // Debug: Verify CSS variables were set
+    const root = document.documentElement;
+    console.log('[Popup] CSS var --accent:', root.style.getPropertyValue('--accent'));
   } catch (error) {
     console.warn('Failed to load theme:', error);
   }
