@@ -12,6 +12,7 @@ import Dropdown from '../components/Dropdown';
 import Loading from '../components/Loading';
 import EmptyState from '../components/EmptyState';
 import ApplicationModal from '../components/ApplicationModal';
+import Pagination from '../components/Pagination';
 
 export default function Applications() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export default function Applications() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const page = parseInt(searchParams.get('page') || '1');
-  const perPage = 10;
+  const [perPage, setPerPage] = useState(25);
   const statusFilter = searchParams.get('status') || '';
   const search = searchParams.get('search') || '';
   const isFiltered = search || statusFilter;
@@ -37,7 +38,7 @@ export default function Applications() {
 
   useEffect(() => {
     loadApplications();
-  }, [page, statusFilter, search]);
+  }, [page, perPage, statusFilter, search]);
 
   async function loadStatuses() {
     try {
@@ -84,6 +85,11 @@ export default function Applications() {
   }
 
   const totalPages = Math.ceil(total / perPage);
+
+  function handlePerPageChange(newPerPage: number) {
+    setPerPage(newPerPage);
+    updateParams({ page: '1' });
+  }
 
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString();
@@ -235,27 +241,16 @@ export default function Applications() {
               ))}
             </div>
 
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-6">
-                <button
-                  onClick={() => updateParams({ page: String(page - 1) })}
-                  disabled={page === 1}
-                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Previous
-                </button>
-                <span className="text-sm text-muted font-mono px-4">
-                  Page {page} of {totalPages}
-                </span>
-                <button
-                  onClick={() => updateParams({ page: String(page + 1) })}
-                  disabled={page === totalPages}
-                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Next
-                </button>
-              </div>
-            )}
+            <div className="mt-6">
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                perPage={perPage}
+                totalItems={total}
+                onPageChange={(newPage) => updateParams({ page: String(newPage) })}
+                onPerPageChange={handlePerPageChange}
+              />
+            </div>
           </>
         )}
       </div>
