@@ -268,8 +268,15 @@ browser.runtime.onMessage.addListener((message, sender) => {
 
   // From popup: refresh theme settings
   if (message.type === 'REFRESH_THEME') {
-    fetchThemeSettings().then(colors => {
+    fetchThemeSettings().then(async colors => {
       updateIconColor(colors.accent);
+      // Update badge color for all tabs that have job pages
+      const accentColor = colors.accent;
+      for (const [tabId, status] of tabStatus.entries()) {
+        if (status.isJobPage) {
+          await browser.action.setBadgeBackgroundColor({ color: accentColor, tabId: Number(tabId) });
+        }
+      }
     });
     return Promise.resolve(undefined);
   }
