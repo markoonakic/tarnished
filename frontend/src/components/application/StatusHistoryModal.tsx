@@ -63,7 +63,7 @@ export default function StatusHistoryModal({
               {history.map((entry: ApplicationStatusHistory) => (
                 <div
                   key={entry.id}
-                  className="bg-tertiary rounded-lg p-4 flex items-start justify-between gap-4"
+                  className="bg-bg2 rounded-lg p-4 flex items-start justify-between gap-4"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -104,7 +104,7 @@ export default function StatusHistoryModal({
                     <button
                       onClick={() => onDelete(entry.id)}
                       disabled={deleteIsPending}
-                      className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 flex-shrink-0 cursor-pointer"
+                      className="bg-transparent text-red hover:bg-bg3 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 flex-shrink-0 cursor-pointer"
                       title="Delete"
                     >
                       <i className="bi-trash icon-xs" />
