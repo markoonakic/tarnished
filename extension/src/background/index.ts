@@ -49,6 +49,16 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
   }
 }
 
+/**
+ * Get the current accent color from cached theme settings
+ * Falls back to DEFAULT_COLORS if not cached
+ */
+async function getAccentColor(): Promise<string> {
+  const cached = await browser.storage.local.get(SETTINGS_STORAGE_KEY);
+  const colors: ThemeColors = cached[SETTINGS_STORAGE_KEY] || DEFAULT_COLORS;
+  return colors.accent;
+}
+
 async function updateIconColor(accentHex: string): Promise<void> {
   try {
     // Fetch the tree SVG
@@ -212,12 +222,12 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
           signals: response.signals,
           url: tab.url,
         });
-        updateBadge(tabId, response.isJobPage);
+        await updateBadge(tabId, response.isJobPage);
       }
     } catch {
       // Content script might not be loaded on this page (e.g., chrome://, extension pages)
       tabStatus.delete(tabId);
-      updateBadge(tabId, false);
+      await updateBadge(tabId, false);
     }
   }
 });
@@ -236,8 +246,8 @@ browser.runtime.onMessage.addListener((message, sender) => {
       signals: message.signals,
       url: message.url,
     });
-    updateBadge(sender.tab.id, message.isJobPage);
-    return Promise.resolve(undefined);
+    // Return the promise so the async updateBadge completes
+    return updateBadge(sender.tab.id, message.isJobPage).then(() => undefined);
   }
 
   // From content script: form detection update (for auto-fill on load)
@@ -300,19 +310,20 @@ browser.runtime.onMessage.addListener((message, sender) => {
 
 /**
  * Update badge for a tab
- * Green badge with checkmark for job pages, clear badge for non-job pages
+ * Uses accent color with checkmark for job pages, clear badge for non-job pages
  *
  * @param tabId - The tab ID to update the badge for
  * @param isJobPage - Whether the page is detected as a job posting
  */
-function updateBadge(tabId: number, isJobPage: boolean): void {
+async function updateBadge(tabId: number, isJobPage: boolean): Promise<void> {
   if (isJobPage) {
-    // Show green badge with checkmark for job pages
-    browser.action.setBadgeText({ text: '\u2713', tabId }); // Checkmark character
-    browser.action.setBadgeBackgroundColor({ color: '#689d6a', tabId }); // Gruvbox green
+    // Show badge with accent color and checkmark for job pages
+    const accentColor = await getAccentColor();
+    await browser.action.setBadgeText({ text: '\u2713', tabId }); // Checkmark character
+    await browser.action.setBadgeBackgroundColor({ color: accentColor, tabId });
   } else {
     // Clear badge for non-job pages
-    browser.action.setBadgeText({ text: '', tabId });
+    await browser.action.setBadgeText({ text: '', tabId });
   }
 }
 
