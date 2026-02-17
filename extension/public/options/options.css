@@ -57,12 +57,12 @@ input[type="url"],
 input[type="password"] {
   width: 100%;
   padding: 10px 12px;
-  background: var(--bg2);
-  border: 1px solid var(--bg3);
+  background: var(--bg3);
+  border: none;
   border-radius: 6px;
   color: var(--fg0);
   font-size: 14px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: all 200ms ease-in-out;
 }
 
 input[type="url"]::placeholder,
@@ -86,12 +86,15 @@ small {
 }
 
 small a {
-  color: var(--accent-bright);
+  color: var(--accent);
   text-decoration: none;
+  cursor: pointer;
+  transition: all 200ms ease-in-out;
 }
 
 small a:hover {
-  text-decoration: underline;
+  color: var(--accent-bright);
+  text-decoration: none;
 }
 
 button {
