@@ -49,6 +49,51 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
   }
 }
 
+async function updateIconColor(accentHex: string): Promise<void> {
+  try {
+    // Fetch the tree SVG
+    const svgUrl = browser.runtime.getURL('icons/tree.svg');
+    const response = await fetch(svgUrl);
+    let svg = await response.text();
+
+    // Replace fill color
+    svg = svg.replace(/fill="[^"]*"/g, `fill="${accentHex}"`);
+
+    // Create image from SVG
+    const img = new Image();
+    const svgBlob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(svgBlob);
+
+    // Generate ImageData for multiple sizes
+    const sizes = [16, 32, 48, 128] as const;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const imageData: Record<string, any> = {};
+
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => {
+        for (const size of sizes) {
+          const canvas = new OffscreenCanvas(size, size);
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, size, size);
+            imageData[size.toString()] = ctx.getImageData(0, 0, size, size);
+          }
+        }
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+
+    // Set the icon
+    await browser.action.setIcon({ imageData });
+    console.log('Icon updated with accent color:', accentHex);
+  } catch (error) {
+    console.error('Failed to update icon color:', error);
+  }
+}
+
 /**
  * Status information for a tracked tab
  */
@@ -280,5 +325,13 @@ browser.tabs.onRemoved.addListener((tabId) => {
   tabFormDetectionState.delete(tabId);
   pendingIframeInjections.delete(tabId);
 });
+
+// Initialize theme on extension load
+async function initializeTheme(): Promise<void> {
+  const colors = await fetchThemeSettings();
+  await updateIconColor(colors.accent);
+}
+
+initializeTheme();
 
 export {};
