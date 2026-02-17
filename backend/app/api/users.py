@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.database import get_db
 from app.core.deps import get_current_user_by_api_token
@@ -48,6 +49,7 @@ async def update_user_settings(
         settings["accent"] = update.accent
 
     current_user.settings = settings
+    flag_modified(current_user, "settings")
     await db.commit()
 
     return {"message": "Settings updated", "settings": settings}
