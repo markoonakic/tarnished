@@ -80,8 +80,7 @@ input[type="password"]:focus {
 small {
   display: block;
   margin-top: 6px;
-  color: var(--fg1);
-  opacity: 0.7;
+  color: var(--fg3);
   font-size: 12px;
 }
 
@@ -94,64 +93,27 @@ small a {
 
 small a:hover {
   color: var(--accent-bright);
-  text-decoration: none;
+  text-decoration: underline;
 }
 
-button {
+button.primary {
+  min-width: 80px;
   padding: 10px 20px;
   background: var(--accent);
-  color: var(--fg0);
+  color: var(--bg0);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-}
-
-button:hover {
-  background: var(--accent-bright);
-}
-
-button:active {
-  transform: scale(0.98);
-}
-
-#status {
-  margin-top: 12px;
-  padding: 8px 12px;
-  background: var(--bg2);
-  border-radius: 4px;
-  color: var(--green);
-  font-size: 13px;
-}
-
-.success {
-  color: var(--green);
-}
-
-.error {
-  color: var(--red);
-}
-
-button.primary,
-.btn.primary {
-  background: var(--accent);
-  color: var(--bg0);
-  border: none;
+  transition: background-color 0.2s ease;
 }
 
 button.primary:hover {
   background: var(--accent-bright);
 }
 
-button.danger,
-.btn.danger {
-  background: transparent;
-  color: var(--red);
-  border: none;
-}
-
-button.danger:hover {
-  background: var(--bg2);
+button.primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
