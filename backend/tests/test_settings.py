@@ -11,7 +11,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import create_access_token, get_password_hash
+from app.core.security import generate_api_token, get_password_hash
 from app.core.themes import DEFAULT_THEME, DEFAULT_ACCENT, THEMES, ACCENT_OPTIONS, get_theme_colors
 from app.models import User
 
@@ -23,12 +23,13 @@ from app.models import User
 
 @pytest.fixture
 async def test_user(db: AsyncSession) -> User:
-    """Create a regular test user."""
+    """Create a regular test user with API token."""
     user = User(
         email="settings_test@example.com",
         password_hash=get_password_hash("testpass123"),
         is_admin=False,
         is_active=True,
+        api_token=generate_api_token(),
     )
     db.add(user)
     await db.commit()
@@ -38,13 +39,14 @@ async def test_user(db: AsyncSession) -> User:
 
 @pytest.fixture
 async def test_user_with_settings(db: AsyncSession) -> User:
-    """Create a user with existing settings."""
+    """Create a user with existing settings and API token."""
     user = User(
         email="settings_custom@example.com",
         password_hash=get_password_hash("testpass123"),
         is_admin=False,
         is_active=True,
         settings={"theme": "catppuccin", "accent": "blue"},
+        api_token=generate_api_token(),
     )
     db.add(user)
     await db.commit()
@@ -54,16 +56,14 @@ async def test_user_with_settings(db: AsyncSession) -> User:
 
 @pytest.fixture
 def auth_headers(test_user: User) -> dict[str, str]:
-    """Create Bearer token auth headers for a regular user."""
-    token = create_access_token({"sub": test_user.id})
-    return {"Authorization": f"Bearer {token}"}
+    """Create API token auth headers for a regular user."""
+    return {"X-API-Key": test_user.api_token}
 
 
 @pytest.fixture
 def auth_headers_with_settings(test_user_with_settings: User) -> dict[str, str]:
-    """Create Bearer token auth headers for a user with settings."""
-    token = create_access_token({"sub": test_user_with_settings.id})
-    return {"Authorization": f"Bearer {token}"}
+    """Create API token auth headers for a user with settings."""
+    return {"X-API-Key": test_user_with_settings.api_token}
 
 
 # ============================================================================
