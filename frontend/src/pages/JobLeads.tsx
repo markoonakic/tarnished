@@ -7,8 +7,7 @@ import EmptyState from '../components/EmptyState';
 import JobLeadsFilters, { type JobLeadsFiltersValue } from '../components/JobLeadsFilters';
 import { JobLeadCardSkeleton } from '../components/JobLeadCard';
 import { useToastContext } from '../contexts/ToastContext';
-
-const PER_PAGE = 20;
+import Pagination from '../components/Pagination';
 
 // Table row skeleton component for desktop loading
 function TableRowSkeleton({ count = 5 }: { count?: number }) {
@@ -73,6 +72,7 @@ export default function JobLeads() {
   const [jobLeads, setJobLeads] = useState<JobLead[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [perPage, setPerPage] = useState(25);
 
   // Get filter values from URL
   const page = parseInt(searchParams.get('page') || '1');
@@ -100,12 +100,12 @@ export default function JobLeads() {
   // Load job leads when filters change
   useEffect(() => {
     loadJobLeads();
-  }, [page, debouncedSearch, statusFilter, sourceFilter, sortFilter]);
+  }, [page, debouncedSearch, statusFilter, sourceFilter, sortFilter, perPage]);
 
   async function loadJobLeads() {
     setLoading(true);
     try {
-      const params: Record<string, string | number> = { page, per_page: PER_PAGE };
+      const params: Record<string, string | number> = { page, per_page: perPage };
       if (statusFilter) params.status = statusFilter;
       // Note: search, source, and sort are not yet implemented in the backend
       // but we send them anyway for forward compatibility
@@ -155,7 +155,10 @@ export default function JobLeads() {
     [searchParams]
   );
 
-  const totalPages = Math.ceil(total / PER_PAGE);
+  const handlePerPageChange = (newPerPage: number) => {
+    setPerPage(newPerPage);
+    updateParams({ page: '1' });
+  };
 
   function formatDate(dateStr: string | null) {
     if (!dateStr) return '-';
@@ -369,27 +372,16 @@ export default function JobLeads() {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-6">
-                <button
-                  onClick={() => updateParams({ page: String(page - 1) })}
-                  disabled={page === 1}
-                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Previous
-                </button>
-                <span className="text-sm text-muted font-mono px-4">
-                  Page {page} of {totalPages}
-                </span>
-                <button
-                  onClick={() => updateParams({ page: String(page + 1) })}
-                  disabled={page === totalPages}
-                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Next
-                </button>
-              </div>
-            )}
+            <div className="mt-6">
+              <Pagination
+                currentPage={page}
+                totalPages={Math.ceil(total / perPage)}
+                perPage={perPage}
+                totalItems={total}
+                onPageChange={(newPage) => updateParams({ page: String(newPage) })}
+                onPerPageChange={handlePerPageChange}
+              />
+            </div>
           </>
         )}
       </div>
