@@ -225,7 +225,7 @@ export default function JobLeads() {
             <div className="hidden md:block bg-secondary rounded-lg overflow-hidden">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr>
+                  <tr className="border-b border-tertiary">
                     <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">
                       Company
                     </th>
@@ -275,7 +275,7 @@ export default function JobLeads() {
             <div className="hidden md:block bg-secondary rounded-lg overflow-hidden">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr>
+                  <tr className="border-b border-tertiary">
                     <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">
                       Company
                     </th>

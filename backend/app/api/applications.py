@@ -186,16 +186,24 @@ async def create_application_from_url(
         job_url=data.url,
         status_id=data.status_id,
         applied_at=data.applied_at or date.today(),
+        # Location
+        location=extracted.location,
         # Salary fields
         salary_min=extracted.salary_min,
         salary_max=extracted.salary_max,
         salary_currency=extracted.salary_currency,
         # Recruiter info
         recruiter_name=extracted.recruiter_name,
+        recruiter_title=extracted.recruiter_title,
         recruiter_linkedin_url=extracted.recruiter_linkedin_url,
         # Requirements
         requirements_must_have=extracted.requirements_must_have or [],
         requirements_nice_to_have=extracted.requirements_nice_to_have or [],
+        # Skills
+        skills=extracted.skills or [],
+        # Experience
+        years_experience_min=extracted.years_experience_min,
+        years_experience_max=extracted.years_experience_max,
         # Source
         source=extracted.source,
     )
