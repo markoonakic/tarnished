@@ -87,14 +87,16 @@ small {
 small a,
 small a:link,
 small a:visited {
-  color: var(--accent) !important;
+  color: #689d6a !important;
+  color: var(--accent, #689d6a) !important;
   text-decoration: none;
   cursor: pointer;
   transition: all 200ms ease-in-out;
 }
 
 small a:hover {
-  color: var(--accent-bright) !important;
+  color: #8ec07c !important;
+  color: var(--accent-bright, #8ec07c) !important;
   text-decoration: underline;
 }
 

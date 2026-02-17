@@ -121,7 +121,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Sync theme settings to backend
   const syncSettingsToBackend = useCallback(async (theme: string, accent: string) => {
     try {
-      await api.patch('/users/settings', { theme, accent });
+      await api.patch('/api/users/settings', { theme, accent });
     } catch (error) {
       // Silent fail - backend sync is nice-to-have, not critical
       console.warn('Failed to sync theme settings to backend:', error);
