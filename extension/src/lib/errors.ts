@@ -45,7 +45,7 @@ export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
  */
 export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ERROR_CODES.NO_SETTINGS]: 'Configure the extension in settings first',
-  [ERROR_CODES.INVALID_URL]: 'Invalid server URL. Check your settings.',
+  [ERROR_CODES.INVALID_URL]: 'Invalid app URL. Check your settings.',
   [ERROR_CODES.AUTH_FAILED]: 'Invalid API key. Get a new one from Job Tracker settings.',
   [ERROR_CODES.NETWORK]: 'Could not connect to server. Check your network.',
   [ERROR_CODES.TIMEOUT]: 'Request timed out. Try again.',
@@ -106,7 +106,7 @@ export class NoSettingsError extends ExtensionError {
 }
 
 /**
- * Error thrown when the server URL is invalid.
+ * Error thrown when the app URL is invalid.
  */
 export class InvalidUrlError extends ExtensionError {
   constructor(options?: { cause?: Error }) {

@@ -27,7 +27,7 @@ export const STORAGE_KEYS = {
 
 // Default settings
 export const DEFAULT_SETTINGS = {
-  apiUrl: 'http://localhost:8000',
+  apiUrl: '',
   autoDetect: true,
   notifications: true,
 } as const;

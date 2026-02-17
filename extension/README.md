@@ -87,7 +87,7 @@ yarn dev
 1. Click the extension icon in your browser toolbar
 2. Click the **Settings** button (gear icon)
 3. Enter your configuration:
-   - **Server URL**: The URL of your Job Tracker backend (e.g., `http://localhost:8000` or `https://your-server.com`)
+   - **App URL**: The URL of your Job Tracker application (e.g., `https://your-app.com`)
    - **API Key**: Your API key from the Job Tracker application
 
 ### Getting Your API Key
@@ -165,8 +165,8 @@ If you visit a job posting URL that's already saved:
 
 | Error | Meaning | Solution |
 |-------|---------|----------|
-| Configure the extension in settings first | Missing server URL or API key | Open settings and configure both fields |
-| Invalid server URL | URL format is incorrect | Ensure URL starts with `http://` or `https://` |
+| Configure the extension in settings first | Missing app URL or API key | Open settings and configure both fields |
+| Invalid app URL | URL format is incorrect | Ensure URL starts with `http://` or `https://` |
 | Invalid API key | API key is invalid or expired | Generate a new API key in Job Tracker settings |
 | Could not connect to server | Network or server issue | Check network connection and server status |
 | Request timed out | Server took too long to respond | Try again or check server load |
@@ -236,9 +236,9 @@ All requests use API key authentication via the `X-API-Key` header.
 
 ### Connection Errors
 
-1. Verify the server URL is correct and accessible
+1. Verify the app URL is correct and accessible
 2. Check if the API key is valid
-3. Ensure the backend server is running
+3. Ensure the application is running
 4. Check for CORS issues in the browser console
 
 ## License
