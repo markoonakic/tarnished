@@ -245,22 +245,61 @@ body {
   transform: translateY(1px);
 }
 
-.btn.primary {
+/* Primary button - for main actions like Add/Save */
+.btn.primary,
+button.primary {
   background: var(--accent);
-  color: var(--fg0);
+  color: var(--bg0);
+  border: none;
+  font-weight: 500;
 }
 
-.btn.primary:hover {
+.btn.primary:hover,
+button.primary:hover {
   background: var(--accent-bright);
 }
 
-.btn.primary:disabled {
+.btn.primary:active,
+button.primary:active {
+  transform: translateY(1px);
+}
+
+.btn.primary:disabled,
+button.primary:disabled {
   background: var(--bg3);
   color: var(--fg4);
   cursor: not-allowed;
   transform: none;
 }
 
+/* Neutral button - for secondary actions */
+.btn.neutral,
+button.neutral {
+  background: transparent;
+  color: var(--fg1);
+  border: none;
+}
+
+.btn.neutral:hover,
+button.neutral:hover {
+  background: var(--bg2);
+}
+
+/* Danger button - for destructive actions */
+.btn.danger,
+button.danger {
+  background: transparent;
+  color: var(--red);
+  border: none;
+}
+
+.btn.danger:hover,
+button.danger:hover {
+  background: var(--bg2);
+  color: var(--red);
+}
+
+/* Secondary button - legacy variant, use neutral instead */
 .btn.secondary {
   background: var(--bg2);
   color: var(--fg1);
