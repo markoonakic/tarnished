@@ -936,9 +936,13 @@ async function init(): Promise<void> {
   try {
     const colors = await getThemeColors();
     applyThemeToDocument(colors);
+    console.log('[Popup] Applied theme, accent:', colors.accent);
   } catch (error) {
     console.warn('Failed to load theme:', error);
   }
+
+  // Trigger background refresh for next time
+  browser.runtime.sendMessage({ type: 'REFRESH_THEME' });
 
   // Load auto-fill setting
   await loadAutoFillSetting();
