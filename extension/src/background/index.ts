@@ -10,16 +10,16 @@ import { ThemeColors, UserSettings, DEFAULT_COLORS } from '../lib/theme';
 import { SETTINGS_STORAGE_KEY } from '../lib/theme-utils';
 
 async function fetchThemeSettings(): Promise<ThemeColors> {
-  const { apiUrl, apiKey } = await browser.storage.local.get(['apiUrl', 'apiKey']);
+  const { appUrl, apiKey } = await browser.storage.local.get(['appUrl', 'apiKey']);
 
-  if (!apiUrl || !apiKey) {
+  if (!appUrl || !apiKey) {
     console.log('[Theme] Extension not configured, using default colors');
     return DEFAULT_COLORS;
   }
 
   try {
-    console.log('[Theme] Fetching from:', `${apiUrl}/users/settings`);
-    const response = await fetch(`${apiUrl}/users/settings`, {
+    console.log('[Theme] Fetching from:', `${appUrl}/users/settings`);
+    const response = await fetch(`${appUrl}/users/settings`, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
