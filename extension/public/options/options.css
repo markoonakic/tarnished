@@ -73,8 +73,8 @@ input[type="password"]::placeholder {
 
 input[type="url"]:focus,
 input[type="password"]:focus {
-  outline: 2px solid var(--accent-bright);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 1px var(--accent-bright);
 }
 
 small {
