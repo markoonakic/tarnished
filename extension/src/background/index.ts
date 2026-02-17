@@ -71,25 +71,11 @@ async function updateIconColor(accentHex: string): Promise<void> {
     // Replace fill color
     svg = svg.replace(/fill="[^"]*"/g, `fill="${accentHex}"`);
 
-    // Create blob and bitmap (works in service worker)
-    const svgBlob = new Blob([svg], { type: 'image/svg+xml' });
-    const bitmap = await createImageBitmap(svgBlob);
+    // Create a data URL from the modified SVG
+    const svgDataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 
-    // Generate ImageData for multiple sizes
-    const sizes = [16, 32, 48, 128] as const;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const imageData: Record<string, any> = {};
-
-    for (const size of sizes) {
-      const canvas = new OffscreenCanvas(size, size);
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(bitmap, 0, 0, size, size);
-        imageData[size.toString()] = ctx.getImageData(0, 0, size, size);
-      }
-    }
-
-    await browser.action.setIcon({ imageData });
+    // Use path with data URL - this works in service workers
+    await browser.action.setIcon({ path: svgDataUrl });
     console.log('[Icon] Updated with accent color:', accentHex);
   } catch (error) {
     console.error('[Icon] Failed to update:', error);
