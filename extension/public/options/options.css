@@ -118,8 +118,12 @@ button:active {
 }
 
 #status {
-  margin-left: 12px;
-  font-size: 14px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--bg2);
+  border-radius: 4px;
+  color: var(--green);
+  font-size: 13px;
 }
 
 .success {
