@@ -16,8 +16,7 @@ import { getSettings, setSettings, type Settings } from '../lib/storage';
 // DOM Elements
 // ============================================================================
 
-const serverUrlInput = document.getElementById('serverUrl') as HTMLInputElement;
-const frontendUrlInput = document.getElementById('frontendUrl') as HTMLInputElement;
+const appUrlInput = document.getElementById('appUrl') as HTMLInputElement;
 const apiKeyInput = document.getElementById('apiKey') as HTMLInputElement;
 const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
 const statusEl = document.getElementById('status') as HTMLSpanElement;
@@ -38,8 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadSettings(): Promise<void> {
   try {
     const settings = await getSettings();
-    serverUrlInput.value = settings.serverUrl;
-    frontendUrlInput.value = settings.frontendUrl;
+    appUrlInput.value = settings.appUrl;
     apiKeyInput.value = settings.apiKey;
   } catch (error) {
     console.error('Failed to load settings:', error);
@@ -58,12 +56,7 @@ function setupEventListeners(): void {
   apiKeyLink.addEventListener('click', handleApiKeyLinkClick);
 
   // Enter key handler for inputs
-  serverUrlInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      handleSave();
-    }
-  });
-  frontendUrlInput.addEventListener('keydown', (e) => {
+  appUrlInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       handleSave();
     }
@@ -84,36 +77,24 @@ function setupEventListeners(): void {
  */
 async function handleSave(): Promise<void> {
   const newSettings: Settings = {
-    serverUrl: serverUrlInput.value.trim(),
-    frontendUrl: frontendUrlInput.value.trim(),
+    appUrl: appUrlInput.value.trim(),
     apiKey: apiKeyInput.value.trim(),
   };
 
-  // Validate server URL
-  if (!newSettings.serverUrl) {
-    showStatus('Please enter a server URL', 'error');
-    serverUrlInput.focus();
+  // Validate app URL
+  if (!newSettings.appUrl) {
+    showStatus('Please enter an App URL', 'error');
+    appUrlInput.focus();
     return;
   }
 
-  // Validate server URL format
+  // Validate URL format
   try {
-    new URL(newSettings.serverUrl);
+    new URL(newSettings.appUrl);
   } catch {
-    showStatus('Please enter a valid server URL', 'error');
-    serverUrlInput.focus();
+    showStatus('Please enter a valid URL', 'error');
+    appUrlInput.focus();
     return;
-  }
-
-  // Validate frontend URL if provided
-  if (newSettings.frontendUrl) {
-    try {
-      new URL(newSettings.frontendUrl);
-    } catch {
-      showStatus('Please enter a valid frontend URL', 'error');
-      frontendUrlInput.focus();
-      return;
-    }
   }
 
   // Validate API key
@@ -145,8 +126,10 @@ async function handleSave(): Promise<void> {
  */
 function handleApiKeyLinkClick(e: Event): void {
   e.preventDefault();
-  const serverUrl = serverUrlInput.value.trim() || 'http://localhost:8000';
-  browser.tabs.create({ url: `${serverUrl}/settings/api-key` });
+  const appUrl = appUrlInput.value.trim();
+  if (appUrl) {
+    browser.tabs.create({ url: `${appUrl}/settings/api-key` });
+  }
 }
 
 // ============================================================================
