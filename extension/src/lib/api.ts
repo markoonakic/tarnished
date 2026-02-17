@@ -98,7 +98,7 @@ export interface ApiError {
  * This interface should match what storage.ts provides.
  */
 interface Settings {
-  serverUrl: string;
+  appUrl: string;
   apiKey: string;
 }
 
@@ -336,17 +336,17 @@ function extractExistingId(message: string): string | undefined {
  */
 export async function saveJobLead(url: string, text: string): Promise<JobLeadResponse> {
   const settings = (await getSettings()) as Settings;
-  const { serverUrl, apiKey } = settings;
+  const { appUrl, apiKey } = settings;
 
-  if (!serverUrl || !apiKey) {
-    throw new AuthenticationError('Server URL or API key not configured. Please check your extension settings.');
+  if (!appUrl || !apiKey) {
+    throw new AuthenticationError('App URL or API key not configured. Please check your extension settings.');
   }
 
   const truncatedText = truncateText(text);
   const { controller, timeoutId } = createTimeoutController();
 
   try {
-    const response = await fetch(`${serverUrl}${API_ENDPOINTS.JOB_LEADS}`, {
+    const response = await fetch(`${appUrl}${API_ENDPOINTS.JOB_LEADS}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -395,17 +395,17 @@ export async function saveJobLead(url: string, text: string): Promise<JobLeadRes
  */
 export async function checkExistingLead(url: string): Promise<JobLeadResponse | null> {
   const settings = (await getSettings()) as Settings;
-  const { serverUrl, apiKey } = settings;
+  const { appUrl, apiKey } = settings;
 
-  if (!serverUrl || !apiKey) {
-    throw new AuthenticationError('Server URL or API key not configured. Please check your extension settings.');
+  if (!appUrl || !apiKey) {
+    throw new AuthenticationError('App URL or API key not configured. Please check your extension settings.');
   }
 
   const { controller, timeoutId } = createTimeoutController();
 
   try {
     const response = await fetch(
-      `${serverUrl}${API_ENDPOINTS.JOB_LEADS}?search=${encodeURIComponent(url)}`,
+      `${appUrl}${API_ENDPOINTS.JOB_LEADS}?search=${encodeURIComponent(url)}`,
       {
         method: 'GET',
         headers: {
@@ -468,16 +468,16 @@ export interface UserProfileResponse {
  */
 export async function getProfile(): Promise<UserProfileResponse> {
   const settings = (await getSettings()) as Settings;
-  const { serverUrl, apiKey } = settings;
+  const { appUrl, apiKey } = settings;
 
-  if (!serverUrl || !apiKey) {
-    throw new AuthenticationError('Server URL or API key not configured. Please check your extension settings.');
+  if (!appUrl || !apiKey) {
+    throw new AuthenticationError('App URL or API key not configured. Please check your extension settings.');
   }
 
   const { controller, timeoutId } = createTimeoutController();
 
   try {
-    const response = await fetch(`${serverUrl}${API_ENDPOINTS.PROFILE}`, {
+    const response = await fetch(`${appUrl}${API_ENDPOINTS.PROFILE}`, {
       method: 'GET',
       headers: {
         'X-API-Key': apiKey,
@@ -518,10 +518,10 @@ export async function getProfile(): Promise<UserProfileResponse> {
  */
 export async function testConnection(): Promise<boolean> {
   const settings = (await getSettings()) as Settings;
-  const { serverUrl, apiKey } = settings;
+  const { appUrl, apiKey } = settings;
 
-  if (!serverUrl || !apiKey) {
-    throw new AuthenticationError('Server URL or API key not configured.');
+  if (!appUrl || !apiKey) {
+    throw new AuthenticationError('App URL or API key not configured.');
   }
 
   const { controller, timeoutId } = createTimeoutController();
@@ -529,7 +529,7 @@ export async function testConnection(): Promise<boolean> {
   try {
     // Try to list job leads with minimal page size
     const response = await fetch(
-      `${serverUrl}${API_ENDPOINTS.JOB_LEADS}?per_page=1`,
+      `${appUrl}${API_ENDPOINTS.JOB_LEADS}?per_page=1`,
       {
         method: 'GET',
         headers: {
@@ -585,18 +585,18 @@ export async function createApplicationFromJob(data: {
   applied_at?: string;
 }): Promise<ApplicationResponse> {
   const settings = (await getSettings()) as Settings;
-  const { serverUrl, apiKey } = settings;
+  const { appUrl, apiKey } = settings;
 
-  if (!serverUrl || !apiKey) {
+  if (!appUrl || !apiKey) {
     throw new AuthenticationError(
-      'Server URL or API key not configured. Please check your extension settings.'
+      'App URL or API key not configured. Please check your extension settings.'
     );
   }
 
   const { controller, timeoutId } = createTimeoutController();
 
   try {
-    const response = await fetch(`${serverUrl}${API_ENDPOINTS.APPLICATIONS}`, {
+    const response = await fetch(`${appUrl}${API_ENDPOINTS.APPLICATIONS}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -667,18 +667,18 @@ export async function extractApplication(
   data: ApplicationExtractRequest
 ): Promise<ApplicationResponse> {
   const settings = (await getSettings()) as Settings;
-  const { serverUrl, apiKey } = settings;
+  const { appUrl, apiKey } = settings;
 
-  if (!serverUrl || !apiKey) {
+  if (!appUrl || !apiKey) {
     throw new AuthenticationError(
-      'Server URL or API key not configured. Please check your extension settings.'
+      'App URL or API key not configured. Please check your extension settings.'
     );
   }
 
   const { controller, timeoutId } = createTimeoutController();
 
   try {
-    const response = await fetch(`${serverUrl}${API_ENDPOINTS.APPLICATIONS}/extract`, {
+    const response = await fetch(`${appUrl}${API_ENDPOINTS.APPLICATIONS}/extract`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -727,16 +727,16 @@ export async function extractApplication(
  */
 export async function getStatuses(): Promise<StatusResponse[]> {
   const settings = (await getSettings()) as Settings;
-  const { serverUrl, apiKey } = settings;
+  const { appUrl, apiKey } = settings;
 
-  if (!serverUrl || !apiKey) {
-    throw new AuthenticationError('Server URL or API key not configured. Please check your extension settings.');
+  if (!appUrl || !apiKey) {
+    throw new AuthenticationError('App URL or API key not configured. Please check your extension settings.');
   }
 
   const { controller, timeoutId } = createTimeoutController();
 
   try {
-    const response = await fetch(`${serverUrl}${API_ENDPOINTS.STATUSES}`, {
+    const response = await fetch(`${appUrl}${API_ENDPOINTS.STATUSES}`, {
       method: 'GET',
       headers: {
         'X-API-Key': apiKey,
