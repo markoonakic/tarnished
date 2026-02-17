@@ -15,6 +15,7 @@ import browser from 'webextension-polyfill';
 export interface Settings {
   serverUrl: string;
   apiKey: string;
+  frontendUrl: string; // URL for the frontend app (for "View in App" button)
 }
 
 /**
@@ -22,10 +23,11 @@ export interface Settings {
  * Returns empty strings for missing values
  */
 export async function getSettings(): Promise<Settings> {
-  const result = await browser.storage.local.get(['serverUrl', 'apiKey']);
+  const result = await browser.storage.local.get(['serverUrl', 'apiKey', 'frontendUrl']);
   return {
     serverUrl: result.serverUrl || '',
     apiKey: result.apiKey || '',
+    frontendUrl: result.frontendUrl || '',
   };
 }
 
