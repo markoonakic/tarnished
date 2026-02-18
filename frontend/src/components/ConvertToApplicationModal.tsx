@@ -87,6 +87,12 @@ export default function ConvertToApplicationModal({
     <div
       className="fixed inset-0 bg-bg0/80 flex items-center justify-center z-50"
       onClick={handleOverlayClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          handleOverlayClick(e as unknown as React.MouseEvent);
+        }
+      }}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="convert-modal-title"

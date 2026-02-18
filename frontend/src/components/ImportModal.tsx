@@ -129,6 +129,12 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
     <div
       className="fixed inset-0 bg-bg0/80 flex items-center justify-center z-50"
       onClick={handleClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          handleClose();
+        }
+      }}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="import-modal-title"

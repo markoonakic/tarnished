@@ -112,6 +112,14 @@ export default function JobLeadCard({ lead, onClick, onRetry }: JobLeadCardProps
   return (
     <div
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      tabIndex={0}
+      role="button"
       className="bg-bg1 rounded-lg p-4 hover:-translate-y-0.5 will-change-transform transition-[translate,background-color] duration-200 ease-in-out hover:bg-bg2 cursor-pointer"
     >
       {/* Header: Title and Status Badge */}
