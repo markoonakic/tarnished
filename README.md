@@ -1,4 +1,4 @@
-# Job Tracker
+# Tarnished
 
 A full-stack job application tracking system built with **React 19 + TypeScript + Tailwind CSS 4.1** (frontend) and **FastAPI + SQLAlchemy** (backend).
 
