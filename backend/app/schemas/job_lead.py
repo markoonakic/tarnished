@@ -62,7 +62,7 @@ class JobLeadCreate(BaseModel):
             raise ValueError("Invalid URL format")
 
         # Block localhost variants
-        blocked_hosts = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
+        blocked_hosts = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}  # nosec B104 # Security: blocking these hosts
         if hostname.lower() in blocked_hosts:
             raise ValueError("Cannot access internal resources")
 

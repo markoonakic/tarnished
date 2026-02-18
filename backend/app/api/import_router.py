@@ -78,7 +78,7 @@ async def log_import_event(
 UPLOAD_CHUNK_SIZE = 1024 * 1024  # 1MB
 SSE_POLL_MAX_SECONDS = 300  # 5 minutes
 
-SECURE_TEMP_DIR = "/tmp/secure_imports"
+SECURE_TEMP_DIR = "/tmp/secure_imports"  # nosec B108 # Intentional secure dir with mode 0o700
 os.makedirs(SECURE_TEMP_DIR, mode=0o700, exist_ok=True)
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./uploads")
 
