@@ -58,7 +58,7 @@ async def get_media_file(
     media_id: str,
     token: str | None = Query(None),
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
-    user: User | None = Depends(get_current_user_optional),
+    user: User | None = Depends(get_current_user_optional),  # type: ignore[assignment]
     db: AsyncSession = Depends(get_db),
 ):
     """Serve a media file. Accepts either auth header or signed token."""
@@ -151,7 +151,7 @@ async def get_round_transcript_file(
     round_id: str,
     token: str | None = Query(None),
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
-    user: User | None = Depends(get_current_user_optional),
+    user: User | None = Depends(get_current_user_optional),  # type: ignore[assignment]
     db: AsyncSession = Depends(get_db),
 ):
     """Serve a round transcript file. Accepts either auth header or signed token."""
@@ -250,7 +250,7 @@ async def get_file(
     doc_type: str,
     token: str | None = Query(None),
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
-    user: User | None = Depends(get_current_user_optional),
+    user: User | None = Depends(get_current_user_optional),  # type: ignore[assignment]
     db: AsyncSession = Depends(get_db),
 ):
     """Serve a file. Accepts either auth header or signed token."""

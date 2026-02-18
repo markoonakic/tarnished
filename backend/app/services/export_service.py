@@ -125,6 +125,10 @@ class ExportService:
             record, include_relationships=True, relationship_prefix=""
         )
 
+        # Handle None case (shouldn't happen for valid records)
+        if data is None:
+            return {}
+
         # Store original ID for import remapping
         if "id" in data:
             data["__original_id__"] = data["id"]

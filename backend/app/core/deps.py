@@ -66,7 +66,7 @@ async def get_current_user_optional(
         HTTPBearer(auto_error=False)
     ),
     db: AsyncSession = Depends(get_db),
-) -> User | None:
+) -> User | None:  # type: ignore[assignment]
     """Get current user if authenticated, None otherwise."""
     if not credentials:
         return None

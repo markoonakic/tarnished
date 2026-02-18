@@ -50,7 +50,7 @@ def serialize_model_instance(
     instance: Any,
     include_relationships: bool = False,
     relationship_prefix: str = "__rel__",
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     """
     Serialize a SQLAlchemy model instance to a dictionary.
 

@@ -538,13 +538,13 @@ async def get_interview_rounds_analytics(
 
         # Map outcome values to categories
         if outcome_val.lower() == "passed":
-            outcome_dict[round_name]["passed"] = row.count
+            outcome_dict[round_name]["passed"] = row.count  # type: ignore[assignment]
         elif outcome_val.lower() == "failed":
-            outcome_dict[round_name]["failed"] = row.count
+            outcome_dict[round_name]["failed"] = row.count  # type: ignore[assignment]
         elif outcome_val.lower() == "withdrew":
-            outcome_dict[round_name]["withdrew"] = row.count
+            outcome_dict[round_name]["withdrew"] = row.count  # type: ignore[assignment]
         else:  # pending or any other outcome
-            outcome_dict[round_name]["pending"] = row.count
+            outcome_dict[round_name]["pending"] = row.count  # type: ignore[assignment]
 
     outcome_data = [
         OutcomeData(

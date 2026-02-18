@@ -491,7 +491,7 @@ async def _get_analytics_for_insights(
 
     # Find most active day
     most_active_day = (
-        max(weekday_counts, key=weekday_counts.get) if weekday_counts else None
+        max(weekday_counts, key=weekday_counts.get) if weekday_counts else None  # type: ignore[arg-type]
     )
 
     patterns = {
