@@ -1,11 +1,11 @@
-# Job Tracker Browser Extension
+# Tarnished Browser Extension
 
-A browser extension for detecting job postings and saving them to your Job Tracker application.
+A browser extension for detecting job postings and saving them to your Tarnished application.
 
 ## Features
 
 - **Job Detection**: Automatically detects job posting pages across major job boards
-- **One-Click Save**: Save job listings directly to your Job Tracker application
+- **One-Click Save**: Save job listings directly to your Tarnished application
 - **Autofill**: Automatically fill job application forms with your profile data
 - **Duplicate Detection**: Prevents saving the same job twice
 - **User-Friendly Errors**: Clear error messages with recovery suggestions
@@ -87,21 +87,21 @@ yarn dev
 1. Click the extension icon in your browser toolbar
 2. Click the **Settings** button (gear icon)
 3. Enter your configuration:
-   - **App URL**: The URL of your Job Tracker application (e.g., `https://your-app.com`)
-   - **API Key**: Your API key from the Job Tracker application
+   - **App URL**: The URL of your Tarnished application (e.g., `https://your-app.com`)
+   - **API Key**: Your API key from the Tarnished application
 
 ### Getting Your API Key
 
-1. Log in to your Job Tracker web application
+1. Log in to your Tarnished web application
 2. Navigate to **Settings** (usually in the user menu or profile section)
 3. Find the **API Keys** section
 4. Generate or copy your API key
 
 ### Setting Up Your Profile for Autofill
 
-For autofill to work, you need to have your profile data saved in the Job Tracker application:
+For autofill to work, you need to have your profile data saved in the Tarnished application:
 
-1. Log in to your Job Tracker web application
+1. Log in to your Tarnished web application
 2. Navigate to your **Profile** settings
 3. Fill in your personal information:
    - First name
@@ -116,14 +116,14 @@ For autofill to work, you need to have your profile data saved in the Job Tracke
 ### Saving a Job Posting
 
 1. Navigate to a job posting on a supported job site
-2. Click the Job Tracker extension icon
+2. Click the Tarnished extension icon
 3. If a job is detected, you'll see the job details with a **Save** button
 4. Click **Save** to add the job to your leads
 
 ### Using Autofill
 
 1. Navigate to a job application form
-2. Click the Job Tracker extension icon
+2. Click the Tarnished extension icon
 3. Click the **Autofill** button
 4. Your profile data will be automatically filled into matching form fields
 
@@ -157,7 +157,7 @@ If you visit a job posting URL that's already saved:
 ### General Limitations
 
 - **Restricted URLs**: The extension cannot run on browser internal pages (`chrome://`, `about:`, etc.)
-- **Authentication**: Requires valid API key from the Job Tracker backend
+- **Authentication**: Requires valid API key from the Tarnished backend
 - **Network**: Requires network connectivity to the backend server
 - **Content Size**: HTML content larger than 100KB is truncated
 
@@ -167,7 +167,7 @@ If you visit a job posting URL that's already saved:
 |-------|---------|----------|
 | Configure the extension in settings first | Missing app URL or API key | Open settings and configure both fields |
 | Invalid app URL | URL format is incorrect | Ensure URL starts with `http://` or `https://` |
-| Invalid API key | API key is invalid or expired | Generate a new API key in Job Tracker settings |
+| Invalid API key | API key is invalid or expired | Generate a new API key in Tarnished settings |
 | Could not connect to server | Network or server issue | Check network connection and server status |
 | Request timed out | Server took too long to respond | Try again or check server load |
 | No job posting found on this page | Detection score below threshold | Page may not be a job posting |
@@ -210,7 +210,7 @@ yarn dev          # Development build with watch mode
 
 ### API Integration
 
-The extension communicates with the Job Tracker backend via:
+The extension communicates with the Tarnished backend via:
 
 - `POST /api/job-leads` - Save a new job lead
 - `GET /api/job-leads` - List/search existing leads
@@ -229,7 +229,7 @@ All requests use API key authentication via the `X-API-Key` header.
 
 ### Autofill Not Working
 
-1. Ensure your profile is filled in the Job Tracker app
+1. Ensure your profile is filled in the Tarnished app
 2. Check if the form fields match the supported patterns
 3. Verify the form is not in an iframe or shadow DOM
 4. Try refreshing the page before using autofill
