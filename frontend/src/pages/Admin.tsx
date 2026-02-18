@@ -165,11 +165,12 @@ export default function Admin() {
                 <div className="space-y-4">
                   {/* Model Input */}
                   <div>
-                    <label className="block text-sm font-medium text-secondary mb-2">
+                    <label htmlFor="ai-model" className="block text-sm font-medium text-secondary mb-2">
                       <i className="bi-cpu icon-xs mr-1.5"></i>
                       Model
                     </label>
                     <input
+                      id="ai-model"
                       type="text"
                       placeholder="e.g., gpt-4o, claude-3-sonnet"
                       value={aiModel}
@@ -183,12 +184,13 @@ export default function Admin() {
 
                   {/* API Key Input */}
                   <div>
-                    <label className="block text-sm font-medium text-secondary mb-2">
+                    <label htmlFor="ai-api-key" className="block text-sm font-medium text-secondary mb-2">
                       <i className="bi-key icon-xs mr-1.5"></i>
                       API Key
                     </label>
                     <div className="relative">
                       <input
+                        id="ai-api-key"
                         type={showApiKey ? 'text' : 'password'}
                         placeholder={aiSettings?.litellm_api_key_masked ? `Current: ${aiSettings.litellm_api_key_masked}` : 'Enter API key'}
                         value={aiApiKey}
@@ -213,11 +215,12 @@ export default function Admin() {
 
                   {/* Base URL Input */}
                   <div>
-                    <label className="block text-sm font-medium text-secondary mb-2">
+                    <label htmlFor="ai-base-url" className="block text-sm font-medium text-secondary mb-2">
                       <i className="bi-globe icon-xs mr-1.5"></i>
                       Base URL <span className="text-muted font-normal">(optional)</span>
                     </label>
                     <input
+                      id="ai-base-url"
                       type="text"
                       placeholder="e.g., http://localhost:4000"
                       value={aiBaseUrl}

@@ -79,10 +79,11 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
           )}
 
           <div>
-            <label className="block mb-1 text-sm font-semibold text-muted">
+            <label htmlFor="create-email" className="block mb-1 text-sm font-semibold text-muted">
               Email <span className="text-red-bright">*</span>
             </label>
             <input
+              id="create-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -93,10 +94,11 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
           </div>
 
           <div>
-            <label className="block mb-1 text-sm font-semibold text-muted">
+            <label htmlFor="create-password" className="block mb-1 text-sm font-semibold text-muted">
               Password <span className="text-red-bright">*</span>
             </label>
             <input
+              id="create-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

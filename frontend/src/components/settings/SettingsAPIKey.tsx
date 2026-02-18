@@ -84,9 +84,9 @@ export default function SettingsAPIKey() {
           <div className="space-y-4">
             {/* API Key Display */}
             <div className="bg-tertiary rounded-lg p-4">
-              <label className="text-sm text-muted block mb-2">
+              <span className="text-sm text-muted block mb-2">
                 Your API Key
-              </label>
+              </span>
               <div className="flex items-center gap-2">
                 <div className="flex-1 font-mono text-sm text-fg1 bg-bg2 px-3 py-2 rounded overflow-x-auto break-all">
                   {displayKey}

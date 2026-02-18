@@ -44,8 +44,9 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block mb-1 text-sm font-semibold text-muted">Email</label>
+            <label htmlFor="email" className="block mb-1 text-sm font-semibold text-muted">Email</label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
