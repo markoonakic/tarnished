@@ -159,8 +159,9 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block mb-1 text-sm font-semibold text-muted">Round Type</label>
+          <label htmlFor="round-type" className="block mb-1 text-sm font-semibold text-muted">Round Type</label>
           <Dropdown
+            id="round-type"
             options={[
               { value: '', label: 'Select type' },
               ...roundTypes.map((type) => ({ value: type.id, label: type.name }))
@@ -198,8 +199,9 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
         {round && (
           <>
             <div>
-              <label className="block mb-1 text-sm font-semibold text-muted">Outcome</label>
+              <label htmlFor="round-outcome" className="block mb-1 text-sm font-semibold text-muted">Outcome</label>
               <Dropdown
+                id="round-outcome"
                 options={[
                   { value: '', label: 'Pending' },
                   { value: 'passed', label: 'Passed' },
@@ -251,7 +253,7 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
         </div>
 
         <div className="sm:col-span-2">
-          <label className="block mb-1 text-sm font-semibold text-muted">Transcript (PDF)</label>
+          <span className="block mb-1 text-sm font-semibold text-muted">Transcript (PDF)</span>
           <label className="bg-transparent text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer w-fit">
             <i className="bi-upload icon-sm"></i>
             {transcriptFile ? transcriptFile.name : 'Choose PDF...'}

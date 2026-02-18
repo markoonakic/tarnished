@@ -13,6 +13,7 @@ interface DropdownProps {
   disabled?: boolean;
   size?: 'xs' | 'sm' | 'md' | 'lg';
   containerBackground?: 'bg0' | 'bg1' | 'bg2' | 'bg3' | 'bg4';
+  id?: string;
 }
 
 const sizeClasses = {
@@ -79,6 +80,7 @@ export default function Dropdown({
   disabled = false,
   size = 'md',
   containerBackground = 'bg1',
+  id,
 }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -167,6 +169,7 @@ export default function Dropdown({
     <div className="relative" ref={dropdownRef}>
       <button
         type="button"
+        id={id}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
