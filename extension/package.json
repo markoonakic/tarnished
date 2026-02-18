@@ -1,12 +1,15 @@
 {
-  "name": "job-tracker-extension",
+  "name": "tarnished-extension",
   "version": "1.0.0",
-  "description": "Browser extension for detecting and saving job listings to Job Tracker",
+  "description": "Browser extension for detecting and saving job listings to Tarnished",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite build --watch --mode development",
-    "build": "vite build"
+    "build": "vite build",
+    "build:chrome": "vite build && cd dist && zip -r ../tarnished-chrome.zip .",
+    "build:firefox": "vite build && cd dist && zip -r ../tarnished-firefox.zip .",
+    "build:all": "yarn build:chrome && yarn build:firefox"
   },
   "dependencies": {
     "webextension-polyfill": "^0.12.0"
