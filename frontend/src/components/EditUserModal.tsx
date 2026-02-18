@@ -83,6 +83,12 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
     <div
       className="fixed inset-0 bg-bg0/80 flex items-center justify-center z-50"
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      }}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-modal-title"
