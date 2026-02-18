@@ -6,6 +6,7 @@ from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.services.export_registry import exportable
 
 
 class MediaType(str, Enum):
@@ -13,6 +14,7 @@ class MediaType(str, Enum):
     AUDIO = "audio"
 
 
+@exportable(order=6)
 class Round(Base):
     __tablename__ = "rounds"
 
@@ -32,6 +34,7 @@ class Round(Base):
     media = relationship("RoundMedia", back_populates="round", cascade="all, delete-orphan")
 
 
+@exportable(order=7)
 class RoundMedia(Base):
     __tablename__ = "round_media"
 

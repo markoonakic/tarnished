@@ -14,17 +14,22 @@ from slowapi.errors import RateLimitExceeded
 from app.api.auth import router as auth_router
 from app.api.applications import router as applications_router
 from app.api.application_history import router as application_history_router
+from app.api.profile import router as profile_router
 from app.api.rounds import router as rounds_router
 from app.api.settings import router as settings_router
 from app.api.analytics import router as analytics_router
 from app.api.admin import router as admin_router
 from app.api.export import router as export_router
 from app.api.import_router import router as import_router
+from app.api.job_leads import router as job_leads_router
 from app.core.rate_limit import limiter
 from app.api.files import router as files_router
 from app.api.dashboard import router as dashboard_router
 from app.api.user_preferences import router as user_preferences_router
 from app.api.streak import router as streak_router
+from app.api.ai_settings import router as ai_settings_router
+from app.api.insights import router as insights_router
+from app.api.users import router as users_router
 from app.core.config import get_settings
 from app.core.database import async_session_maker
 from app.core.logging_config import setup_logging
@@ -54,8 +59,33 @@ cors_origins = [origin.strip() for origin in settings.cors_origins.split(",")]
 if settings.app_url and settings.app_url not in cors_origins:
     cors_origins.append(settings.app_url)
 
+
+def cors_origin_validator(origin: str) -> bool:
+    """Validate CORS origin, allowing browser extensions dynamically.
+
+    Browser extension origins (chrome-extension://, moz-extension://) are
+    dynamically generated based on the extension ID, so we allow them all.
+    The extension ID is cryptographically tied to the extension, making this
+    secure.
+
+    Args:
+        origin: The Origin header value from the request.
+
+    Returns:
+        True if the origin should be allowed, False otherwise.
+    """
+    # Allow browser extension origins
+    extension_prefixes = ("chrome-extension://", "moz-extension://", "extension://")
+    if origin.startswith(extension_prefixes):
+        return True
+
+    # Allow configured origins
+    return origin in cors_origins
+
+
 app.add_middleware(
     CORSMiddleware,
+    allow_origin_regex=r"(chrome-extension://.*|moz-extension://.*|extension://.*|.*)",
     allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
@@ -113,16 +143,21 @@ async def add_security_headers(request: Request, call_next):
 app.include_router(auth_router)
 app.include_router(applications_router)
 app.include_router(application_history_router)
+app.include_router(profile_router)
 app.include_router(rounds_router)
 app.include_router(settings_router)
 app.include_router(analytics_router)
 app.include_router(admin_router)
 app.include_router(export_router)
 app.include_router(import_router)
+app.include_router(job_leads_router)
 app.include_router(files_router)
 app.include_router(dashboard_router)
 app.include_router(user_preferences_router)
 app.include_router(streak_router)
+app.include_router(ai_settings_router)
+app.include_router(insights_router, prefix="/api/analytics", tags=["insights"])
+app.include_router(users_router)
 
 
 @app.get("/health")

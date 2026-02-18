@@ -22,6 +22,13 @@ const settingsCategories: SettingsCategory[] = [
     ],
   },
   {
+    name: 'Account',
+    sections: [
+      { path: 'profile', label: 'Profile', icon: 'bi-person' },
+      { path: 'api-key', label: 'API Key', icon: 'bi-key' },
+    ],
+  },
+  {
     name: 'Workflow',
     sections: [
       { path: 'statuses', label: 'Application Statuses', icon: 'bi-signpost-2' },

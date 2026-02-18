@@ -8,16 +8,25 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_current_user_flexible, get_current_user_by_api_token
 from app.api.streak import record_streak_activity
 from app.models import Application, ApplicationStatus, ApplicationStatusHistory, Round, User
 from app.schemas.application import (
     ApplicationCreate,
+    ApplicationExtractRequest,
     ApplicationListItem,
     ApplicationListResponse,
     ApplicationResponse,
     ApplicationUpdate,
 )
+from app.services.extraction import (
+    extract_job_data,
+    ExtractionError,
+    ExtractionTimeoutError,
+    ExtractionInvalidResponseError,
+    NoJobFoundError,
+)
+from app.api.job_leads import _fetch_html, _get_ai_settings
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
 
@@ -28,9 +37,10 @@ async def list_applications(
     per_page: int = Query(20, ge=1, le=100),
     status_id: str | None = None,
     search: str | None = None,
+    url: str | None = Query(None, description="Filter by exact job URL (used by extension)"),
     date_from: date | None = None,
     date_to: date | None = None,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user_flexible),
     db: AsyncSession = Depends(get_db),
 ):
     query = (
@@ -42,6 +52,11 @@ async def list_applications(
     if status_id:
         query = query.where(Application.status_id == status_id)
 
+    # Exact URL match (used by extension to check for existing applications)
+    if url:
+        query = query.where(Application.job_url == url)
+
+    # Partial text search (company, title, description)
     if search:
         search_term = f"%{search}%"
         query = query.where(
@@ -62,7 +77,7 @@ async def list_applications(
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
-    query = query.order_by(Application.applied_at.desc())
+    query = query.order_by(Application.applied_at.desc(), Application.created_at.desc())
     query = query.offset((page - 1) * per_page).limit(per_page)
 
     result = await db.execute(query)
@@ -79,7 +94,7 @@ async def list_applications(
 @router.post("", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED)
 async def create_application(
     data: ApplicationCreate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user_flexible),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -110,6 +125,104 @@ async def create_application(
         .options(selectinload(Application.status))
     )
     return result.scalars().first()
+
+
+@router.post("/extract", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED)
+async def create_application_from_url(
+    data: ApplicationExtractRequest,
+    user: User = Depends(get_current_user_by_api_token),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Extract job data from a URL using LLM and create an application.
+    This provides the same extraction quality as job leads.
+    """
+    # 1. Validate status exists
+    result = await db.execute(
+        select(ApplicationStatus).where(
+            ApplicationStatus.id == data.status_id,
+            or_(ApplicationStatus.user_id == user.id, ApplicationStatus.user_id.is_(None)),
+        )
+    )
+    if not result.scalars().first():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
+
+    # 2. Get content for extraction - prefer text from extension, fall back to fetching HTML
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Extract request - URL: {data.url}, has_text: {bool(data.text)}, text_length: {len(data.text) if data.text else 0}")
+
+    if data.text:
+        html_content = None
+        text_content = data.text
+    else:
+        try:
+            html_content = await _fetch_html(data.url)
+            text_content = None
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Failed to fetch URL: {str(e)}")
+
+    # 3. Get AI settings and extract job data
+    ai_model, ai_api_key, ai_api_base = await _get_ai_settings(db)
+
+    try:
+        extracted = await extract_job_data(
+            html=html_content,
+            text=text_content,
+            url=data.url,
+            model=ai_model,
+            api_key=ai_api_key,
+            api_base=ai_api_base,
+        )
+    except ExtractionTimeoutError as e:
+        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=e.message)
+    except ExtractionInvalidResponseError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.message)
+    except NoJobFoundError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.message)
+    except ExtractionError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message)
+
+    # 4. Create the application with all extracted data
+    application = Application(
+        user_id=user.id,
+        company=extracted.company or "Unknown Company",
+        job_title=extracted.title or "Unknown Position",
+        job_description=extracted.description,
+        job_url=data.url,
+        status_id=data.status_id,
+        applied_at=data.applied_at or date.today(),
+        # Location
+        location=extracted.location,
+        # Salary fields
+        salary_min=extracted.salary_min,
+        salary_max=extracted.salary_max,
+        salary_currency=extracted.salary_currency,
+        # Recruiter info
+        recruiter_name=extracted.recruiter_name,
+        recruiter_title=extracted.recruiter_title,
+        recruiter_linkedin_url=extracted.recruiter_linkedin_url,
+        # Requirements
+        requirements_must_have=extracted.requirements_must_have or [],
+        requirements_nice_to_have=extracted.requirements_nice_to_have or [],
+        # Skills
+        skills=extracted.skills or [],
+        # Experience
+        years_experience_min=extracted.years_experience_min,
+        years_experience_max=extracted.years_experience_max,
+        # Source
+        source=extracted.source,
+    )
+
+    db.add(application)
+    await db.commit()
+    await db.refresh(application)
+    await db.refresh(application, ["status"])
+
+    # 5. Record streak activity
+    await record_streak_activity(user=user, db=db)
+
+    return application
 
 
 @router.get("/{application_id}", response_model=ApplicationResponse)

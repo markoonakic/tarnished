@@ -5,6 +5,7 @@ import { deleteRound } from '../lib/rounds';
 import type { Application, Round } from '../lib/types';
 import { getStatusColor } from '../lib/statusColors';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { useToastContext } from '../contexts/ToastContext';
 import RoundForm from '../components/RoundForm';
 import RoundCard from '../components/RoundCard';
 import DocumentSection from '../components/DocumentSection';
@@ -17,6 +18,7 @@ export default function ApplicationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const colors = useThemeColors();
+  const toast = useToastContext();
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -30,11 +32,14 @@ export default function ApplicationDetail() {
 
   async function loadApplication() {
     setLoading(true);
+    setError('');
     try {
       const data = await getApplication(id!);
       setApplication(data);
     } catch {
-      setError('Failed to load application');
+      const errorMsg = 'Failed to load application';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -44,9 +49,12 @@ export default function ApplicationDetail() {
     if (!confirm('Are you sure you want to delete this application?')) return;
     try {
       await deleteApplication(id!);
+      toast.success('Application deleted');
       navigate('/applications');
     } catch {
-      setError('Failed to delete application');
+      const errorMsg = 'Failed to delete application';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   }
 
@@ -64,8 +72,11 @@ export default function ApplicationDetail() {
         ...prev,
         rounds: prev.rounds?.filter(r => r.id !== roundId) || []
       } : null);
+      toast.success('Round deleted');
     } catch {
-      setError('Failed to delete round');
+      const errorMsg = 'Failed to delete round';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   }
 
@@ -105,7 +116,9 @@ export default function ApplicationDetail() {
         };
       });
     } catch {
-      setError('Failed to refresh media');
+      const errorMsg = 'Failed to refresh media';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   }
 
@@ -156,23 +169,39 @@ export default function ApplicationDetail() {
 
         <div className="bg-secondary rounded-lg p-6 mb-6">
           <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-primary mb-1">{application.company}</h1>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h1 className="text-2xl font-bold text-primary">{application.company}</h1>
+                {application.source && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-bg2 text-fg1">
+                    <i className="bi-link-45deg icon-xs"></i>
+                    {application.source}
+                  </span>
+                )}
+              </div>
               <p className="text-xl text-secondary">{application.job_title}</p>
+              {application.location && (
+                <p className="text-muted text-sm mt-1 flex items-center gap-1">
+                  <i className="bi-geo-alt icon-sm"></i>
+                  {application.location}
+                </p>
+              )}
             </div>
-            <span
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold"
-              style={{
-                backgroundColor: `${getStatusColor(application.status.name, colors, application.status.color)}20`,
-                color: getStatusColor(application.status.name, colors, application.status.color),
-              }}
-            >
+            <div className="flex flex-col items-end gap-2">
               <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: getStatusColor(application.status.name, colors, application.status.color) }}
-              />
-              {application.status.name}
-            </span>
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold"
+                style={{
+                  backgroundColor: `${getStatusColor(application.status.name, colors, application.status.color)}20`,
+                  color: getStatusColor(application.status.name, colors, application.status.color),
+                }}
+              >
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: getStatusColor(application.status.name, colors, application.status.color) }}
+                />
+                {application.status.name}
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-sm">
@@ -194,15 +223,129 @@ export default function ApplicationDetail() {
                 rel="noopener noreferrer"
                 className="text-accent hover:text-accent-bright transition-all duration-200 ease-in-out text-sm cursor-pointer"
               >
-                View Job Posting &rarr;
+                Open Job Page &rarr;
               </a>
             </div>
           )}
 
+          {/* Job Description - styled like job leads */}
           {application.job_description && (
-            <div className="mb-4">
-              <h3 className="text-muted text-sm mb-2">Job Description</h3>
-              <p className="text-primary whitespace-pre-wrap break-words">{application.job_description}</p>
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-file-text icon-sm"></i>
+                Description
+              </h3>
+              <div className="text-primary whitespace-pre-wrap break-words text-sm">
+                {application.job_description}
+              </div>
+            </div>
+          )}
+
+          {/* Salary Information */}
+          {(application.salary_min || application.salary_max) && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-currency-dollar icon-sm"></i>
+                Salary Range
+              </h3>
+              <p className="text-primary font-medium">
+                {application.salary_currency || 'USD'}{' '}
+                {application.salary_min?.toLocaleString() || '???'}
+                {' - '}
+                {application.salary_max?.toLocaleString() || '???'}
+              </p>
+            </div>
+          )}
+
+          {/* Recruiter Information */}
+          {(application.recruiter_name || application.recruiter_title || application.recruiter_linkedin_url) && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-person icon-sm"></i>
+                Recruiter
+              </h3>
+              <div className="space-y-1">
+                {application.recruiter_name && (
+                  <p className="text-primary font-medium">{application.recruiter_name}</p>
+                )}
+                {application.recruiter_title && (
+                  <p className="text-secondary text-sm">{application.recruiter_title}</p>
+                )}
+                {application.recruiter_linkedin_url && (
+                  <a
+                    href={application.recruiter_linkedin_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:text-accent-bright transition-all duration-200 ease-in-out text-sm cursor-pointer flex items-center gap-1"
+                  >
+                    <i className="bi-linkedin icon-sm"></i>
+                    LinkedIn Profile
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Requirements - Must Have */}
+          {application.requirements_must_have && application.requirements_must_have.length > 0 && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-check-circle icon-sm"></i>
+                Must-Have Requirements
+              </h3>
+              <ul className="list-disc list-inside text-primary space-y-1">
+                {application.requirements_must_have.map((req, index) => (
+                  <li key={index} className="text-sm">{req}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Requirements - Nice to Have */}
+          {application.requirements_nice_to_have && application.requirements_nice_to_have.length > 0 && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-star icon-sm"></i>
+                Nice-to-Have Requirements
+              </h3>
+              <ul className="list-disc list-inside text-primary space-y-1">
+                {application.requirements_nice_to_have.map((req, index) => (
+                  <li key={index} className="text-sm">{req}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Skills */}
+          {application.skills && application.skills.length > 0 && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-lightning icon-sm"></i>
+                Skills
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {application.skills.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-bg3 text-fg1"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Experience Range */}
+          {(application.years_experience_min !== null || application.years_experience_max !== null) && (
+            <div className="mb-4 p-4 bg-bg2 rounded-lg">
+              <h3 className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                <i className="bi-clock-history icon-sm"></i>
+                Experience Required
+              </h3>
+              <p className="text-primary font-medium">
+                {application.years_experience_min ?? '?'}-{application.years_experience_max ?? '?'} years
+              </p>
             </div>
           )}
 
@@ -280,7 +423,7 @@ export default function ApplicationDetail() {
                 )
               ))}
             </div>
-          ) : (
+          ) : !showRoundForm ? (
             <EmptyState
               message="No interview rounds yet."
               icon="bi-calendar-x"
@@ -289,7 +432,7 @@ export default function ApplicationDetail() {
                 onClick: () => setShowRoundForm(true),
               }}
             />
-          )}
+          ) : null}
         </div>
       </div>
       {application && (

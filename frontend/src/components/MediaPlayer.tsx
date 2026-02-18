@@ -96,7 +96,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
             ref={closeButtonRef}
             onClick={onClose}
             aria-label="Close"
-            className="text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out px-2 py-1 rounded cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out p-2 rounded cursor-pointer"
           >
             <i className="bi bi-x-lg icon-xl" />
           </button>
@@ -116,14 +116,14 @@ export default function MediaPlayer({ media, onClose }: Props) {
               controls
               autoPlay
               onError={handleError}
-              className="w-full max-h-[60vh] bg-bg0 rounded"
+              className="w-full max-h-[60vh] bg-bg2 rounded"
             >
               Your browser does not support video playback.
             </video>
           ) : (
             <div className="py-8">
               <div className="flex justify-center mb-4">
-                <div className="w-24 h-24 rounded-full bg-tertiary flex items-center justify-center">
+                <div className="w-24 h-24 rounded-full bg-bg2 flex items-center justify-center">
                   <i className="bi bi-music-note-beamed icon-2xl text-orange-bright" />
                 </div>
               </div>

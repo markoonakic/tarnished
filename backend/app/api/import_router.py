@@ -40,6 +40,9 @@ import_schemas = importlib.import_module('app.schemas.import')
 ImportDataSchema = import_schemas.ImportDataSchema
 ImportValidationResponse = import_schemas.ImportValidationResponse
 from app.api.utils.zip_utils import validate_zip_safety
+from app.services.import_service import ImportService
+from app.services.export_registry import default_registry
+from app.services.import_id_mapper import IDMapper
 
 logger = logging.getLogger(__name__)
 
@@ -244,6 +247,28 @@ def extract_files_from_zip(zip_path: str, user_id: str) -> Dict[str, str]:
                 file_mapping[old_path] = str(dest_path.relative(Path(UPLOAD_DIR)))
 
     return file_mapping
+
+
+def is_new_export_format(data: dict) -> bool:
+    """Check if data uses the new introspective export format."""
+    return "export_version" in data and "models" in data
+
+
+def _run_import_user_data(
+    sync_session,
+    export_data: dict,
+    user_id: str,
+    override: bool
+) -> dict:
+    """Synchronous helper to run the import service."""
+    id_mapper = IDMapper()
+    import_service = ImportService(registry=default_registry, id_mapper=id_mapper)
+    return import_service.import_user_data(
+        export_data=export_data,
+        user_id=user_id,
+        session=sync_session,
+        override=override
+    )
 
 
 async def import_applications(
@@ -514,7 +539,11 @@ async def import_data(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Import data from a ZIP file."""
+    """Import data from a ZIP file.
+
+    Supports both the new introspective export format (v1.0) and the
+    legacy format for backward compatibility.
+    """
 
     import_id = str(uuid.uuid4())
     temp_path = None
@@ -541,8 +570,6 @@ async def import_data(
             data_json = zip_ref.read('data.json')
             data = json.loads(data_json)
 
-            validated_data = ImportDataSchema(**data)
-
         # Stage 3: Extract files
         ImportProgress.update(import_id, stage="extracting", percent=30, message="Extracting files...")
 
@@ -552,7 +579,7 @@ async def import_data(
         if override:
             ImportProgress.update(import_id, stage="clearing", percent=40, message="Removing existing data...")
 
-            # Delete existing applications
+            # Delete existing applications (cascade will handle related data)
             result = await db.execute(
                 select(Application)
                 .where(Application.user_id == user.id)
@@ -565,54 +592,77 @@ async def import_data(
         # Stage 5: Import data
         ImportProgress.update(import_id, stage="importing", percent=50, message="Importing data...")
 
-        # Import custom statuses
-        for status_data in validated_data.custom_statuses:
-            existing = await db.execute(
-                select(ApplicationStatus)
-                .where(ApplicationStatus.user_id == user.id)
-                .where(ApplicationStatus.name == status_data.name)
+        # Check if this is the new format or legacy format
+        if is_new_export_format(data):
+            # Use the new ImportService for v1.0 exports
+            result = await db.run_sync(
+                _run_import_user_data,
+                data,
+                str(user.id),
+                override
             )
-            if not existing.scalar_one_or_none():
-                status = ApplicationStatus(
-                    user_id=user.id,
-                    name=status_data.name,
-                    color=status_data.color or "#6B7280",
-                    is_default=status_data.is_default,
-                    order=status_data.order or 999,
+
+            # Map result keys to expected format
+            import_result = {
+                "applications": result.get("Application", 0),
+                "rounds": result.get("Round", 0),
+                "status_history": result.get("ApplicationStatusHistory", 0),
+                "statuses": result.get("ApplicationStatus", 0),
+                "round_types": result.get("RoundType", 0),
+                "media": result.get("RoundMedia", 0),
+            }
+        else:
+            # Legacy format - use the old import logic
+            validated_data = ImportDataSchema(**data)
+
+            # Import custom statuses
+            for status_data in validated_data.custom_statuses:
+                existing = await db.execute(
+                    select(ApplicationStatus)
+                    .where(ApplicationStatus.user_id == user.id)
+                    .where(ApplicationStatus.name == status_data.name)
                 )
-                db.add(status)
+                if not existing.scalar_one_or_none():
+                    status = ApplicationStatus(
+                        user_id=user.id,
+                        name=status_data.name,
+                        color=status_data.color or "#6B7280",
+                        is_default=status_data.is_default,
+                        order=status_data.order or 999,
+                    )
+                    db.add(status)
 
-        await db.flush()
+            await db.flush()
 
-        # Import custom round types
-        for type_data in validated_data.custom_round_types:
-            existing = await db.execute(
-                select(RoundType)
-                .where(RoundType.user_id == user.id)
-                .where(RoundType.name == type_data.name)
+            # Import custom round types
+            for type_data in validated_data.custom_round_types:
+                existing = await db.execute(
+                    select(RoundType)
+                    .where(RoundType.user_id == user.id)
+                    .where(RoundType.name == type_data.name)
+                )
+                if not existing.scalar_one_or_none():
+                    round_type = RoundType(
+                        user_id=user.id,
+                        name=type_data.name,
+                        is_default=type_data.is_default,
+                    )
+                    db.add(round_type)
+
+            await db.flush()
+
+            # Import applications with progress callback
+            def progress_update(**kwargs):
+                percent = 50 + int(kwargs.pop('percent', 0) * 0.4)  # 50-90%
+                ImportProgress.update(import_id, percent=percent, **kwargs)
+
+            import_result = await import_applications(
+                db,
+                str(user.id),
+                validated_data.applications,
+                file_mapping,
+                progress_update
             )
-            if not existing.scalar_one_or_none():
-                round_type = RoundType(
-                    user_id=user.id,
-                    name=type_data.name,
-                    is_default=type_data.is_default,
-                )
-                db.add(round_type)
-
-        await db.flush()
-
-        # Import applications with progress callback
-        def progress_update(**kwargs):
-            percent = 50 + int(kwargs.pop('percent', 0) * 0.4)  # 50-90%
-            ImportProgress.update(import_id, percent=percent, **kwargs)
-
-        result = await import_applications(
-            db,
-            str(user.id),
-            validated_data.applications,
-            file_mapping,
-            progress_update
-        )
 
         # Stage 6: Complete
         ImportProgress.update(import_id, stage="finalizing", percent=95, message="Finalizing...")
@@ -627,18 +677,19 @@ async def import_data(
             {
                 "import_id": import_id,
                 "override": override,
-                "applications_imported": result["applications"],
-                "rounds_imported": result["rounds"],
-                "status_history_imported": result["status_history"],
+                "format": "v1.0" if is_new_export_format(data) else "legacy",
+                "applications_imported": import_result.get("applications", 0),
+                "rounds_imported": import_result.get("rounds", 0),
+                "status_history_imported": import_result.get("status_history", 0),
                 "files_imported": len(file_mapping),
             },
             request
         )
 
         ImportProgress.complete(import_id, success=True, result={
-            "applications": result["applications"],
-            "rounds": result["rounds"],
-            "status_history": result["status_history"],
+            "applications": import_result.get("applications", 0),
+            "rounds": import_result.get("rounds", 0),
+            "status_history": import_result.get("status_history", 0),
             "files": len(file_mapping)
         })
 

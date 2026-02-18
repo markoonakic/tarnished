@@ -53,6 +53,22 @@ export interface Application {
   created_at: string;
   updated_at: string;
   rounds?: Round[];
+  // New fields from job lead conversion
+  job_lead_id: string | null;
+  description: string | null;
+  location: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  recruiter_name: string | null;
+  recruiter_title: string | null;
+  recruiter_linkedin_url: string | null;
+  requirements_must_have: string[];
+  requirements_nice_to_have: string[];
+  skills: string[];
+  years_experience_min: number | null;
+  years_experience_max: number | null;
+  source: string | null;
 }
 
 export interface ApplicationListResponse {
@@ -69,6 +85,15 @@ export interface ApplicationCreate {
   job_url?: string;
   status_id: string;
   applied_at?: string;
+  salary_min?: number;
+  salary_max?: number;
+  salary_currency?: string;
+  recruiter_name?: string;
+  recruiter_title?: string;
+  recruiter_linkedin_url?: string;
+  requirements_must_have?: string[];
+  requirements_nice_to_have?: string[];
+  source?: string;
 }
 
 export interface ApplicationUpdate {
@@ -78,6 +103,15 @@ export interface ApplicationUpdate {
   job_url?: string | null;
   status_id?: string;
   applied_at?: string;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  salary_currency?: string | null;
+  recruiter_name?: string | null;
+  recruiter_title?: string | null;
+  recruiter_linkedin_url?: string | null;
+  requirements_must_have?: string[] | null;
+  requirements_nice_to_have?: string[] | null;
+  source?: string | null;
 }
 
 export interface RoundCreate {
@@ -102,4 +136,52 @@ export interface ApplicationStatusHistory {
   to_status: Status;
   changed_at: string;
   note: string | null;
+}
+
+export type JobLeadStatus = "pending" | "extracted" | "failed";
+
+export interface JobLead {
+  id: string;
+  title: string | null;
+  company: string | null;
+  url: string;
+  status: JobLeadStatus;
+  description: string | null;
+  location: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  recruiter_name: string | null;
+  recruiter_title: string | null;
+  recruiter_linkedin_url: string | null;
+  requirements_must_have: string[];
+  requirements_nice_to_have: string[];
+  skills: string[];
+  years_experience_min: number | null;
+  years_experience_max: number | null;
+  source: string | null;
+  posted_date: string | null;
+  scraped_at: string;
+  converted_to_application_id: string | null;
+  error_message: string | null;
+}
+
+export interface UserProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  location: string | null;
+  linkedin_url: string | null;
+  city: string | null;
+  country: string | null;
+  authorized_to_work: string | null;
+  requires_sponsorship: boolean | null;
+}
+
+export interface APIKeyResponse {
+  has_api_key: boolean;
+  api_key_masked: string | null;
+  api_key_full?: string | null;
 }

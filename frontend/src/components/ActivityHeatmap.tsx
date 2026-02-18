@@ -95,7 +95,7 @@ export default function ActivityHeatmap() {
     gridStart.setDate(startDate.getDate() - startDayOfWeek);
 
     // Build complete weeks starting from the Sunday before startDate
-    let currentDate = new Date(gridStart);
+    const currentDate = new Date(gridStart);
 
     while (currentDate <= endDate) {
       const weekData: CellData[] = [];

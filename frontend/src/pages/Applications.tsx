@@ -6,15 +6,18 @@ import { listStatuses } from '../lib/settings';
 import type { Application, Status } from '../lib/types';
 import { getStatusColor } from '../lib/statusColors';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { useToastContext } from '../contexts/ToastContext';
 import Layout from '../components/Layout';
 import Dropdown from '../components/Dropdown';
 import Loading from '../components/Loading';
 import EmptyState from '../components/EmptyState';
 import ApplicationModal from '../components/ApplicationModal';
+import Pagination from '../components/Pagination';
 
 export default function Applications() {
   const navigate = useNavigate();
   const colors = useThemeColors();
+  const toast = useToastContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [applications, setApplications] = useState<Application[]>([]);
   const [statuses, setStatuses] = useState<Status[]>([]);
@@ -24,7 +27,7 @@ export default function Applications() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const page = parseInt(searchParams.get('page') || '1');
-  const perPage = 10;
+  const [perPage, setPerPage] = useState(25);
   const statusFilter = searchParams.get('status') || '';
   const search = searchParams.get('search') || '';
   const isFiltered = search || statusFilter;
@@ -35,7 +38,7 @@ export default function Applications() {
 
   useEffect(() => {
     loadApplications();
-  }, [page, statusFilter, search]);
+  }, [page, perPage, statusFilter, search]);
 
   async function loadStatuses() {
     try {
@@ -48,6 +51,7 @@ export default function Applications() {
 
   async function loadApplications() {
     setLoading(true);
+    setError('');
     try {
       const params: ListParams = { page, per_page: perPage };
       if (statusFilter) params.status_id = statusFilter;
@@ -57,7 +61,9 @@ export default function Applications() {
       setApplications(data.items);
       setTotal(data.total);
     } catch {
-      setError('Failed to load applications');
+      const errorMsg = 'Failed to load applications';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -97,18 +103,31 @@ export default function Applications() {
           </button>
         </div>
 
-        <div className="bg-secondary rounded-lg p-4 mb-6">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-0 sm:min-w-[12.5rem]">
+        <div className="bg-bg1 rounded-lg p-4 mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+            {/* Search Input */}
+            <div className="flex-1 min-w-0 relative">
+              <i className="bi-search absolute left-3 top-1/2 -translate-y-1/2 icon-sm text-muted" />
               <input
                 type="text"
                 placeholder="Search company or job title..."
                 value={search}
                 onChange={(e) => updateParams({ search: e.target.value })}
-                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="w-full pl-9 pr-9 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
               />
+              {search && (
+                <button
+                  onClick={() => updateParams({ search: '' })}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-fg1 transition-all duration-200 ease-in-out cursor-pointer"
+                  aria-label="Clear search"
+                >
+                  <i className="bi-x icon-sm" />
+                </button>
+              )}
             </div>
-            <div>
+
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-3">
               <Dropdown
                 options={[
                   { value: '', label: 'All Statuses' },
@@ -117,6 +136,22 @@ export default function Applications() {
                 value={statusFilter}
                 onChange={(value) => updateParams({ status: value })}
                 placeholder="All Statuses"
+                size="xs"
+                containerBackground="bg1"
+              />
+              <Dropdown
+                options={[
+                  { value: '10', label: '10 / page' },
+                  { value: '25', label: '25 / page' },
+                  { value: '50', label: '50 / page' },
+                  { value: '100', label: '100 / page' },
+                ]}
+                value={String(perPage)}
+                onChange={(value) => {
+                  setPerPage(Number(value));
+                  updateParams({ page: '1' });
+                }}
+                placeholder="25 / page"
                 size="xs"
                 containerBackground="bg1"
               />
@@ -230,27 +265,15 @@ export default function Applications() {
               ))}
             </div>
 
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-6">
-                <button
-                  onClick={() => updateParams({ page: String(page - 1) })}
-                  disabled={page === 1}
-                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Previous
-                </button>
-                <span className="text-sm text-muted font-mono px-4">
-                  Page {page} of {totalPages}
-                </span>
-                <button
-                  onClick={() => updateParams({ page: String(page + 1) })}
-                  disabled={page === totalPages}
-                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Next
-                </button>
-              </div>
-            )}
+            <div className="mt-6">
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                perPage={perPage}
+                totalItems={total}
+                onPageChange={(newPage) => updateParams({ page: String(newPage) })}
+              />
+            </div>
           </>
         )}
       </div>

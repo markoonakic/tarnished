@@ -30,6 +30,15 @@ export default function ApplicationModal({
   const [jobUrlError, setJobUrlError] = useState('');
   const [statusId, setStatusId] = useState('');
   const [appliedAt, setAppliedAt] = useState('');
+  const [salaryMin, setSalaryMin] = useState('');
+  const [salaryMax, setSalaryMax] = useState('');
+  const [salaryCurrency, setSalaryCurrency] = useState('USD');
+  const [recruiterName, setRecruiterName] = useState('');
+  const [recruiterTitle, setRecruiterTitle] = useState('');
+  const [recruiterLinkedinUrl, setRecruiterLinkedinUrl] = useState('');
+  const [requirementsMustHave, setRequirementsMustHave] = useState('');
+  const [requirementsNiceToHave, setRequirementsNiceToHave] = useState('');
+  const [source, setSource] = useState('');
 
   function normalizeUrl(url: string): string {
     if (!url) return url;
@@ -88,12 +97,30 @@ export default function ApplicationModal({
         setJobUrl(application.job_url || '');
         setStatusId(application.status.id);
         setAppliedAt(application.applied_at.split('T')[0]);
+        setSalaryMin(application.salary_min !== null ? String(application.salary_min / 1000) : '');
+        setSalaryMax(application.salary_max !== null ? String(application.salary_max / 1000) : '');
+        setSalaryCurrency(application.salary_currency || 'USD');
+        setRecruiterName(application.recruiter_name || '');
+        setRecruiterTitle(application.recruiter_title || '');
+        setRecruiterLinkedinUrl(application.recruiter_linkedin_url || '');
+        setRequirementsMustHave(application.requirements_must_have?.join('\n') || '');
+        setRequirementsNiceToHave(application.requirements_nice_to_have?.join('\n') || '');
+        setSource(application.source || '');
       } else {
         // Create mode - set defaults
         setCompany('');
         setJobTitle('');
         setJobDescription('');
         setJobUrl('');
+        setSalaryMin('');
+        setSalaryMax('');
+        setSalaryCurrency('USD');
+        setRecruiterName('');
+        setRecruiterTitle('');
+        setRecruiterLinkedinUrl('');
+        setRequirementsMustHave('');
+        setRequirementsNiceToHave('');
+        setSource('');
         setAppliedAt(new Date().toISOString().split('T')[0]);
         // Set default status after statuses are loaded
         if (statuses.length > 0) {
@@ -134,6 +161,15 @@ export default function ApplicationModal({
     setError('');
 
     try {
+      const salaryMinNum = salaryMin ? parseInt(salaryMin, 10) * 1000 : null;
+      const salaryMaxNum = salaryMax ? parseInt(salaryMax, 10) * 1000 : null;
+      const requirementsMustHaveArray = requirementsMustHave.trim()
+        ? requirementsMustHave.split('\n').map(s => s.trim()).filter(Boolean)
+        : null;
+      const requirementsNiceToHaveArray = requirementsNiceToHave.trim()
+        ? requirementsNiceToHave.split('\n').map(s => s.trim()).filter(Boolean)
+        : null;
+
       if (isEditing && application) {
         const data: ApplicationUpdate = {
           company,
@@ -142,6 +178,15 @@ export default function ApplicationModal({
           job_url: normalizedUrl || null,
           status_id: statusId,
           applied_at: appliedAt,
+          salary_min: salaryMinNum,
+          salary_max: salaryMaxNum,
+          salary_currency: salaryCurrency || null,
+          recruiter_name: recruiterName || null,
+          recruiter_title: recruiterTitle || null,
+          recruiter_linkedin_url: recruiterLinkedinUrl || null,
+          requirements_must_have: requirementsMustHaveArray,
+          requirements_nice_to_have: requirementsNiceToHaveArray,
+          source: source || null,
         };
         await updateApplication(application.id, data);
         onSuccess(application.id);
@@ -154,6 +199,15 @@ export default function ApplicationModal({
           job_url: normalizedUrl || undefined,
           status_id: statusId,
           applied_at: appliedAt,
+          salary_min: salaryMinNum ?? undefined,
+          salary_max: salaryMaxNum ?? undefined,
+          salary_currency: salaryCurrency,
+          recruiter_name: recruiterName || undefined,
+          recruiter_title: recruiterTitle || undefined,
+          recruiter_linkedin_url: recruiterLinkedinUrl || undefined,
+          requirements_must_have: requirementsMustHaveArray ?? undefined,
+          requirements_nice_to_have: requirementsNiceToHaveArray ?? undefined,
+          source: source || undefined,
         };
         const created = await createApplication(data);
         onSuccess(created.id);
@@ -272,6 +326,124 @@ export default function ApplicationModal({
               )}
             </div>
 
+            <div>
+              <label className="block mb-1 text-sm font-semibold text-muted">Min Salary (k)</label>
+              <input
+                type="number"
+                value={salaryMin}
+                onChange={(e) => setSalaryMin(e.target.value)}
+                placeholder="e.g. 100"
+                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              />
+            </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-semibold text-muted">Max Salary (k)</label>
+              <input
+                type="number"
+                value={salaryMax}
+                onChange={(e) => setSalaryMax(e.target.value)}
+                placeholder="e.g. 150"
+                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              />
+            </div>
+
+            <div>
+              <label className="block mb-1 text-sm font-semibold text-muted">Currency</label>
+              <Dropdown
+                options={[
+                  { value: 'USD', label: 'USD' },
+                  { value: 'EUR', label: 'EUR' },
+                  { value: 'GBP', label: 'GBP' },
+                  { value: 'CAD', label: 'CAD' },
+                  { value: 'AUD', label: 'AUD' },
+                ]}
+                value={salaryCurrency}
+                onChange={(value) => setSalaryCurrency(value)}
+                placeholder="Currency"
+                containerBackground="bg1"
+                size="xs"
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-tertiary pt-4">
+            <h4 className="text-sm font-semibold text-muted mb-3">Recruiter (Optional)</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-1 text-sm font-semibold text-muted">Recruiter Name</label>
+                <input
+                  type="text"
+                  value={recruiterName}
+                  onChange={(e) => setRecruiterName(e.target.value)}
+                  placeholder="e.g. John Smith"
+                  className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1 text-sm font-semibold text-muted">Recruiter Title</label>
+                <input
+                  type="text"
+                  value={recruiterTitle}
+                  onChange={(e) => setRecruiterTitle(e.target.value)}
+                  placeholder="e.g. Senior Recruiter"
+                  className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block mb-1 text-sm font-semibold text-muted">LinkedIn URL</label>
+                <input
+                  type="text"
+                  value={recruiterLinkedinUrl}
+                  onChange={(e) => setRecruiterLinkedinUrl(e.target.value)}
+                  placeholder="https://linkedin.com/in/..."
+                  className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-tertiary pt-4">
+            <h4 className="text-sm font-semibold text-muted mb-3">Requirements (Optional)</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-1 text-sm font-semibold text-muted">Must Have</label>
+                <textarea
+                  value={requirementsMustHave}
+                  onChange={(e) => setRequirementsMustHave(e.target.value)}
+                  rows={3}
+                  placeholder="One requirement per line&#10;e.g. React experience&#10;5+ years TypeScript"
+                  className="w-full px-3 py-2 bg-bg2 rounded text-fg1 placeholder-muted focus:outline-none focus:ring-1 focus:ring-accent-bright transition-all duration-200 ease-in-out resize-y"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1 text-sm font-semibold text-muted">Nice to Have</label>
+                <textarea
+                  value={requirementsNiceToHave}
+                  onChange={(e) => setRequirementsNiceToHave(e.target.value)}
+                  rows={3}
+                  placeholder="One requirement per line&#10;e.g. Docker experience&#10;AWS certification"
+                  className="w-full px-3 py-2 bg-bg2 rounded text-fg1 placeholder-muted focus:outline-none focus:ring-1 focus:ring-accent-bright transition-all duration-200 ease-in-out resize-y"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block mb-1 text-sm font-semibold text-muted">Source</label>
+                <input
+                  type="text"
+                  value={source}
+                  onChange={(e) => setSource(e.target.value)}
+                  placeholder="e.g. LinkedIn, Indeed, Referral"
+                  className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <label className="block mb-1 text-sm font-semibold text-muted">Job Description</label>
               <textarea

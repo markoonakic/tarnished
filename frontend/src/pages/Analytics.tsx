@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import SankeyChart from '../components/SankeyChart';
 import ActivityHeatmap from '../components/ActivityHeatmap';
@@ -8,21 +9,101 @@ import WeeklyActivityChart from '../components/analytics/WeeklyActivityChart';
 import InterviewFunnel from '../components/analytics/InterviewFunnel';
 import InterviewOutcomes from '../components/analytics/InterviewOutcomes';
 import InterviewTimeline from '../components/analytics/InterviewTimeline';
+import { SeekGraceButton } from '@/components/analytics/SeekGraceButton';
+import { OverallGrace } from '@/components/analytics/OverallGrace';
+import { SectionInsight } from '@/components/analytics/SectionInsight';
+import { useGraceInsights } from '@/hooks/useGraceInsights';
+import { useToast } from '@/hooks/useToast';
 
 export default function Analytics() {
   const [searchParams] = useSearchParams();
   const period = searchParams.get('period') || '7d';
+
+  const { configured, loading, insights, error, seekGrace } = useGraceInsights(period);
+  const toast = useToast();
+
+  // Show error toast when error occurs
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error, toast]);
 
   return (
     <Layout>
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-fg1">Analytics</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-fg1">Analytics</h1>
+            {configured && (
+              <SeekGraceButton onSeekGrace={seekGrace} loading={loading} />
+            )}
+          </div>
           <PeriodSelector />
         </div>
 
+        {/* Overall Grace Message */}
+        {insights && (
+          <div className="mb-6">
+            <OverallGrace message={insights.overall_grace} />
+          </div>
+        )}
+
+        {/* Grouped Section Insights */}
+        {insights && (
+          <section className="mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+              {/* Pipeline Guidance */}
+              <div className="flex flex-col">
+                <h3 className="text-fg1 font-medium mb-3 flex items-center gap-2">
+                  <i className="bi-funnel text-accent icon-sm" />
+                  Pipeline Guidance
+                </h3>
+                <div className="flex-1">
+                  <SectionInsight
+                    keyInsight={insights.pipeline_overview.key_insight}
+                    trend={insights.pipeline_overview.trend}
+                    priorityActions={insights.pipeline_overview.priority_actions}
+                  />
+                </div>
+              </div>
+
+              {/* Interview Guidance */}
+              <div className="flex flex-col">
+                <h3 className="text-fg1 font-medium mb-3 flex items-center gap-2">
+                  <i className="bi-people text-accent icon-sm" />
+                  Interview Guidance
+                </h3>
+                <div className="flex-1">
+                  <SectionInsight
+                    keyInsight={insights.interview_analytics.key_insight}
+                    trend={insights.interview_analytics.trend}
+                    priorityActions={insights.interview_analytics.priority_actions}
+                  />
+                </div>
+              </div>
+
+              {/* Activity Guidance */}
+              <div className="flex flex-col">
+                <h3 className="text-fg1 font-medium mb-3 flex items-center gap-2">
+                  <i className="bi-calendar-week text-accent icon-sm" />
+                  Activity Guidance
+                </h3>
+                <div className="flex-1">
+                  <SectionInsight
+                    keyInsight={insights.activity_tracking.key_insight}
+                    trend={insights.activity_tracking.trend}
+                    priorityActions={insights.activity_tracking.priority_actions}
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         <div className="space-y-6">
+
           {/* SECTION 1: Pipeline Overview */}
           <section>
             <h2 className="text-lg font-semibold text-fg1 mb-4">Pipeline Overview</h2>

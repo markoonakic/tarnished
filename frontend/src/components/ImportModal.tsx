@@ -14,7 +14,10 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
   const [file, setFile] = useState<File | null>(null);
   const [validating, setValidating] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [validation, setValidation] = useState<any>(null);
+  const [validation, setValidation] = useState<{
+    summary: Record<string, number>;
+    warnings: string[];
+  } | null>(null);
   const [progress, setProgress] = useState<ImportProgress | null>(null);
   const [error, setError] = useState('');
   const [override, setOverride] = useState(false);

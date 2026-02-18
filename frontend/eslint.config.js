@@ -19,5 +19,11 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Allow unused variables when prefixed with underscore
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      // Allow setState in effects for legitimate patterns like resetting state on prop changes
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])

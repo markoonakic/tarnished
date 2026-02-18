@@ -23,7 +23,7 @@ export default function PeriodSelector({ onPeriodChange }: PeriodSelectorProps) 
   };
 
   return (
-    <div className="flex gap-2 mb-6">
+    <div className="flex gap-2">
       {PERIODS.map((period) => (
         <button
           key={period.value}

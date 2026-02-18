@@ -141,101 +141,94 @@ def upgrade() -> None:
     """Upgrade schema."""
     conn = op.get_bind()
 
-    try:
-        # Start transaction for atomicity
-        with conn.begin():
-            logger.info("Starting history seeding migration")
+    logger.info("Starting history seeding migration")
 
-            # Get all statuses
-            statuses_query = sa.text("""
-                SELECT id, name FROM application_statuses ORDER BY name
-            """)
-            status_rows = conn.execute(statuses_query).fetchall()
-            statuses = {row.name: row.id for row in status_rows}
-            logger.info(f"Loaded {len(statuses)} application statuses")
+    # Get all statuses
+    statuses_query = sa.text("""
+        SELECT id, name FROM application_statuses ORDER BY name
+    """)
+    status_rows = conn.execute(statuses_query).fetchall()
+    statuses = {row.name: row.id for row in status_rows}
+    logger.info(f"Loaded {len(statuses)} application statuses")
 
-            # Get all applications without history using LEFT JOIN for better performance
-            # Also join with status table to fix N+1 query problem
-            applications_query = sa.text("""
-                SELECT a.id, a.status_id, a.created_at, s.name as status_name
-                FROM applications a
-                LEFT JOIN application_status_history ash ON a.id = ash.application_id
-                LEFT JOIN application_statuses s ON a.status_id = s.id
-                WHERE ash.id IS NULL
-                ORDER BY a.created_at DESC
-            """)
-            applications = conn.execute(applications_query).fetchall()
-            logger.info(f"Found {len(applications)} applications without history")
+    # Get all applications without history using LEFT JOIN for better performance
+    # Also join with status table to fix N+1 query problem
+    applications_query = sa.text("""
+        SELECT a.id, a.status_id, a.created_at, s.name as status_name
+        FROM applications a
+        LEFT JOIN application_status_history ash ON a.id = ash.application_id
+        LEFT JOIN application_statuses s ON a.status_id = s.id
+        WHERE ash.id IS NULL
+        ORDER BY a.created_at DESC
+    """)
+    applications = conn.execute(applications_query).fetchall()
+    logger.info(f"Found {len(applications)} applications without history")
 
-            if not applications:
-                logger.info("No applications to process, migration complete")
-                return
+    if not applications:
+        logger.info("No applications to process, migration complete")
+        return
 
-            # Get current time for timestamp distribution
-            now = datetime.utcnow()
+    # Get current time for timestamp distribution
+    now = datetime.utcnow()
 
-            # Prepare bulk insert data
-            history_entries = []
-            total_apps = len(applications)
+    # Prepare bulk insert data
+    history_entries = []
+    total_apps = len(applications)
 
-            for idx, app in enumerate(applications):
-                # Progress logging for large datasets
-                if total_apps > 100 and idx % 50 == 0:
-                    logger.info(f"Processing application {idx + 1}/{total_apps}")
+    for idx, app in enumerate(applications):
+        # Progress logging for large datasets
+        if total_apps > 100 and idx % 50 == 0:
+            logger.info(f"Processing application {idx + 1}/{total_apps}")
 
-                # Status name is already fetched from the JOIN
-                if not app.status_name:
-                    logger.warning(f"Application {app.id} has no valid status, skipping")
-                    continue
+        # Status name is already fetched from the JOIN
+        if not app.status_name:
+            logger.warning(f"Application {app.id} has no valid status, skipping")
+            continue
 
-                current_status_name = app.status_name
+        current_status_name = app.status_name
 
-                # Generate the status journey
-                journey = get_status_journey(current_status_name, statuses)
+        # Generate the status journey
+        journey = get_status_journey(current_status_name, statuses)
 
-                # Parse created_at if it's a string, otherwise use as-is
-                created_at = app.created_at
-                if isinstance(created_at, str):
-                    created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+        # Parse created_at if it's a string, otherwise use as-is
+        created_at = app.created_at
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
 
-                # Distribute timestamps (already sorted in the function)
-                timestamps = distribute_timestamps(created_at, now, len(journey))
+        # Distribute timestamps (already sorted in the function)
+        timestamps = distribute_timestamps(created_at, now, len(journey))
 
-                # Create history entries
-                for i, status_name in enumerate(journey):
-                    from_status_id = None if i == 0 else statuses[journey[i - 1]]
-                    to_status_id = statuses[status_name]
-                    changed_at = timestamps[i]
+        # Create history entries
+        for i, status_name in enumerate(journey):
+            from_status_id = None if i == 0 else statuses[journey[i - 1]]
+            to_status_id = statuses[status_name]
+            changed_at = timestamps[i]
 
-                    history_entries.append({
-                        'id': str(uuid.uuid4()),
-                        'application_id': app.id,
-                        'from_status_id': from_status_id,
-                        'to_status_id': to_status_id,
-                        'changed_at': changed_at,
-                        'note': None
-                    })
+            history_entries.append({
+                'id': str(uuid.uuid4()),
+                'application_id': app.id,
+                'from_status_id': from_status_id,
+                'to_status_id': to_status_id,
+                'changed_at': changed_at,
+                'note': None
+            })
 
-            # Bulk insert history entries
-            if history_entries:
-                logger.info(f"Inserting {len(history_entries)} history entries")
+    # Bulk insert history entries
+    if history_entries:
+        logger.info(f"Inserting {len(history_entries)} history entries")
 
-                history_table = table(
-                    'application_status_history',
-                    column('id'),
-                    column('application_id'),
-                    column('from_status_id'),
-                    column('to_status_id'),
-                    column('changed_at'),
-                    column('note')
-                )
+        history_table = table(
+            'application_status_history',
+            column('id'),
+            column('application_id'),
+            column('from_status_id'),
+            column('to_status_id'),
+            column('changed_at'),
+            column('note')
+        )
 
-                conn.execute(history_table.insert().values(history_entries))
-                logger.info("Migration completed successfully")
-
-    except Exception as e:
-        logger.error(f"Migration failed: {str(e)}")
-        raise
+        conn.execute(history_table.insert().values(history_entries))
+        logger.info("Migration completed successfully")
 
 
 def downgrade() -> None:
