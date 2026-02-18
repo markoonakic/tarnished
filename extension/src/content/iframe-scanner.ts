@@ -372,7 +372,7 @@ function fillField(element: HTMLInputElement | HTMLTextAreaElement, value: strin
 // Message Constants
 // ============================================================================
 
-const MESSAGE_PREFIX = 'JOB_TRACKER_';
+const MESSAGE_PREFIX = 'TARNISHED_';
 const SCAN_RESULT_MSG = `${MESSAGE_PREFIX}IFRAME_SCAN_RESULT`;
 const AUTOFILL_MSG = `${MESSAGE_PREFIX}IFRAME_AUTOFILL`;
 
