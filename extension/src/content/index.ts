@@ -18,7 +18,7 @@ import { getAutofillEngine, type AutofillProfile, type AutofillResult } from '..
 // Message Type Constants
 // ============================================================================
 
-const MESSAGE_PREFIX = 'JOB_TRACKER_';
+const MESSAGE_PREFIX = 'TARNISHED_';
 const IFRAME_SCAN_RESULT = `${MESSAGE_PREFIX}IFRAME_SCAN_RESULT`;
 const IFRAME_AUTOFILL = `${MESSAGE_PREFIX}IFRAME_AUTOFILL`;
 const IFRAME_AUTOFILL_RESULT = `${MESSAGE_PREFIX}IFRAME_AUTOFILL_RESULT`;
