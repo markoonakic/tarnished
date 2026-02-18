@@ -48,7 +48,7 @@ router = APIRouter(prefix="/api/job-leads", tags=["job-leads"])
 # HTTP client settings for fetching job posting URLs
 HTTP_TIMEOUT_SECONDS = 30
 HTTP_MAX_REDIRECTS = 5
-HTTP_USER_AGENT = "Mozilla/5.0 (compatible; JobTrackerBot/1.0)"
+HTTP_USER_AGENT = "Mozilla/5.0 (compatible; TarnishedBot/1.0)"
 
 
 async def _get_ai_settings(db: AsyncSession) -> tuple[str | None, str | None, str | None]:
