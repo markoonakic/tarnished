@@ -294,8 +294,8 @@ export default function ApplicationDetail() {
                 Must-Have Requirements
               </h3>
               <ul className="list-disc list-inside text-primary space-y-1">
-                {application.requirements_must_have.map((req, index) => (
-                  <li key={index} className="text-sm">{req}</li>
+                {application.requirements_must_have.map((req) => (
+                  <li key={req} className="text-sm">{req}</li>
                 ))}
               </ul>
             </div>
@@ -309,8 +309,8 @@ export default function ApplicationDetail() {
                 Nice-to-Have Requirements
               </h3>
               <ul className="list-disc list-inside text-primary space-y-1">
-                {application.requirements_nice_to_have.map((req, index) => (
-                  <li key={index} className="text-sm">{req}</li>
+                {application.requirements_nice_to_have.map((req) => (
+                  <li key={req} className="text-sm">{req}</li>
                 ))}
               </ul>
             </div>
@@ -324,9 +324,9 @@ export default function ApplicationDetail() {
                 Skills
               </h3>
               <div className="flex flex-wrap gap-2">
-                {application.skills.map((skill, index) => (
+                {application.skills.map((skill) => (
                   <span
-                    key={index}
+                    key={skill}
                     className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-bg3 text-fg1"
                   >
                     {skill}

@@ -195,8 +195,8 @@ export default function ImportModal({ isOpen, onClose, onSuccess }: ImportModalP
 
               {validation.warnings.length > 0 && (
                 <div className="bg-yellow/20 border border-yellow text-yellow px-4 py-3 rounded mb-4 text-sm">
-                  {validation.warnings.map((w: string, i: number) => (
-                    <div key={i}>Warning: {w}</div>
+                  {validation.warnings.map((w: string) => (
+                    <div key={w}>Warning: {w}</div>
                   ))}
                 </div>
               )}
