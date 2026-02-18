@@ -6,11 +6,22 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.job_leads import _fetch_html, _get_ai_settings
+from app.api.streak import record_streak_activity
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.deps import get_current_user, get_current_user_flexible, get_current_user_by_api_token
-from app.api.streak import record_streak_activity
-from app.models import Application, ApplicationStatus, ApplicationStatusHistory, Round, User
+from app.core.deps import (
+    get_current_user,
+    get_current_user_by_api_token,
+    get_current_user_flexible,
+)
+from app.models import (
+    Application,
+    ApplicationStatus,
+    ApplicationStatusHistory,
+    Round,
+    User,
+)
 from app.schemas.application import (
     ApplicationCreate,
     ApplicationExtractRequest,
@@ -20,13 +31,12 @@ from app.schemas.application import (
     ApplicationUpdate,
 )
 from app.services.extraction import (
-    extract_job_data,
     ExtractionError,
-    ExtractionTimeoutError,
     ExtractionInvalidResponseError,
+    ExtractionTimeoutError,
     NoJobFoundError,
+    extract_job_data,
 )
-from app.api.job_leads import _fetch_html, _get_ai_settings
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
 
@@ -37,7 +47,9 @@ async def list_applications(
     per_page: int = Query(20, ge=1, le=100),
     status_id: str | None = None,
     search: str | None = None,
-    url: str | None = Query(None, description="Filter by exact job URL (used by extension)"),
+    url: str | None = Query(
+        None, description="Filter by exact job URL (used by extension)"
+    ),
     date_from: date | None = None,
     date_to: date | None = None,
     user: User = Depends(get_current_user_flexible),
@@ -91,7 +103,9 @@ async def list_applications(
     )
 
 
-@router.post("", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED
+)
 async def create_application(
     data: ApplicationCreate,
     user: User = Depends(get_current_user_flexible),
@@ -100,11 +114,16 @@ async def create_application(
     result = await db.execute(
         select(ApplicationStatus).where(
             ApplicationStatus.id == data.status_id,
-            or_(ApplicationStatus.user_id == user.id, ApplicationStatus.user_id.is_(None)),
+            or_(
+                ApplicationStatus.user_id == user.id,
+                ApplicationStatus.user_id.is_(None),
+            ),
         )
     )
     if not result.scalars().first():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status"
+        )
 
     application = Application(
         user_id=user.id,
@@ -127,7 +146,9 @@ async def create_application(
     return result.scalars().first()
 
 
-@router.post("/extract", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/extract", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED
+)
 async def create_application_from_url(
     data: ApplicationExtractRequest,
     user: User = Depends(get_current_user_by_api_token),
@@ -141,16 +162,24 @@ async def create_application_from_url(
     result = await db.execute(
         select(ApplicationStatus).where(
             ApplicationStatus.id == data.status_id,
-            or_(ApplicationStatus.user_id == user.id, ApplicationStatus.user_id.is_(None)),
+            or_(
+                ApplicationStatus.user_id == user.id,
+                ApplicationStatus.user_id.is_(None),
+            ),
         )
     )
     if not result.scalars().first():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status"
+        )
 
     # 2. Get content for extraction - prefer text from extension, fall back to fetching HTML
     import logging
+
     logger = logging.getLogger(__name__)
-    logger.info(f"Extract request - URL: {data.url}, has_text: {bool(data.text)}, text_length: {len(data.text) if data.text else 0}")
+    logger.info(
+        f"Extract request - URL: {data.url}, has_text: {bool(data.text)}, text_length: {len(data.text) if data.text else 0}"
+    )
 
     if data.text:
         html_content = None
@@ -160,7 +189,10 @@ async def create_application_from_url(
             html_content = await _fetch_html(data.url)
             text_content = None
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Failed to fetch URL: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to fetch URL: {str(e)}",
+            )
 
     # 3. Get AI settings and extract job data
     ai_model, ai_api_key, ai_api_base = await _get_ai_settings(db)
@@ -175,13 +207,21 @@ async def create_application_from_url(
             api_base=ai_api_base,
         )
     except ExtractionTimeoutError as e:
-        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=e.message)
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=e.message
+        )
     except ExtractionInvalidResponseError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.message)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.message
+        )
     except NoJobFoundError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.message)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.message
+        )
     except ExtractionError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message
+        )
 
     # 4. Create the application with all extracted data
     application = Application(
@@ -243,7 +283,9 @@ async def get_application(
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+        )
 
     return application
 
@@ -256,23 +298,31 @@ async def update_application(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Application)
-        .where(Application.id == application_id, Application.user_id == user.id)
+        select(Application).where(
+            Application.id == application_id, Application.user_id == user.id
+        )
     )
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+        )
 
     if data.status_id:
         result = await db.execute(
             select(ApplicationStatus).where(
                 ApplicationStatus.id == data.status_id,
-                or_(ApplicationStatus.user_id == user.id, ApplicationStatus.user_id.is_(None)),
+                or_(
+                    ApplicationStatus.user_id == user.id,
+                    ApplicationStatus.user_id.is_(None),
+                ),
             )
         )
         if not result.scalars().first():
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status"
+            )
 
     # Track status change if status_id is being updated
     old_status_id = application.status_id
@@ -312,13 +362,16 @@ async def delete_application(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Application)
-        .where(Application.id == application_id, Application.user_id == user.id)
+        select(Application).where(
+            Application.id == application_id, Application.user_id == user.id
+        )
     )
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+        )
 
     await db.delete(application)
     await db.commit()
@@ -332,13 +385,16 @@ async def upload_cv(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Application)
-        .where(Application.id == application_id, Application.user_id == user.id)
+        select(Application).where(
+            Application.id == application_id, Application.user_id == user.id
+        )
     )
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+        )
 
     allowed_types = [
         "application/pdf",
@@ -346,7 +402,10 @@ async def upload_cv(
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ]
     if file.content_type not in allowed_types:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be PDF or Word document")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be PDF or Word document",
+        )
 
     if application.cv_path and os.path.exists(application.cv_path):
         os.remove(application.cv_path)
@@ -385,13 +444,16 @@ async def delete_cv(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Application)
-        .where(Application.id == application_id, Application.user_id == user.id)
+        select(Application).where(
+            Application.id == application_id, Application.user_id == user.id
+        )
     )
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+        )
 
     if application.cv_path and os.path.exists(application.cv_path):
         os.remove(application.cv_path)
@@ -415,13 +477,16 @@ async def upload_cover_letter(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Application)
-        .where(Application.id == application_id, Application.user_id == user.id)
+        select(Application).where(
+            Application.id == application_id, Application.user_id == user.id
+        )
     )
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+        )
 
     allowed_types = [
         "application/pdf",
@@ -429,7 +494,10 @@ async def upload_cover_letter(
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ]
     if file.content_type not in allowed_types:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be PDF or Word document")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be PDF or Word document",
+        )
 
     if application.cover_letter_path and os.path.exists(application.cover_letter_path):
         os.remove(application.cover_letter_path)
@@ -468,13 +536,16 @@ async def delete_cover_letter(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Application)
-        .where(Application.id == application_id, Application.user_id == user.id)
+        select(Application).where(
+            Application.id == application_id, Application.user_id == user.id
+        )
     )
     application = result.scalars().first()
 
     if not application:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+        )
 
     if application.cover_letter_path and os.path.exists(application.cover_letter_path):
         os.remove(application.cover_letter_path)

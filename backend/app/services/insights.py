@@ -70,25 +70,25 @@ def build_analytics_prompt_data(
     return f"""Here is the user's job search analytics for the past {period}:
 
 PIPELINE OVERVIEW:
-- Total applications: {pipeline_data.get('total_applications', 0)}
-- Interviews: {pipeline_data.get('interviews', 0)}
-- Offers: {pipeline_data.get('offers', 0)}
-- Response rate: {pipeline_data.get('response_rate', 0):.1f}%
-- Interview rate: {pipeline_data.get('interview_rate', 0):.1f}%
-- Active applications: {pipeline_data.get('active_applications', 0)}
-- Stage breakdown: {pipeline_data.get('stage_breakdown', {})}
+- Total applications: {pipeline_data.get("total_applications", 0)}
+- Interviews: {pipeline_data.get("interviews", 0)}
+- Offers: {pipeline_data.get("offers", 0)}
+- Response rate: {pipeline_data.get("response_rate", 0):.1f}%
+- Interview rate: {pipeline_data.get("interview_rate", 0):.1f}%
+- Active applications: {pipeline_data.get("active_applications", 0)}
+- Stage breakdown: {pipeline_data.get("stage_breakdown", {})}
 
 INTERVIEW ANALYTICS:
-- Conversion rates by round: {interview_data.get('conversion_rates', {})}
-- Interview outcomes: {interview_data.get('outcomes', {})}
-- Average days between rounds: {interview_data.get('avg_days_between_rounds', {})}
-- Process speed indicators: {interview_data.get('speed_indicators', {})}
+- Conversion rates by round: {interview_data.get("conversion_rates", {})}
+- Interview outcomes: {interview_data.get("outcomes", {})}
+- Average days between rounds: {interview_data.get("avg_days_between_rounds", {})}
+- Process speed indicators: {interview_data.get("speed_indicators", {})}
 
 ACTIVITY TRACKING:
-- Weekly application counts: {activity_data.get('weekly_applications', [])}
-- Weekly interview counts: {activity_data.get('weekly_interviews', [])}
-- Activity patterns: {activity_data.get('patterns', {})}
-- Most active days: {activity_data.get('active_days', [])}
+- Weekly application counts: {activity_data.get("weekly_applications", [])}
+- Weekly interview counts: {activity_data.get("weekly_interviews", [])}
+- Activity patterns: {activity_data.get("patterns", {})}
+- Most active days: {activity_data.get("active_days", [])}
 
 Generate insights that help diagnose where to focus improvement efforts."""
 
@@ -104,7 +104,9 @@ def generate_insights(
     model, api_key, base_url = get_ai_config(db)
 
     if not api_key:
-        raise ValueError("AI not configured. Please configure AI settings in admin panel.")
+        raise ValueError(
+            "AI not configured. Please configure AI settings in admin panel."
+        )
 
     user_prompt = build_analytics_prompt_data(
         pipeline_data, interview_data, activity_data, period
@@ -139,15 +141,21 @@ def generate_insights(
 
         return GraceInsights(
             overall_grace=insights_json.get("overall_grace", ""),
-            pipeline_overview=SectionInsight(**_validate_section(
-                insights_json.get("pipeline_overview", {}), "pipeline_overview"
-            )),
-            interview_analytics=SectionInsight(**_validate_section(
-                insights_json.get("interview_analytics", {}), "interview_analytics"
-            )),
-            activity_tracking=SectionInsight(**_validate_section(
-                insights_json.get("activity_tracking", {}), "activity_tracking"
-            )),
+            pipeline_overview=SectionInsight(
+                **_validate_section(
+                    insights_json.get("pipeline_overview", {}), "pipeline_overview"
+                )
+            ),
+            interview_analytics=SectionInsight(
+                **_validate_section(
+                    insights_json.get("interview_analytics", {}), "interview_analytics"
+                )
+            ),
+            activity_tracking=SectionInsight(
+                **_validate_section(
+                    insights_json.get("activity_tracking", {}), "activity_tracking"
+                )
+            ),
         )
 
     except json.JSONDecodeError as e:

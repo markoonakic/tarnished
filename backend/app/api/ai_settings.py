@@ -15,9 +15,7 @@ router = APIRouter(prefix="/api/admin/ai-settings", tags=["ai-settings"])
 
 async def _get_setting(db: AsyncSession, key: str) -> str | None:
     """Get a setting value by key from the database."""
-    result = await db.execute(
-        select(SystemSettings).where(SystemSettings.key == key)
-    )
+    result = await db.execute(select(SystemSettings).where(SystemSettings.key == key))
     setting = result.scalars().first()
     return setting.value if setting else None
 
@@ -33,9 +31,7 @@ async def _upsert_setting(db: AsyncSession, key: str, value: str | None) -> None
         key: Setting key.
         value: Setting value, or None to delete.
     """
-    result = await db.execute(
-        select(SystemSettings).where(SystemSettings.key == key)
-    )
+    result = await db.execute(select(SystemSettings).where(SystemSettings.key == key))
     setting = result.scalars().first()
 
     if value is None:
@@ -116,7 +112,9 @@ async def update_ai_settings(
     # Store settings in database (upsert logic)
     await _upsert_setting(db, SystemSettings.KEY_LITELLM_MODEL, data.litellm_model)
     await _upsert_setting(db, SystemSettings.KEY_LITELLM_API_KEY, encrypted_api_key)
-    await _upsert_setting(db, SystemSettings.KEY_LITELLM_BASE_URL, data.litellm_base_url)
+    await _upsert_setting(
+        db, SystemSettings.KEY_LITELLM_BASE_URL, data.litellm_base_url
+    )
 
     # Commit the changes
     await db.commit()

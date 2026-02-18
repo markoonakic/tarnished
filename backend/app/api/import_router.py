@@ -4,23 +4,21 @@ This module handles the validation and import of user data from ZIP files
 containing JSON data and optional media files.
 """
 
-import aiofiles
 import asyncio
-import io
+import importlib
 import json
 import logging
 import os
-import tempfile
 import uuid
 import zipfile
+from collections.abc import Callable
 from datetime import datetime, timedelta
 
+import aiofiles
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
-from typing import Dict, Callable
 from sqlalchemy.ext.asyncio import AsyncSession
-from slowapi.errors import RateLimitExceeded
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
@@ -35,14 +33,14 @@ from app.models import (
     RoundType,
     User,
 )
-import importlib
-import_schemas = importlib.import_module('app.schemas.import')
+
+import_schemas = importlib.import_module("app.schemas.import")
 ImportDataSchema = import_schemas.ImportDataSchema
 ImportValidationResponse = import_schemas.ImportValidationResponse
 from app.api.utils.zip_utils import validate_zip_safety
-from app.services.import_service import ImportService
 from app.services.export_registry import default_registry
 from app.services.import_id_mapper import IDMapper
+from app.services.import_service import ImportService
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +49,7 @@ router = APIRouter(prefix="/api/import", tags=["import"])
 
 def conditional_rate_limit(limit_string: str):
     """Apply rate limiting only when enabled."""
+
     def decorator(func: Callable):
         # Check if rate limiting is disabled
         if os.environ.get("ENABLE_RATE_LIMITING", "true").lower() == "false":
@@ -58,16 +57,19 @@ def conditional_rate_limit(limit_string: str):
 
         # Otherwise apply the rate limit decorator
         return limiter.limit(limit_string)(func)
+
     return decorator
 
 
-async def log_import_event(db: AsyncSession, user_id: str, event: str, details: dict, request: Request):
+async def log_import_event(
+    db: AsyncSession, user_id: str, event: str, details: dict, request: Request
+):
     """Log import events for security audit."""
     log = AuditLog(
         user_id=user_id,
         event_type=f"import_{event}",
         details=json.dumps(details),
-        ip_address=request.client.host if request.client else None
+        ip_address=request.client.host if request.client else None,
     )
     db.add(log)
     await db.commit()
@@ -78,7 +80,7 @@ SSE_POLL_MAX_SECONDS = 300  # 5 minutes
 
 SECURE_TEMP_DIR = "/tmp/secure_imports"
 os.makedirs(SECURE_TEMP_DIR, mode=0o700, exist_ok=True)
-UPLOAD_DIR = os.getenv('UPLOAD_DIR', './uploads')
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./uploads")
 
 
 def create_secure_temp_file(original_filename: str) -> str:
@@ -93,7 +95,7 @@ def create_secure_temp_file(original_filename: str) -> str:
 def secure_delete(file_path: str):
     """Securely delete file by overwriting with random data."""
     try:
-        with open(file_path, 'wb') as f:
+        with open(file_path, "wb") as f:
             f.write(os.urandom(os.path.getsize(file_path)))
         os.remove(file_path)
     except Exception:
@@ -106,7 +108,7 @@ def secure_delete(file_path: str):
 class ImportProgress:
     """Track import progress for SSE streaming."""
 
-    _active_imports: Dict[str, dict] = {}
+    _active_imports: dict[str, dict] = {}
     MAX_AGE_MINUTES = 5
 
     @classmethod
@@ -114,7 +116,8 @@ class ImportProgress:
         """Remove entries older than MAX_AGE_MINUTES to prevent memory leaks."""
         cutoff = datetime.utcnow() - timedelta(minutes=cls.MAX_AGE_MINUTES)
         to_delete = [
-            import_id for import_id, data in cls._active_imports.items()
+            import_id
+            for import_id, data in cls._active_imports.items()
             if datetime.fromisoformat(data.get("created_at", "2000-01-01")) < cutoff
         ]
         for import_id in to_delete:
@@ -134,7 +137,7 @@ class ImportProgress:
             "stage": "initializing",
             "percent": 0,
             "message": "Starting import...",
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.utcnow().isoformat(),
         }
         cls._active_imports[import_id] = progress
         return progress
@@ -151,7 +154,9 @@ class ImportProgress:
                 "status": "complete",
                 "success": success,
                 "result": result or {},
-                "created_at": cls._active_imports[import_id].get("created_at", datetime.utcnow().isoformat())
+                "created_at": cls._active_imports[import_id].get(
+                    "created_at", datetime.utcnow().isoformat()
+                ),
             }
 
     @classmethod
@@ -166,13 +171,15 @@ class ImportProgress:
 
 from pathlib import Path
 
-async def ensure_status_exists(db: AsyncSession, user_id: str, status_name: str) -> ApplicationStatus:
+
+async def ensure_status_exists(
+    db: AsyncSession, user_id: str, status_name: str
+) -> ApplicationStatus:
     """Ensure a status exists, creating if necessary with defaults."""
     result = await db.execute(
         select(ApplicationStatus)
         .where(
-            (ApplicationStatus.user_id == user_id) |
-            (ApplicationStatus.user_id == None)
+            (ApplicationStatus.user_id == user_id) | (ApplicationStatus.user_id == None)
         )
         .where(ApplicationStatus.name == status_name)
     )
@@ -193,14 +200,13 @@ async def ensure_status_exists(db: AsyncSession, user_id: str, status_name: str)
     return status
 
 
-async def ensure_round_type_exists(db: AsyncSession, user_id: str, type_name: str) -> RoundType:
+async def ensure_round_type_exists(
+    db: AsyncSession, user_id: str, type_name: str
+) -> RoundType:
     """Ensure a round type exists, creating if necessary."""
     result = await db.execute(
         select(RoundType)
-        .where(
-            (RoundType.user_id == user_id) |
-            (RoundType.user_id == None)
-        )
+        .where((RoundType.user_id == user_id) | (RoundType.user_id == None))
         .where(RoundType.name == type_name)
     )
     round_type = result.scalar_one_or_none()
@@ -217,7 +223,7 @@ async def ensure_round_type_exists(db: AsyncSession, user_id: str, type_name: st
     return round_type
 
 
-def extract_files_from_zip(zip_path: str, user_id: str) -> Dict[str, str]:
+def extract_files_from_zip(zip_path: str, user_id: str) -> dict[str, str]:
     """Extract files from ZIP and return mapping of old paths to new paths."""
 
     user_upload_dir = Path(UPLOAD_DIR) / str(user_id)
@@ -225,9 +231,9 @@ def extract_files_from_zip(zip_path: str, user_id: str) -> Dict[str, str]:
 
     file_mapping = {}
 
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
         for file_info in zip_ref.filelist:
-            if file_info.filename.startswith('files/') and not file_info.is_dir():
+            if file_info.filename.startswith("files/") and not file_info.is_dir():
                 # Extract to user's upload directory
                 filename = Path(file_info.filename).name
                 dest_path = user_upload_dir / filename
@@ -255,10 +261,7 @@ def is_new_export_format(data: dict) -> bool:
 
 
 def _run_import_user_data(
-    sync_session,
-    export_data: dict,
-    user_id: str,
-    override: bool
+    sync_session, export_data: dict, user_id: str, override: bool
 ) -> dict:
     """Synchronous helper to run the import service."""
     id_mapper = IDMapper()
@@ -267,7 +270,7 @@ def _run_import_user_data(
         export_data=export_data,
         user_id=user_id,
         session=sync_session,
-        override=override
+        override=override,
     )
 
 
@@ -291,14 +294,16 @@ async def import_applications(
         progress_callback(
             stage="importing_applications",
             percent=percent,
-            message=f"Importing application {idx + 1}/{application_count}"
+            message=f"Importing application {idx + 1}/{application_count}",
         )
 
         # Get or create status
         status = await ensure_status_exists(db, user_id, app_data.status)
 
         # Parse dates - applied_at is stored as a date in the model
-        applied_at_dt = datetime.fromisoformat(app_data.applied_at.replace('Z', '+00:00'))
+        applied_at_dt = datetime.fromisoformat(
+            app_data.applied_at.replace("Z", "+00:00")
+        )
         applied_at = applied_at_dt.date()
 
         # Create application (generate new ID)
@@ -309,7 +314,9 @@ async def import_applications(
             job_description=app_data.job_description,
             job_url=app_data.job_url,
             status_id=status.id,
-            cv_path=file_mapping.get(f"files/applications/cv_{app_data.id}.pdf") if app_data.cv_path else None,
+            cv_path=file_mapping.get(f"files/applications/cv_{app_data.id}.pdf")
+            if app_data.cv_path
+            else None,
             applied_at=applied_at,
         )
         db.add(application)
@@ -319,10 +326,16 @@ async def import_applications(
 
         # Import status history
         for hist_data in app_data.status_history:
-            from_status = await ensure_status_exists(db, user_id, hist_data.from_status) if hist_data.from_status else None
+            from_status = (
+                await ensure_status_exists(db, user_id, hist_data.from_status)
+                if hist_data.from_status
+                else None
+            )
             to_status = await ensure_status_exists(db, user_id, hist_data.to_status)
 
-            changed_at = datetime.fromisoformat(hist_data.changed_at.replace('Z', '+00:00'))
+            changed_at = datetime.fromisoformat(
+                hist_data.changed_at.replace("Z", "+00:00")
+            )
 
             history = ApplicationStatusHistory(
                 application_id=application.id,
@@ -338,8 +351,16 @@ async def import_applications(
         for round_data in app_data.rounds:
             round_type = await ensure_round_type_exists(db, user_id, round_data.type)
 
-            scheduled_at = datetime.fromisoformat(round_data.scheduled_at.replace('Z', '+00:00')) if round_data.scheduled_at else None
-            completed_at = datetime.fromisoformat(round_data.completed_at.replace('Z', '+00:00')) if round_data.completed_at else None
+            scheduled_at = (
+                datetime.fromisoformat(round_data.scheduled_at.replace("Z", "+00:00"))
+                if round_data.scheduled_at
+                else None
+            )
+            completed_at = (
+                datetime.fromisoformat(round_data.completed_at.replace("Z", "+00:00"))
+                if round_data.completed_at
+                else None
+            )
 
             round = Round(
                 application_id=application.id,
@@ -355,7 +376,7 @@ async def import_applications(
 
             # Import media
             for media_data in round_data.media:
-                media_path = file_mapping.get(media_data.path or '')
+                media_path = file_mapping.get(media_data.path or "")
                 if media_path:
                     media = RoundMedia(
                         round_id=round.id,
@@ -384,9 +405,9 @@ async def validate_import(
     temp_path = None
     try:
         # Stream upload to disk
-        temp_path = create_secure_temp_file(file.filename or 'import.zip')
+        temp_path = create_secure_temp_file(file.filename or "import.zip")
 
-        async with aiofiles.open(temp_path, 'wb') as f:
+        async with aiofiles.open(temp_path, "wb") as f:
             while chunk := await file.read(UPLOAD_CHUNK_SIZE):
                 await f.write(chunk)
 
@@ -394,11 +415,13 @@ async def validate_import(
         zip_info = await validate_zip_safety(temp_path)
 
         # Extract and validate data.json
-        with zipfile.ZipFile(temp_path, 'r') as zip_ref:
+        with zipfile.ZipFile(temp_path, "r") as zip_ref:
             try:
-                data_json = zip_ref.read('data.json')
+                data_json = zip_ref.read("data.json")
             except KeyError:
-                raise HTTPException(status_code=400, detail="ZIP must contain data.json")
+                raise HTTPException(
+                    status_code=400, detail="ZIP must contain data.json"
+                )
 
             data = json.loads(data_json)
 
@@ -413,28 +436,30 @@ async def validate_import(
             {
                 "filename": file.filename,
                 "applications_count": len(validated_data.applications),
-                "rounds_count": sum(len(app.rounds) for app in validated_data.applications),
+                "rounds_count": sum(
+                    len(app.rounds) for app in validated_data.applications
+                ),
             },
-            request
+            request,
         )
 
         # Check for override warning
         result = await db.execute(
-            select(Application)
-            .where(Application.user_id == user.id)
+            select(Application).where(Application.user_id == user.id)
         )
         existing_count = len(result.scalars().all())
 
         warnings = []
         if existing_count > 0:
-            warnings.append(f"You have {existing_count} existing applications. Import will add to these unless you choose to override.")
+            warnings.append(
+                f"You have {existing_count} existing applications. Import will add to these unless you choose to override."
+            )
 
         # Check for missing statuses/round types
         existing_statuses = await db.execute(
-            select(ApplicationStatus.name)
-            .where(
-                (ApplicationStatus.user_id == user.id) |
-                (ApplicationStatus.user_id == None)
+            select(ApplicationStatus.name).where(
+                (ApplicationStatus.user_id == user.id)
+                | (ApplicationStatus.user_id == None)
             )
         )
         existing_status_names = {s[0] for s in existing_statuses.all()}
@@ -451,22 +476,26 @@ async def validate_import(
         missing_statuses = needed_statuses - existing_status_names
         if missing_statuses:
             status_list = list(missing_statuses)[:5]
-            status_str = ', '.join(status_list)
+            status_str = ", ".join(status_list)
             if len(missing_statuses) > 5:
-                status_str += '...'
-            warnings.append(f"Will create {len(missing_statuses)} new statuses: {status_str}")
+                status_str += "..."
+            warnings.append(
+                f"Will create {len(missing_statuses)} new statuses: {status_str}"
+            )
 
         return ImportValidationResponse(
             valid=True,
             summary={
                 "applications": len(validated_data.applications),
                 "rounds": sum(len(app.rounds) for app in validated_data.applications),
-                "status_history": sum(len(app.status_history) for app in validated_data.applications),
+                "status_history": sum(
+                    len(app.status_history) for app in validated_data.applications
+                ),
                 "custom_statuses": len(validated_data.custom_statuses),
                 "custom_round_types": len(validated_data.custom_round_types),
                 "files": zip_info["file_count"] - 1,  # -1 for data.json
             },
-            warnings=warnings
+            warnings=warnings,
         )
 
     except HTTPException:
@@ -481,13 +510,9 @@ async def validate_import(
                 "filename": file.filename,
                 "error": str(e),
             },
-            request
+            request,
         )
-        return ImportValidationResponse(
-            valid=False,
-            summary={},
-            errors=[str(e)]
-        )
+        return ImportValidationResponse(valid=False, summary={}, errors=[str(e)])
     finally:
         if temp_path and os.path.exists(temp_path):
             secure_delete(temp_path)
@@ -526,7 +551,7 @@ async def import_progress(import_id: str):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-        }
+        },
     )
 
 
@@ -553,36 +578,46 @@ async def import_data(
         ImportProgress.create(import_id)
 
         # Stage 1: Upload
-        ImportProgress.update(import_id, stage="uploading", percent=10, message="Uploading file...")
+        ImportProgress.update(
+            import_id, stage="uploading", percent=10, message="Uploading file..."
+        )
 
-        temp_path = create_secure_temp_file(file.filename or 'import.zip')
+        temp_path = create_secure_temp_file(file.filename or "import.zip")
 
-        async with aiofiles.open(temp_path, 'wb') as f:
+        async with aiofiles.open(temp_path, "wb") as f:
             while chunk := await file.read(UPLOAD_CHUNK_SIZE):
                 await f.write(chunk)
 
         # Stage 2: Validate
-        ImportProgress.update(import_id, stage="validating", percent=20, message="Validating ZIP file...")
+        ImportProgress.update(
+            import_id, stage="validating", percent=20, message="Validating ZIP file..."
+        )
 
-        zip_info = await validate_zip_safety(temp_path)
+        _zip_info = await validate_zip_safety(temp_path)
 
-        with zipfile.ZipFile(temp_path, 'r') as zip_ref:
-            data_json = zip_ref.read('data.json')
+        with zipfile.ZipFile(temp_path, "r") as zip_ref:
+            data_json = zip_ref.read("data.json")
             data = json.loads(data_json)
 
         # Stage 3: Extract files
-        ImportProgress.update(import_id, stage="extracting", percent=30, message="Extracting files...")
+        ImportProgress.update(
+            import_id, stage="extracting", percent=30, message="Extracting files..."
+        )
 
         file_mapping = extract_files_from_zip(temp_path, str(user.id))
 
         # Stage 4: Override if requested
         if override:
-            ImportProgress.update(import_id, stage="clearing", percent=40, message="Removing existing data...")
+            ImportProgress.update(
+                import_id,
+                stage="clearing",
+                percent=40,
+                message="Removing existing data...",
+            )
 
             # Delete existing applications (cascade will handle related data)
             result = await db.execute(
-                select(Application)
-                .where(Application.user_id == user.id)
+                select(Application).where(Application.user_id == user.id)
             )
             for app in result.scalars().all():
                 await db.delete(app)
@@ -590,16 +625,15 @@ async def import_data(
             await db.flush()
 
         # Stage 5: Import data
-        ImportProgress.update(import_id, stage="importing", percent=50, message="Importing data...")
+        ImportProgress.update(
+            import_id, stage="importing", percent=50, message="Importing data..."
+        )
 
         # Check if this is the new format or legacy format
         if is_new_export_format(data):
             # Use the new ImportService for v1.0 exports
             result = await db.run_sync(
-                _run_import_user_data,
-                data,
-                str(user.id),
-                override
+                _run_import_user_data, data, str(user.id), override
             )
 
             # Map result keys to expected format
@@ -653,7 +687,7 @@ async def import_data(
 
             # Import applications with progress callback
             def progress_update(**kwargs):
-                percent = 50 + int(kwargs.pop('percent', 0) * 0.4)  # 50-90%
+                percent = 50 + int(kwargs.pop("percent", 0) * 0.4)  # 50-90%
                 ImportProgress.update(import_id, percent=percent, **kwargs)
 
             import_result = await import_applications(
@@ -661,11 +695,13 @@ async def import_data(
                 str(user.id),
                 validated_data.applications,
                 file_mapping,
-                progress_update
+                progress_update,
             )
 
         # Stage 6: Complete
-        ImportProgress.update(import_id, stage="finalizing", percent=95, message="Finalizing...")
+        ImportProgress.update(
+            import_id, stage="finalizing", percent=95, message="Finalizing..."
+        )
 
         await db.commit()
 
@@ -683,15 +719,19 @@ async def import_data(
                 "status_history_imported": import_result.get("status_history", 0),
                 "files_imported": len(file_mapping),
             },
-            request
+            request,
         )
 
-        ImportProgress.complete(import_id, success=True, result={
-            "applications": import_result.get("applications", 0),
-            "rounds": import_result.get("rounds", 0),
-            "status_history": import_result.get("status_history", 0),
-            "files": len(file_mapping)
-        })
+        ImportProgress.complete(
+            import_id,
+            success=True,
+            result={
+                "applications": import_result.get("applications", 0),
+                "rounds": import_result.get("rounds", 0),
+                "status_history": import_result.get("status_history", 0),
+                "files": len(file_mapping),
+            },
+        )
 
         return {"import_id": import_id, "status": "processing"}
 
@@ -706,9 +746,11 @@ async def import_data(
                 "override": override,
                 "error": "Validation failed",
             },
-            request
+            request,
         )
-        ImportProgress.complete(import_id, success=False, result={"error": "Validation failed"})
+        ImportProgress.complete(
+            import_id, success=False, result={"error": "Validation failed"}
+        )
         raise
     except Exception as e:
         await db.rollback()
@@ -722,7 +764,7 @@ async def import_data(
                 "override": override,
                 "error": str(e),
             },
-            request
+            request,
         )
         ImportProgress.complete(import_id, success=False, result={"error": str(e)})
         raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")

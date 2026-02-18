@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
-from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
@@ -26,7 +26,7 @@ def get_default_preferences() -> dict:
     return {
         "show_streak_stats": True,
         "show_needs_attention": True,
-        "show_heatmap": True
+        "show_heatmap": True,
     }
 
 
@@ -38,7 +38,9 @@ async def get_preferences(user: User = Depends(get_current_user)):
 
     return UserPreferencesResponse(
         show_streak_stats=prefs.get("show_streak_stats", defaults["show_streak_stats"]),
-        show_needs_attention=prefs.get("show_needs_attention", defaults["show_needs_attention"]),
+        show_needs_attention=prefs.get(
+            "show_needs_attention", defaults["show_needs_attention"]
+        ),
         show_heatmap=prefs.get("show_heatmap", defaults["show_heatmap"]),
     )
 

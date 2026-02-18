@@ -11,28 +11,28 @@ from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from app.api.auth import router as auth_router
-from app.api.applications import router as applications_router
+from app.api.admin import router as admin_router
+from app.api.ai_settings import router as ai_settings_router
+from app.api.analytics import router as analytics_router
 from app.api.application_history import router as application_history_router
+from app.api.applications import router as applications_router
+from app.api.auth import router as auth_router
+from app.api.dashboard import router as dashboard_router
+from app.api.export import router as export_router
+from app.api.files import router as files_router
+from app.api.import_router import router as import_router
+from app.api.insights import router as insights_router
+from app.api.job_leads import router as job_leads_router
 from app.api.profile import router as profile_router
 from app.api.rounds import router as rounds_router
 from app.api.settings import router as settings_router
-from app.api.analytics import router as analytics_router
-from app.api.admin import router as admin_router
-from app.api.export import router as export_router
-from app.api.import_router import router as import_router
-from app.api.job_leads import router as job_leads_router
-from app.core.rate_limit import limiter
-from app.api.files import router as files_router
-from app.api.dashboard import router as dashboard_router
-from app.api.user_preferences import router as user_preferences_router
 from app.api.streak import router as streak_router
-from app.api.ai_settings import router as ai_settings_router
-from app.api.insights import router as insights_router
+from app.api.user_preferences import router as user_preferences_router
 from app.api.users import router as users_router
 from app.core.config import get_settings
 from app.core.database import async_session_maker
 from app.core.logging_config import setup_logging
+from app.core.rate_limit import limiter
 from app.core.seed import seed_defaults
 
 # Initialize structured logging
@@ -136,9 +136,12 @@ async def add_security_headers(request: Request, call_next):
     is_https = request.headers.get("x-forwarded-proto", "").lower() == "https"
     is_production = os.getenv("ENV", "development").lower() == "production"
     if is_https or is_production:
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
 
     return response
+
 
 app.include_router(auth_router)
 app.include_router(applications_router)

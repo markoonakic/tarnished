@@ -1,4 +1,5 @@
 """ID mapping for import operations."""
+
 from typing import Any
 
 
@@ -28,10 +29,7 @@ class IDMapper:
         return self._mappings.get(key)
 
     def remap_fk(
-        self,
-        data: dict[str, Any],
-        fk_field: str,
-        model_name: str
+        self, data: dict[str, Any], fk_field: str, model_name: str
     ) -> dict[str, Any]:
         """
         Remap a foreign key field in a data dictionary.

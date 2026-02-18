@@ -15,7 +15,14 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.security import decrypt_api_key
-from app.models import Application, ApplicationStatus, Round, RoundType, SystemSettings, User
+from app.models import (
+    Application,
+    ApplicationStatus,
+    Round,
+    RoundType,
+    SystemSettings,
+    User,
+)
 from app.schemas.insights import GraceInsights, InsightsRequest
 from app.services.insights import generate_insights
 
@@ -109,7 +116,9 @@ async def get_insights(
 ):
     """Generate AI-powered insights for analytics data."""
     try:
-        analytics = await _get_analytics_for_insights(db, current_user.id, request.period)
+        analytics = await _get_analytics_for_insights(
+            db, current_user.id, request.period
+        )
 
         # Run sync AI generation in thread pool to avoid blocking
         loop = asyncio.get_event_loop()
@@ -158,8 +167,7 @@ async def _get_analytics_for_insights(
     # --- Pipeline Overview Data ---
     # Total applications in period
     result = await db.execute(
-        select(func.count(Application.id))
-        .where(
+        select(func.count(Application.id)).where(
             Application.user_id == user_id,
             Application.applied_at >= start_date,
         )
@@ -201,10 +209,14 @@ async def _get_analytics_for_insights(
         )
     )
     responded = result.scalar() or 0
-    response_rate = (responded / total_applications * 100) if total_applications > 0 else 0
+    response_rate = (
+        (responded / total_applications * 100) if total_applications > 0 else 0
+    )
 
     # Interview rate
-    interview_rate = (interviews / total_applications * 100) if total_applications > 0 else 0
+    interview_rate = (
+        (interviews / total_applications * 100) if total_applications > 0 else 0
+    )
 
     # Active applications (not Rejected or Withdrawn)
     result = await db.execute(
@@ -281,7 +293,12 @@ async def _get_analytics_for_insights(
     outcomes = {}
     for row in outcome_rows:
         if row.round_type not in outcomes:
-            outcomes[row.round_type] = {"passed": 0, "failed": 0, "pending": 0, "withdrew": 0}
+            outcomes[row.round_type] = {
+                "passed": 0,
+                "failed": 0,
+                "pending": 0,
+                "withdrew": 0,
+            }
         outcome_val = (row.outcome or "pending").lower()
         if outcome_val == "passed":
             outcomes[row.round_type]["passed"] = row.count
@@ -321,14 +338,15 @@ async def _get_analytics_for_insights(
         timeline_dict[row.round_type].append(days_diff)
 
     for round_type, days_list in timeline_dict.items():
-        avg_days_between_rounds[round_type] = round(sum(days_list) / len(days_list), 1) if days_list else 0.0
+        avg_days_between_rounds[round_type] = (
+            round(sum(days_list) / len(days_list), 1) if days_list else 0.0
+        )
 
     # Speed indicators - average time from application to first interview
     # Use a subquery to get the minimum scheduled_at per application (avoids N+1 query)
     earliest_round_subq = (
         select(
-            Round.application_id,
-            func.min(Round.scheduled_at).label("first_scheduled")
+            Round.application_id, func.min(Round.scheduled_at).label("first_scheduled")
         )
         .where(Round.scheduled_at.isnot(None))
         .group_by(Round.application_id)
@@ -336,8 +354,14 @@ async def _get_analytics_for_insights(
     )
 
     result = await db.execute(
-        select(Application.id, Application.applied_at, earliest_round_subq.c.first_scheduled)
-        .join(earliest_round_subq, Application.id == earliest_round_subq.c.application_id)
+        select(
+            Application.id,
+            Application.applied_at,
+            earliest_round_subq.c.first_scheduled,
+        )
+        .join(
+            earliest_round_subq, Application.id == earliest_round_subq.c.application_id
+        )
         .where(
             Application.user_id == user_id,
             Application.applied_at >= start_date,
@@ -352,12 +376,20 @@ async def _get_analytics_for_insights(
             if days >= 0:  # Only count positive values
                 days_to_first_interview.append(days)
 
-    avg_days_to_first = round(sum(days_to_first_interview) / len(days_to_first_interview), 1) if days_to_first_interview else 0
+    avg_days_to_first = (
+        round(sum(days_to_first_interview) / len(days_to_first_interview), 1)
+        if days_to_first_interview
+        else 0
+    )
 
     speed_indicators = {
         "avg_days_to_first_interview": avg_days_to_first,
-        "fastest_response_days": min(days_to_first_interview) if days_to_first_interview else 0,
-        "slowest_response_days": max(days_to_first_interview) if days_to_first_interview else 0,
+        "fastest_response_days": min(days_to_first_interview)
+        if days_to_first_interview
+        else 0,
+        "slowest_response_days": max(days_to_first_interview)
+        if days_to_first_interview
+        else 0,
     }
 
     # --- Activity Tracking Data ---
@@ -426,7 +458,10 @@ async def _get_analytics_for_insights(
 
     # Activity patterns - which days are most active
     result = await db.execute(
-        select(func.strftime("%w", Application.applied_at).label("weekday"), func.count(Application.id).label("count"))
+        select(
+            func.strftime("%w", Application.applied_at).label("weekday"),
+            func.count(Application.id).label("count"),
+        )
         .where(
             Application.user_id == user_id,
             Application.applied_at >= start_date,
@@ -435,7 +470,15 @@ async def _get_analytics_for_insights(
     )
     weekday_rows = result.all()
 
-    weekday_names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    weekday_names = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+    ]
     weekday_counts = {}
     for row in weekday_rows:
         if row.weekday is not None:
@@ -447,12 +490,16 @@ async def _get_analytics_for_insights(
                 pass
 
     # Find most active day
-    most_active_day = max(weekday_counts, key=weekday_counts.get) if weekday_counts else None
+    most_active_day = (
+        max(weekday_counts, key=weekday_counts.get) if weekday_counts else None
+    )
 
     patterns = {
         "most_active_day": most_active_day,
         "weekday_distribution": weekday_counts,
-        "avg_applications_per_week": round(total_applications / weeks_count, 1) if weeks_count > 0 else 0,
+        "avg_applications_per_week": round(total_applications / weeks_count, 1)
+        if weeks_count > 0
+        else 0,
     }
 
     # Active days (days with at least one application)

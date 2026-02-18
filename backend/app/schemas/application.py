@@ -8,6 +8,7 @@ from app.schemas.round import RoundResponse
 
 class ApplicationExtractRequest(BaseModel):
     """Request to extract job data from URL and create an application."""
+
     url: str
     status_id: str
     applied_at: date | None = None
@@ -91,7 +92,9 @@ class ApplicationListItem(BaseModel):
     years_experience_max: int | None
     source: str | None
 
-    @field_validator('requirements_must_have', 'requirements_nice_to_have', 'skills', mode='before')
+    @field_validator(
+        "requirements_must_have", "requirements_nice_to_have", "skills", mode="before"
+    )
     @classmethod
     def convert_none_to_list(cls, v: Any) -> list[str]:
         """Convert None to empty list for database compatibility."""

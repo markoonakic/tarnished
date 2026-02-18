@@ -17,8 +17,12 @@ class WorkHistoryItem(BaseModel):
     company: str | None = Field(None, description="Company name")
     title: str | None = Field(None, description="Job title")
     start_date: str | None = Field(None, description="Start date of employment")
-    end_date: str | None = Field(None, description="End date of employment (or 'Present')")
-    description: str | None = Field(None, description="Job description or accomplishments")
+    end_date: str | None = Field(
+        None, description="End date of employment (or 'Present')"
+    )
+    description: str | None = Field(
+        None, description="Job description or accomplishments"
+    )
     location: str | None = Field(None, description="Work location")
 
 
@@ -29,7 +33,9 @@ class EducationItem(BaseModel):
     """
 
     institution: str | None = Field(None, description="School or institution name")
-    degree: str | None = Field(None, description="Degree type (e.g., 'Bachelor of Science')")
+    degree: str | None = Field(
+        None, description="Degree type (e.g., 'Bachelor of Science')"
+    )
     field_of_study: str | None = Field(None, description="Field of study or major")
     start_date: str | None = Field(None, description="Start date")
     end_date: str | None = Field(None, description="End date or expected graduation")
@@ -44,8 +50,12 @@ class UserProfileBase(BaseModel):
     last_name: str | None = Field(None, max_length=100, description="Last name")
     email: EmailStr | None = Field(None, description="Email address")
     phone: str | None = Field(None, max_length=50, description="Phone number")
-    location: str | None = Field(None, max_length=255, description="Location (city, state/country)")
-    linkedin_url: str | None = Field(None, max_length=512, description="LinkedIn profile URL")
+    location: str | None = Field(
+        None, max_length=255, description="Location (city, state/country)"
+    )
+    linkedin_url: str | None = Field(
+        None, max_length=512, description="LinkedIn profile URL"
+    )
 
     # User-level location fields
     city: str | None = Field(None, max_length=100, description="City")
@@ -95,9 +105,17 @@ class UserProfileBase(BaseModel):
         if v is None:
             return v
         # Remove common formatting characters and check if remaining chars are valid
-        cleaned = v.replace(" ", "").replace("-", "").replace("(", "").replace(")", "").replace("+", "")
+        cleaned = (
+            v.replace(" ", "")
+            .replace("-", "")
+            .replace("(", "")
+            .replace(")", "")
+            .replace("+", "")
+        )
         if not cleaned.isdigit():
-            raise ValueError("Phone number must contain only digits, spaces, hyphens, parentheses, and +")
+            raise ValueError(
+                "Phone number must contain only digits, spaces, hyphens, parentheses, and +"
+            )
         if len(cleaned) < 7:
             raise ValueError("Phone number is too short")
         if len(cleaned) > 15:

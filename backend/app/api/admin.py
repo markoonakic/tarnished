@@ -81,20 +81,25 @@ async def update_user(
     db: AsyncSession = Depends(get_db),
 ):
     if user_id == admin.id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot modify your own account")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot modify your own account",
+        )
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     update_data = data.model_dump(exclude_unset=True)
 
     # Handle password separately (needs hashing)
-    if 'password' in update_data and update_data['password']:
-        user.password_hash = get_password_hash(update_data['password'])
-        del update_data['password']  # Remove so setattr doesn't try to set it
+    if "password" in update_data and update_data["password"]:
+        user.password_hash = get_password_hash(update_data["password"])
+        del update_data["password"]  # Remove so setattr doesn't try to set it
 
     # Update other fields normally
     for key, value in update_data.items():
@@ -117,7 +122,9 @@ async def update_user(
     )
 
 
-@router.post("/users", response_model=AdminUserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/users", response_model=AdminUserResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_user(
     user_data: AdminUserCreate,
     admin: User = Depends(get_current_admin),
@@ -159,13 +166,18 @@ async def delete_user(
     db: AsyncSession = Depends(get_db),
 ):
     if user_id == admin.id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete your own account")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete your own account",
+        )
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     await db.delete(user)
     await db.commit()
@@ -184,7 +196,9 @@ async def get_stats(
 
     first_of_month = date.today().replace(day=1)
     month_apps = await db.execute(
-        select(func.count(Application.id)).where(Application.applied_at >= first_of_month)
+        select(func.count(Application.id)).where(
+            Application.applied_at >= first_of_month
+        )
     )
 
     return AdminStatsResponse(
@@ -236,7 +250,9 @@ async def update_default_status(
     status_obj = result.scalars().first()
 
     if not status_obj:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Default status not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Default status not found"
+        )
 
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
@@ -262,7 +278,9 @@ async def update_default_round_type(
     round_type = result.scalars().first()
 
     if not round_type:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Default round type not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Default round type not found"
+        )
 
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():

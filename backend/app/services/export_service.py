@@ -1,6 +1,8 @@
 """Export service using introspective serialization."""
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from typing import Any
+
 from sqlalchemy.orm import Session
 
 from app.services.export_registry import ExportRegistry
@@ -21,10 +23,7 @@ class ExportService:
         self.registry = registry
 
     def export_user_data(
-        self,
-        user_id: str,
-        session: Session,
-        include_media_paths: bool = True
+        self, user_id: str, session: Session, include_media_paths: bool = True
     ) -> dict[str, Any]:
         """
         Export all user data to a dictionary.
@@ -39,9 +38,9 @@ class ExportService:
         """
         result = {
             "export_version": self.EXPORT_VERSION,
-            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "exported_at": datetime.now(UTC).isoformat(),
             "user": {"id": user_id},
-            "models": {}
+            "models": {},
         }
 
         # Export each registered model in order
@@ -49,11 +48,7 @@ class ExportService:
             model_class = exportable_model.model_class
             model_name = model_class.__name__
 
-            records = self._get_user_records(
-                model_class,
-                user_id,
-                session
-            )
+            records = self._get_user_records(model_class, user_id, session)
 
             serialized = [
                 self._serialize_record(record, include_media_paths)
@@ -65,53 +60,55 @@ class ExportService:
         return result
 
     def _get_user_records(
-        self,
-        model_class: type,
-        user_id: str,
-        session: Session
+        self, model_class: type, user_id: str, session: Session
     ) -> list:
         """Get all records for a model belonging to a user."""
         from app.models import Application
 
         # Check if model has user_id column
-        if hasattr(model_class, 'user_id'):
-            return session.query(model_class).filter(
-                model_class.user_id == user_id
-            ).all()
+        if hasattr(model_class, "user_id"):
+            return (
+                session.query(model_class).filter(model_class.user_id == user_id).all()
+            )
 
         # For User model itself
-        if model_class.__name__ == 'User':
-            return session.query(model_class).filter(
-                model_class.id == user_id
-            ).all()
+        if model_class.__name__ == "User":
+            return session.query(model_class).filter(model_class.id == user_id).all()
 
         # For models without user_id (like UserProfile via relationship)
-        if hasattr(model_class, 'user'):
-            return session.query(model_class).join(
-                model_class.user
-            ).filter(model_class.user.id == user_id).all()
+        if hasattr(model_class, "user"):
+            return (
+                session.query(model_class)
+                .join(model_class.user)
+                .filter(model_class.user.id == user_id)
+                .all()
+            )
 
         # For models linked via Application (Round, ApplicationStatusHistory)
-        if hasattr(model_class, 'application'):
-            return session.query(model_class).join(
-                Application, model_class.application_id == Application.id
-            ).filter(Application.user_id == user_id).all()
+        if hasattr(model_class, "application"):
+            return (
+                session.query(model_class)
+                .join(Application, model_class.application_id == Application.id)
+                .filter(Application.user_id == user_id)
+                .all()
+            )
 
         # For models linked via Round -> Application (RoundMedia)
-        if hasattr(model_class, 'round') and not hasattr(model_class, 'application'):
+        if hasattr(model_class, "round") and not hasattr(model_class, "application"):
             from app.models import Round
-            return session.query(model_class).join(
-                Round, model_class.round_id == Round.id
-            ).join(
-                Application, Round.application_id == Application.id
-            ).filter(Application.user_id == user_id).all()
+
+            return (
+                session.query(model_class)
+                .join(Round, model_class.round_id == Round.id)
+                .join(Application, Round.application_id == Application.id)
+                .filter(Application.user_id == user_id)
+                .all()
+            )
 
         return []
 
     def _serialize_record(
-        self,
-        record: Any,
-        include_media_paths: bool
+        self, record: Any, include_media_paths: bool
     ) -> dict[str, Any]:
         """
         Serialize a single record with all its relationships.
@@ -125,9 +122,7 @@ class ExportService:
         """
         # Get base serialization with relationships
         data = serialize_model_instance(
-            record,
-            include_relationships=True,
-            relationship_prefix=""
+            record, include_relationships=True, relationship_prefix=""
         )
 
         # Store original ID for import remapping

@@ -1,9 +1,11 @@
 """Import service using introspective deserialization."""
-from datetime import datetime, date
+
+from datetime import date, datetime
 from typing import Any
-from sqlalchemy import inspect, DateTime, Date
-from sqlalchemy.orm import Session, Mapper
 from uuid import uuid4
+
+from sqlalchemy import Date, DateTime, inspect
+from sqlalchemy.orm import Mapper, Session
 
 from app.services.export_registry import ExportRegistry
 from app.services.import_id_mapper import IDMapper
@@ -62,7 +64,7 @@ class ImportService:
         export_data: dict[str, Any],
         user_id: str,
         session: Session,
-        override: bool = False
+        override: bool = False,
     ) -> dict[str, int]:
         """
         Import user data from export dictionary.
@@ -103,10 +105,7 @@ class ImportService:
 
             for record_data in records:
                 new_record = self._import_record(
-                    model_class,
-                    record_data,
-                    user_id,
-                    session
+                    model_class, record_data, user_id, session
                 )
                 if new_record:
                     imported += 1
@@ -151,8 +150,8 @@ class ImportService:
                 # Parse ISO format datetime string
                 try:
                     # Handle strings with Z suffix
-                    if value.endswith('Z'):
-                        value = value[:-1] + '+00:00'
+                    if value.endswith("Z"):
+                        value = value[:-1] + "+00:00"
                     return datetime.fromisoformat(value)
                 except ValueError:
                     pass
@@ -173,7 +172,7 @@ class ImportService:
         model_class: type,
         record_data: dict[str, Any],
         user_id: str,
-        session: Session
+        session: Session,
     ) -> Any:
         """
         Import a single record.
@@ -229,7 +228,7 @@ class ImportService:
         new_data["id"] = new_id
 
         # Set user_id if model has it
-        if 'user_id' in columns:
+        if "user_id" in columns:
             new_data["user_id"] = user_id
 
         # Create instance

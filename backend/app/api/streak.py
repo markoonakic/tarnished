@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,23 +59,84 @@ async def record_streak_activity(
 
     return {"message": "Activity recorded", "current_streak": user.current_streak}
 
+
 # 15 flame stages with art, name, min_days, max_days
 FLAME_STAGES = [
     {"stage": 1, "name": "First Ember", "min_days": 1, "max_days": 1, "art": "░░"},
-    {"stage": 2, "name": "Flickering Ember", "min_days": 2, "max_days": 2, "art": "░░░░"},
+    {
+        "stage": 2,
+        "name": "Flickering Ember",
+        "min_days": 2,
+        "max_days": 2,
+        "art": "░░░░",
+    },
     {"stage": 3, "name": "Glowing Ember", "min_days": 3, "max_days": 3, "art": "░██░"},
-    {"stage": 4, "name": "Awakening Spark", "min_days": 4, "max_days": 4, "art": "░░██░"},
+    {
+        "stage": 4,
+        "name": "Awakening Spark",
+        "min_days": 4,
+        "max_days": 4,
+        "art": "░░██░",
+    },
     {"stage": 5, "name": "Growing Spark", "min_days": 5, "max_days": 5, "art": "░███░"},
-    {"stage": 6, "name": "Bright Spark", "min_days": 6, "max_days": 6, "art": "░░███░░"},
+    {
+        "stage": 6,
+        "name": "Bright Spark",
+        "min_days": 6,
+        "max_days": 6,
+        "art": "░░███░░",
+    },
     {"stage": 7, "name": "Tiny Flame", "min_days": 7, "max_days": 7, "art": "░████░"},
     {"stage": 8, "name": "Small Flame", "min_days": 8, "max_days": 9, "art": "░█████░"},
-    {"stage": 9, "name": "Steady Flame", "min_days": 10, "max_days": 14, "art": "░██████░"},
-    {"stage": 10, "name": "Burning Flame", "min_days": 15, "max_days": 21, "art": "░████████░"},
-    {"stage": 11, "name": "Roaring Flame", "min_days": 22, "max_days": 30, "art": "░█████████░"},
-    {"stage": 12, "name": "Blaze", "min_days": 31, "max_days": 45, "art": "██████████░"},
-    {"stage": 13, "name": "Inferno", "min_days": 46, "max_days": 60, "art": "████████████"},
-    {"stage": 14, "name": "Supernova", "min_days": 61, "max_days": 90, "art": "████████████░"},
-    {"stage": 15, "name": "Legendary", "min_days": 91, "max_days": 99999, "art": "████████████████"},
+    {
+        "stage": 9,
+        "name": "Steady Flame",
+        "min_days": 10,
+        "max_days": 14,
+        "art": "░██████░",
+    },
+    {
+        "stage": 10,
+        "name": "Burning Flame",
+        "min_days": 15,
+        "max_days": 21,
+        "art": "░████████░",
+    },
+    {
+        "stage": 11,
+        "name": "Roaring Flame",
+        "min_days": 22,
+        "max_days": 30,
+        "art": "░█████████░",
+    },
+    {
+        "stage": 12,
+        "name": "Blaze",
+        "min_days": 31,
+        "max_days": 45,
+        "art": "██████████░",
+    },
+    {
+        "stage": 13,
+        "name": "Inferno",
+        "min_days": 46,
+        "max_days": 60,
+        "art": "████████████",
+    },
+    {
+        "stage": 14,
+        "name": "Supernova",
+        "min_days": 61,
+        "max_days": 90,
+        "art": "████████████░",
+    },
+    {
+        "stage": 15,
+        "name": "Legendary",
+        "min_days": 91,
+        "max_days": 99999,
+        "art": "████████████████",
+    },
 ]
 
 
@@ -123,7 +184,9 @@ async def get_streak(
         current_streak=user.current_streak,
         longest_streak=user.longest_streak,
         total_activity_days=user.total_activity_days,
-        last_activity_date=user.last_activity_date.isoformat() if user.last_activity_date else None,
+        last_activity_date=user.last_activity_date.isoformat()
+        if user.last_activity_date
+        else None,
         ember_active=ember_active,
         flame_stage=flame_stage["stage"],
         flame_name=flame_stage["name"],

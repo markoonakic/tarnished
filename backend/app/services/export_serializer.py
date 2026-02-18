@@ -3,7 +3,8 @@
 This module provides functions to serialize SQLAlchemy model instances
 to dictionaries using introspection, avoiding hardcoded field lists.
 """
-from datetime import datetime, date
+
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -48,7 +49,7 @@ def serialize_value(value: Any) -> Any:
 def serialize_model_instance(
     instance: Any,
     include_relationships: bool = False,
-    relationship_prefix: str = "__rel__"
+    relationship_prefix: str = "__rel__",
 ) -> dict[str, Any]:
     """
     Serialize a SQLAlchemy model instance to a dictionary.
@@ -91,8 +92,8 @@ def serialize_model_instance(
                 ]
             else:
                 # Many-to-one or one-to-one (single object)
-                result[f"{relationship_prefix}{rel_property.key}"] = serialize_model_instance(
-                    rel_value, include_relationships=False
+                result[f"{relationship_prefix}{rel_property.key}"] = (
+                    serialize_model_instance(rel_value, include_relationships=False)
                 )
 
     return result

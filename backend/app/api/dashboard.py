@@ -7,7 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models import Application, ApplicationStatus, User
-from app.schemas import DashboardKPIsResponse, NeedsAttentionResponse, NeedsAttentionItem
+from app.schemas import (
+    DashboardKPIsResponse,
+    NeedsAttentionItem,
+    NeedsAttentionResponse,
+)
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -30,8 +34,7 @@ async def get_dashboard_kpis(
 
     # Count applications in last 7 days
     result_last_7 = await db.execute(
-        select(func.count(Application.id))
-        .where(
+        select(func.count(Application.id)).where(
             Application.user_id == user.id,
             Application.applied_at >= last_7_days_start,
             Application.applied_at <= today,
@@ -41,8 +44,7 @@ async def get_dashboard_kpis(
 
     # Count applications in previous 7 days (for trend)
     result_prev_7 = await db.execute(
-        select(func.count(Application.id))
-        .where(
+        select(func.count(Application.id)).where(
             Application.user_id == user.id,
             Application.applied_at >= previous_7_days_start,
             Application.applied_at <= previous_7_days_end,
@@ -53,15 +55,15 @@ async def get_dashboard_kpis(
     # Calculate 7-day trend
     if previous_7_days_count > 0:
         last_7_days_trend = round(
-            ((last_7_days_count - previous_7_days_count) / previous_7_days_count) * 100, 1
+            ((last_7_days_count - previous_7_days_count) / previous_7_days_count) * 100,
+            1,
         )
     else:
         last_7_days_trend = 100.0 if last_7_days_count > 0 else 0.0
 
     # Count applications in last 30 days
     result_last_30 = await db.execute(
-        select(func.count(Application.id))
-        .where(
+        select(func.count(Application.id)).where(
             Application.user_id == user.id,
             Application.applied_at >= last_30_days_start,
             Application.applied_at <= today,
@@ -71,8 +73,7 @@ async def get_dashboard_kpis(
 
     # Count applications in previous 30 days (for trend)
     result_prev_30 = await db.execute(
-        select(func.count(Application.id))
-        .where(
+        select(func.count(Application.id)).where(
             Application.user_id == user.id,
             Application.applied_at >= previous_30_days_start,
             Application.applied_at <= previous_30_days_end,
@@ -83,7 +84,9 @@ async def get_dashboard_kpis(
     # Calculate 30-day trend
     if previous_30_days_count > 0:
         last_30_days_trend = round(
-            ((last_30_days_count - previous_30_days_count) / previous_30_days_count) * 100, 1
+            ((last_30_days_count - previous_30_days_count) / previous_30_days_count)
+            * 100,
+            1,
         )
     else:
         last_30_days_trend = 100.0 if last_30_days_count > 0 else 0.0

@@ -84,19 +84,17 @@ async def list_statuses(
 ):
     # Get user's custom statuses first
     user_result = await db.execute(
-        select(ApplicationStatus)
-        .where(ApplicationStatus.user_id == user.id)
+        select(ApplicationStatus).where(ApplicationStatus.user_id == user.id)
     )
     user_statuses = user_result.scalars().all()
     user_status_names = {s.name for s in user_statuses}
 
     # Get default statuses, excluding ones user has overridden
     default_result = await db.execute(
-        select(ApplicationStatus)
-        .where(
+        select(ApplicationStatus).where(
             and_(
                 ApplicationStatus.user_id.is_(None),
-                ApplicationStatus.name.not_in(user_status_names)
+                ApplicationStatus.name.not_in(user_status_names),
             )
         )
     )
@@ -108,7 +106,9 @@ async def list_statuses(
     return all_statuses
 
 
-@router.post("/statuses", response_model=StatusFullResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/statuses", response_model=StatusFullResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_status(
     data: StatusCreate,
     user: User = Depends(get_current_user),
@@ -117,7 +117,10 @@ async def create_status(
     result = await db.execute(
         select(ApplicationStatus.order)
         .where(
-            or_(ApplicationStatus.user_id == user.id, ApplicationStatus.user_id.is_(None))
+            or_(
+                ApplicationStatus.user_id == user.id,
+                ApplicationStatus.user_id.is_(None),
+            )
         )
         .order_by(ApplicationStatus.order.desc())
         .limit(1)
@@ -169,7 +172,9 @@ async def update_status(
 
     # Update user-owned status
     if status_obj.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to edit this status")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to edit this status"
+        )
 
     if data.name is not None:
         status_obj.name = data.name
@@ -200,7 +205,9 @@ async def delete_status(
         raise HTTPException(status_code=403, detail="Cannot delete default statuses")
 
     if status_obj.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to delete this status")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to delete this status"
+        )
 
     await db.delete(status_obj)
     await db.commit()
@@ -219,7 +226,11 @@ async def list_round_types(
     return result.scalars().all()
 
 
-@router.post("/round-types", response_model=RoundTypeFullResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/round-types",
+    response_model=RoundTypeFullResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_round_type(
     data: RoundTypeCreate,
     user: User = Depends(get_current_user),

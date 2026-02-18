@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -45,14 +43,12 @@ class APIKeyResponse(BaseModel):
     When regenerating, the full key is returned once.
     """
 
-    has_api_key: bool = Field(
-        description="Whether the user has an API key configured"
-    )
-    api_key_masked: Optional[str] = Field(
+    has_api_key: bool = Field(description="Whether the user has an API key configured")
+    api_key_masked: str | None = Field(
         default=None,
         description="Masked API key showing first 4 and last 4 characters (e.g., 'abcd...wxyz')",
     )
-    api_key_full: Optional[str] = Field(
+    api_key_full: str | None = Field(
         default=None,
         description="Full API key (only returned when regenerating, shown once)",
     )
@@ -63,6 +59,7 @@ class APIKeyResponse(BaseModel):
 
 class ThemeColors(BaseModel):
     """Resolved color values for extension consumption."""
+
     bg0: str
     bg1: str
     bg2: str
@@ -81,12 +78,14 @@ class ThemeColors(BaseModel):
 
 class UserSettings(BaseModel):
     """User theme and accent preferences."""
-    theme: Optional[str] = None
-    accent: Optional[str] = None
+
+    theme: str | None = None
+    accent: str | None = None
 
 
 class UserSettingsResponse(BaseModel):
     """Full settings response with resolved colors."""
+
     theme: str
     accent: str
     colors: ThemeColors
@@ -94,5 +93,6 @@ class UserSettingsResponse(BaseModel):
 
 class UserSettingsUpdate(BaseModel):
     """Payload for updating settings."""
-    theme: Optional[str] = None
-    accent: Optional[str] = None
+
+    theme: str | None = None
+    accent: str | None = None

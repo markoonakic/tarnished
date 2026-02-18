@@ -11,7 +11,6 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, field_validator
 
-
 # Job Lead Status Enum (as Literal for type safety)
 JobLeadStatus = Annotated[str, Field(pattern="^(pending|extracted|failed)$")]
 

@@ -43,3 +43,42 @@ asyncio_mode = "auto"
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.1",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+src = ["app"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # function call in argument defaults (FastAPI Depends pattern)
+    "E712",   # == True comparisons (SQLAlchemy requires this in queries)
+    "E711",   # == None comparisons (SQLAlchemy requires this in queries)
+    "E402",   # module level import not at top (conditional imports)
+    "B904",   # raise ... from (verbose for HTTPException conversions)
+    "UP035",  # typing.List deprecated (cosmetic)
+    "UP042",  # StrEnum (cosmetic, Python 3.11+)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

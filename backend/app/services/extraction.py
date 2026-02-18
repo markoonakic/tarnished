@@ -30,9 +30,9 @@ import logging
 from typing import Any
 
 import openai
+from litellm import completion
 from markdownify import markdownify as md
 from readability import Document
-from litellm import completion
 
 from app.schemas.job_lead import JobLeadExtractionInput
 
@@ -366,7 +366,7 @@ Job Posting Content:
 
     # Allow one retry for invalid JSON responses
     max_attempts = 2
-    last_parse_error: tuple[str, str] | None = None  # (error_message, raw_response)
+    _last_parse_error: tuple[str, str] | None = None  # (error_message, raw_response)
 
     for attempt in range(max_attempts):
         try:
@@ -382,14 +382,16 @@ Job Posting Content:
                     details={"model": extraction_model, "url": url},
                 )
 
-            logger.debug(f"Raw LLM response (attempt {attempt + 1}): {raw_content[:500]}...")
+            logger.debug(
+                f"Raw LLM response (attempt {attempt + 1}): {raw_content[:500]}..."
+            )
 
             # Parse the JSON response
             try:
                 parsed_data = json.loads(raw_content)
             except json.JSONDecodeError as e:
                 # Store error for potential retry
-                last_parse_error = (str(e), raw_content)
+                _last_parse_error = (str(e), raw_content)
                 if attempt < max_attempts - 1:
                     # Retry with correction prompt
                     logger.warning(
@@ -425,7 +427,7 @@ Job Posting Content:
                 job_data = JobLeadExtractionInput(**parsed_data)
             except Exception as e:
                 # Store error for potential retry
-                last_parse_error = (str(e), raw_content)
+                _last_parse_error = (str(e), raw_content)
                 if attempt < max_attempts - 1:
                     # Retry with correction prompt for schema validation errors
                     logger.warning(
@@ -500,7 +502,11 @@ Job Posting Content:
                 },
             ) from e
 
-        except (ExtractionTimeoutError, ExtractionInvalidResponseError, NoJobFoundError):
+        except (
+            ExtractionTimeoutError,
+            ExtractionInvalidResponseError,
+            NoJobFoundError,
+        ):
             # Re-raise our custom exceptions
             raise
 

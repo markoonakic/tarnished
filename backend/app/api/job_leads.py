@@ -20,7 +20,11 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, get_current_user_by_api_token, get_current_user_flexible
+from app.core.deps import (
+    get_current_user,
+    get_current_user_by_api_token,
+    get_current_user_flexible,
+)
 from app.core.security import decrypt_api_key
 from app.models import SystemSettings, User
 from app.models.application import Application
@@ -30,15 +34,14 @@ from app.schemas.application import ApplicationListItem
 from app.schemas.job_lead import (
     JobLeadCreate,
     JobLeadListResponse,
-    JobLeadListItem,
     JobLeadResponse,
 )
 from app.services.extraction import (
-    extract_job_data,
     ExtractionError,
-    ExtractionTimeoutError,
     ExtractionInvalidResponseError,
+    ExtractionTimeoutError,
     NoJobFoundError,
+    extract_job_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,7 +54,9 @@ HTTP_MAX_REDIRECTS = 5
 HTTP_USER_AGENT = "Mozilla/5.0 (compatible; TarnishedBot/1.0)"
 
 
-async def _get_ai_settings(db: AsyncSession) -> tuple[str | None, str | None, str | None]:
+async def _get_ai_settings(
+    db: AsyncSession,
+) -> tuple[str | None, str | None, str | None]:
     """Get AI settings from the database.
 
     Returns:
@@ -60,11 +65,13 @@ async def _get_ai_settings(db: AsyncSession) -> tuple[str | None, str | None, st
     # Fetch all AI settings in one query
     result = await db.execute(
         select(SystemSettings).where(
-            SystemSettings.key.in_([
-                SystemSettings.KEY_LITELLM_MODEL,
-                SystemSettings.KEY_LITELLM_API_KEY,
-                SystemSettings.KEY_LITELLM_BASE_URL,
-            ])
+            SystemSettings.key.in_(
+                [
+                    SystemSettings.KEY_LITELLM_MODEL,
+                    SystemSettings.KEY_LITELLM_API_KEY,
+                    SystemSettings.KEY_LITELLM_BASE_URL,
+                ]
+            )
         )
     )
     settings = {s.key: s.value for s in result.scalars().all()}
@@ -210,7 +217,9 @@ async def create_job_lead(
     )
     existing = result.scalars().first()
     if existing:
-        logger.info(f"Duplicate job lead URL detected: {url} (existing ID: {existing.id})")
+        logger.info(
+            f"Duplicate job lead URL detected: {url} (existing ID: {existing.id})"
+        )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"A job lead already exists for this URL. ID: {existing.id}",
@@ -347,7 +356,9 @@ async def _fetch_html(url: str) -> str:
             status_code = e.response.status_code
             logger.warning(f"HTTP error {status_code} for URL: {url}")
             if status_code == 404:
-                detail = "The job posting was not found (404). It may have been removed."
+                detail = (
+                    "The job posting was not found (404). It may have been removed."
+                )
             elif status_code == 403:
                 detail = "Access to the job posting was denied (403). The page may require authentication."
             elif status_code >= 500:
@@ -367,7 +378,10 @@ async def _fetch_html(url: str) -> str:
 
         # Validate content type
         content_type = response.headers.get("content-type", "")
-        if "text/html" not in content_type and "application/xhtml+xml" not in content_type:
+        if (
+            "text/html" not in content_type
+            and "application/xhtml+xml" not in content_type
+        ):
             logger.warning(f"Non-HTML content type for URL {url}: {content_type}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -427,7 +441,9 @@ async def retry_job_lead_extraction(
             detail="Job lead must have status 'failed' to retry",
         )
 
-    logger.info(f"Retrying extraction for job lead {job_lead_id}: {job_lead.title or 'Untitled'}")
+    logger.info(
+        f"Retrying extraction for job lead {job_lead_id}: {job_lead.title or 'Untitled'}"
+    )
 
     try:
         # Step 3: Re-fetch HTML content from the URL
@@ -446,12 +462,16 @@ async def retry_job_lead_extraction(
                 api_key=ai_api_key,
                 api_base=ai_api_base,
             )
-            logger.info(f"Successfully re-extracted job: {extracted.title} at {extracted.company}")
+            logger.info(
+                f"Successfully re-extracted job: {extracted.title} at {extracted.company}"
+            )
         except ExtractionTimeoutError as e:
             logger.error(f"Extraction timeout for {job_lead.url}: {e.message}")
             # Update job lead status to failed with error
             job_lead.status = "failed"
-            job_lead.error_message = "Job data extraction timed out. Please try again later."
+            job_lead.error_message = (
+                "Job data extraction timed out. Please try again later."
+            )
             await db.commit()
             raise HTTPException(
                 status_code=status.HTTP_504_GATEWAY_TIMEOUT,
@@ -574,7 +594,11 @@ async def delete_job_lead(
     await db.commit()
 
 
-@router.post("/{job_lead_id}/convert", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{job_lead_id}/convert",
+    response_model=ApplicationListItem,
+    status_code=status.HTTP_201_CREATED,
+)
 async def convert_job_lead_to_application(
     job_lead_id: str,
     user: User = Depends(get_current_user_flexible),
@@ -629,10 +653,13 @@ async def convert_job_lead_to_application(
             detail="Job lead has already been converted to an application",
         )
 
-    logger.info(f"Converting job lead {job_lead_id} to application: {job_lead.title} at {job_lead.company}")
+    logger.info(
+        f"Converting job lead {job_lead_id} to application: {job_lead.title} at {job_lead.company}"
+    )
 
     # Step 3: Get the user's default status (or first user status, or first default status)
     from sqlalchemy import or_
+
     status_result = await db.execute(
         select(ApplicationStatus)
         .where(
@@ -641,7 +668,9 @@ async def convert_job_lead_to_application(
                 ApplicationStatus.user_id.is_(None),
             )
         )
-        .order_by(ApplicationStatus.user_id.desc().nulls_last(), ApplicationStatus.order)
+        .order_by(
+            ApplicationStatus.user_id.desc().nulls_last(), ApplicationStatus.order
+        )
         .limit(1)
     )
     default_status = status_result.scalars().first()
@@ -691,6 +720,7 @@ async def convert_job_lead_to_application(
 
     # Eagerly load the status relationship before returning
     from sqlalchemy.orm import selectinload
+
     result = await db.execute(
         select(Application)
         .options(selectinload(Application.status))

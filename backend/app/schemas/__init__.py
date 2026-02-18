@@ -1,64 +1,62 @@
 from datetime import datetime
 
-from app.schemas.streak import StreakResponse
-from app.schemas.auth import Token, TokenRefresh, UserCreate, UserLogin, UserResponse
+from pydantic import BaseModel
+
+from app.schemas.admin import (
+    AdminRoundTypeUpdate,
+    AdminStatsResponse,
+    AdminStatusUpdate,
+    AdminUserResponse,
+    AdminUserUpdate,
+)
+from app.schemas.ai_settings import (
+    AISettingsResponse,
+    AISettingsUpdate,
+)
+from app.schemas.analytics import (
+    HeatmapData,
+    HeatmapDay,
+    SankeyData,
+    SankeyLink,
+    SankeyNode,
+)
 from app.schemas.application import (
     ApplicationCreate,
-    ApplicationUpdate,
-    ApplicationResponse,
     ApplicationListResponse,
+    ApplicationResponse,
+    ApplicationUpdate,
     StatusResponse,
+)
+from app.schemas.auth import Token, TokenRefresh, UserCreate, UserLogin, UserResponse
+from app.schemas.job_lead import (
+    JobLeadCreate,
+    JobLeadExtractionInput,
+    JobLeadListItem,
+    JobLeadListResponse,
+    JobLeadResponse,
+    JobLeadStatus,
 )
 from app.schemas.round import (
     RoundCreate,
-    RoundUpdate,
+    RoundMediaResponse,
     RoundResponse,
     RoundTypeResponse,
-    RoundMediaResponse,
+    RoundUpdate,
 )
 from app.schemas.settings import (
-    StatusCreate,
-    StatusFullResponse,
     RoundTypeCreate,
     RoundTypeFullResponse,
+    StatusCreate,
+    StatusFullResponse,
 )
-from app.schemas.analytics import (
-    SankeyData,
-    SankeyNode,
-    SankeyLink,
-    HeatmapData,
-    HeatmapDay,
-)
-from app.schemas.admin import (
-    AdminUserResponse,
-    AdminUserUpdate,
-    AdminStatsResponse,
-    AdminStatusUpdate,
-    AdminRoundTypeUpdate,
-)
-from app.schemas.job_lead import (
-    JobLeadCreate,
-    JobLeadResponse,
-    JobLeadListItem,
-    JobLeadListResponse,
-    JobLeadExtractionInput,
-    JobLeadStatus,
-)
+from app.schemas.streak import StreakResponse
 from app.schemas.user_profile import (
-    UserProfileCreate,
-    UserProfileUpdate,
-    UserProfileResponse,
-    WorkHistoryItem,
     EducationItem,
+    UserProfileCreate,
+    UserProfileResponse,
+    UserProfileUpdate,
+    WorkHistoryItem,
 )
-from app.schemas.ai_settings import (
-    AISettingsUpdate,
-    AISettingsResponse,
-)
-
-from typing import List
-
-from pydantic import BaseModel
 
 
 class DashboardKPIsResponse(BaseModel):
@@ -77,9 +75,9 @@ class NeedsAttentionItem(BaseModel):
 
 
 class NeedsAttentionResponse(BaseModel):
-    follow_ups: List[NeedsAttentionItem]
-    no_responses: List[NeedsAttentionItem]
-    interviewing: List[NeedsAttentionItem]
+    follow_ups: list[NeedsAttentionItem]
+    no_responses: list[NeedsAttentionItem]
+    interviewing: list[NeedsAttentionItem]
 
 
 class ApplicationStatusHistoryResponse(BaseModel):

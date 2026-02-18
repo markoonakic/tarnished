@@ -6,7 +6,6 @@ Uses a key-value pattern for flexibility.
 
 import uuid
 from datetime import datetime
-from typing import Any
 
 from sqlalchemy import DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -19,11 +18,17 @@ class SystemSettings(Base):
 
     __tablename__ = "system_settings"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    key: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    key: Mapped[str] = mapped_column(
+        String(100), unique=True, index=True, nullable=False
+    )
     value: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     # Known setting keys
     KEY_LITELLM_MODEL = "litellm_model"

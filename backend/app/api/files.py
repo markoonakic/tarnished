@@ -221,8 +221,9 @@ async def get_signed_url(
         raise HTTPException(status_code=400, detail="Invalid document type")
 
     result = await db.execute(
-        select(Application)
-        .where(Application.id == application_id, Application.user_id == user.id)
+        select(Application).where(
+            Application.id == application_id, Application.user_id == user.id
+        )
     )
     application = result.scalars().first()
 
@@ -273,8 +274,9 @@ async def get_file(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     result = await db.execute(
-        select(Application)
-        .where(Application.id == application_id, Application.user_id == user_id)
+        select(Application).where(
+            Application.id == application_id, Application.user_id == user_id
+        )
     )
     application = result.scalars().first()
 

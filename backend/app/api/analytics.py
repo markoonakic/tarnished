@@ -1,12 +1,19 @@
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, select, or_, case
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import Application, ApplicationStatus, ApplicationStatusHistory, Round, RoundType, User
+from app.models import (
+    Application,
+    ApplicationStatus,
+    ApplicationStatusHistory,
+    Round,
+    RoundType,
+    User,
+)
 from app.schemas.analytics import (
     AnalyticsKPIsResponse,
     CandidateProgress,
@@ -48,17 +55,21 @@ async def get_sankey_data(
             ApplicationStatusHistory.application_id,
             ApplicationStatusHistory.from_status_id,
             ApplicationStatusHistory.to_status_id,
-            from_status.name.label('from_status_name'),
-            from_status.color.label('from_status_color'),
-            to_status.name.label('to_status_name'),
-            to_status.color.label('to_status_color'),
+            from_status.name.label("from_status_name"),
+            from_status.color.label("from_status_color"),
+            to_status.name.label("to_status_name"),
+            to_status.color.label("to_status_color"),
         )
         .select_from(ApplicationStatusHistory)
         .join(Application, ApplicationStatusHistory.application_id == Application.id)
         .join(to_status, ApplicationStatusHistory.to_status_id == to_status.id)
-        .outerjoin(from_status, ApplicationStatusHistory.from_status_id == from_status.id)
+        .outerjoin(
+            from_status, ApplicationStatusHistory.from_status_id == from_status.id
+        )
         .where(Application.user_id == user.id)
-        .order_by(ApplicationStatusHistory.application_id, ApplicationStatusHistory.changed_at)
+        .order_by(
+            ApplicationStatusHistory.application_id, ApplicationStatusHistory.changed_at
+        )
     )
     all_transitions = result.all()
 
@@ -71,32 +82,38 @@ async def get_sankey_data(
 
     app_transitions = defaultdict(list)
     for transition in all_transitions:
-        app_transitions[transition.application_id].append({
-            'from_status': transition.from_status_name,
-            'to_status': transition.to_status_name,
-            'to_color': transition.to_status_color,
-        })
+        app_transitions[transition.application_id].append(
+            {
+                "from_status": transition.from_status_name,
+                "to_status": transition.to_status_name,
+                "to_color": transition.to_status_color,
+            }
+        )
 
     # Terminal statuses that get stage-specific nodes
     TERMINAL_STATUSES = {"Rejected", "Withdrawn"}
 
     # Collect all unique statuses and track transitions to terminal statuses
     seen_statuses = set()
-    terminal_transitions = defaultdict(set)  # {terminal_status: {from_status1, from_status2, ...}}
+    terminal_transitions = defaultdict(
+        set
+    )  # {terminal_status: {from_status1, from_status2, ...}}
 
     for transitions in app_transitions.values():
         for t in transitions:
-            if t['from_status']:
-                seen_statuses.add(t['from_status'])
-            seen_statuses.add(t['to_status'])
+            if t["from_status"]:
+                seen_statuses.add(t["from_status"])
+            seen_statuses.add(t["to_status"])
 
             # Track which stages lead to terminal statuses
-            if t['to_status'] in TERMINAL_STATUSES and t['from_status']:
-                terminal_transitions[t['to_status']].add(t['from_status'])
+            if t["to_status"] in TERMINAL_STATUSES and t["from_status"]:
+                terminal_transitions[t["to_status"]].add(t["from_status"])
 
     # Build nodes: start with Applications source, then each unique status
     # Note: Frontend handles actual colors using theme-aware mapping
-    nodes = [SankeyNode(id="applications", name="Applications", color="#8ec07c")]  # Placeholder, frontend uses theme
+    nodes = [
+        SankeyNode(id="applications", name="Applications", color="#8ec07c")
+    ]  # Placeholder, frontend uses theme
     status_name_to_node_id = {}
     status_name_to_color = {}
 
@@ -104,8 +121,8 @@ async def get_sankey_data(
         # Find the color for this status
         for transitions in app_transitions.values():
             for t in transitions:
-                if t['to_status'] == status_name:
-                    status_name_to_color[status_name] = t['to_color']
+                if t["to_status"] == status_name:
+                    status_name_to_color[status_name] = t["to_color"]
                     break
             if status_name in status_name_to_color:
                 break
@@ -116,55 +133,67 @@ async def get_sankey_data(
             for from_stage in sorted(terminal_transitions[status_name]):
                 node_id = f"terminal_{status_name.lower()}_{from_stage.lower().replace(' ', '_').replace('/', '_')}"
                 status_name_to_node_id[(from_stage, status_name)] = node_id
-                nodes.append(SankeyNode(
-                    id=node_id,
-                    name=status_name,  # Label is just "Rejected" or "Withdrawn"
-                    color=status_name_to_color.get(status_name, "#8ec07c")  # Fallback, frontend uses theme
-                ))
+                nodes.append(
+                    SankeyNode(
+                        id=node_id,
+                        name=status_name,  # Label is just "Rejected" or "Withdrawn"
+                        color=status_name_to_color.get(
+                            status_name, "#8ec07c"
+                        ),  # Fallback, frontend uses theme
+                    )
+                )
         else:
             # Non-terminal statuses get single node
-            node_id = f"status_{status_name.lower().replace(' ', '_').replace('/', '_')}"
+            node_id = (
+                f"status_{status_name.lower().replace(' ', '_').replace('/', '_')}"
+            )
             status_name_to_node_id[status_name] = node_id
-            nodes.append(SankeyNode(
-                id=node_id,
-                name=status_name,
-                color=status_name_to_color.get(status_name, "#8ec07c")  # Fallback, frontend uses theme
-            ))
+            nodes.append(
+                SankeyNode(
+                    id=node_id,
+                    name=status_name,
+                    color=status_name_to_color.get(
+                        status_name, "#8ec07c"
+                    ),  # Fallback, frontend uses theme
+                )
+            )
 
     # Count how many applications took each path segment
     # Prevent cycles by tracking visited statuses per application
     link_counts = {}  # {(source_id, target_id): count}
 
-    for app_id, transitions in app_transitions.items():
+    for _app_id, transitions in app_transitions.items():
         visited_statuses = set()  # Track statuses visited in this application's journey
 
         for i, t in enumerate(transitions):
             # Determine source node
-            if i == 0 or t['from_status'] is None:
+            if i == 0 or t["from_status"] is None:
                 # First transition comes from "Applications" node
                 source_id = "applications"
             else:
-                source_id = status_name_to_node_id.get(t['from_status'])
+                source_id = status_name_to_node_id.get(t["from_status"])
                 if not source_id:
                     # Status not in our tracked statuses, skip
                     continue
 
             # Determine target node - use stage-specific for terminal statuses
-            if t['to_status'] in TERMINAL_STATUSES and t['from_status']:
+            if t["to_status"] in TERMINAL_STATUSES and t["from_status"]:
                 # Use (from_stage, to_status) tuple key for terminal statuses
-                target_id = status_name_to_node_id.get((t['from_status'], t['to_status']))
+                target_id = status_name_to_node_id.get(
+                    (t["from_status"], t["to_status"])
+                )
             else:
-                target_id = status_name_to_node_id.get(t['to_status'])
+                target_id = status_name_to_node_id.get(t["to_status"])
 
             if not target_id:
                 continue
 
             # Prevent cycles: don't link back to already visited statuses
-            if t['to_status'] in visited_statuses:
+            if t["to_status"] in visited_statuses:
                 continue
 
             # Mark this status as visited
-            visited_statuses.add(t['to_status'])
+            visited_statuses.add(t["to_status"])
 
             link_key = (source_id, target_id)
             link_counts[link_key] = link_counts.get(link_key, 0) + 1
@@ -244,8 +273,7 @@ async def get_analytics_kpis(
 
     # Total applications in period
     result = await db.execute(
-        select(func.count(Application.id))
-        .where(
+        select(func.count(Application.id)).where(
             Application.user_id == user.id,
             Application.applied_at >= start_date,
         )
@@ -293,7 +321,9 @@ async def get_analytics_kpis(
         )
     )
     responded = result.scalar() or 0
-    response_rate = (responded / total_applications * 100) if total_applications > 0 else 0
+    response_rate = (
+        (responded / total_applications * 100) if total_applications > 0 else 0
+    )
 
     # Active opportunities: not Rejected or Withdrawn
     result = await db.execute(
@@ -451,9 +481,9 @@ async def get_interview_rounds_analytics(
     # Funnel Data Query: Aggregate rounds by round type
     funnel_result = await db.execute(
         select(
-            RoundType.name.label('round_type'),
-            func.count(Round.id).label('total'),
-            func.sum(case((Round.outcome == "Passed", 1), else_=0)).label('passed'),
+            RoundType.name.label("round_type"),
+            func.count(Round.id).label("total"),
+            func.sum(case((Round.outcome == "Passed", 1), else_=0)).label("passed"),
         )
         .select_from(Round)
         .join(RoundType, Round.round_type_id == RoundType.id)
@@ -469,7 +499,9 @@ async def get_interview_rounds_analytics(
             round=row.round_type,
             count=row.total,
             passed=row.passed or 0,
-            conversion_rate=round((row.passed / row.total * 100) if row.total > 0 else 0, 1),
+            conversion_rate=round(
+                (row.passed / row.total * 100) if row.total > 0 else 0, 1
+            ),
         )
         for row in funnel_rows
     ]
@@ -477,9 +509,9 @@ async def get_interview_rounds_analytics(
     # Outcome Data Query: Count outcomes by round type
     outcome_result = await db.execute(
         select(
-            RoundType.name.label('round_type'),
+            RoundType.name.label("round_type"),
             Round.outcome,
-            func.count(Round.id).label('count'),
+            func.count(Round.id).label("count"),
         )
         .select_from(Round)
         .join(RoundType, Round.round_type_id == RoundType.id)
@@ -497,7 +529,12 @@ async def get_interview_rounds_analytics(
         outcome_val = row.outcome if row.outcome else "pending"
 
         if round_name not in outcome_dict:
-            outcome_dict[round_name] = {"passed": 0, "failed": 0, "pending": 0, "withdrew": 0}
+            outcome_dict[round_name] = {
+                "passed": 0,
+                "failed": 0,
+                "pending": 0,
+                "withdrew": 0,
+            }
 
         # Map outcome values to categories
         if outcome_val.lower() == "passed":
@@ -524,7 +561,7 @@ async def get_interview_rounds_analytics(
     # Get all completed rounds with both scheduled_at and completed_at
     timeline_result = await db.execute(
         select(
-            RoundType.name.label('round_type'),
+            RoundType.name.label("round_type"),
             Round.scheduled_at,
             Round.completed_at,
         )
@@ -560,7 +597,7 @@ async def get_interview_rounds_analytics(
     # Candidate Progress Query: Get applications with their rounds
     # First get applications with at least one round
     apps_with_rounds_result = await db.execute(
-        select(Application.id, ApplicationStatus.name.label('status_name'))
+        select(Application.id, ApplicationStatus.name.label("status_name"))
         .select_from(Application)
         .join(ApplicationStatus, Application.status_id == ApplicationStatus.id)
         .join(Round, Round.application_id == Application.id)
@@ -579,7 +616,7 @@ async def get_interview_rounds_analytics(
         # Get all rounds for this application
         rounds_result = await db.execute(
             select(
-                RoundType.name.label('round_type'),
+                RoundType.name.label("round_type"),
                 Round.outcome,
                 Round.completed_at,
                 Round.scheduled_at,
@@ -609,7 +646,9 @@ async def get_interview_rounds_analytics(
 
         # Get application details for candidate name and role
         app_detail_result = await db.execute(
-            select(Application.company, Application.job_title).where(Application.id == app_id)
+            select(Application.company, Application.job_title).where(
+                Application.id == app_id
+            )
         )
         app_detail = app_detail_result.first()
 

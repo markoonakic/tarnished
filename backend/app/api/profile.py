@@ -8,7 +8,7 @@ This module provides API endpoints for managing user profiles, including:
 All endpoints require authentication via Bearer token.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +17,6 @@ from app.core.deps import get_current_user, get_current_user_flexible
 from app.models import User
 from app.models.user_profile import UserProfile
 from app.schemas.user_profile import (
-    UserProfileCreate,
     UserProfileResponse,
     UserProfileUpdate,
 )

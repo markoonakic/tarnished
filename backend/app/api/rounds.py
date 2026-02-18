@@ -6,10 +6,10 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.streak import record_streak_activity
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.api.streak import record_streak_activity
 from app.models import Application, Round, RoundMedia, RoundType, User
 from app.schemas.round import RoundCreate, RoundResponse, RoundUpdate
 
@@ -238,7 +238,7 @@ async def upload_transcript(
         raise HTTPException(status_code=404, detail="Round not found")
 
     # Validate file type
-    if not (file.filename or "").lower().endswith('.pdf'):
+    if not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 
     # Delete old transcript if exists
@@ -274,7 +274,9 @@ async def upload_transcript(
     return result.scalars().first()
 
 
-@router.delete("/api/rounds/{round_id}/transcript", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/api/rounds/{round_id}/transcript", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_transcript(
     round_id: str,
     user: User = Depends(get_current_user),
