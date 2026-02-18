@@ -42,8 +42,8 @@ async def get_api_key(
 ) -> APIKeyResponse:
     """Get the current user's API key status.
 
-    Returns whether the user has an API key configured, and if so,
-    a masked version showing only the first and last few characters.
+    Returns whether the user has an API key configured, the masked version
+    for display, and the full key for clipboard copying.
     """
     has_api_key = bool(user.api_token)
     api_key_masked = _mask_api_token(user.api_token)
@@ -51,6 +51,7 @@ async def get_api_key(
     return APIKeyResponse(
         has_api_key=has_api_key,
         api_key_masked=api_key_masked,
+        api_key_full=user.api_token,
     )
 
 

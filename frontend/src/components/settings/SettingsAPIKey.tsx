@@ -29,8 +29,8 @@ export default function SettingsAPIKey() {
   }
 
   async function handleCopyKey() {
-    // Copy full key if available, otherwise copy masked
-    const keyToCopy = apiKeyData?.api_key_full || apiKeyData?.api_key_masked;
+    // Always copy the full key
+    const keyToCopy = apiKeyData?.api_key_full;
     if (!keyToCopy) return;
 
     try {
@@ -53,7 +53,7 @@ export default function SettingsAPIKey() {
       const data = await regenerateAPIKey();
       setApiKeyData(data);
       setShowFullKey(true); // Show the full key after regeneration
-      toast.success('API key regenerated - copy it now! It won\'t be shown again.');
+      toast.success('API key regenerated successfully');
     } catch {
       toast.error('Failed to regenerate API key');
     } finally {
@@ -85,11 +85,7 @@ export default function SettingsAPIKey() {
             {/* API Key Display */}
             <div className="bg-tertiary rounded-lg p-4">
               <label className="text-sm text-muted block mb-2">
-                {showFullKey && apiKeyData?.api_key_full ? (
-                  <span className="text-yellow">⚠️ Copy this key now - it won't be shown again!</span>
-                ) : (
-                  'Your API Key'
-                )}
+                Your API Key
               </label>
               <div className="flex items-center gap-2">
                 <div className="flex-1 font-mono text-sm text-fg1 bg-bg2 px-3 py-2 rounded overflow-x-auto break-all">
