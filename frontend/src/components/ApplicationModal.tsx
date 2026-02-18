@@ -289,10 +289,11 @@ export default function ApplicationModal({
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-semibold text-muted">
+              <label htmlFor="application-status" className="block mb-1 text-sm font-semibold text-muted">
                 Status <span className="text-red-bright">*</span>
               </label>
               <Dropdown
+                id="application-status"
                 options={[
                   { value: '', label: 'Select status' },
                   ...statuses.map((status) => ({ value: status.id, label: status.name }))
@@ -361,8 +362,9 @@ export default function ApplicationModal({
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-semibold text-muted">Currency</label>
+              <label htmlFor="salary-currency" className="block mb-1 text-sm font-semibold text-muted">Currency</label>
               <Dropdown
+                id="salary-currency"
                 options={[
                   { value: 'USD', label: 'USD' },
                   { value: 'EUR', label: 'EUR' },
