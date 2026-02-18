@@ -75,7 +75,7 @@ export default function SettingsAPIKey() {
       <div className="bg-secondary rounded-lg p-4 md:p-6">
         <h2 className="text-xl font-bold text-fg1 mb-4">API Key</h2>
         <p className="text-sm text-muted mb-6">
-          Use your API key to authenticate requests to the Job Tracker API. Keep this key secure.
+          Use your API key to authenticate requests to the Tarnished API. Keep this key secure.
         </p>
 
         {loading ? (
@@ -125,7 +125,7 @@ export default function SettingsAPIKey() {
         ) : (
           <div className="bg-tertiary rounded-lg p-4">
             <p className="text-muted text-sm mb-4">
-              You don't have an API key yet. Generate one to access the Job Tracker API.
+              You don't have an API key yet. Generate one to access the Tarnished API.
             </p>
             <button
               onClick={handleRegenerateKey}
