@@ -82,8 +82,9 @@ export default function SettingsProfile() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* First Name */}
           <div>
-            <label className="text-sm text-muted block mb-1.5">First Name</label>
+            <label htmlFor="first-name" className="text-sm text-muted block mb-1.5">First Name</label>
             <input
+              id="first-name"
               type="text"
               value={profile?.first_name || ''}
               onChange={(e) => handleInputChange('first_name', e.target.value)}
@@ -94,8 +95,9 @@ export default function SettingsProfile() {
 
           {/* Last Name */}
           <div>
-            <label className="text-sm text-muted block mb-1.5">Last Name</label>
+            <label htmlFor="last-name" className="text-sm text-muted block mb-1.5">Last Name</label>
             <input
+              id="last-name"
               type="text"
               value={profile?.last_name || ''}
               onChange={(e) => handleInputChange('last_name', e.target.value)}
@@ -106,8 +108,9 @@ export default function SettingsProfile() {
 
           {/* Email */}
           <div>
-            <label className="text-sm text-muted block mb-1.5">Email</label>
+            <label htmlFor="profile-email" className="text-sm text-muted block mb-1.5">Email</label>
             <input
+              id="profile-email"
               type="email"
               value={profile?.email || ''}
               onChange={(e) => handleInputChange('email', e.target.value)}
@@ -118,8 +121,9 @@ export default function SettingsProfile() {
 
           {/* Phone */}
           <div>
-            <label className="text-sm text-muted block mb-1.5">Phone</label>
+            <label htmlFor="phone" className="text-sm text-muted block mb-1.5">Phone</label>
             <input
+              id="phone"
               type="tel"
               value={profile?.phone || ''}
               onChange={(e) => handleInputChange('phone', e.target.value)}
@@ -130,8 +134,9 @@ export default function SettingsProfile() {
 
           {/* City */}
           <div>
-            <label className="text-sm text-muted block mb-1.5">City</label>
+            <label htmlFor="city" className="text-sm text-muted block mb-1.5">City</label>
             <input
+              id="city"
               type="text"
               value={profile?.city || ''}
               onChange={(e) => handleInputChange('city', e.target.value)}
@@ -142,8 +147,9 @@ export default function SettingsProfile() {
 
           {/* Country */}
           <div>
-            <label className="text-sm text-muted block mb-1.5">Country</label>
+            <label htmlFor="country" className="text-sm text-muted block mb-1.5">Country</label>
             <input
+              id="country"
               type="text"
               value={profile?.country || ''}
               onChange={(e) => handleInputChange('country', e.target.value)}
@@ -154,8 +160,9 @@ export default function SettingsProfile() {
 
           {/* LinkedIn URL */}
           <div className="sm:col-span-2">
-            <label className="text-sm text-muted block mb-1.5">LinkedIn URL</label>
+            <label htmlFor="linkedin-url" className="text-sm text-muted block mb-1.5">LinkedIn URL</label>
             <input
+              id="linkedin-url"
               type="url"
               value={profile?.linkedin_url || ''}
               onChange={(e) => handleInputChange('linkedin_url', e.target.value)}

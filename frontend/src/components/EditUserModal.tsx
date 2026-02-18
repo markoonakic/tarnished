@@ -145,10 +145,11 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
           </div>
 
           <div>
-            <label className="block mb-1 text-sm font-semibold text-muted">
+            <label htmlFor="new-password" className="block mb-1 text-sm font-semibold text-muted">
               New Password (optional)
             </label>
             <input
+              id="new-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

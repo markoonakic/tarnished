@@ -173,6 +173,7 @@ export default function Dropdown({
         role="combobox"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
+        aria-controls="dropdown-listbox"
         aria-selected={!!selectedOption}
         aria-disabled={disabled}
         className={`
@@ -199,6 +200,7 @@ export default function Dropdown({
       </button>
 
       <div
+        id="dropdown-listbox"
         className={`
           absolute z-10 w-full mt-1 rounded-lg overflow-hidden
           border-0 transition-all duration-200 ease-in-out

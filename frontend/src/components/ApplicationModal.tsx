@@ -254,10 +254,11 @@ export default function ApplicationModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block mb-1 text-sm font-semibold text-muted">
+              <label htmlFor="company" className="block mb-1 text-sm font-semibold text-muted">
                 Company <span className="text-red-bright">*</span>
               </label>
               <input
+                id="company"
                 type="text"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
@@ -268,10 +269,11 @@ export default function ApplicationModal({
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-semibold text-muted">
+              <label htmlFor="job-title" className="block mb-1 text-sm font-semibold text-muted">
                 Job Title <span className="text-red-bright">*</span>
               </label>
               <input
+                id="job-title"
                 type="text"
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
@@ -297,8 +299,9 @@ export default function ApplicationModal({
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-semibold text-muted">Applied Date</label>
+              <label htmlFor="applied-date" className="block mb-1 text-sm font-semibold text-muted">Applied Date</label>
               <input
+                id="applied-date"
                 type="date"
                 value={appliedAt}
                 onChange={(e) => setAppliedAt(e.target.value)}
@@ -307,8 +310,9 @@ export default function ApplicationModal({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block mb-1 text-sm font-semibold text-muted">Job URL</label>
+              <label htmlFor="job-url" className="block mb-1 text-sm font-semibold text-muted">Job URL</label>
               <input
+                id="job-url"
                 type="text"
                 value={jobUrl}
                 onChange={(e) => {
@@ -327,8 +331,9 @@ export default function ApplicationModal({
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-semibold text-muted">Min Salary (k)</label>
+              <label htmlFor="salary-min" className="block mb-1 text-sm font-semibold text-muted">Min Salary (k)</label>
               <input
+                id="salary-min"
                 type="number"
                 value={salaryMin}
                 onChange={(e) => setSalaryMin(e.target.value)}
@@ -338,8 +343,9 @@ export default function ApplicationModal({
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-semibold text-muted">Max Salary (k)</label>
+              <label htmlFor="salary-max" className="block mb-1 text-sm font-semibold text-muted">Max Salary (k)</label>
               <input
+                id="salary-max"
                 type="number"
                 value={salaryMax}
                 onChange={(e) => setSalaryMax(e.target.value)}
@@ -371,8 +377,9 @@ export default function ApplicationModal({
             <h4 className="text-sm font-semibold text-muted mb-3">Recruiter (Optional)</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block mb-1 text-sm font-semibold text-muted">Recruiter Name</label>
+                <label htmlFor="recruiter-name" className="block mb-1 text-sm font-semibold text-muted">Recruiter Name</label>
                 <input
+                  id="recruiter-name"
                   type="text"
                   value={recruiterName}
                   onChange={(e) => setRecruiterName(e.target.value)}
@@ -382,8 +389,9 @@ export default function ApplicationModal({
               </div>
 
               <div>
-                <label className="block mb-1 text-sm font-semibold text-muted">Recruiter Title</label>
+                <label htmlFor="recruiter-title" className="block mb-1 text-sm font-semibold text-muted">Recruiter Title</label>
                 <input
+                  id="recruiter-title"
                   type="text"
                   value={recruiterTitle}
                   onChange={(e) => setRecruiterTitle(e.target.value)}
@@ -393,8 +401,9 @@ export default function ApplicationModal({
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block mb-1 text-sm font-semibold text-muted">LinkedIn URL</label>
+                <label htmlFor="recruiter-linkedin" className="block mb-1 text-sm font-semibold text-muted">LinkedIn URL</label>
                 <input
+                  id="recruiter-linkedin"
                   type="text"
                   value={recruiterLinkedinUrl}
                   onChange={(e) => setRecruiterLinkedinUrl(e.target.value)}
@@ -409,8 +418,9 @@ export default function ApplicationModal({
             <h4 className="text-sm font-semibold text-muted mb-3">Requirements (Optional)</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block mb-1 text-sm font-semibold text-muted">Must Have</label>
+                <label htmlFor="requirements-must" className="block mb-1 text-sm font-semibold text-muted">Must Have</label>
                 <textarea
+                  id="requirements-must"
                   value={requirementsMustHave}
                   onChange={(e) => setRequirementsMustHave(e.target.value)}
                   rows={3}
@@ -420,8 +430,9 @@ export default function ApplicationModal({
               </div>
 
               <div>
-                <label className="block mb-1 text-sm font-semibold text-muted">Nice to Have</label>
+                <label htmlFor="requirements-nice" className="block mb-1 text-sm font-semibold text-muted">Nice to Have</label>
                 <textarea
+                  id="requirements-nice"
                   value={requirementsNiceToHave}
                   onChange={(e) => setRequirementsNiceToHave(e.target.value)}
                   rows={3}
@@ -431,8 +442,9 @@ export default function ApplicationModal({
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block mb-1 text-sm font-semibold text-muted">Source</label>
+                <label htmlFor="source" className="block mb-1 text-sm font-semibold text-muted">Source</label>
                 <input
+                  id="source"
                   type="text"
                   value={source}
                   onChange={(e) => setSource(e.target.value)}
@@ -445,8 +457,9 @@ export default function ApplicationModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="block mb-1 text-sm font-semibold text-muted">Job Description</label>
+              <label htmlFor="job-description" className="block mb-1 text-sm font-semibold text-muted">Job Description</label>
               <textarea
+                id="job-description"
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
                 rows={4}

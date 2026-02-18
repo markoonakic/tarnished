@@ -173,8 +173,9 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
         </div>
 
         <div>
-          <label className="block mb-1 text-sm font-semibold text-muted">Scheduled Date</label>
+          <label htmlFor="scheduled-date" className="block mb-1 text-sm font-semibold text-muted">Scheduled Date</label>
           <input
+            id="scheduled-date"
             type="date"
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
@@ -183,8 +184,9 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
         </div>
 
         <div>
-          <label className="block mb-1 text-sm font-semibold text-muted">Time (optional)</label>
+          <label htmlFor="scheduled-time" className="block mb-1 text-sm font-semibold text-muted">Time (optional)</label>
           <input
+            id="scheduled-time"
             type="text"
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
@@ -212,8 +214,9 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-semibold text-muted">Completed Date</label>
+              <label htmlFor="completed-date" className="block mb-1 text-sm font-semibold text-muted">Completed Date</label>
               <input
+                id="completed-date"
                 type="date"
                 value={completedDate}
                 onChange={(e) => setCompletedDate(e.target.value)}
@@ -222,8 +225,9 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             </div>
 
             <div>
-              <label className="block mb-1 text-sm font-semibold text-muted">Time (optional)</label>
+              <label htmlFor="completed-time" className="block mb-1 text-sm font-semibold text-muted">Time (optional)</label>
               <input
+                id="completed-time"
                 type="text"
                 value={completedTime}
                 onChange={(e) => setCompletedTime(e.target.value)}
@@ -235,8 +239,9 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
         )}
 
         <div className="sm:col-span-2">
-          <label className="block mb-1 text-sm font-semibold text-muted">Notes</label>
+          <label htmlFor="round-notes" className="block mb-1 text-sm font-semibold text-muted">Notes</label>
           <textarea
+            id="round-notes"
             value={notesSummary}
             onChange={(e) => setNotesSummary(e.target.value)}
             rows={3}
@@ -271,8 +276,9 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
         </div>
 
         <div className="sm:col-span-2">
-          <label className="block mb-1 text-sm font-semibold text-muted">Transcript Summary</label>
+          <label htmlFor="transcript-summary" className="block mb-1 text-sm font-semibold text-muted">Transcript Summary</label>
           <textarea
+            id="transcript-summary"
             value={transcriptSummary}
             onChange={(e) => setTranscriptSummary(e.target.value)}
             rows={3}
