@@ -7,10 +7,13 @@ import browser from 'webextension-polyfill';
 import { getSettings, type Settings } from '../lib/storage';
 import {
   checkExistingLead,
+  checkExistingApplication,
+  convertLeadToApplication,
   getProfile,
   extractApplication,
   getStatuses,
   type JobLeadResponse,
+  type ApplicationResponse,
   type StatusResponse,
 } from '../lib/api';
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
@@ -76,6 +79,9 @@ let currentTabUrl: string | null = null;
 /** Existing lead info (if any) */
 let existingLead: JobLeadResponse | null = null;
 
+/** Existing application info (if any) */
+let existingApplication: ApplicationResponse | null = null;
+
 /** Form detection state */
 let formDetection: FormDetectionState = {
   hasApplicationForm: false,
@@ -114,6 +120,7 @@ const elements = {
   saveAsLeadBtn: document.getElementById('saveAsLeadBtn'),
   saveAsApplicationBtn: document.getElementById('saveAsApplicationBtn'),
   viewBtn: document.getElementById('viewBtn'),
+  convertBtn: document.getElementById('convertBtn'),
   retryBtn: document.getElementById('retryBtn'),
   autofillBtnDetected: document.getElementById('autofillBtnDetected'),
   autofillBtnSaved: document.getElementById('autofillBtnSaved'),
@@ -562,6 +569,58 @@ async function saveAsApplication(): Promise<void> {
 }
 
 /**
+ * Convert an existing job lead to an application.
+ * Called when user clicks "Convert to Application" button.
+ */
+async function handleConvertToApplication(): Promise<void> {
+  if (!existingLead) {
+    showErrorNotification('No lead to convert');
+    return;
+  }
+
+  showState('saving');
+
+  try {
+    const result = await convertLeadToApplication(existingLead.id);
+
+    // Update state to reflect the conversion
+    existingApplication = result;
+    existingLead = null;
+
+    // Update job info display
+    currentJobInfo = {
+      title: result.job_title,
+      company: result.company,
+      location: result.location || null,
+    };
+
+    // Update UI
+    if (elements.savedMessage) {
+      elements.savedMessage.textContent = 'Added as Application';
+    }
+    updateJobInfoDisplay(currentJobInfo, 'savedJob');
+
+    // Hide convert button (no longer a lead)
+    elements.convertBtn?.classList.add('hidden');
+
+    // Store application ID for view button
+    if (elements.viewBtn) {
+      elements.viewBtn.dataset.applicationId = result.id;
+    }
+
+    showState('saved');
+    showNotification('Converted!', 'Job lead converted to application.');
+  } catch (error) {
+    const extensionError = mapApiError(error);
+    const message = getErrorMessage(extensionError);
+    showError(message, isRecoverable(extensionError));
+    showErrorNotification(message);
+    // Go back to saved state on error
+    showState('saved');
+  }
+}
+
+/**
  * Retries the last failed action
  */
 async function retryAction(): Promise<void> {
@@ -749,17 +808,40 @@ async function determineState(): Promise<void> {
       formDetection = formDetectionResult;
     }
 
-    // Step 6: Check if this URL already exists as a job lead
-    try {
-      existingLead = await checkExistingLead(currentTabUrl);
-    } catch (error) {
-      console.warn('Failed to check existing lead:', error);
-      // Continue without existing lead info - user can still try to save
-    }
+    // Step 6: Check if this URL already exists as a job lead or application
+    // Check both in parallel for efficiency
+    const [lead, application] = await Promise.all([
+      checkExistingLead(currentTabUrl).catch((e) => {
+        console.warn('Failed to check existing lead:', e);
+        return null;
+      }),
+      checkExistingApplication(currentTabUrl).catch((e) => {
+        console.warn('Failed to check existing application:', e);
+        return null;
+      }),
+    ]);
+
+    existingLead = lead;
+    existingApplication = application;
 
     // Step 7: Determine the state to show
-    if (existingLead) {
-      // URL already saved - just show saved state
+    // Priority: Application > Lead > Detected > Not detected
+    if (existingApplication) {
+      // URL already exists as an application - highest priority
+      currentJobInfo = {
+        title: existingApplication.job_title,
+        company: existingApplication.company,
+        location: existingApplication.location || null,
+      };
+      if (elements.savedMessage) {
+        elements.savedMessage.textContent = 'Added as Application';
+      }
+      // Hide convert button for applications
+      elements.convertBtn?.classList.add('hidden');
+      updateJobInfoDisplay(currentJobInfo, 'savedJob');
+      showState('saved');
+    } else if (existingLead) {
+      // URL exists as a lead - show saved state with option to convert
       currentJobInfo = {
         title: existingLead.title,
         company: existingLead.company,
@@ -768,6 +850,8 @@ async function determineState(): Promise<void> {
       if (elements.savedMessage) {
         elements.savedMessage.textContent = 'Saved to Job Leads';
       }
+      // Show convert button for leads
+      elements.convertBtn?.classList.remove('hidden');
       updateJobInfoDisplay(currentJobInfo, 'savedJob');
       showState('saved');
     } else if (tabStatus && tabStatus.isJobPage) {
@@ -778,6 +862,8 @@ async function determineState(): Promise<void> {
         company: extractCompanyFromPage(),
         location: extractLocationFromPage(),
       };
+      // Hide convert button for new detections
+      elements.convertBtn?.classList.add('hidden');
       updateJobInfoDisplay(currentJobInfo, 'job');
       showState('detected');
     } else {
@@ -913,13 +999,19 @@ function setupEventListeners(): void {
   elements.saveAsLeadBtn?.addEventListener('click', saveJobLead);
   elements.saveAsApplicationBtn?.addEventListener('click', saveAsApplication);
   elements.viewBtn?.addEventListener('click', () => {
-    const applicationId = elements.viewBtn?.dataset.applicationId;
-    if (applicationId) {
-      openApplications(applicationId);
+    // Priority: newly created application > existing application > existing lead
+    const newApplicationId = elements.viewBtn?.dataset.applicationId;
+    if (newApplicationId) {
+      openApplications(newApplicationId);
+    } else if (existingApplication) {
+      openApplications(existingApplication.id);
+    } else if (existingLead) {
+      openJobLeads(existingLead.id);
     } else {
       openJobLeads();
     }
   });
+  elements.convertBtn?.addEventListener('click', handleConvertToApplication);
   elements.retryBtn?.addEventListener('click', retryAction);
 
   // Autofill buttons
