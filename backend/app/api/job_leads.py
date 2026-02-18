@@ -89,6 +89,7 @@ async def list_job_leads(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     status_filter: str | None = Query(None, alias="status"),
+    search: str | None = Query(None, description="Search by URL (exact match)"),
     user: User = Depends(get_current_user_flexible),
     db: AsyncSession = Depends(get_db),
 ):
@@ -98,6 +99,7 @@ async def list_job_leads(
         page: Page number (1-indexed).
         per_page: Items per page (max 100).
         status_filter: Optional status filter (pending, extracted, failed).
+        search: Optional URL search (exact match, used by extension to check existing leads).
         user: The authenticated user.
         db: Database session.
 
@@ -108,6 +110,10 @@ async def list_job_leads(
 
     if status_filter:
         query = query.where(JobLead.status == status_filter)
+
+    # Search by exact URL match (used by extension to check for existing leads)
+    if search:
+        query = query.where(JobLead.url == search)
 
     # Get total count
     count_query = select(func.count()).select_from(query.subquery())
@@ -571,7 +577,7 @@ async def delete_job_lead(
 @router.post("/{job_lead_id}/convert", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED)
 async def convert_job_lead_to_application(
     job_lead_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user_flexible),
     db: AsyncSession = Depends(get_db),
 ):
     """Convert a job lead to an application.

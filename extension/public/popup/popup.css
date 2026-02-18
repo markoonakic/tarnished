@@ -64,32 +64,32 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 0.75rem 1rem;
   background: var(--bg2);
   flex-shrink: 0;
 }
 
 .logo {
   font-weight: 600;
-  font-size: 15px;
+  font-size: 0.9375rem;
   color: var(--fg0);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .logo-icon {
-  font-size: 18px;
+  font-size: 1.125rem;
 }
 
 .header button {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px;
-  border-radius: 4px;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
   color: var(--fg2);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: all 0.2s ease-in-out;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -102,7 +102,7 @@ body {
 
 /* Main content area */
 .content {
-  padding: 16px;
+  padding: 1rem;
   flex: 1;
 }
 
@@ -117,24 +117,24 @@ body {
 
 /* Message boxes */
 .message {
-  padding: 12px;
-  border-radius: 6px;
-  margin-bottom: 12px;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 0.5rem;
   font-weight: 500;
 }
 
 .message-icon {
-  width: 18px;
-  height: 18px;
+  width: 1.125rem;
+  height: 1.125rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -185,45 +185,48 @@ body {
 /* Job info card */
 .job-info {
   background: var(--bg2);
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 12px;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
   text-align: left;
 }
 
 .job-title {
   font-weight: 600;
   color: var(--fg0);
-  margin-bottom: 4px;
-  font-size: 14px;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
   line-height: 1.3;
 }
 
 .job-company {
   color: var(--accent-bright);
-  font-size: 13px;
-  margin-bottom: 2px;
+  font-size: 0.8125rem;
+  margin-bottom: 0.125rem;
 }
 
 .job-location {
   color: var(--fg3);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
-/* Buttons */
+/* Buttons - standardized sizing using rem units */
 .btn {
   width: auto;
-  padding: 10px 16px;
+  min-width: 5rem;
+  padding: 0.5rem 1rem;
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-  display: flex;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 0.5rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Full-width modifier for standalone primary actions */
@@ -234,13 +237,8 @@ body {
 /* Button row for side-by-side buttons */
 .button-row {
   display: flex;
-  gap: 8px;
-}
-
-.button-row .btn {
-  flex: 1;
-  font-size: 13px;
-  padding: 8px 12px;
+  gap: 0.5rem;
+  justify-content: center;
 }
 
 .btn:active {
@@ -313,18 +311,18 @@ button.danger:hover {
 
 /* Loading state */
 .loading {
-  padding: 20px;
+  padding: 1.25rem;
   color: var(--fg2);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .spinner {
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   border: 3px solid var(--bg2);
   border-top-color: var(--accent);
   border-radius: 50%;
@@ -340,14 +338,14 @@ button.danger:hover {
 /* Hint text */
 .hint {
   color: var(--fg4);
-  font-size: 12px;
-  margin-top: 8px;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
   line-height: 1.4;
 }
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 0.375rem;
 }
 
 ::-webkit-scrollbar-track {
@@ -356,7 +354,7 @@ button.danger:hover {
 
 ::-webkit-scrollbar-thumb {
   background: var(--bg3);
-  border-radius: 3px;
+  border-radius: 0.1875rem;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -365,8 +363,8 @@ button.danger:hover {
 
 /* Focus styles for accessibility */
 button:focus {
-  outline: 2px solid var(--accent-bright);
-  outline-offset: 2px;
+  outline: 0.125rem solid var(--accent-bright);
+  outline-offset: 0.125rem;
 }
 
 button:focus:not(:focus-visible) {
@@ -374,8 +372,8 @@ button:focus:not(:focus-visible) {
 }
 
 button:focus-visible {
-  outline: 2px solid var(--accent-bright);
-  outline-offset: 2px;
+  outline: 0.125rem solid var(--accent-bright);
+  outline-offset: 0.125rem;
 }
 
 /* Header actions container */
@@ -390,18 +388,19 @@ button:focus-visible {
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: 4px;
+  margin-top: 0.25rem;
   background: var(--bg1);
   border: 1px solid var(--bg2);
-  border-radius: 6px;
-  padding: 8px 0;
-  min-width: 180px;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  min-width: 11.25rem;
   z-index: 100;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.3);
 }
 
 .settings-item {
-  padding: 8px 12px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
 }
 
 /* Toggle switch */
@@ -410,7 +409,7 @@ button:focus-visible {
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--fg1);
 }
 
@@ -419,10 +418,10 @@ button:focus-visible {
 }
 
 .toggle-slider {
-  width: 36px;
-  height: 20px;
+  width: 2.25rem;
+  height: 1.25rem;
   background: var(--bg3);
-  border-radius: 10px;
+  border-radius: 0.625rem;
   position: relative;
   transition: background-color 0.2s ease;
   flex-shrink: 0;
@@ -431,12 +430,12 @@ button:focus-visible {
 .toggle-slider::after {
   content: '';
   position: absolute;
-  width: 16px;
-  height: 16px;
+  width: 1rem;
+  height: 1rem;
   background: var(--fg2);
   border-radius: 50%;
-  top: 2px;
-  left: 2px;
+  top: 0.125rem;
+  left: 0.125rem;
   transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
@@ -445,14 +444,14 @@ button:focus-visible {
 }
 
 .toggle-label input:checked + .toggle-slider::after {
-  transform: translateX(16px);
+  transform: translateX(1rem);
   background: var(--fg0);
 }
 
 /* Autofill section */
 .autofill-section {
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
   border-top: 1px solid var(--bg2);
   text-align: center;
 }
@@ -465,17 +464,17 @@ button:focus-visible {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-  font-size: 12px;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
   color: var(--fg3);
 }
 
 .field-count {
   background: var(--bg2);
   color: var(--fg2);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
 }
 
 /* Button variant for Add as Application */
@@ -492,22 +491,25 @@ button:focus-visible {
 .settings-divider {
   height: 1px;
   background: var(--bg2);
-  margin: 4px 0;
+  margin: 0.5rem 0;
 }
 
+/* Settings link - matches .btn.neutral sizing */
 .settings-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  padding: 8px 12px;
-  margin: 0 4px;
-  background: none;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
   border: none;
-  border-radius: 4px;
-  text-align: left;
-  font-size: 13px;
-  color: var(--fg2);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--fg1);
   cursor: pointer;
-  transition: all 200ms ease-in-out;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
 }
 
 .settings-link:hover {

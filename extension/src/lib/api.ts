@@ -74,6 +74,7 @@ export interface ApplicationResponse {
   cover_letter_path: string | null;
   job_lead_id: string | null;
   description: string | null;
+  location: string | null;
   salary_min: number | null;
   salary_max: number | null;
   salary_currency: string | null;
@@ -440,6 +441,115 @@ export async function checkExistingLead(url: string): Promise<JobLeadResponse | 
     // For check operations, log and return null instead of throwing
     console.warn('Error checking existing lead:', error);
     return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Response from the applications list API (paginated).
+ */
+export interface ApplicationListResponse {
+  items: ApplicationResponse[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
+/**
+ * Check if a URL already exists as an application for the current user.
+ *
+ * @param url - The URL to check
+ * @returns The existing application if found, null otherwise
+ */
+export async function checkExistingApplication(url: string): Promise<ApplicationResponse | null> {
+  const settings = (await getSettings()) as Settings;
+  const { appUrl, apiKey } = settings;
+
+  if (!appUrl || !apiKey) {
+    return null;
+  }
+
+  const { controller, timeoutId } = createTimeoutController();
+
+  try {
+    const response = await fetch(
+      `${appUrl}${API_ENDPOINTS.APPLICATIONS}?url=${encodeURIComponent(url)}`,
+      {
+        method: 'GET',
+        headers: {
+          'X-API-Key': apiKey,
+        },
+        signal: controller.signal,
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return null;
+      }
+      console.warn('Failed to check existing application:', response.status);
+      return null;
+    }
+
+    const data: ApplicationListResponse = await response.json();
+
+    // Find exact URL match
+    const exactMatch = data.items.find((app) => app.job_url === url);
+    return exactMatch || null;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return null;
+    }
+    console.warn('Error checking existing application:', error);
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Convert a job lead to an application.
+ *
+ * @param leadId - The ID of the job lead to convert
+ * @returns The created application
+ * @throws AuthenticationError if the API key is invalid
+ * @throws ApiClientError if the conversion fails
+ */
+export async function convertLeadToApplication(leadId: string): Promise<ApplicationResponse> {
+  const settings = (await getSettings()) as Settings;
+  const { appUrl, apiKey } = settings;
+
+  if (!appUrl || !apiKey) {
+    throw new AuthenticationError('App URL or API key not configured. Please check your extension settings.');
+  }
+
+  const { controller, timeoutId } = createTimeoutController();
+
+  try {
+    const response = await fetch(
+      `${appUrl}${API_ENDPOINTS.JOB_LEADS}/${leadId}/convert`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+        },
+        signal: controller.signal,
+      }
+    );
+
+    if (!response.ok) {
+      const error = await parseErrorResponse(response);
+      throw new ApiClientError(error.message, response.status);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new TimeoutError();
+    }
+    throw error;
   } finally {
     clearTimeout(timeoutId);
   }

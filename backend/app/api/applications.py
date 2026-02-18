@@ -37,9 +37,10 @@ async def list_applications(
     per_page: int = Query(20, ge=1, le=100),
     status_id: str | None = None,
     search: str | None = None,
+    url: str | None = Query(None, description="Filter by exact job URL (used by extension)"),
     date_from: date | None = None,
     date_to: date | None = None,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user_flexible),
     db: AsyncSession = Depends(get_db),
 ):
     query = (
@@ -51,6 +52,11 @@ async def list_applications(
     if status_id:
         query = query.where(Application.status_id == status_id)
 
+    # Exact URL match (used by extension to check for existing applications)
+    if url:
+        query = query.where(Application.job_url == url)
+
+    # Partial text search (company, title, description)
     if search:
         search_term = f"%{search}%"
         query = query.where(
