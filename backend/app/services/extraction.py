@@ -464,7 +464,7 @@ Job Posting Content:
                     "No job posting data could be extracted from the content",
                     details={
                         "url": url,
-                        "content_preview": markdown_content[:500],
+                        "content_preview": content[:500],
                     },
                 )
 

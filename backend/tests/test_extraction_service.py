@@ -235,7 +235,7 @@ class TestExtractWithLlm:
             mock_completion.return_value = mock_response
 
             result = extract_with_llm(
-                markdown_content="Test job content",
+                content="Test job content",
                 url="https://linkedin.com/jobs/123",
             )
 
@@ -256,7 +256,7 @@ class TestExtractWithLlm:
 
             with pytest.raises(ExtractionInvalidResponseError, match="empty response"):
                 extract_with_llm(
-                    markdown_content="Test content",
+                    content="Test content",
                     url="https://example.com/job/123",
                 )
 
@@ -273,7 +273,7 @@ class TestExtractWithLlm:
 
             with pytest.raises(ExtractionInvalidResponseError, match="Failed to parse"):
                 extract_with_llm(
-                    markdown_content="Test content",
+                    content="Test content",
                     url="https://example.com/job/123",
                 )
 
@@ -301,7 +301,7 @@ class TestExtractWithLlm:
 
             with pytest.raises(NoJobFoundError, match="No job posting data"):
                 extract_with_llm(
-                    markdown_content="Login page content",
+                    content="Login page content",
                     url="https://example.com/login",
                 )
 
@@ -312,7 +312,7 @@ class TestExtractWithLlm:
 
             with pytest.raises(ExtractionTimeoutError, match="timed out"):
                 extract_with_llm(
-                    markdown_content="Test content",
+                    content="Test content",
                     url="https://example.com/job/123",
                     timeout=30,
                 )
@@ -327,7 +327,7 @@ class TestExtractWithLlm:
 
             with pytest.raises(ExtractionInvalidResponseError, match="API error"):
                 extract_with_llm(
-                    markdown_content="Test content",
+                    content="Test content",
                     url="https://example.com/job/123",
                 )
 
@@ -352,7 +352,7 @@ class TestExtractWithLlm:
             mock_completion.return_value = mock_response
 
             extract_with_llm(
-                markdown_content="Test content",
+                content="Test content",
                 url="https://example.com/job/123",
                 model="gpt-4",
             )
@@ -388,7 +388,7 @@ class TestExtractWithLlm:
             mock_completion.side_effect = [invalid_response, valid_response]
 
             result = extract_with_llm(
-                markdown_content="Test content",
+                content="Test content",
                 url="https://example.com/job/123",
             )
 
@@ -439,7 +439,7 @@ class TestExtractJobData:
         """Test that invalid HTML raises ExtractionError."""
         with pytest.raises(ExtractionError, match="Failed to preprocess HTML"):
             await extract_job_data(
-                html="",
+                html="   ",  # Whitespace-only fails preprocessing
                 url="https://example.com/job/123",
             )
 
