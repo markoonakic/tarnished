@@ -1,5 +1,5 @@
 /**
- * Options page script for Job Tracker extension.
+ * Options page script for Tarnished extension.
  *
  * This script handles:
  * - Loading existing settings from storage
@@ -169,7 +169,7 @@ async function handleSave(): Promise<void> {
 
 /**
  * Handle API key link click.
- * Opens the Job Tracker settings page in a new tab.
+ * Opens the Tarnished settings page in a new tab.
  */
 function handleApiKeyLinkClick(e: Event): void {
   e.preventDefault();

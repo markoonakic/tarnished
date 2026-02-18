@@ -1,5 +1,5 @@
 /**
- * Typed error system for the Job Tracker extension.
+ * Typed error system for the Tarnished extension.
  *
  * This module provides:
  * - Standardized error codes for all extension errors

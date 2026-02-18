@@ -1,5 +1,5 @@
 /**
- * API client for communicating with the Job Tracker backend.
+ * API client for communicating with the Tarnished backend.
  *
  * This module provides functions to:
  * - Save job leads to the backend
