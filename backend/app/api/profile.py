@@ -24,7 +24,7 @@ from app.schemas.user_profile import (
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
 
-def _build_profile_response(profile: UserProfile, user: User) -> dict:
+def _build_profile_response(profile: UserProfile, user: User) -> UserProfileResponse:
     """Build a profile response dict including user-level city/country fields.
 
     Args:
@@ -34,7 +34,7 @@ def _build_profile_response(profile: UserProfile, user: User) -> dict:
     Returns:
         A dict that matches UserProfileResponse schema
     """
-    return {
+    return {  # type: ignore[return-value]
         "id": profile.id,
         "user_id": profile.user_id,
         "first_name": profile.first_name,

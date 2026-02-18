@@ -58,7 +58,7 @@ def create_file_token(application_id: str, doc_type: str, user_id: str) -> str:
         "type": "file",
     }
     expire = datetime.utcnow() + timedelta(minutes=5)
-    to_encode["exp"] = expire
+    to_encode["exp"] = expire  # type: ignore[assignment]
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
 
@@ -81,7 +81,7 @@ def create_media_token(media_id: str, user_id: str) -> str:
         "type": "media",
     }
     expire = datetime.utcnow() + timedelta(minutes=5)
-    to_encode["exp"] = expire
+    to_encode["exp"] = expire  # type: ignore[assignment]
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
 
@@ -104,7 +104,7 @@ def create_round_transcript_token(round_id: str, user_id: str) -> str:
         "type": "round_transcript",
     }
     expire = datetime.utcnow() + timedelta(minutes=5)
-    to_encode["exp"] = expire
+    to_encode["exp"] = expire  # type: ignore[assignment]
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
 

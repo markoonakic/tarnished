@@ -52,7 +52,7 @@ app = FastAPI(title="Tarnished API", version="0.1.0", lifespan=lifespan)
 
 # Register rate limiter
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 # Add CORS middleware
 cors_origins = [origin.strip() for origin in settings.cors_origins.split(",")]

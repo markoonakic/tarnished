@@ -228,7 +228,7 @@ async def list_all_applications(
     applications = result.scalars().all()
 
     return ApplicationListResponse(
-        items=applications,
+        items=applications,  # type: ignore[arg-type]
         total=total,
         page=page,
         per_page=per_page,

@@ -148,7 +148,7 @@ class ImportProgress:
             cls._active_imports[import_id].update(updates)
 
     @classmethod
-    def complete(cls, import_id: str, success: bool, result: dict = None):
+    def complete(cls, import_id: str, success: bool, result: dict | None = None):
         if import_id in cls._active_imports:
             cls._active_imports[import_id] = {
                 "status": "complete",
@@ -250,7 +250,7 @@ def extract_files_from_zip(zip_path: str, user_id: str) -> dict[str, str]:
 
                 # Map old path (from ZIP) to new path
                 old_path = file_info.filename
-                file_mapping[old_path] = str(dest_path.relative(Path(UPLOAD_DIR)))
+                file_mapping[old_path] = str(dest_path.relative_to(Path(UPLOAD_DIR)))
 
     return file_mapping
 

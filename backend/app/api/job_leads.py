@@ -135,7 +135,7 @@ async def list_job_leads(
     job_leads = result.scalars().all()
 
     return JobLeadListResponse(
-        items=job_leads,
+        items=job_leads,  # type: ignore[arg-type]
         total=total,
         page=page,
         per_page=per_page,
@@ -727,6 +727,11 @@ async def convert_job_lead_to_application(
         .where(Application.id == application.id)
     )
     application = result.scalars().first()
+    if application is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve created application",
+        )
 
     # Step 6: Delete the job lead after successful conversion
     await db.delete(job_lead)

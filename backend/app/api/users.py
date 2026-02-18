@@ -28,7 +28,7 @@ async def get_user_settings(
 
     colors = get_theme_colors(theme, accent)
 
-    return UserSettingsResponse(theme=theme, accent=accent, colors=colors)
+    return UserSettingsResponse(theme=theme, accent=accent, colors=colors)  # type: ignore[arg-type]
 
 
 @router.patch("/settings")

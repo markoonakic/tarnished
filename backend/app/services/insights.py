@@ -46,7 +46,7 @@ def get_ai_config(db: Session) -> tuple[str, str | None, str | None]:
     for setting in db.query(SystemSettings).all():
         if setting.key == "litellm_api_key":
             try:
-                settings_map["api_key"] = decrypt_api_key(setting.value)
+                settings_map["api_key"] = decrypt_api_key(setting.value)  # type: ignore[arg-type]
             except Exception:
                 logger.warning("Failed to decrypt API key")
                 settings_map["api_key"] = ""
@@ -126,7 +126,7 @@ def generate_insights(
             response_format={"type": "json_object"},
         )
 
-        content = response.choices[0].message.content
+        content = response.choices[0].message.content  # type: ignore[union-attr]
         if not content:
             raise ValueError("AI returned empty response")
 

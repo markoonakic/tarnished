@@ -374,7 +374,7 @@ Job Posting Content:
             response = completion(**completion_kwargs)
 
             # Extract the content from the response
-            raw_content = response.choices[0].message.content
+            raw_content = response.choices[0].message.content  # type: ignore[union-attr]
 
             if not raw_content:
                 raise ExtractionInvalidResponseError(
