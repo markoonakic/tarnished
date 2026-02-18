@@ -1,4 +1,4 @@
-// Shared utilities and constants for the Job Tracker extension
+// Shared utilities and constants for the Tarnished extension
 
 // API endpoint constants
 export const API_ENDPOINTS = {

@@ -1,5 +1,5 @@
 /**
- * Popup script for Job Tracker extension
+ * Popup script for Tarnished extension
  * Handles the popup UI state management and user interactions
  */
 
