@@ -20,9 +20,9 @@ export const MESSAGE_TYPES = {
 
 // Storage keys
 export const STORAGE_KEYS = {
-  SETTINGS: 'job_tracker_settings',
-  AUTH_TOKEN: 'job_tracker_auth_token',
-  API_URL: 'job_tracker_api_url',
+  SETTINGS: 'tarnished_settings',
+  AUTH_TOKEN: 'tarnished_auth_token',
+  API_URL: 'tarnished_api_url',
 } as const;
 
 // Default settings
