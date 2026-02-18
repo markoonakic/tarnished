@@ -66,12 +66,12 @@ export default function InterviewTimeline({ period = 'all', roundType }: Intervi
           const value = param.value as number;
           const speedInfo = getSpeedInfo(value);
           return `
-            <div style="padding: 4px 0;">
+            <div style="padding: 0.25rem 0;">
               <div style="font-weight: 600; margin-bottom: 4px;">${param.name}</div>
               <div>Average: <span style="color: ${colors.aquaBright}; font-weight: 600;">${value.toFixed(1)}</span> days</div>
               <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid ${colors.bg2};">
                 <span style="color: ${speedInfo.color};">●</span> ${speedInfo.label} process
-                ${value > 7 ? `<br/><span style="color: ${colors.orange}; font-size: 11px;">⚠ Exceeds 7-day target</span>` : ''}
+                ${value > 7 ? `<br/><span style="color: ${colors.orange}; font-size: 0.6875rem;">⚠ Exceeds 7-day target</span>` : ''}
               </div>
             </div>
           `;
@@ -211,7 +211,7 @@ export default function InterviewTimeline({ period = 'all', roundType }: Intervi
       <div className="w-full overflow-x-auto">
         <ReactECharts
           option={option}
-          style={{ width: '100%', height: '500px' }}
+          style={{ width: '100%', height: '31.25rem' }}
           opts={{ renderer: 'svg' }}
         />
       </div>

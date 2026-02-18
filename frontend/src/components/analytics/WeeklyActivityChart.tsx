@@ -130,7 +130,7 @@ export default function WeeklyActivityChart({ period }: WeeklyActivityChartProps
     <div className="w-full">
       <ReactECharts
         option={option}
-        style={{ width: '100%', height: '256px' }}
+        style={{ width: '100%', height: '16rem' }}
         opts={{ renderer: 'svg' }}
       />
     </div>

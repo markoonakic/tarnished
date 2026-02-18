@@ -164,7 +164,7 @@ export default function SankeyChart() {
     <div className="w-full overflow-x-auto">
       <ReactECharts
         option={option}
-        style={{ width: '100%', height: '400px' }}
+        style={{ width: '100%', height: '25rem' }}
         opts={{ renderer: 'svg' }}
       />
     </div>

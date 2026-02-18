@@ -99,7 +99,7 @@ export default function Applications() {
 
         <div className="bg-secondary rounded-lg p-4 mb-6">
           <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-0 sm:min-w-[200px]">
+            <div className="flex-1 min-w-0 sm:min-w-[12.5rem]">
               <input
                 type="text"
                 placeholder="Search company or job title..."
@@ -155,7 +155,7 @@ export default function Applications() {
             <div className="hidden md:block bg-secondary rounded-lg overflow-hidden">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr>
+                  <tr className="border-b border-tertiary">
                     <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Company</th>
                     <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Position</th>
                     <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Status</th>

@@ -105,7 +105,15 @@ Buttons use the **next darker color** from their container's background for hove
 
 - Regular: `px-4 py-2`
 - Small: `px-3 py-1.5`
-- Icon-only: `p-2` (equal padding for square touch target)
+- Icon-only: `p-2` (equal padding creates ~32x32px square touch target for consistent hover feedback)
+
+### Icon-Only Buttons
+
+All icon-only buttons (X close, pencil edit, trashcan delete without text) MUST use `p-2` for a square 32x32px hover area. This ensures consistent touch targets and visible hover feedback. While icons aren't perfectly square, equal padding creates a consistent experience.
+
+### Delete Button Centering
+
+When a delete button sits alongside variable-height content (e.g., badges + timestamp + note), use `self-center` to vertically center the button. This creates better visual balance than `flex-shrink-0` alone.
 
 ### Cursor Pointer
 
@@ -1328,8 +1336,9 @@ bg-bg4 → Nested elements
   - **Sizing:** Use icon utilities (.icon-xs through .icon-2xl) — NEVER use text-* utilities
   - .bi::before override enables icon sizing utilities to work correctly
 - **Buttons:** 4 variants (Primary, Neutral, Danger, Icon-only)
-  - Icon-only: `p-2` (equal padding for square touch target)
+  - Icon-only: `p-2` (~32x32px square hover area)
   - Danger: ALL variants use `bg-transparent text-red` with 5-layer hover rule
+  - Delete button centering: `self-center` when alongside variable-height content
 - **Transitions:** `transition-all duration-200 ease-in-out`
 - **Inputs:** Use 5-color layering (next color in line from container)
   - `bg-bg1` container → `bg-bg2` input
