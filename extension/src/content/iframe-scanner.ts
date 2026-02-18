@@ -514,7 +514,7 @@ function init(): void {
     return;
   }
 
-  console.log('[Job Tracker] Iframe scanner initialized');
+  console.log('[Tarnished] Iframe scanner initialized');
 
   setupMessageListener();
 
