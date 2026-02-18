@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { api } from '../lib/api';
+import api from '../lib/api';
 
 interface Theme {
   id: string;

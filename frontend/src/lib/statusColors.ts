@@ -16,13 +16,6 @@ const STATUS_COLOR_MAP: Record<string, keyof ThemeColors> = {
 };
 
 /**
- * Check if a status name is a default (theme-mapped) status.
- */
-export function isDefaultStatus(statusName: string): boolean {
-  return statusName in STATUS_COLOR_MAP;
-}
-
-/**
  * Get a theme-aware color for a status.
  * Returns the mapped theme color for default statuses, or the provided fallback for custom statuses.
  */

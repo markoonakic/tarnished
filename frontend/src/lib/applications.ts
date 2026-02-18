@@ -63,20 +63,11 @@ export async function deleteCoverLetter(applicationId: string): Promise<Applicat
 }
 
 
-export function getFileUrl(applicationId: string, docType: 'cv' | 'cover-letter' | 'transcript'): string {
-  return `/api/files/${applicationId}/${docType}`;
-}
-
-export interface SignedUrlResponse {
-  url: string;
-  expires_in: number;
-}
-
 export async function getSignedUrl(
   applicationId: string,
   docType: 'cv' | 'cover-letter' | 'transcript',
   disposition: 'inline' | 'attachment' = 'inline'
-): Promise<SignedUrlResponse> {
+): Promise<{ url: string; expires_in: number }> {
   const response = await api.get(`/api/files/${applicationId}/${docType}/signed`, {
     params: { disposition }
   });

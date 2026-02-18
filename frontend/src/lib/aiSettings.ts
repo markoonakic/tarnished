@@ -7,7 +7,7 @@ export interface AISettingsResponse {
   is_configured: boolean;
 }
 
-export interface AISettingsUpdate {
+interface AISettingsUpdate {
   litellm_model?: string | null;
   litellm_api_key?: string | null;
   litellm_base_url?: string | null;

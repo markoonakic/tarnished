@@ -1,7 +1,7 @@
 import api from './api';
 import type { Application, JobLead } from './types';
 
-export interface JobLeadsParams {
+interface JobLeadsParams {
   page?: number;
   per_page?: number;
   search?: string;
@@ -10,7 +10,7 @@ export interface JobLeadsParams {
   sort?: 'newest' | 'oldest';
 }
 
-export interface JobLeadsListResponse {
+interface JobLeadsListResponse {
   items: JobLead[];
   total: number;
   page: number;

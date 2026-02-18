@@ -1,12 +1,12 @@
 import api from './api';
 export type { User } from './types';
 
-export interface LoginData {
+interface LoginData {
   email: string;
   password: string;
 }
 
-export interface RegisterData {
+interface RegisterData {
   email: string;
   password: string;
 }

@@ -1,5 +1,5 @@
 import api from './api';
-import type { Application, Status, RoundType, User } from './types';
+import type { User } from './types';
 
 export interface AdminUser extends User {
   created_at: string;
@@ -9,14 +9,6 @@ export interface AdminStats {
   total_users: number;
   total_applications: number;
   applications_by_status: { status: string; count: number }[];
-}
-
-export interface AdminUserListResponse {
-  items: AdminUser[];
-  total: number;
-  page: number;
-  per_page: number;
-  total_pages: number;
 }
 
 export async function listUsers(params?: {
@@ -49,28 +41,5 @@ export async function deleteUser(userId: string): Promise<void> {
 
 export async function getAdminStats(): Promise<AdminStats> {
   const response = await api.get('/api/admin/stats');
-  return response.data;
-}
-
-export async function listAllApplications(params: {
-  page?: number;
-  per_page?: number;
-  user_id?: string;
-}): Promise<{ items: Application[]; total: number }> {
-  const response = await api.get('/api/admin/applications', { params });
-  return response.data;
-}
-
-export async function createDefaultStatus(data: {
-  name: string;
-  color: string;
-  order?: number;
-}): Promise<Status> {
-  const response = await api.post('/api/admin/default-statuses', data);
-  return response.data;
-}
-
-export async function createDefaultRoundType(data: { name: string }): Promise<RoundType> {
-  const response = await api.post('/api/admin/default-round-types', data);
   return response.data;
 }

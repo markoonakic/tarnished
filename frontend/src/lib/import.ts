@@ -1,6 +1,6 @@
 import { API_BASE } from './api';
 
-export interface ImportValidation {
+interface ImportValidation {
   valid: boolean;
   summary: {
     applications: number;
