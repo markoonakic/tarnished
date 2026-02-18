@@ -1,13 +1,20 @@
 {
   "manifest_version": 3,
-  "name": "Job Tracker",
+  "name": "Tarnished",
   "version": "1.0.0",
-  "description": "Save job postings to Job Tracker",
+  "description": "Save job postings to Tarnished",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tarnished@extension",
+      "strict_min_version": "109.0"
+    },
+    "gecko_android": {}
+  },
   "permissions": ["activeTab", "storage", "notifications", "scripting"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "Job Tracker"
+    "default_title": "Tarnished"
   },
   "options_page": "options/options.html",
   "background": {
