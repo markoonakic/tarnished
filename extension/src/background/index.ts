@@ -8,18 +8,22 @@ import { getProfile } from '../lib/api';
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
 import { ThemeColors, UserSettings, DEFAULT_COLORS } from '../lib/theme';
 import { SETTINGS_STORAGE_KEY } from '../lib/theme-utils';
+import { buildUrl } from '../lib/url';
+import { debug, warn, error } from '../lib/logger';
 
 async function fetchThemeSettings(): Promise<ThemeColors> {
   const { appUrl, apiKey } = await browser.storage.local.get(['appUrl', 'apiKey']);
 
   if (!appUrl || !apiKey) {
-    console.log('[Theme] Extension not configured, using default colors');
+    debug('Theme', 'Extension not configured, using default colors');
     return DEFAULT_COLORS;
   }
 
   try {
-    console.log('[Theme] Fetching from:', `${appUrl}/api/users/settings`);
-    const response = await fetch(`${appUrl}/api/users/settings`, {
+    const url = buildUrl(appUrl, '/api/users/settings');
+    debug('Theme', 'Fetching from:', url);
+
+    const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
@@ -31,21 +35,19 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
     }
 
     const settings: UserSettings = await response.json();
-    console.log('[Theme] Loaded theme:', settings.theme, 'accent:', settings.accent);
-    console.log('[Theme] Colors object:', settings.colors);
+    debug('Theme', 'Loaded theme:', settings.theme, 'accent:', settings.accent);
 
     // Cache settings for popup
     await browser.storage.local.set({ [SETTINGS_STORAGE_KEY]: settings.colors });
-    console.log('[Theme] Saved to storage with key:', SETTINGS_STORAGE_KEY);
 
     return settings.colors;
-  } catch (error) {
-    console.error('[Theme] Fetch failed:', error);
+  } catch (err) {
+    error('Theme', 'Fetch failed:', err);
 
     // Try to use cached settings
     const cached = await browser.storage.local.get(SETTINGS_STORAGE_KEY);
     if (cached[SETTINGS_STORAGE_KEY]) {
-      console.log('[Theme] Using cached colors');
+      debug('Theme', 'Using cached colors');
       return cached[SETTINGS_STORAGE_KEY];
     }
 
@@ -72,7 +74,7 @@ async function getAccentColor(): Promise<string> {
  * 3. This works reliably in service workers unlike SVG manipulation
  */
 async function updateIconColor(accentHex: string): Promise<void> {
-  console.log('[Icon] Starting color update to:', accentHex);
+  debug('Icon', 'Starting color update to:', accentHex);
 
   const sizes = [16, 48, 128] as const;
   const imageDataMap: Record<number, ImageData> = {};
@@ -89,14 +91,14 @@ async function updateIconColor(accentHex: string): Promise<void> {
 
       // Create ImageBitmap from PNG (this works reliably in service workers)
       const bitmap = await createImageBitmap(pngBlob);
-      console.log(`[Icon] Loaded ${iconName}, size:`, bitmap.width, 'x', bitmap.height);
+      debug('Icon', `Loaded ${iconName}, size:`, bitmap.width, 'x', bitmap.height);
 
       // Create canvas for tinting
       const canvas = new OffscreenCanvas(size, size);
       const ctx = canvas.getContext('2d');
 
       if (!ctx) {
-        console.error('[Icon] Failed to get canvas context for size', size);
+        error('Icon', 'Failed to get canvas context for size', size);
         bitmap.close();
         continue;
       }
@@ -115,12 +117,11 @@ async function updateIconColor(accentHex: string): Promise<void> {
 
       // Get ImageData
       imageDataMap[size] = ctx.getImageData(0, 0, size, size);
-      console.log('[Icon] Tinted icon for size', size);
 
       // Clean up
       bitmap.close();
-    } catch (error) {
-      console.error(`[Icon] Failed to load/tint icon for size ${size}:`, error);
+    } catch (err) {
+      error('Icon', `Failed to load/tint icon for size ${size}:`, err);
       // Fall back to drawing a simple tree
       const canvas = new OffscreenCanvas(size, size);
       const ctx = canvas.getContext('2d');
@@ -141,9 +142,9 @@ async function updateIconColor(accentHex: string): Promise<void> {
         128: imageDataMap[128],
       }
     });
-    console.log('[Icon] Successfully updated with accent color:', accentHex);
-  } catch (error) {
-    console.error('[Icon] Failed to set icon:', error);
+    debug('Icon', 'Successfully updated with accent color:', accentHex);
+  } catch (err) {
+    error('Icon', 'Failed to set icon:', err);
   }
 }
 
@@ -241,8 +242,8 @@ async function loadAutoFillSetting(): Promise<void> {
   try {
     const result = await browser.storage.local.get('autoFillOnLoad');
     autoFillOnLoad = result.autoFillOnLoad ?? false;
-  } catch (error) {
-    console.warn('Failed to load autoFillOnLoad setting:', error);
+  } catch (err) {
+    warn('AutoFill', 'Failed to load setting:', err);
   }
 }
 
@@ -268,7 +269,7 @@ async function triggerAutoFill(tabId: number): Promise<void> {
 
     // Check if profile has any autofill data
     if (!hasAutofillData(autofillProfile)) {
-      console.log('Auto-fill skipped: profile has no data');
+      debug('AutoFill', 'Skipped: profile has no data');
       return;
     }
 
@@ -278,10 +279,10 @@ async function triggerAutoFill(tabId: number): Promise<void> {
       profile: autofillProfile,
     });
 
-    console.log(`Auto-fill triggered for tab ${tabId}`);
-  } catch (error) {
+    debug('AutoFill', 'Triggered for tab', tabId);
+  } catch (err) {
     // Silently fail - user may not have configured profile or API settings
-    console.warn('Auto-fill failed:', error);
+    warn('AutoFill', 'Failed:', err);
   }
 }
 
@@ -350,7 +351,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
   if (message.type === 'FORM_DETECTION_UPDATE' && sender.tab?.id) {
     const tabId = sender.tab.id;
 
-    console.log('[Tarnished] Form detection update:', {
+    debug('FormDetection', 'Update:', {
       tabId,
       hasApplicationForm: message.hasApplicationForm,
       fillableFieldCount: message.fillableFieldCount,
@@ -369,7 +370,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
       message.hasApplicationForm &&
       message.fillableFieldCount >= 2
     ) {
-      console.log('[Tarnished] Triggering auto-fill for tab', tabId);
+      debug('FormDetection', 'Triggering auto-fill for tab', tabId);
       // Small delay to ensure the form is fully rendered
       setTimeout(() => {
         triggerAutoFill(tabId);
@@ -408,7 +409,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
     // We need to use scripting API to inject into iframes
     // Note: This requires the iframe to be same-origin with a host_permissions match
     // For truly cross-origin iframes, the content script already handles it via postMessage
-    console.log('[Tarnished] Received iframe injection request:', message.frameSrc);
+    debug('Iframe', 'Injection request:', message.frameSrc);
 
     // Store the frame src for potential retry
     const tabId = sender.tab.id;

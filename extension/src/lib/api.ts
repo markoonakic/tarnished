@@ -9,6 +9,7 @@
  */
 
 import { getSettings } from './storage';
+import { buildUrl } from './url';
 import {
   AuthFailedError,
   AlreadySavedError,
@@ -347,7 +348,7 @@ export async function saveJobLead(url: string, text: string): Promise<JobLeadRes
   const { controller, timeoutId } = createTimeoutController();
 
   try {
-    const response = await fetch(`${appUrl}${API_ENDPOINTS.JOB_LEADS}`, {
+    const response = await fetch(buildUrl(appUrl, API_ENDPOINTS.JOB_LEADS), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -406,7 +407,7 @@ export async function checkExistingLead(url: string): Promise<JobLeadResponse | 
 
   try {
     const response = await fetch(
-      `${appUrl}${API_ENDPOINTS.JOB_LEADS}?search=${encodeURIComponent(url)}`,
+      `${buildUrl(appUrl, API_ENDPOINTS.JOB_LEADS)}?search=${encodeURIComponent(url)}`,
       {
         method: 'GET',
         headers: {
@@ -474,7 +475,7 @@ export async function checkExistingApplication(url: string): Promise<Application
 
   try {
     const response = await fetch(
-      `${appUrl}${API_ENDPOINTS.APPLICATIONS}?url=${encodeURIComponent(url)}`,
+      `${buildUrl(appUrl, API_ENDPOINTS.APPLICATIONS)}?url=${encodeURIComponent(url)}`,
       {
         method: 'GET',
         headers: {
@@ -528,7 +529,7 @@ export async function convertLeadToApplication(leadId: string): Promise<Applicat
 
   try {
     const response = await fetch(
-      `${appUrl}${API_ENDPOINTS.JOB_LEADS}/${leadId}/convert`,
+      buildUrl(appUrl, `${API_ENDPOINTS.JOB_LEADS}/${leadId}/convert`),
       {
         method: 'POST',
         headers: {
@@ -587,7 +588,7 @@ export async function getProfile(): Promise<UserProfileResponse> {
   const { controller, timeoutId } = createTimeoutController();
 
   try {
-    const response = await fetch(`${appUrl}${API_ENDPOINTS.PROFILE}`, {
+    const response = await fetch(buildUrl(appUrl, API_ENDPOINTS.PROFILE), {
       method: 'GET',
       headers: {
         'X-API-Key': apiKey,
@@ -639,7 +640,7 @@ export async function testConnection(): Promise<boolean> {
   try {
     // Try to list job leads with minimal page size
     const response = await fetch(
-      `${appUrl}${API_ENDPOINTS.JOB_LEADS}?per_page=1`,
+      `${buildUrl(appUrl, API_ENDPOINTS.JOB_LEADS)}?per_page=1`,
       {
         method: 'GET',
         headers: {
@@ -706,7 +707,7 @@ export async function createApplicationFromJob(data: {
   const { controller, timeoutId } = createTimeoutController();
 
   try {
-    const response = await fetch(`${appUrl}${API_ENDPOINTS.APPLICATIONS}`, {
+    const response = await fetch(buildUrl(appUrl, API_ENDPOINTS.APPLICATIONS), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -788,7 +789,7 @@ export async function extractApplication(
   const { controller, timeoutId } = createTimeoutController();
 
   try {
-    const response = await fetch(`${appUrl}${API_ENDPOINTS.APPLICATIONS}/extract`, {
+    const response = await fetch(buildUrl(appUrl, `${API_ENDPOINTS.APPLICATIONS}/extract`), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -846,7 +847,7 @@ export async function getStatuses(): Promise<StatusResponse[]> {
   const { controller, timeoutId } = createTimeoutController();
 
   try {
-    const response = await fetch(`${appUrl}${API_ENDPOINTS.STATUSES}`, {
+    const response = await fetch(buildUrl(appUrl, API_ENDPOINTS.STATUSES), {
       method: 'GET',
       headers: {
         'X-API-Key': apiKey,

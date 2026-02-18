@@ -12,6 +12,7 @@
 import browser from 'webextension-polyfill';
 import { getSettings, setSettings, type Settings } from '../lib/storage';
 import { getThemeColors, applyThemeToDocument } from '../lib/theme-utils';
+import { normalizeBaseUrl } from '../lib/url';
 
 // ============================================================================
 // DOM Elements
@@ -116,7 +117,7 @@ function setupEventListeners(): void {
  */
 async function handleSave(): Promise<void> {
   const newSettings: Settings = {
-    appUrl: appUrlInput.value.trim(),
+    appUrl: normalizeBaseUrl(appUrlInput.value.trim()),
     apiKey: apiKeyInput.value.trim(),
   };
 
