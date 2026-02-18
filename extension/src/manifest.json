@@ -6,7 +6,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "tarnished@extension",
-      "strict_min_version": "109.0"
+      "strict_min_version": "128.0"
     },
     "gecko_android": {}
   },
@@ -19,7 +19,8 @@
   "options_page": "options/options.html",
   "background": {
     "service_worker": "background/index.js",
-    "type": "module"
+    "type": "module",
+    "scripts": ["background/index.js"]
   },
   "content_scripts": [
     {
