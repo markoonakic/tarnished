@@ -273,8 +273,8 @@ export default function JobLeadModal({
                       Must Have
                     </p>
                     <ul className="list-disc list-inside text-fg1 text-sm space-y-1">
-                      {lead.requirements_must_have.map((req, index) => (
-                        <li key={index}>{req}</li>
+                      {lead.requirements_must_have.map((req) => (
+                        <li key={req}>{req}</li>
                       ))}
                     </ul>
                   </div>
@@ -286,8 +286,8 @@ export default function JobLeadModal({
                       Nice to Have
                     </p>
                     <ul className="list-disc list-inside text-fg1 text-sm space-y-1">
-                      {lead.requirements_nice_to_have.map((req, index) => (
-                        <li key={index}>{req}</li>
+                      {lead.requirements_nice_to_have.map((req) => (
+                        <li key={req}>{req}</li>
                       ))}
                     </ul>
                   </div>
@@ -301,9 +301,9 @@ export default function JobLeadModal({
             <div className="bg-bg2 rounded-lg p-4">
               <h4 className="text-muted text-sm font-semibold mb-3">Skills</h4>
               <div className="flex flex-wrap gap-2">
-                {lead.skills.map((skill, index) => (
+                {lead.skills.map((skill) => (
                   <span
-                    key={index}
+                    key={skill}
                     className="bg-bg3 text-fg1 px-2 py-1 rounded text-sm"
                   >
                     {skill}

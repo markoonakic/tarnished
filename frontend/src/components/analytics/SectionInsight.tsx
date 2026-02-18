@@ -36,8 +36,8 @@ export function SectionInsight({
           <span className="text-fg1 font-medium text-sm">Priority Actions</span>
         </div>
         <ol className="list-decimal list-inside text-fg2 text-sm space-y-1">
-          {priorityActions.map((action, i) => (
-            <li key={i}>{action}</li>
+          {priorityActions.map((action) => (
+            <li key={action}>{action}</li>
           ))}
         </ol>
       </div>
