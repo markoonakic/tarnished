@@ -173,7 +173,12 @@ async def get_current_user_flexible(
             if user_id:
                 result = await db.execute(select(User).where(User.id == user_id))
                 user = result.scalars().first()
-                if user and user.is_active:
+                if user:
+                    if not user.is_active:
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            detail="User account is disabled",
+                        )
                     return user
 
     # Method 2 & 3: Try API key authentication (extension)

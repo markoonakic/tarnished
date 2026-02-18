@@ -429,8 +429,8 @@ class TestJobLeadsCreate:
         assert response.status_code == 201
         # Verify extract_job_data was called with the HTML content
         mock_extract.assert_called_once()
-        call_args = mock_extract.call_args
-        assert "Job Title" in call_args[0][0]  # First positional arg is HTML
+        call_kwargs = mock_extract.call_args.kwargs
+        assert "Job Title" in call_kwargs["html"]  # HTML is passed as keyword arg
 
 
 class TestJobLeadsDelete:
