@@ -154,3 +154,16 @@ docker-compose.override.yaml
 # Cache directories
 .cache/
 .npm/
+
+# ============================================================================
+# Browser Extension
+# ============================================================================
+
+# Extension build artifacts
+*.xpi
+
+# Extension test/dev files
+extension/test-form.html
+
+# Don't mix npm and yarn in extension
+extension/package-lock.json
