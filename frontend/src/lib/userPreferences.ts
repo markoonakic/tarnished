@@ -6,7 +6,7 @@ export interface UserPreferences {
   show_heatmap: boolean;
 }
 
-export interface UserPreferencesUpdate {
+interface UserPreferencesUpdate {
   show_streak_stats?: boolean;
   show_needs_attention?: boolean;
   show_heatmap?: boolean;

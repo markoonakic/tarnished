@@ -27,11 +27,3 @@ export function useScrollRestoration() {
     previousPath.current = currentPath;
   }, [location.key, location.pathname]);
 }
-
-export function useSaveScrollPosition() {
-  const location = useLocation();
-
-  return () => {
-    scrollPositions.set(location.key, window.scrollY);
-  };
-}

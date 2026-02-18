@@ -65,14 +65,14 @@ export interface TimelineData {
   avg_days: number;
 }
 
-export interface RoundProgress {
+interface RoundProgress {
   round_type: string;
   outcome: string | null;
   completed_at: string | null;
   days_in_round: number | null;
 }
 
-export interface CandidateProgress {
+interface CandidateProgress {
   application_id: string;
   candidate_name: string;
   role: string;
@@ -80,7 +80,7 @@ export interface CandidateProgress {
   current_status: string;
 }
 
-export interface InterviewRoundsResponse {
+interface InterviewRoundsResponse {
   funnel_data: FunnelData[];
   outcome_data: OutcomeData[];
   timeline_data: TimelineData[];

@@ -28,7 +28,7 @@ export async function deleteMedia(mediaId: string): Promise<void> {
   await api.delete(`/api/media/${mediaId}`);
 }
 
-export interface SignedUrlResponse {
+interface SignedUrlResponse {
   url: string;
   expires_in: number;
 }

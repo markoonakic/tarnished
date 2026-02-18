@@ -1,7 +1,7 @@
 import api from './api';
 import type { UserProfile } from './types';
 
-export interface UserProfileUpdate {
+interface UserProfileUpdate {
   first_name?: string | null;
   last_name?: string | null;
   email?: string | null;

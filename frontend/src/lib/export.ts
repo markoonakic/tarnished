@@ -16,7 +16,7 @@ export async function exportZIP(): Promise<void> {
   downloadBlob(response.data, `tarnished-export-${timestamp}.zip`, 'application/zip');
 }
 
-export function downloadBlob(blob: Blob, filename: string, mimeType: string) {
+function downloadBlob(blob: Blob, filename: string, mimeType: string) {
   const url = window.URL.createObjectURL(new Blob([blob], { type: mimeType }));
   const link = document.createElement('a');
   link.href = url;
