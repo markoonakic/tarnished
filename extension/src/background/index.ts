@@ -1,5 +1,5 @@
 /**
- * Background script for Job Tracker extension
+ * Background script for Tarnished extension
  * Manages tab state tracking, badge updates, and message handling
  */
 
@@ -350,7 +350,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
   if (message.type === 'FORM_DETECTION_UPDATE' && sender.tab?.id) {
     const tabId = sender.tab.id;
 
-    console.log('[Job Tracker] Form detection update:', {
+    console.log('[Tarnished] Form detection update:', {
       tabId,
       hasApplicationForm: message.hasApplicationForm,
       fillableFieldCount: message.fillableFieldCount,
@@ -369,7 +369,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
       message.hasApplicationForm &&
       message.fillableFieldCount >= 2
     ) {
-      console.log('[Job Tracker] Triggering auto-fill for tab', tabId);
+      console.log('[Tarnished] Triggering auto-fill for tab', tabId);
       // Small delay to ensure the form is fully rendered
       setTimeout(() => {
         triggerAutoFill(tabId);
@@ -408,7 +408,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
     // We need to use scripting API to inject into iframes
     // Note: This requires the iframe to be same-origin with a host_permissions match
     // For truly cross-origin iframes, the content script already handles it via postMessage
-    console.log('[Job Tracker] Received iframe injection request:', message.frameSrc);
+    console.log('[Tarnished] Received iframe injection request:', message.frameSrc);
 
     // Store the frame src for potential retry
     const tabId = sender.tab.id;
