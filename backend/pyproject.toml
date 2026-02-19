@@ -47,6 +47,7 @@ python_functions = ["test_*"]
 [dependency-groups]
 dev = [
     "bandit>=1.9.3",
+    "black>=26.1.0",
     "ruff>=0.15.1",
 ]
 
@@ -91,3 +92,9 @@ reportMissingImports = true
 reportMissingTypeStubs = false
 venvPath = "."
 venv = ".venv"
+
+[tool.codeflash]
+module_root = "app"
+tests_root = "tests"
+test_framework = "pytest"
+ignore_paths = ["alembic", "data"]

@@ -24,7 +24,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (setupResponse.data.needs_setup) {
         setUser(null);
         setLoading(false);
-        window.location.href = '/register?setup=true';
+        // Don't redirect if already on the register page
+        if (!window.location.pathname.startsWith('/register')) {
+          window.location.href = '/register?setup=true';
+        }
         return;
       }
     } catch {

@@ -168,3 +168,6 @@ extension/test-form.html
 # Don't mix npm and yarn in extension
 extension/package-lock.json
 .playwright/
+
+# Codeflash temporary test folders
+backend/tests/codeflash_*/
