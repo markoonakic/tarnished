@@ -2,9 +2,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "job-tracker.fullname" . }}
+  name: {{ include "tarnished.fullname" . }}
   labels:
-    {{- include "job-tracker.labels" . | nindent 4 }}
+    {{- include "tarnished.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -28,7 +28,7 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "job-tracker.fullname" $ }}
+                name: {{ include "tarnished.fullname" $ }}
                 port:
                   number: {{ $.Values.service.port }}
           {{- end }}

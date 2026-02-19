@@ -1,8 +1,8 @@
-1. Access Job Tracker:
+1. Access Tarnished:
 {{- if .Values.ingress.enabled }}
    URL: http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.host }}
 {{- else }}
-   kubectl port-forward svc/{{ include "job-tracker.fullname" . }} 5577:{{ .Values.service.port }}
+   kubectl port-forward svc/{{ include "tarnished.fullname" . }} 5577:{{ .Values.service.port }}
    Then open: http://localhost:5577
 {{- end }}
 
@@ -10,4 +10,4 @@
    Navigate to the URL above and create your admin account.
 
 3. Check status:
-   kubectl get pods -l app.kubernetes.io/name={{ include "job-tracker.name" . }}
+   kubectl get pods -l app.kubernetes.io/name={{ include "tarnished.name" . }}

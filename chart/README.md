@@ -1,6 +1,6 @@
-# Job Tracker Helm Chart
+# Tarnished Helm Chart
 
-A Helm chart for deploying Job Tracker on Kubernetes.
+A Helm chart for deploying Tarnished on Kubernetes.
 
 ## Prerequisites
 
@@ -13,13 +13,13 @@ A Helm chart for deploying Job Tracker on Kubernetes.
 ### From OCI Registry (Recommended)
 
 ```bash
-helm install job-tracker oci://ghcr.io/OWNER/job-tracker
+helm install tarnished oci://ghcr.io/markoonakic/tarnished
 ```
 
 ### From Source
 
 ```bash
-helm install job-tracker ./chart/
+helm install tarnished ./chart/
 ```
 
 ## Configuration
@@ -29,7 +29,7 @@ helm install job-tracker ./chart/
 The default configuration uses SQLite with persistent storage:
 
 ```bash
-helm install job-tracker oci://ghcr.io/OWNER/job-tracker
+helm install tarnished oci://ghcr.io/markoonakic/tarnished
 ```
 
 ### With PostgreSQL
@@ -37,11 +37,11 @@ helm install job-tracker oci://ghcr.io/OWNER/job-tracker
 For production deployments with multiple replicas:
 
 ```bash
-helm install job-tracker oci://ghcr.io/OWNER/job-tracker \
+helm install tarnished oci://ghcr.io/markoonakic/tarnished \
   --set postgresql.enabled=true \
   --set postgresql.host=postgres.example.com \
-  --set postgresql.database=jobtracker \
-  --set postgresql.user=jobtracker \
+  --set postgresql.database=tarnished \
+  --set postgresql.user=tarnished \
   --set postgresql.password=your-password \
   --set replicaCount=2
 ```
@@ -49,7 +49,7 @@ helm install job-tracker oci://ghcr.io/OWNER/job-tracker \
 ### With Ingress and TLS
 
 ```bash
-helm install job-tracker oci://ghcr.io/OWNER/job-tracker \
+helm install tarnished oci://ghcr.io/markoonakic/tarnished \
   --set ingress.enabled=true \
   --set ingress.className=nginx \
   --set ingress.host=jobs.example.com \
@@ -62,7 +62,7 @@ helm install job-tracker oci://ghcr.io/OWNER/job-tracker \
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `replicaCount` | int | `1` | Number of replicas. Must be 1 for SQLite mode. |
-| `image.repository` | string | `ghcr.io/owner/job-tracker` | Container image repository |
+| `image.repository` | string | `ghcr.io/markoonakic/tarnished` | Container image repository |
 | `image.tag` | string | `latest` | Container image tag |
 | `image.pullPolicy` | string | `IfNotPresent` | Image pull policy |
 | `imagePullSecrets` | list | `[]` | Image pull secrets for private registries |
@@ -81,10 +81,10 @@ helm install job-tracker oci://ghcr.io/OWNER/job-tracker \
 | `ingress.enabled` | bool | `false` | Enable ingress |
 | `ingress.className` | string | `""` | Ingress class name |
 | `ingress.annotations` | object | `{}` | Ingress annotations |
-| `ingress.host` | string | `job-tracker.local` | Hostname |
+| `ingress.host` | string | `tarnished.local` | Hostname |
 | `ingress.paths` | list | `[{path: /, pathType: Prefix}]` | Ingress paths |
 | `ingress.tls.enabled` | bool | `false` | Enable TLS |
-| `ingress.tls.secretName` | string | `job-tracker-tls` | TLS secret name |
+| `ingress.tls.secretName` | string | `tarnished-tls` | TLS secret name |
 | `persistence.enabled` | bool | `true` | Enable persistent storage |
 | `persistence.storageClass` | string | `""` | Storage class (cluster default if empty) |
 | `persistence.size` | string | `1Gi` | PVC size |
@@ -92,8 +92,8 @@ helm install job-tracker oci://ghcr.io/OWNER/job-tracker \
 | `persistence.existingClaim` | string | `""` | Use existing PVC |
 | `postgresql.enabled` | bool | `false` | Enable PostgreSQL mode |
 | `postgresql.host` | string | `""` | PostgreSQL host |
-| `postgresql.database` | string | `jobtracker` | Database name |
-| `postgresql.user` | string | `jobtracker` | Database user |
+| `postgresql.database` | string | `tarnished` | Database name |
+| `postgresql.user` | string | `tarnished` | Database user |
 | `postgresql.password` | string | `""` | Database password |
 | `secretKey.existingSecret` | string | `""` | Existing secret for SECRET_KEY |
 | `secretKey.existingSecretKey` | string | `secret-key` | Key within existing secret |
@@ -114,7 +114,7 @@ helm install job-tracker oci://ghcr.io/OWNER/job-tracker \
 ### Upgrading the Chart
 
 ```bash
-helm upgrade job-tracker oci://ghcr.io/OWNER/job-tracker
+helm upgrade tarnished oci://ghcr.io/markoonakic/tarnished
 ```
 
 ### Database Migrations

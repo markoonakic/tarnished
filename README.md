@@ -90,14 +90,14 @@ docker-compose -f docker-compose.postgres.yml up -d
 ### Kubernetes (Helm)
 
 ```bash
-helm install job-tracker oci://ghcr.io/OWNER/job-tracker
+helm install tarnished oci://ghcr.io/markoonakic/tarnished
 ```
 
 ### Configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | `sqlite+aiosqlite:///app/data/jobtracker.db` | Database connection |
+| `DATABASE_URL` | `sqlite+aiosqlite:///app/data/tarnished.db` | Database connection |
 | `SECRET_KEY` | auto-generated | JWT signing key |
 | `APP_URL` | `http://localhost:5577` | Public URL (CORS, TrustedHost) |
 | `APP_PORT` | `5577` | External port mapping |

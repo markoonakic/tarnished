@@ -4,7 +4,7 @@ replicaCount: 1
 
 image:
   # -- Container image repository
-  repository: ghcr.io/owner/job-tracker
+  repository: ghcr.io/markoonakic/tarnished
   # -- Container image tag
   tag: latest
   # -- Image pull policy
@@ -63,7 +63,7 @@ ingress:
     # cert-manager.io/cluster-issuer: letsencrypt-prod
     # nginx.ingress.kubernetes.io/ssl-redirect: "true"
   # -- Hostname
-  host: job-tracker.local
+  host: tarnished.local
   # -- Ingress paths
   paths:
     - path: /
@@ -72,7 +72,7 @@ ingress:
     # -- Enable TLS
     enabled: false
     # -- TLS secret name (cert-manager auto-creates if annotations set)
-    secretName: job-tracker-tls
+    secretName: tarnished-tls
 
 persistence:
   # -- Enable persistent storage
@@ -95,9 +95,9 @@ postgresql:
   # -- PostgreSQL host
   host: ""
   # -- Database name
-  database: jobtracker
+  database: tarnished
   # -- Database user
-  user: jobtracker
+  user: tarnished
   # -- Database password
   password: ""
 

@@ -1,6 +1,6 @@
 # Backend Design Guidelines
 
-**Project:** Job Tracker
+**Project:** Tarnished
 **Stack:** Python, FastAPI, SQLAlchemy 2.0, Pydantic
 **Last Updated:** 2026-01-31
 

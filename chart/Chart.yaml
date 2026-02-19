@@ -1,13 +1,13 @@
 apiVersion: v2
-name: job-tracker
+name: tarnished
 description: A full-stack job application tracking system
 type: application
 version: 1.0.0
 appVersion: "1.0.0"
-home: https://github.com/owner/job-tracker
+home: https://github.com/markoonakic/tarnished
 sources:
-  - https://github.com/owner/job-tracker
+  - https://github.com/markoonakic/tarnished
 keywords:
-  - job-tracker
+  - tarnished
   - applications
   - careers

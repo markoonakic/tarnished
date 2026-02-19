@@ -1,4 +1,4 @@
-"""Services package for the job tracker backend."""
+"""Services package for the Tarnished backend."""
 
 from app.services.extraction import (
     ExtractionError,

@@ -1,6 +1,6 @@
 # Frontend Design Guidelines
 
-**Project:** Job Tracker
+**Project:** Tarnished
 **Stack:** React 19, TypeScript 5.7, Tailwind CSS 4.1, Vite 7
 **Last Updated:** 2026-02-17
 
