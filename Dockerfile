@@ -27,7 +27,7 @@ FROM python:3.12-slim-bookworm
 ENV PYTHONUNBUFFERED=1 \
     PATH="/app/.venv/bin:$PATH" \
     UPLOAD_DIR=/app/data/uploads \
-    DATABASE_URL=sqlite+aiosqlite:///app/data/jobtracker.db
+    DATABASE_URL=sqlite+aiosqlite:///app/data/tarnished.db
 
 WORKDIR /app
 
@@ -53,7 +53,7 @@ COPY --chown=appuser:appuser entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
 # OCI labels (overridden by docker/metadata-action in CI)
-LABEL org.opencontainers.image.source="https://github.com/owner/job-tracker" \
+LABEL org.opencontainers.image.source="https://github.com/markoonakic/tarnished" \
       org.opencontainers.image.description="A full-stack job application tracking system"
 
 EXPOSE 5577

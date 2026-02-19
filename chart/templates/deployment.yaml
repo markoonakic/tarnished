@@ -5,16 +5,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "job-tracker.fullname" . }}
+  name: {{ include "tarnished.fullname" . }}
   labels:
-    {{- include "job-tracker.labels" . | nindent 4 }}
+    {{- include "tarnished.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "job-tracker.selectorLabels" . | nindent 6 }}
+      {{- include "tarnished.selectorLabels" . | nindent 6 }}
   strategy:
-    {{- include "job-tracker.deploymentStrategy" . | nindent 4 }}
+    {{- include "tarnished.deploymentStrategy" . | nindent 4 }}
   template:
     metadata:
       annotations:
@@ -22,7 +22,7 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       labels:
-        {{- include "job-tracker.selectorLabels" . | nindent 8 }}
+        {{- include "tarnished.selectorLabels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -31,7 +31,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "job-tracker.serviceAccountName" . }}
+      serviceAccountName: {{ include "tarnished.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
@@ -102,7 +102,7 @@ spec:
             claimName: {{ .Values.persistence.existingClaim }}
           {{- else if .Values.persistence.enabled }}
           persistentVolumeClaim:
-            claimName: {{ include "job-tracker.fullname" . }}
+            claimName: {{ include "tarnished.fullname" . }}
           {{- else }}
           emptyDir: {}
           {{- end }}

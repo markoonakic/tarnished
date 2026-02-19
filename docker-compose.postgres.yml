@@ -6,7 +6,7 @@ services:
     volumes:
       - ./data:/app/data
     environment:
-      - DATABASE_URL=postgresql+asyncpg://jobtracker:${POSTGRES_PASSWORD}@db:5432/jobtracker
+      - DATABASE_URL=postgresql+asyncpg://tarnished:${POSTGRES_PASSWORD}@db:5432/tarnished
       - APP_URL=${APP_URL:-http://localhost:5577}
     depends_on:
       db:
@@ -18,11 +18,11 @@ services:
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=jobtracker
+      - POSTGRES_USER=tarnished
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=jobtracker
+      - POSTGRES_DB=tarnished
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jobtracker"]
+      test: ["CMD-SHELL", "pg_isready -U tarnished"]
       interval: 5s
       timeout: 5s
       retries: 5

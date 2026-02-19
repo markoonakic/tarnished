@@ -34,7 +34,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/job-tracker
+          images: ghcr.io/${{ github.repository_owner }}/tarnished
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -58,4 +58,4 @@ jobs:
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           helm package chart/ --version $VERSION --app-version $VERSION
-          helm push job-tracker-$VERSION.tgz oci://ghcr.io/${{ github.repository_owner }}
+          helm push tarnished-$VERSION.tgz oci://ghcr.io/${{ github.repository_owner }}
