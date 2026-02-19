@@ -43,7 +43,14 @@ spec:
           env:
             {{- if .Values.postgresql.enabled }}
             - name: DATABASE_URL
-              value: "postgresql+asyncpg://{{ .Values.postgresql.user }}:{{ .Values.postgresql.password }}@{{ .Values.postgresql.host }}:5432/{{ .Values.postgresql.database }}"
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.postgresql.existingSecret }}
+                  name: {{ .Values.postgresql.existingSecret }}
+                  {{- else }}
+                  name: {{ include "tarnished.fullname" . }}-postgresql
+                  {{- end }}
+                  key: database-url
             {{- end }}
             {{- if and .Values.secretKey.existingSecret (not .Values.postgresql.enabled) }}
             - name: SECRET_KEY
@@ -68,7 +75,14 @@ spec:
           env:
             {{- if .Values.postgresql.enabled }}
             - name: DATABASE_URL
-              value: "postgresql+asyncpg://{{ .Values.postgresql.user }}:{{ .Values.postgresql.password }}@{{ .Values.postgresql.host }}:5432/{{ .Values.postgresql.database }}"
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.postgresql.existingSecret }}
+                  name: {{ .Values.postgresql.existingSecret }}
+                  {{- else }}
+                  name: {{ include "tarnished.fullname" . }}-postgresql
+                  {{- end }}
+                  key: database-url
             {{- end }}
             {{- if .Values.secretKey.existingSecret }}
             - name: SECRET_KEY

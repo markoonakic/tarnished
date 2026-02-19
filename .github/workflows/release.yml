@@ -79,7 +79,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: extension
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Build extension
         working-directory: extension
