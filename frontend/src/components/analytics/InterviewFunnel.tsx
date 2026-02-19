@@ -35,8 +35,24 @@ export default function InterviewFunnel({ period = 'all', roundType }: Interview
     }
   }
 
-  const option: EChartsOption = useMemo(() => {
+  const option: EChartsOption = useMemo((): EChartsOption => {
     if (data.length === 0) return {};
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tooltipFormatter = (params: CallbackDataParams): string => {
+      const dataIndex = params.dataIndex as number;
+      const item = data[dataIndex];
+      if (!item) return '';
+      return `${item.round}<br/>Count: ${item.count}<br/>Passed: ${item.passed}<br/>Conversion: ${item.conversion_rate}%`;
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const labelFormatter = (params: CallbackDataParams): string => {
+      const dataIndex = params.dataIndex as number;
+      const item = data[dataIndex];
+      if (!item) return `${params.name}: ${params.value}`;
+      return `${item.round}: ${item.count}\n(${item.passed} passed - ${item.conversion_rate}%)`;
+    };
 
     return {
       tooltip: {
@@ -46,24 +62,14 @@ export default function InterviewFunnel({ period = 'all', roundType }: Interview
         borderWidth: 1,
         borderRadius: 4,
         textStyle: { color: colors.fg0 },
-        formatter: (params: CallbackDataParams) => {
-          const dataIndex = params.dataIndex as number;
-          const item = data[dataIndex];
-          if (!item) return '';
-          return `${item.round}<br/>Count: ${item.count}<br/>Passed: ${item.passed}<br/>Conversion: ${item.conversion_rate}%`;
-        },
+        formatter: tooltipFormatter as any,
       },
       series: [{
         type: 'funnel',
         left: '10%',
         width: '80%',
         label: {
-          formatter: (params: CallbackDataParams) => {
-            const dataIndex = params.dataIndex as number;
-            const item = data[dataIndex];
-            if (!item) return `${params.name}: ${params.value}`;
-            return `${item.round}: ${item.count}\n(${item.passed} passed - ${item.conversion_rate}%)`;
-          },
+          formatter: labelFormatter as any,
           color: colors.fg0,
           fontSize: 14,
           lineHeight: 18,
