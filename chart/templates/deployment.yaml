@@ -79,6 +79,10 @@ spec:
             {{- end }}
             - name: UPLOAD_DIR
               value: /app/data/uploads
+            {{- if .Values.ingress.enabled }}
+            - name: APP_URL
+              value: {{ if .Values.ingress.tls.enabled }}"https://{{ .Values.ingress.host }}"{{ else }}"http://{{ .Values.ingress.host }}"{{ end }}
+            {{- end }}
             {{- with .Values.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
