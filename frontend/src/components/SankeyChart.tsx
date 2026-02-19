@@ -30,7 +30,7 @@ export default function SankeyChart() {
     }
   }
 
-  const option: EChartsOption = useMemo(() => {
+  const option: EChartsOption = useMemo((): EChartsOption => {
     if (!data) return {};
 
     // Skip the "applications" node - we start from "Applied"
@@ -83,6 +83,41 @@ export default function SankeyChart() {
         value: l.value,
       }));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tooltipFormatter = (params: CallbackDataParams): string => {
+      const nodeId = params.name;
+      let label: string;
+
+      if (nodeId.startsWith('terminal_rejected_')) {
+        const stage = nodeId.split('_').pop()?.replace(/_/g, ' ') || '';
+        label = `Rejected after ${stage.charAt(0).toUpperCase() + stage.slice(1)}`;
+      } else if (nodeId.startsWith('terminal_withdrawn_')) {
+        const stage = nodeId.split('_').pop()?.replace(/_/g, ' ') || '';
+        label = `Withdrawn after ${stage.charAt(0).toUpperCase() + stage.slice(1)}`;
+      } else if (nodeId.startsWith('status_')) {
+        label = nodeId.replace('status_', '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+      } else {
+        label = nodeId;
+      }
+
+      return `${label}: ${params.value}`;
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const labelFormatter = (params: CallbackDataParams): string => {
+      // Simple labels: "Rejected", "Withdrawn", or the status name
+      if (params.name.startsWith('terminal_rejected_')) {
+        return 'Rejected';
+      }
+      if (params.name.startsWith('terminal_withdrawn_')) {
+        return 'Withdrawn';
+      }
+      if (params.name.startsWith('status_')) {
+        return params.name.replace('status_', '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+      }
+      return params.name;
+    };
+
     return {
       tooltip: {
         trigger: 'item',
@@ -92,24 +127,7 @@ export default function SankeyChart() {
         borderWidth: 1,
         borderRadius: 4,
         textStyle: { color: colors.fg0 },
-        formatter: (params: CallbackDataParams) => {
-          const nodeId = params.name;
-          let label: string;
-
-          if (nodeId.startsWith('terminal_rejected_')) {
-            const stage = nodeId.split('_').pop()?.replace(/_/g, ' ') || '';
-            label = `Rejected after ${stage.charAt(0).toUpperCase() + stage.slice(1)}`;
-          } else if (nodeId.startsWith('terminal_withdrawn_')) {
-            const stage = nodeId.split('_').pop()?.replace(/_/g, ' ') || '';
-            label = `Withdrawn after ${stage.charAt(0).toUpperCase() + stage.slice(1)}`;
-          } else if (nodeId.startsWith('status_')) {
-            label = nodeId.replace('status_', '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
-          } else {
-            label = nodeId;
-          }
-
-          return `${label}: ${params.value}`;
-        },
+        formatter: tooltipFormatter as any,
       },
       series: [{
         type: 'sankey',
@@ -125,19 +143,7 @@ export default function SankeyChart() {
         label: {
           color: colors.fg1,
           fontSize: 12,
-          formatter: (params: CallbackDataParams) => {
-            // Simple labels: "Rejected", "Withdrawn", or the status name
-            if (params.name.startsWith('terminal_rejected_')) {
-              return 'Rejected';
-            }
-            if (params.name.startsWith('terminal_withdrawn_')) {
-              return 'Withdrawn';
-            }
-            if (params.name.startsWith('status_')) {
-              return params.name.replace('status_', '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
-            }
-            return params.name;
-          },
+          formatter: labelFormatter as any,
         },
         nodeAlign: 'justify',
         nodeGap: 30,

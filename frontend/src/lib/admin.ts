@@ -11,6 +11,14 @@ export interface AdminStats {
   applications_by_status: { status: string; count: number }[];
 }
 
+export interface AdminUserListResponse {
+  items: AdminUser[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}
+
 export async function listUsers(params?: {
   page?: number;
   per_page?: number;
