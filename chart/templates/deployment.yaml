@@ -41,9 +41,6 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["alembic", "upgrade", "head"]
           env:
-            # Explicitly set PATH to include venv (Kubernetes doesn't inherit Docker ENV)
-            - name: PATH
-              value: "/app/.venv/bin:/usr/local/bin:/usr/bin:/bin"
             {{- if .Values.postgresql.enabled }}
             - name: DATABASE_URL
               valueFrom:

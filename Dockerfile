@@ -7,7 +7,7 @@ COPY frontend/ ./
 ENV VITE_API_URL=""
 RUN yarn build
 
-# Stage 2: Download Python dependencies
+# Stage 2: Build Python dependencies
 FROM python:3.12-alpine AS builder
 
 # Install build dependencies (for packages with C extensions)
@@ -22,6 +22,10 @@ WORKDIR /app
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# uv optimizations for Docker
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
 
 # Copy dependency files
 COPY backend/pyproject.toml backend/uv.lock ./
@@ -47,19 +51,14 @@ RUN addgroup -S -g 1000 appuser && \
     mkdir -p /app/data/uploads && \
     chown -R appuser:appuser /app
 
-# Create venv IN the runtime image (ensures correct shebangs)
-RUN python -m venv /app/.venv
+# Copy ENTIRE venv from builder (preserves entry points with correct shebangs)
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PATH="/app/.venv/bin:$PATH" \
     UPLOAD_DIR=/app/data/uploads \
     DATABASE_URL=sqlite+aiosqlite:///app/data/tarnished.db
-
-# Copy installed packages from builder (NOT the entire venv)
-COPY --from=builder --chown=appuser:appuser \
-    /app/.venv/lib/python3.12/site-packages \
-    /app/.venv/lib/python3.12/site-packages
 
 # Copy application code
 COPY --chown=appuser:appuser backend/app ./app
