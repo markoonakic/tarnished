@@ -9,7 +9,7 @@ from typing import Sequence, Union
 import uuid
 import random
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from alembic import op
 import sqlalchemy as sa
@@ -169,7 +169,7 @@ def upgrade() -> None:
         return
 
     # Get current time for timestamp distribution
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     # Prepare bulk insert data
     history_entries = []

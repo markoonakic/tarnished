@@ -9,7 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import sqlite
+from sqlalchemy import table, column, update
 
 
 # revision identifiers, used by Alembic.
@@ -21,20 +21,22 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    # Add settings column as JSON (stored as TEXT in SQLite)
+    # Add settings column as JSON
     with op.batch_alter_table('users', schema=None) as batch_op:
         batch_op.add_column(sa.Column('settings', sa.JSON(), nullable=True))
 
-    # Set default settings for existing users
-    op.execute("""
-        UPDATE users
-        SET settings = json_object(
-            'show_streak_stats', json('true'),
-            'show_needs_attention', json('true'),
-            'show_heatmap', json('true')
-        )
-        WHERE settings IS NULL
-    """)
+    # Set default settings for existing users using SQLAlchemy Core
+    # This is cross-database compatible (works on both PostgreSQL and SQLite)
+    users = table('users', column('settings'))
+    op.execute(
+        update(users)
+        .where(users.c.settings.is_(None))
+        .values(settings={
+            'show_streak_stats': True,
+            'show_needs_attention': True,
+            'show_heatmap': True
+        })
+    )
 
 
 def downgrade() -> None:

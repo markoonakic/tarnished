@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -54,7 +54,7 @@ class JobLead(Base):
     source: Mapped[str | None] = mapped_column(String(100), nullable=True)
     posted_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     scraped_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=lambda: datetime.now(UTC), nullable=False
     )
 
     # Status

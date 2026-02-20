@@ -12,7 +12,7 @@ browser extension authentication (API token).
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -531,7 +531,7 @@ async def retry_job_lead_extraction(
         job_lead.years_experience_max = extracted.years_experience_max
         job_lead.source = extracted.source
         job_lead.posted_date = extracted.posted_date
-        job_lead.scraped_at = datetime.utcnow()  # Update timestamp
+        job_lead.scraped_at = datetime.now(UTC)  # Update timestamp
 
         await db.commit()
         await db.refresh(job_lead)
@@ -689,7 +689,7 @@ async def convert_job_lead_to_application(
         job_url=job_lead.url,
         job_lead_id=job_lead.id,
         status_id=default_status.id,
-        applied_at=datetime.utcnow().date(),
+        applied_at=datetime.now(UTC).date(),
         # Rich extraction fields
         description=job_lead.description,
         location=job_lead.location,

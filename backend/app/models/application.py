@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -28,7 +28,7 @@ class ApplicationStatusHistory(Base):
         String(36), ForeignKey("application_statuses.id"), nullable=False
     )
     changed_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=lambda: datetime.now(UTC), nullable=False
     )
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -60,9 +60,9 @@ class Application(Base):
     cv_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     cover_letter_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     applied_at: Mapped[date] = mapped_column(Date, default=date.today)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
     )
 
     # Job Lead relationship (for converted leads)

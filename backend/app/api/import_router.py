@@ -12,7 +12,7 @@ import os
 import uuid
 import zipfile
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import aiofiles
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
@@ -114,7 +114,7 @@ class ImportProgress:
     @classmethod
     def _cleanup_old_entries(cls):
         """Remove entries older than MAX_AGE_MINUTES to prevent memory leaks."""
-        cutoff = datetime.utcnow() - timedelta(minutes=cls.MAX_AGE_MINUTES)
+        cutoff = datetime.now(UTC) - timedelta(minutes=cls.MAX_AGE_MINUTES)
         to_delete = [
             import_id
             for import_id, data in cls._active_imports.items()
@@ -137,7 +137,7 @@ class ImportProgress:
             "stage": "initializing",
             "percent": 0,
             "message": "Starting import...",
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
         cls._active_imports[import_id] = progress
         return progress
@@ -155,7 +155,7 @@ class ImportProgress:
                 "success": success,
                 "result": result or {},
                 "created_at": cls._active_imports[import_id].get(
-                    "created_at", datetime.utcnow().isoformat()
+                    "created_at", datetime.now(UTC).isoformat()
                 ),
             }
 

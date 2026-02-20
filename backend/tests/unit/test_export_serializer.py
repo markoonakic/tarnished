@@ -1,6 +1,6 @@
 """Unit tests for the export serializer module."""
 import pytest
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import uuid4
 
@@ -26,7 +26,7 @@ class Post(Base):
     title: Mapped[str] = mapped_column(String(255))
     content: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
     tags: Mapped[list] = mapped_column(JSON, default=list)
 
     user = relationship("User")

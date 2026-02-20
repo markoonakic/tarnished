@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 
 from sqlalchemy import DateTime, ForeignKey, String, Text
@@ -33,7 +33,7 @@ class Round(Base):
     notes_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     transcript_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     transcript_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
 
     application = relationship("Application", back_populates="rounds")
     round_type = relationship("RoundType", back_populates="rounds")
@@ -54,6 +54,6 @@ class RoundMedia(Base):
     )
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     media_type: Mapped[str] = mapped_column(String(10), nullable=False)
-    uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
 
     round = relationship("Round", back_populates="media")

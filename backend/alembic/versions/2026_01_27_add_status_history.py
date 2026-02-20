@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import func
 
 
 # revision identifiers, used by Alembic.
@@ -27,7 +28,7 @@ def upgrade() -> None:
         sa.Column('application_id', sa.String(36), sa.ForeignKey('applications.id', ondelete='CASCADE'), nullable=False),
         sa.Column('from_status_id', sa.String(36), sa.ForeignKey('application_statuses.id'), nullable=True),
         sa.Column('to_status_id', sa.String(36), sa.ForeignKey('application_statuses.id'), nullable=False),
-        sa.Column('changed_at', sa.DateTime(), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP')),
+        sa.Column('changed_at', sa.DateTime(), nullable=False, server_default=func.now()),
         sa.Column('note', sa.Text(), nullable=True)
     )
 
