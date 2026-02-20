@@ -27,7 +27,8 @@ jobs:
         run: |
           cd backend
           uv sync
-          # Create a test database to check migrations against
+          # Create the data directory for SQLite database
+          mkdir -p data
           uv run alembic check || (echo "Schema drift detected! Run 'alembic revision --autogenerate' to create missing migrations." && exit 1)
 
       - name: Setup Node.js
