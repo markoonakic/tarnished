@@ -28,9 +28,7 @@ COPY backend/pyproject.toml backend/uv.lock ./
 
 # Create venv and install dependencies
 RUN uv venv /app/.venv && \
-    uv pip install --python /app/.venv/bin/python \
-    --no-dev --no-install-project \
-    -r pyproject.toml
+    uv sync --locked --no-dev --no-install-project
 
 # Stage 3: Production runtime
 FROM python:3.12-alpine
