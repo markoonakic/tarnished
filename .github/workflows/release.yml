@@ -29,6 +29,8 @@ jobs:
           uv sync
           # Create the data directory for SQLite database
           mkdir -p data
+          # Apply migrations first so alembic check can compare models against migrated schema
+          uv run alembic upgrade head
           uv run alembic check || (echo "Schema drift detected! Run 'alembic revision --autogenerate' to create missing migrations." && exit 1)
 
       - name: Setup Node.js
