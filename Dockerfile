@@ -7,40 +7,63 @@ COPY frontend/ ./
 ENV VITE_API_URL=""
 RUN yarn build
 
-# Stage 2: Install Python dependencies (uv stays in this stage only)
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS backend-builder
+# Stage 2: Download Python dependencies
+FROM python:3.12-alpine AS builder
 
-ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy \
-    UV_PYTHON_DOWNLOADS=0
+# Install build dependencies (for packages with C extensions)
+RUN apk add --no-cache \
+    build-base \
+    libffi-dev \
+    postgresql-dev \
+    gcc \
+    musl-dev
 
 WORKDIR /app
 
-# Install dependencies only (layer cached until lock file changes)
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy dependency files
 COPY backend/pyproject.toml backend/uv.lock ./
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-install-project --no-dev
 
-# Stage 3: Production runtime (no uv, no pip, no build tools)
-FROM python:3.12-slim-bookworm
+# Create venv and install dependencies
+RUN uv venv /app/.venv && \
+    uv pip install --python /app/.venv/bin/python \
+    --no-dev --no-install-project \
+    -r pyproject.toml
 
+# Stage 3: Production runtime
+FROM python:3.12-alpine
+
+# Install runtime dependencies only (no build tools)
+RUN apk add --no-cache \
+    libpq \
+    postgresql-libs \
+    curl
+
+WORKDIR /app
+
+# Create non-root user and directories
+RUN addgroup -S -g 1000 appuser && \
+    adduser -S -u 1000 -G appuser appuser && \
+    mkdir -p /app/data/uploads && \
+    chown -R appuser:appuser /app
+
+# Create venv IN the runtime image (ensures correct shebangs)
+RUN python -m venv /app/.venv
+
+# Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PATH="/app/.venv/bin:$PATH" \
     UPLOAD_DIR=/app/data/uploads \
     DATABASE_URL=sqlite+aiosqlite:///app/data/tarnished.db
 
-WORKDIR /app
+# Copy installed packages from builder (NOT the entire venv)
+COPY --from=builder --chown=appuser:appuser \
+    /app/.venv/lib/python3.12/site-packages \
+    /app/.venv/lib/python3.12/site-packages
 
-# Create non-root user and data directory
-RUN groupadd --system --gid 1000 appuser \
- && useradd --system --gid 1000 --uid 1000 --create-home appuser \
- && mkdir -p /app/data/uploads \
- && chown -R appuser:appuser /app
-
-# Copy virtual environment from builder (deps only, no uv binary)
-COPY --from=backend-builder --chown=appuser:appuser /app/.venv ./.venv
-
-# Copy backend code
+# Copy application code
 COPY --chown=appuser:appuser backend/app ./app
 COPY --chown=appuser:appuser backend/alembic.ini ./
 COPY --chown=appuser:appuser backend/alembic ./alembic
@@ -52,7 +75,7 @@ COPY --from=frontend-builder --chown=appuser:appuser /app/dist ./static
 COPY --chown=appuser:appuser entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
-# OCI labels (overridden by docker/metadata-action in CI)
+# OCI labels
 LABEL org.opencontainers.image.source="https://github.com/markoonakic/tarnished" \
       org.opencontainers.image.description="A full-stack job application tracking system"
 
