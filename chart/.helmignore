@@ -1,6 +1,6 @@
 # Patterns to ignore when building packages.
-# This supports shell glob matching, relative path matching, and
-# negation (prefixed with !). Only one pattern per line.
+# This supports shell glob matching, relative path matching.
+# Note: Does NOT support '!' negation or '**' syntax.
 
 # Common VCS dirs
 .git/
@@ -27,14 +27,6 @@
 *.launch
 .settings/
 .vscode/
-
-# Test files
-tests/
-*.test.yaml
-
-# Documentation that users don't need in the chart
-*.md
-!README.md
 
 # CI/CD files
 .github/
