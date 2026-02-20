@@ -2,7 +2,7 @@ import base64
 import hashlib
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 from cryptography.fernet import Fernet, InvalidToken
@@ -27,7 +27,7 @@ def get_password_hash(password: str) -> str:
 def create_access_token(data: dict) -> str:
     """Create a JWT access token with configured expiration."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+    expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
     to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
@@ -35,7 +35,7 @@ def create_access_token(data: dict) -> str:
 def create_refresh_token(data: dict) -> str:
     """Create a JWT refresh token with configured expiration."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
+    expire = datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days)
     to_encode.update({"exp": expire, "type": "refresh"})
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
@@ -57,7 +57,7 @@ def create_file_token(application_id: str, doc_type: str, user_id: str) -> str:
         "user_id": user_id,
         "type": "file",
     }
-    expire = datetime.utcnow() + timedelta(minutes=5)
+    expire = datetime.now(UTC) + timedelta(minutes=5)
     to_encode["exp"] = expire  # type: ignore[assignment]
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
@@ -80,7 +80,7 @@ def create_media_token(media_id: str, user_id: str) -> str:
         "user_id": user_id,
         "type": "media",
     }
-    expire = datetime.utcnow() + timedelta(minutes=5)
+    expire = datetime.now(UTC) + timedelta(minutes=5)
     to_encode["exp"] = expire  # type: ignore[assignment]
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
@@ -103,7 +103,7 @@ def create_round_transcript_token(round_id: str, user_id: str) -> str:
         "user_id": user_id,
         "type": "round_transcript",
     }
-    expire = datetime.utcnow() + timedelta(minutes=5)
+    expire = datetime.now(UTC) + timedelta(minutes=5)
     to_encode["exp"] = expire  # type: ignore[assignment]
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 

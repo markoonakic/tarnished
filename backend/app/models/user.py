@@ -25,7 +25,7 @@ class User(Base):
     )  # hashed token for extension auth
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     settings: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     current_streak: Mapped[int] = mapped_column(default=0, nullable=False)
     longest_streak: Mapped[int] = mapped_column(default=0, nullable=False)

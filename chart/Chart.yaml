@@ -2,8 +2,8 @@ apiVersion: v2
 name: tarnished
 description: A full-stack job application tracking system
 type: application
-version: 0.1.7
-appVersion: "0.1.7"
+version: 0.1.8
+appVersion: "0.1.8"
 home: https://github.com/markoonakic/tarnished
 sources:
   - https://github.com/markoonakic/tarnished
