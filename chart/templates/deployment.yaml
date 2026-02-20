@@ -39,7 +39,7 @@ spec:
         - name: migrate
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["alembic", "upgrade", "head"]
+          command: ["/app/.venv/bin/alembic", "upgrade", "head"]
           env:
             {{- if .Values.postgresql.enabled }}
             - name: DATABASE_URL
