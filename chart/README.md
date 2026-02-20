@@ -13,7 +13,7 @@ A Helm chart for deploying Tarnished on Kubernetes.
 ### From OCI Registry (Recommended)
 
 ```bash
-helm install tarnished oci://ghcr.io/markoonakic/tarnished
+helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished
 ```
 
 ### From Source
@@ -29,7 +29,7 @@ helm install tarnished ./chart/
 The default configuration uses SQLite with persistent storage:
 
 ```bash
-helm install tarnished oci://ghcr.io/markoonakic/tarnished
+helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished
 ```
 
 ### With PostgreSQL
@@ -37,7 +37,7 @@ helm install tarnished oci://ghcr.io/markoonakic/tarnished
 For production deployments with multiple replicas:
 
 ```bash
-helm install tarnished oci://ghcr.io/markoonakic/tarnished \
+helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
   --set postgresql.enabled=true \
   --set postgresql.host=postgres.example.com \
   --set postgresql.database=tarnished \
@@ -49,7 +49,7 @@ helm install tarnished oci://ghcr.io/markoonakic/tarnished \
 ### With Ingress and TLS
 
 ```bash
-helm install tarnished oci://ghcr.io/markoonakic/tarnished \
+helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
   --set ingress.enabled=true \
   --set ingress.className=nginx \
   --set ingress.host=jobs.example.com \
@@ -114,7 +114,7 @@ helm install tarnished oci://ghcr.io/markoonakic/tarnished \
 ### Upgrading the Chart
 
 ```bash
-helm upgrade tarnished oci://ghcr.io/markoonakic/tarnished
+helm upgrade tarnished oci://ghcr.io/markoonakic/charts/tarnished
 ```
 
 ### Database Migrations

@@ -90,7 +90,7 @@ docker-compose -f docker-compose.postgres.yml up -d
 ### Kubernetes (Helm)
 
 ```bash
-helm install tarnished oci://ghcr.io/markoonakic/tarnished
+helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished
 ```
 
 ### Configuration
