@@ -39,8 +39,11 @@ spec:
         - name: migrate
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["/app/.venv/bin/alembic", "upgrade", "head"]
+          command: ["alembic", "upgrade", "head"]
           env:
+            # Explicitly set PATH to include venv (Kubernetes doesn't inherit Docker ENV)
+            - name: PATH
+              value: "/app/.venv/bin:/usr/local/bin:/usr/bin:/bin"
             {{- if .Values.postgresql.enabled }}
             - name: DATABASE_URL
               valueFrom:
@@ -59,6 +62,15 @@ spec:
                   name: {{ .Values.secretKey.existingSecret }}
                   key: {{ .Values.secretKey.existingSecretKey }}
             {{- end }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
           volumeMounts:
             - name: data
               mountPath: /app/data
