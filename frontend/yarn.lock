@@ -1450,6 +1450,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"bootstrap-icons@npm:^1.13.1":
+  version: 1.13.1
+  resolution: "bootstrap-icons@npm:1.13.1"
+  checksum: 10c0/2c1adeb1796502e67b476ce049c86bc3a7ff7984c61777e056820389a8db5ec6535c12a33f76f3ed52674bca4c01472065a7fbcde6cc384ebb86c2eae51390bd
+  languageName: node
+  linkType: hard
+
 "brace-expansion@npm:^1.1.7":
   version: 1.1.12
   resolution: "brace-expansion@npm:1.1.12"
@@ -2194,6 +2201,7 @@ __metadata:
     agentation: "npm:^2.2.0"
     autoprefixer: "npm:^10.4.23"
     axios: "npm:^1.13.2"
+    bootstrap-icons: "npm:^1.13.1"
     echarts: "npm:^6.0.0"
     echarts-for-react: "npm:^3.0.6"
     eslint: "npm:^9.39.1"
