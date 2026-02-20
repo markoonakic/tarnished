@@ -1,0 +1,14 @@
+# Pre-commit hooks for Tarnished
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  - repo: local
+    hooks:
+      - id: alembic-check
+        name: Check for schema drift
+        entry: bash -c 'cd backend && uv run alembic check'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
