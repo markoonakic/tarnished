@@ -15,6 +15,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Check for schema drift
+        run: |
+          cd backend
+          uv sync
+          # Create a test database to check migrations against
+          uv run alembic check || (echo "Schema drift detected! Run 'alembic revision --autogenerate' to create missing migrations." && exit 1)
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: yarn install --immutable
+
+      - name: Build frontend
+        working-directory: frontend
+        run: yarn build
+
+      - name: Verify build output
+        run: |
+          # Verify font files exist
+          test -f frontend/dist/fonts/bootstrap-icons.woff2 || (echo "ERROR: Missing bootstrap-icons.woff2" && exit 1)
+          test -f frontend/dist/fonts/bootstrap-icons.woff || (echo "ERROR: Missing bootstrap-icons.woff" && exit 1)
+          echo "Build verification passed"
+
       # QEMU enables ARM64 emulation for multi-arch builds
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
