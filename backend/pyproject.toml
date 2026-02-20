@@ -92,9 +92,3 @@ reportMissingImports = true
 reportMissingTypeStubs = false
 venvPath = "."
 venv = ".venv"
-
-[tool.codeflash]
-module_root = "app"
-tests_root = "tests"
-test_framework = "pytest"
-ignore_paths = ["alembic", "data"]

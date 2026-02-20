@@ -10,6 +10,7 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import table, column, update
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 # revision identifiers, used by Alembic.
@@ -26,8 +27,8 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column('settings', sa.JSON(), nullable=True))
 
     # Set default settings for existing users using SQLAlchemy Core
-    # This is cross-database compatible (works on both PostgreSQL and SQLite)
-    users = table('users', column('settings'))
+    # Column type is specified so asyncpg knows how to serialize the dict
+    users = table('users', column('settings', JSONB))
     op.execute(
         update(users)
         .where(users.c.settings.is_(None))
