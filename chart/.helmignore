@@ -1,0 +1,46 @@
+# Patterns to ignore when building packages.
+# This supports shell glob matching, relative path matching, and
+# negation (prefixed with !). Only one pattern per line.
+
+# Common VCS dirs
+.git/
+.gitignore
+.bzr/
+.bzrignore
+.hg/
+.hgignore
+.svn/
+
+# Common backup files
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+
+# Various IDEs
+.idea/
+*.iml
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+.vscode/
+
+# Test files
+tests/
+*.test.yaml
+
+# Documentation that users don't need in the chart
+*.md
+!README.md
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Other files not needed in the chart
+Chart.lock

@@ -62,12 +62,7 @@ spec:
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           resources:
-            limits:
-              memory: "128Mi"
-              cpu: "100m"
-            requests:
-              memory: "64Mi"
-              cpu: "50m"
+            {{- toYaml .Values.initContainer.resources | nindent 12 }}
           volumeMounts:
             - name: data
               mountPath: /app/data

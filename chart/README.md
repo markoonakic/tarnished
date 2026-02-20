@@ -40,6 +40,7 @@ For production deployments with multiple replicas:
 helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
   --set postgresql.enabled=true \
   --set postgresql.host=postgres.example.com \
+  --set postgresql.port=5432 \
   --set postgresql.database=tarnished \
   --set postgresql.user=tarnished \
   --set postgresql.password=your-password \
@@ -63,7 +64,7 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
 |-----|------|---------|-------------|
 | `replicaCount` | int | `1` | Number of replicas. Must be 1 for SQLite mode. |
 | `image.repository` | string | `ghcr.io/markoonakic/tarnished` | Container image repository |
-| `image.tag` | string | `latest` | Container image tag |
+| `image.tag` | string | `""` | Container image tag (defaults to appVersion) |
 | `image.pullPolicy` | string | `IfNotPresent` | Image pull policy |
 | `imagePullSecrets` | list | `[]` | Image pull secrets for private registries |
 | `nameOverride` | string | `""` | Override chart name |
@@ -92,9 +93,11 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
 | `persistence.existingClaim` | string | `""` | Use existing PVC |
 | `postgresql.enabled` | bool | `false` | Enable PostgreSQL mode |
 | `postgresql.host` | string | `""` | PostgreSQL host |
+| `postgresql.port` | int | `5432` | PostgreSQL port |
 | `postgresql.database` | string | `tarnished` | Database name |
 | `postgresql.user` | string | `tarnished` | Database user |
 | `postgresql.password` | string | `""` | Database password |
+| `postgresql.existingSecret` | string | `""` | Existing secret for PostgreSQL credentials |
 | `secretKey.existingSecret` | string | `""` | Existing secret for SECRET_KEY |
 | `secretKey.existingSecretKey` | string | `secret-key` | Key within existing secret |
 | `env` | list | `[]` | Additional environment variables |
@@ -103,6 +106,10 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
 | `resources.requests.cpu` | string | `100m` | CPU request |
 | `resources.limits.memory` | string | `512Mi` | Memory limit |
 | `resources.limits.cpu` | string | `500m` | CPU limit |
+| `initContainer.resources.requests.memory` | string | `128Mi` | Init container memory request |
+| `initContainer.resources.requests.cpu` | string | `50m` | Init container CPU request |
+| `initContainer.resources.limits.memory` | string | `256Mi` | Init container memory limit |
+| `initContainer.resources.limits.cpu` | string | `200m` | Init container CPU limit |
 | `livenessProbe` | object | See values | Liveness probe configuration |
 | `readinessProbe` | object | See values | Readiness probe configuration |
 | `nodeSelector` | object | `{}` | Node selector |

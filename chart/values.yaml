@@ -5,8 +5,8 @@ replicaCount: 1
 image:
   # -- Container image repository
   repository: ghcr.io/markoonakic/tarnished
-  # -- Container image tag
-  tag: latest
+  # -- Container image tag (defaults to .Chart.AppVersion if empty)
+  tag: ""
   # -- Image pull policy
   pullPolicy: IfNotPresent
 
@@ -94,6 +94,8 @@ postgresql:
   enabled: false
   # -- PostgreSQL host
   host: ""
+  # -- PostgreSQL port
+  port: 5432
   # -- Database name
   database: tarnished
   # -- Database user
@@ -128,6 +130,16 @@ resources:
   limits:
     memory: "512Mi"
     cpu: "500m"
+
+# -- Init container (migrations) resources
+initContainer:
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
 
 livenessProbe:
   httpGet:
