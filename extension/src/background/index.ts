@@ -12,7 +12,7 @@ import { buildUrl } from '../lib/url';
 import { debug, warn, error } from '../lib/logger';
 
 async function fetchThemeSettings(): Promise<ThemeColors> {
-  const { appUrl, apiKey } = await browser.storage.local.get(['appUrl', 'apiKey']);
+  const { appUrl, apiKey } = await browser.storage.local.get(['appUrl', 'apiKey']) as { appUrl?: string; apiKey?: string };
 
   if (!appUrl || !apiKey) {
     debug('Theme', 'Extension not configured, using default colors');
@@ -45,7 +45,7 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
     error('Theme', 'Fetch failed:', err);
 
     // Try to use cached settings
-    const cached = await browser.storage.local.get(SETTINGS_STORAGE_KEY);
+    const cached = await browser.storage.local.get(SETTINGS_STORAGE_KEY) as Record<string, ThemeColors>;
     if (cached[SETTINGS_STORAGE_KEY]) {
       debug('Theme', 'Using cached colors');
       return cached[SETTINGS_STORAGE_KEY];
@@ -60,7 +60,7 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
  * Falls back to DEFAULT_COLORS if not cached
  */
 async function getAccentColor(): Promise<string> {
-  const cached = await browser.storage.local.get(SETTINGS_STORAGE_KEY);
+  const cached = await browser.storage.local.get(SETTINGS_STORAGE_KEY) as Record<string, ThemeColors>;
   const colors: ThemeColors = cached[SETTINGS_STORAGE_KEY] || DEFAULT_COLORS;
   return colors.accent;
 }
@@ -135,13 +135,14 @@ async function updateIconColor(accentHex: string): Promise<void> {
 
   // Set icon with generated ImageData
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await browser.action.setIcon({
       imageData: {
         16: imageDataMap[16],
         48: imageDataMap[48],
         128: imageDataMap[128],
       }
-    });
+    } as any);
     debug('Icon', 'Successfully updated with accent color:', accentHex);
   } catch (err) {
     error('Icon', 'Failed to set icon:', err);
@@ -240,7 +241,7 @@ const THEME_FETCH_INTERVAL = 30000;
  */
 async function loadAutoFillSetting(): Promise<void> {
   try {
-    const result = await browser.storage.local.get('autoFillOnLoad');
+    const result = await browser.storage.local.get('autoFillOnLoad') as { autoFillOnLoad?: boolean };
     autoFillOnLoad = result.autoFillOnLoad ?? false;
   } catch (err) {
     warn('AutoFill', 'Failed to load setting:', err);
@@ -292,7 +293,7 @@ loadAutoFillSetting();
 // Listen for storage changes
 browser.storage.onChanged.addListener((changes) => {
   if (changes.autoFillOnLoad !== undefined) {
-    autoFillOnLoad = changes.autoFillOnLoad.newValue;
+    autoFillOnLoad = changes.autoFillOnLoad.newValue as boolean;
   }
 });
 
@@ -310,16 +311,16 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     try {
       const response = await browser.tabs.sendMessage(tabId, {
         type: 'GET_DETECTION',
-      });
+      }) as { isJobPage?: boolean; score?: number; signals?: string[] };
 
       if (response) {
         tabStatus.set(tabId, {
-          isJobPage: response.isJobPage,
-          score: response.score,
-          signals: response.signals,
+          isJobPage: response.isJobPage ?? false,
+          score: response.score ?? 0,
+          signals: response.signals ?? [],
           url: tab.url,
         });
-        await updateBadge(tabId, response.isJobPage);
+        await updateBadge(tabId, response.isJobPage ?? false);
       }
     } catch {
       // Content script might not be loaded on this page (e.g., chrome://, extension pages)
@@ -334,41 +335,45 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
  * Handles DETECTION_RESULT from content script, GET_TAB_STATUS from popup,
  * and FORM_DETECTION_UPDATE for auto-fill feature
  */
-browser.runtime.onMessage.addListener((message, sender) => {
+browser.runtime.onMessage.addListener((message: unknown, sender: { tab?: { id?: number } }) => {
+  const msg = message as { type: string; [key: string]: unknown };
+
   // From content script: detection result
-  if (message.type === 'DETECTION_RESULT' && sender.tab?.id) {
+  if (msg.type === 'DETECTION_RESULT' && sender.tab?.id) {
+    const detectionMsg = msg as unknown as { isJobPage: boolean; score: number; signals: string[]; url: string };
     tabStatus.set(sender.tab.id, {
-      isJobPage: message.isJobPage,
-      score: message.score,
-      signals: message.signals,
-      url: message.url,
+      isJobPage: detectionMsg.isJobPage,
+      score: detectionMsg.score,
+      signals: detectionMsg.signals,
+      url: detectionMsg.url,
     });
     // Return the promise so the async updateBadge completes
-    return updateBadge(sender.tab.id, message.isJobPage).then(() => undefined);
+    return updateBadge(sender.tab.id, detectionMsg.isJobPage).then(() => undefined);
   }
 
   // From content script: form detection update (for auto-fill on load)
-  if (message.type === 'FORM_DETECTION_UPDATE' && sender.tab?.id) {
+  if (msg.type === 'FORM_DETECTION_UPDATE' && sender.tab?.id) {
+    const formMsg = msg as unknown as { hasApplicationForm: boolean; fillableFieldCount: number };
     const tabId = sender.tab.id;
 
     debug('FormDetection', 'Update:', {
       tabId,
-      hasApplicationForm: message.hasApplicationForm,
-      fillableFieldCount: message.fillableFieldCount,
+      hasApplicationForm: formMsg.hasApplicationForm,
+      fillableFieldCount: formMsg.fillableFieldCount,
       autoFillOnLoad,
     });
 
     // Store form detection state for this tab
     tabFormDetectionState.set(tabId, {
-      hasApplicationForm: message.hasApplicationForm,
-      fillableFieldCount: message.fillableFieldCount,
+      hasApplicationForm: formMsg.hasApplicationForm,
+      fillableFieldCount: formMsg.fillableFieldCount,
     });
 
     // If auto-fill on load is enabled and form detected with enough fields, trigger autofill
     if (
       autoFillOnLoad &&
-      message.hasApplicationForm &&
-      message.fillableFieldCount >= 2
+      formMsg.hasApplicationForm &&
+      formMsg.fillableFieldCount >= 2
     ) {
       debug('FormDetection', 'Triggering auto-fill for tab', tabId);
       // Small delay to ensure the form is fully rendered
@@ -381,12 +386,13 @@ browser.runtime.onMessage.addListener((message, sender) => {
   }
 
   // From popup: get tab status
-  if (message.type === 'GET_TAB_STATUS') {
-    return Promise.resolve(tabStatus.get(message.tabId) || null);
+  if (msg.type === 'GET_TAB_STATUS') {
+    const statusMsg = msg as unknown as { tabId: number };
+    return Promise.resolve(tabStatus.get(statusMsg.tabId) || null);
   }
 
   // From popup: refresh theme settings (throttled)
-  if (message.type === 'REFRESH_THEME') {
+  if (msg.type === 'REFRESH_THEME') {
     const now = Date.now();
     if (now - lastThemeFetch > THEME_FETCH_INTERVAL) {
       lastThemeFetch = now;
@@ -405,18 +411,19 @@ browser.runtime.onMessage.addListener((message, sender) => {
   }
 
   // From content script: request injection into iframe
-  if (message.type === 'INJECT_INTO_IFRAME' && sender.tab?.id) {
+  if (msg.type === 'INJECT_INTO_IFRAME' && sender.tab?.id) {
+    const iframeMsg = msg as unknown as { frameSrc: string };
     // We need to use scripting API to inject into iframes
     // Note: This requires the iframe to be same-origin with a host_permissions match
     // For truly cross-origin iframes, the content script already handles it via postMessage
-    debug('Iframe', 'Injection request:', message.frameSrc);
+    debug('Iframe', 'Injection request:', iframeMsg.frameSrc);
 
     // Store the frame src for potential retry
     const tabId = sender.tab.id;
     if (!pendingIframeInjections.has(tabId)) {
       pendingIframeInjections.set(tabId, []);
     }
-    pendingIframeInjections.get(tabId)?.push(message.frameSrc);
+    pendingIframeInjections.get(tabId)?.push(iframeMsg.frameSrc);
 
     return Promise.resolve({ success: true });
   }
