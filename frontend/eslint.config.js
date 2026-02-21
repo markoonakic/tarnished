@@ -29,15 +29,4 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'off',
     },
   },
-  // ECharts has loose typing, allow `any` in chart components
-  {
-    files: [
-      'src/components/SankeyChart.tsx',
-      'src/components/analytics/InterviewFunnel.tsx',
-      'src/components/analytics/WeeklyActivityChart.tsx',
-    ],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-    },
-  },
 ]);

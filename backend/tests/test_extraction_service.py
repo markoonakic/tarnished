@@ -6,6 +6,9 @@ These tests verify that the extraction service works correctly,
 including HTML preprocessing, LLM extraction, and error handling.
 """
 
+# pyright: reportCallIssue=warning, reportArgumentType=warning
+# Pydantic v2 optional fields cause false positives with pyright
+
 import json
 from unittest.mock import MagicMock, patch
 

@@ -9,6 +9,9 @@ Tests for:
 All tests verify authentication requirements and success/error cases.
 """
 
+# pyright: reportCallIssue=warning
+# Pydantic v2 optional fields cause false positives with pyright
+
 from unittest.mock import AsyncMock, patch
 
 import pytest

@@ -41,19 +41,25 @@ export default function InterviewFunnel({
   const option: EChartsOption = useMemo((): EChartsOption => {
     if (data.length === 0) return {};
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tooltipFormatter = (params: CallbackDataParams): string => {
-      const dataIndex = params.dataIndex as number;
+    const tooltipFormatter = (
+      params: CallbackDataParams | CallbackDataParams[]
+    ): string => {
+      // Handle both single and array params (array occurs with axis trigger)
+      const p = Array.isArray(params) ? params[0] : params;
+      const dataIndex = p.dataIndex as number;
       const item = data[dataIndex];
       if (!item) return '';
       return `${item.round}<br/>Count: ${item.count}<br/>Passed: ${item.passed}<br/>Conversion: ${item.conversion_rate}%`;
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const labelFormatter = (params: CallbackDataParams): string => {
-      const dataIndex = params.dataIndex as number;
+    const labelFormatter = (
+      params: CallbackDataParams | CallbackDataParams[]
+    ): string => {
+      // Handle both single and array params
+      const p = Array.isArray(params) ? params[0] : params;
+      const dataIndex = p.dataIndex as number;
       const item = data[dataIndex];
-      if (!item) return `${params.name}: ${params.value}`;
+      if (!item) return `${p.name}: ${p.value}`;
       return `${item.round}: ${item.count}\n(${item.passed} passed - ${item.conversion_rate}%)`;
     };
 
@@ -65,7 +71,7 @@ export default function InterviewFunnel({
         borderWidth: 1,
         borderRadius: 4,
         textStyle: { color: colors.fg0 },
-        formatter: tooltipFormatter as any,
+        formatter: tooltipFormatter,
       },
       series: [
         {
@@ -73,7 +79,7 @@ export default function InterviewFunnel({
           left: '10%',
           width: '80%',
           label: {
-            formatter: labelFormatter as any,
+            formatter: labelFormatter,
             color: colors.fg0,
             fontSize: 14,
             lineHeight: 18,

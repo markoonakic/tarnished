@@ -50,7 +50,9 @@ async def seed_rounds():
             return
 
         # Shuffle applications for random selection
-        random.shuffle(applications)
+        # Convert to list since random.shuffle requires MutableSequence
+        applications_list = list(applications)
+        random.shuffle(applications_list)
 
         # Track existing rounds to avoid duplicates
         result = await session.execute(select(Round))
@@ -65,7 +67,7 @@ async def seed_rounds():
         count = 0
         rounds_created = 0
 
-        for app in applications[:80]:  # Limit to 80 applications for manageable data
+        for app in applications_list[:80]:  # Limit to 80 applications for manageable data
             # Determine how many rounds this application should have
             # Weight toward fewer rounds (realistic distribution)
             rand = random.random()
