@@ -2,7 +2,9 @@
 FROM node:22-alpine AS frontend-builder
 WORKDIR /app
 COPY frontend/package.json frontend/yarn.lock ./
-RUN corepack enable && yarn install --immutable
+# Note: Not using --immutable due to Corepack cacheKey mismatch between environments
+# CI validates the lockfile separately
+RUN corepack enable && yarn install
 COPY frontend/ ./
 ENV VITE_API_URL=""
 RUN yarn build
