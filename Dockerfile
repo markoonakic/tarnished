@@ -1,7 +1,7 @@
 # Stage 1: Build frontend
 FROM node:22-alpine AS frontend-builder
 WORKDIR /app
-COPY frontend/package.json frontend/yarn.lock ./
+COPY frontend/package.json frontend/yarn.lock frontend/.yarnrc.yml ./
 # Note: Not using --immutable due to Corepack cacheKey mismatch between environments
 # CI validates the lockfile separately
 RUN corepack enable && yarn install
