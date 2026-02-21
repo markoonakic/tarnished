@@ -59,7 +59,9 @@ class JobLead(Base):
 
     # Status
     converted_to_application_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("applications.id"), nullable=True
+        String(36),
+        ForeignKey("applications.id", use_alter=True, name="fk_job_leads_converted_to_application"),
+        nullable=True,
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 

@@ -1,6 +1,6 @@
 [project]
 name = "tarnished-backend"
-version = "0.1.13"
+version = "0.1.14"
 description = "Job application tracker API"
 requires-python = ">=3.12"
 dependencies = [
