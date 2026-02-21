@@ -4,6 +4,7 @@
   "description": "Browser extension for detecting and saving job listings to Tarnished",
   "private": true,
   "type": "module",
+  "packageManager": "yarn@4.12.0",
   "scripts": {
     "dev": "vite build --watch --mode development",
     "build": "vite build",

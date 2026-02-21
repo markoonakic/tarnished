@@ -99,7 +99,7 @@ jobs:
 
       - name: Security audit
         working-directory: frontend
-        run: yarn npm audit --severity high
+        run: yarn npm audit --all --recursive --severity high
         continue-on-error: true
 
   extension:
