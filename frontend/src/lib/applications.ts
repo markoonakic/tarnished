@@ -5,6 +5,7 @@ export interface ListParams {
   page?: number;
   per_page?: number;
   status_id?: string;
+  source?: string;
   search?: string;
   date_from?: string;
   date_to?: string;
