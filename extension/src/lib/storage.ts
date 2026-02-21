@@ -22,7 +22,7 @@ export interface Settings {
  * Returns empty strings for missing values
  */
 export async function getSettings(): Promise<Settings> {
-  const result = await browser.storage.local.get(['appUrl', 'apiKey']);
+  const result = (await browser.storage.local.get(['appUrl', 'apiKey'])) as Partial<Settings>;
   return {
     appUrl: result.appUrl || '',
     apiKey: result.apiKey || '',
@@ -33,7 +33,7 @@ export async function getSettings(): Promise<Settings> {
  * Save extension settings to storage
  */
 export async function setSettings(settings: Settings): Promise<void> {
-  await browser.storage.local.set(settings);
+  await browser.storage.local.set(settings as unknown as Record<string, unknown>);
 }
 
 // ============================================================================
@@ -57,7 +57,7 @@ export interface JobStatus {
  */
 export async function getJobStatus(url: string): Promise<JobStatus | null> {
   const key = `job_${url}`;
-  const result = await browser.storage.local.get(key);
+  const result = (await browser.storage.local.get(key)) as Record<string, JobStatus>;
   return result[key] || null;
 }
 

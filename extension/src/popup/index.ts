@@ -308,7 +308,7 @@ async function handleAutoFillToggle(): Promise<void> {
  */
 async function loadAutoFillSetting(): Promise<void> {
   try {
-    const result = await browser.storage.local.get('autoFillOnLoad');
+    const result = await browser.storage.local.get('autoFillOnLoad') as { autoFillOnLoad?: boolean };
     autoFillOnLoad = result.autoFillOnLoad ?? false;
     if (elements.autoFillToggle) {
       elements.autoFillToggle.checked = autoFillOnLoad;
@@ -663,7 +663,7 @@ async function autofillFormHandler(): Promise<void> {
     const response = await browser.tabs.sendMessage(currentTabId, {
       type: 'AUTOFILL_FORM',
       profile: autofillProfile,
-    });
+    }) as { filledCount?: number };
 
     if (response && typeof response.filledCount === 'number') {
       if (response.filledCount > 0) {
@@ -696,7 +696,7 @@ async function getTextFromContentScript(): Promise<string> {
   try {
     const response = await browser.tabs.sendMessage(currentTabId, {
       type: 'GET_TEXT',
-    });
+    }) as { text?: string };
 
     if (response && response.text) {
       return response.text;
@@ -719,7 +719,7 @@ async function getFormDetectionFromContentScript(): Promise<FormDetectionState |
   try {
     const response = await browser.tabs.sendMessage(currentTabId, {
       type: 'SCAN_FIELDS',
-    });
+    }) as { hasApplicationForm?: boolean; fillableFieldCount?: number };
 
     if (response && typeof response.fillableFieldCount === 'number') {
       return {
@@ -788,12 +788,12 @@ async function determineState(): Promise<void> {
       try {
         const detectionResult = await browser.tabs.sendMessage(currentTabId, {
           type: 'GET_DETECTION',
-        });
+        }) as { isJobPage?: boolean; score?: number; signals?: string[] };
         if (detectionResult) {
           tabStatus = {
-            isJobPage: detectionResult.isJobPage,
-            score: detectionResult.score,
-            signals: detectionResult.signals,
+            isJobPage: detectionResult.isJobPage ?? false,
+            score: detectionResult.score ?? 0,
+            signals: detectionResult.signals ?? [],
             url: currentTabUrl,
           };
         }
@@ -1006,7 +1006,7 @@ function setupEventListeners(): void {
     } else if (existingApplication) {
       openApplications(existingApplication.id);
     } else if (existingLead) {
-      openJobLeads(existingLead.id);
+      openJobLeads();
     } else {
       openJobLeads();
     }
@@ -1099,15 +1099,17 @@ document.addEventListener('DOMContentLoaded', () => {
  * This allows the popup to update its UI when forms are dynamically detected
  */
 browser.runtime.onMessage.addListener(
-  (message: { type: string; hasApplicationForm?: boolean; fillableFieldCount?: number }) => {
-    if (message.type === 'FORM_DETECTION_UPDATE') {
+  (message: unknown) => {
+    const msg = message as { type: string; hasApplicationForm?: boolean; fillableFieldCount?: number };
+    if (msg.type === 'FORM_DETECTION_UPDATE') {
       formDetection = {
-        hasApplicationForm: message.hasApplicationForm ?? false,
-        fillableFieldCount: message.fillableFieldCount ?? 0,
+        hasApplicationForm: msg.hasApplicationForm ?? false,
+        fillableFieldCount: msg.fillableFieldCount ?? 0,
       };
       // Update autofill visibility based on new form detection state
       updateAutofillVisibility(currentState);
     }
+    return undefined;
   }
 );
 

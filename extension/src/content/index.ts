@@ -344,25 +344,24 @@ if (document.readyState === 'complete') {
  * Message listener for requests from popup/background scripts.
  */
 browser.runtime.onMessage.addListener(
-  (message: {
-    type: string;
-    profile?: AutofillProfile;
-  }): Promise<
+  (message: unknown): Promise<
     | { text?: string; filledCount?: number; fillableFieldCount?: number; hasApplicationForm?: boolean }
     | DetectionResult
     | undefined
   > => {
-    if (message.type === 'GET_TEXT') {
+    const msg = message as { type: string; profile?: AutofillProfile };
+
+    if (msg.type === 'GET_TEXT') {
       return Promise.resolve({
         text: document.body.innerText,
       });
     }
 
-    if (message.type === 'GET_DETECTION') {
+    if (msg.type === 'GET_DETECTION') {
       return Promise.resolve(detectJobPage());
     }
 
-    if (message.type === 'SCAN_FIELDS') {
+    if (msg.type === 'SCAN_FIELDS') {
       scanForFields();
       return Promise.resolve({
         fillableFieldCount,
@@ -370,13 +369,13 @@ browser.runtime.onMessage.addListener(
       });
     }
 
-    if (message.type === 'AUTOFILL_FORM' && message.profile) {
+    if (msg.type === 'AUTOFILL_FORM' && msg.profile) {
       // Fill fields in main frame
       const engine = getAutofillEngine();
-      const result: AutofillResult = engine.fill(message.profile);
+      const result: AutofillResult = engine.fill(msg.profile);
 
       // Also send to iframes
-      sendAutofillToIframes(message.profile);
+      sendAutofillToIframes(msg.profile);
 
       return Promise.resolve({
         filledCount: result.filledCount,
