@@ -1,5 +1,8 @@
 """Unit tests for the export serializer module."""
 
+# pyright: reportOptionalSubscript=warning, reportOperatorIssue=warning
+# Test fixtures use optional dicts that trigger false positives
+
 from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import uuid4

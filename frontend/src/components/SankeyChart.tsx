@@ -93,9 +93,12 @@ export default function SankeyChart() {
         value: l.value,
       }));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tooltipFormatter = (params: CallbackDataParams): string => {
-      const nodeId = params.name;
+    const tooltipFormatter = (
+      params: CallbackDataParams | CallbackDataParams[]
+    ): string => {
+      // Handle both single and array params (array occurs with axis trigger)
+      const p = Array.isArray(params) ? params[0] : params;
+      const nodeId = p.name;
       let label: string;
 
       if (nodeId.startsWith('terminal_rejected_')) {
@@ -113,25 +116,29 @@ export default function SankeyChart() {
         label = nodeId;
       }
 
-      return `${label}: ${params.value}`;
+      return `${label}: ${p.value}`;
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const labelFormatter = (params: CallbackDataParams): string => {
+    const labelFormatter = (
+      params: CallbackDataParams | CallbackDataParams[]
+    ): string => {
+      // Handle both single and array params
+      const p = Array.isArray(params) ? params[0] : params;
+
       // Simple labels: "Rejected", "Withdrawn", or the status name
-      if (params.name.startsWith('terminal_rejected_')) {
+      if (p.name.startsWith('terminal_rejected_')) {
         return 'Rejected';
       }
-      if (params.name.startsWith('terminal_withdrawn_')) {
+      if (p.name.startsWith('terminal_withdrawn_')) {
         return 'Withdrawn';
       }
-      if (params.name.startsWith('status_')) {
-        return params.name
+      if (p.name.startsWith('status_')) {
+        return p.name
           .replace('status_', '')
           .replace(/_/g, ' ')
           .replace(/\b\w/g, (c: string) => c.toUpperCase());
       }
-      return params.name;
+      return p.name;
     };
 
     return {
@@ -143,7 +150,7 @@ export default function SankeyChart() {
         borderWidth: 1,
         borderRadius: 4,
         textStyle: { color: colors.fg0 },
-        formatter: tooltipFormatter as any,
+        formatter: tooltipFormatter,
       },
       series: [
         {
@@ -160,7 +167,7 @@ export default function SankeyChart() {
           label: {
             color: colors.fg1,
             fontSize: 12,
-            formatter: labelFormatter as any,
+            formatter: labelFormatter,
           },
           nodeAlign: 'justify',
           nodeGap: 30,
