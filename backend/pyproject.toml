@@ -78,6 +78,16 @@ ignore = [
     "UP042",  # StrEnum (cosmetic, Python 3.11+)
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "B017",   # blind exception (common in tests)
+    "F841",   # unused variable (common in tests)
+    "SIM117", # nested with statements (readable in tests)
+]
+"seed_*.py" = [
+    "B007",   # unused loop variable
+]
+
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
 
