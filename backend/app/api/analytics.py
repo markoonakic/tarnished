@@ -109,13 +109,18 @@ async def get_sankey_data(
             if t["to_status"] in TERMINAL_STATUSES and t["from_status"]:
                 terminal_transitions[t["to_status"]].add(t["from_status"])
 
-    # Build nodes: start with Applications source, then each unique status
+    # Build nodes (no "applications" source node - we use explicit values instead)
     # Note: Frontend handles actual colors using theme-aware mapping
-    nodes = [
-        SankeyNode(id="applications", name="Applications", color="#8ec07c")
-    ]  # Placeholder, frontend uses theme
+    nodes = []
     status_name_to_node_id = {}
     status_name_to_color = {}
+
+    # Count initial-status applications (from=None) for explicit node values
+    initial_status_counts = defaultdict(int)
+    for transitions in app_transitions.values():
+        for t in transitions:
+            if t["from_status"] is None:
+                initial_status_counts[t["to_status"]] += 1
 
     for status_name in sorted(seen_statuses):
         # Find the color for this status
@@ -143,7 +148,7 @@ async def get_sankey_data(
                     )
                 )
         else:
-            # Non-terminal statuses get single node
+            # Non-terminal statuses get single node with explicit value for initial apps
             node_id = (
                 f"status_{status_name.lower().replace(' ', '_').replace('/', '_')}"
             )
@@ -155,6 +160,7 @@ async def get_sankey_data(
                     color=status_name_to_color.get(
                         status_name, "#8ec07c"
                     ),  # Fallback, frontend uses theme
+                    value=initial_status_counts.get(status_name),  # Initial apps at this status
                 )
             )
 
@@ -166,18 +172,19 @@ async def get_sankey_data(
         visited_statuses = set()  # Track statuses visited in this application's journey
 
         for i, t in enumerate(transitions):
+            # Skip initial status entries (from_status=None) - counted via node value instead
+            if t["from_status"] is None:
+                visited_statuses.add(t["to_status"])
+                continue
+
             # Determine source node
-            if i == 0 or t["from_status"] is None:
-                # First transition comes from "Applications" node
-                source_id = "applications"
-            else:
-                source_id = status_name_to_node_id.get(t["from_status"])
-                if not source_id:
-                    # Status not in our tracked statuses, skip
-                    continue
+            source_id = status_name_to_node_id.get(t["from_status"])
+            if not source_id:
+                # Status not in our tracked statuses, skip
+                continue
 
             # Determine target node - use stage-specific for terminal statuses
-            if t["to_status"] in TERMINAL_STATUSES and t["from_status"]:
+            if t["to_status"] in TERMINAL_STATUSES:
                 # Use (from_stage, to_status) tuple key for terminal statuses
                 target_id = status_name_to_node_id.get(
                     (t["from_status"], t["to_status"])

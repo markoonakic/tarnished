@@ -33,9 +33,6 @@ export default function SankeyChart() {
   const option: EChartsOption = useMemo((): EChartsOption => {
     if (!data) return {};
 
-    // Skip the "applications" node - we start from "Applied"
-    const filteredNodes = data.nodes.filter((n) => n.id !== 'applications');
-
     // Calculate depths: terminal nodes go at SAME level as their source stage
     const getDepth = (nodeId: string): number => {
       if (nodeId.startsWith('terminal_rejected_')) {
@@ -77,14 +74,17 @@ export default function SankeyChart() {
       return 2; // Unknown statuses
     };
 
-    // Simple labels - just "Rejected" or "Withdrawn", position provides context
-    const nodes = filteredNodes.map((n) => ({
-      name: n.id,
-      depth: getDepth(n.id),
-      itemStyle: { color: getSankeyNodeColor(n.id, colors, n.color) },
-    }));
+    // Build nodes - skip "applications" source node
+    const nodes = data.nodes
+      .filter((n) => n.id !== 'applications')
+      .map((n) => ({
+        name: n.id,
+        depth: getDepth(n.id),
+        itemStyle: { color: getSankeyNodeColor(n.id, colors, n.color) },
+        value: n.value, // Include explicit value if provided
+      }));
 
-    // Filter out links from/to applications and use string names
+    // Filter out links from "applications" source
     const links = data.links
       .filter((l) => l.source !== 'applications' && l.target !== 'applications')
       .map((l) => ({
@@ -93,29 +93,40 @@ export default function SankeyChart() {
         value: l.value,
       }));
 
-    const tooltipFormatter = (
-      params: CallbackDataParams | CallbackDataParams[]
-    ): string => {
-      // Handle both single and array params (array occurs with axis trigger)
-      const p = Array.isArray(params) ? params[0] : params;
-      const nodeId = p.name;
-      let label: string;
-
+    // Helper to format a node ID to human-readable label
+    const formatNodeId = (nodeId: string): string => {
       if (nodeId.startsWith('terminal_rejected_')) {
         const stage = nodeId.split('_').pop()?.replace(/_/g, ' ') || '';
-        label = `Rejected after ${stage.charAt(0).toUpperCase() + stage.slice(1)}`;
-      } else if (nodeId.startsWith('terminal_withdrawn_')) {
+        return `Rejected after ${stage.charAt(0).toUpperCase() + stage.slice(1)}`;
+      }
+      if (nodeId.startsWith('terminal_withdrawn_')) {
         const stage = nodeId.split('_').pop()?.replace(/_/g, ' ') || '';
-        label = `Withdrawn after ${stage.charAt(0).toUpperCase() + stage.slice(1)}`;
-      } else if (nodeId.startsWith('status_')) {
-        label = nodeId
+        return `Withdrawn after ${stage.charAt(0).toUpperCase() + stage.slice(1)}`;
+      }
+      if (nodeId.startsWith('status_')) {
+        return nodeId
           .replace('status_', '')
           .replace(/_/g, ' ')
           .replace(/\b\w/g, (c: string) => c.toUpperCase());
-      } else {
-        label = nodeId;
+      }
+      return nodeId;
+    };
+
+    const tooltipFormatter = (
+      params: CallbackDataParams | CallbackDataParams[]
+    ): string => {
+      const p = Array.isArray(params) ? params[0] : params;
+
+      // Handle edges/links (flows between nodes)
+      if (p.dataType === 'edge') {
+        const edgeData = p.data as { source: string; target: string; value: number };
+        const source = formatNodeId(edgeData.source);
+        const target = formatNodeId(edgeData.target);
+        return `${source} → ${target}: ${edgeData.value}`;
       }
 
+      // Handle nodes (the bars)
+      const label = formatNodeId(p.name);
       return `${label}: ${p.value}`;
     };
 

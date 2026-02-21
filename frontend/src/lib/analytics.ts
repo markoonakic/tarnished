@@ -4,6 +4,7 @@ export interface SankeyNode {
   id: string;
   name: string;
   color?: string;
+  value?: number; // Explicit value for nodes without incoming links
 }
 
 export interface SankeyLink {
