@@ -77,7 +77,8 @@ jobs:
 
       - name: Security audit
         working-directory: frontend
-        run: yarn npm audit --all --recursive --severity high --ignore 1113371 --ignore 1113375
+        # Only audit production dependencies - dev-only vulnerabilities don't ship to users
+        run: yarn npm audit --all --recursive --environment production --severity high
 
   extension:
     runs-on: ubuntu-latest

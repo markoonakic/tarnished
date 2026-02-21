@@ -99,7 +99,8 @@ jobs:
 
       - name: Security audit
         working-directory: frontend
-        run: yarn npm audit --all --recursive --severity high --ignore 1113371 --ignore 1113375
+        # CI checks all deps for awareness, but non-blocking
+        run: yarn npm audit --all --recursive --severity high
         continue-on-error: true
 
   extension:
