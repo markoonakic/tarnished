@@ -32,9 +32,18 @@ specs/
 .ralph/
 .claude/handoff*.md
 
-# Design guidelines are committed to the repo for consistency
-# frontend/DESIGN_GUIDELINES.md
-# backend/DESIGN_GUIDELINES.md
+# Design guidelines - development notes, not source code
+frontend/DESIGN_GUIDELINES.md
+backend/DESIGN_GUIDELINES.md
+
+# Seed scripts - development only
+backend/seed_*.py
+
+# Generated requirements.txt
+backend/requirements.txt
+
+# Pre-commit framework (using Husky instead)
+.pre-commit-config.yaml
 
 # Playwright MCP screenshots and snapshots
 .playwright-mcp/
