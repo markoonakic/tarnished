@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { listApplications } from '../lib/applications';
 import type { ListParams } from '../lib/applications';
@@ -26,11 +26,23 @@ export default function Applications() {
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  // Compute unique sources from applications
+  const sources = useMemo(() => {
+    const uniqueSources = new Set<string>();
+    applications.forEach((app) => {
+      if (app.source) {
+        uniqueSources.add(app.source);
+      }
+    });
+    return Array.from(uniqueSources).sort();
+  }, [applications]);
+
   const page = parseInt(searchParams.get('page') || '1');
   const [perPage, setPerPage] = useState(25);
   const statusFilter = searchParams.get('status') || '';
+  const sourceFilter = searchParams.get('source') || '';
   const search = searchParams.get('search') || '';
-  const isFiltered = search || statusFilter;
+  const isFiltered = search || statusFilter || sourceFilter;
 
   useEffect(() => {
     loadStatuses();
@@ -38,7 +50,7 @@ export default function Applications() {
 
   useEffect(() => {
     loadApplications();
-  }, [page, perPage, statusFilter, search]);
+  }, [page, perPage, statusFilter, sourceFilter, search]);
 
   async function loadStatuses() {
     try {
@@ -55,6 +67,7 @@ export default function Applications() {
     try {
       const params: ListParams = { page, per_page: perPage };
       if (statusFilter) params.status_id = statusFilter;
+      if (sourceFilter) params.source = sourceFilter;
       if (search) params.search = search;
 
       const data = await listApplications(params);
@@ -78,7 +91,7 @@ export default function Applications() {
         newParams.delete(key);
       }
     });
-    if (updates.status !== undefined || updates.search !== undefined) {
+    if (updates.status !== undefined || updates.search !== undefined || updates.source !== undefined) {
       newParams.set('page', '1');
     }
     setSearchParams(newParams);
@@ -138,6 +151,19 @@ export default function Applications() {
                 placeholder="All Statuses"
                 size="xs"
                 containerBackground="bg1"
+                disabled={applications.length === 0}
+              />
+              <Dropdown
+                options={[
+                  { value: '', label: 'All Sources' },
+                  ...sources.map((source) => ({ value: source, label: source }))
+                ]}
+                value={sourceFilter}
+                onChange={(value) => updateParams({ source: value })}
+                placeholder="All Sources"
+                size="xs"
+                containerBackground="bg1"
+                disabled={applications.length === 0 || sources.length === 0}
               />
               <Dropdown
                 options={[
@@ -154,6 +180,7 @@ export default function Applications() {
                 placeholder="25 / page"
                 size="xs"
                 containerBackground="bg1"
+                disabled={applications.length === 0}
               />
             </div>
           </div>

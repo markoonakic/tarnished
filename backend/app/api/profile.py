@@ -10,6 +10,7 @@ All endpoints require authentication via Bearer token.
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -73,11 +74,16 @@ async def get_profile(
     profile = result.scalar_one_or_none()
 
     if profile is None:
-        # Create empty profile
-        profile = UserProfile(user_id=user.id)
-        db.add(profile)
-        await db.commit()
-        await db.refresh(profile)
+        try:
+            profile = UserProfile(user_id=user.id)
+            db.add(profile)
+            await db.commit()
+            await db.refresh(profile)
+        except IntegrityError:
+            # Another concurrent request created the profile - fetch it instead
+            await db.rollback()
+            result = await db.execute(select(UserProfile).where(UserProfile.user_id == user.id))
+            profile = result.scalar_one()
 
     return _build_profile_response(profile, user)
 
@@ -107,11 +113,16 @@ async def update_profile(
     profile = result.scalar_one_or_none()
 
     if profile is None:
-        # Create empty profile first
-        profile = UserProfile(user_id=user.id)
-        db.add(profile)
-        await db.commit()
-        await db.refresh(profile)
+        try:
+            profile = UserProfile(user_id=user.id)
+            db.add(profile)
+            await db.commit()
+            await db.refresh(profile)
+        except IntegrityError:
+            # Another concurrent request created the profile - fetch it instead
+            await db.rollback()
+            result = await db.execute(select(UserProfile).where(UserProfile.user_id == user.id))
+            profile = result.scalar_one()
 
     # Extract only the fields that were provided in the request
     update_data = profile_update.model_dump(exclude_unset=True)
