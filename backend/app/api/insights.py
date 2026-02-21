@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import case, create_engine, func, or_, select
+from sqlalchemy import case, create_engine, extract, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session as SyncSession
 
@@ -459,14 +459,14 @@ async def _get_analytics_for_insights(
     # Activity patterns - which days are most active
     result = await db.execute(
         select(
-            func.strftime("%w", Application.applied_at).label("weekday"),
+            extract("dow", Application.applied_at).label("weekday"),
             func.count(Application.id).label("count"),
         )
         .where(
             Application.user_id == user_id,
             Application.applied_at >= start_date,
         )
-        .group_by(func.strftime("%w", Application.applied_at))
+        .group_by(extract("dow", Application.applied_at))
     )
     weekday_rows = result.all()
 
