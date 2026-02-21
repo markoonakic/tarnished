@@ -10,7 +10,7 @@ All endpoints require authentication via Bearer token.
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -61,8 +61,8 @@ async def get_profile(
 ) -> UserProfileResponse:
     """Get the current user's profile, creating an empty one if it doesn't exist.
 
-    Uses INSERT ... ON CONFLICT DO NOTHING to handle race conditions atomically
-    at the database level, avoiding session state corruption from IntegrityError.
+    Uses SAVEPOINT (nested transaction) to handle race conditions in a
+    database-agnostic way. Works with both SQLite and PostgreSQL.
 
     Args:
         user: The authenticated user
@@ -71,16 +71,28 @@ async def get_profile(
     Returns:
         The user's profile, with empty fields if newly created
     """
-    # Create profile atomically (no-op if exists) - handles race conditions
-    stmt = sqlite_insert(UserProfile).values(user_id=user.id)
-    stmt = stmt.on_conflict_do_nothing(index_elements=["user_id"])
-    await db.execute(stmt)
-    await db.commit()
-
-    # Fetch the profile (either just created or already existed)
+    # Check if profile exists
     result = await db.execute(select(UserProfile).where(UserProfile.user_id == user.id))
-    profile = result.scalar_one()
+    profile = result.scalar_one_or_none()
 
+    if profile is None:
+        # Use nested transaction (SAVEPOINT) to handle race conditions
+        # This is database-agnostic and works with both SQLite and PostgreSQL
+        try:
+            async with db.begin_nested():
+                profile = UserProfile(user_id=user.id)
+                db.add(profile)
+                await db.flush()
+        except IntegrityError:
+            # Another concurrent request created the profile
+            # The SAVEPOINT was rolled back, but outer transaction is still valid
+            pass
+
+        # Fetch the profile (either just created or created by concurrent request)
+        result = await db.execute(select(UserProfile).where(UserProfile.user_id == user.id))
+        profile = result.scalar_one()
+
+    await db.commit()
     return _build_profile_response(profile, user)
 
 
@@ -103,15 +115,24 @@ async def update_profile(
     Returns:
         The updated user profile
     """
-    # Ensure profile exists (atomic upsert pattern)
-    stmt = sqlite_insert(UserProfile).values(user_id=user.id)
-    stmt = stmt.on_conflict_do_nothing(index_elements=["user_id"])
-    await db.execute(stmt)
-    await db.commit()
-
-    # Fetch the profile
+    # Check if profile exists
     result = await db.execute(select(UserProfile).where(UserProfile.user_id == user.id))
-    profile = result.scalar_one()
+    profile = result.scalar_one_or_none()
+
+    if profile is None:
+        # Use nested transaction (SAVEPOINT) to handle race conditions
+        try:
+            async with db.begin_nested():
+                profile = UserProfile(user_id=user.id)
+                db.add(profile)
+                await db.flush()
+        except IntegrityError:
+            # Another concurrent request created the profile
+            pass
+
+        # Fetch the profile
+        result = await db.execute(select(UserProfile).where(UserProfile.user_id == user.id))
+        profile = result.scalar_one()
 
     # Extract only the fields that were provided in the request
     update_data = profile_update.model_dump(exclude_unset=True)
