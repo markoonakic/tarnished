@@ -51,9 +51,9 @@ jobs:
 
       - name: Verify build output
         run: |
-          # Verify font files exist
-          test -f frontend/dist/fonts/bootstrap-icons.woff2 || (echo "ERROR: Missing bootstrap-icons.woff2" && exit 1)
-          test -f frontend/dist/fonts/bootstrap-icons.woff || (echo "ERROR: Missing bootstrap-icons.woff" && exit 1)
+          # Verify font files exist (Vite outputs to dist/assets/ with content hashes)
+          test -n "$(ls frontend/dist/assets/bootstrap-icons*.woff2 2>/dev/null)" || (echo "ERROR: Missing bootstrap-icons.woff2" && exit 1)
+          test -n "$(ls frontend/dist/assets/bootstrap-icons*.woff 2>/dev/null)" || (echo "ERROR: Missing bootstrap-icons.woff" && exit 1)
           echo "Build verification passed"
 
       # QEMU enables ARM64 emulation for multi-arch builds
