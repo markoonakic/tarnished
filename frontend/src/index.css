@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "../styles/themes/index.css";
-@import "bootstrap-icons/font/bootstrap-icons.css";
+@import "./bootstrap-icons.scss";
 
 /* Tailwind v4 theme definition - uses var() references to theme CSS variables */
 @theme inline {
