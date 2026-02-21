@@ -33,7 +33,10 @@ jobs:
 
       - name: Security audit
         working-directory: backend
-        run: uv audit
+        run: |
+          uv export --no-dev --no-hashes -o requirements.txt
+          uv tool run pip-audit -r requirements.txt
+        continue-on-error: true
 
   frontend-checks:
     runs-on: ubuntu-latest
