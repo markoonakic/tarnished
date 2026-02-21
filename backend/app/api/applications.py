@@ -1,5 +1,5 @@
 import os
-from datetime import date
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
@@ -135,6 +135,17 @@ async def create_application(
         applied_at=data.applied_at or date.today(),
     )
     db.add(application)
+    await db.flush()  # Get the generated ID
+
+    # Seed initial status history for Sankey chart
+    history_entry = ApplicationStatusHistory(
+        application_id=application.id,
+        from_status_id=None,
+        to_status_id=data.status_id,
+        changed_at=datetime.now(UTC),
+    )
+    db.add(history_entry)
+
     await db.commit()
     await record_streak_activity(user=user, db=db)
 
@@ -255,6 +266,17 @@ async def create_application_from_url(
     )
 
     db.add(application)
+    await db.flush()  # Get the generated ID
+
+    # Seed initial status history for Sankey chart
+    history_entry = ApplicationStatusHistory(
+        application_id=application.id,
+        from_status_id=None,
+        to_status_id=data.status_id,
+        changed_at=datetime.now(UTC),
+    )
+    db.add(history_entry)
+
     await db.commit()
     await db.refresh(application)
     await db.refresh(application, ["status"])

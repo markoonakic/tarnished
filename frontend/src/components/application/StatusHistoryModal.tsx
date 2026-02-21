@@ -91,7 +91,7 @@ export default function StatusHistoryModal({
                 >
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
-                      {entry.from_status ? (
+                      {entry.from_status && (
                         <>
                           <span
                             className="rounded px-2 py-1 text-xs font-medium"
@@ -108,8 +108,6 @@ export default function StatusHistoryModal({
                           </span>
                           <i className="bi-arrow-right text-muted icon-xs" />
                         </>
-                      ) : (
-                        <span className="text-muted text-xs italic">New</span>
                       )}
                       <span
                         className="rounded px-2 py-1 text-xs font-medium"

@@ -7,6 +7,7 @@ class SankeyNode(BaseModel):
     id: str
     name: str
     color: str | None = None
+    value: int | None = None  # Explicit value for nodes without incoming links
 
 
 class SankeyLink(BaseModel):

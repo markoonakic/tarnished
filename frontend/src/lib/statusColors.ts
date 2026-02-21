@@ -71,11 +71,6 @@ export function getSankeyNodeColor(
     }
   }
 
-  // Handle "applications" source node
-  if (nodeId === 'applications') {
-    return colors.aquaBright;
-  }
-
   // Fallback for unknown nodes
   return fallbackColor || colors.aqua;
 }
