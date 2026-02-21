@@ -10,10 +10,8 @@ updates:
     groups:
       backend-deps:
         patterns: ["*"]
-    ignore:
-      # Require manual review for major version bumps (breaking changes)
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+    # Major versions will create PRs but require manual review
+    # (auto-merge workflow only auto-approves patches/minors)
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
@@ -30,10 +28,8 @@ updates:
     groups:
       frontend-deps:
         patterns: ["*"]
-    ignore:
-      # Require manual review for major version bumps (breaking changes)
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+    # Major versions will create PRs but require manual review
+    # (auto-merge workflow only auto-approves patches/minors)
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
@@ -50,10 +46,8 @@ updates:
     groups:
       extension-deps:
         patterns: ["*"]
-    ignore:
-      # Require manual review for major version bumps (breaking changes)
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+    # Major versions will create PRs but require manual review
+    # (auto-merge workflow only auto-approves patches/minors)
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
@@ -69,10 +63,8 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
-    ignore:
-      # Require manual review for major version bumps (breaking changes)
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+    # Major versions will create PRs but require manual review
+    # (auto-merge workflow only auto-approves patches/minors)
     labels:
       - "dependencies"
       - "ci"
