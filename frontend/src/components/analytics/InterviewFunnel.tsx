@@ -12,7 +12,10 @@ interface InterviewFunnelProps {
   roundType?: string;
 }
 
-export default function InterviewFunnel({ period = 'all', roundType }: InterviewFunnelProps) {
+export default function InterviewFunnel({
+  period = 'all',
+  roundType,
+}: InterviewFunnelProps) {
   const [data, setData] = useState<FunnelData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -64,48 +67,50 @@ export default function InterviewFunnel({ period = 'all', roundType }: Interview
         textStyle: { color: colors.fg0 },
         formatter: tooltipFormatter as any,
       },
-      series: [{
-        type: 'funnel',
-        left: '10%',
-        width: '80%',
-        label: {
-          formatter: labelFormatter as any,
-          color: colors.fg0,
-          fontSize: 14,
-          lineHeight: 18,
-        },
-        labelLine: {
-          lineStyle: { color: colors.fg4 },
-        },
-        itemStyle: {
-          borderColor: colors.aquaBright,
-          borderWidth: 1,
-        },
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)',
+      series: [
+        {
+          type: 'funnel',
+          left: '10%',
+          width: '80%',
+          label: {
+            formatter: labelFormatter as any,
+            color: colors.fg0,
+            fontSize: 14,
+            lineHeight: 18,
           },
-        },
-        data: data.map((d, index) => {
-          const funnelColors = [
-            colors.aquaBright,
-            colors.aqua,
-            colors.blueBright,
-            colors.blue,
-            colors.greenBright,
-            colors.green,
-          ];
-          const color = funnelColors[index % funnelColors.length];
+          labelLine: {
+            lineStyle: { color: colors.fg4 },
+          },
+          itemStyle: {
+            borderColor: colors.aquaBright,
+            borderWidth: 1,
+          },
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 0, 0, 0.5)',
+            },
+          },
+          data: data.map((d, index) => {
+            const funnelColors = [
+              colors.aquaBright,
+              colors.aqua,
+              colors.blueBright,
+              colors.blue,
+              colors.greenBright,
+              colors.green,
+            ];
+            const color = funnelColors[index % funnelColors.length];
 
-          return {
-            value: d.count,
-            name: d.round,
-            itemStyle: { color },
-          };
-        }),
-      }],
+            return {
+              value: d.count,
+              name: d.round,
+              itemStyle: { color },
+            };
+          }),
+        },
+      ],
     };
   }, [data, colors]);
 
@@ -114,7 +119,7 @@ export default function InterviewFunnel({ period = 'all', roundType }: Interview
   }
 
   if (error) {
-    return <div className="text-center py-8 text-red-bright">{error}</div>;
+    return <div className="text-red-bright py-8 text-center">{error}</div>;
   }
 
   if (data.length === 0) {
@@ -129,9 +134,10 @@ export default function InterviewFunnel({ period = 'all', roundType }: Interview
 
   return (
     <div className="w-full overflow-x-auto">
-      <p className="text-sm text-fg4 mb-4">
-        Visualizes the conversion rate of candidates through each interview round stage.
-        Each bar shows the count of interviews at that stage, with the percentage of candidates who advanced to the next round.
+      <p className="text-fg4 mb-4 text-sm">
+        Visualizes the conversion rate of candidates through each interview
+        round stage. Each bar shows the count of interviews at that stage, with
+        the percentage of candidates who advanced to the next round.
       </p>
       <ReactECharts
         option={option}

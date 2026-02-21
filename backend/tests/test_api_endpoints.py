@@ -9,11 +9,10 @@ Tests for:
 All tests verify authentication requirements and success/error cases.
 """
 
-import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,10 +21,8 @@ from app.core.security import (
     generate_api_token,
     get_password_hash,
 )
-from app.main import app
 from app.models import JobLead, SystemSettings, User
 from app.models.user_profile import UserProfile
-
 
 # ============================================================================
 # Fixtures
@@ -224,7 +221,9 @@ class TestJobLeadsList:
 class TestJobLeadsGet:
     """Tests for GET /api/job-leads/{id} endpoint."""
 
-    async def test_get_job_lead_unauthenticated(self, client: AsyncClient, test_job_lead: JobLead):
+    async def test_get_job_lead_unauthenticated(
+        self, client: AsyncClient, test_job_lead: JobLead
+    ):
         """Test that getting a job lead requires authentication."""
         response = await client.get(f"/api/job-leads/{test_job_lead.id}")
         assert response.status_code == 401
@@ -311,7 +310,9 @@ class TestJobLeadsCreate:
         headers = {"Authorization": f"Bearer {user_with_api_token.api_token}"}
 
         # Mock the extraction service with AsyncMock
-        with patch("app.api.job_leads.extract_job_data", new_callable=AsyncMock) as mock_extract:
+        with patch(
+            "app.api.job_leads.extract_job_data", new_callable=AsyncMock
+        ) as mock_extract:
             from app.schemas.job_lead import JobLeadExtractionInput
 
             mock_extract.return_value = JobLeadExtractionInput(
@@ -346,7 +347,9 @@ class TestJobLeadsCreate:
         """Test creating a job lead using X-API-Key header."""
         headers = {"X-API-Key": user_with_api_token.api_token}
 
-        with patch("app.api.job_leads.extract_job_data", new_callable=AsyncMock) as mock_extract:
+        with patch(
+            "app.api.job_leads.extract_job_data", new_callable=AsyncMock
+        ) as mock_extract:
             from app.schemas.job_lead import JobLeadExtractionInput
 
             mock_extract.return_value = JobLeadExtractionInput(
@@ -460,9 +463,7 @@ class TestJobLeadsDelete:
         assert response.status_code == 204
 
         # Verify the job lead was deleted
-        result = await db.execute(
-            select(JobLead).where(JobLead.id == test_job_lead.id)
-        )
+        result = await db.execute(select(JobLead).where(JobLead.id == test_job_lead.id))
         assert result.scalars().first() is None
 
     async def test_delete_job_lead_not_found(
@@ -511,8 +512,10 @@ class TestJobLeadsRetry:
         failed_job_lead: JobLead,
     ):
         """Test successfully retrying a failed job lead."""
-        with patch("app.api.job_leads._fetch_html") as mock_fetch, \
-             patch("app.api.job_leads.extract_job_data") as mock_extract:
+        with (
+            patch("app.api.job_leads._fetch_html") as mock_fetch,
+            patch("app.api.job_leads.extract_job_data") as mock_extract,
+        ):
             from app.schemas.job_lead import JobLeadExtractionInput
 
             mock_fetch.return_value = "<html><body>Job content</body></html>"
@@ -1023,7 +1026,9 @@ class TestAuthenticationMethods:
         headers = {"Authorization": f"Bearer {user_with_api_token.api_token}"}
 
         # API token auth works for job_leads create endpoint
-        with patch("app.api.job_leads.extract_job_data", new_callable=AsyncMock) as mock_extract:
+        with patch(
+            "app.api.job_leads.extract_job_data", new_callable=AsyncMock
+        ) as mock_extract:
             from app.schemas.job_lead import JobLeadExtractionInput
 
             mock_extract.return_value = JobLeadExtractionInput(
@@ -1055,7 +1060,9 @@ class TestAuthenticationMethods:
         headers = {"X-API-Key": user_with_api_token.api_token}
 
         # X-API-Key works for job_leads create endpoint
-        with patch("app.api.job_leads.extract_job_data", new_callable=AsyncMock) as mock_extract:
+        with patch(
+            "app.api.job_leads.extract_job_data", new_callable=AsyncMock
+        ) as mock_extract:
             from app.schemas.job_lead import JobLeadExtractionInput
 
             mock_extract.return_value = JobLeadExtractionInput(

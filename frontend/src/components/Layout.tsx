@@ -31,11 +31,15 @@ export default function Layout({ children }: Props) {
   }, [menuOpen]);
 
   function isActive(path: string) {
-    return location.pathname === path || location.pathname.startsWith(path + '/');
+    return (
+      location.pathname === path || location.pathname.startsWith(path + '/')
+    );
   }
 
   function linkClass(path: string) {
-    return isActive(path) ? 'text-accent-bright' : 'text-accent hover:text-accent-bright transition-all duration-200 ease-in-out';
+    return isActive(path)
+      ? 'text-accent-bright'
+      : 'text-accent hover:text-accent-bright transition-all duration-200 ease-in-out';
   }
 
   function mobileLinkClass(path: string) {
@@ -43,22 +47,25 @@ export default function Layout({ children }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-primary">
-      <nav className="bg-secondary border-b border-tertiary" ref={menuRef}>
+    <div className="bg-primary min-h-screen">
+      <nav className="bg-secondary border-tertiary border-b" ref={menuRef}>
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-bg0 focus:rounded"
+          className="focus:bg-accent focus:text-bg0 sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:px-4 focus:py-2"
         >
           Skip to main content
         </a>
-        <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-6">
-            <Link to="/" className="flex items-center gap-2 text-xl font-bold text-fg1 hover:text-accent-bright transition-all duration-200 ease-in-out">
-              <div className="h-8 w-8 bg-current [mask-image:url('/tree.svg')] [mask-size:contain] [mask-repeat:no-repeat] [mask-position:center] transition-all duration-200 ease-in-out" />
+            <Link
+              to="/"
+              className="text-fg1 hover:text-accent-bright flex items-center gap-2 text-xl font-bold transition-all duration-200 ease-in-out"
+            >
+              <div className="h-8 w-8 bg-current transition-all duration-200 ease-in-out [mask-image:url('/tree.svg')] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]" />
               Tarnished
             </Link>
             {/* Desktop nav links */}
-            <div className="hidden md:flex items-center gap-6">
+            <div className="hidden items-center gap-6 md:flex">
               <Link to="/job-leads" className={linkClass('/job-leads')}>
                 Job Leads
               </Link>
@@ -79,11 +86,11 @@ export default function Layout({ children }: Props) {
             </div>
           </div>
           {/* Desktop user area */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden items-center gap-4 md:flex">
             <span className="text-muted">{user?.email}</span>
             <button
               onClick={signOut}
-              className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md cursor-pointer"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out"
             >
               Sign Out
             </button>
@@ -91,7 +98,7 @@ export default function Layout({ children }: Props) {
           {/* Mobile hamburger button */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden p-2 bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out rounded cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded bg-transparent p-2 transition-all duration-200 ease-in-out md:hidden"
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
           >
@@ -100,7 +107,7 @@ export default function Layout({ children }: Props) {
         </div>
         {/* Mobile menu panel */}
         <div
-          className="md:hidden border-t border-tertiary transition-all duration-200 ease-in-out"
+          className="border-tertiary border-t transition-all duration-200 ease-in-out md:hidden"
           style={{
             display: 'grid',
             gridTemplateRows: menuOpen ? '1fr' : '0fr',
@@ -112,7 +119,10 @@ export default function Layout({ children }: Props) {
               <Link to="/job-leads" className={mobileLinkClass('/job-leads')}>
                 Job Leads
               </Link>
-              <Link to="/applications" className={mobileLinkClass('/applications')}>
+              <Link
+                to="/applications"
+                className={mobileLinkClass('/applications')}
+              >
                 Applications
               </Link>
               <Link to="/analytics" className={mobileLinkClass('/analytics')}>
@@ -126,11 +136,13 @@ export default function Layout({ children }: Props) {
                   Admin
                 </Link>
               )}
-              <div className="border-t border-tertiary mt-2 pt-3 pb-2">
-                <span className="text-muted text-sm block mb-3">{user?.email}</span>
+              <div className="border-tertiary mt-2 border-t pb-2 pt-3">
+                <span className="text-muted mb-3 block text-sm">
+                  {user?.email}
+                </span>
                 <button
                   onClick={signOut}
-                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md cursor-pointer w-full text-left"
+                  className="text-fg1 hover:bg-bg2 hover:text-fg0 w-full cursor-pointer rounded-md bg-transparent px-4 py-2 text-left transition-all duration-200 ease-in-out"
                 >
                   Sign Out
                 </button>
@@ -138,10 +150,8 @@ export default function Layout({ children }: Props) {
             </div>
           </div>
         </div>
-       </nav>
-      <main id="main-content">
-        {children}
-      </main>
+      </nav>
+      <main id="main-content">{children}</main>
     </div>
   );
 }

@@ -42,7 +42,7 @@
   --accent-bright: var(--aqua-bright);
 }
 
-[data-theme="gruvbox-dark"] {
+[data-theme='gruvbox-dark'] {
   /* Backgrounds */
   --bg0-hard: #1d2021;
   --bg0: #282828;

@@ -11,7 +11,10 @@ interface InterviewOutcomesProps {
   roundType?: string;
 }
 
-export default function InterviewOutcomes({ period = 'all', roundType }: InterviewOutcomesProps) {
+export default function InterviewOutcomes({
+  period = 'all',
+  roundType,
+}: InterviewOutcomesProps) {
   const [data, setData] = useState<OutcomeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,7 +41,9 @@ export default function InterviewOutcomes({ period = 'all', roundType }: Intervi
     if (data.length === 0) return {};
 
     // Calculate total for each round type to get percentages
-    const totals = data.map((d) => d.passed + d.failed + d.pending + d.withdrew);
+    const totals = data.map(
+      (d) => d.passed + d.failed + d.pending + d.withdrew
+    );
 
     return {
       tooltip: {
@@ -92,7 +97,8 @@ export default function InterviewOutcomes({ period = 'all', roundType }: Intervi
               color: colors.fg0,
               fontSize: 12,
               formatter: () => {
-                const pct = totals[i] > 0 ? Math.round((d.passed / totals[i]) * 100) : 0;
+                const pct =
+                  totals[i] > 0 ? Math.round((d.passed / totals[i]) * 100) : 0;
                 return `${d.passed} (${pct}%)`;
               },
             },
@@ -117,7 +123,8 @@ export default function InterviewOutcomes({ period = 'all', roundType }: Intervi
               color: colors.fg0,
               fontSize: 12,
               formatter: () => {
-                const pct = totals[i] > 0 ? Math.round((d.failed / totals[i]) * 100) : 0;
+                const pct =
+                  totals[i] > 0 ? Math.round((d.failed / totals[i]) * 100) : 0;
                 return `${d.failed} (${pct}%)`;
               },
             },
@@ -136,7 +143,8 @@ export default function InterviewOutcomes({ period = 'all', roundType }: Intervi
               color: colors.fg0,
               fontSize: 12,
               formatter: () => {
-                const pct = totals[i] > 0 ? Math.round((d.pending / totals[i]) * 100) : 0;
+                const pct =
+                  totals[i] > 0 ? Math.round((d.pending / totals[i]) * 100) : 0;
                 return `${d.pending} (${pct}%)`;
               },
             },
@@ -155,7 +163,10 @@ export default function InterviewOutcomes({ period = 'all', roundType }: Intervi
               color: colors.fg0,
               fontSize: 12,
               formatter: () => {
-                const pct = totals[i] > 0 ? Math.round((d.withdrew / totals[i]) * 100) : 0;
+                const pct =
+                  totals[i] > 0
+                    ? Math.round((d.withdrew / totals[i]) * 100)
+                    : 0;
                 return `${d.withdrew} (${pct}%)`;
               },
             },
@@ -171,7 +182,7 @@ export default function InterviewOutcomes({ period = 'all', roundType }: Intervi
   }
 
   if (error) {
-    return <div className="text-center py-8 text-red-bright">{error}</div>;
+    return <div className="text-red-bright py-8 text-center">{error}</div>;
   }
 
   if (data.length === 0) {
@@ -186,8 +197,9 @@ export default function InterviewOutcomes({ period = 'all', roundType }: Intervi
 
   return (
     <div className="w-full">
-      <p className="text-sm text-fg4 mb-4">
-        Breakdown of interview outcomes by round type, showing the number and percentage of passed, failed, pending, and withdrawn rounds.
+      <p className="text-fg4 mb-4 text-sm">
+        Breakdown of interview outcomes by round type, showing the number and
+        percentage of passed, failed, pending, and withdrawn rounds.
       </p>
       <div className="overflow-x-auto">
         <ReactECharts

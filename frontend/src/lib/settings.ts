@@ -6,7 +6,10 @@ export async function listStatuses(): Promise<Status[]> {
   return response.data;
 }
 
-export async function createStatus(data: { name: string; color?: string }): Promise<Status> {
+export async function createStatus(data: {
+  name: string;
+  color?: string;
+}): Promise<Status> {
   const response = await api.post('/api/statuses', data);
   return response.data;
 }
@@ -28,12 +31,17 @@ export async function listRoundTypes(): Promise<RoundType[]> {
   return response.data;
 }
 
-export async function createRoundType(data: { name: string }): Promise<RoundType> {
+export async function createRoundType(data: {
+  name: string;
+}): Promise<RoundType> {
   const response = await api.post('/api/round-types', data);
   return response.data;
 }
 
-export async function updateRoundType(id: string, data: { name: string }): Promise<RoundType> {
+export async function updateRoundType(
+  id: string,
+  data: { name: string }
+): Promise<RoundType> {
   const response = await api.put(`/api/round-types/${id}`, data);
   return response.data;
 }

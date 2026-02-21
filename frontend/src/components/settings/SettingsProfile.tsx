@@ -73,101 +73,135 @@ export default function SettingsProfile() {
         <SettingsBackLink />
       </div>
 
-      <form onSubmit={handleSave} className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-xl font-bold text-fg1 mb-4">Profile</h2>
-        <p className="text-sm text-muted mb-4">
+      <form
+        onSubmit={handleSave}
+        className="bg-secondary rounded-lg p-4 md:p-6"
+      >
+        <h2 className="text-fg1 mb-4 text-xl font-bold">Profile</h2>
+        <p className="text-muted mb-4 text-sm">
           Your personal information for autofill and communications.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {/* First Name */}
           <div>
-            <label htmlFor="first-name" className="text-sm text-muted block mb-1.5">First Name</label>
+            <label
+              htmlFor="first-name"
+              className="text-muted mb-1.5 block text-sm"
+            >
+              First Name
+            </label>
             <input
               id="first-name"
               type="text"
               value={profile?.first_name || ''}
               onChange={(e) => handleInputChange('first_name', e.target.value)}
               placeholder="John"
-              className="w-full bg-bg2 text-fg1 rounded px-3 py-2 focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out"
+              className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
             />
           </div>
 
           {/* Last Name */}
           <div>
-            <label htmlFor="last-name" className="text-sm text-muted block mb-1.5">Last Name</label>
+            <label
+              htmlFor="last-name"
+              className="text-muted mb-1.5 block text-sm"
+            >
+              Last Name
+            </label>
             <input
               id="last-name"
               type="text"
               value={profile?.last_name || ''}
               onChange={(e) => handleInputChange('last_name', e.target.value)}
               placeholder="Doe"
-              className="w-full bg-bg2 text-fg1 rounded px-3 py-2 focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out"
+              className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
             />
           </div>
 
           {/* Email */}
           <div>
-            <label htmlFor="profile-email" className="text-sm text-muted block mb-1.5">Email</label>
+            <label
+              htmlFor="profile-email"
+              className="text-muted mb-1.5 block text-sm"
+            >
+              Email
+            </label>
             <input
               id="profile-email"
               type="email"
               value={profile?.email || ''}
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder="john@example.com"
-              className="w-full bg-bg2 text-fg1 rounded px-3 py-2 focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out"
+              className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
             />
           </div>
 
           {/* Phone */}
           <div>
-            <label htmlFor="phone" className="text-sm text-muted block mb-1.5">Phone</label>
+            <label htmlFor="phone" className="text-muted mb-1.5 block text-sm">
+              Phone
+            </label>
             <input
               id="phone"
               type="tel"
               value={profile?.phone || ''}
               onChange={(e) => handleInputChange('phone', e.target.value)}
               placeholder="+1 (555) 123-4567"
-              className="w-full bg-bg2 text-fg1 rounded px-3 py-2 focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out"
+              className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
             />
           </div>
 
           {/* City */}
           <div>
-            <label htmlFor="city" className="text-sm text-muted block mb-1.5">City</label>
+            <label htmlFor="city" className="text-muted mb-1.5 block text-sm">
+              City
+            </label>
             <input
               id="city"
               type="text"
               value={profile?.city || ''}
               onChange={(e) => handleInputChange('city', e.target.value)}
               placeholder="San Francisco"
-              className="w-full bg-bg2 text-fg1 rounded px-3 py-2 focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out"
+              className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
             />
           </div>
 
           {/* Country */}
           <div>
-            <label htmlFor="country" className="text-sm text-muted block mb-1.5">Country</label>
+            <label
+              htmlFor="country"
+              className="text-muted mb-1.5 block text-sm"
+            >
+              Country
+            </label>
             <input
               id="country"
               type="text"
               value={profile?.country || ''}
               onChange={(e) => handleInputChange('country', e.target.value)}
               placeholder="United States"
-              className="w-full bg-bg2 text-fg1 rounded px-3 py-2 focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out"
+              className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
             />
           </div>
 
           {/* LinkedIn URL */}
           <div className="sm:col-span-2">
-            <label htmlFor="linkedin-url" className="text-sm text-muted block mb-1.5">LinkedIn URL</label>
+            <label
+              htmlFor="linkedin-url"
+              className="text-muted mb-1.5 block text-sm"
+            >
+              LinkedIn URL
+            </label>
             <input
               id="linkedin-url"
               type="url"
               value={profile?.linkedin_url || ''}
-              onChange={(e) => handleInputChange('linkedin_url', e.target.value)}
+              onChange={(e) =>
+                handleInputChange('linkedin_url', e.target.value)
+              }
               placeholder="https://linkedin.com/in/johndoe"
-              className="w-full bg-bg2 text-fg1 rounded px-3 py-2 focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out"
+              className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
             />
           </div>
         </div>
@@ -177,7 +211,7 @@ export default function SettingsProfile() {
           <button
             type="submit"
             disabled={saving}
-            className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="bg-accent text-bg0 hover:bg-accent-bright flex cursor-pointer items-center gap-2 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? (
               <>

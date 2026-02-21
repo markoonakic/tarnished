@@ -89,7 +89,9 @@ async def get_profile(
             pass
 
         # Fetch the profile (either just created or created by concurrent request)
-        result = await db.execute(select(UserProfile).where(UserProfile.user_id == user.id))
+        result = await db.execute(
+            select(UserProfile).where(UserProfile.user_id == user.id)
+        )
         profile = result.scalar_one()
 
     await db.commit()
@@ -131,7 +133,9 @@ async def update_profile(
             pass
 
         # Fetch the profile
-        result = await db.execute(select(UserProfile).where(UserProfile.user_id == user.id))
+        result = await db.execute(
+            select(UserProfile).where(UserProfile.user_id == user.id)
+        )
         profile = result.scalar_one()
 
     # Extract only the fields that were provided in the request

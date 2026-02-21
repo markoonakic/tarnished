@@ -1,7 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
-import type { CallbackDataParams, TopLevelFormatterParams } from 'echarts/types/dist/shared';
+import type {
+  CallbackDataParams,
+  TopLevelFormatterParams,
+} from 'echarts/types/dist/shared';
 import { getInterviewRoundsData, type TimelineData } from '@/lib/analytics';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
@@ -12,7 +15,10 @@ interface InterviewTimelineProps {
   roundType?: string;
 }
 
-export default function InterviewTimeline({ period = 'all', roundType }: InterviewTimelineProps) {
+export default function InterviewTimeline({
+  period = 'all',
+  roundType,
+}: InterviewTimelineProps) {
   const [data, setData] = useState<TimelineData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -87,7 +93,11 @@ export default function InterviewTimeline({ period = 'all', roundType }: Intervi
       xAxis: {
         type: 'value',
         name: 'Days Between Rounds',
-        nameTextStyle: { color: colors.fg4, fontSize: 12, padding: [0, 0, 0, 0] },
+        nameTextStyle: {
+          color: colors.fg4,
+          fontSize: 12,
+          padding: [0, 0, 0, 0],
+        },
         nameGap: 5,
         max: xAxisMax,
         axisLabel: { color: colors.fg4 },
@@ -96,7 +106,7 @@ export default function InterviewTimeline({ period = 'all', roundType }: Intervi
           lineStyle: {
             color: colors.bg2,
             type: 'dashed',
-          }
+          },
         },
       },
       yAxis: {
@@ -184,7 +194,7 @@ export default function InterviewTimeline({ period = 'all', roundType }: Intervi
   }
 
   if (error) {
-    return <div className="text-center py-8 text-red-bright">{error}</div>;
+    return <div className="text-red-bright py-8 text-center">{error}</div>;
   }
 
   if (data.length === 0) {
@@ -200,8 +210,9 @@ export default function InterviewTimeline({ period = 'all', roundType }: Intervi
   return (
     <div className="w-full">
       {/* Description */}
-      <p className="text-sm text-fg4 mb-4">
-        Average number of days between interview rounds. Color indicates process speed:
+      <p className="text-fg4 mb-4 text-sm">
+        Average number of days between interview rounds. Color indicates process
+        speed:
         <span className="text-green ml-1">● Fast (≤3 days)</span>,
         <span className="text-aqua mx-1">● Normal (4-7 days)</span>,
         <span className="text-orange mx-1">● Slow (8+ days)</span>

@@ -32,7 +32,7 @@ export interface ImportProgress {
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('access_token');
   return {
-    'Authorization': `Bearer ${token}`,
+    Authorization: `Bearer ${token}`,
   };
 }
 
@@ -48,7 +48,9 @@ export async function validateImport(file: File): Promise<ImportValidation> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || errorData.errors?.join(', ') || 'Validation failed');
+    throw new Error(
+      errorData.detail || errorData.errors?.join(', ') || 'Validation failed'
+    );
   }
 
   return response.json();

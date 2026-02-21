@@ -29,7 +29,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-muted">
+      <div className="text-muted flex min-h-screen items-center justify-center">
         Loading...
       </div>
     );
@@ -47,7 +47,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-muted">
+      <div className="text-muted flex min-h-screen items-center justify-center">
         Loading...
       </div>
     );
@@ -65,15 +65,78 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-      <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-      <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/job-leads" element={<ProtectedRoute><JobLeads /></ProtectedRoute>} />
-      <Route path="/job-leads/:id" element={<ProtectedRoute><JobLeadDetail /></ProtectedRoute>} />
-      <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
-      <Route path="/applications/:id" element={<ProtectedRoute><ApplicationDetail /></ProtectedRoute>} />
-      <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><SettingsLayout /></ProtectedRoute>}>
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/job-leads"
+        element={
+          <ProtectedRoute>
+            <JobLeads />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/job-leads/:id"
+        element={
+          <ProtectedRoute>
+            <JobLeadDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/applications"
+        element={
+          <ProtectedRoute>
+            <Applications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/applications/:id"
+        element={
+          <ProtectedRoute>
+            <ApplicationDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute>
+            <Analytics />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="theme" element={<SettingsTheme />} />
         <Route path="features" element={<SettingsFeatures />} />
         <Route path="profile" element={<SettingsProfile />} />
@@ -83,7 +146,14 @@ function AppRoutes() {
         <Route path="export" element={<SettingsExport />} />
         <Route path="import" element={<SettingsImport />} />
       </Route>
-      <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <Admin />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }

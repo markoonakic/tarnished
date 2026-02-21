@@ -4,8 +4,8 @@ interface OverallGraceProps {
 
 export function OverallGrace({ message }: OverallGraceProps) {
   return (
-    <div className="bg-bg1 rounded-lg p-4 border-l-2 border-accent">
-      <div className="flex items-center gap-2 mb-2">
+    <div className="bg-bg1 border-accent rounded-lg border-l-2 p-4">
+      <div className="mb-2 flex items-center gap-2">
         <i className="bi-sun text-accent icon-md" />
         <span className="text-fg1 font-medium">Guidance of Grace</span>
       </div>

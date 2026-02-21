@@ -16,15 +16,22 @@ export default function HistoryViewer({ applicationId }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: history, isLoading, error } = useQuery({
+  const {
+    data: history,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['application-history', applicationId],
     queryFn: () => getApplicationHistory(applicationId),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (historyId: string) => deleteHistoryEntry(applicationId, historyId),
+    mutationFn: (historyId: string) =>
+      deleteHistoryEntry(applicationId, historyId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['application-history', applicationId] });
+      queryClient.invalidateQueries({
+        queryKey: ['application-history', applicationId],
+      });
     },
   });
 
@@ -40,7 +47,9 @@ export default function HistoryViewer({ applicationId }: Props) {
   if (isLoading) {
     return (
       <div className="bg-bg1 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-primary mb-4">Status History</h2>
+        <h2 className="text-primary mb-4 text-lg font-semibold">
+          Status History
+        </h2>
         <div className="flex items-center justify-center py-8">
           <div className="text-muted">Loading history...</div>
         </div>
@@ -51,7 +60,9 @@ export default function HistoryViewer({ applicationId }: Props) {
   if (error) {
     return (
       <div className="bg-bg1 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-primary mb-4">Status History</h2>
+        <h2 className="text-primary mb-4 text-lg font-semibold">
+          Status History
+        </h2>
         <div className="text-red-bright">Failed to load history</div>
       </div>
     );
@@ -60,16 +71,16 @@ export default function HistoryViewer({ applicationId }: Props) {
   return (
     <>
       <div className="bg-bg1 rounded-lg p-6">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
-          <h2 className="text-lg font-semibold text-primary">Status History</h2>
+        <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <h2 className="text-primary text-lg font-semibold">Status History</h2>
           <div className="flex gap-2">
             {history && history.length > 0 && (
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className={`transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer ${
+                className={`cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out ${
                   isEditing
                     ? 'bg-accent text-bg0 hover:bg-accent-bright'
-                    : 'bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0'
+                    : 'text-fg1 hover:bg-bg2 hover:text-fg0 bg-transparent'
                 }`}
               >
                 {isEditing ? 'Done' : 'Edit History'}
@@ -78,7 +89,7 @@ export default function HistoryViewer({ applicationId }: Props) {
             <button
               onClick={() => setIsModalOpen(true)}
               disabled={!history || history.length === 0}
-              className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
             >
               View All History
             </button>
@@ -86,27 +97,38 @@ export default function HistoryViewer({ applicationId }: Props) {
         </div>
 
         {!history || history.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-            <i className="bi-clock-history icon-2xl text-muted mb-4" aria-hidden="true" />
-            <p className="text-sm text-muted">No status changes recorded yet.</p>
-            <p className="text-xs text-muted mt-2">History will appear here when you update the application status.</p>
+          <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+            <i
+              className="bi-clock-history icon-2xl text-muted mb-4"
+              aria-hidden="true"
+            />
+            <p className="text-muted text-sm">
+              No status changes recorded yet.
+            </p>
+            <p className="text-muted mt-2 text-xs">
+              History will appear here when you update the application status.
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
             {history.slice(0, 3).map((entry: ApplicationStatusHistory) => (
               <div
                 key={entry.id}
-                className="bg-bg2 rounded-lg p-4 flex items-start justify-between gap-4"
+                className="bg-bg2 flex items-start justify-between gap-4 rounded-lg p-4"
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
                     {entry.from_status ? (
                       <>
                         <span
-                          className="text-xs px-2 py-1 rounded font-medium"
+                          className="rounded px-2 py-1 text-xs font-medium"
                           style={{
                             backgroundColor: `${getStatusColor(entry.from_status.name, colors, entry.from_status.color)}20`,
-                            color: getStatusColor(entry.from_status.name, colors, entry.from_status.color),
+                            color: getStatusColor(
+                              entry.from_status.name,
+                              colors,
+                              entry.from_status.color
+                            ),
                           }}
                         >
                           {entry.from_status.name}
@@ -114,30 +136,36 @@ export default function HistoryViewer({ applicationId }: Props) {
                         <i className="bi-arrow-right text-muted icon-xs" />
                       </>
                     ) : (
-                      <span className="text-xs text-muted italic">New</span>
+                      <span className="text-muted text-xs italic">New</span>
                     )}
                     <span
-                      className="text-xs px-2 py-1 rounded font-medium"
+                      className="rounded px-2 py-1 text-xs font-medium"
                       style={{
                         backgroundColor: `${getStatusColor(entry.to_status.name, colors, entry.to_status.color)}20`,
-                        color: getStatusColor(entry.to_status.name, colors, entry.to_status.color),
+                        color: getStatusColor(
+                          entry.to_status.name,
+                          colors,
+                          entry.to_status.color
+                        ),
                       }}
                     >
                       {entry.to_status.name}
                     </span>
                   </div>
-                  <p className="text-xs text-muted">
+                  <p className="text-muted text-xs">
                     {formatDateTime(entry.changed_at)}
                   </p>
                   {entry.note && (
-                    <p className="text-sm text-fg1 mt-2 whitespace-pre-wrap">{entry.note}</p>
+                    <p className="text-fg1 mt-2 whitespace-pre-wrap text-sm">
+                      {entry.note}
+                    </p>
                   )}
                 </div>
                 {isEditing && (
                   <button
                     onClick={() => handleDelete(entry.id)}
                     disabled={deleteMutation.isPending}
-                    className="bg-transparent text-red hover:bg-bg3 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 self-center cursor-pointer"
+                    className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center gap-1.5 self-center rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
                     title="Delete"
                   >
                     <i className="bi-trash icon-xs"></i>
@@ -147,12 +175,13 @@ export default function HistoryViewer({ applicationId }: Props) {
               </div>
             ))}
             {history.length > 3 && (
-              <div className="text-center pt-2">
+              <div className="pt-2 text-center">
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="text-muted hover:text-fg0 hover:bg-bg2 transition-all duration-200 ease-in-out px-2 py-1 rounded text-sm cursor-pointer"
+                  className="text-muted hover:text-fg0 hover:bg-bg2 cursor-pointer rounded px-2 py-1 text-sm transition-all duration-200 ease-in-out"
                 >
-                  View {history.length - 3} more entr{history.length - 3 === 1 ? 'y' : 'ies'}
+                  View {history.length - 3} more entr
+                  {history.length - 3 === 1 ? 'y' : 'ies'}
                 </button>
               </div>
             )}

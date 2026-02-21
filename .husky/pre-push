@@ -1,0 +1,27 @@
+#!/bin/sh
+
+echo "Running pre-push checks..."
+
+# Backend checks
+echo ">> Backend: ruff check"
+cd backend && uv run ruff check || exit 1
+
+echo ">> Backend: pyright"
+uv run pyright || exit 1
+
+# Frontend checks
+cd ../frontend
+echo ">> Frontend: lint"
+yarn lint || exit 1
+
+echo ">> Frontend: typecheck"
+npx tsc --noEmit || exit 1
+
+# Extension checks (only if changed)
+cd ../extension
+if git diff --name-only HEAD@{1} HEAD | grep -q "^extension/"; then
+  echo ">> Extension: typecheck"
+  npx tsc --noEmit || exit 1
+fi
+
+echo "All pre-push checks passed!"

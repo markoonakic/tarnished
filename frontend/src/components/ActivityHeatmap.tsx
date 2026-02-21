@@ -7,13 +7,26 @@ import Loading from './Loading';
 import EmptyState from './EmptyState';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_LABELS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 interface CellData {
   date: string;
   count: number;
   level: number;
-  isPadding?: boolean;  // Marks cells that are for alignment only (not real dates)
+  isPadding?: boolean; // Marks cells that are for alignment only (not real dates)
 }
 
 export default function ActivityHeatmap() {
@@ -55,12 +68,18 @@ export default function ActivityHeatmap() {
 
   function getLevelColor(level: number): string {
     switch (level) {
-      case 0: return colors.bg2;
-      case 1: return colors.green;
-      case 2: return colors.aqua;
-      case 3: return colors.blue;
-      case 4: return colors.aquaBright;
-      default: return colors.bg2;
+      case 0:
+        return colors.bg2;
+      case 1:
+        return colors.green;
+      case 2:
+        return colors.aqua;
+      case 3:
+        return colors.blue;
+      case 4:
+        return colors.aquaBright;
+      default:
+        return colors.bg2;
     }
   }
 
@@ -85,13 +104,13 @@ export default function ActivityHeatmap() {
       endDate = new Date(today);
     } else {
       // Year view: exactly Jan 1 to Dec 31 of selected year
-      startDate = new Date(viewMode, 0, 1);  // Jan 1
-      endDate = new Date(viewMode, 11, 31);  // Dec 31
+      startDate = new Date(viewMode, 0, 1); // Jan 1
+      endDate = new Date(viewMode, 11, 31); // Dec 31
     }
 
     // Find the Sunday on or before startDate to ensure proper day-of-week alignment
     const gridStart = new Date(startDate);
-    const startDayOfWeek = startDate.getDay();  // 0 = Sunday, 1 = Monday, etc.
+    const startDayOfWeek = startDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
     gridStart.setDate(startDate.getDate() - startDayOfWeek);
 
     // Build complete weeks starting from the Sunday before startDate
@@ -118,13 +137,13 @@ export default function ActivityHeatmap() {
             date: cellDate.toLocaleDateString('en-CA'),
             count: 0,
             level: 0,
-            isPadding: true
+            isPadding: true,
           });
         }
       }
 
       // Only add week if it has at least one non-padding day
-      const hasRealData = weekData.some(cell => !cell.isPadding);
+      const hasRealData = weekData.some((cell) => !cell.isPadding);
       if (hasRealData) {
         grid.push(weekData);
       }
@@ -136,7 +155,9 @@ export default function ActivityHeatmap() {
     return grid;
   }
 
-  function getMonthLabels(grid: CellData[][]): { label: string; week: number }[] {
+  function getMonthLabels(
+    grid: CellData[][]
+  ): { label: string; week: number }[] {
     const labels: { label: string; week: number }[] = [];
     const seenMonths = new Set<string>();
 
@@ -144,7 +165,7 @@ export default function ActivityHeatmap() {
       if (week.length === 0) return;
 
       // Find the first non-padding cell to determine the month label
-      const firstRealCell = week.find(cell => !cell.isPadding);
+      const firstRealCell = week.find((cell) => !cell.isPadding);
       if (!firstRealCell) return;
 
       const firstDayOfWeek = new Date(firstRealCell.date);
@@ -153,7 +174,8 @@ export default function ActivityHeatmap() {
 
       // For rolling view, track only month names (not year) to avoid duplicates like "Feb 2025" and "Feb 2026"
       // For year views, track year+month to distinguish months from padding years
-      const monthKey = viewMode === 'rolling' ? String(month) : `${year}-${month}`;
+      const monthKey =
+        viewMode === 'rolling' ? String(month) : `${year}-${month}`;
 
       // Label every month that hasn't been labeled yet
       if (!seenMonths.has(monthKey)) {
@@ -170,7 +192,7 @@ export default function ActivityHeatmap() {
   }
 
   if (error) {
-    return <div className="text-center py-8 text-red-bright">{error}</div>;
+    return <div className="text-red-bright py-8 text-center">{error}</div>;
   }
 
   const grid = buildGrid();
@@ -183,15 +205,17 @@ export default function ActivityHeatmap() {
   if (!data || !data.days || data.days.length === 0 || data.max_count === 0) {
     return (
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Dropdown
               options={[
                 { value: 'rolling', label: 'Last 12 months' },
-                ...years.map((y) => ({ value: String(y), label: String(y) }))
+                ...years.map((y) => ({ value: String(y), label: String(y) })),
               ]}
               value={typeof viewMode === 'string' ? viewMode : String(viewMode)}
-              onChange={(value) => setViewMode(value === 'rolling' ? 'rolling' : parseInt(value))}
+              onChange={(value) =>
+                setViewMode(value === 'rolling' ? 'rolling' : parseInt(value))
+              }
               placeholder="Select time range"
               size="sm"
               containerBackground="bg1"
@@ -205,26 +229,28 @@ export default function ActivityHeatmap() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Dropdown
             options={[
               { value: 'rolling', label: 'Last 12 months' },
-              ...years.map((y) => ({ value: String(y), label: String(y) }))
+              ...years.map((y) => ({ value: String(y), label: String(y) })),
             ]}
             value={typeof viewMode === 'string' ? viewMode : String(viewMode)}
-            onChange={(value) => setViewMode(value === 'rolling' ? 'rolling' : parseInt(value))}
+            onChange={(value) =>
+              setViewMode(value === 'rolling' ? 'rolling' : parseInt(value))
+            }
             placeholder="Select time range"
             size="sm"
             containerBackground="bg1"
           />
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted">
+        <div className="text-muted flex items-center gap-2 text-sm">
           <span>Less</span>
           {[0, 1, 2, 3, 4].map((level) => (
             <div
               key={level}
-              className="w-3 h-3 rounded-sm"
+              className="h-3 w-3 rounded-sm"
               style={{ backgroundColor: getLevelColor(level) }}
             />
           ))}
@@ -233,8 +259,11 @@ export default function ActivityHeatmap() {
       </div>
 
       <div className="overflow-x-auto">
-        <div className="relative" style={{ minWidth: gridWeeks * (cellSize + cellGap) + 30 }}>
-          <div className="flex text-xs text-muted mb-1 pl-8">
+        <div
+          className="relative"
+          style={{ minWidth: gridWeeks * (cellSize + cellGap) + 30 }}
+        >
+          <div className="text-muted mb-1 flex pl-8 text-xs">
             {monthLabels.map((m, i) => (
               <span
                 key={`${m.label}-${i}`}
@@ -248,12 +277,18 @@ export default function ActivityHeatmap() {
             ))}
           </div>
 
-          <div className="flex mt-4">
-            <div className="flex flex-col text-xs text-muted pr-2" style={{ marginTop: 0 }}>
+          <div className="mt-4 flex">
+            <div
+              className="text-muted flex flex-col pr-2 text-xs"
+              style={{ marginTop: 0 }}
+            >
               {DAY_LABELS.map((label, i) => (
                 <div
                   key={label}
-                  style={{ height: cellSize + cellGap, lineHeight: `${cellSize}px` }}
+                  style={{
+                    height: cellSize + cellGap,
+                    lineHeight: `${cellSize}px`,
+                  }}
                   className={i % 2 === 1 ? '' : 'invisible'}
                 >
                   {label}
@@ -267,14 +302,16 @@ export default function ActivityHeatmap() {
                   {week.map((cell, dayIndex) => (
                     <div
                       key={`${weekIndex}-${dayIndex}`}
-                      className="rounded-sm transition-all duration-200 ease-in-out cursor-pointer opacity-60 hover:opacity-100"
+                      className="cursor-pointer rounded-sm opacity-60 transition-all duration-200 ease-in-out hover:opacity-100"
                       style={{
                         width: cellSize,
                         height: cellSize,
                         backgroundColor: getLevelColor(cell.level),
                         visibility: cell.isPadding ? 'hidden' : 'visible',
                       }}
-                      onMouseEnter={() => !cell.isPadding && setHoveredCell(cell)}
+                      onMouseEnter={() =>
+                        !cell.isPadding && setHoveredCell(cell)
+                      }
                       onMouseLeave={() => setHoveredCell(null)}
                     />
                   ))}
@@ -284,10 +321,13 @@ export default function ActivityHeatmap() {
           </div>
 
           {hoveredCell && (
-            <div className="absolute top-0 right-0 bg-secondary border border-tertiary rounded px-2 py-1 text-sm">
-              <span className="text-primary font-medium">{hoveredCell.count}</span>
+            <div className="bg-secondary border-tertiary absolute right-0 top-0 rounded border px-2 py-1 text-sm">
+              <span className="text-primary font-medium">
+                {hoveredCell.count}
+              </span>
               <span className="text-muted ml-1">
-                {hoveredCell.count === 1 ? 'application' : 'applications'} on{' '}
+                {hoveredCell.count === 1 ? 'application' : 'applications'}{' '}
+                on{' '}
               </span>
               <span className="text-primary">{hoveredCell.date}</span>
             </div>

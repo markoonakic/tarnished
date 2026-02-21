@@ -20,7 +20,9 @@ interface JobLeadsListResponse {
 /**
  * List job leads for the authenticated user with pagination and filtering.
  */
-export async function getJobLeads(params: JobLeadsParams = {}): Promise<JobLeadsListResponse> {
+export async function getJobLeads(
+  params: JobLeadsParams = {}
+): Promise<JobLeadsListResponse> {
   const response = await api.get('/api/job-leads', { params });
   return response.data;
 }

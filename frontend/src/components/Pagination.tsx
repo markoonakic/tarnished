@@ -60,9 +60,9 @@ export default function Pagination({
   const showPaginationControls = totalPages > 1;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+    <div className="flex w-full flex-col items-center justify-between gap-4 sm:flex-row">
       {/* Item count display */}
-      <div className="text-sm text-muted">
+      <div className="text-muted text-sm">
         Showing {startItem}-{endItem} of {totalItems} items
       </div>
 
@@ -74,14 +74,11 @@ export default function Pagination({
             type="button"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className={`
-              flex items-center justify-center w-8 h-8 rounded-lg
-              transition-all duration-200 ease-in-out cursor-pointer
-              ${currentPage === 1
-                ? 'bg-bg2 text-muted opacity-50 cursor-not-allowed'
+            className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-all duration-200 ease-in-out ${
+              currentPage === 1
+                ? 'bg-bg2 text-muted cursor-not-allowed opacity-50'
                 : 'bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3'
-              }
-            `}
+            } `}
             aria-label="Previous page"
           >
             <i className="bi-chevron-left icon-sm" />
@@ -93,7 +90,7 @@ export default function Pagination({
               return (
                 <span
                   key={`ellipsis-${index}`}
-                  className="w-8 h-8 flex items-center justify-center text-muted"
+                  className="text-muted flex h-8 w-8 items-center justify-center"
                 >
                   ...
                 </span>
@@ -106,14 +103,11 @@ export default function Pagination({
                 key={page}
                 type="button"
                 onClick={() => onPageChange(page)}
-                className={`
-                  w-8 h-8 flex items-center justify-center rounded-lg
-                  transition-all duration-200 ease-in-out cursor-pointer
-                  ${isActive
+                className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-all duration-200 ease-in-out ${
+                  isActive
                     ? 'bg-accent text-bg1'
                     : 'bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3'
-                  }
-                `}
+                } `}
                 aria-label={`Page ${page}`}
                 aria-current={isActive ? 'page' : undefined}
               >
@@ -127,14 +121,11 @@ export default function Pagination({
             type="button"
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className={`
-              flex items-center justify-center w-8 h-8 rounded-lg
-              transition-all duration-200 ease-in-out cursor-pointer
-              ${currentPage === totalPages
-                ? 'bg-bg2 text-muted opacity-50 cursor-not-allowed'
+            className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-all duration-200 ease-in-out ${
+              currentPage === totalPages
+                ? 'bg-bg2 text-muted cursor-not-allowed opacity-50'
                 : 'bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3'
-              }
-            `}
+            } `}
             aria-label="Next page"
           >
             <i className="bi-chevron-right icon-sm" />

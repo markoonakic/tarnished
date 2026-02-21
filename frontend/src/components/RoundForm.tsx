@@ -12,14 +12,22 @@ interface Props {
   onCancel: () => void;
 }
 
-export default function RoundForm({ applicationId, round, onSave, onCancel }: Props) {
+export default function RoundForm({
+  applicationId,
+  round,
+  onSave,
+  onCancel,
+}: Props) {
   const isEditing = Boolean(round);
   const [roundTypes, setRoundTypes] = useState<RoundType[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
 
-  function parseDateTime(isoString: string | null): { date: string; time: string } {
+  function parseDateTime(isoString: string | null): {
+    date: string;
+    time: string;
+  } {
     if (!isoString) return { date: '', time: '' };
     const d = new Date(isoString);
     if (isNaN(d.getTime())) return { date: '', time: '' };
@@ -33,7 +41,10 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
     return { date: dateStr, time: `${h}:${m} ${period}` };
   }
 
-  function formatDateTimeForApi(dateStr: string, timeStr: string): string | undefined {
+  function formatDateTimeForApi(
+    dateStr: string,
+    timeStr: string
+  ): string | undefined {
     if (!dateStr) return undefined;
     if (!timeStr) return `${dateStr}T00:00:00`;
     const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
@@ -57,7 +68,9 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
   const [outcome, setOutcome] = useState(round?.outcome || '');
   const [notesSummary, setNotesSummary] = useState(round?.notes_summary || '');
   const [transcriptFile, setTranscriptFile] = useState<File | null>(null);
-  const [transcriptSummary, setTranscriptSummary] = useState(round?.transcript_summary || '');
+  const [transcriptSummary, setTranscriptSummary] = useState(
+    round?.transcript_summary || ''
+  );
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -126,7 +139,10 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
         }, 100);
 
         try {
-          savedRound = await uploadRoundTranscript(savedRound.id, transcriptFile);
+          savedRound = await uploadRoundTranscript(
+            savedRound.id,
+            transcriptFile
+          );
           if (progressRef.current) clearInterval(progressRef.current);
           setUploadProgress(100);
           setTimeout(() => setUploadProgress(0), 500);
@@ -147,24 +163,32 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
 
   return (
     <form onSubmit={handleSubmit} className="bg-bg2 rounded-lg p-4">
-      <h3 className="text-primary font-medium mb-4">
+      <h3 className="text-primary mb-4 font-medium">
         {round ? 'Edit Round' : 'New Round'}
       </h3>
 
       {error && (
-        <div className="bg-red-bright/20 border border-red-bright text-red-bright px-3 py-2 rounded mb-4 text-sm">
+        <div className="bg-red-bright/20 border-red-bright text-red-bright mb-4 rounded border px-3 py-2 text-sm">
           {error}
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="round-type" className="block mb-1 text-sm font-semibold text-muted">Round Type</label>
+          <label
+            htmlFor="round-type"
+            className="text-muted mb-1 block text-sm font-semibold"
+          >
+            Round Type
+          </label>
           <Dropdown
             id="round-type"
             options={[
               { value: '', label: 'Select type' },
-              ...roundTypes.map((type) => ({ value: type.id, label: type.name }))
+              ...roundTypes.map((type) => ({
+                value: type.id,
+                label: type.name,
+              })),
             ]}
             value={roundTypeId}
             onChange={(value) => setRoundTypeId(value)}
@@ -174,32 +198,47 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
         </div>
 
         <div>
-          <label htmlFor="scheduled-date" className="block mb-1 text-sm font-semibold text-muted">Scheduled Date</label>
+          <label
+            htmlFor="scheduled-date"
+            className="text-muted mb-1 block text-sm font-semibold"
+          >
+            Scheduled Date
+          </label>
           <input
             id="scheduled-date"
             type="date"
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
-            className="w-full px-3 py-2 bg-bg3 text-fg1 focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+            className="bg-bg3 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
           />
         </div>
 
         <div>
-          <label htmlFor="scheduled-time" className="block mb-1 text-sm font-semibold text-muted">Time (optional)</label>
+          <label
+            htmlFor="scheduled-time"
+            className="text-muted mb-1 block text-sm font-semibold"
+          >
+            Time (optional)
+          </label>
           <input
             id="scheduled-time"
             type="text"
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
             placeholder="e.g. 2:30 PM"
-            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+            className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
           />
         </div>
 
         {round && (
           <>
             <div>
-              <label htmlFor="round-outcome" className="block mb-1 text-sm font-semibold text-muted">Outcome</label>
+              <label
+                htmlFor="round-outcome"
+                className="text-muted mb-1 block text-sm font-semibold"
+              >
+                Outcome
+              </label>
               <Dropdown
                 id="round-outcome"
                 options={[
@@ -216,45 +255,62 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
             </div>
 
             <div>
-              <label htmlFor="completed-date" className="block mb-1 text-sm font-semibold text-muted">Completed Date</label>
+              <label
+                htmlFor="completed-date"
+                className="text-muted mb-1 block text-sm font-semibold"
+              >
+                Completed Date
+              </label>
               <input
                 id="completed-date"
                 type="date"
                 value={completedDate}
                 onChange={(e) => setCompletedDate(e.target.value)}
-                className="w-full px-3 py-2 bg-bg3 text-fg1 focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="bg-bg3 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
               />
             </div>
 
             <div>
-              <label htmlFor="completed-time" className="block mb-1 text-sm font-semibold text-muted">Time (optional)</label>
+              <label
+                htmlFor="completed-time"
+                className="text-muted mb-1 block text-sm font-semibold"
+              >
+                Time (optional)
+              </label>
               <input
                 id="completed-time"
                 type="text"
                 value={completedTime}
                 onChange={(e) => setCompletedTime(e.target.value)}
                 placeholder="e.g. 2:30 PM"
-                className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
               />
             </div>
           </>
         )}
 
         <div className="sm:col-span-2">
-          <label htmlFor="round-notes" className="block mb-1 text-sm font-semibold text-muted">Notes</label>
+          <label
+            htmlFor="round-notes"
+            className="text-muted mb-1 block text-sm font-semibold"
+          >
+            Notes
+          </label>
           <textarea
             id="round-notes"
             value={notesSummary}
             onChange={(e) => setNotesSummary(e.target.value)}
             rows={3}
             placeholder="Key points, questions asked, feedback..."
-            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
+            className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
           />
         </div>
 
         <div className="sm:col-span-2">
-          <span className="block mb-1 text-sm font-semibold text-muted">Transcript (PDF)</span>
-          <label className="bg-transparent text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer w-fit">
+          <span className="text-muted mb-1 block text-sm font-semibold">
+            Transcript (PDF)
+          </span>
+          <label className="text-fg1 hover:bg-bg3 hover:text-fg0 flex w-fit cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out">
             <i className="bi-upload icon-sm"></i>
             {transcriptFile ? transcriptFile.name : 'Choose PDF...'}
             <input
@@ -266,42 +322,52 @@ export default function RoundForm({ applicationId, round, onSave, onCancel }: Pr
           </label>
           {uploadProgress > 0 && uploadProgress < 100 && (
             <div className="mt-2">
-              <ProgressBar progress={uploadProgress} fileName={transcriptFile?.name} />
+              <ProgressBar
+                progress={uploadProgress}
+                fileName={transcriptFile?.name}
+              />
             </div>
           )}
           {round?.transcript_path && !transcriptFile && (
-            <div className="flex items-center gap-2 p-2 bg-secondary rounded border border-tertiary mt-2">
+            <div className="bg-secondary border-tertiary mt-2 flex items-center gap-2 rounded border p-2">
               <i className="bi-file-text icon-md text-red-bright"></i>
-              <span className="text-sm text-primary truncate">Current: {round.transcript_path.split('/').pop()}</span>
+              <span className="text-primary truncate text-sm">
+                Current: {round.transcript_path.split('/').pop()}
+              </span>
             </div>
           )}
         </div>
 
         <div className="sm:col-span-2">
-          <label htmlFor="transcript-summary" className="block mb-1 text-sm font-semibold text-muted">Transcript Summary</label>
+          <label
+            htmlFor="transcript-summary"
+            className="text-muted mb-1 block text-sm font-semibold"
+          >
+            Transcript Summary
+          </label>
           <textarea
             id="transcript-summary"
             value={transcriptSummary}
             onChange={(e) => setTranscriptSummary(e.target.value)}
             rows={3}
             placeholder="Summary of key discussion points from transcript..."
-            className="w-full px-3 py-2 bg-bg3 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded resize-y"
+            className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
           />
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 mt-4">
+      <div className="mt-4 flex justify-end gap-2">
         <button
           type="button"
           onClick={onCancel}
-          className="bg-transparent text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 cursor-pointer"
+          className="text-fg1 hover:bg-bg3 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
+          className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
         >
           {loading ? 'Saving...' : isEditing ? 'Save' : 'Add Round'}
         </button>

@@ -50,7 +50,7 @@ This prevents running out of colors in deeply nested contexts.
 **Correct:**
 
 ```tsx
-className = "text-fg1 bg-bg1";
+className = 'text-fg1 bg-bg1';
 ```
 
 **Incorrect:**
@@ -81,18 +81,19 @@ Themes switch by changing CSS variable values. Using `var(--color-*)` ensures al
 
 ### Four Standard Button Patterns
 
-| Variant       | Base State                | Hover State                                                                    | Default Size | Usage                              |
-| ------------- | ------------------------- | ------------------------------------------------------------------------------ | ------------ | ---------------------------------- |
-| **Primary**   | `bg-accent text-bg0`      | `hover:bg-accent-bright`                                                       | `px-4 py-2`  | Save, Add, Create, Sign In, Submit |
-| **Neutral**   | `bg-transparent text-fg1` | Follows 5-layer hover rule                                                     | `px-4 py-2`  | Cancel, Edit, Skip |
-| **Danger**    | `bg-transparent text-red` | Follows 5-layer hover rule + `hover:text-red-bright`                           | `px-4 py-2`  | Delete buttons (ALL variants) |
-| **Icon-only** | `p-2` transparent         | Follows 5-layer hover rule                                                     | `p-2`        | Edit, Delete icon buttons (text color depends on type) |
+| Variant       | Base State                | Hover State                                          | Default Size | Usage                                                  |
+| ------------- | ------------------------- | ---------------------------------------------------- | ------------ | ------------------------------------------------------ |
+| **Primary**   | `bg-accent text-bg0`      | `hover:bg-accent-bright`                             | `px-4 py-2`  | Save, Add, Create, Sign In, Submit                     |
+| **Neutral**   | `bg-transparent text-fg1` | Follows 5-layer hover rule                           | `px-4 py-2`  | Cancel, Edit, Skip                                     |
+| **Danger**    | `bg-transparent text-red` | Follows 5-layer hover rule + `hover:text-red-bright` | `px-4 py-2`  | Delete buttons (ALL variants)                          |
+| **Icon-only** | `p-2` transparent         | Follows 5-layer hover rule                           | `p-2`        | Edit, Delete icon buttons (text color depends on type) |
 
 ### Button Hover Background Rule (5-Layer Rule)
 
 Buttons use the **next darker color** from their container's background for hover states. This ensures visible hover states across all contexts.
 
 **Container → Button hover mapping:**
+
 - Container `bg-bg0` → Button hover `hover:bg-bg1`
 - Container `bg-bg1` → Button hover `hover:bg-bg2`
 - Container `bg-bg2` → Button hover `hover:bg-bg3`
@@ -118,6 +119,7 @@ When a delete button sits alongside variable-height content (e.g., badges + time
 ### Cursor Pointer
 
 **ALL interactive elements must have `cursor-pointer` class:**
+
 - `<button>` elements
 - `<a>` elements (links)
 - Elements with `onClick` handlers
@@ -164,12 +166,12 @@ Inputs must use the **next color in line** from their container's background. Th
 
 ```tsx
 const statusColors = {
-  applied: "bg-[var(--color-green)]/20 text-[var(--color-green)]",
-  interview: "bg-[var(--color-blue)]/20 text-[var(--color-blue)]",
-  offer: "bg-[var(--color-accent)]/20 text-[var(--color-accent)]",
-  rejected: "bg-[var(--color-red)]/20 text-[var(--color-red)]",
-  withdrew: "bg-[var(--color-yellow)]/20 text-[var(--color-yellow)]",
-  pending: "bg-[var(--color-orange)]/20 text-[var(--color-orange)]",
+  applied: 'bg-[var(--color-green)]/20 text-[var(--color-green)]',
+  interview: 'bg-[var(--color-blue)]/20 text-[var(--color-blue)]',
+  offer: 'bg-[var(--color-accent)]/20 text-[var(--color-accent)]',
+  rejected: 'bg-[var(--color-red)]/20 text-[var(--color-red)]',
+  withdrew: 'bg-[var(--color-yellow)]/20 text-[var(--color-yellow)]',
+  pending: 'bg-[var(--color-orange)]/20 text-[var(--color-orange)]',
 };
 ```
 
@@ -212,7 +214,10 @@ Icon-only buttons use equal padding (`p-2`) for square touch targets. For button
 **This project uses Bootstrap Icons exclusively.** Loaded via CDN in `index.html`:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+/>
 ```
 
 **Reference:** https://icons.getbootstrap.com/
@@ -229,11 +234,11 @@ All icons use the `<i>` element with `bi-*` classes:
 
 ### Critical Rules
 
-| Rule | Description |
-|------|-------------|
-| **NO other icon libraries** | Do NOT import `lucide-react`, `react-icons`, `heroicons`, or any other icon library |
-| **Check existing usage first** | Before adding a new icon, search the codebase for similar icons to maintain consistency |
-| **Use semantic icon names** | Choose icons that clearly communicate their purpose (e.g., `bi-trash` for delete, not `bi-x`) |
+| Rule                           | Description                                                                                   |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| **NO other icon libraries**    | Do NOT import `lucide-react`, `react-icons`, `heroicons`, or any other icon library           |
+| **Check existing usage first** | Before adding a new icon, search the codebase for similar icons to maintain consistency       |
+| **Use semantic icon names**    | Choose icons that clearly communicate their purpose (e.g., `bi-trash` for delete, not `bi-x`) |
 
 ### Icon Sizing
 
@@ -244,22 +249,24 @@ The CSS rule `.bi::before { font-size: inherit !important; }` in index.css ensur
 
 **Icon Sizing Utilities:**
 
-| Utility | Size | Use Case | Example |
-|---------|------|----------|---------|
-| `icon-xs` | 0.75rem | Table action buttons, compact inline icons | `<i className="bi-pencil icon-xs" />` |
-| `icon-sm` | 0.875rem | Standard action buttons, inline icons | `<i className="bi-eye icon-sm" />` |
-| `icon-md` | 1rem | Media type indicators, primary actions | `<i className="bi-file-text icon-md" />` |
-| `icon-lg` | 1.125rem | Larger icons, dropdown lg size | `<i className="bi-chevron-down icon-lg" />` |
-| `icon-xl` | 1.25rem | Modal close buttons, dashboard icons | `<i className="bi-x-lg icon-xl" />` |
-| `icon-2xl` | 3rem | Empty state decorative icons | `<i className="bi-search icon-2xl" />` |
+| Utility    | Size     | Use Case                                   | Example                                     |
+| ---------- | -------- | ------------------------------------------ | ------------------------------------------- |
+| `icon-xs`  | 0.75rem  | Table action buttons, compact inline icons | `<i className="bi-pencil icon-xs" />`       |
+| `icon-sm`  | 0.875rem | Standard action buttons, inline icons      | `<i className="bi-eye icon-sm" />`          |
+| `icon-md`  | 1rem     | Media type indicators, primary actions     | `<i className="bi-file-text icon-md" />`    |
+| `icon-lg`  | 1.125rem | Larger icons, dropdown lg size             | `<i className="bi-chevron-down icon-lg" />` |
+| `icon-xl`  | 1.25rem  | Modal close buttons, dashboard icons       | `<i className="bi-x-lg icon-xl" />`         |
+| `icon-2xl` | 3rem     | Empty state decorative icons               | `<i className="bi-search icon-2xl" />`      |
 
 **Critical Rules:**
-- ALWAYS use icon utilities (.icon-*) for Bootstrap Icons
-- NEVER use Tailwind text-* utilities (text-xs, text-sm, etc.) - they don't work with Bootstrap Icons
+
+- ALWAYS use icon utilities (.icon-\*) for Bootstrap Icons
+- NEVER use Tailwind text-\* utilities (text-xs, text-sm, etc.) - they don't work with Bootstrap Icons
 - NEVER use explicit width/height (w-[14px] h-[14px]) - use icon utilities instead
 - All icon utilities include `line-height: 1` for proper vertical alignment
 
 **Usage Examples:**
+
 ```tsx
 // Table action button (compact)
 <button><i className="bi-pencil icon-xs" /></button>
@@ -289,22 +296,22 @@ Icons inherit color from parent or use explicit color classes:
 
 ### Common Icons
 
-| Action | Icon | Usage |
-|--------|------|-------|
-| Edit | `bi-pencil` | Edit buttons |
-| Delete | `bi-trash` | Delete buttons |
-| Close/X | `bi-x-lg` | Modal close, dismiss |
-| Plus/Add | `bi-plus-circle` | Add new items |
-| Upload | `bi-upload` | File upload |
-| Download | `bi-download` | Export/download |
-| Eye/View | `bi-eye` | Preview |
-| Search | `bi-search` | Search inputs |
-| Inbox/Empty | `bi-inbox` | Empty state |
-| Chevron Down | `bi-chevron-down` | Dropdown indicators |
-| Chevron Right | `bi-chevron-right` | Expand/collapse |
-| File | `bi-file-text` | Documents |
-| Check | `bi-check-circle` | Success states |
-| Refresh | `bi-arrow-repeat` | Replace/update |
+| Action        | Icon               | Usage                |
+| ------------- | ------------------ | -------------------- |
+| Edit          | `bi-pencil`        | Edit buttons         |
+| Delete        | `bi-trash`         | Delete buttons       |
+| Close/X       | `bi-x-lg`          | Modal close, dismiss |
+| Plus/Add      | `bi-plus-circle`   | Add new items        |
+| Upload        | `bi-upload`        | File upload          |
+| Download      | `bi-download`      | Export/download      |
+| Eye/View      | `bi-eye`           | Preview              |
+| Search        | `bi-search`        | Search inputs        |
+| Inbox/Empty   | `bi-inbox`         | Empty state          |
+| Chevron Down  | `bi-chevron-down`  | Dropdown indicators  |
+| Chevron Right | `bi-chevron-right` | Expand/collapse      |
+| File          | `bi-file-text`     | Documents            |
+| Check         | `bi-check-circle`  | Success states       |
+| Refresh       | `bi-arrow-repeat`  | Replace/update       |
 
 ### Rotations & Transforms
 
@@ -365,9 +372,10 @@ All data tables follow a consistent pattern for display, filtering, and paginati
 All table pages include a standardized filter bar above the table:
 
 **Container:**
+
 ```tsx
-<div className="bg-bg1 rounded-lg p-4 mb-6">
-  <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+<div className="bg-bg1 mb-6 rounded-lg p-4">
+  <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
     {/* Search */}
     {/* Filters */}
   </div>
@@ -375,24 +383,25 @@ All table pages include a standardized filter bar above the table:
 ```
 
 **Search Input:**
+
 - Left-aligned with `bi-search` icon
 - Clear button (`bi-x`) appears when search has content
 - Full-width on mobile, flexible width on desktop
 
 ```tsx
-<div className="flex-1 min-w-0 relative">
-  <i className="bi-search absolute left-3 top-1/2 -translate-y-1/2 icon-sm text-muted" />
+<div className="relative min-w-0 flex-1">
+  <i className="bi-search icon-sm text-muted absolute left-3 top-1/2 -translate-y-1/2" />
   <input
     type="text"
     placeholder="Search..."
     value={search}
     onChange={(e) => setSearch(e.target.value)}
-    className="w-full pl-9 pr-9 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pl-9 pr-9 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
   />
   {search && (
     <button
       onClick={() => setSearch('')}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-fg1 transition-all duration-200 ease-in-out cursor-pointer"
+      className="text-muted hover:text-fg1 absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
       aria-label="Clear search"
     >
       <i className="bi-x icon-sm" />
@@ -402,12 +411,14 @@ All table pages include a standardized filter bar above the table:
 ```
 
 **Filters:**
+
 - Use Dropdown component (NOT native select)
 - Size: `xs` to match input height
 - `containerBackground="bg1"` (filter bar is bg-bg1)
 - No labels - placeholder text provides sufficient context
 
 **Per-Page Selector:**
+
 - Always visible (even with few items)
 - Positioned at end of filter row
 - Options: 10, 25, 50, 100 per page
@@ -446,16 +457,17 @@ Pagination buttons follow the borderless pattern consistent with other UI elemen
 
 ```tsx
 // Active page
-className="bg-accent text-bg1"
+className = 'bg-accent text-bg1';
 
 // Inactive pages and prev/next buttons
-className="bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3"
+className = 'bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3';
 
 // Disabled (first page prev / last page next)
-className="bg-bg2 text-muted opacity-50 cursor-not-allowed"
+className = 'bg-bg2 text-muted opacity-50 cursor-not-allowed';
 ```
 
 **Key styling:**
+
 - Button size: `w-8 h-8` (32px square)
 - Border radius: `rounded-lg`
 - Transition: `transition-all duration-200 ease-in-out`
@@ -464,6 +476,7 @@ className="bg-bg2 text-muted opacity-50 cursor-not-allowed"
 ### Info Text
 
 Always show item count: `"Showing 1-25 of 234 items"`
+
 - Position: Left side of pagination row
 - Only shows when pagination controls are visible (multi-page results)
 
@@ -473,8 +486,10 @@ Add `border-b border-tertiary` to the `<tr>` inside `<thead>` to separate column
 
 ```tsx
 <thead>
-  <tr className="border-b border-tertiary">
-    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Column</th>
+  <tr className="border-tertiary border-b">
+    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+      Column
+    </th>
     ...
   </tr>
 </thead>
@@ -485,7 +500,9 @@ Add `border-b border-tertiary` to the `<tr>` inside `<thead>` to separate column
 Add `border-b border-tertiary` to each data row except the last:
 
 ```tsx
-<tr className={`transition-colors duration-200 ${index < items.length - 1 ? 'border-b border-tertiary' : ''}`}>
+<tr
+  className={`transition-colors duration-200 ${index < items.length - 1 ? 'border-tertiary border-b' : ''}`}
+>
   ...
 </tr>
 ```
@@ -495,22 +512,25 @@ Add `border-b border-tertiary` to each data row except the last:
 Use the reusable `Pagination` component for all tables:
 
 **Import:**
+
 ```tsx
 import Pagination from '@/components/Pagination';
 ```
 
 **Props:**
+
 ```tsx
 interface PaginationProps {
-  currentPage: number;      // Current page (1-indexed)
-  totalPages: number;       // Total number of pages
-  perPage: number;          // Items per page (for display calculation)
-  totalItems: number;       // Total number of items
+  currentPage: number; // Current page (1-indexed)
+  totalPages: number; // Total number of pages
+  perPage: number; // Items per page (for display calculation)
+  totalItems: number; // Total number of items
   onPageChange: (page: number) => void;
 }
 ```
 
 **Usage:**
+
 ```tsx
 <Pagination
   currentPage={page}
@@ -526,30 +546,35 @@ interface PaginationProps {
 ### Responsive Behavior
 
 Tables use dual layout:
+
 - **Desktop (md+):** Full table with all columns
 - **Mobile:** Card layout (hidden table, visible cards)
 
 ```tsx
-{/* Desktop table */}
-<div className="hidden md:block bg-secondary rounded-lg overflow-hidden">
+{
+  /* Desktop table */
+}
+<div className="bg-secondary hidden overflow-hidden rounded-lg md:block">
   <table>...</table>
-</div>
+</div>;
 
-{/* Mobile cards */}
-<div className="md:hidden space-y-3">
-  {items.map(item => (
+{
+  /* Mobile cards */
+}
+<div className="space-y-3 md:hidden">
+  {items.map((item) => (
     <div className="bg-secondary rounded-lg p-4">...</div>
   ))}
-</div>
+</div>;
 ```
 
 ### Tables Summary
 
-| Table | Endpoint | Default Sort | Notes |
-|-------|----------|--------------|-------|
-| Applications | `/api/applications` | Newest first | Filter by status |
-| Job Leads | `/api/job-leads` | Newest first | Filter by status, source |
-| Admin/Users | `/api/admin/users` | Email (A-Z) | Admin only, CRUD operations |
+| Table        | Endpoint            | Default Sort | Notes                       |
+| ------------ | ------------------- | ------------ | --------------------------- |
+| Applications | `/api/applications` | Newest first | Filter by status            |
+| Job Leads    | `/api/job-leads`    | Newest first | Filter by status, source    |
+| Admin/Users  | `/api/admin/users`  | Email (A-Z)  | Admin only, CRUD operations |
 
 ---
 
@@ -560,20 +585,22 @@ Tables use dual layout:
 ### Component API
 
 **Import:**
+
 ```tsx
 import { Dropdown } from '@/components/Dropdown';
 ```
 
 **Props:**
+
 ```tsx
 interface DropdownProps {
-  options: DropdownOption[];  // Array<{ value: string, label: string }>
-  value: string;              // Currently selected value
+  options: DropdownOption[]; // Array<{ value: string, label: string }>
+  value: string; // Currently selected value
   onChange: (value: string) => void;
-  placeholder?: string;       // Default: "Select..."
-  disabled?: boolean;         // Default: false
-  size?: 'xs' | 'sm' | 'md' | 'lg';  // Default: 'md'
-  containerBackground?: 'bg0' | 'bg1' | 'bg2' | 'bg3' | 'bg4';  // Default: 'bg1'
+  placeholder?: string; // Default: "Select..."
+  disabled?: boolean; // Default: false
+  size?: 'xs' | 'sm' | 'md' | 'lg'; // Default: 'md'
+  containerBackground?: 'bg0' | 'bg1' | 'bg2' | 'bg3' | 'bg4'; // Default: 'bg1'
 }
 ```
 
@@ -584,19 +611,21 @@ Dropdowns follow a 6-layer color rule with wrap-around:
 **Layer sequence:** `bg0` → `bg1` → `bg2` → `bg3` → `bg4` → `bg-h` → (wrap to `bg0`)
 
 **Container mapping:**
+
 - **Non-selected option:** container + 1 layer (base state)
 - **Selected option:** container + 2 layers
 - **Hover option:** container + 3 layers (wraps to bg0 if on bg4, uses bg-h if on bg-h)
 
 **Examples:**
 
-| Container | Non-Selected | Selected | Hover |
-|-----------|-------------|----------|-------|
-| `bg-bg1`  | `bg-bg2` | `bg-bg3` | `bg-bg4` |
-| `bg-bg2`  | `bg-bg3` | `bg-bg4` | `bg-h` |
-| `bg-bg4`  | `bg-bg-h` | `bg-bg0` | `bg-bg1` |
+| Container | Non-Selected | Selected | Hover    |
+| --------- | ------------ | -------- | -------- |
+| `bg-bg1`  | `bg-bg2`     | `bg-bg3` | `bg-bg4` |
+| `bg-bg2`  | `bg-bg3`     | `bg-bg4` | `bg-h`   |
+| `bg-bg4`  | `bg-bg-h`    | `bg-bg0` | `bg-bg1` |
 
 The `--bg-h` CSS variable (hard color) extends the palette for contexts beyond bg4:
+
 - Gruvbox Dark: `#928374`
 - Gruvbox Light: `#7c6f64`
 - Nord: `#5e81ac`
@@ -606,20 +635,22 @@ The `--bg-h` CSS variable (hard color) extends the palette for contexts beyond b
 
 Dropdowns come in 4 sizes for different contexts:
 
-| Size | Padding | Text | Use Case |
-|------|---------|------|----------|
-| `xs` | `px-3 py-2` | `text-sm` | Match standard input height (use when dropdown appears next to input with `px-3 py-2`) |
-| `sm` | `px-3 py-1.5` | `text-sm` | Compact layouts, tight spaces |
-| `md` | `px-4 py-2` | `text-base` | Default, most dropdowns |
-| `lg` | `px-5 py-2.5` | `text-lg` | Emphasis, prominent selectors |
+| Size | Padding       | Text        | Use Case                                                                               |
+| ---- | ------------- | ----------- | -------------------------------------------------------------------------------------- |
+| `xs` | `px-3 py-2`   | `text-sm`   | Match standard input height (use when dropdown appears next to input with `px-3 py-2`) |
+| `sm` | `px-3 py-1.5` | `text-sm`   | Compact layouts, tight spaces                                                          |
+| `md` | `px-4 py-2`   | `text-base` | Default, most dropdowns                                                                |
+| `lg` | `px-5 py-2.5` | `text-lg`   | Emphasis, prominent selectors                                                          |
 
 **Sizing Guidelines:**
+
 - When a dropdown appears **next to an input field**, use `size="xs"` to match standard input padding (`px-3 py-2`)
 - In **form layouts**, use `size="sm"` or `size="md"` depending on available space
 - For **standalone dropdowns** (not paired with other elements), use default `size="md"`
 - **Checkmark and chevron icons** automatically scale proportionally with dropdown size
 
 **Example - Dropdown next to input:**
+
 ```tsx
 <div className="flex gap-4">
   <input className="px-3 py-2 ..." /> {/* Standard input padding */}
@@ -636,12 +667,14 @@ Dropdowns come in 4 sizes for different contexts:
 
 **Focus Ring:**
 Dropdown triggers use input-like focus ring behavior:
+
 - `focus:ring-1 focus:ring-accent-bright focus:outline-none` — accent-bright ring on focus
 - Menu container: `ring-1 ring-accent-bright` when `isOpen=true`
 - This matches input focus patterns for consistent UI feedback
 
 **Checkmark Icon:**
 Selected state uses Bootstrap Icons checkmark:
+
 - Icon: `<i className="bi-check"></i>`
 - Default color: `text-green` (#98971a - darker green)
 - Hover/focused color: `text-green-bright` (#b8bb26 - lighter green)
@@ -654,6 +687,7 @@ Selected state uses Bootstrap Icons checkmark:
 All dropdown classes use **static class strings** for Tailwind JIT compatibility. Dynamic class construction (e.g., `` `hover:${dynamicClass}` ``) does not work because Tailwind cannot evaluate code at build time.
 
 Instead, use **mapping objects** with complete class strings:
+
 ```tsx
 // ✅ Correct - static mappings
 const hoverClasses = {
@@ -700,6 +734,7 @@ See Icon Sizing section above for the complete utility table and use cases.
 ### Animation
 
 **Menu:** fade + slide down
+
 - `opacity-0` → `opacity-100`
 - `translateY-2` → `translateY-0`
 
@@ -718,9 +753,7 @@ For hamburger menus, accordion panels, and other expanding content, use CSS grid
   }}
   className="transition-all duration-200 ease-in-out"
 >
-  <div style={{ overflow: 'hidden' }}>
-    {content}
-  </div>
+  <div style={{ overflow: 'hidden' }}>{content}</div>
 </div>
 ```
 
@@ -732,28 +765,30 @@ Touch devices don't trigger `:hover`. Add `active:` states for touch feedback. F
 
 **Mobile Touch State Mapping:**
 
-| Container | Hover | Active |
-|-----------|-------|--------|
-| `bg-bg0` | `hover:bg-bg1` | `active:bg-bg2` |
-| `bg-bg1` | `hover:bg-bg2` | `active:bg-bg3` |
-| `bg-bg2` | `hover:bg-bg3` | `active:bg-bg4` |
-| `bg-bg3` | `hover:bg-bg4` | `active:bg-bg0` |
-| `bg-bg4` | `hover:bg-bg0` | `active:bg-bg1` |
+| Container | Hover          | Active          |
+| --------- | -------------- | --------------- |
+| `bg-bg0`  | `hover:bg-bg1` | `active:bg-bg2` |
+| `bg-bg1`  | `hover:bg-bg2` | `active:bg-bg3` |
+| `bg-bg2`  | `hover:bg-bg3` | `active:bg-bg4` |
+| `bg-bg3`  | `hover:bg-bg4` | `active:bg-bg0` |
+| `bg-bg4`  | `hover:bg-bg0` | `active:bg-bg1` |
 
 ```tsx
 // Example: Section card in bg-bg1 container
-className="... hover:bg-bg2 active:bg-bg3 ..."
+className = '... hover:bg-bg2 active:bg-bg3 ...';
 ```
 
 ### Accessibility
 
 **ARIA attributes:**
+
 - `role="combobox"`
 - `aria-expanded={isOpen}`
 - `aria-selected={selectedValue}`
 - `aria-disabled={disabled}`
 
 **Keyboard navigation:**
+
 - `ArrowUp` / `ArrowDown` — Navigate options
 - `Enter` / `Space` — Select focused option
 - `Escape` — Close dropdown
@@ -761,6 +796,7 @@ className="... hover:bg-bg2 active:bg-bg3 ..."
 - `End` — Focus last option
 
 **Behavior:**
+
 - Click outside to close
 - Position below trigger (flips up if near bottom edge)
 - Controlled component (parent manages state)
@@ -775,19 +811,20 @@ Separators follow a contrast-based 5-layer rule that varies based on container b
 
 **Separator mapping table:**
 
-| Container Background | Separator Color | CSS Class    | Hex Value   |
-|---------------------|-----------------|--------------|-------------|
-| bg-bg0 (#282828)    | Subtle          | border-tertiary / border-fg4 | #a89984 |
-| bg-bg1 (#3c3836)    | Subtle          | border-tertiary / border-fg4 | #a89984 |
-| bg-bg2 (#504945)    | Medium          | border-fg3   | #bdae93     |
-| bg-bg3 (#665c54)    | Visible         | border-fg2   | #d5c4a1     |
-| bg-bg4 (#7c6f64)    | Prominent       | border-fg1   | #ebdba2     |
+| Container Background | Separator Color | CSS Class                    | Hex Value |
+| -------------------- | --------------- | ---------------------------- | --------- |
+| bg-bg0 (#282828)     | Subtle          | border-tertiary / border-fg4 | #a89984   |
+| bg-bg1 (#3c3836)     | Subtle          | border-tertiary / border-fg4 | #a89984   |
+| bg-bg2 (#504945)     | Medium          | border-fg3                   | #bdae93   |
+| bg-bg3 (#665c54)     | Visible         | border-fg2                   | #d5c4a1   |
+| bg-bg4 (#7c6f64)     | Prominent       | border-fg1                   | #ebdba2   |
 
 **Key principle:** Separator color should provide sufficient contrast against the container background while remaining subtle.
 
 **Separator pattern:** Use `border-t`, `border-b`, `border-r` utilities (NOT divide-y/divide-x). Border utilities are appropriate for individual element borders.
 
 **Examples:**
+
 - Table rows: `border-b border-tertiary` (with conditional "no border on last row")
 - Form sections: `border-t border-tertiary` for section dividers
 - Navigation: `border-b border-tertiary` or `border-r border-tertiary` as appropriate
@@ -834,16 +871,19 @@ Applies to: buttons, badges, navigation, focus states, all hover effects.
 Toast notifications provide non-blocking feedback for user actions. They appear in the top-right corner and auto-dismiss after 4 seconds.
 
 **Components:**
+
 - `ToastProvider` — Context provider (wrap app with this)
 - `ToastContainer` — Renders active toasts (place in app root)
 - `useToast()` — Hook to trigger toasts from any component
 
 **Import:**
+
 ```tsx
 import { useToast } from '@/hooks/useToast';
 ```
 
 **Usage:**
+
 ```tsx
 function MyComponent() {
   const toast = useToast();
@@ -861,14 +901,15 @@ function MyComponent() {
 
 **Toast Types:**
 
-| Type | Icon | Color | Use Case |
-|------|------|-------|----------|
-| `success` | `bi-check-circle-fill` | `text-green-bright` | Successful actions |
-| `error` | `bi-x-circle-fill` | `text-red-bright` | Failed operations |
-| `warning` | `bi-exclamation-triangle-fill` | `text-orange-bright` | Caution needed |
-| `info` | `bi-info-circle-fill` | `text-blue-bright` | Informational updates |
+| Type      | Icon                           | Color                | Use Case              |
+| --------- | ------------------------------ | -------------------- | --------------------- |
+| `success` | `bi-check-circle-fill`         | `text-green-bright`  | Successful actions    |
+| `error`   | `bi-x-circle-fill`             | `text-red-bright`    | Failed operations     |
+| `warning` | `bi-exclamation-triangle-fill` | `text-orange-bright` | Caution needed        |
+| `info`    | `bi-info-circle-fill`          | `text-blue-bright`   | Informational updates |
 
 **Styling:**
+
 - Background: `bg-bg3` (stands out from page)
 - Position: Fixed, top-right corner (`fixed top-4 right-4 z-50`)
 - Width: `w-80` with `max-w-[calc(100vw-2rem)]` for mobile
@@ -877,6 +918,7 @@ function MyComponent() {
 - No borders: Color-only separation
 
 **App Integration:**
+
 ```tsx
 // App.tsx
 import { ToastProvider } from './contexts/ToastContext';
@@ -893,6 +935,7 @@ function App() {
 ```
 
 **Critical Rules:**
+
 - Never use browser `alert()` — use `toast.error()` instead
 - Toasts should be short, actionable messages (1-2 sentences max)
 - Auto-dismiss after 4 seconds (configurable in ToastContext)
@@ -939,6 +982,7 @@ Follow this pattern for all form modals:
 #### Create/Edit Unified Modal Pattern
 
 For forms where create and edit share the same fields:
+
 - Single component with optional `application` prop
 - `undefined` = create mode (set defaults)
 - `defined` = edit mode (populate fields)
@@ -946,8 +990,9 @@ For forms where create and edit share the same fields:
 #### Form Field Layout
 
 For wider modals (`max-w-2xl`), use responsive 2-column grid:
+
 ```tsx
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
   <input placeholder="Field 1" />
   <input placeholder="Field 2" />
   <input placeholder="Full Width" className="sm:col-span-2" />
@@ -965,27 +1010,26 @@ Application cards and similar use **no borders** — color-only separation:
 Interview round cards (RoundCard component) follow the 5-layer rule based on nesting context.
 
 **Nesting context:**
+
 - Page background: `bg-bg0`
 - Parent container (ApplicationDetail): `bg-bg1`
 - RoundCard base container: `bg-bg2` (next darker from parent)
 - Interior elements (media items, transcript items): `bg-bg3` (next darker from RoundCard)
 
 **Separators:**
+
 - Internal section separators use `border-tertiary`
 - No borders on RoundCard base container (color-only separation per 5-layer rule)
 
 **Example:**
+
 ```tsx
 // RoundCard base (nested in bg-bg1 container)
 <div className="bg-bg2 rounded-lg p-4">
   {/* Interior elements use bg-bg3 */}
-  <div className="bg-bg3 rounded px-3 py-2">
-    {/* Content */}
-  </div>
+  <div className="bg-bg3 rounded px-3 py-2">{/* Content */}</div>
   {/* Separators use border-tertiary */}
-  <div className="border-t border-tertiary pt-3">
-    {/* Content */}
-  </div>
+  <div className="border-tertiary border-t pt-3">{/* Content */}</div>
 </div>
 ```
 
@@ -999,8 +1043,8 @@ Use TypeScript interfaces for component props:
 
 ```tsx
 interface ButtonProps {
-  variant: "primary" | "secondary" | "danger" | "icon-only";
-  size?: "sm" | "md" | "lg";
+  variant: 'primary' | 'secondary' | 'danger' | 'icon-only';
+  size?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
   onClick?: () => void;
   className?: string;
@@ -1012,7 +1056,7 @@ interface ButtonProps {
 Import types from the lib directory:
 
 ```tsx
-import type { Application, Status, Round } from "@/lib/types";
+import type { Application, Status, Round } from '@/lib/types';
 ```
 
 ---
@@ -1030,15 +1074,15 @@ import type { Application, Status, Round } from "@/lib/types";
 
 ```tsx
 // 1. React imports
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 // 2. Third-party imports
-import { clsx } from "clsx";
+import { clsx } from 'clsx';
 
 // 3. Local imports
-import { Button } from "@/components/Button";
-import { api } from "@/lib/api";
-import type { Application } from "@/lib/types";
+import { Button } from '@/components/Button';
+import { api } from '@/lib/api';
+import type { Application } from '@/lib/types';
 ```
 
 ---
@@ -1050,7 +1094,7 @@ import type { Application } from "@/lib/types";
 **Standard pattern:** Use a styled `<label>` wrapping a hidden input:
 
 ```tsx
-<label className="bg-transparent text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer w-fit">
+<label className="text-fg1 hover:bg-bg3 hover:text-fg0 flex w-fit cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out">
   <i className="bi-upload icon-sm"></i>
   Choose file...
   <input type="file" accept=".pdf" onChange={handleFile} className="hidden" />
@@ -1064,6 +1108,7 @@ import type { Application } from "@/lib/types";
 ## Date Inputs
 
 Date inputs use browser-native calendar pickers. The picker icon is styled globally in `index.css` with:
+
 - `filter: invert(0.7)` for dark themes (brightens the icon)
 - Hover transition: `filter: invert(0.9)` for visual feedback
 - Light themes use `filter: none` (native dark icon works)
@@ -1075,6 +1120,7 @@ Date inputs use browser-native calendar pickers. The picker icon is styled globa
 ## Card Hover Lift Animation
 
 For cards with hover lift effects (`hover:-translate-y-0.5`):
+
 - Use `will-change-transform` for GPU acceleration
 - Use `transition-[translate,background-color] duration-200 ease-in-out` (NOT `transition-all`) to avoid animating unrelated properties that can cause visual jank
 - Always include a background hover per 5-layer rule
@@ -1118,12 +1164,12 @@ For cards with hover lift effects (`hover:-translate-y-0.5`):
 
 All responsive layouts use mobile-first approach with Tailwind breakpoints:
 
-| Token | Width | Target |
-|-------|-------|--------|
-| (default) | < 40rem | Mobile phones |
-| `sm:` | 40rem+ | Large phones / small tablets |
-| `md:` | 48rem+ | Tablets |
-| `lg:` | 64rem+ | Desktop |
+| Token     | Width   | Target                       |
+| --------- | ------- | ---------------------------- |
+| (default) | < 40rem | Mobile phones                |
+| `sm:`     | 40rem+  | Large phones / small tablets |
+| `md:`     | 48rem+  | Tablets                      |
+| `lg:`     | 64rem+  | Desktop                      |
 
 **Rule:** Always write mobile layout first, then add `sm:`, `md:`, `lg:` overrides.
 
@@ -1176,11 +1222,11 @@ Modals must scroll within viewport on mobile:
 
 ```tsx
 // Container
-<div className="max-h-[90vh] flex flex-col">
+<div className="flex max-h-[90vh] flex-col">
   // Header (fixed, doesn't scroll)
   <div className="flex-shrink-0 ...">...</div>
   // Content (scrolls)
-  <form className="overflow-y-auto flex-1 ...">...</form>
+  <form className="flex-1 overflow-y-auto ...">...</form>
 </div>
 ```
 
@@ -1248,7 +1294,7 @@ Full-width list of section cards on mobile (no sidebar):
 
 ```tsx
 // Section card - uses bg-bg1 (Tailwind utility) for proper hover states
-<NavLink className="group bg-bg1 rounded-lg p-4 flex items-center justify-between cursor-pointer hover:bg-bg2 active:bg-bg3 transition-all duration-200 ease-in-out">
+<NavLink className="bg-bg1 hover:bg-bg2 active:bg-bg3 group flex cursor-pointer items-center justify-between rounded-lg p-4 transition-all duration-200 ease-in-out">
   <div className="flex items-center gap-3">
     <i className="bi-* icon-md text-muted group-hover:text-accent transition-colors duration-200 ease-in-out" />
     <span className="text-fg1 font-medium">{section.label}</span>
@@ -1264,7 +1310,7 @@ Section pages on mobile show a back link to return to the section list:
 ```tsx
 <Link
   to="/settings"
-  className="text-accent hover:text-accent-bright text-sm flex items-center gap-2 transition-all duration-200 ease-in-out cursor-pointer mb-6"
+  className="text-accent hover:text-accent-bright mb-6 flex cursor-pointer items-center gap-2 text-sm transition-all duration-200 ease-in-out"
 >
   <i className="bi-chevron-left icon-sm" />
   Back to Settings
@@ -1333,7 +1379,7 @@ bg-bg4 → Nested elements
 
 - **Colors:** Always use `--color-*` CSS variables
 - **Icons:** Bootstrap Icons only — `<i className="bi-*" />` — NO other icon libraries
-  - **Sizing:** Use icon utilities (.icon-xs through .icon-2xl) — NEVER use text-* utilities
+  - **Sizing:** Use icon utilities (.icon-xs through .icon-2xl) — NEVER use text-\* utilities
   - .bi::before override enables icon sizing utilities to work correctly
 - **Buttons:** 4 variants (Primary, Neutral, Danger, Icon-only)
   - Icon-only: `p-2` (~32x32px square hover area)

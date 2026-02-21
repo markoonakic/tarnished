@@ -33,7 +33,12 @@ const perPageOptions: DropdownOption[] = [
   { value: '100', label: '100 / page' },
 ];
 
-export default function JobLeadsFilters({ value, onChange, sources, hasData }: JobLeadsFiltersProps) {
+export default function JobLeadsFilters({
+  value,
+  onChange,
+  sources,
+  hasData,
+}: JobLeadsFiltersProps) {
   const sourceOptions: DropdownOption[] = [
     { value: '', label: 'All Sources' },
     ...sources.map((source) => ({ value: source, label: source })),

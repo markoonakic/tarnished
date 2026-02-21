@@ -35,9 +35,9 @@ function AttentionSection({
   if (items.length === 0) {
     return (
       <div className="bg-secondary rounded-lg p-6">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="mb-4 flex items-center gap-2">
           <i className={`bi ${icon} ${iconColor} icon-xl`}></i>
-          <h3 className="text-lg font-semibold text-fg1">{title}</h3>
+          <h3 className="text-fg1 text-lg font-semibold">{title}</h3>
         </div>
         <p className="text-fg4 text-sm">{emptyMessage}</p>
       </div>
@@ -46,10 +46,10 @@ function AttentionSection({
 
   return (
     <div className="bg-secondary rounded-lg p-6">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="mb-4 flex items-center gap-2">
         <i className={`bi ${icon} ${iconColor} icon-xl`}></i>
-        <h3 className="text-lg font-semibold text-fg1">{title}</h3>
-        <span className="text-xs bg-tertiary text-fg4 px-2 py-1 rounded-full">
+        <h3 className="text-fg1 text-lg font-semibold">{title}</h3>
+        <span className="bg-tertiary text-fg4 rounded-full px-2 py-1 text-xs">
           {items.length}
         </span>
       </div>
@@ -58,14 +58,14 @@ function AttentionSection({
           <button
             key={item.id}
             onClick={() => navigate(`/applications/${item.id}`)}
-            className="w-full text-left bg-tertiary rounded-lg p-4 hover:-translate-y-0.5 hover:bg-bg3 will-change-transform transition-[translate,background-color] duration-200 ease-in-out cursor-pointer"
+            className="bg-tertiary hover:bg-bg3 w-full cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5"
           >
             <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-fg1 font-medium truncate">{item.company}</p>
-                <p className="text-sm text-fg4 truncate">{item.job_title}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-fg1 truncate font-medium">{item.company}</p>
+                <p className="text-fg4 truncate text-sm">{item.job_title}</p>
               </div>
-              <div className="text-xs text-fg4 whitespace-nowrap">
+              <div className="text-fg4 whitespace-nowrap text-xs">
                 {item.days_since}d
               </div>
             </div>
@@ -98,13 +98,13 @@ export default function NeedsAttention() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-secondary rounded-lg p-6 animate-pulse">
-            <div className="h-6 bg-tertiary rounded mb-4 w-32"></div>
+          <div key={i} className="bg-secondary animate-pulse rounded-lg p-6">
+            <div className="bg-tertiary mb-4 h-6 w-32 rounded"></div>
             <div className="space-y-2">
-              <div className="h-16 bg-bg0 rounded"></div>
-              <div className="h-16 bg-bg0 rounded"></div>
+              <div className="bg-bg0 h-16 rounded"></div>
+              <div className="bg-bg0 h-16 rounded"></div>
             </div>
           </div>
         ))}
@@ -115,13 +115,15 @@ export default function NeedsAttention() {
   if (error || !data) {
     return (
       <div className="bg-secondary rounded-lg p-6">
-        <p className="text-red-bright">Failed to load items needing attention</p>
+        <p className="text-red-bright">
+          Failed to load items needing attention
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
       <AttentionSection
         title="Follow-ups"
         items={data.follow_ups}

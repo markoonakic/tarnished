@@ -1,4 +1,3 @@
-import pytest
 from app.services.import_id_mapper import IDMapper
 
 
@@ -19,7 +18,7 @@ class TestIDMapper:
         data = {
             "id": "old-round-id",
             "application_id": "old-app-id",
-            "notes": "Test round"
+            "notes": "Test round",
         }
 
         remapped = mapper.remap_fk(data, "application_id", "Application")
@@ -29,10 +28,7 @@ class TestIDMapper:
         """Should return original ID if mapping not found."""
         mapper = IDMapper()
 
-        data = {
-            "id": "round-id",
-            "application_id": "unknown-app-id"
-        }
+        data = {"id": "round-id", "application_id": "unknown-app-id"}
 
         remapped = mapper.remap_fk(data, "application_id", "Application")
         assert remapped["application_id"] == "unknown-app-id"
@@ -47,10 +43,7 @@ class TestIDMapper:
         """Should handle None foreign keys gracefully."""
         mapper = IDMapper()
 
-        data = {
-            "id": "round-id",
-            "application_id": None
-        }
+        data = {"id": "round-id", "application_id": None}
 
         remapped = mapper.remap_fk(data, "application_id", "Application")
         assert remapped["application_id"] is None

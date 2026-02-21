@@ -53,7 +53,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-bg0/80 flex items-center justify-center z-50"
+      className="bg-bg0/80 fixed inset-0 z-50 flex items-center justify-center"
       onClick={onClose}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
@@ -65,27 +65,38 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="bg-bg1 rounded-lg max-w-md w-full mx-4 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex-shrink-0 flex justify-between items-center p-4 border-b border-tertiary">
-          <h3 id="modal-title" className="text-primary font-medium">Create User</h3>
+      <div
+        className="bg-bg1 mx-4 flex max-h-[90vh] w-full max-w-md flex-col rounded-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-tertiary flex flex-shrink-0 items-center justify-between border-b p-4">
+          <h3 id="modal-title" className="text-primary font-medium">
+            Create User
+          </h3>
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out p-2 rounded cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
           >
             <i className="bi bi-x-lg icon-xl" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 space-y-4 overflow-y-auto p-6"
+        >
           {error && (
-            <div className="bg-red-bright/20 border border-red-bright text-red-bright px-4 py-3 rounded">
+            <div className="bg-red-bright/20 border-red-bright text-red-bright rounded border px-4 py-3">
               {error}
             </div>
           )}
 
           <div>
-            <label htmlFor="create-email" className="block mb-1 text-sm font-semibold text-muted">
+            <label
+              htmlFor="create-email"
+              className="text-muted mb-1 block text-sm font-semibold"
+            >
               Email <span className="text-red-bright">*</span>
             </label>
             <input
@@ -93,14 +104,17 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
               required
               autoFocus
             />
           </div>
 
           <div>
-            <label htmlFor="create-password" className="block mb-1 text-sm font-semibold text-muted">
+            <label
+              htmlFor="create-password"
+              className="text-muted mb-1 block text-sm font-semibold"
+            >
               Password <span className="text-red-bright">*</span>
             </label>
             <input
@@ -108,24 +122,24 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
               required
               minLength={8}
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-tertiary">
+          <div className="border-tertiary flex justify-end gap-3 border-t pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 cursor-pointer"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
+              className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
             >
               {loading ? 'Creating...' : 'Create'}
             </button>

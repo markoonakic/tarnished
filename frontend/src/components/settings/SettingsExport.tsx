@@ -46,36 +46,36 @@ export default function SettingsExport() {
       </div>
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-xl font-bold text-fg1 mb-4">Data Export</h2>
+        <h2 className="text-fg1 mb-4 text-xl font-bold">Data Export</h2>
 
         {error && (
-          <div className="bg-red-bright/20 border border-red-bright text-red-bright px-4 py-3 rounded mb-6">
+          <div className="bg-red-bright/20 border-red-bright text-red-bright mb-6 rounded border px-4 py-3">
             {error}
           </div>
         )}
 
-        <p className="text-sm text-muted mb-4">
+        <p className="text-muted mb-4 text-sm">
           Download all your application data for backup or analysis.
         </p>
         <div className="flex flex-wrap gap-3">
           <button
             onClick={handleExportJSON}
             disabled={exporting}
-            className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
+            className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             {exporting ? 'Exporting...' : 'Export JSON'}
           </button>
           <button
             onClick={handleExportCSV}
             disabled={exporting}
-            className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
+            className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             {exporting ? 'Exporting...' : 'Export CSV'}
           </button>
           <button
             onClick={handleExportZIP}
             disabled={exporting}
-            className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
+            className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             {exporting ? 'Exporting...' : 'Export ZIP (with files)'}
           </button>

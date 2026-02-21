@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { generateInsights, isAIConfigured, type GraceInsights } from '@/lib/insights';
+import {
+  generateInsights,
+  isAIConfigured,
+  type GraceInsights,
+} from '@/lib/insights';
 
 export function useGraceInsights(period: string) {
   const [configured, setConfigured] = useState<boolean | null>(null);
@@ -27,7 +31,8 @@ export function useGraceInsights(period: string) {
       const data = await generateInsights(period);
       setInsights(data);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to generate insights';
+      const message =
+        err instanceof Error ? err.message : 'Failed to generate insights';
       setError(message);
       setInsights(null);
     } finally {

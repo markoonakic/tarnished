@@ -1,5 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { uploadMedia, deleteMedia, getMediaSignedUrl, getRoundTranscriptSignedUrl, deleteRoundTranscript, uploadRoundTranscript } from '../lib/rounds';
+import {
+  uploadMedia,
+  deleteMedia,
+  getMediaSignedUrl,
+  getRoundTranscriptSignedUrl,
+  deleteRoundTranscript,
+  uploadRoundTranscript,
+} from '../lib/rounds';
 import type { Round, RoundMedia } from '../lib/types';
 import { API_BASE } from '../lib/api';
 import MediaPlayer from './MediaPlayer';
@@ -14,22 +21,34 @@ interface Props {
   onMediaChange: () => void;
 }
 
-export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Props) {
+export default function RoundCard({
+  round,
+  onEdit,
+  onDelete,
+  onMediaChange,
+}: Props) {
   const toast = useToast();
   const [uploading, setUploading] = useState(false);
-  const [uploadingMediaFile, setUploadingMediaFile] = useState<File | null>(null);
+  const [uploadingMediaFile, setUploadingMediaFile] = useState<File | null>(
+    null
+  );
   const [uploadingMediaProgress, setUploadingMediaProgress] = useState(0);
   const [uploadingTranscript, setUploadingTranscript] = useState(false);
-  const [uploadingTranscriptFile, setUploadingTranscriptFile] = useState<File | null>(null);
-  const [uploadingTranscriptProgress, setUploadingTranscriptProgress] = useState(0);
+  const [uploadingTranscriptFile, setUploadingTranscriptFile] =
+    useState<File | null>(null);
+  const [uploadingTranscriptProgress, setUploadingTranscriptProgress] =
+    useState(0);
   const [playingMedia, setPlayingMedia] = useState<RoundMedia | null>(null);
   const mediaProgressRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const transcriptProgressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const transcriptProgressRef = useRef<ReturnType<typeof setInterval> | null>(
+    null
+  );
 
   useEffect(() => {
     return () => {
       if (mediaProgressRef.current) clearInterval(mediaProgressRef.current);
-      if (transcriptProgressRef.current) clearInterval(transcriptProgressRef.current);
+      if (transcriptProgressRef.current)
+        clearInterval(transcriptProgressRef.current);
     };
   }, []);
 
@@ -150,7 +169,9 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
     }
   }
 
-  async function handleTranscriptUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleTranscriptUpload(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingTranscript(true);
@@ -166,12 +187,14 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
 
     try {
       await uploadRoundTranscript(round.id, file);
-      if (transcriptProgressRef.current) clearInterval(transcriptProgressRef.current);
+      if (transcriptProgressRef.current)
+        clearInterval(transcriptProgressRef.current);
       setUploadingTranscriptProgress(100);
       onMediaChange();
       setTimeout(() => setUploadingTranscriptProgress(0), 500);
     } catch {
-      if (transcriptProgressRef.current) clearInterval(transcriptProgressRef.current);
+      if (transcriptProgressRef.current)
+        clearInterval(transcriptProgressRef.current);
       toast.error('Failed to upload transcript');
       setUploadingTranscriptProgress(0);
     } finally {
@@ -183,29 +206,34 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
   return (
     <div className="bg-bg2 rounded-lg p-4">
       {playingMedia && (
-        <MediaPlayer media={playingMedia} onClose={() => setPlayingMedia(null)} />
+        <MediaPlayer
+          media={playingMedia}
+          onClose={() => setPlayingMedia(null)}
+        />
       )}
 
-      <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 mb-3">
+      <div className="mb-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
         <div>
           <h4 className="text-primary font-medium">{round.round_type.name}</h4>
-          <p className="text-sm text-muted">
+          <p className="text-muted text-sm">
             Scheduled: {formatDateTime(round.scheduled_at)}
           </p>
           {round.completed_at && (
-            <p className="text-sm text-muted">
+            <p className="text-muted text-sm">
               Completed: {formatDateTime(round.completed_at)}
             </p>
           )}
         </div>
         <div className="flex items-center gap-4">
-          <span className={`text-sm font-medium ${getOutcomeStyle(round.outcome)}`}>
+          <span
+            className={`text-sm font-medium ${getOutcomeStyle(round.outcome)}`}
+          >
             {getOutcomeLabel(round.outcome)}
           </span>
           <div className="flex items-center gap-1.5">
             <button
               onClick={onEdit}
-              className="p-2 rounded bg-transparent text-fg1 hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center justify-center cursor-pointer"
+              className="text-fg1 hover:bg-bg3 hover:text-fg0 flex cursor-pointer items-center justify-center rounded bg-transparent p-2 transition-all duration-200 ease-in-out"
               aria-label="Edit round"
               title="Edit"
             >
@@ -213,7 +241,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
             </button>
             <button
               onClick={onDelete}
-              className="p-2 rounded bg-transparent text-red hover:bg-bg3 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center justify-center cursor-pointer"
+              className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center justify-center rounded bg-transparent p-2 transition-all duration-200 ease-in-out"
               aria-label="Delete round"
               title="Delete"
             >
@@ -225,14 +253,18 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
 
       {round.notes_summary && (
         <div className="mb-3">
-          <p className="text-sm text-secondary whitespace-pre-wrap">{round.notes_summary}</p>
+          <p className="text-secondary whitespace-pre-wrap text-sm">
+            {round.notes_summary}
+          </p>
         </div>
       )}
 
-      <div className="border-t border-tertiary pt-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-          <span className="text-sm text-muted">Media Files</span>
-          <label className={`bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded font-medium flex items-center gap-1.5 text-sm ${uploading ? 'opacity-50' : ''} cursor-pointer`}>
+      <div className="border-tertiary border-t pt-3">
+        <div className="mb-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+          <span className="text-muted text-sm">Media Files</span>
+          <label
+            className={`bg-accent text-bg0 hover:bg-accent-bright flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium transition-all duration-200 ease-in-out ${uploading ? 'opacity-50' : ''} cursor-pointer`}
+          >
             <i className="bi-plus-circle icon-sm"></i>
             {uploading ? 'Uploading...' : 'Add Media'}
             <input
@@ -247,7 +279,10 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
 
         {uploadingMediaProgress > 0 && uploadingMediaProgress < 100 && (
           <div className="mb-2">
-            <ProgressBar progress={uploadingMediaProgress} fileName={uploadingMediaFile?.name} />
+            <ProgressBar
+              progress={uploadingMediaProgress}
+              fileName={uploadingMediaFile?.name}
+            />
           </div>
         )}
 
@@ -256,22 +291,22 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
             {round.media.map((m) => (
               <div
                 key={m.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-bg3 rounded px-3 py-2"
+                className="bg-bg3 flex flex-col justify-between gap-2 rounded px-3 py-2 sm:flex-row sm:items-center"
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
                   {m.media_type === 'video' ? (
                     <i className="bi-camera-video icon-md text-purple-bright flex-shrink-0" />
                   ) : (
                     <i className="bi-music-note-beamed icon-md text-orange-bright flex-shrink-0" />
                   )}
-                  <span className="text-sm text-primary truncate">
+                  <span className="text-primary truncate text-sm">
                     {m.file_path.split('/').pop()}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex flex-shrink-0 items-center gap-2">
                   <button
                     onClick={() => setPlayingMedia(m)}
-                    className="bg-transparent text-fg1 hover:bg-bg4 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
+                    className="text-fg1 hover:bg-bg4 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
                     title="Play"
                   >
                     <i className="bi-play-fill icon-md" />
@@ -279,7 +314,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                   </button>
                   <button
                     onClick={(e) => handleMediaDownload(m, e)}
-                    className="bg-transparent text-fg1 hover:bg-bg4 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
+                    className="text-fg1 hover:bg-bg4 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
                     title="Download"
                   >
                     <i className="bi-download icon-sm" />
@@ -287,7 +322,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                   </button>
                   <button
                     onClick={(e) => handleMediaDelete(m.id, e)}
-                    className="bg-transparent text-red hover:bg-bg4 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm cursor-pointer"
+                    className="text-red hover:bg-bg4 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
                     title="Delete"
                   >
                     <i className="bi-trash icon-sm" />
@@ -298,15 +333,17 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted">No media files</p>
+          <p className="text-muted text-sm">No media files</p>
         )}
       </div>
 
-      <div className="border-t border-tertiary pt-3 mt-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-          <span className="text-sm text-muted">Transcript</span>
+      <div className="border-tertiary mt-3 border-t pt-3">
+        <div className="mb-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+          <span className="text-muted text-sm">Transcript</span>
           {!round.transcript_path && (
-            <label className={`bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded font-medium flex items-center gap-1.5 text-sm ${uploadingTranscript ? 'opacity-50' : ''} cursor-pointer`}>
+            <label
+              className={`bg-accent text-bg0 hover:bg-accent-bright flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium transition-all duration-200 ease-in-out ${uploadingTranscript ? 'opacity-50' : ''} cursor-pointer`}
+            >
               <i className="bi-plus-circle icon-sm"></i>
               {uploadingTranscript ? 'Uploading...' : 'Add Transcript'}
               <input
@@ -320,26 +357,30 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
           )}
         </div>
 
-        {uploadingTranscriptProgress > 0 && uploadingTranscriptProgress < 100 && (
-          <div className="mb-2">
-            <ProgressBar progress={uploadingTranscriptProgress} fileName={uploadingTranscriptFile?.name} />
-          </div>
-        )}
+        {uploadingTranscriptProgress > 0 &&
+          uploadingTranscriptProgress < 100 && (
+            <div className="mb-2">
+              <ProgressBar
+                progress={uploadingTranscriptProgress}
+                fileName={uploadingTranscriptFile?.name}
+              />
+            </div>
+          )}
 
         {round.transcript_path ? (
           <>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-bg3 rounded px-3 py-2">
-              <div className="flex items-center gap-2 min-w-0">
+            <div className="bg-bg3 flex flex-col justify-between gap-2 rounded px-3 py-2 sm:flex-row sm:items-center">
+              <div className="flex min-w-0 items-center gap-2">
                 <i className="bi-file-text icon-md text-red-bright flex-shrink-0" />
-                <span className="text-sm text-primary truncate">
+                <span className="text-primary truncate text-sm">
                   {round.transcript_path.split('/').pop()}
                 </span>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex flex-shrink-0 items-center gap-2">
                 <button
                   onClick={handleTranscriptPreview}
                   disabled={uploadingTranscript}
-                  className="bg-transparent text-fg1 hover:bg-bg4 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 cursor-pointer"
+                  className="text-fg1 hover:bg-bg4 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
                   title="View"
                 >
                   <i className="bi-eye icon-sm" />
@@ -348,7 +389,7 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
                 <button
                   onClick={handleTranscriptDelete}
                   disabled={uploadingTranscript}
-                  className="bg-transparent text-red hover:bg-bg4 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 cursor-pointer"
+                  className="text-red hover:bg-bg4 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
                   title="Delete"
                 >
                   <i className="bi-trash icon-sm" />
@@ -357,14 +398,16 @@ export default function RoundCard({ round, onEdit, onDelete, onMediaChange }: Pr
               </div>
             </div>
             {round.transcript_summary && (
-              <div className="mt-2 bg-bg3 rounded px-3 py-2">
-                <p className="text-sm text-muted mb-1">Summary:</p>
-                <p className="text-sm text-secondary whitespace-pre-wrap">{round.transcript_summary}</p>
+              <div className="bg-bg3 mt-2 rounded px-3 py-2">
+                <p className="text-muted mb-1 text-sm">Summary:</p>
+                <p className="text-secondary whitespace-pre-wrap text-sm">
+                  {round.transcript_summary}
+                </p>
               </div>
             )}
           </>
         ) : (
-          <p className="text-sm text-muted">No transcript uploaded</p>
+          <p className="text-muted text-sm">No transcript uploaded</p>
         )}
       </div>
     </div>

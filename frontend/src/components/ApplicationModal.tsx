@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { createApplication, updateApplication } from '../lib/applications';
 import { listStatuses } from '../lib/settings';
-import type { Status, Application, ApplicationCreate, ApplicationUpdate } from '../lib/types';
+import type {
+  Status,
+  Application,
+  ApplicationCreate,
+  ApplicationUpdate,
+} from '../lib/types';
 import Dropdown from './Dropdown';
 
 interface ApplicationModalProps {
@@ -15,7 +20,7 @@ export default function ApplicationModal({
   isOpen,
   onClose,
   onSuccess,
-  application
+  application,
 }: ApplicationModalProps) {
   const isEditing = Boolean(application);
 
@@ -97,14 +102,26 @@ export default function ApplicationModal({
         setJobUrl(application.job_url || '');
         setStatusId(application.status.id);
         setAppliedAt(application.applied_at.split('T')[0]);
-        setSalaryMin(application.salary_min !== null ? String(application.salary_min / 1000) : '');
-        setSalaryMax(application.salary_max !== null ? String(application.salary_max / 1000) : '');
+        setSalaryMin(
+          application.salary_min !== null
+            ? String(application.salary_min / 1000)
+            : ''
+        );
+        setSalaryMax(
+          application.salary_max !== null
+            ? String(application.salary_max / 1000)
+            : ''
+        );
         setSalaryCurrency(application.salary_currency || 'USD');
         setRecruiterName(application.recruiter_name || '');
         setRecruiterTitle(application.recruiter_title || '');
         setRecruiterLinkedinUrl(application.recruiter_linkedin_url || '');
-        setRequirementsMustHave(application.requirements_must_have?.join('\n') || '');
-        setRequirementsNiceToHave(application.requirements_nice_to_have?.join('\n') || '');
+        setRequirementsMustHave(
+          application.requirements_must_have?.join('\n') || ''
+        );
+        setRequirementsNiceToHave(
+          application.requirements_nice_to_have?.join('\n') || ''
+        );
         setSource(application.source || '');
       } else {
         // Create mode - set defaults
@@ -124,7 +141,8 @@ export default function ApplicationModal({
         setAppliedAt(new Date().toISOString().split('T')[0]);
         // Set default status after statuses are loaded
         if (statuses.length > 0) {
-          const defaultStatus = statuses.find((s) => s.is_default) || statuses[0];
+          const defaultStatus =
+            statuses.find((s) => s.is_default) || statuses[0];
           setStatusId(defaultStatus.id);
         }
       }
@@ -164,10 +182,16 @@ export default function ApplicationModal({
       const salaryMinNum = salaryMin ? parseInt(salaryMin, 10) * 1000 : null;
       const salaryMaxNum = salaryMax ? parseInt(salaryMax, 10) * 1000 : null;
       const requirementsMustHaveArray = requirementsMustHave.trim()
-        ? requirementsMustHave.split('\n').map(s => s.trim()).filter(Boolean)
+        ? requirementsMustHave
+            .split('\n')
+            .map((s) => s.trim())
+            .filter(Boolean)
         : null;
       const requirementsNiceToHaveArray = requirementsNiceToHave.trim()
-        ? requirementsNiceToHave.split('\n').map(s => s.trim()).filter(Boolean)
+        ? requirementsNiceToHave
+            .split('\n')
+            .map((s) => s.trim())
+            .filter(Boolean)
         : null;
 
       if (isEditing && application) {
@@ -222,7 +246,7 @@ export default function ApplicationModal({
 
   return (
     <div
-      className="fixed inset-0 bg-bg0/80 flex items-center justify-center z-50"
+      className="bg-bg0/80 fixed inset-0 z-50 flex items-center justify-center"
       onClick={onClose}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
@@ -235,32 +259,38 @@ export default function ApplicationModal({
       aria-labelledby="modal-title"
     >
       <div
-        className="bg-bg1 rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col"
+        className="bg-bg1 mx-4 flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex-shrink-0 flex justify-between items-center p-4 border-b border-tertiary">
+        <div className="border-tertiary flex flex-shrink-0 items-center justify-between border-b p-4">
           <h3 id="modal-title" className="text-primary font-medium">
             {isEditing ? 'Edit Application' : 'New Application'}
           </h3>
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out p-2 rounded cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
           >
             <i className="bi bi-x-lg icon-xl" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 space-y-4 overflow-y-auto p-6"
+        >
           {error && (
-            <div className="bg-red-bright/20 border border-red-bright text-red-bright px-4 py-3 rounded">
+            <div className="bg-red-bright/20 border-red-bright text-red-bright rounded border px-4 py-3">
               {error}
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="company" className="block mb-1 text-sm font-semibold text-muted">
+              <label
+                htmlFor="company"
+                className="text-muted mb-1 block text-sm font-semibold"
+              >
                 Company <span className="text-red-bright">*</span>
               </label>
               <input
@@ -268,14 +298,17 @@ export default function ApplicationModal({
                 type="text"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                 required
                 autoFocus
               />
             </div>
 
             <div>
-              <label htmlFor="job-title" className="block mb-1 text-sm font-semibold text-muted">
+              <label
+                htmlFor="job-title"
+                className="text-muted mb-1 block text-sm font-semibold"
+              >
                 Job Title <span className="text-red-bright">*</span>
               </label>
               <input
@@ -283,20 +316,26 @@ export default function ApplicationModal({
                 type="text"
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
-                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="application-status" className="block mb-1 text-sm font-semibold text-muted">
+              <label
+                htmlFor="application-status"
+                className="text-muted mb-1 block text-sm font-semibold"
+              >
                 Status <span className="text-red-bright">*</span>
               </label>
               <Dropdown
                 id="application-status"
                 options={[
                   { value: '', label: 'Select status' },
-                  ...statuses.map((status) => ({ value: status.id, label: status.name }))
+                  ...statuses.map((status) => ({
+                    value: status.id,
+                    label: status.name,
+                  })),
                 ]}
                 value={statusId}
                 onChange={(value) => setStatusId(value)}
@@ -306,18 +345,28 @@ export default function ApplicationModal({
             </div>
 
             <div>
-              <label htmlFor="applied-date" className="block mb-1 text-sm font-semibold text-muted">Applied Date</label>
+              <label
+                htmlFor="applied-date"
+                className="text-muted mb-1 block text-sm font-semibold"
+              >
+                Applied Date
+              </label>
               <input
                 id="applied-date"
                 type="date"
                 value={appliedAt}
                 onChange={(e) => setAppliedAt(e.target.value)}
-                className="w-full px-3 py-2 bg-bg2 rounded text-fg1 focus:outline-none focus:ring-1 focus:ring-accent-bright transition-all duration-200 ease-in-out"
+                className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label htmlFor="job-url" className="block mb-1 text-sm font-semibold text-muted">Job URL</label>
+              <label
+                htmlFor="job-url"
+                className="text-muted mb-1 block text-sm font-semibold"
+              >
+                Job URL
+              </label>
               <input
                 id="job-url"
                 type="text"
@@ -328,41 +377,56 @@ export default function ApplicationModal({
                 }}
                 onBlur={handleJobUrlBlur}
                 placeholder="example.com or https://..."
-                className={`w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded ${
-                  jobUrlError ? 'border border-red-bright' : ''
+                className={`bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 ${
+                  jobUrlError ? 'border-red-bright border' : ''
                 }`}
               />
               {jobUrlError && (
-                <p className="text-red-bright text-sm mt-1">{jobUrlError}</p>
+                <p className="text-red-bright mt-1 text-sm">{jobUrlError}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="salary-min" className="block mb-1 text-sm font-semibold text-muted">Min Salary (k)</label>
+              <label
+                htmlFor="salary-min"
+                className="text-muted mb-1 block text-sm font-semibold"
+              >
+                Min Salary (k)
+              </label>
               <input
                 id="salary-min"
                 type="number"
                 value={salaryMin}
                 onChange={(e) => setSalaryMin(e.target.value)}
                 placeholder="e.g. 100"
-                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
               />
             </div>
 
             <div>
-              <label htmlFor="salary-max" className="block mb-1 text-sm font-semibold text-muted">Max Salary (k)</label>
+              <label
+                htmlFor="salary-max"
+                className="text-muted mb-1 block text-sm font-semibold"
+              >
+                Max Salary (k)
+              </label>
               <input
                 id="salary-max"
                 type="number"
                 value={salaryMax}
                 onChange={(e) => setSalaryMax(e.target.value)}
                 placeholder="e.g. 150"
-                className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
               />
             </div>
 
             <div>
-              <label htmlFor="salary-currency" className="block mb-1 text-sm font-semibold text-muted">Currency</label>
+              <label
+                htmlFor="salary-currency"
+                className="text-muted mb-1 block text-sm font-semibold"
+              >
+                Currency
+              </label>
               <Dropdown
                 id="salary-currency"
                 options={[
@@ -381,113 +445,152 @@ export default function ApplicationModal({
             </div>
           </div>
 
-          <div className="border-t border-tertiary pt-4">
-            <h4 className="text-sm font-semibold text-muted mb-3">Recruiter (Optional)</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="border-tertiary border-t pt-4">
+            <h4 className="text-muted mb-3 text-sm font-semibold">
+              Recruiter (Optional)
+            </h4>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="recruiter-name" className="block mb-1 text-sm font-semibold text-muted">Recruiter Name</label>
+                <label
+                  htmlFor="recruiter-name"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  Recruiter Name
+                </label>
                 <input
                   id="recruiter-name"
                   type="text"
                   value={recruiterName}
                   onChange={(e) => setRecruiterName(e.target.value)}
                   placeholder="e.g. John Smith"
-                  className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                 />
               </div>
 
               <div>
-                <label htmlFor="recruiter-title" className="block mb-1 text-sm font-semibold text-muted">Recruiter Title</label>
+                <label
+                  htmlFor="recruiter-title"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  Recruiter Title
+                </label>
                 <input
                   id="recruiter-title"
                   type="text"
                   value={recruiterTitle}
                   onChange={(e) => setRecruiterTitle(e.target.value)}
                   placeholder="e.g. Senior Recruiter"
-                  className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label htmlFor="recruiter-linkedin" className="block mb-1 text-sm font-semibold text-muted">LinkedIn URL</label>
+                <label
+                  htmlFor="recruiter-linkedin"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  LinkedIn URL
+                </label>
                 <input
                   id="recruiter-linkedin"
                   type="text"
                   value={recruiterLinkedinUrl}
                   onChange={(e) => setRecruiterLinkedinUrl(e.target.value)}
                   placeholder="https://linkedin.com/in/..."
-                  className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                 />
               </div>
             </div>
           </div>
 
-          <div className="border-t border-tertiary pt-4">
-            <h4 className="text-sm font-semibold text-muted mb-3">Requirements (Optional)</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="border-tertiary border-t pt-4">
+            <h4 className="text-muted mb-3 text-sm font-semibold">
+              Requirements (Optional)
+            </h4>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="requirements-must" className="block mb-1 text-sm font-semibold text-muted">Must Have</label>
+                <label
+                  htmlFor="requirements-must"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  Must Have
+                </label>
                 <textarea
                   id="requirements-must"
                   value={requirementsMustHave}
                   onChange={(e) => setRequirementsMustHave(e.target.value)}
                   rows={3}
                   placeholder="One requirement per line&#10;e.g. React experience&#10;5+ years TypeScript"
-                  className="w-full px-3 py-2 bg-bg2 rounded text-fg1 placeholder-muted focus:outline-none focus:ring-1 focus:ring-accent-bright transition-all duration-200 ease-in-out resize-y"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                 />
               </div>
 
               <div>
-                <label htmlFor="requirements-nice" className="block mb-1 text-sm font-semibold text-muted">Nice to Have</label>
+                <label
+                  htmlFor="requirements-nice"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  Nice to Have
+                </label>
                 <textarea
                   id="requirements-nice"
                   value={requirementsNiceToHave}
                   onChange={(e) => setRequirementsNiceToHave(e.target.value)}
                   rows={3}
                   placeholder="One requirement per line&#10;e.g. Docker experience&#10;AWS certification"
-                  className="w-full px-3 py-2 bg-bg2 rounded text-fg1 placeholder-muted focus:outline-none focus:ring-1 focus:ring-accent-bright transition-all duration-200 ease-in-out resize-y"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label htmlFor="source" className="block mb-1 text-sm font-semibold text-muted">Source</label>
+                <label
+                  htmlFor="source"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  Source
+                </label>
                 <input
                   id="source"
                   type="text"
                   value={source}
                   onChange={(e) => setSource(e.target.value)}
                   placeholder="e.g. LinkedIn, Indeed, Referral"
-                  className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                 />
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label htmlFor="job-description" className="block mb-1 text-sm font-semibold text-muted">Job Description</label>
+              <label
+                htmlFor="job-description"
+                className="text-muted mb-1 block text-sm font-semibold"
+              >
+                Job Description
+              </label>
               <textarea
                 id="job-description"
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 bg-bg2 rounded text-fg1 placeholder-muted focus:outline-none focus:ring-1 focus:ring-accent-bright transition-all duration-200 ease-in-out resize-y"
+                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-tertiary">
+          <div className="border-tertiary flex justify-end gap-3 border-t pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 cursor-pointer"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
+              className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
             >
               {loading ? 'Saving...' : isEditing ? 'Save' : 'Add Application'}
             </button>

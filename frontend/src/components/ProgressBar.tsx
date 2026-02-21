@@ -4,15 +4,19 @@ interface Props {
   showPercentage?: boolean;
 }
 
-export default function ProgressBar({ progress, fileName, showPercentage = true }: Props) {
+export default function ProgressBar({
+  progress,
+  fileName,
+  showPercentage = true,
+}: Props) {
   const isComplete = progress >= 100;
 
   return (
     <div>
       {fileName && (
-        <div className="text-sm text-fg1 mb-2 truncate">{fileName}</div>
+        <div className="text-fg1 mb-2 truncate text-sm">{fileName}</div>
       )}
-      <div className="w-full h-2 bg-tertiary rounded-sm overflow-hidden">
+      <div className="bg-tertiary h-2 w-full overflow-hidden rounded-sm">
         <div
           className={`h-full transition-all duration-300 ${
             isComplete ? 'bg-green' : 'bg-accent'
@@ -25,7 +29,7 @@ export default function ProgressBar({ progress, fileName, showPercentage = true 
         />
       </div>
       {showPercentage && (
-        <div className="text-xs text-muted text-right mt-1">
+        <div className="text-muted mt-1 text-right text-xs">
           {isComplete ? 'Upload complete' : `${Math.round(progress)}%`}
         </div>
       )}

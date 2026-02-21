@@ -67,10 +67,13 @@ export default function ConvertToApplicationModal({
       }
     } catch (err) {
       // Handle the case where backend endpoint is not implemented
-      const errorMessage = err instanceof Error ? err.message : 'Failed to convert job lead';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to convert job lead';
 
       if (errorMessage.includes('not yet implemented')) {
-        toast.warning('This feature is coming soon. The backend endpoint is not yet available.');
+        toast.warning(
+          'This feature is coming soon. The backend endpoint is not yet available.'
+        );
       } else {
         toast.error(errorMessage);
       }
@@ -85,7 +88,7 @@ export default function ConvertToApplicationModal({
 
   return (
     <div
-      className="fixed inset-0 bg-bg0/80 flex items-center justify-center z-50"
+      className="bg-bg0/80 fixed inset-0 z-50 flex items-center justify-center"
       onClick={handleOverlayClick}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
@@ -98,12 +101,15 @@ export default function ConvertToApplicationModal({
       aria-labelledby="convert-modal-title"
     >
       <div
-        className="bg-bg1 rounded-lg max-w-md w-full mx-4"
+        className="bg-bg1 mx-4 w-full max-w-md rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-tertiary">
-          <h3 id="convert-modal-title" className="text-primary font-medium flex items-center gap-2">
+        <div className="border-tertiary flex items-center justify-between border-b p-4">
+          <h3
+            id="convert-modal-title"
+            className="text-primary flex items-center gap-2 font-medium"
+          >
             <i className="bi bi-arrow-repeat icon-md text-aqua" />
             Convert to Application
           </h3>
@@ -111,7 +117,7 @@ export default function ConvertToApplicationModal({
             onClick={onClose}
             disabled={isConverting}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out p-2 rounded disabled:opacity-50 cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             <i className="bi bi-x-lg icon-lg" />
           </button>
@@ -122,28 +128,29 @@ export default function ConvertToApplicationModal({
           <p className="text-fg1 mb-2">
             Are you sure you want to convert this job lead to an application?
           </p>
-          <div className="bg-bg2 rounded-lg p-4 mt-4">
+          <div className="bg-bg2 mt-4 rounded-lg p-4">
             <p className="text-primary font-medium">{jobTitle}</p>
             <p className="text-fg1 text-sm">{company}</p>
           </div>
-          <p className="text-muted text-sm mt-4">
-            This will create a new application and remove this lead from your leads list.
+          <p className="text-muted mt-4 text-sm">
+            This will create a new application and remove this lead from your
+            leads list.
           </p>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-4 border-t border-tertiary">
+        <div className="border-tertiary flex justify-end gap-3 border-t p-4">
           <button
             onClick={onClose}
             disabled={isConverting}
-            className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded font-medium disabled:opacity-50 cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded bg-transparent px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleConvert}
             disabled={isConverting}
-            className="bg-aqua text-bg0 hover:bg-aqua-bright transition-all duration-200 ease-in-out px-4 py-2 rounded font-medium flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+            className="bg-aqua text-bg0 hover:bg-aqua-bright flex cursor-pointer items-center gap-2 rounded px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             {isConverting ? (
               <>

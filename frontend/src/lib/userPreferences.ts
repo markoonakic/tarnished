@@ -17,7 +17,9 @@ export async function getPreferences(): Promise<UserPreferences> {
   return response.data;
 }
 
-export async function updatePreferences(updates: UserPreferencesUpdate): Promise<UserPreferences> {
+export async function updatePreferences(
+  updates: UserPreferencesUpdate
+): Promise<UserPreferences> {
   const response = await api.put('/api/user-preferences', updates);
   return response.data;
 }

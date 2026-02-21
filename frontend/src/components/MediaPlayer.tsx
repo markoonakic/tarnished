@@ -53,7 +53,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
         onClose();
       }
     }
-    
+
     function handleTab(event: KeyboardEvent) {
       if (event.key !== 'Tab' || !modalRef.current) return;
 
@@ -72,7 +72,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
         firstElement.focus();
       }
     }
-    
+
     document.addEventListener('keydown', handleEscape);
     document.addEventListener('keydown', handleTab);
     return () => {
@@ -87,7 +87,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-bg0/80 flex items-center justify-center z-50"
+      className="bg-bg0/80 fixed inset-0 z-50 flex items-center justify-center"
       onClick={onClose}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
@@ -98,16 +98,20 @@ export default function MediaPlayer({ media, onClose }: Props) {
       role="dialog"
       aria-modal="true"
     >
-      <div ref={modalRef} className="bg-bg1 rounded-lg max-w-4xl w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b border-tertiary">
-          <h3 className="text-primary font-medium truncate">
+      <div
+        ref={modalRef}
+        className="bg-bg1 mx-4 w-full max-w-4xl overflow-hidden rounded-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-tertiary flex items-center justify-between border-b p-4">
+          <h3 className="text-primary truncate font-medium">
             {media.file_path.split('/').pop()}
           </h3>
           <button
             ref={closeButtonRef}
             onClick={onClose}
             aria-label="Close"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out p-2 rounded cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
           >
             <i className="bi bi-x-lg icon-xl" />
           </button>
@@ -115,9 +119,9 @@ export default function MediaPlayer({ media, onClose }: Props) {
 
         <div className="p-4">
           {loading ? (
-            <div className="text-center py-12 text-muted">Loading...</div>
+            <div className="text-muted py-12 text-center">Loading...</div>
           ) : error || !mediaUrl ? (
-            <div className="text-center py-12 text-red-bright">
+            <div className="text-red-bright py-12 text-center">
               Failed to load media file
             </div>
           ) : isVideo ? (
@@ -127,14 +131,14 @@ export default function MediaPlayer({ media, onClose }: Props) {
               controls
               autoPlay
               onError={handleError}
-              className="w-full max-h-[60vh] bg-bg2 rounded"
+              className="bg-bg2 max-h-[60vh] w-full rounded"
             >
               Your browser does not support video playback.
             </video>
           ) : (
             <div className="py-8">
-              <div className="flex justify-center mb-4">
-                <div className="w-24 h-24 rounded-full bg-bg2 flex items-center justify-center">
+              <div className="mb-4 flex justify-center">
+                <div className="bg-bg2 flex h-24 w-24 items-center justify-center rounded-full">
                   <i className="bi bi-music-note-beamed icon-2xl text-orange-bright" />
                 </div>
               </div>
@@ -152,7 +156,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
           )}
         </div>
 
-        <div className="px-4 pb-4 text-sm text-muted">
+        <div className="text-muted px-4 pb-4 text-sm">
           Uploaded: {new Date(media.uploaded_at).toLocaleString()}
         </div>
       </div>

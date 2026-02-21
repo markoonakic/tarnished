@@ -172,9 +172,7 @@ class TestJobLeadModelCreation:
         db.expunge(job_lead)
 
         # Retrieve the job lead
-        result = await db.execute(
-            select(JobLead).where(JobLead.id == job_lead_id)
-        )
+        result = await db.execute(select(JobLead).where(JobLead.id == job_lead_id))
         retrieved_lead = result.scalar_one_or_none()
 
         assert retrieved_lead is not None
@@ -200,9 +198,7 @@ class TestJobLeadModelCreation:
         assert job_lead.user.id == test_user_for_job_lead.id
         assert job_lead.user.email == "joblead_test@example.com"
 
-    async def test_job_lead_repr(
-        self, db: AsyncSession, test_user_for_job_lead: User
-    ):
+    async def test_job_lead_repr(self, db: AsyncSession, test_user_for_job_lead: User):
         """Test the __repr__ method of JobLead."""
         job_lead = JobLead(
             user_id=test_user_for_job_lead.id,

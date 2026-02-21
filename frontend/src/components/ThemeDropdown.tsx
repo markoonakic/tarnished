@@ -12,7 +12,11 @@ interface Props {
   onChange: (themeId: string) => void;
 }
 
-export default function ThemeDropdown({ themes, currentTheme, onChange }: Props) {
+export default function ThemeDropdown({
+  themes,
+  currentTheme,
+  onChange,
+}: Props) {
   return (
     <Dropdown
       options={themes.map((theme) => ({

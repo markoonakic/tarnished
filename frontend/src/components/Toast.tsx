@@ -33,14 +33,16 @@ export default function Toast({ toast, onDismiss }: Props) {
 
   return (
     <div
-      className={`${config.bgClass} rounded-lg px-4 py-3 flex items-start gap-3 shadow-lg transition-all duration-200 ease-in-out`}
+      className={`${config.bgClass} flex items-start gap-3 rounded-lg px-4 py-3 shadow-lg transition-all duration-200 ease-in-out`}
       role="alert"
     >
-      <i className={`bi ${config.icon} ${config.iconColor} icon-md flex-shrink-0 mt-0.5`} />
-      <p className="text-fg1 text-sm flex-1">{toast.message}</p>
+      <i
+        className={`bi ${config.icon} ${config.iconColor} icon-md mt-0.5 flex-shrink-0`}
+      />
+      <p className="text-fg1 flex-1 text-sm">{toast.message}</p>
       <button
         onClick={() => onDismiss(toast.id)}
-        className="text-fg4 hover:text-fg1 transition-colors duration-200 ease-in-out cursor-pointer flex-shrink-0"
+        className="text-fg4 hover:text-fg1 flex-shrink-0 cursor-pointer transition-colors duration-200 ease-in-out"
         aria-label="Dismiss notification"
       >
         <i className="bi-x-lg icon-sm" />

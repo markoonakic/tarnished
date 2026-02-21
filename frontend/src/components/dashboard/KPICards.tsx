@@ -17,19 +17,21 @@ interface KPICardProps {
 }
 
 function KPICard({ title, value, trend, suffix = '' }: KPICardProps) {
-  const trendColor = trend !== undefined ? (trend >= 0 ? 'text-green' : 'text-red-bright') : '';
+  const trendColor =
+    trend !== undefined ? (trend >= 0 ? 'text-green' : 'text-red-bright') : '';
   const trendIcon = trend !== undefined ? (trend >= 0 ? '↑' : '↓') : '';
-  const trendText = trend !== undefined ? `${trendIcon} ${Math.abs(trend)}%` : '';
+  const trendText =
+    trend !== undefined ? `${trendIcon} ${Math.abs(trend)}%` : '';
 
   return (
     <div className="bg-secondary rounded-lg p-6">
-      <h3 className="text-sm font-semibold text-fg4 mb-2">{title}</h3>
+      <h3 className="text-fg4 mb-2 text-sm font-semibold">{title}</h3>
       <div className="flex items-baseline gap-2">
-        <span className="text-2xl font-bold text-fg1">{value}</span>
-        {suffix && <span className="text-sm text-fg4">{suffix}</span>}
+        <span className="text-fg1 text-2xl font-bold">{value}</span>
+        {suffix && <span className="text-fg4 text-sm">{suffix}</span>}
       </div>
       {trend !== undefined && (
-        <p className={`text-xs mt-2 ${trendColor}`}>{trendText}</p>
+        <p className={`mt-2 text-xs ${trendColor}`}>{trendText}</p>
       )}
     </div>
   );
@@ -57,11 +59,11 @@ export default function KPICards() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-secondary rounded-lg p-6 animate-pulse">
-            <div className="h-4 bg-tertiary rounded mb-2 w-24"></div>
-            <div className="h-8 bg-tertiary rounded w-16"></div>
+          <div key={i} className="bg-secondary animate-pulse rounded-lg p-6">
+            <div className="bg-tertiary mb-2 h-4 w-24 rounded"></div>
+            <div className="bg-tertiary h-8 w-16 rounded"></div>
           </div>
         ))}
       </div>
@@ -77,7 +79,7 @@ export default function KPICards() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
       <KPICard
         title="Last 7 Days"
         value={kpis.last_7_days}

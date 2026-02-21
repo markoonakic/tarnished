@@ -60,9 +60,13 @@ class Application(Base):
     cv_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     cover_letter_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     applied_at: Mapped[date] = mapped_column(Date, default=date.today)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
     )
 
     # Job Lead relationship (for converted leads)

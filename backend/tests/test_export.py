@@ -11,7 +11,6 @@ from datetime import date, datetime
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token, get_password_hash
@@ -46,11 +45,21 @@ async def test_user(db: AsyncSession) -> User:
 async def test_statuses(db: AsyncSession, test_user: User) -> list[ApplicationStatus]:
     """Create test application statuses."""
     statuses = [
-        ApplicationStatus(name="Wishlist", color="#83a598", is_default=True, user_id=test_user.id),
-        ApplicationStatus(name="Applied", color="#8ec07c", is_default=True, user_id=test_user.id),
-        ApplicationStatus(name="Interview", color="#fe8019", is_default=True, user_id=test_user.id),
-        ApplicationStatus(name="Offer", color="#fabd2f", is_default=True, user_id=test_user.id),
-        ApplicationStatus(name="Rejected", color="#fb4934", is_default=True, user_id=test_user.id),
+        ApplicationStatus(
+            name="Wishlist", color="#83a598", is_default=True, user_id=test_user.id
+        ),
+        ApplicationStatus(
+            name="Applied", color="#8ec07c", is_default=True, user_id=test_user.id
+        ),
+        ApplicationStatus(
+            name="Interview", color="#fe8019", is_default=True, user_id=test_user.id
+        ),
+        ApplicationStatus(
+            name="Offer", color="#fabd2f", is_default=True, user_id=test_user.id
+        ),
+        ApplicationStatus(
+            name="Rejected", color="#fb4934", is_default=True, user_id=test_user.id
+        ),
     ]
     for status in statuses:
         db.add(status)
@@ -319,7 +328,14 @@ class TestJSONExport:
         assert response.status_code == 200
 
         data = response.json()
-        app1_data = next((app for app in data["models"]["Application"] if app["company"] == "Tech Corp"), None)
+        app1_data = next(
+            (
+                app
+                for app in data["models"]["Application"]
+                if app["company"] == "Tech Corp"
+            ),
+            None,
+        )
 
         assert app1_data is not None
         assert app1_data["job_title"] == "Software Engineer"
@@ -341,11 +357,22 @@ class TestJSONExport:
         rounds = data["models"]["Round"]
 
         # Find rounds for Startup Inc application
-        startup_app = next((app for app in data["models"]["Application"] if app["company"] == "Startup Inc"), None)
+        startup_app = next(
+            (
+                app
+                for app in data["models"]["Application"]
+                if app["company"] == "Startup Inc"
+            ),
+            None,
+        )
         assert startup_app is not None
 
         # Find rounds that belong to this application
-        startup_rounds = [r for r in rounds if r.get("application_id") == startup_app.get("__original_id__")]
+        startup_rounds = [
+            r
+            for r in rounds
+            if r.get("application_id") == startup_app.get("__original_id__")
+        ]
         assert len(startup_rounds) == 2
 
     async def test_json_export_status_history(
@@ -364,12 +391,22 @@ class TestJSONExport:
         assert "ApplicationStatusHistory" in data["models"]
 
         # Find the Big Tech Company application
-        bigtech_app = next((app for app in data["models"]["Application"] if app["company"] == "Big Tech Company"), None)
+        bigtech_app = next(
+            (
+                app
+                for app in data["models"]["Application"]
+                if app["company"] == "Big Tech Company"
+            ),
+            None,
+        )
         assert bigtech_app is not None
 
         # Find status history for this application
-        bigtech_history = [h for h in data["models"]["ApplicationStatusHistory"]
-                          if h.get("application_id") == bigtech_app.get("__original_id__")]
+        bigtech_history = [
+            h
+            for h in data["models"]["ApplicationStatusHistory"]
+            if h.get("application_id") == bigtech_app.get("__original_id__")
+        ]
         assert len(bigtech_history) == 4
 
     async def test_json_export_rounds_and_status_history(
@@ -385,22 +422,38 @@ class TestJSONExport:
         data = response.json()
 
         # Find the Amazing Startup application
-        amazing_app = next((app for app in data["models"]["Application"] if app["company"] == "Amazing Startup"), None)
+        amazing_app = next(
+            (
+                app
+                for app in data["models"]["Application"]
+                if app["company"] == "Amazing Startup"
+            ),
+            None,
+        )
         assert amazing_app is not None
 
         # Find status history and rounds for this application
-        amazing_history = [h for h in data["models"]["ApplicationStatusHistory"]
-                          if h.get("application_id") == amazing_app.get("__original_id__")]
+        amazing_history = [
+            h
+            for h in data["models"]["ApplicationStatusHistory"]
+            if h.get("application_id") == amazing_app.get("__original_id__")
+        ]
         assert len(amazing_history) == 2
 
-        amazing_rounds = [r for r in data["models"]["Round"]
-                         if r.get("application_id") == amazing_app.get("__original_id__")]
+        amazing_rounds = [
+            r
+            for r in data["models"]["Round"]
+            if r.get("application_id") == amazing_app.get("__original_id__")
+        ]
         assert len(amazing_rounds) == 1
 
         # Verify RoundMedia exists
         assert "RoundMedia" in data["models"]
-        round_media = [m for m in data["models"]["RoundMedia"]
-                      if m.get("round_id") == amazing_rounds[0].get("__original_id__")]
+        round_media = [
+            m
+            for m in data["models"]["RoundMedia"]
+            if m.get("round_id") == amazing_rounds[0].get("__original_id__")
+        ]
         assert len(round_media) == 2
 
 
@@ -475,8 +528,17 @@ class TestCSVExport:
 
         # Find the line with both Startup Inc and Phone Screen
         lines = content.split("\n")
-        phone_screen_line = next((line for line in lines if "Startup Inc" in line and "Phone Screen" in line), None)
-        assert phone_screen_line is not None, "No line found with both 'Startup Inc' and 'Phone Screen'"
+        phone_screen_line = next(
+            (
+                line
+                for line in lines
+                if "Startup Inc" in line and "Phone Screen" in line
+            ),
+            None,
+        )
+        assert phone_screen_line is not None, (
+            "No line found with both 'Startup Inc' and 'Phone Screen'"
+        )
 
         # Verify the line contains expected round information
         assert "Completed" in phone_screen_line
@@ -498,12 +560,21 @@ class TestCSVExport:
         assert "Big Tech Company" in content
 
         # The CSV should contain status transitions
-        assert "Wishlist -> Applied" in content or "Applied -> Interview" in content or "Interview -> Offer" in content
+        assert (
+            "Wishlist -> Applied" in content
+            or "Applied -> Interview" in content
+            or "Interview -> Offer" in content
+        )
 
         # Find a line with Big Tech Company and status history
         lines = content.split("\n")
-        status_line = next((line for line in lines if "Big Tech Company" in line and ("->" in line)), None)
-        assert status_line is not None, "No line found with 'Big Tech Company' and status history"
+        status_line = next(
+            (line for line in lines if "Big Tech Company" in line and ("->" in line)),
+            None,
+        )
+        assert status_line is not None, (
+            "No line found with 'Big Tech Company' and status history"
+        )
 
     async def test_csv_export_rounds_and_status_history(
         self,
@@ -543,8 +614,17 @@ class TestCSVExport:
 
         # Find the line with both Amazing Startup and phone_screen.mp4
         lines = content.split("\n")
-        media_line = next((line for line in lines if "Amazing Startup" in line and "phone_screen.mp4" in line), None)
-        assert media_line is not None, "No line found with both 'Amazing Startup' and 'phone_screen.mp4'"
+        media_line = next(
+            (
+                line
+                for line in lines
+                if "Amazing Startup" in line and "phone_screen.mp4" in line
+            ),
+            None,
+        )
+        assert media_line is not None, (
+            "No line found with both 'Amazing Startup' and 'phone_screen.mp4'"
+        )
 
         # Verify the line contains both media files
         assert "phone_screen_audio.mp3" in media_line
@@ -587,8 +667,12 @@ class TestDataConsistency:
         csv_app_count = len(csv_companies)
 
         # Both should have exactly 4 applications
-        assert json_app_count == 4, f"JSON has {json_app_count} applications, expected 4"
-        assert csv_app_count == 4, f"CSV has {csv_app_count} unique companies, expected 4"
+        assert json_app_count == 4, (
+            f"JSON has {json_app_count} applications, expected 4"
+        )
+        assert csv_app_count == 4, (
+            f"CSV has {csv_app_count} unique companies, expected 4"
+        )
 
     async def test_json_csv_application_count_match(
         self,
@@ -626,7 +710,9 @@ class TestDataConsistency:
         csv_data = csv_response.text
 
         # Extract companies from JSON (new format uses models.Application)
-        json_companies = {app["company"] for app in json_data.get("models", {}).get("Application", [])}
+        json_companies = {
+            app["company"] for app in json_data.get("models", {}).get("Application", [])
+        }
 
         # Extract companies from CSV
         csv_lines = csv_data.split("\n")
@@ -640,7 +726,12 @@ class TestDataConsistency:
                 except StopIteration:
                     continue
 
-        expected_companies = {"Tech Corp", "Startup Inc", "Big Tech Company", "Amazing Startup"}
+        expected_companies = {
+            "Tech Corp",
+            "Startup Inc",
+            "Big Tech Company",
+            "Amazing Startup",
+        }
 
         assert json_companies == expected_companies, f"JSON companies: {json_companies}"
         assert csv_companies == expected_companies, f"CSV companies: {csv_companies}"
@@ -752,11 +843,14 @@ class TestExportIncludesDefaults:
 
         data = response.json()
         # New format uses model name as key
-        status_names = [s["name"] for s in data.get("models", {}).get("ApplicationStatus", [])]
+        status_names = [
+            s["name"] for s in data.get("models", {}).get("ApplicationStatus", [])
+        ]
 
         # Should include the user's status
-        assert "Test User Status" in status_names, \
+        assert "Test User Status" in status_names, (
             "Export should include user's statuses"
+        )
 
     async def test_json_export_includes_user_round_types(
         self,
@@ -779,11 +873,14 @@ class TestExportIncludesDefaults:
         assert response.status_code == 200
 
         data = response.json()
-        round_type_names = [rt["name"] for rt in data.get("models", {}).get("RoundType", [])]
+        round_type_names = [
+            rt["name"] for rt in data.get("models", {}).get("RoundType", [])
+        ]
 
         # Should include the user's round type
-        assert "Test User Round" in round_type_names, \
+        assert "Test User Round" in round_type_names, (
             "Export should include user's round types"
+        )
 
     async def test_json_export_includes_user_entities(
         self,
@@ -817,12 +914,20 @@ class TestExportIncludesDefaults:
         assert response.status_code == 200
 
         data = response.json()
-        status_names = [s["name"] for s in data.get("models", {}).get("ApplicationStatus", [])]
-        round_type_names = [rt["name"] for rt in data.get("models", {}).get("RoundType", [])]
+        status_names = [
+            s["name"] for s in data.get("models", {}).get("ApplicationStatus", [])
+        ]
+        round_type_names = [
+            rt["name"] for rt in data.get("models", {}).get("RoundType", [])
+        ]
 
         # Should include user-specific entities
-        assert "User Custom Status" in status_names, "Export should include user-specific statuses"
-        assert "User Custom Round" in round_type_names, "Export should include user-specific round types"
+        assert "User Custom Status" in status_names, (
+            "Export should include user-specific statuses"
+        )
+        assert "User Custom Round" in round_type_names, (
+            "Export should include user-specific round types"
+        )
 
 
 class TestZIPExport:
@@ -847,8 +952,8 @@ class TestZIPExport:
         assert response.headers["content-type"] == "application/zip"
 
         # Check ZIP contents
-        import zipfile
         import io as zipfile_io
+        import zipfile
 
         zip_bytes = await response.aread()
         with zipfile.ZipFile(zipfile_io.BytesIO(zip_bytes)) as zf:

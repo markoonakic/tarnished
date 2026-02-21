@@ -1,4 +1,10 @@
-import { Outlet, NavLink, useLocation, Link, useNavigate } from 'react-router-dom';
+import {
+  Outlet,
+  NavLink,
+  useLocation,
+  Link,
+  useNavigate,
+} from 'react-router-dom';
 import { useEffect } from 'react';
 import Layout from '../Layout';
 
@@ -31,8 +37,16 @@ const settingsCategories: SettingsCategory[] = [
   {
     name: 'Workflow',
     sections: [
-      { path: 'statuses', label: 'Application Statuses', icon: 'bi-signpost-2' },
-      { path: 'round-types', label: 'Interview Round Types', icon: 'bi-list-check' },
+      {
+        path: 'statuses',
+        label: 'Application Statuses',
+        icon: 'bi-signpost-2',
+      },
+      {
+        path: 'round-types',
+        label: 'Interview Round Types',
+        icon: 'bi-list-check',
+      },
     ],
   },
   {
@@ -49,7 +63,7 @@ function DesktopSidebarLink({ section }: { section: SettingsSection }) {
     <NavLink
       to={section.path}
       className={({ isActive }) =>
-        `group flex items-center gap-3 px-3 py-2 rounded text-sm transition-all duration-200 ease-in-out cursor-pointer ${
+        `group flex cursor-pointer items-center gap-3 rounded px-3 py-2 text-sm transition-all duration-200 ease-in-out ${
           isActive
             ? 'bg-bg2 text-accent-bright'
             : 'text-fg1 hover:bg-bg2 hover:text-fg0'
@@ -58,7 +72,9 @@ function DesktopSidebarLink({ section }: { section: SettingsSection }) {
     >
       {({ isActive }) => (
         <>
-          <i className={`${section.icon} icon-sm transition-colors duration-200 ease-in-out ${isActive ? 'text-accent-bright' : 'text-muted group-hover:text-accent'}`} />
+          <i
+            className={`${section.icon} icon-sm transition-colors duration-200 ease-in-out ${isActive ? 'text-accent-bright' : 'text-muted group-hover:text-accent'}`}
+          />
           {section.label}
         </>
       )}
@@ -70,10 +86,12 @@ function MobileSectionCard({ section }: { section: SettingsSection }) {
   return (
     <NavLink
       to={section.path}
-      className="group bg-bg1 rounded-lg p-4 flex items-center justify-between cursor-pointer hover:bg-bg2 active:bg-bg3 transition-all duration-200 ease-in-out"
+      className="bg-bg1 hover:bg-bg2 active:bg-bg3 group flex cursor-pointer items-center justify-between rounded-lg p-4 transition-all duration-200 ease-in-out"
     >
       <div className="flex items-center gap-3">
-        <i className={`${section.icon} icon-md text-muted group-hover:text-accent transition-colors duration-200 ease-in-out`} />
+        <i
+          className={`${section.icon} icon-md text-muted group-hover:text-accent transition-colors duration-200 ease-in-out`}
+        />
         <span className="text-fg1 font-medium">{section.label}</span>
       </div>
       <i className="bi-chevron-right icon-sm text-muted group-hover:text-fg1 transition-colors duration-200 ease-in-out" />
@@ -85,7 +103,7 @@ export function SettingsBackLink() {
   return (
     <Link
       to="/settings"
-      className="text-accent hover:text-accent-bright text-sm flex items-center gap-2 transition-all duration-200 ease-in-out cursor-pointer mb-6"
+      className="text-accent hover:text-accent-bright mb-6 flex cursor-pointer items-center gap-2 text-sm transition-all duration-200 ease-in-out"
     >
       <i className="bi-chevron-left icon-sm" />
       Back to Settings
@@ -107,14 +125,14 @@ export default function SettingsLayout() {
 
   return (
     <Layout>
-      <div className="min-h-screen flex flex-col md:flex-row">
+      <div className="flex min-h-screen flex-col md:flex-row">
         {/* Desktop sidebar - hidden on mobile */}
-        <aside className="hidden md:block w-72 bg-secondary py-8 px-3 flex-shrink-0">
-          <h1 className="text-2xl font-bold text-fg1 mb-6 px-3">Settings</h1>
+        <aside className="bg-secondary hidden w-72 flex-shrink-0 px-3 py-8 md:block">
+          <h1 className="text-fg1 mb-6 px-3 text-2xl font-bold">Settings</h1>
           <nav className="space-y-6">
             {settingsCategories.map((category) => (
               <div key={category.name}>
-                <h2 className="text-xs font-bold text-muted uppercase px-3 mb-2 w-full truncate">
+                <h2 className="text-muted mb-2 w-full truncate px-3 text-xs font-bold uppercase">
                   {category.name}
                 </h2>
                 <ul className="space-y-1">
@@ -130,21 +148,21 @@ export default function SettingsLayout() {
         </aside>
 
         {/* Desktop content area */}
-        <main className="hidden md:block flex-1 min-w-0">
-          <div className="max-w-4xl mx-auto px-6 py-8">
+        <main className="hidden min-w-0 flex-1 md:block">
+          <div className="mx-auto max-w-4xl px-6 py-8">
             <Outlet />
           </div>
         </main>
 
         {/* Mobile content - section list or nested route */}
-        <div className="md:hidden flex-1">
+        <div className="flex-1 md:hidden">
           {isOnSettingsRoot ? (
             <div className="p-4">
-              <h1 className="text-2xl font-bold text-fg1 mb-6">Settings</h1>
+              <h1 className="text-fg1 mb-6 text-2xl font-bold">Settings</h1>
               <div className="space-y-6">
                 {settingsCategories.map((category) => (
                   <div key={category.name}>
-                    <h2 className="text-xs font-bold text-muted uppercase mb-2">
+                    <h2 className="text-muted mb-2 text-xs font-bold uppercase">
                       {category.name}
                     </h2>
                     <ul className="space-y-2">

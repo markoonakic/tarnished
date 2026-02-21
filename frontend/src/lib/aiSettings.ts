@@ -27,7 +27,9 @@ export async function getAISettings(): Promise<AISettingsResponse> {
  * Only provided fields will be updated.
  * Pass empty string to clear a field.
  */
-export async function updateAISettings(data: AISettingsUpdate): Promise<AISettingsResponse> {
+export async function updateAISettings(
+  data: AISettingsUpdate
+): Promise<AISettingsResponse> {
   const response = await api.put('/api/admin/ai-settings', data);
   return response.data;
 }

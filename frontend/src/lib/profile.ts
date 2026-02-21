@@ -27,7 +27,9 @@ export async function getProfile(): Promise<UserProfile> {
  * Update the current user's profile.
  * Only provided fields will be updated.
  */
-export async function updateProfile(data: UserProfileUpdate): Promise<UserProfile> {
+export async function updateProfile(
+  data: UserProfileUpdate
+): Promise<UserProfile> {
   const response = await api.put('/api/profile', data);
   return response.data;
 }

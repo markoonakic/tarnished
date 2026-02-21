@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
-import { listRoundTypes, createRoundType, updateRoundType, deleteRoundType } from '../../lib/settings';
+import {
+  listRoundTypes,
+  createRoundType,
+  updateRoundType,
+  deleteRoundType,
+} from '../../lib/settings';
 import type { RoundType } from '../../lib/types';
 import Loading from '../Loading';
 import { SettingsBackLink } from './SettingsLayout';
@@ -7,7 +12,9 @@ import { SettingsBackLink } from './SettingsLayout';
 export default function SettingsRoundTypes() {
   const [roundTypes, setRoundTypes] = useState<RoundType[]>([]);
   const [newRoundTypeName, setNewRoundTypeName] = useState('');
-  const [editingRoundType, setEditingRoundType] = useState<RoundType | null>(null);
+  const [editingRoundType, setEditingRoundType] = useState<RoundType | null>(
+    null
+  );
   const [editRoundTypeName, setEditRoundTypeName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -80,10 +87,12 @@ export default function SettingsRoundTypes() {
       </div>
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-xl font-bold text-fg1 mb-4">Interview Round Types</h2>
+        <h2 className="text-fg1 mb-4 text-xl font-bold">
+          Interview Round Types
+        </h2>
 
         {error && (
-          <div className="bg-red-bright/20 border border-red-bright text-red-bright px-4 py-3 rounded mb-6">
+          <div className="bg-red-bright/20 border-red-bright text-red-bright mb-6 rounded border px-4 py-3">
             {error}
           </div>
         )}
@@ -92,34 +101,34 @@ export default function SettingsRoundTypes() {
           <Loading message="Loading settings..." />
         ) : (
           <>
-            {roundTypes.filter(t => !t.is_default).length === 0 && (
-              <p className="text-sm text-muted mb-4 p-3 bg-tertiary rounded">
+            {roundTypes.filter((t) => !t.is_default).length === 0 && (
+              <p className="text-muted bg-tertiary mb-4 rounded p-3 text-sm">
                 Using default round types. Add custom round types to override.
               </p>
             )}
-            <div className="space-y-2 mb-4">
+            <div className="mb-4 space-y-2">
               {roundTypes.map((type) => (
                 <div
                   key={type.id}
-                  className="flex items-center justify-between bg-tertiary rounded px-3 py-2"
+                  className="bg-tertiary flex items-center justify-between rounded px-3 py-2"
                 >
                   <span className="text-fg1">{type.name}</span>
                   <div className="flex items-center gap-2">
                     {type.is_default && (
-                      <span className="text-xs text-muted">Default</span>
+                      <span className="text-muted text-xs">Default</span>
                     )}
                     {!type.is_default && (
                       <>
                         <button
                           onClick={() => startEditRoundType(type)}
-                          className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+                          className="text-fg1 hover:bg-bg3 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
                         >
                           <i className="bi-pencil icon-xs"></i>
                           Edit
                         </button>
                         <button
                           onClick={() => handleDeleteRoundType(type)}
-                          className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg3 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+                          className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
                         >
                           <i className="bi-trash icon-xs"></i>
                           Delete
@@ -132,26 +141,29 @@ export default function SettingsRoundTypes() {
             </div>
 
             {editingRoundType ? (
-              <form onSubmit={handleUpdateRoundType} className="mb-4 p-3 bg-secondary rounded">
-                <div className="text-sm text-muted mb-2">Edit Round Type</div>
+              <form
+                onSubmit={handleUpdateRoundType}
+                className="bg-secondary mb-4 rounded p-3"
+              >
+                <div className="text-muted mb-2 text-sm">Edit Round Type</div>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={editRoundTypeName}
                     onChange={(e) => setEditRoundTypeName(e.target.value)}
                     placeholder="Round type name"
-                    className="flex-1 px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                   />
                   <button
                     type="submit"
-                    className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
+                    className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                   >
                     Save
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingRoundType(null)}
-                    className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md cursor-pointer"
+                    className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out"
                   >
                     Cancel
                   </button>
@@ -164,11 +176,11 @@ export default function SettingsRoundTypes() {
                   value={newRoundTypeName}
                   onChange={(e) => setNewRoundTypeName(e.target.value)}
                   placeholder="New round type name"
-                  className="flex-1 px-3 py-2 bg-bg2 rounded text-fg1 placeholder-muted focus:outline-none focus:ring-1 focus:ring-accent-bright transition-all duration-200 ease-in-out"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                 />
                 <button
                   type="submit"
-                  className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
+                  className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                 >
                   Add
                 </button>

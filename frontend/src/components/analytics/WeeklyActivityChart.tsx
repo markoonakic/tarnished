@@ -16,7 +16,9 @@ interface WeeklyActivityChartProps {
   period: string;
 }
 
-export default function WeeklyActivityChart({ period }: WeeklyActivityChartProps) {
+export default function WeeklyActivityChart({
+  period,
+}: WeeklyActivityChartProps) {
   const [data, setData] = useState<WeeklyData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,9 @@ export default function WeeklyActivityChart({ period }: WeeklyActivityChartProps
       setLoading(true);
       setError(null);
       try {
-        const response = await api.get(`/api/analytics/weekly?period=${period}`);
+        const response = await api.get(
+          `/api/analytics/weekly?period=${period}`
+        );
         setData(response.data);
       } catch {
         setError('Failed to load chart data');
@@ -119,7 +123,7 @@ export default function WeeklyActivityChart({ period }: WeeklyActivityChartProps
   }
 
   if (error) {
-    return <div className="text-center py-8 text-red-bright">{error}</div>;
+    return <div className="text-red-bright py-8 text-center">{error}</div>;
   }
 
   if (data.length === 0) {
@@ -139,7 +143,8 @@ export default function WeeklyActivityChart({ period }: WeeklyActivityChartProps
 
 // Mock data function for when backend endpoint doesn't exist
 function getMockData(period: string): WeeklyData[] {
-  const weekCount = period === '7d' ? 1 : period === '30d' ? 4 : period === '3m' ? 12 : 16;
+  const weekCount =
+    period === '7d' ? 1 : period === '30d' ? 4 : period === '3m' ? 12 : 16;
 
   const data: WeeklyData[] = [];
   const today = new Date();
@@ -150,10 +155,7 @@ function getMockData(period: string): WeeklyData[] {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
 
-    const weekLabel =
-      period === '7d'
-        ? 'This Week'
-        : `Week ${weekCount - i}`;
+    const weekLabel = period === '7d' ? 'This Week' : `Week ${weekCount - i}`;
 
     data.push({
       week: weekLabel,

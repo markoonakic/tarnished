@@ -111,28 +111,40 @@ export default function DocumentSection({ application, onUpdate }: Props) {
     const isUploading = uploading === type;
     const canPreview = isPreviewable(path);
     const wasJustReplaced = justReplaced === type;
-    const isProgressActive = isUploading && uploadProgress > 0 && uploadProgress < 100;
+    const isProgressActive =
+      isUploading && uploadProgress > 0 && uploadProgress < 100;
 
     return (
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3">
+      <div className="flex flex-col justify-between gap-3 py-3 sm:flex-row sm:items-center">
         <span className="text-primary font-medium">{label}</span>
         {hasFile ? (
-          <div className="flex flex-col gap-2 items-start sm:items-end">
-            {isProgressActive && <ProgressBar progress={uploadProgress} fileName={uploadingFile?.name} />}
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            {isProgressActive && (
+              <ProgressBar
+                progress={uploadProgress}
+                fileName={uploadingFile?.name}
+              />
+            )}
             <div className="flex items-center gap-2">
-              <span className={`text-sm ${wasJustReplaced ? 'text-accent-bright' : 'text-green-bright'}`}>
+              <span
+                className={`text-sm ${wasJustReplaced ? 'text-accent-bright' : 'text-green-bright'}`}
+              >
                 {wasJustReplaced ? 'Replaced!' : 'Uploaded'}
               </span>
               <button
                 onClick={() => handlePreview(type)}
                 disabled={!canPreview || isUploading}
-                className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 cursor-pointer"
-                title={canPreview ? 'Preview' : 'Preview not available for this file type'}
+                className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
+                title={
+                  canPreview
+                    ? 'Preview'
+                    : 'Preview not available for this file type'
+                }
               >
                 <i className="bi-eye icon-sm"></i>
                 Preview
               </button>
-              <label className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-3 py-1.5 rounded disabled:opacity-50 flex items-center gap-1.5 text-sm cursor-pointer">
+              <label className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50">
                 <i className="bi-arrow-repeat icon-sm"></i>
                 Replace
                 <input
@@ -149,7 +161,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
               <button
                 onClick={() => handleDelete(type)}
                 disabled={isUploading}
-                className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-3 py-1.5 rounded flex items-center gap-1.5 text-sm disabled:opacity-50 cursor-pointer"
+                className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
               >
                 <i className="bi-trash icon-sm"></i>
                 Delete
@@ -157,9 +169,14 @@ export default function DocumentSection({ application, onUpdate }: Props) {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-2 items-start sm:items-end">
-            {isProgressActive && <ProgressBar progress={uploadProgress} fileName={uploadingFile?.name} />}
-            <label className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 flex items-center gap-1.5 cursor-pointer">
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            {isProgressActive && (
+              <ProgressBar
+                progress={uploadProgress}
+                fileName={uploadingFile?.name}
+              />
+            )}
+            <label className="bg-accent text-bg0 hover:bg-accent-bright flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50">
               <i className="bi-upload icon-sm"></i>
               {isUploading ? 'Uploading...' : 'Upload'}
               <input
@@ -181,17 +198,21 @@ export default function DocumentSection({ application, onUpdate }: Props) {
 
   return (
     <div className="bg-bg1 rounded-lg p-6">
-      <h2 className="text-lg font-semibold text-primary mb-4">Documents</h2>
+      <h2 className="text-primary mb-4 text-lg font-semibold">Documents</h2>
 
       {error && (
-        <div className="bg-red-bright/20 border border-red-bright text-red-bright px-3 py-2 rounded mb-4 text-sm">
+        <div className="bg-red-bright/20 border-red-bright text-red-bright mb-4 rounded border px-3 py-2 text-sm">
           {error}
         </div>
       )}
 
       <>
         {renderDocRow('CV', 'cv', application.cv_path)}
-        {renderDocRow('Cover Letter', 'cover-letter', application.cover_letter_path)}
+        {renderDocRow(
+          'Cover Letter',
+          'cover-letter',
+          application.cover_letter_path
+        )}
       </>
     </div>
   );

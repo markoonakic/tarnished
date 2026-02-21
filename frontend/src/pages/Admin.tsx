@@ -76,7 +76,9 @@ export default function Admin() {
   }
 
   async function handleDeleteUser(user: AdminUser) {
-    if (!confirm(`Delete user "${user.email}"? This action cannot be undone.`)) {
+    if (
+      !confirm(`Delete user "${user.email}"? This action cannot be undone.`)
+    ) {
       return;
     }
 
@@ -116,17 +118,17 @@ export default function Admin() {
     }
   }
 
-  const filteredUsers = users.filter(u =>
+  const filteredUsers = users.filter((u) =>
     u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-primary mb-6">Admin Panel</h1>
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <h1 className="text-primary mb-6 text-2xl font-bold">Admin Panel</h1>
 
         {error && (
-          <div className="bg-red-bright/20 border border-red-bright text-red-bright px-4 py-3 rounded mb-6">
+          <div className="bg-red-bright/20 border-red-bright text-red-bright mb-6 rounded border px-4 py-3">
             {error}
           </div>
         )}
@@ -136,26 +138,36 @@ export default function Admin() {
         ) : (
           <div className="space-y-12">
             <section>
-              <h2 className="text-xl font-bold text-primary mb-6">Statistics</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <h2 className="text-primary mb-6 text-xl font-bold">
+                Statistics
+              </h2>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="bg-secondary rounded-lg p-6">
-                  <h3 className="text-muted text-sm mb-1">Total Users</h3>
-                  <p className="text-3xl font-bold text-primary">{stats?.total_users || 0}</p>
+                  <h3 className="text-muted mb-1 text-sm">Total Users</h3>
+                  <p className="text-primary text-3xl font-bold">
+                    {stats?.total_users || 0}
+                  </p>
                 </div>
                 <div className="bg-secondary rounded-lg p-6">
-                  <h3 className="text-muted text-sm mb-1">Total Applications</h3>
-                  <p className="text-3xl font-bold text-primary">{stats?.total_applications || 0}</p>
+                  <h3 className="text-muted mb-1 text-sm">
+                    Total Applications
+                  </h3>
+                  <p className="text-primary text-3xl font-bold">
+                    {stats?.total_applications || 0}
+                  </p>
                 </div>
               </div>
             </section>
 
             {/* AI Configuration Section */}
             <section>
-              <div className="flex items-center gap-3 mb-6">
+              <div className="mb-6 flex items-center gap-3">
                 <i className="bi-robot icon-lg text-accent"></i>
-                <h2 className="text-xl font-bold text-primary">AI Configuration</h2>
+                <h2 className="text-primary text-xl font-bold">
+                  AI Configuration
+                </h2>
                 {aiSettings?.is_configured && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-green-bright/20 text-green-bright">
+                  <span className="bg-green-bright/20 text-green-bright inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold">
                     Configured
                   </span>
                 )}
@@ -165,7 +177,10 @@ export default function Admin() {
                 <div className="space-y-4">
                   {/* Model Input */}
                   <div>
-                    <label htmlFor="ai-model" className="block text-sm font-medium text-secondary mb-2">
+                    <label
+                      htmlFor="ai-model"
+                      className="text-secondary mb-2 block text-sm font-medium"
+                    >
                       <i className="bi-cpu icon-xs mr-1.5"></i>
                       Model
                     </label>
@@ -175,16 +190,19 @@ export default function Admin() {
                       placeholder="e.g., gpt-4o, claude-3-sonnet"
                       value={aiModel}
                       onChange={(e) => setAiModel(e.target.value)}
-                      className="w-full px-4 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                      className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-4 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                     />
-                    <p className="text-xs text-muted mt-1">
+                    <p className="text-muted mt-1 text-xs">
                       The LiteLLM model identifier for AI features
                     </p>
                   </div>
 
                   {/* API Key Input */}
                   <div>
-                    <label htmlFor="ai-api-key" className="block text-sm font-medium text-secondary mb-2">
+                    <label
+                      htmlFor="ai-api-key"
+                      className="text-secondary mb-2 block text-sm font-medium"
+                    >
                       <i className="bi-key icon-xs mr-1.5"></i>
                       API Key
                     </label>
@@ -192,21 +210,27 @@ export default function Admin() {
                       <input
                         id="ai-api-key"
                         type={showApiKey ? 'text' : 'password'}
-                        placeholder={aiSettings?.litellm_api_key_masked ? `Current: ${aiSettings.litellm_api_key_masked}` : 'Enter API key'}
+                        placeholder={
+                          aiSettings?.litellm_api_key_masked
+                            ? `Current: ${aiSettings.litellm_api_key_masked}`
+                            : 'Enter API key'
+                        }
                         value={aiApiKey}
                         onChange={(e) => setAiApiKey(e.target.value)}
-                        className="w-full px-4 py-2 pr-10 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                        className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-4 py-2 pr-10 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                       />
                       <button
                         type="button"
                         onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted hover:text-fg1 transition-all duration-200 ease-in-out cursor-pointer"
+                        className="text-muted hover:text-fg1 absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer p-1 transition-all duration-200 ease-in-out"
                         title={showApiKey ? 'Hide API key' : 'Show API key'}
                       >
-                        <i className={`bi-${showApiKey ? 'eye-slash' : 'eye'} icon-sm`}></i>
+                        <i
+                          className={`bi-${showApiKey ? 'eye-slash' : 'eye'} icon-sm`}
+                        ></i>
                       </button>
                     </div>
-                    <p className="text-xs text-muted mt-1">
+                    <p className="text-muted mt-1 text-xs">
                       {aiSettings?.litellm_api_key_masked
                         ? 'Leave empty to keep the current API key'
                         : 'The API key will be encrypted and stored securely'}
@@ -215,9 +239,13 @@ export default function Admin() {
 
                   {/* Base URL Input */}
                   <div>
-                    <label htmlFor="ai-base-url" className="block text-sm font-medium text-secondary mb-2">
+                    <label
+                      htmlFor="ai-base-url"
+                      className="text-secondary mb-2 block text-sm font-medium"
+                    >
                       <i className="bi-globe icon-xs mr-1.5"></i>
-                      Base URL <span className="text-muted font-normal">(optional)</span>
+                      Base URL{' '}
+                      <span className="text-muted font-normal">(optional)</span>
                     </label>
                     <input
                       id="ai-base-url"
@@ -225,9 +253,9 @@ export default function Admin() {
                       placeholder="e.g., http://localhost:4000"
                       value={aiBaseUrl}
                       onChange={(e) => setAiBaseUrl(e.target.value)}
-                      className="w-full px-4 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                      className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-4 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                     />
-                    <p className="text-xs text-muted mt-1">
+                    <p className="text-muted mt-1 text-xs">
                       Custom endpoint for self-hosted LiteLLM instances
                     </p>
                   </div>
@@ -237,9 +265,11 @@ export default function Admin() {
                     <button
                       onClick={handleSaveAISettings}
                       disabled={savingAi}
-                      className="bg-accent text-bg0 hover:bg-accent-bright disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer flex items-center gap-2"
+                      className="bg-accent text-bg0 hover:bg-accent-bright flex cursor-pointer items-center gap-2 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {savingAi && <i className="bi-arrow-repeat icon-sm animate-spin"></i>}
+                      {savingAi && (
+                        <i className="bi-arrow-repeat icon-sm animate-spin"></i>
+                      )}
                       {savingAi ? 'Saving...' : 'Save Settings'}
                     </button>
                   </div>
@@ -248,33 +278,33 @@ export default function Admin() {
             </section>
 
             <section>
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-                <h2 className="text-xl font-bold text-primary">Users</h2>
+              <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                <h2 className="text-primary text-xl font-bold">Users</h2>
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
+                  className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                 >
                   Create User
                 </button>
               </div>
 
               {/* Filters */}
-              <div className="bg-bg1 rounded-lg p-4 mb-6">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+              <div className="bg-bg1 mb-6 rounded-lg p-4">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                   {/* Search Input */}
-                  <div className="flex-1 min-w-0 relative">
-                    <i className="bi-search absolute left-3 top-1/2 -translate-y-1/2 icon-sm text-muted" />
+                  <div className="relative min-w-0 flex-1">
+                    <i className="bi-search icon-sm text-muted absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       placeholder="Search by email..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-9 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                      className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pl-9 pr-9 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                     />
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-fg1 transition-all duration-200 ease-in-out cursor-pointer"
+                        className="text-muted hover:text-fg1 absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
                         aria-label="Clear search"
                       >
                         <i className="bi-x icon-sm" />
@@ -300,52 +330,71 @@ export default function Admin() {
               </div>
 
               {/* Desktop table */}
-              <div className="hidden md:block bg-secondary rounded-lg overflow-hidden mt-4">
+              <div className="bg-secondary mt-4 hidden overflow-hidden rounded-lg md:block">
                 <table className="w-full border-collapse">
                   <thead>
-                    <tr className="border-b border-tertiary">
-                      <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Email</th>
-                      <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Joined</th>
-                      <th className="text-center py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Admin</th>
-                      <th className="text-center py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Active</th>
-                      <th className="text-right py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Actions</th>
+                    <tr className="border-tertiary border-b">
+                      <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                        Email
+                      </th>
+                      <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                        Joined
+                      </th>
+                      <th className="text-muted px-4 py-3 text-center text-xs font-bold uppercase tracking-wide">
+                        Admin
+                      </th>
+                      <th className="text-muted px-4 py-3 text-center text-xs font-bold uppercase tracking-wide">
+                        Active
+                      </th>
+                      <th className="text-muted px-4 py-3 text-right text-xs font-bold uppercase tracking-wide">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredUsers.map((u, index) => (
-                      <tr key={u.id} className={`transition-colors duration-200 ${index < filteredUsers.length - 1 ? 'border-b border-tertiary' : ''}`}>
-                        <td className="py-3 px-4 text-sm text-primary">{u.email}</td>
-                        <td className="py-3 px-4 text-sm text-secondary">{formatDate(u.created_at)}</td>
-                        <td className="py-3 px-4 text-sm text-center">
+                      <tr
+                        key={u.id}
+                        className={`transition-colors duration-200 ${index < filteredUsers.length - 1 ? 'border-tertiary border-b' : ''}`}
+                      >
+                        <td className="text-primary px-4 py-3 text-sm">
+                          {u.email}
+                        </td>
+                        <td className="text-secondary px-4 py-3 text-sm">
+                          {formatDate(u.created_at)}
+                        </td>
+                        <td className="px-4 py-3 text-center text-sm">
                           {u.is_admin ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-purple-bright/20 text-purple-bright">
+                            <span className="bg-purple-bright/20 text-purple-bright inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold">
                               Admin
                             </span>
                           ) : (
                             <span className="text-muted text-xs">—</span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-sm text-center">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold ${
-                            u.is_active
-                              ? 'bg-green-bright/20 text-green-bright'
-                              : 'bg-red-bright/20 text-red-bright'
-                          }`}>
+                        <td className="px-4 py-3 text-center text-sm">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${
+                              u.is_active
+                                ? 'bg-green-bright/20 text-green-bright'
+                                : 'bg-red-bright/20 text-red-bright'
+                            }`}
+                          >
                             {u.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-sm text-right">
+                        <td className="px-4 py-3 text-right text-sm">
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => setEditingUser(u)}
-                              className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+                              className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
                             >
                               <i className="bi-pencil icon-xs"></i>
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteUser(u)}
-                              className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+                              className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
                             >
                               <i className="bi-trash icon-xs"></i>
                               Delete
@@ -359,40 +408,44 @@ export default function Admin() {
               </div>
 
               {/* Mobile cards */}
-              <div className="md:hidden space-y-3 mt-4">
+              <div className="mt-4 space-y-3 md:hidden">
                 {filteredUsers.map((u) => (
                   <div key={u.id} className="bg-secondary rounded-lg p-4">
-                    <div className="flex justify-between items-start gap-2 mb-2">
-                      <span className="text-sm text-primary font-medium truncate">{u.email}</span>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <span className="text-primary truncate text-sm font-medium">
+                        {u.email}
+                      </span>
+                      <div className="flex flex-shrink-0 items-center gap-1.5">
                         {u.is_admin && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-purple-bright/20 text-purple-bright">
+                          <span className="bg-purple-bright/20 text-purple-bright inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold">
                             Admin
                           </span>
                         )}
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold ${
-                          u.is_active
-                            ? 'bg-green-bright/20 text-green-bright'
-                            : 'bg-red-bright/20 text-red-bright'
-                        }`}>
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${
+                            u.is_active
+                              ? 'bg-green-bright/20 text-green-bright'
+                              : 'bg-red-bright/20 text-red-bright'
+                          }`}
+                        >
                           {u.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </div>
                     </div>
-                    <div className="text-xs text-secondary mb-3">
+                    <div className="text-secondary mb-3 text-xs">
                       Joined {formatDate(u.created_at)}
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setEditingUser(u)}
-                        className="flex-1 px-3 py-2 bg-transparent text-fg1 text-xs rounded hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="text-fg1 hover:bg-bg2 hover:text-fg0 flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded bg-transparent px-3 py-2 text-xs transition-all duration-200 ease-in-out"
                       >
                         <i className="bi-pencil icon-xs"></i>
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteUser(u)}
-                        className="flex-1 px-3 py-2 bg-transparent text-red text-xs rounded hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="text-red hover:bg-bg2 hover:text-red-bright flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded bg-transparent px-3 py-2 text-xs transition-all duration-200 ease-in-out"
                       >
                         <i className="bi-trash icon-xs"></i>
                         Delete

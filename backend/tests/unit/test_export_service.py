@@ -1,10 +1,12 @@
 """Tests for ExportService."""
-import pytest
-from unittest.mock import Mock, patch
-from datetime import datetime, timezone
 
-from app.services.export_service import ExportService
+from datetime import datetime
+from unittest.mock import Mock, patch
+
+import pytest
+
 from app.services.export_registry import ExportRegistry
+from app.services.export_service import ExportService
 
 
 class TestExportService:
@@ -24,12 +26,11 @@ class TestExportService:
         """export_user_data should return a properly structured dict."""
         mock_session = Mock()
 
-        with patch.object(export_service, '_get_user_records') as mock_get:
+        with patch.object(export_service, "_get_user_records") as mock_get:
             mock_get.return_value = []
 
             result = export_service.export_user_data(
-                user_id="user-123",
-                session=mock_session
+                user_id="user-123", session=mock_session
             )
 
         assert "export_version" in result
@@ -40,12 +41,11 @@ class TestExportService:
         """Export should include version for compatibility checking."""
         mock_session = Mock()
 
-        with patch.object(export_service, '_get_user_records') as mock_get:
+        with patch.object(export_service, "_get_user_records") as mock_get:
             mock_get.return_value = []
 
             result = export_service.export_user_data(
-                user_id="user-123",
-                session=mock_session
+                user_id="user-123", session=mock_session
             )
 
         assert result["export_version"] == "1.0"
@@ -54,12 +54,11 @@ class TestExportService:
         """Export should include user ID."""
         mock_session = Mock()
 
-        with patch.object(export_service, '_get_user_records') as mock_get:
+        with patch.object(export_service, "_get_user_records") as mock_get:
             mock_get.return_value = []
 
             result = export_service.export_user_data(
-                user_id="user-123",
-                session=mock_session
+                user_id="user-123", session=mock_session
             )
 
         assert result["user"]["id"] == "user-123"
@@ -68,12 +67,11 @@ class TestExportService:
         """Export should include ISO timestamp of when it was created."""
         mock_session = Mock()
 
-        with patch.object(export_service, '_get_user_records') as mock_get:
+        with patch.object(export_service, "_get_user_records") as mock_get:
             mock_get.return_value = []
 
             result = export_service.export_user_data(
-                user_id="user-123",
-                session=mock_session
+                user_id="user-123", session=mock_session
             )
 
         assert "exported_at" in result
@@ -83,7 +81,7 @@ class TestExportService:
 
     def test_export_version_constant(self, export_service):
         """ExportService should have EXPORT_VERSION class attribute."""
-        assert hasattr(ExportService, 'EXPORT_VERSION')
+        assert hasattr(ExportService, "EXPORT_VERSION")
         assert ExportService.EXPORT_VERSION == "1.0"
 
     def test_export_iterates_registered_models(self, registry):
@@ -98,15 +96,14 @@ class TestExportService:
         export_service = ExportService(registry=registry)
         mock_session = Mock()
 
-        with patch.object(export_service, '_get_user_records') as mock_get:
+        with patch.object(export_service, "_get_user_records") as mock_get:
             mock_get.return_value = []
 
-            with patch.object(export_service, '_serialize_record') as mock_serialize:
+            with patch.object(export_service, "_serialize_record") as mock_serialize:
                 mock_serialize.return_value = {"id": "test"}
 
                 export_service.export_user_data(
-                    user_id="user-123",
-                    session=mock_session
+                    user_id="user-123", session=mock_session
                 )
 
         # Should have called _get_user_records for each model in order
@@ -126,15 +123,14 @@ class TestExportService:
 
         export_service.registry.register(mock_model, order=1)
 
-        with patch.object(export_service, '_get_user_records') as mock_get:
+        with patch.object(export_service, "_get_user_records") as mock_get:
             mock_get.return_value = [mock_record]
 
-            with patch.object(export_service, '_serialize_record') as mock_serialize:
+            with patch.object(export_service, "_serialize_record") as mock_serialize:
                 mock_serialize.return_value = {"id": "record-1", "name": "Test"}
 
                 result = export_service.export_user_data(
-                    user_id="user-123",
-                    session=mock_session
+                    user_id="user-123", session=mock_session
                 )
 
         assert "TestModel" in result["models"]
@@ -156,9 +152,7 @@ class TestExportService:
         mock_model.__name__ = "TestModel"
 
         result = export_service._get_user_records(
-            model_class=mock_model,
-            user_id="user-123",
-            session=mock_session
+            model_class=mock_model, user_id="user-123", session=mock_session
         )
 
         # Should query and filter by user_id
@@ -180,13 +174,11 @@ class TestExportService:
         mock_user_model.__name__ = "User"
         mock_user_model.id = "column"
         # Should NOT have user_id for this test
-        if hasattr(mock_user_model, 'user_id'):
-            delattr(mock_user_model, 'user_id')
+        if hasattr(mock_user_model, "user_id"):
+            delattr(mock_user_model, "user_id")
 
         result = export_service._get_user_records(
-            model_class=mock_user_model,
-            user_id="user-123",
-            session=mock_session
+            model_class=mock_user_model, user_id="user-123", session=mock_session
         )
 
         mock_session.query.assert_called_once_with(mock_user_model)
@@ -211,13 +203,11 @@ class TestExportService:
         mock_user_rel.id = "column"
         mock_model.user = mock_user_rel
         # Should NOT have user_id
-        if hasattr(mock_model, 'user_id'):
-            delattr(mock_model, 'user_id')
+        if hasattr(mock_model, "user_id"):
+            delattr(mock_model, "user_id")
 
         result = export_service._get_user_records(
-            model_class=mock_model,
-            user_id="user-123",
-            session=mock_session
+            model_class=mock_model, user_id="user-123", session=mock_session
         )
 
         mock_session.query.assert_called_once_with(mock_model)
@@ -232,14 +222,12 @@ class TestExportService:
         mock_model = Mock()
         mock_model.__name__ = "OrphanModel"
         # Remove all attributes that the service checks for
-        for attr in ['user_id', 'user', 'application', 'round']:
+        for attr in ["user_id", "user", "application", "round"]:
             if hasattr(mock_model, attr):
                 delattr(mock_model, attr)
 
         result = export_service._get_user_records(
-            model_class=mock_model,
-            user_id="user-123",
-            session=mock_session
+            model_class=mock_model, user_id="user-123", session=mock_session
         )
 
         assert result == []
@@ -248,18 +236,17 @@ class TestExportService:
         """_serialize_record should use serialize_model_instance."""
         mock_record = Mock()
 
-        with patch('app.services.export_service.serialize_model_instance') as mock_serialize:
+        with patch(
+            "app.services.export_service.serialize_model_instance"
+        ) as mock_serialize:
             mock_serialize.return_value = {"id": "test-123", "name": "Test"}
 
             result = export_service._serialize_record(
-                record=mock_record,
-                include_media_paths=True
+                record=mock_record, include_media_paths=True
             )
 
         mock_serialize.assert_called_once_with(
-            mock_record,
-            include_relationships=True,
-            relationship_prefix=""
+            mock_record, include_relationships=True, relationship_prefix=""
         )
         assert result["id"] == "test-123"
         assert result["name"] == "Test"
@@ -268,12 +255,13 @@ class TestExportService:
         """_serialize_record should add __original_id__ for import remapping."""
         mock_record = Mock()
 
-        with patch('app.services.export_service.serialize_model_instance') as mock_serialize:
+        with patch(
+            "app.services.export_service.serialize_model_instance"
+        ) as mock_serialize:
             mock_serialize.return_value = {"id": "test-123", "name": "Test"}
 
             result = export_service._serialize_record(
-                record=mock_record,
-                include_media_paths=True
+                record=mock_record, include_media_paths=True
             )
 
         assert "__original_id__" in result
@@ -283,12 +271,13 @@ class TestExportService:
         """_serialize_record should handle records without id field."""
         mock_record = Mock()
 
-        with patch('app.services.export_service.serialize_model_instance') as mock_serialize:
+        with patch(
+            "app.services.export_service.serialize_model_instance"
+        ) as mock_serialize:
             mock_serialize.return_value = {"name": "Test", "value": 42}
 
             result = export_service._serialize_record(
-                record=mock_record,
-                include_media_paths=True
+                record=mock_record, include_media_paths=True
             )
 
         # Should not add __original_id__ if id is not present
@@ -301,8 +290,7 @@ class TestExportService:
         mock_session = Mock()
 
         result = export_service.export_user_data(
-            user_id="user-123",
-            session=mock_session
+            user_id="user-123", session=mock_session
         )
 
         assert result["export_version"] == "1.0"

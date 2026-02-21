@@ -19,7 +19,8 @@ export default function Analytics() {
   const [searchParams] = useSearchParams();
   const period = searchParams.get('period') || '7d';
 
-  const { configured, loading, insights, error, seekGrace } = useGraceInsights(period);
+  const { configured, loading, insights, error, seekGrace } =
+    useGraceInsights(period);
   const toast = useToast();
 
   // Show error toast when error occurs
@@ -31,11 +32,11 @@ export default function Analytics() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="mx-auto max-w-6xl px-4 py-8">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-fg1">Analytics</h1>
+            <h1 className="text-fg1 text-2xl font-bold">Analytics</h1>
             {configured && (
               <SeekGraceButton onSeekGrace={seekGrace} loading={loading} />
             )}
@@ -53,10 +54,10 @@ export default function Analytics() {
         {/* Grouped Section Insights */}
         {insights && (
           <section className="mb-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+            <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
               {/* Pipeline Guidance */}
               <div className="flex flex-col">
-                <h3 className="text-fg1 font-medium mb-3 flex items-center gap-2">
+                <h3 className="text-fg1 mb-3 flex items-center gap-2 font-medium">
                   <i className="bi-funnel text-accent icon-sm" />
                   Pipeline Guidance
                 </h3>
@@ -64,14 +65,16 @@ export default function Analytics() {
                   <SectionInsight
                     keyInsight={insights.pipeline_overview.key_insight}
                     trend={insights.pipeline_overview.trend}
-                    priorityActions={insights.pipeline_overview.priority_actions}
+                    priorityActions={
+                      insights.pipeline_overview.priority_actions
+                    }
                   />
                 </div>
               </div>
 
               {/* Interview Guidance */}
               <div className="flex flex-col">
-                <h3 className="text-fg1 font-medium mb-3 flex items-center gap-2">
+                <h3 className="text-fg1 mb-3 flex items-center gap-2 font-medium">
                   <i className="bi-people text-accent icon-sm" />
                   Interview Guidance
                 </h3>
@@ -79,14 +82,16 @@ export default function Analytics() {
                   <SectionInsight
                     keyInsight={insights.interview_analytics.key_insight}
                     trend={insights.interview_analytics.trend}
-                    priorityActions={insights.interview_analytics.priority_actions}
+                    priorityActions={
+                      insights.interview_analytics.priority_actions
+                    }
                   />
                 </div>
               </div>
 
               {/* Activity Guidance */}
               <div className="flex flex-col">
-                <h3 className="text-fg1 font-medium mb-3 flex items-center gap-2">
+                <h3 className="text-fg1 mb-3 flex items-center gap-2 font-medium">
                   <i className="bi-calendar-week text-accent icon-sm" />
                   Activity Guidance
                 </h3>
@@ -94,7 +99,9 @@ export default function Analytics() {
                   <SectionInsight
                     keyInsight={insights.activity_tracking.key_insight}
                     trend={insights.activity_tracking.trend}
-                    priorityActions={insights.activity_tracking.priority_actions}
+                    priorityActions={
+                      insights.activity_tracking.priority_actions
+                    }
                   />
                 </div>
               </div>
@@ -103,13 +110,14 @@ export default function Analytics() {
         )}
 
         <div className="space-y-6">
-
           {/* SECTION 1: Pipeline Overview */}
           <section>
-            <h2 className="text-lg font-semibold text-fg1 mb-4">Pipeline Overview</h2>
+            <h2 className="text-fg1 mb-4 text-lg font-semibold">
+              Pipeline Overview
+            </h2>
 
             {/* TIER 1: Executive Summary KPIs */}
-            <div className="bg-bg1 rounded-lg p-6 mb-4">
+            <div className="bg-bg1 mb-4 rounded-lg p-6">
               <AnalyticsKPIs period={period} />
             </div>
 
@@ -121,7 +129,9 @@ export default function Analytics() {
 
           {/* SECTION 2: Interview Deep Dive */}
           <section>
-            <h2 className="text-lg font-semibold text-fg1 mb-4">Interview Analytics</h2>
+            <h2 className="text-fg1 mb-4 text-lg font-semibold">
+              Interview Analytics
+            </h2>
 
             <div className="space-y-6">
               <div className="bg-bg1 rounded-lg p-6">
@@ -140,10 +150,12 @@ export default function Analytics() {
 
           {/* SECTION 3: Activity Tracking */}
           <section>
-            <h2 className="text-lg font-semibold text-fg1 mb-4">Activity Tracking</h2>
+            <h2 className="text-fg1 mb-4 text-lg font-semibold">
+              Activity Tracking
+            </h2>
 
             {/* Weekly Activity (migrated to ECharts) */}
-            <div className="bg-bg1 rounded-lg p-6 mb-4">
+            <div className="bg-bg1 mb-4 rounded-lg p-6">
               <WeeklyActivityChart period={period} />
             </div>
 

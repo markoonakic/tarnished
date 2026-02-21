@@ -5,13 +5,13 @@ import type { ThemeColors } from '@/hooks/useThemeColors';
  * Default statuses use theme colors; custom user statuses keep their stored hex.
  */
 const STATUS_COLOR_MAP: Record<string, keyof ThemeColors> = {
-  'Applied': 'blueBright',
-  'Screening': 'yellowBright',
-  'Interviewing': 'orangeBright',
-  'Offer': 'greenBright',
-  'Accepted': 'aquaBright',
-  'Rejected': 'redBright',
-  'Withdrawn': 'purpleBright',
+  Applied: 'blueBright',
+  Screening: 'yellowBright',
+  Interviewing: 'orangeBright',
+  Offer: 'greenBright',
+  Accepted: 'aquaBright',
+  Rejected: 'redBright',
+  Withdrawn: 'purpleBright',
   'No Reply': 'gray',
 };
 
@@ -63,7 +63,7 @@ export function getSankeyNodeColor(
     const statusName = nodeId
       .replace('status_', '')
       .replace(/_/g, ' ')
-      .replace(/\b\w/g, c => c.toUpperCase());
+      .replace(/\b\w/g, (c) => c.toUpperCase());
 
     const colorKey = STATUS_COLOR_MAP[statusName];
     if (colorKey) {

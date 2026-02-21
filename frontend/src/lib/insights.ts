@@ -23,11 +23,14 @@ export async function isAIConfigured(): Promise<boolean> {
     return false;
   }
 
-  const response = await fetch(`${API_BASE}/api/analytics/insights/configured`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await fetch(
+    `${API_BASE}/api/analytics/insights/configured`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
   if (!response.ok) {
     return false;
@@ -56,7 +59,9 @@ export async function generateInsights(period: string): Promise<GraceInsights> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Failed to generate insights' }));
+    const error = await response
+      .json()
+      .catch(() => ({ detail: 'Failed to generate insights' }));
     throw new Error(error.detail || 'Failed to generate insights');
   }
 

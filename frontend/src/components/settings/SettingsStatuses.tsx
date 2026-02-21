@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
-import { listStatuses, createStatus, updateStatus, deleteStatus } from '../../lib/settings';
+import {
+  listStatuses,
+  createStatus,
+  updateStatus,
+  deleteStatus,
+} from '../../lib/settings';
 import type { Status } from '../../lib/types';
 import { getDefaultNewStatusColor } from '../../lib/statusColors';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -10,7 +15,9 @@ export default function SettingsStatuses() {
   const colors = useThemeColors();
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [newStatusName, setNewStatusName] = useState('');
-  const [newStatusColor, setNewStatusColor] = useState(() => getDefaultNewStatusColor(colors));
+  const [newStatusColor, setNewStatusColor] = useState(() =>
+    getDefaultNewStatusColor(colors)
+  );
   const [editingStatus, setEditingStatus] = useState<Status | null>(null);
   const [editStatusName, setEditStatusName] = useState('');
   const [editStatusColor, setEditStatusColor] = useState('');
@@ -75,7 +82,11 @@ export default function SettingsStatuses() {
   }
 
   async function handleDeleteStatus(status: Status) {
-    if (!confirm(`Delete status "${status.name}"? Applications using this status will need to be updated.`)) {
+    if (
+      !confirm(
+        `Delete status "${status.name}"? Applications using this status will need to be updated.`
+      )
+    ) {
       return;
     }
 
@@ -94,10 +105,12 @@ export default function SettingsStatuses() {
       </div>
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-xl font-bold text-fg1 mb-4">Application Statuses</h2>
+        <h2 className="text-fg1 mb-4 text-xl font-bold">
+          Application Statuses
+        </h2>
 
         {error && (
-          <div className="bg-red-bright/20 border border-red-bright text-red-bright px-4 py-3 rounded mb-6">
+          <div className="bg-red-bright/20 border-red-bright text-red-bright mb-6 rounded border px-4 py-3">
             {error}
           </div>
         )}
@@ -106,32 +119,32 @@ export default function SettingsStatuses() {
           <Loading message="Loading settings..." />
         ) : (
           <>
-            {statuses.filter(s => !s.is_default).length === 0 && (
-              <p className="text-sm text-muted mb-4 p-3 bg-tertiary rounded">
+            {statuses.filter((s) => !s.is_default).length === 0 && (
+              <p className="text-muted bg-tertiary mb-4 rounded p-3 text-sm">
                 Using default statuses. Add custom statuses to override.
               </p>
             )}
-            <div className="space-y-2 mb-4">
+            <div className="mb-4 space-y-2">
               {statuses.map((status) => (
                 <div
                   key={status.id}
-                  className="flex items-center justify-between bg-tertiary rounded px-3 py-2"
+                  className="bg-tertiary flex items-center justify-between rounded px-3 py-2"
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-4 h-4 rounded"
+                      className="h-4 w-4 rounded"
                       style={{ backgroundColor: status.color }}
                     />
                     <span className="text-fg1">{status.name}</span>
                     {status.is_default && (
-                      <span className="text-xs text-muted">(Default)</span>
+                      <span className="text-muted text-xs">(Default)</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
                     {!status.is_default && (
                       <button
                         onClick={() => startEditStatus(status)}
-                        className="px-3 py-1.5 bg-transparent text-fg1 text-xs rounded hover:bg-bg3 hover:text-fg0 transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+                        className="text-fg1 hover:bg-bg3 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
                       >
                         <i className="bi-pencil icon-xs"></i>
                         Edit
@@ -140,7 +153,7 @@ export default function SettingsStatuses() {
                     {!status.is_default && (
                       <button
                         onClick={() => handleDeleteStatus(status)}
-                        className="px-3 py-1.5 bg-transparent text-red text-xs rounded hover:bg-bg3 hover:text-red-bright transition-all duration-200 ease-in-out flex items-center gap-1.5 cursor-pointer"
+                        className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
                       >
                         <i className="bi-trash icon-xs"></i>
                         Delete
@@ -152,32 +165,35 @@ export default function SettingsStatuses() {
             </div>
 
             {editingStatus ? (
-              <form onSubmit={handleUpdateStatus} className="mb-4 p-3 bg-secondary rounded">
-                <div className="text-sm text-muted mb-2">Edit Status</div>
+              <form
+                onSubmit={handleUpdateStatus}
+                className="bg-secondary mb-4 rounded p-3"
+              >
+                <div className="text-muted mb-2 text-sm">Edit Status</div>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={editStatusName}
                     onChange={(e) => setEditStatusName(e.target.value)}
                     placeholder="Status name"
-                    className="flex-1 px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                   />
                   <input
                     type="color"
                     value={editStatusColor}
                     onChange={(e) => setEditStatusColor(e.target.value)}
-                    className="w-10 h-10 rounded cursor-pointer bg-bg2 border border-tertiary"
+                    className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"
                   />
                   <button
                     type="submit"
-                    className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
+                    className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                   >
                     Save
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingStatus(null)}
-                    className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md cursor-pointer"
+                    className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out"
                   >
                     Cancel
                   </button>
@@ -190,24 +206,24 @@ export default function SettingsStatuses() {
                   value={newStatusName}
                   onChange={(e) => setNewStatusName(e.target.value)}
                   placeholder="New status name"
-                  className="flex-1 px-3 py-2 bg-bg2 rounded text-fg1 placeholder-muted focus:outline-none focus:ring-1 focus:ring-accent-bright transition-all duration-200 ease-in-out"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
                 />
                 <input
                   type="color"
                   value={newStatusColor}
                   onChange={(e) => setNewStatusColor(e.target.value)}
-                  className="w-10 h-10 rounded cursor-pointer bg-bg2 border border-tertiary"
+                  className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"
                 />
                 <button
                   type="submit"
-                  className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
+                  className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                 >
                   Add
                 </button>
               </form>
             )}
 
-            <p className="text-xs text-muted mt-3">
+            <p className="text-muted mt-3 text-xs">
               Editing default statuses creates your personal override.
             </p>
           </>

@@ -5,25 +5,26 @@ Revises: 50dd97924e9f
 Create Date: 2026-02-03 14:08:12.071611
 
 """
-from typing import Sequence, Union
-import uuid
-import random
-import logging
-from datetime import UTC, datetime, timedelta
 
-from alembic import op
+import logging
+import random
+import uuid
+from datetime import UTC, datetime, timedelta
+from typing import Sequence
+
 import sqlalchemy as sa
-from sqlalchemy.sql import table, column
+from alembic import op
+from sqlalchemy.sql import column, table
 
 # Configure logging for migration
 logger = logging.getLogger(__name__)
 
 
 # revision identifiers, used by Alembic.
-revision: str = '913e52a54449'
-down_revision: Union[str, Sequence[str], None] = '50dd97924e9f'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "913e52a54449"
+down_revision: str | Sequence[str] | None = "50dd97924e9f"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def get_status_journey(current_status_name: str, statuses: dict) -> list:
@@ -41,63 +42,63 @@ def get_status_journey(current_status_name: str, statuses: dict) -> list:
     Returns:
         List of status names representing the journey
     """
-    journey = ['Applied']
+    journey = ["Applied"]
 
     # Define intermediate statuses based on the final status
-    if current_status_name == 'Applied':
+    if current_status_name == "Applied":
         return journey
-    elif current_status_name == 'Screening':
-        journey.append('Screening')
-    elif current_status_name == 'Interviewing':
-        journey.extend(['Screening', 'Interviewing'])
-    elif current_status_name == 'Offer':
-        journey.extend(['Screening', 'Interviewing', 'Offer'])
-    elif current_status_name == 'Accepted':
-        journey.extend(['Screening', 'Interviewing', 'Offer', 'Accepted'])
-    elif current_status_name == 'Rejected':
+    elif current_status_name == "Screening":
+        journey.append("Screening")
+    elif current_status_name == "Interviewing":
+        journey.extend(["Screening", "Interviewing"])
+    elif current_status_name == "Offer":
+        journey.extend(["Screening", "Interviewing", "Offer"])
+    elif current_status_name == "Accepted":
+        journey.extend(["Screening", "Interviewing", "Offer", "Accepted"])
+    elif current_status_name == "Rejected":
         # Rejection can happen at various stages - use weighted distribution
         # ~30% rejected immediately after Applied
         # ~40% rejected after Screening
         # ~25% rejected after Interviewing
         # ~5% rejected after Offer
         rejection_stage = random.choices(
-            ['Applied', 'Screening', 'Interviewing', 'Offer'],
+            ["Applied", "Screening", "Interviewing", "Offer"],
             weights=[30, 40, 25, 5],
-            k=1
+            k=1,
         )[0]
 
-        if rejection_stage == 'Applied':
-            journey.append('Rejected')
-        elif rejection_stage == 'Screening':
-            journey.extend(['Screening', 'Rejected'])
-        elif rejection_stage == 'Interviewing':
-            journey.extend(['Screening', 'Interviewing', 'Rejected'])
-        elif rejection_stage == 'Offer':
-            journey.extend(['Screening', 'Interviewing', 'Offer', 'Rejected'])
-    elif current_status_name == 'Withdrawn':
+        if rejection_stage == "Applied":
+            journey.append("Rejected")
+        elif rejection_stage == "Screening":
+            journey.extend(["Screening", "Rejected"])
+        elif rejection_stage == "Interviewing":
+            journey.extend(["Screening", "Interviewing", "Rejected"])
+        elif rejection_stage == "Offer":
+            journey.extend(["Screening", "Interviewing", "Offer", "Rejected"])
+    elif current_status_name == "Withdrawn":
         # Withdrawn can happen at various stages - use weighted distribution
         # ~60% withdrawn immediately after Applied
         # ~25% withdrawn after Screening
         # ~10% withdrawn after Interviewing
         # ~5% withdrawn after Offer
         withdrawn_stage = random.choices(
-            ['Applied', 'Screening', 'Interviewing', 'Offer'],
+            ["Applied", "Screening", "Interviewing", "Offer"],
             weights=[60, 25, 10, 5],
-            k=1
+            k=1,
         )[0]
 
-        if withdrawn_stage == 'Applied':
-            journey.append('Withdrawn')
-        elif withdrawn_stage == 'Screening':
-            journey.extend(['Screening', 'Withdrawn'])
-        elif withdrawn_stage == 'Interviewing':
-            journey.extend(['Screening', 'Interviewing', 'Withdrawn'])
-        elif withdrawn_stage == 'Offer':
-            journey.extend(['Screening', 'Interviewing', 'Offer', 'Withdrawn'])
-    elif current_status_name == 'No Reply':
-        journey.extend(['No Reply'])
-    elif current_status_name == 'On Hold':
-        journey.extend(['Screening', 'On Hold'])
+        if withdrawn_stage == "Applied":
+            journey.append("Withdrawn")
+        elif withdrawn_stage == "Screening":
+            journey.extend(["Screening", "Withdrawn"])
+        elif withdrawn_stage == "Interviewing":
+            journey.extend(["Screening", "Interviewing", "Withdrawn"])
+        elif withdrawn_stage == "Offer":
+            journey.extend(["Screening", "Interviewing", "Offer", "Withdrawn"])
+    elif current_status_name == "No Reply":
+        journey.extend(["No Reply"])
+    elif current_status_name == "On Hold":
+        journey.extend(["Screening", "On Hold"])
     else:
         # For custom statuses, just go from Applied to current
         journey.append(current_status_name)
@@ -161,10 +162,14 @@ def upgrade() -> None:
             ORDER BY a.created_at DESC
         """)
         applications = conn.execute(applications_query).fetchall()
-        logger.info(f"Found {len(applications)} applications with Rejected/Withdrawn status")
+        logger.info(
+            f"Found {len(applications)} applications with Rejected/Withdrawn status"
+        )
 
         if not applications:
-            logger.info("No rejected/withdrawn applications to process, migration complete")
+            logger.info(
+                "No rejected/withdrawn applications to process, migration complete"
+            )
             return
 
         # Get current time for timestamp distribution
@@ -172,8 +177,8 @@ def upgrade() -> None:
 
         # Track statistics
         stats = {
-            'Rejected': {'Applied': 0, 'Screening': 0, 'Interviewing': 0, 'Offer': 0},
-            'Withdrawn': {'Applied': 0, 'Screening': 0, 'Interviewing': 0, 'Offer': 0},
+            "Rejected": {"Applied": 0, "Screening": 0, "Interviewing": 0, "Offer": 0},
+            "Withdrawn": {"Applied": 0, "Screening": 0, "Interviewing": 0, "Offer": 0},
         }
 
         # Prepare bulk insert data
@@ -196,30 +201,38 @@ def upgrade() -> None:
                 DELETE FROM application_status_history
                 WHERE application_id = :app_id
             """)
-            conn.execute(delete_query, {'app_id': app.id})
+            conn.execute(delete_query, {"app_id": app.id})
 
             # Generate the new varied status journey
             journey = get_status_journey(current_status_name, statuses)
 
             # Track statistics for the rejection stage
-            if current_status_name in ('Rejected', 'Withdrawn'):
+            if current_status_name in ("Rejected", "Withdrawn"):
                 # Determine which stage led to the terminal status
                 if len(journey) == 2:
                     # Applied -> Terminal
-                    stats[current_status_name]['Applied'] += 1
-                elif 'Screening' in journey and current_status_name in journey and journey.index('Screening') < journey.index(current_status_name):
-                    if 'Interviewing' in journey and journey.index('Interviewing') < journey.index(current_status_name):
-                        if 'Offer' in journey and journey.index('Offer') < journey.index(current_status_name):
-                            stats[current_status_name]['Offer'] += 1
+                    stats[current_status_name]["Applied"] += 1
+                elif (
+                    "Screening" in journey
+                    and current_status_name in journey
+                    and journey.index("Screening") < journey.index(current_status_name)
+                ):
+                    if "Interviewing" in journey and journey.index(
+                        "Interviewing"
+                    ) < journey.index(current_status_name):
+                        if "Offer" in journey and journey.index(
+                            "Offer"
+                        ) < journey.index(current_status_name):
+                            stats[current_status_name]["Offer"] += 1
                         else:
-                            stats[current_status_name]['Interviewing'] += 1
+                            stats[current_status_name]["Interviewing"] += 1
                     else:
-                        stats[current_status_name]['Screening'] += 1
+                        stats[current_status_name]["Screening"] += 1
 
             # Parse created_at if it's a string, otherwise use as-is
             created_at = app.created_at
             if isinstance(created_at, str):
-                created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
 
             # Distribute timestamps (already sorted in the function)
             timestamps = distribute_timestamps(created_at, now, len(journey))
@@ -230,27 +243,29 @@ def upgrade() -> None:
                 to_status_id = statuses[status_name]
                 changed_at = timestamps[i]
 
-                history_entries.append({
-                    'id': str(uuid.uuid4()),
-                    'application_id': app.id,
-                    'from_status_id': from_status_id,
-                    'to_status_id': to_status_id,
-                    'changed_at': changed_at,
-                    'note': None
-                })
+                history_entries.append(
+                    {
+                        "id": str(uuid.uuid4()),
+                        "application_id": app.id,
+                        "from_status_id": from_status_id,
+                        "to_status_id": to_status_id,
+                        "changed_at": changed_at,
+                        "note": None,
+                    }
+                )
 
         # Bulk insert history entries
         if history_entries:
             logger.info(f"Inserting {len(history_entries)} history entries")
 
             history_table = table(
-                'application_status_history',
-                column('id'),
-                column('application_id'),
-                column('from_status_id'),
-                column('to_status_id'),
-                column('changed_at'),
-                column('note')
+                "application_status_history",
+                column("id"),
+                column("application_id"),
+                column("from_status_id"),
+                column("to_status_id"),
+                column("changed_at"),
+                column("note"),
             )
 
             conn.execute(history_table.insert().values(history_entries))
@@ -274,5 +289,7 @@ def downgrade() -> None:
     """
     # Cannot easily restore the previous state since we deleted original data
     # Users should restore from backup if needed
-    print("WARNING: Downgrade of redistribute_rejected_application_history is not supported")
+    print(
+        "WARNING: Downgrade of redistribute_rejected_application_history is not supported"
+    )
     pass

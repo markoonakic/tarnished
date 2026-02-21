@@ -1,5 +1,4 @@
-import pytest
-from app.services.export_registry import exportable, ExportRegistry
+from app.services.export_registry import ExportRegistry, exportable
 
 
 class TestExportRegistry:

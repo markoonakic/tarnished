@@ -5,7 +5,9 @@ import type { JobLead, JobLeadStatus } from '../lib/types';
 import Layout from '../components/Layout';
 import EmptyState from '../components/EmptyState';
 import Loading from '../components/Loading';
-import JobLeadsFilters, { type JobLeadsFiltersValue } from '../components/JobLeadsFilters';
+import JobLeadsFilters, {
+  type JobLeadsFiltersValue,
+} from '../components/JobLeadsFilters';
 import { useToastContext } from '../contexts/ToastContext';
 import Pagination from '../components/Pagination';
 
@@ -27,12 +29,24 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 // Status badge colors
-function getStatusStyles(status: JobLeadStatus): { bg: string; text: string; dot: string } {
+function getStatusStyles(status: JobLeadStatus): {
+  bg: string;
+  text: string;
+  dot: string;
+} {
   switch (status) {
     case 'extracted':
-      return { bg: 'bg-green-bright/20', text: 'text-green-bright', dot: 'bg-green-bright' };
+      return {
+        bg: 'bg-green-bright/20',
+        text: 'text-green-bright',
+        dot: 'bg-green-bright',
+      };
     case 'failed':
-      return { bg: 'bg-red-bright/20', text: 'text-red-bright', dot: 'bg-red-bright' };
+      return {
+        bg: 'bg-red-bright/20',
+        text: 'text-red-bright',
+        dot: 'bg-red-bright',
+      };
     case 'pending':
     default:
       return { bg: 'bg-yellow/20', text: 'text-yellow', dot: 'bg-yellow' };
@@ -78,7 +92,10 @@ export default function JobLeads() {
   async function loadJobLeads() {
     setLoading(true);
     try {
-      const params: Record<string, string | number> = { page, per_page: perPage };
+      const params: Record<string, string | number> = {
+        page,
+        per_page: perPage,
+      };
       if (statusFilter) params.status = statusFilter;
       // Note: search, source, and sort are not yet implemented in the backend
       // but we send them anyway for forward compatibility
@@ -144,27 +161,27 @@ export default function JobLeads() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="mx-auto max-w-6xl px-4 py-8">
         {/* Header */}
-        <h1 className="text-2xl font-bold text-primary mb-6">Job Leads</h1>
+        <h1 className="text-primary mb-6 text-2xl font-bold">Job Leads</h1>
 
         {/* Filters Section */}
-        <div className="bg-bg1 rounded-lg p-4 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+        <div className="bg-bg1 mb-6 rounded-lg p-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
             {/* Search Input */}
-            <div className="flex-1 min-w-0 relative">
-              <i className="bi-search absolute left-3 top-1/2 -translate-y-1/2 icon-sm text-muted" />
+            <div className="relative min-w-0 flex-1">
+              <i className="bi-search icon-sm text-muted absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search company or job title..."
                 value={search}
                 onChange={(e) => updateParams({ search: e.target.value })}
-                className="w-full pl-9 pr-9 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pl-9 pr-9 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
               />
               {search && (
                 <button
                   onClick={() => updateParams({ search: '' })}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-fg1 transition-all duration-200 ease-in-out cursor-pointer"
+                  className="text-muted hover:text-fg1 absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
                   aria-label="Clear search"
                 >
                   <i className="bi-x icon-sm" />
@@ -208,23 +225,23 @@ export default function JobLeads() {
         ) : (
           <>
             {/* Desktop Table */}
-            <div className="hidden md:block bg-secondary rounded-lg overflow-hidden">
+            <div className="bg-secondary hidden overflow-hidden rounded-lg md:block">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-tertiary">
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">
+                  <tr className="border-tertiary border-b">
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
                       Company
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
                       Position
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
                       Status
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
                       Source
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
                       Added
                     </th>
                   </tr>
@@ -236,32 +253,37 @@ export default function JobLeads() {
                       <tr
                         key={lead.id}
                         className={`transition-all duration-200 ease-in-out ${
-                          index < jobLeads.length - 1 ? 'border-b border-tertiary' : ''
+                          index < jobLeads.length - 1
+                            ? 'border-tertiary border-b'
+                            : ''
                         }`}
                       >
-                        <td className="py-3 px-4 text-sm">
+                        <td className="px-4 py-3 text-sm">
                           <Link
                             to={`/job-leads/${lead.id}`}
-                            className="text-fg1 hover:text-accent-bright transition-all duration-200 ease-in-out font-medium cursor-pointer"
+                            className="text-fg1 hover:text-accent-bright cursor-pointer font-medium transition-all duration-200 ease-in-out"
                           >
                             {lead.company || truncate(lead.url, 40)}
                           </Link>
                         </td>
-                        <td className="py-3 px-4 text-sm text-primary">
+                        <td className="text-primary px-4 py-3 text-sm">
                           {lead.title || '-'}
                         </td>
-                        <td className="py-3 px-4 text-sm">
+                        <td className="px-4 py-3 text-sm">
                           <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold ${statusStyles.bg} ${statusStyles.text}`}
+                            className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${statusStyles.bg} ${statusStyles.text}`}
                           >
-                            <span className={`w-2 h-2 rounded-full ${statusStyles.dot}`} />
-                            {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                            <span
+                              className={`h-2 w-2 rounded-full ${statusStyles.dot}`}
+                            />
+                            {lead.status.charAt(0).toUpperCase() +
+                              lead.status.slice(1)}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-sm text-secondary">
+                        <td className="text-secondary px-4 py-3 text-sm">
                           {lead.source || '-'}
                         </td>
-                        <td className="py-3 px-4 text-sm text-secondary">
+                        <td className="text-secondary px-4 py-3 text-sm">
                           {formatDate(lead.scraped_at)}
                         </td>
                       </tr>
@@ -272,30 +294,33 @@ export default function JobLeads() {
             </div>
 
             {/* Mobile Cards */}
-            <div className="md:hidden space-y-3">
+            <div className="space-y-3 md:hidden">
               {jobLeads.map((lead) => {
                 const statusStyles = getStatusStyles(lead.status);
                 return (
                   <Link
                     key={lead.id}
                     to={`/job-leads/${lead.id}`}
-                    className="block bg-secondary rounded-lg p-4 hover:bg-bg2 transition-all duration-200 ease-in-out cursor-pointer"
+                    className="bg-secondary hover:bg-bg2 block cursor-pointer rounded-lg p-4 transition-all duration-200 ease-in-out"
                   >
-                    <div className="flex justify-between items-start gap-2 mb-2">
-                      <span className="text-fg1 font-medium truncate">
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <span className="text-fg1 truncate font-medium">
                         {lead.company || truncate(lead.url, 30)}
                       </span>
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold flex-shrink-0 ${statusStyles.bg} ${statusStyles.text}`}
+                        className={`inline-flex flex-shrink-0 items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${statusStyles.bg} ${statusStyles.text}`}
                       >
-                        <span className={`w-2 h-2 rounded-full ${statusStyles.dot}`} />
-                        {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                        <span
+                          className={`h-2 w-2 rounded-full ${statusStyles.dot}`}
+                        />
+                        {lead.status.charAt(0).toUpperCase() +
+                          lead.status.slice(1)}
                       </span>
                     </div>
-                    <div className="text-sm text-primary truncate mb-2">
+                    <div className="text-primary mb-2 truncate text-sm">
                       {lead.title || 'No title'}
                     </div>
-                    <div className="text-xs text-secondary">
+                    <div className="text-secondary text-xs">
                       {formatDate(lead.scraped_at)}
                       {lead.source && ` · ${lead.source}`}
                     </div>
@@ -311,7 +336,9 @@ export default function JobLeads() {
                 totalPages={Math.ceil(total / perPage)}
                 perPage={perPage}
                 totalItems={total}
-                onPageChange={(newPage) => updateParams({ page: String(newPage) })}
+                onPageChange={(newPage) =>
+                  updateParams({ page: String(newPage) })
+                }
               />
             </div>
           </>

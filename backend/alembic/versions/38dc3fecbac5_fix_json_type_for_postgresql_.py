@@ -5,17 +5,14 @@ Revises: 3e450efb7235
 Create Date: 2026-01-29 14:48:56.089789
 
 """
-from typing import Sequence, Union
 
-from alembic import op
-import sqlalchemy as sa
-
+from typing import Sequence
 
 # revision identifiers, used by Alembic.
-revision: str = '38dc3fecbac5'
-down_revision: Union[str, Sequence[str], None] = '3e450efb7235'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "38dc3fecbac5"
+down_revision: str | Sequence[str] | None = "3e450efb7235"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

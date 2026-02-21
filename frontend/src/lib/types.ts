@@ -138,7 +138,7 @@ export interface ApplicationStatusHistory {
   note: string | null;
 }
 
-export type JobLeadStatus = "pending" | "extracted" | "failed";
+export type JobLeadStatus = 'pending' | 'extracted' | 'failed';
 
 export interface JobLead {
   id: string;

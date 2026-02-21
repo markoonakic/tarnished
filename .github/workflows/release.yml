@@ -6,12 +6,9 @@ on:
       - 'v*'
 
 jobs:
-  build:
+  # All check jobs run in parallel
+  backend-checks:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
     steps:
       - uses: actions/checkout@v4
 
@@ -23,15 +20,25 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
+      - name: Install dependencies
+        working-directory: backend
+        run: uv sync
+
       - name: Check for schema drift
+        working-directory: backend
         run: |
-          cd backend
-          uv sync
-          # Create the data directory for SQLite database
           mkdir -p data
-          # Apply migrations first so alembic check can compare models against migrated schema
           uv run alembic upgrade head
           uv run alembic check || (echo "Schema drift detected! Run 'alembic revision --autogenerate' to create missing migrations." && exit 1)
+
+      - name: Security audit
+        working-directory: backend
+        run: uv audit
+
+  frontend-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -41,7 +48,17 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Install frontend dependencies
+      - name: Cache yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/node
+            frontend/node_modules
+          key: ${{ runner.os }}-yarn-${{ hashFiles('frontend/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
         working-directory: frontend
         run: yarn install --immutable
 
@@ -51,12 +68,72 @@ jobs:
 
       - name: Verify build output
         run: |
-          # Verify font files exist (Vite outputs to dist/assets/ with content hashes)
           test -n "$(ls frontend/dist/assets/bootstrap-icons*.woff2 2>/dev/null)" || (echo "ERROR: Missing bootstrap-icons.woff2" && exit 1)
           test -n "$(ls frontend/dist/assets/bootstrap-icons*.woff 2>/dev/null)" || (echo "ERROR: Missing bootstrap-icons.woff" && exit 1)
           echo "Build verification passed"
 
-      # QEMU enables ARM64 emulation for multi-arch builds
+      - name: Security audit
+        working-directory: frontend
+        run: yarn npm audit --severity high
+        continue-on-error: true
+
+  extension:
+    runs-on: ubuntu-latest
+    # No dependency on other jobs - runs in parallel
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Cache yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/node
+            extension/node_modules
+          key: ${{ runner.os }}-yarn-ext-${{ hashFiles('extension/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-ext-
+
+      - name: Install dependencies
+        working-directory: extension
+        run: yarn install --immutable
+
+      - name: Build extension
+        working-directory: extension
+        run: yarn build
+
+      - name: Create Chrome extension ZIP
+        working-directory: extension
+        run: yarn build:chrome
+
+      - name: Create Firefox extension ZIP
+        working-directory: extension
+        run: yarn build:firefox
+
+      - name: Upload extension to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            extension/tarnished-chrome.zip
+            extension/tarnished-firefox.zip
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: [backend-checks, frontend-checks]
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -70,7 +147,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Generates smart tags (v1.2.3 → "1.2.3", "1.2", "latest") + OCI labels
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -92,55 +168,25 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Install Helm
-        uses: azure/setup-helm@v3
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          image-ref: ghcr.io/${{ github.repository_owner }}/tarnished:${{ steps.meta.outputs.version }}
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL'
+
+  helm:
+    runs-on: ubuntu-latest
+    needs: docker
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
 
       - name: Package and push Helm chart
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           helm package chart/ --version $VERSION --app-version $VERSION
           helm push tarnished-$VERSION.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
-
-  extension:
-    runs-on: ubuntu-latest
-    needs: build
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install dependencies
-        working-directory: extension
-        run: yarn install --immutable
-
-      - name: Build extension
-        working-directory: extension
-        run: yarn build
-
-      - name: Create Chrome extension ZIP
-        working-directory: extension
-        run: yarn build:chrome
-
-      - name: Create Firefox extension ZIP
-        working-directory: extension
-        run: yarn build:firefox
-
-      - name: Upload extension to release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            extension/tarnished-chrome.zip
-            extension/tarnished-firefox.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from 'react';
 import api from '../lib/api';
 
 interface Theme {
@@ -25,10 +32,26 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const THEMES: Theme[] = [
-  { id: 'gruvbox-dark', name: 'Gruvbox Dark', swatches: ['#282828', '#ebdbb2', '#8ec07c', '#b8bb26', '#fb4934'] },
-  { id: 'gruvbox-light', name: 'Gruvbox Light', swatches: ['#fbf1c7', '#3c3836', '#689d6a', '#98971a', '#cc241d'] },
-  { id: 'catppuccin', name: 'Catppuccin', swatches: ['#1e1e2e', '#cdd6f4', '#89b4fa', '#a6e3a1', '#f38ba8'] },
-  { id: 'dracula', name: 'Dracula', swatches: ['#282a36', '#f8f8f2', '#8be9fd', '#50fa7b', '#ff5555'] },
+  {
+    id: 'gruvbox-dark',
+    name: 'Gruvbox Dark',
+    swatches: ['#282828', '#ebdbb2', '#8ec07c', '#b8bb26', '#fb4934'],
+  },
+  {
+    id: 'gruvbox-light',
+    name: 'Gruvbox Light',
+    swatches: ['#fbf1c7', '#3c3836', '#689d6a', '#98971a', '#cc241d'],
+  },
+  {
+    id: 'catppuccin',
+    name: 'Catppuccin',
+    swatches: ['#1e1e2e', '#cdd6f4', '#89b4fa', '#a6e3a1', '#f38ba8'],
+  },
+  {
+    id: 'dracula',
+    name: 'Dracula',
+    swatches: ['#282a36', '#f8f8f2', '#8be9fd', '#50fa7b', '#ff5555'],
+  },
 ];
 
 const ACCENT_OPTIONS: AccentOption[] = [
@@ -53,10 +76,16 @@ function getAccentOverrides(): Record<string, string> {
 }
 
 function applyAccentColor(colorName: string) {
-  const option = ACCENT_OPTIONS.find(opt => opt.name === colorName);
+  const option = ACCENT_OPTIONS.find((opt) => opt.name === colorName);
   if (option) {
-    document.documentElement.style.setProperty('--accent', `var(${option.cssVar})`);
-    document.documentElement.style.setProperty('--accent-bright', `var(${option.cssVarBright})`);
+    document.documentElement.style.setProperty(
+      '--accent',
+      `var(${option.cssVar})`
+    );
+    document.documentElement.style.setProperty(
+      '--accent-bright',
+      `var(${option.cssVarBright})`
+    );
   }
 }
 
@@ -82,7 +111,7 @@ async function updateFavicon(colorHex: string) {
 }
 
 function getResolvedAccentColor(colorName: string): string {
-  const option = ACCENT_OPTIONS.find(opt => opt.name === colorName);
+  const option = ACCENT_OPTIONS.find((opt) => opt.name === colorName);
   if (!option) return '#8ec07c'; // fallback
 
   const style = getComputedStyle(document.documentElement);
@@ -109,7 +138,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return localStorage.getItem('theme') || 'gruvbox-dark';
   });
 
-  const [accentOverrides, setAccentOverrides] = useState<Record<string, string>>(() => {
+  const [accentOverrides, setAccentOverrides] = useState<
+    Record<string, string>
+  >(() => {
     return getAccentOverrides();
   });
 
@@ -119,62 +150,73 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Sync theme settings to backend
-  const syncSettingsToBackend = useCallback(async (theme: string, accent: string) => {
-    try {
-      await api.patch('/api/users/settings', { theme, accent });
-    } catch (error) {
-      // Silent fail - backend sync is nice-to-have, not critical
-      console.warn('Failed to sync theme settings to backend:', error);
-    }
-  }, []);
+  const syncSettingsToBackend = useCallback(
+    async (theme: string, accent: string) => {
+      try {
+        await api.patch('/api/users/settings', { theme, accent });
+      } catch (error) {
+        // Silent fail - backend sync is nice-to-have, not critical
+        console.warn('Failed to sync theme settings to backend:', error);
+      }
+    },
+    []
+  );
 
-  const setTheme = useCallback((themeId: string) => {
-    localStorage.setItem('theme', themeId);
-    document.documentElement.setAttribute('data-theme', themeId);
-    setCurrentTheme(themeId);
+  const setTheme = useCallback(
+    (themeId: string) => {
+      localStorage.setItem('theme', themeId);
+      document.documentElement.setAttribute('data-theme', themeId);
+      setCurrentTheme(themeId);
 
-    // Apply stored accent override for the new theme
-    const accentForTheme = accentOverrides[themeId] || 'aqua';
-    applyAccentColor(accentForTheme);
+      // Apply stored accent override for the new theme
+      const accentForTheme = accentOverrides[themeId] || 'aqua';
+      applyAccentColor(accentForTheme);
 
-    // Update favicon after CSS vars resolve
-    requestAnimationFrame(() => {
-      updateFavicon(getResolvedAccentColor(accentForTheme));
-    });
+      // Update favicon after CSS vars resolve
+      requestAnimationFrame(() => {
+        updateFavicon(getResolvedAccentColor(accentForTheme));
+      });
 
-    // Sync to backend
-    syncSettingsToBackend(themeId, accentForTheme);
-  }, [accentOverrides, syncSettingsToBackend]);
+      // Sync to backend
+      syncSettingsToBackend(themeId, accentForTheme);
+    },
+    [accentOverrides, syncSettingsToBackend]
+  );
 
-  const setAccentColor = useCallback((colorName: string) => {
-    // Update localStorage
-    const newOverrides = { ...accentOverrides, [currentTheme]: colorName };
-    localStorage.setItem(STORAGE_KEY_ACCENTS, JSON.stringify(newOverrides));
-    setAccentOverrides(newOverrides);
+  const setAccentColor = useCallback(
+    (colorName: string) => {
+      // Update localStorage
+      const newOverrides = { ...accentOverrides, [currentTheme]: colorName };
+      localStorage.setItem(STORAGE_KEY_ACCENTS, JSON.stringify(newOverrides));
+      setAccentOverrides(newOverrides);
 
-    // Apply immediately via CSS custom properties
-    applyAccentColor(colorName);
+      // Apply immediately via CSS custom properties
+      applyAccentColor(colorName);
 
-    // Update favicon after CSS vars resolve
-    requestAnimationFrame(() => {
-      updateFavicon(getResolvedAccentColor(colorName));
-    });
+      // Update favicon after CSS vars resolve
+      requestAnimationFrame(() => {
+        updateFavicon(getResolvedAccentColor(colorName));
+      });
 
-    // Sync to backend
-    syncSettingsToBackend(currentTheme, colorName);
-  }, [currentTheme, accentOverrides, syncSettingsToBackend]);
+      // Sync to backend
+      syncSettingsToBackend(currentTheme, colorName);
+    },
+    [currentTheme, accentOverrides, syncSettingsToBackend]
+  );
 
   const currentAccent = accentOverrides[currentTheme] || 'aqua';
 
   return (
-    <ThemeContext.Provider value={{
-      currentTheme,
-      setTheme,
-      themes: THEMES,
-      currentAccent,
-      setAccentColor,
-      accentOptions: ACCENT_OPTIONS,
-    }}>
+    <ThemeContext.Provider
+      value={{
+        currentTheme,
+        setTheme,
+        themes: THEMES,
+        currentAccent,
+        setAccentColor,
+        accentOptions: ACCENT_OPTIONS,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );

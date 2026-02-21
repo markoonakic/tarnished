@@ -2,10 +2,10 @@ import asyncio
 import random
 from datetime import datetime, timedelta
 
-from app.core.database import async_session_maker
-from app.models import Application, Round, RoundType
 from sqlalchemy import select
 
+from app.core.database import async_session_maker
+from app.models import Application, Round, RoundType
 
 # Round outcomes based on analytics.py
 ROUND_OUTCOMES = ["Passed", "Failed", "Pending", "Withdrew"]
@@ -32,7 +32,9 @@ async def seed_rounds():
             print(f"  - {rt.name} (id: {rt.id})")
 
         # Filter to default round types
-        default_round_types = [rt for rt in all_round_types if rt.name in DEFAULT_ROUND_TYPES]
+        default_round_types = [
+            rt for rt in all_round_types if rt.name in DEFAULT_ROUND_TYPES
+        ]
         round_type_map = {rt.name: rt for rt in default_round_types}
 
         print(f"\nUsing {len(default_round_types)} default round types")

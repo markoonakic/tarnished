@@ -9,7 +9,12 @@ interface Props {
   currentUserId: string | undefined;
 }
 
-export default function EditUserModal({ user, onClose, onSuccess, currentUserId }: Props) {
+export default function EditUserModal({
+  user,
+  onClose,
+  onSuccess,
+  currentUserId,
+}: Props) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [password, setPassword] = useState('');
@@ -61,7 +66,9 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete user "${user!.email}"? This action cannot be undone.`)) {
+    if (
+      !confirm(`Delete user "${user!.email}"? This action cannot be undone.`)
+    ) {
       return;
     }
 
@@ -81,7 +88,7 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
 
   return (
     <div
-      className="fixed inset-0 bg-bg0/80 flex items-center justify-center z-50"
+      className="bg-bg0/80 fixed inset-0 z-50 flex items-center justify-center"
       onClick={onClose}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
@@ -93,65 +100,80 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
       aria-modal="true"
       aria-labelledby="edit-modal-title"
     >
-      <div className="bg-bg1 rounded-lg max-w-md w-full mx-4 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex-shrink-0 flex justify-between items-center p-4 border-b border-tertiary">
-          <h3 id="edit-modal-title" className="text-primary font-medium">Edit User</h3>
+      <div
+        className="bg-bg1 mx-4 flex max-h-[90vh] w-full max-w-md flex-col rounded-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-tertiary flex flex-shrink-0 items-center justify-between border-b p-4">
+          <h3 id="edit-modal-title" className="text-primary font-medium">
+            Edit User
+          </h3>
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out p-2 rounded cursor-pointer"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
           >
             <i className="bi bi-x-lg icon-xl" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4">
-          <div className="pb-4 border-b border-tertiary">
-            <p className="text-sm text-muted">Email</p>
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 space-y-4 overflow-y-auto p-6"
+        >
+          <div className="border-tertiary border-b pb-4">
+            <p className="text-muted text-sm">Email</p>
             <p className="text-primary font-medium">{user.email}</p>
           </div>
 
           {error && (
-            <div className="bg-red-bright/20 border border-red-bright text-red-bright px-4 py-3 rounded">
+            <div className="bg-red-bright/20 border-red-bright text-red-bright rounded border px-4 py-3">
               {error}
             </div>
           )}
 
           <div>
-            <label className="flex items-center gap-3 cursor-pointer">
+            <label className="flex cursor-pointer items-center gap-3">
               <input
                 type="checkbox"
                 checked={isAdmin}
                 onChange={(e) => setIsAdmin(e.target.checked)}
                 disabled={isCurrentUser}
                 autoFocus
-                className="w-4 h-4 rounded border-tertiary"
+                className="border-tertiary h-4 w-4 rounded"
               />
-              <span className="text-sm text-primary">Admin</span>
+              <span className="text-primary text-sm">Admin</span>
             </label>
             {isCurrentUser && (
-              <p className="text-xs text-muted mt-1 ml-7">You cannot change your own admin status</p>
+              <p className="text-muted ml-7 mt-1 text-xs">
+                You cannot change your own admin status
+              </p>
             )}
           </div>
 
           <div>
-            <label className="flex items-center gap-3 cursor-pointer">
+            <label className="flex cursor-pointer items-center gap-3">
               <input
                 type="checkbox"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
                 disabled={isCurrentUser}
-                className="w-4 h-4 rounded border-tertiary"
+                className="border-tertiary h-4 w-4 rounded"
               />
-              <span className="text-sm text-primary">Active</span>
+              <span className="text-primary text-sm">Active</span>
             </label>
             {isCurrentUser && (
-              <p className="text-xs text-muted mt-1 ml-7">You cannot change your own active status</p>
+              <p className="text-muted ml-7 mt-1 text-xs">
+                You cannot change your own active status
+              </p>
             )}
           </div>
 
           <div>
-            <label htmlFor="new-password" className="block mb-1 text-sm font-semibold text-muted">
+            <label
+              htmlFor="new-password"
+              className="text-muted mb-1 block text-sm font-semibold"
+            >
               New Password (optional)
             </label>
             <input
@@ -159,18 +181,18 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+              className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
               placeholder="Leave blank to keep current password"
               minLength={8}
             />
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row justify-between sm:items-center gap-3 pt-4 border-t border-tertiary">
+          <div className="border-tertiary flex flex-col-reverse justify-between gap-3 border-t pt-4 sm:flex-row sm:items-center">
             <button
               type="button"
               onClick={handleDelete}
               disabled={isCurrentUser || loading}
-              className="bg-transparent text-red hover:bg-bg2 hover:text-red-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
+              className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center justify-center gap-1.5 rounded-md bg-transparent px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
             >
               <i className="bi-trash icon-sm" />
               Delete
@@ -179,14 +201,14 @@ export default function EditUserModal({ user, onClose, onSuccess, currentUserId 
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 sm:flex-initial bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md disabled:opacity-50 cursor-pointer"
+                className="text-fg1 hover:bg-bg2 hover:text-fg0 flex-1 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50 sm:flex-initial"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 sm:flex-initial bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer"
+                className="bg-accent text-bg0 hover:bg-accent-bright flex-1 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50 sm:flex-initial"
               >
                 {loading ? 'Saving...' : 'Save'}
               </button>

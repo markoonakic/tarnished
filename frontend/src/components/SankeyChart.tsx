@@ -34,28 +34,38 @@ export default function SankeyChart() {
     if (!data) return {};
 
     // Skip the "applications" node - we start from "Applied"
-    const filteredNodes = data.nodes.filter(n => n.id !== 'applications');
+    const filteredNodes = data.nodes.filter((n) => n.id !== 'applications');
 
     // Calculate depths: terminal nodes go at SAME level as their source stage
     const getDepth = (nodeId: string): number => {
       if (nodeId.startsWith('terminal_rejected_')) {
         const stage = nodeId.split('_').pop();
         switch (stage) {
-          case 'applied': return 1; // Same level as Screening
-          case 'screening': return 2; // Same level as Interviewing
-          case 'interviewing': return 3; // Same level as Offer
-          case 'offer': return 4; // Same level as Accepted
-          default: return 2;
+          case 'applied':
+            return 1; // Same level as Screening
+          case 'screening':
+            return 2; // Same level as Interviewing
+          case 'interviewing':
+            return 3; // Same level as Offer
+          case 'offer':
+            return 4; // Same level as Accepted
+          default:
+            return 2;
         }
       }
       if (nodeId.startsWith('terminal_withdrawn_')) {
         const stage = nodeId.split('_').pop();
         switch (stage) {
-          case 'applied': return 1;
-          case 'screening': return 2;
-          case 'interviewing': return 3;
-          case 'offer': return 4;
-          default: return 2;
+          case 'applied':
+            return 1;
+          case 'screening':
+            return 2;
+          case 'interviewing':
+            return 3;
+          case 'offer':
+            return 4;
+          default:
+            return 2;
         }
       }
       // Regular status nodes
@@ -95,7 +105,10 @@ export default function SankeyChart() {
         const stage = nodeId.split('_').pop()?.replace(/_/g, ' ') || '';
         label = `Withdrawn after ${stage.charAt(0).toUpperCase() + stage.slice(1)}`;
       } else if (nodeId.startsWith('status_')) {
-        label = nodeId.replace('status_', '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+        label = nodeId
+          .replace('status_', '')
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (c: string) => c.toUpperCase());
       } else {
         label = nodeId;
       }
@@ -113,7 +126,10 @@ export default function SankeyChart() {
         return 'Withdrawn';
       }
       if (params.name.startsWith('status_')) {
-        return params.name.replace('status_', '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+        return params.name
+          .replace('status_', '')
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (c: string) => c.toUpperCase());
       }
       return params.name;
     };
@@ -129,26 +145,28 @@ export default function SankeyChart() {
         textStyle: { color: colors.fg0 },
         formatter: tooltipFormatter as any,
       },
-      series: [{
-        type: 'sankey',
-        data: nodes,
-        links: links,
-        emphasis: {
-          focus: 'adjacency',
+      series: [
+        {
+          type: 'sankey',
+          data: nodes,
+          links: links,
+          emphasis: {
+            focus: 'adjacency',
+          },
+          lineStyle: {
+            color: 'gradient',
+            curveness: 0.5,
+          },
+          label: {
+            color: colors.fg1,
+            fontSize: 12,
+            formatter: labelFormatter as any,
+          },
+          nodeAlign: 'justify',
+          nodeGap: 30,
+          layoutIterations: 50,
         },
-        lineStyle: {
-          color: 'gradient',
-          curveness: 0.5,
-        },
-        label: {
-          color: colors.fg1,
-          fontSize: 12,
-          formatter: labelFormatter as any,
-        },
-        nodeAlign: 'justify',
-        nodeGap: 30,
-        layoutIterations: 50,
-      }],
+      ],
     };
   }, [data, colors]);
 
@@ -157,7 +175,7 @@ export default function SankeyChart() {
   }
 
   if (error) {
-    return <div className="text-center py-8 text-red-bright">{error}</div>;
+    return <div className="text-red-bright py-8 text-center">{error}</div>;
   }
 
   if (!data || data.nodes.length === 0 || data.links.length === 0) {

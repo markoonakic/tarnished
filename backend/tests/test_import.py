@@ -50,9 +50,15 @@ async def test_user(db: AsyncSession) -> User:
 async def test_statuses(db: AsyncSession, test_user: User) -> list[ApplicationStatus]:
     """Create test application statuses."""
     statuses = [
-        ApplicationStatus(name="Wishlist", color="#83a598", is_default=True, user_id=test_user.id),
-        ApplicationStatus(name="Applied", color="#8ec07c", is_default=True, user_id=test_user.id),
-        ApplicationStatus(name="Interview", color="#fe8019", is_default=True, user_id=test_user.id),
+        ApplicationStatus(
+            name="Wishlist", color="#83a598", is_default=True, user_id=test_user.id
+        ),
+        ApplicationStatus(
+            name="Applied", color="#8ec07c", is_default=True, user_id=test_user.id
+        ),
+        ApplicationStatus(
+            name="Interview", color="#fe8019", is_default=True, user_id=test_user.id
+        ),
     ]
     for status in statuses:
         db.add(status)
@@ -198,8 +204,8 @@ def sample_import_data(test_user: User) -> dict:
 def sample_import_zip(sample_import_data: dict) -> bytes:
     """Create a sample import ZIP file."""
     zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        zipf.writestr('data.json', json.dumps(sample_import_data))
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+        zipf.writestr("data.json", json.dumps(sample_import_data))
     zip_buffer.seek(0)
     return zip_buffer.read()
 
@@ -207,7 +213,7 @@ def sample_import_zip(sample_import_data: dict) -> bytes:
 @pytest.fixture
 def sample_import_zip_file(sample_import_zip: bytes) -> str:
     """Create a sample import ZIP file and return its path."""
-    with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as f:
+    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as f:
         f.write(sample_import_zip)
         return f.name
 
@@ -260,12 +266,12 @@ def sample_import_with_phone_screen(import_user: dict) -> dict:
 def sample_import_zip_with_phone_screen(sample_import_with_phone_screen: dict) -> str:
     """Create a sample import ZIP file and return its path."""
     zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        zipf.writestr('data.json', json.dumps(sample_import_with_phone_screen))
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+        zipf.writestr("data.json", json.dumps(sample_import_with_phone_screen))
     zip_buffer.seek(0)
     zip_bytes = zip_buffer.read()
 
-    with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as f:
+    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as f:
         f.write(zip_bytes)
         return f.name
 
@@ -335,8 +341,8 @@ class TestImportValidationBasic:
         """Test validation rejects ZIP without data.json."""
         # Create ZIP without data.json
         zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            zipf.writestr('other.txt', 'some content')
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr("other.txt", "some content")
         zip_buffer.seek(0)
         zip_bytes = zip_buffer.read()
 
@@ -355,8 +361,8 @@ class TestImportValidationBasic:
     ):
         """Test validation rejects ZIP with invalid JSON."""
         zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            zipf.writestr('data.json', 'invalid json{{')
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr("data.json", "invalid json{{")
         zip_buffer.seek(0)
         zip_bytes = zip_buffer.read()
 
@@ -379,8 +385,8 @@ class TestImportValidationBasic:
         """Test validation rejects ZIP with invalid schema."""
         invalid_data = {"invalid": "data"}
         zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            zipf.writestr('data.json', json.dumps(invalid_data))
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr("data.json", json.dumps(invalid_data))
         zip_buffer.seek(0)
         zip_bytes = zip_buffer.read()
 
@@ -445,8 +451,8 @@ class TestImportValidationWarnings:
         }
 
         zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            zipf.writestr('data.json', json.dumps(import_data))
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr("data.json", json.dumps(import_data))
         zip_buffer.seek(0)
         zip_bytes = zip_buffer.read()
 
@@ -462,7 +468,10 @@ class TestImportValidationWarnings:
         assert data["valid"] is True
         warnings = data.get("warnings", [])
         # Should warn about creating new status
-        assert any("new statuses" in w.lower() or "nonexistentstatus" in w.lower() for w in warnings)
+        assert any(
+            "new statuses" in w.lower() or "nonexistentstatus" in w.lower()
+            for w in warnings
+        )
 
 
 class TestZIPSafetyValidation:
@@ -483,10 +492,10 @@ class TestZIPSafetyValidation:
         }
 
         zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            zipf.writestr('data.json', json.dumps(import_data))
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr("data.json", json.dumps(import_data))
             # Add path traversal file
-            zipf.writestr('../../../etc/passwd', 'malicious')
+            zipf.writestr("../../../etc/passwd", "malicious")
         zip_buffer.seek(0)
         zip_bytes = zip_buffer.read()
 
@@ -516,10 +525,10 @@ class TestZIPSafetyValidation:
         }
 
         zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            zipf.writestr('data.json', json.dumps(import_data))
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr("data.json", json.dumps(import_data))
             # Add absolute path
-            zipf.writestr('/tmp/malicious.txt', 'malicious')
+            zipf.writestr("/tmp/malicious.txt", "malicious")
         zip_buffer.seek(0)
         zip_bytes = zip_buffer.read()
 
@@ -550,11 +559,11 @@ class TestZIPSafetyValidation:
         }
 
         zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            zipf.writestr('data.json', json.dumps(import_data))
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr("data.json", json.dumps(import_data))
             # Add many files to exceed limit
             for i in range(1001):  # Exceeds MAX_FILE_COUNT of 1000
-                zipf.writestr(f'file{i}.txt', f'content {i}')
+                zipf.writestr(f"file{i}.txt", f"content {i}")
         zip_buffer.seek(0)
         zip_bytes = zip_buffer.read()
 
@@ -605,10 +614,10 @@ class TestImportValidationSummary:
         ]
 
         zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            zipf.writestr('data.json', json.dumps(sample_import_data))
-            zipf.writestr('files/media/interview.mp4', b'fake video content')
-            zipf.writestr('files/media/audio.mp3', b'fake audio content')
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr("data.json", json.dumps(sample_import_data))
+            zipf.writestr("files/media/interview.mp4", b"fake video content")
+            zipf.writestr("files/media/audio.mp3", b"fake audio content")
         zip_buffer.seek(0)
         zip_bytes = zip_buffer.read()
 
@@ -657,49 +666,53 @@ class TestValidateZIPSafety:
 
     async def test_validate_safe_zip(self):
         """Test validate_zip_safety with safe ZIP."""
-        from app.api.utils.zip_utils import validate_zip_safety
-
         # Create safe ZIP
         import tempfile
-        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as f:
+
+        from app.api.utils.zip_utils import validate_zip_safety
+
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as f:
             zip_path = f.name
 
         try:
-            with zipfile.ZipFile(zip_path, 'w') as zf:
-                zf.writestr('data.json', '{"test": "data"}')
-                zf.writestr('files/test.txt', 'content')
+            with zipfile.ZipFile(zip_path, "w") as zf:
+                zf.writestr("data.json", '{"test": "data"}')
+                zf.writestr("files/test.txt", "content")
 
             result = await validate_zip_safety(zip_path)
             assert result["is_safe"] is True
             assert result["file_count"] == 2
         finally:
             import os
+
             if os.path.exists(zip_path):
                 os.remove(zip_path)
 
     async def test_validate_zip_bomb_rejected(self):
         """Test validate_zip_safety rejects ZIP bombs."""
+        import tempfile
+
         from app.api.utils.zip_utils import validate_zip_safety
 
-        import tempfile
-        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as f:
             zip_path = f.name
 
         try:
             # Create a file that will have high compression ratio
             # (many repeated bytes compress very well)
-            large_content = b'A' * (10 * 1024 * 1024)  # 10MB of A's
+            large_content = b"A" * (10 * 1024 * 1024)  # 10MB of A's
 
-            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-                zf.writestr('data.json', '{"test": "data"}')
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr("data.json", '{"test": "data"}')
                 # This should create a high compression ratio
-                zf.writestr('large.txt', large_content)
+                zf.writestr("large.txt", large_content)
 
             # Should reject ZIP bombs with ValueError
             with pytest.raises(ValueError, match="compression ratio"):
                 await validate_zip_safety(zip_path)
         finally:
             import os
+
             if os.path.exists(zip_path):
                 os.remove(zip_path)
 
@@ -708,23 +721,26 @@ class TestImportData:
     """Test the actual import functionality."""
 
     async def test_import_creates_missing_status(
-        self, client: AsyncClient, import_user: dict, sample_import_zip_with_phone_screen: str, db: AsyncSession
+        self,
+        client: AsyncClient,
+        import_user: dict,
+        sample_import_zip_with_phone_screen: str,
+        db: AsyncSession,
     ):
         """Test import creates missing status automatically."""
         # Check status doesn't exist
         result = await db.execute(
-            select(ApplicationStatus)
-            .where(ApplicationStatus.name == "Phone Screen")
+            select(ApplicationStatus).where(ApplicationStatus.name == "Phone Screen")
         )
         assert result.scalar_one_or_none() is None
 
         # Import
-        with open(sample_import_zip_with_phone_screen, 'rb') as f:
+        with open(sample_import_zip_with_phone_screen, "rb") as f:
             response = await client.post(
                 "/api/import/import",
                 files={"file": ("import.zip", f, "application/zip")},
                 headers=import_user,
-                data={"override": "false"}
+                data={"override": "false"},
             )
 
         assert response.status_code == 200
@@ -734,8 +750,7 @@ class TestImportData:
 
         # Check status was created
         result = await db.execute(
-            select(ApplicationStatus)
-            .where(ApplicationStatus.name == "Phone Screen")
+            select(ApplicationStatus).where(ApplicationStatus.name == "Phone Screen")
         )
         status = result.scalar_one_or_none()
         assert status is not None
@@ -743,21 +758,26 @@ class TestImportData:
 
         # Clean up temp file
         import os
+
         if os.path.exists(sample_import_zip_with_phone_screen):
             os.remove(sample_import_zip_with_phone_screen)
 
     async def test_import_creates_application(
-        self, client: AsyncClient, import_user: dict, sample_import_zip_with_phone_screen: str, db: AsyncSession
+        self,
+        client: AsyncClient,
+        import_user: dict,
+        sample_import_zip_with_phone_screen: str,
+        db: AsyncSession,
     ):
         """Test import creates application with new ID."""
         user_id = import_user["user_id"]
 
-        with open(sample_import_zip_with_phone_screen, 'rb') as f:
+        with open(sample_import_zip_with_phone_screen, "rb") as f:
             response = await client.post(
                 "/api/import/import",
                 files={"file": ("import.zip", f, "application/zip")},
                 headers=import_user,
-                data={"override": "false"}
+                data={"override": "false"},
             )
 
         assert response.status_code == 200
@@ -779,22 +799,28 @@ class TestImportData:
 
         # Clean up temp file
         import os
+
         if os.path.exists(sample_import_zip_with_phone_screen):
             os.remove(sample_import_zip_with_phone_screen)
 
     async def test_import_creates_rounds_with_relationships(
-        self, client: AsyncClient, import_user: dict, sample_import_zip_with_phone_screen: str, db: AsyncSession
+        self,
+        client: AsyncClient,
+        import_user: dict,
+        sample_import_zip_with_phone_screen: str,
+        db: AsyncSession,
     ):
         """Test import creates rounds with correct relationships."""
         from sqlalchemy.orm import selectinload
+
         user_id = import_user["user_id"]
 
-        with open(sample_import_zip_with_phone_screen, 'rb') as f:
+        with open(sample_import_zip_with_phone_screen, "rb") as f:
             response = await client.post(
                 "/api/import/import",
                 files={"file": ("import.zip", f, "application/zip")},
                 headers=import_user,
-                data={"override": "false"}
+                data={"override": "false"},
             )
 
         # Wait for import to complete
@@ -816,6 +842,7 @@ class TestImportData:
 
         # Clean up temp file
         import os
+
         if os.path.exists(sample_import_zip_with_phone_screen):
             os.remove(sample_import_zip_with_phone_screen)
 
@@ -824,13 +851,19 @@ class TestImportOverride:
     """Test the override functionality."""
 
     async def test_override_deletes_existing_data(
-        self, client: AsyncClient, import_user: dict, db: AsyncSession, sample_import_zip_with_phone_screen: str
+        self,
+        client: AsyncClient,
+        import_user: dict,
+        db: AsyncSession,
+        sample_import_zip_with_phone_screen: str,
     ):
         """Test override option deletes existing applications."""
         user_id = import_user["user_id"]
 
         # Create an existing application
-        status = ApplicationStatus(name="Old Status", color="#000000", is_default=True, user_id=user_id)
+        status = ApplicationStatus(
+            name="Old Status", color="#000000", is_default=True, user_id=user_id
+        )
         db.add(status)
         await db.flush()
 
@@ -839,26 +872,25 @@ class TestImportOverride:
             company="Existing Company",
             job_title="Old Job",
             status_id=status.id,
-            applied_at=date.today()
+            applied_at=date.today(),
         )
         db.add(existing_app)
         await db.commit()
 
         # Count applications before import
         result = await db.execute(
-            select(Application)
-            .where(Application.user_id == user_id)
+            select(Application).where(Application.user_id == user_id)
         )
         count_before = len(result.scalars().all())
         assert count_before == 1
 
         # Import with override
-        with open(sample_import_zip_with_phone_screen, 'rb') as f:
+        with open(sample_import_zip_with_phone_screen, "rb") as f:
             response = await client.post(
                 "/api/import/import",
                 files={"file": ("import.zip", f, "application/zip")},
                 headers=import_user,
-                data={"override": "true"}
+                data={"override": "true"},
             )
 
         assert response.status_code == 200
@@ -868,8 +900,7 @@ class TestImportOverride:
 
         # Check old application is gone
         result = await db.execute(
-            select(Application)
-            .where(Application.user_id == user_id)
+            select(Application).where(Application.user_id == user_id)
         )
         apps = result.scalars().all()
         assert len(apps) == 1
@@ -884,13 +915,23 @@ class TestEndToEnd:
     """Test complete export to import workflow."""
 
     async def test_export_then_import_round_trip(
-        self, client: AsyncClient, auth_headers: dict[str, str], db: AsyncSession, test_user: User
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+        db: AsyncSession,
+        test_user: User,
     ):
         """Test that data can be exported and then imported successfully."""
         user_id = test_user.id
 
         # First, create some test data
-        status = ApplicationStatus(name="Test Status", color="#FF0000", is_default=False, order=1, user_id=user_id)
+        status = ApplicationStatus(
+            name="Test Status",
+            color="#FF0000",
+            is_default=False,
+            order=1,
+            user_id=user_id,
+        )
         db.add(status)
         await db.flush()
 
@@ -949,7 +990,12 @@ class TestEndToEnd:
             os.unlink(temp_zip_path)
 
     async def test_export_import_preserves_status_history(
-        self, client: AsyncClient, auth_headers: dict[str, str], db: AsyncSession, test_user: User, test_statuses: list[ApplicationStatus]
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+        db: AsyncSession,
+        test_user: User,
+        test_statuses: list[ApplicationStatus],
     ):
         """Test that status history is preserved through export/import cycle."""
         user_id = test_user.id
@@ -1000,7 +1046,9 @@ class TestEndToEnd:
         try:
             # Delete original data to test fresh import
             await db.execute(
-                select(ApplicationStatusHistory).where(ApplicationStatusHistory.application_id == app.id)
+                select(ApplicationStatusHistory).where(
+                    ApplicationStatusHistory.application_id == app.id
+                )
             )
             await db.delete(app)
             await db.commit()
@@ -1037,13 +1085,24 @@ class TestEndToEnd:
             os.unlink(temp_zip_path)
 
     async def test_export_import_preserves_rounds_and_media(
-        self, client: AsyncClient, auth_headers: dict[str, str], db: AsyncSession, test_user: User, test_round_types: list[RoundType]
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+        db: AsyncSession,
+        test_user: User,
+        test_round_types: list[RoundType],
     ):
         """Test that rounds are preserved through export/import cycle (media files not included if they don't exist)."""
         user_id = test_user.id
 
         # Create application with rounds
-        status = ApplicationStatus(name="Round Test Status", color="#00FF00", is_default=False, order=1, user_id=user_id)
+        status = ApplicationStatus(
+            name="Round Test Status",
+            color="#00FF00",
+            is_default=False,
+            order=1,
+            user_id=user_id,
+        )
         db.add(status)
         await db.flush()
 
@@ -1085,8 +1144,9 @@ class TestEndToEnd:
         zip_bytes = await response.aread()
 
         # Verify the exported JSON contains media metadata (new format)
-        import zipfile
         import io
+        import zipfile
+
         with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
             data = json.loads(zf.read("data.json"))
             # New format uses "models" with model names as keys
@@ -1388,13 +1448,23 @@ class TestImportEdgeCases:
             os.unlink(temp_zip_path)
 
     async def test_import_with_null_dates(
-        self, client: AsyncClient, import_user: dict, db: AsyncSession, test_round_types: list[RoundType]
+        self,
+        client: AsyncClient,
+        import_user: dict,
+        db: AsyncSession,
+        test_round_types: list[RoundType],
     ):
         """Test import handles null dates in rounds."""
         user_id = import_user["user_id"]
 
         # Create a status first
-        status = ApplicationStatus(name="Null Date Status", color="#FF00FF", is_default=False, order=1, user_id=user_id)
+        status = ApplicationStatus(
+            name="Null Date Status",
+            color="#FF00FF",
+            is_default=False,
+            order=1,
+            user_id=user_id,
+        )
         db.add(status)
         await db.commit()
 

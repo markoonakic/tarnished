@@ -7,14 +7,13 @@ including HTML preprocessing, LLM extraction, and error handling.
 """
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import openai
 import pytest
 
 from app.schemas.job_lead import JobLeadExtractionInput
 from app.services.extraction import (
-    DEFAULT_EXTRACTION_MODEL,
     ExtractionError,
     ExtractionInvalidResponseError,
     ExtractionTimeoutError,
@@ -25,7 +24,6 @@ from app.services.extraction import (
     extract_with_llm,
     preprocess_html,
 )
-
 
 # Sample HTML for testing
 SAMPLE_JOB_HTML = """<!DOCTYPE html>
@@ -132,7 +130,9 @@ class TestPreprocessHtml:
     def test_preprocess_large_html_truncates(self):
         """Test that large HTML is truncated to size limit."""
         # Create HTML larger than MAX_HTML_SIZE (100KB)
-        large_content = "<html><body>" + ("<p>Test content</p>" * 10000) + "</body></html>"
+        large_content = (
+            "<html><body>" + ("<p>Test content</p>" * 10000) + "</body></html>"
+        )
         assert len(large_content) > 100_000
 
         result = preprocess_html(large_content)
@@ -176,7 +176,9 @@ class TestExtractSourceFromUrl:
     def test_extract_linkedin_source(self):
         """Test extracting LinkedIn as source."""
         assert _extract_source_from_url("https://linkedin.com/jobs/123") == "LinkedIn"
-        assert _extract_source_from_url("https://www.linkedin.com/jobs/123") == "LinkedIn"
+        assert (
+            _extract_source_from_url("https://www.linkedin.com/jobs/123") == "LinkedIn"
+        )
 
     def test_extract_indeed_source(self):
         """Test extracting Indeed as source."""
@@ -189,7 +191,9 @@ class TestExtractSourceFromUrl:
 
     def test_extract_workday_source(self):
         """Test extracting Workday as source."""
-        assert _extract_source_from_url("https://myworkdayjobs.com/job/123") == "Workday"
+        assert (
+            _extract_source_from_url("https://myworkdayjobs.com/job/123") == "Workday"
+        )
         assert _extract_source_from_url("https://workday.com/job/123") == "Workday"
 
     def test_extract_lever_source(self):
@@ -215,18 +219,20 @@ class TestExtractWithLlm:
         mock_response.choices = [
             MagicMock(
                 message=MagicMock(
-                    content=json.dumps({
-                        "title": "Senior Software Engineer",
-                        "company": "Tech Corp",
-                        "location": "San Francisco, CA",
-                        "salary_min": 150000,
-                        "salary_max": 200000,
-                        "salary_currency": "USD",
-                        "description": "Great opportunity",
-                        "requirements_must_have": ["Python", "FastAPI"],
-                        "requirements_nice_to_have": ["Docker"],
-                        "skills": ["Python", "SQL"],
-                    })
+                    content=json.dumps(
+                        {
+                            "title": "Senior Software Engineer",
+                            "company": "Tech Corp",
+                            "location": "San Francisco, CA",
+                            "salary_min": 150000,
+                            "salary_max": 200000,
+                            "salary_currency": "USD",
+                            "description": "Great opportunity",
+                            "requirements_must_have": ["Python", "FastAPI"],
+                            "requirements_nice_to_have": ["Docker"],
+                            "skills": ["Python", "SQL"],
+                        }
+                    )
                 )
             )
         ]
@@ -283,15 +289,17 @@ class TestExtractWithLlm:
         mock_response.choices = [
             MagicMock(
                 message=MagicMock(
-                    content=json.dumps({
-                        "title": None,
-                        "company": None,
-                        "description": None,
-                        "location": None,
-                        "requirements_must_have": [],
-                        "requirements_nice_to_have": [],
-                        "skills": [],
-                    })
+                    content=json.dumps(
+                        {
+                            "title": None,
+                            "company": None,
+                            "description": None,
+                            "location": None,
+                            "requirements_must_have": [],
+                            "requirements_nice_to_have": [],
+                            "skills": [],
+                        }
+                    )
                 )
             )
         ]
@@ -321,9 +329,11 @@ class TestExtractWithLlm:
         """Test that LLM API error raises ExtractionInvalidResponseError."""
         # Create a mock request object for the APIError
         mock_request = MagicMock()
-        
+
         with patch("app.services.extraction.completion") as mock_completion:
-            mock_completion.side_effect = openai.APIError("API error", request=mock_request, body=None)
+            mock_completion.side_effect = openai.APIError(
+                "API error", request=mock_request, body=None
+            )
 
             with pytest.raises(ExtractionInvalidResponseError, match="API error"):
                 extract_with_llm(
@@ -337,13 +347,15 @@ class TestExtractWithLlm:
         mock_response.choices = [
             MagicMock(
                 message=MagicMock(
-                    content=json.dumps({
-                        "title": "Developer",
-                        "company": "Company",
-                        "requirements_must_have": [],
-                        "requirements_nice_to_have": [],
-                        "skills": [],
-                    })
+                    content=json.dumps(
+                        {
+                            "title": "Developer",
+                            "company": "Company",
+                            "requirements_must_have": [],
+                            "requirements_nice_to_have": [],
+                            "skills": [],
+                        }
+                    )
                 )
             )
         ]
@@ -373,13 +385,15 @@ class TestExtractWithLlm:
         valid_response.choices = [
             MagicMock(
                 message=MagicMock(
-                    content=json.dumps({
-                        "title": "Engineer",
-                        "company": "Corp",
-                        "requirements_must_have": [],
-                        "requirements_nice_to_have": [],
-                        "skills": [],
-                    })
+                    content=json.dumps(
+                        {
+                            "title": "Engineer",
+                            "company": "Corp",
+                            "requirements_must_have": [],
+                            "requirements_nice_to_have": [],
+                            "skills": [],
+                        }
+                    )
                 )
             )
         ]
@@ -408,16 +422,18 @@ class TestExtractJobData:
         mock_response.choices = [
             MagicMock(
                 message=MagicMock(
-                    content=json.dumps({
-                        "title": "Senior Software Engineer",
-                        "company": "Tech Corp",
-                        "location": "San Francisco, CA",
-                        "salary_min": 150000,
-                        "salary_max": 200000,
-                        "requirements_must_have": [],
-                        "requirements_nice_to_have": [],
-                        "skills": [],
-                    })
+                    content=json.dumps(
+                        {
+                            "title": "Senior Software Engineer",
+                            "company": "Tech Corp",
+                            "location": "San Francisco, CA",
+                            "salary_min": 150000,
+                            "salary_max": 200000,
+                            "requirements_must_have": [],
+                            "requirements_nice_to_have": [],
+                            "skills": [],
+                        }
+                    )
                 )
             )
         ]
@@ -450,13 +466,15 @@ class TestExtractJobData:
         mock_response.choices = [
             MagicMock(
                 message=MagicMock(
-                    content=json.dumps({
-                        "title": None,
-                        "company": None,
-                        "requirements_must_have": [],
-                        "requirements_nice_to_have": [],
-                        "skills": [],
-                    })
+                    content=json.dumps(
+                        {
+                            "title": None,
+                            "company": None,
+                            "requirements_must_have": [],
+                            "requirements_nice_to_have": [],
+                            "skills": [],
+                        }
+                    )
                 )
             )
         ]
@@ -477,13 +495,15 @@ class TestExtractJobData:
         mock_response.choices = [
             MagicMock(
                 message=MagicMock(
-                    content=json.dumps({
-                        "title": "Developer",
-                        "company": "Company",
-                        "requirements_must_have": [],
-                        "requirements_nice_to_have": [],
-                        "skills": [],
-                    })
+                    content=json.dumps(
+                        {
+                            "title": "Developer",
+                            "company": "Company",
+                            "requirements_must_have": [],
+                            "requirements_nice_to_have": [],
+                            "skills": [],
+                        }
+                    )
                 )
             )
         ]
@@ -551,18 +571,12 @@ class TestJobLeadExtractionInputSchema:
     def test_experience_range_validation(self):
         """Test that years_experience_max >= years_experience_min validation."""
         # Valid
-        valid = JobLeadExtractionInput(
-            years_experience_min=3,
-            years_experience_max=5
-        )
+        valid = JobLeadExtractionInput(years_experience_min=3, years_experience_max=5)
         assert valid.years_experience_max == 5
 
         # Invalid
         with pytest.raises(Exception):  # Pydantic ValidationError
-            JobLeadExtractionInput(
-                years_experience_min=5,
-                years_experience_max=3
-            )
+            JobLeadExtractionInput(years_experience_min=5, years_experience_max=3)
 
 
 class TestExtractionErrorTypes:
@@ -578,10 +592,7 @@ class TestExtractionErrorTypes:
 
     def test_extraction_timeout_error(self):
         """Test ExtractionTimeoutError."""
-        error = ExtractionTimeoutError(
-            "Request timed out",
-            details={"timeout": 60}
-        )
+        error = ExtractionTimeoutError("Request timed out", details={"timeout": 60})
 
         assert isinstance(error, ExtractionError)
         assert "timed out" in str(error)
@@ -589,8 +600,7 @@ class TestExtractionErrorTypes:
     def test_extraction_invalid_response_error(self):
         """Test ExtractionInvalidResponseError."""
         error = ExtractionInvalidResponseError(
-            "Invalid JSON response",
-            details={"raw_response": "bad json"}
+            "Invalid JSON response", details={"raw_response": "bad json"}
         )
 
         assert isinstance(error, ExtractionError)
@@ -599,8 +609,7 @@ class TestExtractionErrorTypes:
     def test_no_job_found_error(self):
         """Test NoJobFoundError."""
         error = NoJobFoundError(
-            "No job data found",
-            details={"content_preview": "Login page..."}
+            "No job data found", details={"content_preview": "Login page..."}
         )
 
         assert isinstance(error, ExtractionError)

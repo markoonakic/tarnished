@@ -1,0 +1,158 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+# Cancel old runs when new commits pushed to same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        working-directory: backend
+        run: uv sync
+
+      - name: Ruff check
+        working-directory: backend
+        run: uv run ruff check
+
+      - name: Ruff format check
+        working-directory: backend
+        run: uv run ruff format --check
+
+      - name: Pyright
+        working-directory: backend
+        run: uv run pyright
+
+      - name: Bandit
+        working-directory: backend
+        run: uv run bandit -c pyproject.toml -r app
+
+      - name: Security audit
+        working-directory: backend
+        run: uv audit
+
+      - name: Run tests
+        working-directory: backend
+        run: uv run pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Cache yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/node
+            frontend/node_modules
+          key: ${{ runner.os }}-yarn-${{ hashFiles('frontend/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: yarn install --immutable
+
+      - name: ESLint
+        working-directory: frontend
+        run: yarn lint
+
+      - name: Prettier check
+        working-directory: frontend
+        run: npx prettier --check .
+
+      - name: TypeScript
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: frontend
+        run: yarn build
+
+      - name: Security audit
+        working-directory: frontend
+        run: yarn npm audit --severity high
+        continue-on-error: true
+
+  extension:
+    runs-on: ubuntu-latest
+    # Only run if extension files changed
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for extension changes
+        id: changes
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -q "^extension/"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Enable Corepack
+        if: steps.changes.outputs.changed == 'true'
+        run: corepack enable
+
+      - name: Cache yarn dependencies
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/node
+            extension/node_modules
+          key: ${{ runner.os }}-yarn-ext-${{ hashFiles('extension/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-ext-
+
+      - name: Install dependencies
+        if: steps.changes.outputs.changed == 'true'
+        working-directory: extension
+        run: yarn install --immutable
+
+      - name: Prettier check
+        if: steps.changes.outputs.changed == 'true'
+        working-directory: extension
+        run: npx prettier --check .
+
+      - name: TypeScript
+        if: steps.changes.outputs.changed == 'true'
+        working-directory: extension
+        run: npx tsc --noEmit
+
+      - name: Build
+        if: steps.changes.outputs.changed == 'true'
+        working-directory: extension
+        run: yarn build

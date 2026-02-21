@@ -44,7 +44,11 @@ export default function SettingsAPIKey() {
   }
 
   async function handleRegenerateKey() {
-    if (!confirm('Are you sure you want to regenerate your API key? Your current key will stop working immediately.')) {
+    if (
+      !confirm(
+        'Are you sure you want to regenerate your API key? Your current key will stop working immediately.'
+      )
+    ) {
       return;
     }
 
@@ -62,9 +66,10 @@ export default function SettingsAPIKey() {
   }
 
   // Determine what to display
-  const displayKey = (showFullKey && apiKeyData?.api_key_full)
-    ? apiKeyData.api_key_full
-    : apiKeyData?.api_key_masked;
+  const displayKey =
+    showFullKey && apiKeyData?.api_key_full
+      ? apiKeyData.api_key_full
+      : apiKeyData?.api_key_masked;
 
   return (
     <>
@@ -73,9 +78,10 @@ export default function SettingsAPIKey() {
       </div>
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-xl font-bold text-fg1 mb-4">API Key</h2>
-        <p className="text-sm text-muted mb-6">
-          Use your API key to authenticate requests to the Tarnished API. Keep this key secure.
+        <h2 className="text-fg1 mb-4 text-xl font-bold">API Key</h2>
+        <p className="text-muted mb-6 text-sm">
+          Use your API key to authenticate requests to the Tarnished API. Keep
+          this key secure.
         </p>
 
         {loading ? (
@@ -84,51 +90,63 @@ export default function SettingsAPIKey() {
           <div className="space-y-4">
             {/* API Key Display */}
             <div className="bg-tertiary rounded-lg p-4">
-              <span className="text-sm text-muted block mb-2">
+              <span className="text-muted mb-2 block text-sm">
                 Your API Key
               </span>
               <div className="flex items-center gap-2">
-                <div className="flex-1 font-mono text-sm text-fg1 bg-bg2 px-3 py-2 rounded overflow-x-auto break-all">
+                <div className="text-fg1 bg-bg2 flex-1 overflow-x-auto break-all rounded px-3 py-2 font-mono text-sm">
                   {displayKey}
                 </div>
                 <button
                   onClick={handleCopyKey}
-                  className="px-3 py-2 bg-bg3 hover:bg-bg4 text-fg1 rounded transition-all duration-200 ease-in-out flex items-center gap-2 cursor-pointer flex-shrink-0"
+                  className="bg-bg3 hover:bg-bg4 text-fg1 flex flex-shrink-0 cursor-pointer items-center gap-2 rounded px-3 py-2 transition-all duration-200 ease-in-out"
                   title="Copy to clipboard"
                 >
-                  <i className={`bi-${copied ? 'check' : 'clipboard'} icon-sm`} />
-                  <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
+                  <i
+                    className={`bi-${copied ? 'check' : 'clipboard'} icon-sm`}
+                  />
+                  <span className="hidden sm:inline">
+                    {copied ? 'Copied' : 'Copy'}
+                  </span>
                 </button>
               </div>
             </div>
 
             {/* Regenerate Section */}
-            <div className="border-t border-tertiary pt-4 mt-4">
-              <h3 className="text-sm font-medium text-fg1 mb-2">Regenerate Key</h3>
-              <p className="text-xs text-muted mb-3">
-                    This will invalidate your current API key. Any applications using it will need to be updated.
+            <div className="border-tertiary mt-4 border-t pt-4">
+              <h3 className="text-fg1 mb-2 text-sm font-medium">
+                Regenerate Key
+              </h3>
+              <p className="text-muted mb-3 text-xs">
+                This will invalidate your current API key. Any applications
+                using it will need to be updated.
               </p>
               <button
                 onClick={handleRegenerateKey}
                 disabled={regenerating}
-                className="px-4 py-2 bg-transparent text-red hover:bg-bg3 hover:text-red-bright rounded transition-all duration-200 ease-in-out flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center gap-2 rounded bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <i className={`bi-arrow-repeat icon-sm${regenerating ? ' animate-spin' : ''}`} />
+                <i
+                  className={`bi-arrow-repeat icon-sm${regenerating ? 'animate-spin' : ''}`}
+                />
                 {regenerating ? 'Regenerating...' : 'Regenerate API Key'}
               </button>
             </div>
           </div>
         ) : (
           <div className="bg-tertiary rounded-lg p-4">
-            <p className="text-muted text-sm mb-4">
-              You don't have an API key yet. Generate one to access the Tarnished API.
+            <p className="text-muted mb-4 text-sm">
+              You don't have an API key yet. Generate one to access the
+              Tarnished API.
             </p>
             <button
               onClick={handleRegenerateKey}
               disabled={regenerating}
-              className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="bg-accent text-bg0 hover:bg-accent-bright flex cursor-pointer items-center gap-2 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <i className={`bi-${regenerating ? 'arrow-repeat animate-spin' : 'key'} icon-sm`} />
+              <i
+                className={`bi-${regenerating ? 'arrow-repeat animate-spin' : 'key'} icon-sm`}
+              />
               {regenerating ? 'Generating...' : 'Generate API Key'}
             </button>
           </div>

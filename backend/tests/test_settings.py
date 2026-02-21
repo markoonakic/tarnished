@@ -12,9 +12,13 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import generate_api_token, get_password_hash
-from app.core.themes import DEFAULT_THEME, DEFAULT_ACCENT, THEMES, ACCENT_OPTIONS, get_theme_colors
+from app.core.themes import (
+    ACCENT_OPTIONS,
+    DEFAULT_ACCENT,
+    DEFAULT_THEME,
+    THEMES,
+)
 from app.models import User
-
 
 # ============================================================================
 # Fixtures
@@ -135,7 +139,9 @@ class TestGetSettings:
         auth_headers_with_settings: dict,
     ):
         """Test getting custom settings for user with saved preferences."""
-        response = await client.get("/api/users/settings", headers=auth_headers_with_settings)
+        response = await client.get(
+            "/api/users/settings", headers=auth_headers_with_settings
+        )
         assert response.status_code == 200
 
         data = response.json()

@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  type ReactNode,
+} from 'react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -39,13 +45,27 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const success = useCallback((message: string) => addToast('success', message), [addToast]);
-  const error = useCallback((message: string) => addToast('error', message), [addToast]);
-  const warning = useCallback((message: string) => addToast('warning', message), [addToast]);
-  const info = useCallback((message: string) => addToast('info', message), [addToast]);
+  const success = useCallback(
+    (message: string) => addToast('success', message),
+    [addToast]
+  );
+  const error = useCallback(
+    (message: string) => addToast('error', message),
+    [addToast]
+  );
+  const warning = useCallback(
+    (message: string) => addToast('warning', message),
+    [addToast]
+  );
+  const info = useCallback(
+    (message: string) => addToast('info', message),
+    [addToast]
+  );
 
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast, success, error, warning, info }}>
+    <ToastContext.Provider
+      value={{ toasts, addToast, removeToast, success, error, warning, info }}
+    >
       {children}
     </ToastContext.Provider>
   );

@@ -91,7 +91,11 @@ export default function Applications() {
         newParams.delete(key);
       }
     });
-    if (updates.status !== undefined || updates.search !== undefined || updates.source !== undefined) {
+    if (
+      updates.status !== undefined ||
+      updates.search !== undefined ||
+      updates.source !== undefined
+    ) {
       newParams.set('page', '1');
     }
     setSearchParams(newParams);
@@ -105,33 +109,33 @@ export default function Applications() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-primary">Applications</h1>
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <h1 className="text-primary text-2xl font-bold">Applications</h1>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
+            className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
           >
             New Application
           </button>
         </div>
 
-        <div className="bg-bg1 rounded-lg p-4 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+        <div className="bg-bg1 mb-6 rounded-lg p-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
             {/* Search Input */}
-            <div className="flex-1 min-w-0 relative">
-              <i className="bi-search absolute left-3 top-1/2 -translate-y-1/2 icon-sm text-muted" />
+            <div className="relative min-w-0 flex-1">
+              <i className="bi-search icon-sm text-muted absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search company or job title..."
                 value={search}
                 onChange={(e) => updateParams({ search: e.target.value })}
-                className="w-full pl-9 pr-9 py-2 bg-bg2 text-fg1 placeholder-muted focus:ring-1 focus:ring-accent-bright focus:outline-none transition-all duration-200 ease-in-out rounded"
+                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pl-9 pr-9 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
               />
               {search && (
                 <button
                   onClick={() => updateParams({ search: '' })}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-fg1 transition-all duration-200 ease-in-out cursor-pointer"
+                  className="text-muted hover:text-fg1 absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
                   aria-label="Clear search"
                 >
                   <i className="bi-x icon-sm" />
@@ -144,7 +148,10 @@ export default function Applications() {
               <Dropdown
                 options={[
                   { value: '', label: 'All Statuses' },
-                  ...statuses.map((status) => ({ value: status.id, label: status.name }))
+                  ...statuses.map((status) => ({
+                    value: status.id,
+                    label: status.name,
+                  })),
                 ]}
                 value={statusFilter}
                 onChange={(value) => updateParams({ status: value })}
@@ -156,7 +163,10 @@ export default function Applications() {
               <Dropdown
                 options={[
                   { value: '', label: 'All Sources' },
-                  ...sources.map((source) => ({ value: source, label: source }))
+                  ...sources.map((source) => ({
+                    value: source,
+                    label: source,
+                  })),
                 ]}
                 value={sourceFilter}
                 onChange={(value) => updateParams({ source: value })}
@@ -187,7 +197,7 @@ export default function Applications() {
         </div>
 
         {error && (
-          <div className="bg-red-bright/20 border border-red-bright text-red-bright px-4 py-3 rounded mb-6">
+          <div className="bg-red-bright/20 border-red-bright text-red-bright mb-6 rounded border px-4 py-3">
             {error}
           </div>
         )}
@@ -206,54 +216,83 @@ export default function Applications() {
               message="No applications yet. Add your first application to get started."
               icon="bi-inbox"
               action={{
-                label: "Add Application",
-                onClick: () => setShowCreateModal(true)
+                label: 'Add Application',
+                onClick: () => setShowCreateModal(true),
               }}
             />
           )
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden md:block bg-secondary rounded-lg overflow-hidden">
+            <div className="bg-secondary hidden overflow-hidden rounded-lg md:block">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-tertiary">
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Company</th>
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Position</th>
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Status</th>
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Applied</th>
-                    <th className="text-left py-3 px-4 text-xs font-bold text-muted uppercase tracking-wide">Rounds</th>
+                  <tr className="border-tertiary border-b">
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                      Company
+                    </th>
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                      Position
+                    </th>
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                      Status
+                    </th>
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                      Applied
+                    </th>
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                      Rounds
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {applications.map((app, index) => (
-                    <tr key={app.id} className={`transition-colors duration-200 ${index < applications.length - 1 ? 'border-b border-tertiary' : ''}`}>
-                      <td className="py-3 px-4 text-sm">
+                    <tr
+                      key={app.id}
+                      className={`transition-colors duration-200 ${index < applications.length - 1 ? 'border-tertiary border-b' : ''}`}
+                    >
+                      <td className="px-4 py-3 text-sm">
                         <Link
                           to={`/applications/${app.id}`}
-                          className="text-fg1 hover:text-accent-bright transition-all duration-200 ease-in-out font-medium"
+                          className="text-fg1 hover:text-accent-bright font-medium transition-all duration-200 ease-in-out"
                         >
                           {app.company}
                         </Link>
                       </td>
-                      <td className="py-3 px-4 text-sm text-primary">{app.job_title}</td>
-                      <td className="py-3 px-4 text-sm">
+                      <td className="text-primary px-4 py-3 text-sm">
+                        {app.job_title}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
                         <span
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold"
+                          className="inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold"
                           style={{
                             backgroundColor: `${getStatusColor(app.status.name, colors, app.status.color)}20`,
-                            color: getStatusColor(app.status.name, colors, app.status.color),
+                            color: getStatusColor(
+                              app.status.name,
+                              colors,
+                              app.status.color
+                            ),
                           }}
                         >
                           <span
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: getStatusColor(app.status.name, colors, app.status.color) }}
+                            className="h-2 w-2 rounded-full"
+                            style={{
+                              backgroundColor: getStatusColor(
+                                app.status.name,
+                                colors,
+                                app.status.color
+                              ),
+                            }}
                           />
                           {app.status.name}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-sm text-secondary">{formatDate(app.applied_at)}</td>
-                      <td className="py-3 px-4 text-sm text-secondary">{app.rounds?.length || 0}</td>
+                      <td className="text-secondary px-4 py-3 text-sm">
+                        {formatDate(app.applied_at)}
+                      </td>
+                      <td className="text-secondary px-4 py-3 text-sm">
+                        {app.rounds?.length || 0}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -261,32 +300,47 @@ export default function Applications() {
             </div>
 
             {/* Mobile cards */}
-            <div className="md:hidden space-y-3">
+            <div className="space-y-3 md:hidden">
               {applications.map((app) => (
                 <Link
                   key={app.id}
                   to={`/applications/${app.id}`}
-                  className="block bg-secondary rounded-lg p-4 hover:bg-bg2 transition-all duration-200 ease-in-out cursor-pointer"
+                  className="bg-secondary hover:bg-bg2 block cursor-pointer rounded-lg p-4 transition-all duration-200 ease-in-out"
                 >
-                  <div className="flex justify-between items-start gap-2 mb-2">
-                    <span className="text-fg1 font-medium truncate">{app.company}</span>
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <span className="text-fg1 truncate font-medium">
+                      {app.company}
+                    </span>
                     <span
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold flex-shrink-0"
+                      className="inline-flex flex-shrink-0 items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold"
                       style={{
                         backgroundColor: `${getStatusColor(app.status.name, colors, app.status.color)}20`,
-                        color: getStatusColor(app.status.name, colors, app.status.color),
+                        color: getStatusColor(
+                          app.status.name,
+                          colors,
+                          app.status.color
+                        ),
                       }}
                     >
                       <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: getStatusColor(app.status.name, colors, app.status.color) }}
+                        className="h-2 w-2 rounded-full"
+                        style={{
+                          backgroundColor: getStatusColor(
+                            app.status.name,
+                            colors,
+                            app.status.color
+                          ),
+                        }}
                       />
                       {app.status.name}
                     </span>
                   </div>
-                  <div className="text-sm text-primary truncate mb-2">{app.job_title}</div>
-                  <div className="text-xs text-secondary">
-                    {formatDate(app.applied_at)} · {app.rounds?.length || 0} rounds
+                  <div className="text-primary mb-2 truncate text-sm">
+                    {app.job_title}
+                  </div>
+                  <div className="text-secondary text-xs">
+                    {formatDate(app.applied_at)} · {app.rounds?.length || 0}{' '}
+                    rounds
                   </div>
                 </Link>
               ))}
@@ -298,7 +352,9 @@ export default function Applications() {
                 totalPages={totalPages}
                 perPage={perPage}
                 totalItems={total}
-                onPageChange={(newPage) => updateParams({ page: String(newPage) })}
+                onPageChange={(newPage) =>
+                  updateParams({ page: String(newPage) })
+                }
               />
             </div>
           </>
@@ -307,7 +363,9 @@ export default function Applications() {
       <ApplicationModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSuccess={(applicationId) => navigate(`/applications/${applicationId}`)}
+        onSuccess={(applicationId) =>
+          navigate(`/applications/${applicationId}`)
+        }
       />
     </Layout>
   );

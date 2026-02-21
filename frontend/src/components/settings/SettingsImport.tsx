@@ -6,7 +6,9 @@ interface SettingsImportProps {
   onImportSuccess?: () => void;
 }
 
-export default function SettingsImport({ onImportSuccess }: SettingsImportProps) {
+export default function SettingsImport({
+  onImportSuccess,
+}: SettingsImportProps) {
   const [showImportModal, setShowImportModal] = useState(false);
 
   return (
@@ -16,14 +18,14 @@ export default function SettingsImport({ onImportSuccess }: SettingsImportProps)
       </div>
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-xl font-bold text-fg1 mb-4">Data Import</h2>
+        <h2 className="text-fg1 mb-4 text-xl font-bold">Data Import</h2>
 
-        <p className="text-sm text-muted mb-4">
+        <p className="text-muted mb-4 text-sm">
           Import job application data from a previously exported ZIP file.
         </p>
         <button
           onClick={() => setShowImportModal(true)}
-          className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
+          className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
         >
           Import Data
         </button>

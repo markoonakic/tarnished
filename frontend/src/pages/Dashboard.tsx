@@ -66,24 +66,27 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="mx-auto max-w-6xl px-4 py-8">
         {showImportPrompt && totalApplications === 0 && (
-          <div className="bg-accent/20 border border-accent text-primary px-6 py-4 rounded-lg mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-accent/20 border-accent text-primary mb-6 rounded-lg border px-6 py-4">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <div>
-                <h3 className="font-semibold mb-1">Welcome! 👋</h3>
-                <p className="text-sm">Do you have data from a previous export? You can import it to get started.</p>
+                <h3 className="mb-1 font-semibold">Welcome! 👋</h3>
+                <p className="text-sm">
+                  Do you have data from a previous export? You can import it to
+                  get started.
+                </p>
               </div>
-              <div className="flex gap-3 flex-shrink-0">
+              <div className="flex flex-shrink-0 gap-3">
                 <button
                   onClick={handleDismissPrompt}
-                  className="bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0 transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
+                  className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                 >
                   Skip
                 </button>
                 <button
                   onClick={handleOpenImportModal}
-                  className="bg-accent text-bg0 hover:bg-accent-bright transition-all duration-200 ease-in-out px-4 py-2 rounded-md font-medium cursor-pointer"
+                  className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                 >
                   Import Data
                 </button>
@@ -96,48 +99,56 @@ export default function Dashboard() {
             message="Welcome! Add your first job application to get started."
             icon="bi-plus-circle"
             action={{
-              label: "Add Application",
-              onClick: () => setShowCreateModal(true)
+              label: 'Add Application',
+              onClick: () => setShowCreateModal(true),
             }}
           />
         ) : (
           <>
-            <h1 className="text-2xl font-bold text-primary mb-6">Dashboard</h1>
+            <h1 className="text-primary mb-6 text-2xl font-bold">Dashboard</h1>
 
             <FlameEmblem />
 
             <KPICards />
 
             {/* Quick Actions - single layer cards using inline-block (no flex) to avoid Firefox animation bug */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="bg-secondary rounded-lg p-4 hover:-translate-y-0.5 hover:bg-bg2 will-change-transform transition-[translate,background-color] duration-200 ease-in-out cursor-pointer text-left"
+                className="bg-secondary hover:bg-bg2 cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5"
               >
                 <i className="bi bi-plus-lg text-accent icon-xl align-middle"></i>
-                <span className="text-fg1 font-medium align-middle ml-3">New Application</span>
+                <span className="text-fg1 ml-3 align-middle font-medium">
+                  New Application
+                </span>
               </button>
               <button
                 onClick={() => navigate('/analytics')}
-                className="bg-secondary rounded-lg p-4 hover:-translate-y-0.5 hover:bg-bg2 will-change-transform transition-[translate,background-color] duration-200 ease-in-out cursor-pointer text-left"
+                className="bg-secondary hover:bg-bg2 cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5"
               >
                 <i className="bi bi-graph-up text-accent icon-xl align-middle"></i>
-                <span className="text-fg1 font-medium align-middle ml-3">View Analytics</span>
+                <span className="text-fg1 ml-3 align-middle font-medium">
+                  View Analytics
+                </span>
               </button>
               <button
                 onClick={() => navigate('/applications')}
-                className="bg-secondary rounded-lg p-4 hover:-translate-y-0.5 hover:bg-bg2 will-change-transform transition-[translate,background-color] duration-200 ease-in-out cursor-pointer text-left"
+                className="bg-secondary hover:bg-bg2 cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5"
               >
                 <i className="bi bi-list-ul text-accent icon-xl align-middle"></i>
-                <span className="text-fg1 font-medium align-middle ml-3">View Applications</span>
+                <span className="text-fg1 ml-3 align-middle font-medium">
+                  View Applications
+                </span>
               </button>
             </div>
 
             <NeedsAttention />
 
             <div className="bg-secondary rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-primary">Activity Overview</h2>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-primary text-lg font-semibold">
+                  Activity Overview
+                </h2>
               </div>
               <ActivityHeatmap />
             </div>
@@ -152,7 +163,9 @@ export default function Dashboard() {
       <ApplicationModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSuccess={(applicationId) => navigate(`/applications/${applicationId}`)}
+        onSuccess={(applicationId) =>
+          navigate(`/applications/${applicationId}`)
+        }
       />
     </Layout>
   );

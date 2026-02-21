@@ -13,7 +13,11 @@ export async function exportCSV(): Promise<void> {
 export async function exportZIP(): Promise<void> {
   const response = await api.get('/api/export/zip', { responseType: 'blob' });
   const timestamp = new Date().toISOString().slice(0, 10);
-  downloadBlob(response.data, `tarnished-export-${timestamp}.zip`, 'application/zip');
+  downloadBlob(
+    response.data,
+    `tarnished-export-${timestamp}.zip`,
+    'application/zip'
+  );
 }
 
 function downloadBlob(blob: Blob, filename: string, mimeType: string) {

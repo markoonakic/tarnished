@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.security import get_password_hash
-from app.models import UserProfile, User
+from app.models import User, UserProfile
 
 
 @pytest.fixture
@@ -107,7 +107,7 @@ class TestUserProfileModelCreation:
                 "position": "Software Engineer",
                 "start_date": "2020-01-01",
                 "end_date": "2023-01-01",
-                "description": "Built web applications using React and Python"
+                "description": "Built web applications using React and Python",
             }
         ]
 
@@ -117,13 +117,11 @@ class TestUserProfileModelCreation:
                 "degree": "B.S. Computer Science",
                 "start_date": "2016-09-01",
                 "end_date": "2020-05-01",
-                "gpa": "3.8"
+                "gpa": "3.8",
             }
         ]
 
-        sample_skills = [
-            "Python", "JavaScript", "React", "FastAPI", "SQL"
-        ]
+        sample_skills = ["Python", "JavaScript", "React", "FastAPI", "SQL"]
 
         user_profile = UserProfile(
             user_id=test_user_for_profile.id,
@@ -159,7 +157,7 @@ class TestUserProfileModelCreation:
                     "position": "Senior Software Engineer",
                     "start_date": "2021-06-01",
                     "end_date": "2024-01-01",
-                    "description": "Led development of microservices architecture"
+                    "description": "Led development of microservices architecture",
                 }
             ],
             "education": [
@@ -168,10 +166,17 @@ class TestUserProfileModelCreation:
                     "degree": "M.S. Computer Science",
                     "start_date": "2019-09-01",
                     "end_date": "2021-05-01",
-                    "gpa": "3.9"
+                    "gpa": "3.9",
                 }
             ],
-            "skills": ["Python", "TypeScript", "AWS", "Docker", "Kubernetes", "GraphQL"]
+            "skills": [
+                "Python",
+                "TypeScript",
+                "AWS",
+                "Docker",
+                "Kubernetes",
+                "GraphQL",
+            ],
         }
 
         user_profile = UserProfile(**sample_data)
@@ -194,7 +199,14 @@ class TestUserProfileModelCreation:
         assert user_profile.work_history[0]["company"] == "Big Tech Inc"
         assert len(user_profile.education) == 1
         assert user_profile.education[0]["institution"] == "MIT"
-        assert user_profile.skills == ["Python", "TypeScript", "AWS", "Docker", "Kubernetes", "GraphQL"]
+        assert user_profile.skills == [
+            "Python",
+            "TypeScript",
+            "AWS",
+            "Docker",
+            "Kubernetes",
+            "GraphQL",
+        ]
 
     async def test_create_user_profile_with_partial_extended_data(
         self, db: AsyncSession, test_user_for_profile: User
@@ -224,7 +236,7 @@ class TestUserProfileModelCreation:
             last_name="Chen",
             email="michael.chen@example.com",
             location="Seattle, WA",
-            skills=["Python", "Java", "Spring Boot"]
+            skills=["Python", "Java", "Spring Boot"],
         )
         db.add(user_profile)
         await db.commit()
@@ -271,7 +283,9 @@ class TestUserProfileModelCreation:
 
         # Test the relationship from User side - need to join load the profile
         result = await db.execute(
-            select(User).options(selectinload(User.user_profile)).where(User.id == test_user_for_profile.id)
+            select(User)
+            .options(selectinload(User.user_profile))
+            .where(User.id == test_user_for_profile.id)
         )
         user_with_profile = result.scalar_one()
         assert user_with_profile.user_profile is not None

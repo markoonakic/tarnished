@@ -26,10 +26,10 @@ const sizeClasses = {
 // Icon sizing using dedicated icon utilities (see index.css)
 // Bootstrap Icons ::before inherits font-size, enabling consistent sizing
 const iconSizeClasses = {
-  xs: 'icon-xs',  // 12px - match xs dropdown
-  sm: 'icon-sm',  // 14px - match sm dropdown
-  md: 'icon-md',  // 16px - match md dropdown
-  lg: 'icon-lg',  // 18px - match lg dropdown
+  xs: 'icon-xs', // 12px - match xs dropdown
+  sm: 'icon-sm', // 14px - match sm dropdown
+  md: 'icon-md', // 16px - match md dropdown
+  lg: 'icon-lg', // 18px - match lg dropdown
 };
 
 // Background layer mappings for 6-layer rule: bg0 -> bg1 -> bg2 -> bg3 -> bg4 -> bg-h -> (wrap)
@@ -47,29 +47,29 @@ const getLayerClass = (baseLayer: string, offset: number): string => {
 // These must be complete class strings that Tailwind can detect at build time
 // Per 6-layer rule: non-selected = container + 1 layer (base state)
 const nonSelectedClasses = {
-  bg0: 'bg-bg1',      // bg0 + 1
-  bg1: 'bg-bg2',      // bg1 + 1
-  bg2: 'bg-bg3',      // bg2 + 1
-  bg3: 'bg-bg4',      // bg3 + 1
-  bg4: 'bg-bg-h',     // bg4 + 1
+  bg0: 'bg-bg1', // bg0 + 1
+  bg1: 'bg-bg2', // bg1 + 1
+  bg2: 'bg-bg3', // bg2 + 1
+  bg3: 'bg-bg4', // bg3 + 1
+  bg4: 'bg-bg-h', // bg4 + 1
 } as const;
 
 // Per 6-layer rule: hover = container + 3 layers
 const hoverClasses = {
-  bg0: 'hover:bg-bg3',   // bg0 + 3
-  bg1: 'hover:bg-bg4',   // bg1 + 3
-  bg2: 'hover:bg-bg-h',  // bg2 + 3
-  bg3: 'hover:bg-bg0',   // bg3 + 3 (wrap)
-  bg4: 'hover:bg-bg1',   // bg4 + 3 (wrap)
+  bg0: 'hover:bg-bg3', // bg0 + 3
+  bg1: 'hover:bg-bg4', // bg1 + 3
+  bg2: 'hover:bg-bg-h', // bg2 + 3
+  bg3: 'hover:bg-bg0', // bg3 + 3 (wrap)
+  bg4: 'hover:bg-bg1', // bg4 + 3 (wrap)
 } as const;
 
 // Per 6-layer rule: selected = container + 2 layers
 const selectedClasses = {
-  bg0: 'bg-bg2',      // bg0 + 2
-  bg1: 'bg-bg3',      // bg1 + 2
-  bg2: 'bg-bg4',      // bg2 + 2
-  bg3: 'bg-bg-h',     // bg3 + 2
-  bg4: 'bg-bg0',      // bg4 + 2 (wrap)
+  bg0: 'bg-bg2', // bg0 + 2
+  bg1: 'bg-bg3', // bg1 + 2
+  bg2: 'bg-bg4', // bg2 + 2
+  bg3: 'bg-bg-h', // bg3 + 2
+  bg4: 'bg-bg0', // bg4 + 2 (wrap)
 } as const;
 
 export default function Dropdown({
@@ -90,13 +90,19 @@ export default function Dropdown({
 
   // Use static class mappings for Tailwind JIT compatibility
   const triggerBg = getLayerClass(containerBackground, 1);
-  const nonSelectedBg = nonSelectedClasses[containerBackground as keyof typeof nonSelectedClasses];
-  const selectedBg = selectedClasses[containerBackground as keyof typeof selectedClasses];
-  const hoverClass = hoverClasses[containerBackground as keyof typeof hoverClasses];
+  const nonSelectedBg =
+    nonSelectedClasses[containerBackground as keyof typeof nonSelectedClasses];
+  const selectedBg =
+    selectedClasses[containerBackground as keyof typeof selectedClasses];
+  const hoverClass =
+    hoverClasses[containerBackground as keyof typeof hoverClasses];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
         setFocusedIndex(-1);
       }
@@ -110,10 +116,16 @@ export default function Dropdown({
     }
 
     document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape as unknown as EventListener);
+    document.addEventListener(
+      'keydown',
+      handleEscape as unknown as EventListener
+    );
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape as unknown as EventListener);
+      document.removeEventListener(
+        'keydown',
+        handleEscape as unknown as EventListener
+      );
     };
   }, []);
 
@@ -151,7 +163,9 @@ export default function Dropdown({
           setIsOpen(true);
           setFocusedIndex(options.length - 1);
         } else {
-          setFocusedIndex((prev) => (prev - 1 + options.length) % options.length);
+          setFocusedIndex(
+            (prev) => (prev - 1 + options.length) % options.length
+          );
         }
         break;
       case 'Home':
@@ -179,37 +193,19 @@ export default function Dropdown({
         aria-controls="dropdown-listbox"
         aria-selected={!!selectedOption}
         aria-disabled={disabled}
-        className={`
-          w-full flex items-center justify-between gap-3
-          ${triggerBg} border-0 rounded
-          text-fg1 hover:border-accent-bright
-          focus:outline-none focus:ring-1 focus:ring-accent-bright
-          ${isOpen ? 'ring-1 ring-accent-bright' : ''}
-          ${sizeClasses[size]}
-          transition-all duration-200 ease-in-out
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-        `}
+        className={`flex w-full items-center justify-between gap-3 ${triggerBg} text-fg1 hover:border-accent-bright focus:ring-accent-bright rounded border-0 focus:outline-none focus:ring-1 ${isOpen ? 'ring-accent-bright ring-1' : ''} ${sizeClasses[size]} transition-all duration-200 ease-in-out ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} `}
       >
         <span className={selectedOption ? 'text-fg1' : 'text-fg4'}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <i
-          className={`
-            bi-chevron-down ${iconSizeClasses[size]}
-            text-fg4 transition-transform duration-200 ease-in-out
-            ${isOpen ? 'rotate-180' : ''}
-          `}
+          className={`bi-chevron-down ${iconSizeClasses[size]} text-fg4 transition-transform duration-200 ease-in-out ${isOpen ? 'rotate-180' : ''} `}
         />
       </button>
 
       <div
         id="dropdown-listbox"
-        className={`
-          absolute z-10 w-full mt-1 rounded-lg overflow-hidden
-          border-0 transition-all duration-200 ease-in-out
-          bg-bg0
-          ${isOpen ? 'ring-1 ring-accent-bright' : ''}
-        `}
+        className={`bg-bg0 absolute z-10 mt-1 w-full overflow-hidden rounded-lg border-0 transition-all duration-200 ease-in-out ${isOpen ? 'ring-accent-bright ring-1' : ''} `}
         style={{
           display: 'grid',
           gridTemplateRows: isOpen ? '1fr' : '0fr',
@@ -217,7 +213,9 @@ export default function Dropdown({
           transform: isOpen ? 'translateY(0)' : 'translateY(-0.5rem)',
         }}
         role="listbox"
-        aria-activedescendant={focusedIndex >= 0 ? `option-${focusedIndex}` : undefined}
+        aria-activedescendant={
+          focusedIndex >= 0 ? `option-${focusedIndex}` : undefined
+        }
       >
         <div style={{ overflow: 'hidden' }}>
           {options.map((option, index) => {
@@ -233,20 +231,17 @@ export default function Dropdown({
                 onMouseEnter={() => setFocusedIndex(index)}
                 role="option"
                 aria-selected={isSelected}
-                className={`
-                  w-full text-left flex items-center justify-between transition-all duration-200 ease-in-out cursor-pointer
-                  ${sizeClasses[size]}
-                  ${
-                    isSelected
-                      ? `${selectedBg} text-fg0`
-                      : `${nonSelectedBg} text-fg1 ${hoverClass}`
-                  }
-                  ${isFocused ? 'bg-bg4' : ''}
-                `}
+                className={`flex w-full cursor-pointer items-center justify-between text-left transition-all duration-200 ease-in-out ${sizeClasses[size]} ${
+                  isSelected
+                    ? `${selectedBg} text-fg0`
+                    : `${nonSelectedBg} text-fg1 ${hoverClass}`
+                } ${isFocused ? 'bg-bg4' : ''} `}
               >
                 {option.label}
                 {isSelected && (
-                  <i className={`bi-check ${iconSizeClasses[size]} ${isFocused ? 'text-green-bright' : 'text-green'}`} />
+                  <i
+                    className={`bi-check ${iconSizeClasses[size]} ${isFocused ? 'text-green-bright' : 'text-green'}`}
+                  />
                 )}
               </button>
             );

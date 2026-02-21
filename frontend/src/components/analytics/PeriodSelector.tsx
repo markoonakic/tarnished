@@ -7,13 +7,15 @@ const PERIODS = [
   { value: 'all', label: 'All' },
 ] as const;
 
-type Period = typeof PERIODS[number]['value'];
+type Period = (typeof PERIODS)[number]['value'];
 
 interface PeriodSelectorProps {
   onPeriodChange?: (period: Period) => void;
 }
 
-export default function PeriodSelector({ onPeriodChange }: PeriodSelectorProps) {
+export default function PeriodSelector({
+  onPeriodChange,
+}: PeriodSelectorProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentPeriod = (searchParams.get('period') as Period) || '7d';
 
@@ -28,10 +30,10 @@ export default function PeriodSelector({ onPeriodChange }: PeriodSelectorProps) 
         <button
           key={period.value}
           onClick={() => handlePeriodChange(period.value)}
-          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-in-out cursor-pointer ${
+          className={`cursor-pointer rounded-lg px-4 py-2 font-medium transition-all duration-200 ease-in-out ${
             currentPeriod === period.value
               ? 'bg-accent text-bg1'
-              : 'bg-transparent text-fg1 hover:bg-bg2 hover:text-fg0'
+              : 'text-fg1 hover:bg-bg2 hover:text-fg0 bg-transparent'
           }`}
         >
           {period.label}

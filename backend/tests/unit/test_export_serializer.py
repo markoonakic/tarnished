@@ -1,11 +1,12 @@
 """Unit tests for the export serializer module."""
-import pytest
+
 from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import uuid4
 
-from sqlalchemy import create_engine, String, DateTime, ForeignKey, JSON, Numeric
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session, relationship
+import pytest
+from sqlalchemy import JSON, DateTime, ForeignKey, String, create_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
 
 from app.services.export_serializer import serialize_model_instance, serialize_value
 
@@ -26,7 +27,9 @@ class Post(Base):
     title: Mapped[str] = mapped_column(String(255))
     content: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC)
+    )
     tags: Mapped[list] = mapped_column(JSON, default=list)
 
     user = relationship("User")
@@ -64,6 +67,7 @@ class TestSerializeValue:
     def test_serialize_date(self):
         """Date should be serialized as ISO string (date only)."""
         from datetime import date
+
         d = date(2026, 2, 16)
         assert serialize_value(d) == "2026-02-16"
 
@@ -90,6 +94,7 @@ class TestSerializeValue:
 
     def test_serialize_unknown_type(self):
         """Unknown types should fall back to str()."""
+
         class CustomClass:
             def __str__(self):
                 return "custom_value"
@@ -130,7 +135,7 @@ class TestSerializeModelInstance:
             content="Content",
             user_id="user-1",
             created_at=datetime(2026, 2, 16, 12, 0, 0),
-            tags=["tag1", "tag2"]
+            tags=["tag1", "tag2"],
         )
         session.add(post)
         session.commit()
@@ -146,7 +151,7 @@ class TestSerializeModelInstance:
             title="Test",
             content=None,
             user_id="user-1",
-            tags=["python", "sqlalchemy"]
+            tags=["python", "sqlalchemy"],
         )
         session.add(post)
         session.commit()
@@ -157,13 +162,7 @@ class TestSerializeModelInstance:
 
     def test_serialize_none_as_null(self, session):
         """None values should be serialized as null."""
-        post = Post(
-            id="post-1",
-            title="Test",
-            content=None,
-            user_id="user-1",
-            tags=[]
-        )
+        post = Post(id="post-1", title="Test", content=None, user_id="user-1", tags=[])
         session.add(post)
         session.commit()
 
@@ -204,9 +203,7 @@ class TestSerializeModelInstance:
         session.commit()
 
         result = serialize_model_instance(
-            post,
-            include_relationships=True,
-            relationship_prefix="related_"
+            post, include_relationships=True, relationship_prefix="related_"
         )
 
         assert "related_user" in result
@@ -215,6 +212,7 @@ class TestSerializeModelInstance:
 
 class Author(Base):
     """Model with many-to-many relationship for testing collection serialization."""
+
     __tablename__ = "authors"
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     name: Mapped[str] = mapped_column(String(255))
@@ -222,6 +220,7 @@ class Author(Base):
 
 class Book(Base):
     """Model with collection relationship."""
+
     __tablename__ = "books"
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     title: Mapped[str] = mapped_column(String(255))
