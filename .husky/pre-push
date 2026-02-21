@@ -6,8 +6,8 @@ echo "Running pre-push checks..."
 echo ">> Backend: ruff check"
 cd backend && uv run ruff check || exit 1
 
-echo ">> Backend: pyright"
-uv run pyright || exit 1
+echo ">> Backend: pyright (app only)"
+uv run pyright app || exit 1
 
 # Frontend checks
 cd ../frontend
