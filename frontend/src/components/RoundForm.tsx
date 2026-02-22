@@ -209,7 +209,7 @@ export default function RoundForm({
             type="date"
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
-            className="bg-bg3 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+            className="bg-bg3 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
           />
         </div>
 
@@ -226,7 +226,7 @@ export default function RoundForm({
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
             placeholder="e.g. 2:30 PM"
-            className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+            className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
           />
         </div>
 
@@ -266,7 +266,7 @@ export default function RoundForm({
                 type="date"
                 value={completedDate}
                 onChange={(e) => setCompletedDate(e.target.value)}
-                className="bg-bg3 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                className="bg-bg3 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
             </div>
 
@@ -283,7 +283,7 @@ export default function RoundForm({
                 value={completedTime}
                 onChange={(e) => setCompletedTime(e.target.value)}
                 placeholder="e.g. 2:30 PM"
-                className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
             </div>
           </>
@@ -302,7 +302,7 @@ export default function RoundForm({
             onChange={(e) => setNotesSummary(e.target.value)}
             rows={3}
             placeholder="Key points, questions asked, feedback..."
-            className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+            className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
           />
         </div>
 
@@ -351,7 +351,7 @@ export default function RoundForm({
             onChange={(e) => setTranscriptSummary(e.target.value)}
             rows={3}
             placeholder="Summary of key discussion points from transcript..."
-            className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+            className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
           />
         </div>
       </div>

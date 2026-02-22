@@ -70,7 +70,7 @@ export default function Register() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoFocus
-              className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+              className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               required
             />
           </div>

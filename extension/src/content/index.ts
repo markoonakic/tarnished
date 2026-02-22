@@ -12,7 +12,11 @@
 
 import browser from 'webextension-polyfill';
 import { detectJobPage, type DetectionResult } from '../lib/detection';
-import { getAutofillEngine, type AutofillProfile, type AutofillResult } from '../lib/autofill/index';
+import {
+  getAutofillEngine,
+  type AutofillProfile,
+  type AutofillResult,
+} from '../lib/autofill/index';
 
 // ============================================================================
 // Message Type Constants
@@ -70,7 +74,9 @@ async function injectIntoIframes(): Promise<void> {
           console.log('[Tarnished] Injected scanner into same-origin iframe');
         };
         script.onerror = () => {
-          console.warn('[Tarnished] Failed to inject into iframe, requesting background injection');
+          console.warn(
+            '[Tarnished] Failed to inject into iframe, requesting background injection'
+          );
           requestBackgroundInjection(iframe);
         };
         iframe.contentDocument.documentElement.appendChild(script);
@@ -88,7 +94,9 @@ async function injectIntoIframes(): Promise<void> {
 /**
  * Request the background script to inject the scanner into a cross-origin iframe.
  */
-async function requestBackgroundInjection(iframe: HTMLIFrameElement): Promise<void> {
+async function requestBackgroundInjection(
+  iframe: HTMLIFrameElement
+): Promise<void> {
   try {
     await browser.runtime.sendMessage({
       type: 'INJECT_INTO_IFRAME',
@@ -156,13 +164,15 @@ function aggregateAndReport(): void {
   fillableFieldCount = totalFillable;
 
   // Send to background
-  browser.runtime.sendMessage({
-    type: 'FORM_DETECTION_UPDATE',
-    hasApplicationForm: formDetected,
-    fillableFieldCount,
-  }).catch(() => {
-    // Ignore errors if background script not ready
-  });
+  browser.runtime
+    .sendMessage({
+      type: 'FORM_DETECTION_UPDATE',
+      hasApplicationForm: formDetected,
+      fillableFieldCount,
+    })
+    .catch(() => {
+      // Ignore errors if background script not ready
+    });
 }
 
 /**
@@ -198,7 +208,9 @@ function scanForFields(): void {
   const result = engine.scan();
 
   // Get all inputs on page for debugging
-  const allInputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+  const allInputs = document.querySelectorAll<
+    HTMLInputElement | HTMLTextAreaElement
+  >(
     'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]):not([type="file"]), textarea'
   );
 
@@ -211,17 +223,20 @@ function scanForFields(): void {
     totalRelevantFields: result.totalRelevantFields,
     fillableFieldCount: result.fillableFields.length,
     iframeCount: iframes.length,
-    fillableFields: result.fillableFields.map(f => ({
+    fillableFields: result.fillableFields.map((f) => ({
       type: f.fieldType,
       score: f.score,
-      element: f.element.id || f.element.name || f.element.placeholder || 'unnamed',
+      element:
+        f.element.id || f.element.name || f.element.placeholder || 'unnamed',
     })),
   });
 
   // If no inputs found and we haven't exhausted retries, try again later
   if (allInputs.length === 0 && scanRetryCount < MAX_SCAN_RETRIES) {
     scanRetryCount++;
-    console.log(`[Tarnished] No inputs found, retrying in ${SCAN_RETRY_DELAY}ms (attempt ${scanRetryCount}/${MAX_SCAN_RETRIES})`);
+    console.log(
+      `[Tarnished] No inputs found, retrying in ${SCAN_RETRY_DELAY}ms (attempt ${scanRetryCount}/${MAX_SCAN_RETRIES})`
+    );
     setTimeout(scanForFields, SCAN_RETRY_DELAY);
     return;
   }
@@ -344,8 +359,15 @@ if (document.readyState === 'complete') {
  * Message listener for requests from popup/background scripts.
  */
 browser.runtime.onMessage.addListener(
-  (message: unknown): Promise<
-    | { text?: string; filledCount?: number; fillableFieldCount?: number; hasApplicationForm?: boolean }
+  (
+    message: unknown
+  ): Promise<
+    | {
+        text?: string;
+        filledCount?: number;
+        fillableFieldCount?: number;
+        hasApplicationForm?: boolean;
+      }
     | DetectionResult
     | undefined
   > => {

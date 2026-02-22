@@ -402,7 +402,9 @@ class TestJobLeadsCreate:
         )
 
         assert response.status_code == 409
-        assert "already exists" in response.json()["detail"].lower()
+        error = response.json()["detail"]
+        assert error["code"] == "DUPLICATE_RESOURCE"
+        assert "already" in error["message"].lower()
 
     async def test_create_job_lead_with_html_content(
         self,

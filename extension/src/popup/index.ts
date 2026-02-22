@@ -128,7 +128,9 @@ const elements = {
 
   // Settings dropdown
   settingsDropdown: document.getElementById('settingsDropdown'),
-  autoFillToggle: document.getElementById('autoFillToggle') as HTMLInputElement | null,
+  autoFillToggle: document.getElementById(
+    'autoFillToggle'
+  ) as HTMLInputElement | null,
   openSettingsFromDropdown: document.getElementById('openSettingsFromDropdown'),
 
   // Autofill sections
@@ -196,7 +198,8 @@ function showState(state: PopupState): void {
  */
 function updateAutofillVisibility(state: PopupState): void {
   // Show autofill section if we have at least 1 fillable field OR if we detected an application form
-  const showAutofill = formDetection.hasApplicationForm || formDetection.fillableFieldCount >= 1;
+  const showAutofill =
+    formDetection.hasApplicationForm || formDetection.fillableFieldCount >= 1;
 
   // Update field counts
   const countText = `${formDetection.fillableFieldCount} field${formDetection.fillableFieldCount !== 1 ? 's' : ''}`;
@@ -226,9 +229,15 @@ function updateAutofillVisibility(state: PopupState): void {
  * Update job info display in the UI
  */
 function updateJobInfoDisplay(info: JobInfo, prefix: 'job' | 'savedJob'): void {
-  const titleEl = elements[`${prefix}Title` as keyof typeof elements] as HTMLElement | null;
-  const companyEl = elements[`${prefix}Company` as keyof typeof elements] as HTMLElement | null;
-  const locationEl = elements[`${prefix}Location` as keyof typeof elements] as HTMLElement | null;
+  const titleEl = elements[
+    `${prefix}Title` as keyof typeof elements
+  ] as HTMLElement | null;
+  const companyEl = elements[
+    `${prefix}Company` as keyof typeof elements
+  ] as HTMLElement | null;
+  const locationEl = elements[
+    `${prefix}Location` as keyof typeof elements
+  ] as HTMLElement | null;
 
   if (titleEl) {
     titleEl.textContent = info.title || 'Unknown Position';
@@ -308,7 +317,9 @@ async function handleAutoFillToggle(): Promise<void> {
  */
 async function loadAutoFillSetting(): Promise<void> {
   try {
-    const result = await browser.storage.local.get('autoFillOnLoad') as { autoFillOnLoad?: boolean };
+    const result = (await browser.storage.local.get('autoFillOnLoad')) as {
+      autoFillOnLoad?: boolean;
+    };
     autoFillOnLoad = result.autoFillOnLoad ?? false;
     if (elements.autoFillToggle) {
       elements.autoFillToggle.checked = autoFillOnLoad;
@@ -325,10 +336,7 @@ async function loadAutoFillSetting(): Promise<void> {
 /**
  * Show a browser notification
  */
-async function showNotification(
-  title: string,
-  message: string
-): Promise<void> {
+async function showNotification(title: string, message: string): Promise<void> {
   try {
     await browser.notifications.create({
       type: 'basic',
@@ -344,19 +352,31 @@ async function showNotification(
 /**
  * Show a success notification for saved job lead
  */
-function showSuccessNotification(title: string | null, company: string | null): void {
+function showSuccessNotification(
+  title: string | null,
+  company: string | null
+): void {
   const jobTitle = title || 'Job Lead';
   const companyText = company ? ` at ${company}` : '';
-  showNotification('Job Saved!', `${jobTitle}${companyText} has been saved to Job Leads.`);
+  showNotification(
+    'Job Saved!',
+    `${jobTitle}${companyText} has been saved to Job Leads.`
+  );
 }
 
 /**
  * Show a success notification for saved application
  */
-function showApplicationSuccessNotification(title: string | null, company: string | null): void {
+function showApplicationSuccessNotification(
+  title: string | null,
+  company: string | null
+): void {
   const jobTitle = title || 'Application';
   const companyText = company ? ` at ${company}` : '';
-  showNotification('Application Added!', `${jobTitle}${companyText} has been added as an application.`);
+  showNotification(
+    'Application Added!',
+    `${jobTitle}${companyText} has been added as an application.`
+  );
 }
 
 /**
@@ -512,7 +532,8 @@ async function saveAsApplication(): Promise<void> {
     // Get the "Applied" status ID
     const statusId = await getAppliedStatusId();
     if (!statusId) {
-      const errorMsg = 'Could not find "Applied" status. Please ensure it exists in your application settings.';
+      const errorMsg =
+        'Could not find "Applied" status. Please ensure it exists in your application settings.';
       showError(errorMsg, true);
       showErrorNotification(errorMsg);
       return;
@@ -528,7 +549,12 @@ async function saveAsApplication(): Promise<void> {
       // Continue without text - backend will try to fetch HTML
     }
 
-    console.log('Calling extractApplication with text:', !!text, 'length:', text?.length);
+    console.log(
+      'Calling extractApplication with text:',
+      !!text,
+      'length:',
+      text?.length
+    );
 
     // Extract and create application using server-side LLM extraction
     const result = await extractApplication({
@@ -655,24 +681,35 @@ async function autofillFormHandler(): Promise<void> {
     };
 
     if (!hasAutofillData(autofillProfile)) {
-      showErrorNotification('Set up your profile in the app to enable autofill');
+      showErrorNotification(
+        'Set up your profile in the app to enable autofill'
+      );
       return;
     }
 
     // Send autofill request to content script
-    const response = await browser.tabs.sendMessage(currentTabId, {
+    const response = (await browser.tabs.sendMessage(currentTabId, {
       type: 'AUTOFILL_FORM',
       profile: autofillProfile,
-    }) as { filledCount?: number };
+    })) as { filledCount?: number };
 
     if (response && typeof response.filledCount === 'number') {
       if (response.filledCount > 0) {
-        showNotification('Autofill Complete', `Filled ${response.filledCount} field${response.filledCount !== 1 ? 's' : ''}.`);
+        showNotification(
+          'Autofill Complete',
+          `Filled ${response.filledCount} field${response.filledCount !== 1 ? 's' : ''}.`
+        );
       } else {
-        showNotification('No Fields Found', 'No empty form fields found to fill.');
+        showNotification(
+          'No Fields Found',
+          'No empty form fields found to fill.'
+        );
       }
     } else {
-      showNotification('Autofill Failed', 'Could not complete autofill. Try refreshing the page.');
+      showNotification(
+        'Autofill Failed',
+        'Could not complete autofill. Try refreshing the page.'
+      );
     }
   } catch (error) {
     const extensionError = mapApiError(error);
@@ -694,9 +731,9 @@ async function getTextFromContentScript(): Promise<string> {
   }
 
   try {
-    const response = await browser.tabs.sendMessage(currentTabId, {
+    const response = (await browser.tabs.sendMessage(currentTabId, {
       type: 'GET_TEXT',
-    }) as { text?: string };
+    })) as { text?: string };
 
     if (response && response.text) {
       return response.text;
@@ -717,9 +754,9 @@ async function getFormDetectionFromContentScript(): Promise<FormDetectionState |
   }
 
   try {
-    const response = await browser.tabs.sendMessage(currentTabId, {
+    const response = (await browser.tabs.sendMessage(currentTabId, {
       type: 'SCAN_FIELDS',
-    }) as { hasApplicationForm?: boolean; fillableFieldCount?: number };
+    })) as { hasApplicationForm?: boolean; fillableFieldCount?: number };
 
     if (response && typeof response.fillableFieldCount === 'number') {
       return {
@@ -755,7 +792,10 @@ async function determineState(): Promise<void> {
     }
 
     // Step 2: Get current tab
-    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    const tabs = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
     const currentTab = tabs[0];
 
     if (!currentTab || !currentTab.id || !currentTab.url) {
@@ -786,9 +826,9 @@ async function determineState(): Promise<void> {
     // Fallback: If no cached status, request detection directly from content script
     if (!tabStatus) {
       try {
-        const detectionResult = await browser.tabs.sendMessage(currentTabId, {
+        const detectionResult = (await browser.tabs.sendMessage(currentTabId, {
           type: 'GET_DETECTION',
-        }) as { isJobPage?: boolean; score?: number; signals?: string[] };
+        })) as { isJobPage?: boolean; score?: number; signals?: string[] };
         if (detectionResult) {
           tabStatus = {
             isJobPage: detectionResult.isJobPage ?? false,
@@ -1036,7 +1076,10 @@ async function init(): Promise<void> {
 
     // Debug: Verify CSS variables were set
     const root = document.documentElement;
-    console.log('[Popup] CSS var --accent:', root.style.getPropertyValue('--accent'));
+    console.log(
+      '[Popup] CSS var --accent:',
+      root.style.getPropertyValue('--accent')
+    );
   } catch (error) {
     console.warn('Failed to load theme:', error);
   }
@@ -1071,7 +1114,9 @@ async function updateFavicon(accentColor: string): Promise<void> {
     const svgDataUrl = `data:image/svg+xml,${encodeURIComponent(svg)}`;
 
     // Update favicon
-    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    const favicon = document.querySelector(
+      'link[rel="icon"]'
+    ) as HTMLLinkElement;
     if (favicon) {
       favicon.href = svgDataUrl;
     }
@@ -1098,20 +1143,22 @@ document.addEventListener('DOMContentLoaded', () => {
  * Listen for FORM_DETECTION_UPDATE messages from content script
  * This allows the popup to update its UI when forms are dynamically detected
  */
-browser.runtime.onMessage.addListener(
-  (message: unknown) => {
-    const msg = message as { type: string; hasApplicationForm?: boolean; fillableFieldCount?: number };
-    if (msg.type === 'FORM_DETECTION_UPDATE') {
-      formDetection = {
-        hasApplicationForm: msg.hasApplicationForm ?? false,
-        fillableFieldCount: msg.fillableFieldCount ?? 0,
-      };
-      // Update autofill visibility based on new form detection state
-      updateAutofillVisibility(currentState);
-    }
-    return undefined;
+browser.runtime.onMessage.addListener((message: unknown) => {
+  const msg = message as {
+    type: string;
+    hasApplicationForm?: boolean;
+    fillableFieldCount?: number;
+  };
+  if (msg.type === 'FORM_DETECTION_UPDATE') {
+    formDetection = {
+      hasApplicationForm: msg.hasApplicationForm ?? false,
+      fillableFieldCount: msg.fillableFieldCount ?? 0,
+    };
+    // Update autofill visibility based on new form detection state
+    updateAutofillVisibility(currentState);
   }
-);
+  return undefined;
+});
 
 // Export for module detection
 export {};

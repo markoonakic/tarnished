@@ -61,7 +61,9 @@ async function updateFavicon(accentColor: string): Promise<void> {
     const svgDataUrl = `data:image/svg+xml,${encodeURIComponent(svg)}`;
 
     // Update favicon
-    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    const favicon = document.querySelector(
+      'link[rel="icon"]'
+    ) as HTMLLinkElement;
     if (favicon) {
       favicon.href = svgDataUrl;
     }

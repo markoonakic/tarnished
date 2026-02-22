@@ -42,7 +42,7 @@ export async function updateRoundType(
   id: string,
   data: { name: string }
 ): Promise<RoundType> {
-  const response = await api.put(`/api/round-types/${id}`, data);
+  const response = await api.patch(`/api/round-types/${id}`, data);
   return response.data;
 }
 

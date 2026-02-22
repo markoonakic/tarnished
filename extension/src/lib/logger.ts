@@ -26,7 +26,7 @@ async function checkDebugMode(): Promise<boolean> {
 }
 
 // Initialize debug mode check
-checkDebugMode().then(enabled => {
+checkDebugMode().then((enabled) => {
   debugEnabled = enabled;
 });
 

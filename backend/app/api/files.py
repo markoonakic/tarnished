@@ -103,7 +103,8 @@ async def get_media_file(
         else:
             media_type = "application/octet-stream"
 
-    filename = os.path.basename(media.file_path)
+    # Use original filename if available, otherwise fall back to hash-based name
+    filename = media.original_filename or os.path.basename(media.file_path)
 
     if disposition == "attachment":
         headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
@@ -287,6 +288,10 @@ async def get_file(
         "cv": application.cv_path,
         "cover-letter": application.cover_letter_path,
     }
+    original_filename_map = {
+        "cv": application.cv_original_filename,
+        "cover-letter": application.cover_letter_original_filename,
+    }
 
     file_path = path_map.get(doc_type)
     if not file_path or not os.path.exists(file_path):
@@ -297,7 +302,8 @@ async def get_file(
     if not media_type:
         media_type = "application/octet-stream"
 
-    filename = os.path.basename(file_path)
+    # Use original filename if available, otherwise fall back to hash-based name
+    filename = original_filename_map.get(doc_type) or os.path.basename(file_path)
 
     # Set content disposition
     if disposition == "attachment":

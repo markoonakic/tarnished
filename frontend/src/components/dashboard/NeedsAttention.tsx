@@ -65,7 +65,7 @@ function AttentionSection({
                 <p className="text-fg1 truncate font-medium">{item.company}</p>
                 <p className="text-fg4 truncate text-sm">{item.job_title}</p>
               </div>
-              <div className="text-fg4 whitespace-nowrap text-xs">
+              <div className="text-fg4 text-xs whitespace-nowrap">
                 {item.days_since}d
               </div>
             </div>

@@ -34,17 +34,21 @@ function hasRelevantPatterns(
     }
 
     // Check placeholder
-    if (patterns.placeholderPatterns.some(p => p.test(element.placeholder || ''))) {
+    if (
+      patterns.placeholderPatterns.some((p) =>
+        p.test(element.placeholder || '')
+      )
+    ) {
       return true;
     }
 
     // Check name
-    if (patterns.namePatterns.some(p => p.test(element.name || ''))) {
+    if (patterns.namePatterns.some((p) => p.test(element.name || ''))) {
       return true;
     }
 
     // Check id
-    if (patterns.idPatterns.some(p => p.test(element.id || ''))) {
+    if (patterns.idPatterns.some((p) => p.test(element.id || ''))) {
       return true;
     }
   }
@@ -56,7 +60,9 @@ function hasRelevantPatterns(
  * Scan the page for fillable form fields.
  */
 export function scanForFillableFields(): FormScanResult {
-  const inputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+  const inputs = document.querySelectorAll<
+    HTMLInputElement | HTMLTextAreaElement
+  >(
     'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]):not([type="file"]), textarea'
   );
 

@@ -51,7 +51,7 @@ export default function Layout({ children }: Props) {
       <nav className="bg-secondary border-tertiary border-b" ref={menuRef}>
         <a
           href="#main-content"
-          className="focus:bg-accent focus:text-bg0 sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:px-4 focus:py-2"
+          className="focus:bg-accent focus:text-bg0 sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded focus:px-4 focus:py-2"
         >
           Skip to main content
         </a>
@@ -61,7 +61,7 @@ export default function Layout({ children }: Props) {
               to="/"
               className="text-fg1 hover:text-accent-bright flex items-center gap-2 text-xl font-bold transition-all duration-200 ease-in-out"
             >
-              <div className="h-8 w-8 bg-current transition-all duration-200 ease-in-out [mask-image:url('/tree.svg')] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]" />
+              <div className="h-8 w-8 bg-current [mask-image:url('/tree.svg')] [mask-size:contain] [mask-position:center] [mask-repeat:no-repeat] transition-all duration-200 ease-in-out" />
               Tarnished
             </Link>
             {/* Desktop nav links */}
@@ -136,7 +136,7 @@ export default function Layout({ children }: Props) {
                   Admin
                 </Link>
               )}
-              <div className="border-tertiary mt-2 border-t pb-2 pt-3">
+              <div className="border-tertiary mt-2 border-t pt-3 pb-2">
                 <span className="text-muted mb-3 block text-sm">
                   {user?.email}
                 </span>

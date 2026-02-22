@@ -9,7 +9,7 @@ export function OverallGrace({ message }: OverallGraceProps) {
         <i className="bi-sun text-accent icon-md" />
         <span className="text-fg1 font-medium">Guidance of Grace</span>
       </div>
-      <p className="text-fg2 italic leading-relaxed">"{message}"</p>
+      <p className="text-fg2 leading-relaxed italic">"{message}"</p>
     </div>
   );
 }

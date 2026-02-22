@@ -59,6 +59,7 @@ class RoundMedia(Base):
         String(36), ForeignKey("rounds.id"), nullable=False
     )
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
+    original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     media_type: Mapped[str] = mapped_column(String(10), nullable=False)
     uploaded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)

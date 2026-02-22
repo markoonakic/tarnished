@@ -119,7 +119,11 @@ export default function SankeyChart() {
 
       // Handle edges/links (flows between nodes)
       if (p.dataType === 'edge') {
-        const edgeData = p.data as { source: string; target: string; value: number };
+        const edgeData = p.data as {
+          source: string;
+          target: string;
+          value: number;
+        };
         const source = formatNodeId(edgeData.source);
         const target = formatNodeId(edgeData.target);
         return `${source} → ${target}: ${edgeData.value}`;

@@ -86,7 +86,7 @@ export default function FeatureToggles() {
               <button
                 onClick={() => handleToggle(toggle.key)}
                 disabled={updateMutation.isPending}
-                className={`focus:ring-accent focus:ring-offset-bg0 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                className={`focus:ring-accent focus:ring-offset-bg0 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:ring-2 focus:ring-offset-2 focus:outline-none ${
                   isEnabled ? 'bg-accent' : 'bg-tertiary'
                 } ${updateMutation.isPending ? 'cursor-wait opacity-50' : ''}`}
                 role="switch"

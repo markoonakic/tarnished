@@ -40,21 +40,9 @@ export const FIELD_PATTERNS: Record<FieldType, FieldPattern> = {
       /\bgiven\s*name\b/i,
       /^first$/i,
     ],
-    placeholderPatterns: [
-      /first\s*name/i,
-      /e\.g\.\s*john/i,
-      /^first$/i,
-    ],
-    namePatterns: [
-      /first_?name/i,
-      /fname/i,
-      /given_?name/i,
-    ],
-    idPatterns: [
-      /first_?name/i,
-      /fname/i,
-      /given_?name/i,
-    ],
+    placeholderPatterns: [/first\s*name/i, /e\.g\.\s*john/i, /^first$/i],
+    namePatterns: [/first_?name/i, /fname/i, /given_?name/i],
+    idPatterns: [/first_?name/i, /fname/i, /given_?name/i],
   },
   last_name: {
     autocomplete: ['family-name', 'lname', 'lastname', 'surname'],
@@ -71,18 +59,8 @@ export const FIELD_PATTERNS: Record<FieldType, FieldPattern> = {
       /e\.g\.\s*(doe|smith)/i,
       /^last$/i,
     ],
-    namePatterns: [
-      /last_?name/i,
-      /lname/i,
-      /surname/i,
-      /family_?name/i,
-    ],
-    idPatterns: [
-      /last_?name/i,
-      /lname/i,
-      /surname/i,
-      /family_?name/i,
-    ],
+    namePatterns: [/last_?name/i, /lname/i, /surname/i, /family_?name/i],
+    idPatterns: [/last_?name/i, /lname/i, /surname/i, /family_?name/i],
   },
   full_name: {
     autocomplete: ['name', 'full-name', 'fullname'],
@@ -115,23 +93,10 @@ export const FIELD_PATTERNS: Record<FieldType, FieldPattern> = {
   },
   email: {
     autocomplete: ['email', 'email-address'],
-    labelPatterns: [
-      /\bemail\b/i,
-      /\be-?mail\s*address\b/i,
-    ],
-    placeholderPatterns: [
-      /email/i,
-      /e\.g\.\s*.*@/i,
-      /name@example\.com/i,
-    ],
-    namePatterns: [
-      /email/i,
-      /e_?mail/i,
-    ],
-    idPatterns: [
-      /email/i,
-      /e_?mail/i,
-    ],
+    labelPatterns: [/\bemail\b/i, /\be-?mail\s*address\b/i],
+    placeholderPatterns: [/email/i, /e\.g\.\s*.*@/i, /name@example\.com/i],
+    namePatterns: [/email/i, /e_?mail/i],
+    idPatterns: [/email/i, /e_?mail/i],
   },
   phone: {
     autocomplete: ['tel', 'tel-national', 'phone', 'mobile'],
@@ -142,31 +107,17 @@ export const FIELD_PATTERNS: Record<FieldType, FieldPattern> = {
       /\btelephone\b/i,
       /\bcontact\s*number\b/i,
     ],
-    placeholderPatterns: [
-      /\(xxx\)/,
-      /\(\d{3}\)/,
-      /phone/i,
-      /mobile/i,
-      /\+1/i,
-    ],
-    namePatterns: [
-      /phone/i,
-      /mobile/i,
-      /cell/i,
-      /tel/i,
-      /contact/i,
-    ],
-    idPatterns: [
-      /phone/i,
-      /mobile/i,
-      /cell/i,
-      /tel/i,
-    ],
+    placeholderPatterns: [/\(xxx\)/, /\(\d{3}\)/, /phone/i, /mobile/i, /\+1/i],
+    namePatterns: [/phone/i, /mobile/i, /cell/i, /tel/i, /contact/i],
+    idPatterns: [/phone/i, /mobile/i, /cell/i, /tel/i],
   },
   city: {
     autocomplete: ['address-level2', 'city', 'locality'],
     labelPatterns: [/\bcity\b/i, /\blocation\b/i, /\bcurrent\s*city\b/i],
-    placeholderPatterns: [/city/i, /e\.g\.\s*(new\s*york|san\s*francisco|london)/i],
+    placeholderPatterns: [
+      /city/i,
+      /e\.g\.\s*(new\s*york|san\s*francisco|london)/i,
+    ],
     namePatterns: [/city/i, /locality/i],
     idPatterns: [/city/i, /locality/i],
   },
@@ -184,23 +135,9 @@ export const FIELD_PATTERNS: Record<FieldType, FieldPattern> = {
       /\blinked\s*in\b/i,
       /\blinkedin\s*(profile|url)\b/i,
     ],
-    placeholderPatterns: [
-      /linkedin/i,
-      /linkedin\.com/i,
-      /linked\.in/i,
-    ],
-    namePatterns: [
-      /linkedin/i,
-      /linked_?in/i,
-      /li_profile/i,
-      /li_url/i,
-    ],
-    idPatterns: [
-      /linkedin/i,
-      /linked_?in/i,
-      /li_profile/i,
-      /li_url/i,
-    ],
+    placeholderPatterns: [/linkedin/i, /linkedin\.com/i, /linked\.in/i],
+    namePatterns: [/linkedin/i, /linked_?in/i, /li_profile/i, /li_url/i],
+    idPatterns: [/linkedin/i, /linked_?in/i, /li_profile/i, /li_url/i],
   },
 };
 
@@ -215,7 +152,9 @@ function matchesPatterns(value: string | null, patterns: RegExp[]): boolean {
 /**
  * Get associated label text for an input element.
  */
-function getAssociatedLabelText(element: HTMLInputElement | HTMLTextAreaElement): string | null {
+function getAssociatedLabelText(
+  element: HTMLInputElement | HTMLTextAreaElement
+): string | null {
   // Check for explicit label association via for attribute
   if (element.id) {
     const label = document.querySelector(`label[for="${element.id}"]`);

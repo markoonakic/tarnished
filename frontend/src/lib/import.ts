@@ -84,7 +84,9 @@ export function connectToImportProgress(
   onComplete: () => void
 ): EventSource {
   const token = localStorage.getItem('access_token');
-  const url = new URL(`${API_BASE}/api/import/progress/${importId}`);
+  // API_BASE may be empty in development, so use window.location.origin as fallback
+  const baseUrl = API_BASE || window.location.origin;
+  const url = new URL(`${baseUrl}/api/import/progress/${importId}`);
   if (token) {
     url.searchParams.append('token', token);
   }

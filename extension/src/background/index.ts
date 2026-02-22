@@ -12,7 +12,10 @@ import { buildUrl } from '../lib/url';
 import { debug, warn, error } from '../lib/logger';
 
 async function fetchThemeSettings(): Promise<ThemeColors> {
-  const { appUrl, apiKey } = await browser.storage.local.get(['appUrl', 'apiKey']) as { appUrl?: string; apiKey?: string };
+  const { appUrl, apiKey } = (await browser.storage.local.get([
+    'appUrl',
+    'apiKey',
+  ])) as { appUrl?: string; apiKey?: string };
 
   if (!appUrl || !apiKey) {
     debug('Theme', 'Extension not configured, using default colors');
@@ -25,7 +28,7 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
 
     const response = await fetch(url, {
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
     });
@@ -38,14 +41,18 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
     debug('Theme', 'Loaded theme:', settings.theme, 'accent:', settings.accent);
 
     // Cache settings for popup
-    await browser.storage.local.set({ [SETTINGS_STORAGE_KEY]: settings.colors });
+    await browser.storage.local.set({
+      [SETTINGS_STORAGE_KEY]: settings.colors,
+    });
 
     return settings.colors;
   } catch (err) {
     error('Theme', 'Fetch failed:', err);
 
     // Try to use cached settings
-    const cached = await browser.storage.local.get(SETTINGS_STORAGE_KEY) as Record<string, ThemeColors>;
+    const cached = (await browser.storage.local.get(
+      SETTINGS_STORAGE_KEY
+    )) as Record<string, ThemeColors>;
     if (cached[SETTINGS_STORAGE_KEY]) {
       debug('Theme', 'Using cached colors');
       return cached[SETTINGS_STORAGE_KEY];
@@ -60,7 +67,9 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
  * Falls back to DEFAULT_COLORS if not cached
  */
 async function getAccentColor(): Promise<string> {
-  const cached = await browser.storage.local.get(SETTINGS_STORAGE_KEY) as Record<string, ThemeColors>;
+  const cached = (await browser.storage.local.get(
+    SETTINGS_STORAGE_KEY
+  )) as Record<string, ThemeColors>;
   const colors: ThemeColors = cached[SETTINGS_STORAGE_KEY] || DEFAULT_COLORS;
   return colors.accent;
 }
@@ -91,7 +100,13 @@ async function updateIconColor(accentHex: string): Promise<void> {
 
       // Create ImageBitmap from PNG (this works reliably in service workers)
       const bitmap = await createImageBitmap(pngBlob);
-      debug('Icon', `Loaded ${iconName}, size:`, bitmap.width, 'x', bitmap.height);
+      debug(
+        'Icon',
+        `Loaded ${iconName}, size:`,
+        bitmap.width,
+        'x',
+        bitmap.height
+      );
 
       // Create canvas for tinting
       const canvas = new OffscreenCanvas(size, size);
@@ -141,7 +156,7 @@ async function updateIconColor(accentHex: string): Promise<void> {
         16: imageDataMap[16],
         48: imageDataMap[48],
         128: imageDataMap[128],
-      }
+      },
     } as any);
     debug('Icon', 'Successfully updated with accent color:', accentHex);
   } catch (err) {
@@ -153,7 +168,11 @@ async function updateIconColor(accentHex: string): Promise<void> {
  * Draw a simple tree icon using canvas paths (fallback)
  * This is used when the PNG icons cannot be loaded
  */
-function drawTreeIcon(ctx: OffscreenCanvasRenderingContext2D, size: number, color: string): void {
+function drawTreeIcon(
+  ctx: OffscreenCanvasRenderingContext2D,
+  size: number,
+  color: string
+): void {
   const scale = size / 128;
 
   ctx.fillStyle = color;
@@ -241,7 +260,9 @@ const THEME_FETCH_INTERVAL = 30000;
  */
 async function loadAutoFillSetting(): Promise<void> {
   try {
-    const result = await browser.storage.local.get('autoFillOnLoad') as { autoFillOnLoad?: boolean };
+    const result = (await browser.storage.local.get('autoFillOnLoad')) as {
+      autoFillOnLoad?: boolean;
+    };
     autoFillOnLoad = result.autoFillOnLoad ?? false;
   } catch (err) {
     warn('AutoFill', 'Failed to load setting:', err);
@@ -309,9 +330,9 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
     // Request detection from content script
     try {
-      const response = await browser.tabs.sendMessage(tabId, {
+      const response = (await browser.tabs.sendMessage(tabId, {
         type: 'GET_DETECTION',
-      }) as { isJobPage?: boolean; score?: number; signals?: string[] };
+      })) as { isJobPage?: boolean; score?: number; signals?: string[] };
 
       if (response) {
         tabStatus.set(tabId, {
@@ -335,101 +356,116 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
  * Handles DETECTION_RESULT from content script, GET_TAB_STATUS from popup,
  * and FORM_DETECTION_UPDATE for auto-fill feature
  */
-browser.runtime.onMessage.addListener((message: unknown, sender: { tab?: { id?: number } }) => {
-  const msg = message as { type: string; [key: string]: unknown };
+browser.runtime.onMessage.addListener(
+  (message: unknown, sender: { tab?: { id?: number } }) => {
+    const msg = message as { type: string; [key: string]: unknown };
 
-  // From content script: detection result
-  if (msg.type === 'DETECTION_RESULT' && sender.tab?.id) {
-    const detectionMsg = msg as unknown as { isJobPage: boolean; score: number; signals: string[]; url: string };
-    tabStatus.set(sender.tab.id, {
-      isJobPage: detectionMsg.isJobPage,
-      score: detectionMsg.score,
-      signals: detectionMsg.signals,
-      url: detectionMsg.url,
-    });
-    // Return the promise so the async updateBadge completes
-    return updateBadge(sender.tab.id, detectionMsg.isJobPage).then(() => undefined);
-  }
-
-  // From content script: form detection update (for auto-fill on load)
-  if (msg.type === 'FORM_DETECTION_UPDATE' && sender.tab?.id) {
-    const formMsg = msg as unknown as { hasApplicationForm: boolean; fillableFieldCount: number };
-    const tabId = sender.tab.id;
-
-    debug('FormDetection', 'Update:', {
-      tabId,
-      hasApplicationForm: formMsg.hasApplicationForm,
-      fillableFieldCount: formMsg.fillableFieldCount,
-      autoFillOnLoad,
-    });
-
-    // Store form detection state for this tab
-    tabFormDetectionState.set(tabId, {
-      hasApplicationForm: formMsg.hasApplicationForm,
-      fillableFieldCount: formMsg.fillableFieldCount,
-    });
-
-    // If auto-fill on load is enabled and form detected with enough fields, trigger autofill
-    if (
-      autoFillOnLoad &&
-      formMsg.hasApplicationForm &&
-      formMsg.fillableFieldCount >= 2
-    ) {
-      debug('FormDetection', 'Triggering auto-fill for tab', tabId);
-      // Small delay to ensure the form is fully rendered
-      setTimeout(() => {
-        triggerAutoFill(tabId);
-      }, 100);
-    }
-
-    return Promise.resolve(undefined);
-  }
-
-  // From popup: get tab status
-  if (msg.type === 'GET_TAB_STATUS') {
-    const statusMsg = msg as unknown as { tabId: number };
-    return Promise.resolve(tabStatus.get(statusMsg.tabId) || null);
-  }
-
-  // From popup: refresh theme settings (throttled)
-  if (msg.type === 'REFRESH_THEME') {
-    const now = Date.now();
-    if (now - lastThemeFetch > THEME_FETCH_INTERVAL) {
-      lastThemeFetch = now;
-      fetchThemeSettings().then(async colors => {
-        updateIconColor(colors.accent);
-        // Update badge color for all tabs that have job pages
-        const accentColor = colors.accent;
-        for (const [tabId, status] of tabStatus.entries()) {
-          if (status.isJobPage) {
-            await browser.action.setBadgeBackgroundColor({ color: accentColor, tabId: Number(tabId) });
-          }
-        }
+    // From content script: detection result
+    if (msg.type === 'DETECTION_RESULT' && sender.tab?.id) {
+      const detectionMsg = msg as unknown as {
+        isJobPage: boolean;
+        score: number;
+        signals: string[];
+        url: string;
+      };
+      tabStatus.set(sender.tab.id, {
+        isJobPage: detectionMsg.isJobPage,
+        score: detectionMsg.score,
+        signals: detectionMsg.signals,
+        url: detectionMsg.url,
       });
+      // Return the promise so the async updateBadge completes
+      return updateBadge(sender.tab.id, detectionMsg.isJobPage).then(
+        () => undefined
+      );
     }
+
+    // From content script: form detection update (for auto-fill on load)
+    if (msg.type === 'FORM_DETECTION_UPDATE' && sender.tab?.id) {
+      const formMsg = msg as unknown as {
+        hasApplicationForm: boolean;
+        fillableFieldCount: number;
+      };
+      const tabId = sender.tab.id;
+
+      debug('FormDetection', 'Update:', {
+        tabId,
+        hasApplicationForm: formMsg.hasApplicationForm,
+        fillableFieldCount: formMsg.fillableFieldCount,
+        autoFillOnLoad,
+      });
+
+      // Store form detection state for this tab
+      tabFormDetectionState.set(tabId, {
+        hasApplicationForm: formMsg.hasApplicationForm,
+        fillableFieldCount: formMsg.fillableFieldCount,
+      });
+
+      // If auto-fill on load is enabled and form detected with enough fields, trigger autofill
+      if (
+        autoFillOnLoad &&
+        formMsg.hasApplicationForm &&
+        formMsg.fillableFieldCount >= 2
+      ) {
+        debug('FormDetection', 'Triggering auto-fill for tab', tabId);
+        // Small delay to ensure the form is fully rendered
+        setTimeout(() => {
+          triggerAutoFill(tabId);
+        }, 100);
+      }
+
+      return Promise.resolve(undefined);
+    }
+
+    // From popup: get tab status
+    if (msg.type === 'GET_TAB_STATUS') {
+      const statusMsg = msg as unknown as { tabId: number };
+      return Promise.resolve(tabStatus.get(statusMsg.tabId) || null);
+    }
+
+    // From popup: refresh theme settings (throttled)
+    if (msg.type === 'REFRESH_THEME') {
+      const now = Date.now();
+      if (now - lastThemeFetch > THEME_FETCH_INTERVAL) {
+        lastThemeFetch = now;
+        fetchThemeSettings().then(async (colors) => {
+          updateIconColor(colors.accent);
+          // Update badge color for all tabs that have job pages
+          const accentColor = colors.accent;
+          for (const [tabId, status] of tabStatus.entries()) {
+            if (status.isJobPage) {
+              await browser.action.setBadgeBackgroundColor({
+                color: accentColor,
+                tabId: Number(tabId),
+              });
+            }
+          }
+        });
+      }
+      return Promise.resolve(undefined);
+    }
+
+    // From content script: request injection into iframe
+    if (msg.type === 'INJECT_INTO_IFRAME' && sender.tab?.id) {
+      const iframeMsg = msg as unknown as { frameSrc: string };
+      // We need to use scripting API to inject into iframes
+      // Note: This requires the iframe to be same-origin with a host_permissions match
+      // For truly cross-origin iframes, the content script already handles it via postMessage
+      debug('Iframe', 'Injection request:', iframeMsg.frameSrc);
+
+      // Store the frame src for potential retry
+      const tabId = sender.tab.id;
+      if (!pendingIframeInjections.has(tabId)) {
+        pendingIframeInjections.set(tabId, []);
+      }
+      pendingIframeInjections.get(tabId)?.push(iframeMsg.frameSrc);
+
+      return Promise.resolve({ success: true });
+    }
+
     return Promise.resolve(undefined);
   }
-
-  // From content script: request injection into iframe
-  if (msg.type === 'INJECT_INTO_IFRAME' && sender.tab?.id) {
-    const iframeMsg = msg as unknown as { frameSrc: string };
-    // We need to use scripting API to inject into iframes
-    // Note: This requires the iframe to be same-origin with a host_permissions match
-    // For truly cross-origin iframes, the content script already handles it via postMessage
-    debug('Iframe', 'Injection request:', iframeMsg.frameSrc);
-
-    // Store the frame src for potential retry
-    const tabId = sender.tab.id;
-    if (!pendingIframeInjections.has(tabId)) {
-      pendingIframeInjections.set(tabId, []);
-    }
-    pendingIframeInjections.get(tabId)?.push(iframeMsg.frameSrc);
-
-    return Promise.resolve({ success: true });
-  }
-
-  return Promise.resolve(undefined);
-});
+);
 
 /**
  * Update badge for a tab

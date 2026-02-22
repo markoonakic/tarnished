@@ -5,6 +5,7 @@ containing JSON data and optional media files.
 """
 
 import asyncio
+import hashlib
 import importlib
 import json
 import logging
@@ -28,6 +29,7 @@ from app.models import (
     ApplicationStatus,
     ApplicationStatusHistory,
     AuditLog,
+    JobLead,
     Round,
     RoundMedia,
     RoundType,
@@ -224,7 +226,7 @@ async def ensure_round_type_exists(
 
 
 def extract_files_from_zip(zip_path: str, user_id: str) -> dict[str, str]:
-    """Extract files from ZIP and return mapping of old paths to new paths."""
+    """Extract files from legacy format ZIP and return mapping of old paths to new paths."""
 
     user_upload_dir = Path(UPLOAD_DIR) / str(user_id)
     user_upload_dir.mkdir(parents=True, exist_ok=True)
@@ -255,13 +257,206 @@ def extract_files_from_zip(zip_path: str, user_id: str) -> dict[str, str]:
     return file_mapping
 
 
+def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]:
+    """Extract files from new format ZIP (v1.0+) using manifest.json.
+
+    The new format uses human-readable paths like:
+    - applications/Google - SWE (a1b2c3d4)/resume.pdf
+    - applications/.../rounds/01 - Phone Screen/recording.mp4
+
+    Files are stored using CAS (Content-Addressable Storage) with SHA-256
+    hash-based filenames for deduplication.
+
+    This function creates a mapping from OLD CAS paths (as stored in data.json)
+    to NEW CAS paths (for the importing user).
+
+    Args:
+        zip_path: Path to the ZIP file
+        user_id: User ID to store files for
+
+    Returns:
+        Mapping from old CAS path (e.g., "uploads/abc123...pdf" or "abc123...pdf")
+        to new CAS path (e.g., "user456/def456...pdf")
+
+    Raises:
+        ValueError: If SHA256 checksum mismatch or invalid MIME type
+    """
+    import hashlib
+
+    import magic
+
+    from app.api.utils.zip_utils import (
+        ALLOWED_DOCUMENT_TYPES,
+        ALLOWED_MEDIA_TYPES,
+        detect_extension,
+    )
+
+    user_upload_dir = Path(UPLOAD_DIR) / str(user_id)
+    user_upload_dir.mkdir(parents=True, exist_ok=True)
+
+    # Mapping: old path → new CAS path
+    # Keys can be:
+    # 1. Old CAS path with user dir: "user123/abc123.pdf"
+    # 2. Old CAS path without user dir: "abc123.pdf" (legacy)
+    # 3. Full path: "uploads/user123/abc123.pdf"
+    file_mapping = {}
+
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        # Read manifest to get file registry (has sha256 hashes and mime types)
+        try:
+            manifest_json = zip_ref.read("manifest.json")
+            manifest = json.loads(manifest_json)
+            files_registry = manifest.get("files", {})
+        except KeyError:
+            files_registry = None
+
+        # Also read data.json to see how paths are stored there
+        try:
+            data_json = zip_ref.read("data.json")
+            export_data = json.loads(data_json)
+        except KeyError:
+            export_data = {}
+
+        # Build a set of all old file paths from data.json
+        old_paths_in_data = set()
+        models = export_data.get("models", {})
+
+        # Application file paths
+        for app in models.get("Application", []):
+            if app.get("cv_path"):
+                old_paths_in_data.add(app["cv_path"])
+            if app.get("cover_letter_path"):
+                old_paths_in_data.add(app["cover_letter_path"])
+
+        # Round file paths
+        for rnd in models.get("Round", []):
+            if rnd.get("transcript_path"):
+                old_paths_in_data.add(rnd["transcript_path"])
+
+        # RoundMedia file paths
+        for media in models.get("RoundMedia", []):
+            if media.get("file_path"):
+                old_paths_in_data.add(media["file_path"])
+
+        # Process files from registry
+        if files_registry:
+            for zip_path_str, file_info in files_registry.items():
+                if zip_path_str in ("manifest.json", "data.json"):
+                    continue
+
+                try:
+                    content = zip_ref.read(zip_path_str)
+                except KeyError:
+                    logger.warning(
+                        f"File listed in manifest not found in ZIP: {zip_path_str}"
+                    )
+                    continue
+
+                # Compute SHA256 hash of extracted content
+                file_hash = hashlib.sha256(content).hexdigest()
+
+                # Get the expected sha256 from manifest and verify
+                expected_hash = file_info.get("sha256", "")
+                if expected_hash and file_hash != expected_hash:
+                    raise ValueError(
+                        f"SHA256 checksum mismatch for {zip_path_str}: "
+                        f"expected {expected_hash[:16]}..., got {file_hash[:16]}... "
+                        "(file may be corrupted or tampered)"
+                    )
+
+                # Verify MIME type using magic bytes
+                detected_mime = magic.from_buffer(content, mime=True)
+                file_field = file_info.get("field", "")
+
+                # Determine allowed types based on field
+                if file_field in ("cv_path", "cover_letter_path", "transcript_path"):
+                    # Documents must be in ALLOWED_DOCUMENT_TYPES
+                    allowed_types = ALLOWED_DOCUMENT_TYPES
+                elif file_field == "file_path":
+                    # RoundMedia can be documents or media
+                    allowed_types = ALLOWED_DOCUMENT_TYPES | ALLOWED_MEDIA_TYPES
+                else:
+                    # Unknown field - be permissive but log warning
+                    allowed_types = ALLOWED_DOCUMENT_TYPES | ALLOWED_MEDIA_TYPES
+                    logger.warning(
+                        f"Unknown file field '{file_field}' for {zip_path_str}, "
+                        f"allowing all types"
+                    )
+
+                if detected_mime not in allowed_types:
+                    raise ValueError(
+                        f"Invalid file type for {zip_path_str}: "
+                        f"detected {detected_mime}, expected one of {sorted(allowed_types)}"
+                    )
+
+                # Store with CAS naming
+                ext = detect_extension(content)
+                cas_filename = f"{file_hash}{ext}"
+                cas_path = user_upload_dir / cas_filename
+
+                # Only write if not already exists (deduplication)
+                if not cas_path.exists():
+                    cas_path.write_bytes(content)
+
+                # New CAS path (relative to project root)
+                # user_upload_dir.name is the user ID (UUID), we need uploads/{user_id}/{cas_filename}
+                new_cas_path = f"uploads/{user_upload_dir.name}/{cas_filename}"
+
+                # Find matching old path from data.json
+                # The old path should contain the same hash
+                for old_path in old_paths_in_data:
+                    if expected_hash and expected_hash in old_path:
+                        file_mapping[old_path] = new_cas_path
+                        break
+                    # Also try matching by the cas_filename
+                    if cas_filename in old_path:
+                        file_mapping[old_path] = new_cas_path
+                        break
+        else:
+            # Fallback: scan for files in applications/ directories (no manifest)
+            for file_info in zip_ref.filelist:
+                if file_info.is_dir():
+                    continue
+
+                if file_info.filename.startswith("applications/"):
+                    content = zip_ref.read(file_info.filename)
+
+                    # Verify MIME type - be permissive in fallback mode
+                    detected_mime = magic.from_buffer(content, mime=True)
+                    all_allowed = ALLOWED_DOCUMENT_TYPES | ALLOWED_MEDIA_TYPES
+                    if detected_mime not in all_allowed:
+                        raise ValueError(
+                            f"Invalid file type for {file_info.filename}: "
+                            f"detected {detected_mime}"
+                        )
+
+                    # Store with CAS naming
+                    file_hash = hashlib.sha256(content).hexdigest()
+                    ext = detect_extension(content)
+                    cas_filename = f"{file_hash}{ext}"
+                    cas_path = user_upload_dir / cas_filename
+
+                    if not cas_path.exists():
+                        cas_path.write_bytes(content)
+
+                    new_cas_path = f"uploads/{user_upload_dir.name}/{cas_filename}"
+
+                    # Try to find matching old path by hash
+                    for old_path in old_paths_in_data:
+                        if file_hash in old_path:
+                            file_mapping[old_path] = new_cas_path
+                            break
+
+    return file_mapping
+
+
 def is_new_export_format(data: dict) -> bool:
     """Check if data uses the new introspective export format."""
-    return "export_version" in data and "models" in data
+    return "format_version" in data and "models" in data
 
 
 def _run_import_user_data(
-    sync_session, export_data: dict, user_id: str, override: bool
+    sync_session, export_data: dict, user_id: str, override: bool, file_mapping: dict
 ) -> dict:
     """Synchronous helper to run the import service."""
     id_mapper = IDMapper()
@@ -271,6 +466,7 @@ def _run_import_user_data(
         user_id=user_id,
         session=sync_session,
         override=override,
+        file_mapping=file_mapping,
     )
 
 
@@ -392,6 +588,80 @@ async def import_applications(
     }
 
 
+async def _collect_new_format_warnings(
+    db: AsyncSession, user_id: str, models: dict
+) -> list[str]:
+    """Collect warnings for new format import.
+
+    Args:
+        db: Database session
+        user_id: Current user ID
+        models: The models dict from export data
+
+    Returns:
+        List of warning messages
+    """
+    warnings = []
+
+    # Check for existing applications
+    result = await db.execute(select(Application).where(Application.user_id == user_id))
+    existing_count = len(result.scalars().all())
+    if existing_count > 0:
+        warnings.append(
+            f"You have {existing_count} existing applications. Import will add to these unless you choose to override."
+        )
+
+    # Check for missing statuses - in new format, statuses are in ApplicationStatus model
+    # Get status names from exported data
+    exported_statuses = set()
+    for status in models.get("ApplicationStatus", []):
+        if status.get("name"):
+            exported_statuses.add(status["name"])
+
+    # Also check Application status_id references (they reference existing or exported statuses)
+    # Since we merge by name, we need to check what names will be new
+
+    # Get existing status names (global + user's)
+    existing_statuses_result = await db.execute(
+        select(ApplicationStatus.name).where(
+            (ApplicationStatus.user_id == user_id) | (ApplicationStatus.user_id == None)
+        )
+    )
+    existing_status_names = {s[0] for s in existing_statuses_result.all()}
+
+    # Find statuses that would be created (not in existing)
+    new_statuses = exported_statuses - existing_status_names
+    if new_statuses:
+        status_list = list(new_statuses)[:5]
+        status_str = ", ".join(status_list)
+        if len(new_statuses) > 5:
+            status_str += "..."
+        warnings.append(f"Will create {len(new_statuses)} new statuses: {status_str}")
+
+    # Check for missing round types
+    exported_round_types = set()
+    for rt in models.get("RoundType", []):
+        if rt.get("name"):
+            exported_round_types.add(rt["name"])
+
+    existing_round_types_result = await db.execute(
+        select(RoundType.name).where(
+            (RoundType.user_id == user_id) | (RoundType.user_id == None)
+        )
+    )
+    existing_round_type_names = {rt[0] for rt in existing_round_types_result.all()}
+
+    new_round_types = exported_round_types - existing_round_type_names
+    if new_round_types:
+        rt_list = list(new_round_types)[:5]
+        rt_str = ", ".join(rt_list)
+        if len(new_round_types) > 5:
+            rt_str += "..."
+        warnings.append(f"Will create {len(new_round_types)} new round types: {rt_str}")
+
+    return warnings
+
+
 @router.post("/validate")
 @conditional_rate_limit("5/hour")
 async def validate_import(
@@ -400,7 +670,11 @@ async def validate_import(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Validate an import ZIP file without importing data."""
+    """Validate an import ZIP file without importing data.
+
+    Supports both the new introspective export format (v1.0) and the
+    legacy format for backward compatibility.
+    """
 
     temp_path = None
     try:
@@ -425,78 +699,138 @@ async def validate_import(
 
             data = json.loads(data_json)
 
-        # Validate with Pydantic
-        validated_data = ImportDataSchema(**data)
+        # Detect format and validate accordingly
+        if is_new_export_format(data):
+            # === NEW FORMAT (v1.0+) ===
+            from app.services.import_id_mapper import IDMapper
 
-        # Log successful validation
-        await log_import_event(
-            db,
-            user.id,
-            "validation_success",
-            {
-                "filename": file.filename,
-                "applications_count": len(validated_data.applications),
-                "rounds_count": sum(
-                    len(app.rounds) for app in validated_data.applications
-                ),
-            },
-            request,
-        )
-
-        # Check for override warning
-        result = await db.execute(
-            select(Application).where(Application.user_id == user.id)
-        )
-        existing_count = len(result.scalars().all())
-
-        warnings = []
-        if existing_count > 0:
-            warnings.append(
-                f"You have {existing_count} existing applications. Import will add to these unless you choose to override."
+            id_mapper = IDMapper()
+            import_service = ImportService(
+                registry=default_registry, id_mapper=id_mapper
             )
 
-        # Check for missing statuses/round types
-        existing_statuses = await db.execute(
-            select(ApplicationStatus.name).where(
-                (ApplicationStatus.user_id == user.id)
-                | (ApplicationStatus.user_id == None)
+            # Validate format structure
+            is_valid, error = import_service.validate_export_data(data)
+            if not is_valid:
+                return ImportValidationResponse(valid=False, summary={}, errors=[error])
+
+            models = data.get("models", {})
+
+            # Count only CUSTOM statuses/round types (those with user_id set)
+            # Global ones (user_id=null) are included for name-matching during import
+            def count_custom(items: list) -> int:
+                return sum(1 for item in items if item.get("user_id"))
+
+            summary = {
+                "applications": len(models.get("Application", [])),
+                "rounds": len(models.get("Round", [])),
+                "status_history": len(models.get("ApplicationStatusHistory", [])),
+                "custom_statuses": count_custom(models.get("ApplicationStatus", [])),
+                "custom_round_types": count_custom(models.get("RoundType", [])),
+                "job_leads": len(models.get("JobLead", [])),
+                "files": zip_info["file_count"]
+                - 2,  # -2 for data.json and manifest.json
+            }
+
+            # Collect warnings
+            warnings = await _collect_new_format_warnings(db, str(user.id), models)
+
+            # Log successful validation
+            await log_import_event(
+                db,
+                user.id,
+                "validation_success",
+                {
+                    "filename": file.filename,
+                    "format": "v1.0",
+                    "applications_count": summary["applications"],
+                    "rounds_count": summary["rounds"],
+                },
+                request,
             )
-        )
-        existing_status_names = {s[0] for s in existing_statuses.all()}
 
-        needed_statuses = set()
-        for app in validated_data.applications:
-            needed_statuses.add(app.status)
-            for hist in app.status_history:
-                if hist.to_status:
-                    needed_statuses.add(hist.to_status)
-                if hist.from_status:
-                    needed_statuses.add(hist.from_status)
+            return ImportValidationResponse(
+                valid=True,
+                summary=summary,
+                warnings=warnings,
+            )
+        else:
+            # === LEGACY FORMAT ===
+            # Validate with Pydantic
+            validated_data = ImportDataSchema(**data)
 
-        missing_statuses = needed_statuses - existing_status_names
-        if missing_statuses:
-            status_list = list(missing_statuses)[:5]
-            status_str = ", ".join(status_list)
-            if len(missing_statuses) > 5:
-                status_str += "..."
-            warnings.append(
-                f"Will create {len(missing_statuses)} new statuses: {status_str}"
+            # Log successful validation
+            await log_import_event(
+                db,
+                user.id,
+                "validation_success",
+                {
+                    "filename": file.filename,
+                    "format": "legacy",
+                    "applications_count": len(validated_data.applications),
+                    "rounds_count": sum(
+                        len(app.rounds) for app in validated_data.applications
+                    ),
+                },
+                request,
             )
 
-        return ImportValidationResponse(
-            valid=True,
-            summary={
-                "applications": len(validated_data.applications),
-                "rounds": sum(len(app.rounds) for app in validated_data.applications),
-                "status_history": sum(
-                    len(app.status_history) for app in validated_data.applications
-                ),
-                "custom_statuses": len(validated_data.custom_statuses),
-                "custom_round_types": len(validated_data.custom_round_types),
-                "files": zip_info["file_count"] - 1,  # -1 for data.json
-            },
-            warnings=warnings,
-        )
+            # Check for override warning
+            result = await db.execute(
+                select(Application).where(Application.user_id == user.id)
+            )
+            existing_count = len(result.scalars().all())
+
+            warnings = []
+            if existing_count > 0:
+                warnings.append(
+                    f"You have {existing_count} existing applications. Import will add to these unless you choose to override."
+                )
+
+            # Check for missing statuses/round types
+            existing_statuses = await db.execute(
+                select(ApplicationStatus.name).where(
+                    (ApplicationStatus.user_id == user.id)
+                    | (ApplicationStatus.user_id == None)
+                )
+            )
+            existing_status_names = {s[0] for s in existing_statuses.all()}
+
+            needed_statuses = set()
+            for app in validated_data.applications:
+                needed_statuses.add(app.status)
+                for hist in app.status_history:
+                    if hist.to_status:
+                        needed_statuses.add(hist.to_status)
+                    if hist.from_status:
+                        needed_statuses.add(hist.from_status)
+
+            missing_statuses = needed_statuses - existing_status_names
+            if missing_statuses:
+                status_list = list(missing_statuses)[:5]
+                status_str = ", ".join(status_list)
+                if len(missing_statuses) > 5:
+                    status_str += "..."
+                warnings.append(
+                    f"Will create {len(missing_statuses)} new statuses: {status_str}"
+                )
+
+            return ImportValidationResponse(
+                valid=True,
+                summary={
+                    "applications": len(validated_data.applications),
+                    "rounds": sum(
+                        len(app.rounds) for app in validated_data.applications
+                    ),
+                    "status_history": sum(
+                        len(app.status_history) for app in validated_data.applications
+                    ),
+                    "custom_statuses": len(validated_data.custom_statuses),
+                    "custom_round_types": len(validated_data.custom_round_types),
+                    "files": zip_info["file_count"] - 1,  # -1 for data.json
+                },
+                warnings=warnings,
+            )
 
     except HTTPException:
         raise
@@ -593,18 +927,49 @@ async def import_data(
             import_id, stage="validating", percent=20, message="Validating ZIP file..."
         )
 
-        _zip_info = await validate_zip_safety(temp_path)
+        await validate_zip_safety(temp_path)
 
         with zipfile.ZipFile(temp_path, "r") as zip_ref:
             data_json = zip_ref.read("data.json")
             data = json.loads(data_json)
+
+            # For new format, verify data.json checksum from manifest
+            if is_new_export_format(data):
+                try:
+                    manifest_json = zip_ref.read("manifest.json")
+                    manifest = json.loads(manifest_json)
+
+                    # Verify data.json checksum
+                    expected_checksum = manifest.get("checksums", {}).get(
+                        "data.json", ""
+                    )
+                    if expected_checksum:
+                        # Remove "sha256:" prefix if present
+                        expected_hash = expected_checksum.replace("sha256:", "")
+                        actual_hash = hashlib.sha256(data_json).hexdigest()
+
+                        if actual_hash != expected_hash:
+                            raise ValueError(
+                                f"data.json checksum mismatch: export may be corrupted. "
+                                f"Expected {expected_hash[:16]}..., got {actual_hash[:16]}..."
+                            )
+                except KeyError:
+                    # No manifest.json - this is unusual for new format
+                    logger.warning(
+                        "New format export missing manifest.json - skipping checksum verification"
+                    )
 
         # Stage 3: Extract files
         ImportProgress.update(
             import_id, stage="extracting", percent=30, message="Extracting files..."
         )
 
-        file_mapping = extract_files_from_zip(temp_path, str(user.id))
+        # Detect format and use appropriate extraction method
+        is_new_format = is_new_export_format(data)
+        if is_new_format:
+            file_mapping = extract_files_from_new_format(temp_path, str(user.id))
+        else:
+            file_mapping = extract_files_from_zip(temp_path, str(user.id))
 
         # Stage 4: Override if requested
         if override:
@@ -622,6 +987,25 @@ async def import_data(
             for app in result.scalars().all():
                 await db.delete(app)
 
+            # Delete existing job leads
+            result = await db.execute(select(JobLead).where(JobLead.user_id == user.id))
+            for lead in result.scalars().all():
+                await db.delete(lead)
+
+            # Delete user's custom statuses (not global ones)
+            result = await db.execute(
+                select(ApplicationStatus).where(ApplicationStatus.user_id == user.id)
+            )
+            for status in result.scalars().all():
+                await db.delete(status)
+
+            # Delete user's custom round types (not global ones)
+            result = await db.execute(
+                select(RoundType).where(RoundType.user_id == user.id)
+            )
+            for rt in result.scalars().all():
+                await db.delete(rt)
+
             await db.flush()
 
         # Stage 5: Import data
@@ -633,17 +1017,22 @@ async def import_data(
         if is_new_export_format(data):
             # Use the new ImportService for v1.0 exports
             result = await db.run_sync(
-                _run_import_user_data, data, str(user.id), override
+                _run_import_user_data, data, str(user.id), override, file_mapping
             )
+
+            # result is now {"counts": {...}, "warnings": [...]}
+            counts = result.get("counts", {})
+            import_warnings = result.get("warnings", [])
 
             # Map result keys to expected format
             import_result = {
-                "applications": result.get("Application", 0),
-                "rounds": result.get("Round", 0),
-                "status_history": result.get("ApplicationStatusHistory", 0),
-                "statuses": result.get("ApplicationStatus", 0),
-                "round_types": result.get("RoundType", 0),
-                "media": result.get("RoundMedia", 0),
+                "applications": counts.get("Application", 0),
+                "rounds": counts.get("Round", 0),
+                "status_history": counts.get("ApplicationStatusHistory", 0),
+                "statuses": counts.get("ApplicationStatus", 0),
+                "round_types": counts.get("RoundType", 0),
+                "media": counts.get("RoundMedia", 0),
+                "warnings": import_warnings,
             }
         else:
             # Legacy format - use the old import logic

@@ -282,7 +282,9 @@ async def export_zip(
     settings = get_settings()
 
     # Create ZIP with all media files
-    zip_bytes = await create_zip_export(json_data, str(user.id), settings.upload_dir)
+    zip_bytes = await create_zip_export(
+        json_data, str(user.id), settings.upload_dir, user_email=user.email
+    )
 
     filename = f"tarnished-export-{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip"
     return StreamingResponse(

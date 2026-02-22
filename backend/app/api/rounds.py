@@ -1,5 +1,5 @@
-import os
-import uuid
+import tempfile
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy import or_, select
@@ -7,6 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.streak import record_streak_activity
+from app.api.utils.zip_utils import (
+    ALLOWED_DOCUMENT_TYPES,
+    ALLOWED_MEDIA_TYPES,
+    sanitize_filename,
+    store_file,
+    validate_file,
+)
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
@@ -130,10 +137,8 @@ async def delete_round(
     if not round:
         raise HTTPException(status_code=404, detail="Round not found")
 
-    for media in round.media:
-        if os.path.exists(media.file_path):
-            os.remove(media.file_path)
-
+    # Note: We don't delete CAS files as they may be shared/deduplicated
+    # Files are cleaned up via separate maintenance process if needed
     await db.delete(round)
     await db.commit()
 
@@ -155,32 +160,44 @@ async def upload_media(
     if not round:
         raise HTTPException(status_code=404, detail="Round not found")
 
-    content_type = file.content_type or ""
-    if content_type.startswith("video/"):
-        media_type = "video"
-    elif content_type.startswith("audio/"):
-        media_type = "audio"
-    else:
-        raise HTTPException(status_code=400, detail="File must be video or audio")
+    upload_dir = Path(settings.upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
 
-    os.makedirs(settings.upload_dir, exist_ok=True)
-    ext = os.path.splitext(file.filename or "")[1] or ".bin"
-    file_name = f"{uuid.uuid4()}{ext}"
-    file_path = os.path.join(settings.upload_dir, file_name)
+    # Read file content
+    content = await file.read()
+    max_size = settings.max_media_size_mb * 1024 * 1024
+    if len(content) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File exceeds maximum size of {settings.max_media_size_mb}MB",
+        )
 
-    with open(file_path, "wb") as f:
-        content = await file.read()
-        max_size = settings.max_media_size_mb * 1024 * 1024
-        if len(content) > max_size:
+    # Write to temp file for magic byte validation
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        tmp.write(content)
+        tmp_path = Path(tmp.name)
+
+    try:
+        # Validate file type using magic bytes
+        is_valid, detected_type = validate_file(tmp_path, ALLOWED_MEDIA_TYPES)
+        if not is_valid:
             raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File exceeds maximum size of {settings.max_media_size_mb}MB",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid file type: {detected_type}. Must be video (MP4, WebM, MOV) or audio (MP3, WAV, M4A, OGG)",
             )
-        f.write(content)
+
+        # Determine media type from detected MIME
+        media_type = "video" if detected_type.startswith("video/") else "audio"
+
+        # Store file using CAS
+        file_path = await store_file(content, upload_dir)
+    finally:
+        tmp_path.unlink(missing_ok=True)
 
     media = RoundMedia(
         round_id=round_id,
         file_path=file_path,
+        original_filename=sanitize_filename(file.filename or "unnamed"),
         media_type=media_type,
     )
     db.add(media)
@@ -212,9 +229,7 @@ async def delete_media(
     if not media:
         raise HTTPException(status_code=404, detail="Media not found")
 
-    if os.path.exists(media.file_path):
-        os.remove(media.file_path)
-
+    # Note: We don't delete CAS files as they may be shared/deduplicated
     await db.delete(media)
     await db.commit()
 
@@ -226,7 +241,7 @@ async def upload_transcript(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Upload transcript PDF for a round."""
+    """Upload transcript for a round. Accepts PDF, DOCX, DOC, TXT, MD, RTF."""
     result = await db.execute(
         select(Round)
         .join(Application)
@@ -237,29 +252,36 @@ async def upload_transcript(
     if not round:
         raise HTTPException(status_code=404, detail="Round not found")
 
-    # Validate file type
-    if not (file.filename or "").lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    upload_dir = Path(settings.upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
 
-    # Delete old transcript if exists
-    if round.transcript_path and os.path.exists(round.transcript_path):
-        os.remove(round.transcript_path)
+    # Read file content
+    content = await file.read()
+    max_size = settings.max_document_size_mb * 1024 * 1024
+    if len(content) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File exceeds maximum size of {settings.max_document_size_mb}MB",
+        )
 
-    # Create upload directory
-    os.makedirs(settings.upload_dir, exist_ok=True)
-    file_name = f"transcript_{uuid.uuid4()}.pdf"
-    file_path = os.path.join(settings.upload_dir, file_name)
+    # Write to temp file for magic byte validation
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        tmp.write(content)
+        tmp_path = Path(tmp.name)
 
-    # Save file
-    with open(file_path, "wb") as f:
-        content = await file.read()
-        max_size = settings.max_document_size_mb * 1024 * 1024
-        if len(content) > max_size:
+    try:
+        # Validate file type using magic bytes
+        is_valid, detected_type = validate_file(tmp_path, ALLOWED_DOCUMENT_TYPES)
+        if not is_valid:
             raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File exceeds maximum size of {settings.max_document_size_mb}MB",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid file type: {detected_type}. Must be a document (PDF, DOCX, DOC, TXT, MD, RTF)",
             )
-        f.write(content)
+
+        # Store file using CAS
+        file_path = await store_file(content, upload_dir)
+    finally:
+        tmp_path.unlink(missing_ok=True)
 
     # Update round
     round.transcript_path = file_path
@@ -293,9 +315,7 @@ async def delete_transcript(
     if not round:
         raise HTTPException(status_code=404, detail="Round not found")
 
-    if round.transcript_path and os.path.exists(round.transcript_path):
-        os.remove(round.transcript_path)
-
+    # Note: We don't delete CAS files as they may be shared/deduplicated
     round.transcript_path = None
     round.transcript_summary = None
     await db.commit()

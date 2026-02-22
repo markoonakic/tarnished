@@ -33,7 +33,7 @@ class TestExportService:
                 user_id="user-123", session=mock_session
             )
 
-        assert "export_version" in result
+        assert "format_version" in result
         assert "user" in result
         assert "models" in result
 
@@ -48,7 +48,7 @@ class TestExportService:
                 user_id="user-123", session=mock_session
             )
 
-        assert result["export_version"] == "1.0"
+        assert result["format_version"] == "1.0.0"
 
     def test_export_includes_user_id(self, export_service):
         """Export should include user ID."""
@@ -74,15 +74,15 @@ class TestExportService:
                 user_id="user-123", session=mock_session
             )
 
-        assert "exported_at" in result
+        assert "export_timestamp" in result
         # Should be a valid ISO string
-        parsed_time = datetime.fromisoformat(result["exported_at"])
+        parsed_time = datetime.fromisoformat(result["export_timestamp"])
         assert parsed_time.tzinfo is not None  # Should have timezone info
 
     def test_export_version_constant(self, export_service):
         """ExportService should have EXPORT_VERSION class attribute."""
         assert hasattr(ExportService, "EXPORT_VERSION")
-        assert ExportService.EXPORT_VERSION == "1.0"
+        assert ExportService.EXPORT_VERSION == "1.0.0"
 
     def test_export_iterates_registered_models(self, registry):
         """Export should iterate over all registered models in order."""
@@ -293,6 +293,6 @@ class TestExportService:
             user_id="user-123", session=mock_session
         )
 
-        assert result["export_version"] == "1.0"
+        assert result["format_version"] == "1.0.0"
         assert result["user"]["id"] == "user-123"
         assert result["models"] == {}

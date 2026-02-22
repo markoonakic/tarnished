@@ -4,7 +4,9 @@ import { ThemeColors, DEFAULT_COLORS } from './theme';
 const SETTINGS_STORAGE_KEY = 'themeSettings';
 
 export async function getThemeColors(): Promise<ThemeColors> {
-  const cached = await browser.storage.local.get(SETTINGS_STORAGE_KEY) as Record<string, ThemeColors>;
+  const cached = (await browser.storage.local.get(
+    SETTINGS_STORAGE_KEY
+  )) as Record<string, ThemeColors>;
   return cached[SETTINGS_STORAGE_KEY] || DEFAULT_COLORS;
 }
 

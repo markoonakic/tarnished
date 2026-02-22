@@ -246,6 +246,7 @@ class TestExtractWithLlm:
             result = extract_with_llm(
                 content="Test job content",
                 url="https://linkedin.com/jobs/123",
+                api_key="test-key",
             )
 
             assert result.title == "Senior Software Engineer"
@@ -267,6 +268,7 @@ class TestExtractWithLlm:
                 extract_with_llm(
                     content="Test content",
                     url="https://example.com/job/123",
+                    api_key="test-key",
                 )
 
     def test_extract_with_llm_invalid_json_raises_error(self):
@@ -284,6 +286,7 @@ class TestExtractWithLlm:
                 extract_with_llm(
                     content="Test content",
                     url="https://example.com/job/123",
+                    api_key="test-key",
                 )
 
     def test_extract_with_llm_no_job_found_raises_error(self):
@@ -314,6 +317,7 @@ class TestExtractWithLlm:
                 extract_with_llm(
                     content="Login page content",
                     url="https://example.com/login",
+                    api_key="test-key",
                 )
 
     def test_extract_with_llm_timeout_raises_error(self):
@@ -325,6 +329,7 @@ class TestExtractWithLlm:
                 extract_with_llm(
                     content="Test content",
                     url="https://example.com/job/123",
+                    api_key="test-key",
                     timeout=30,
                 )
 
@@ -342,6 +347,7 @@ class TestExtractWithLlm:
                 extract_with_llm(
                     content="Test content",
                     url="https://example.com/job/123",
+                    api_key="test-key",
                 )
 
     def test_extract_with_llm_custom_model(self):
@@ -370,6 +376,7 @@ class TestExtractWithLlm:
                 content="Test content",
                 url="https://example.com/job/123",
                 model="gpt-4",
+                api_key="test-key",
             )
 
             # Verify custom model was used
@@ -407,6 +414,7 @@ class TestExtractWithLlm:
             result = extract_with_llm(
                 content="Test content",
                 url="https://example.com/job/123",
+                api_key="test-key",
             )
 
             assert result.title == "Engineer"
@@ -447,6 +455,7 @@ class TestExtractJobData:
             result = await extract_job_data(
                 html=SAMPLE_JOB_HTML,
                 url="https://linkedin.com/jobs/123",
+                api_key="test-key",
             )
 
             assert result.title == "Senior Software Engineer"
@@ -460,6 +469,7 @@ class TestExtractJobData:
             await extract_job_data(
                 html="   ",  # Whitespace-only fails preprocessing
                 url="https://example.com/job/123",
+                api_key="test-key",
             )
 
     @pytest.mark.asyncio
@@ -489,6 +499,7 @@ class TestExtractJobData:
                 await extract_job_data(
                     html=NON_JOB_HTML,
                     url="https://example.com/login",
+                    api_key="test-key",
                 )
 
     @pytest.mark.asyncio
@@ -517,6 +528,7 @@ class TestExtractJobData:
             await extract_job_data(
                 html=SAMPLE_JOB_HTML,
                 url="https://example.com/job/123",
+                api_key="test-key",
                 timeout=120,
             )
 

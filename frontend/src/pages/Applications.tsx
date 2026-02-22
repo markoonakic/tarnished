@@ -124,18 +124,18 @@ export default function Applications() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
             {/* Search Input */}
             <div className="relative min-w-0 flex-1">
-              <i className="bi-search icon-sm text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+              <i className="bi-search icon-sm text-muted absolute top-1/2 left-3 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search company or job title..."
                 value={search}
                 onChange={(e) => updateParams({ search: e.target.value })}
-                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pl-9 pr-9 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
               {search && (
                 <button
                   onClick={() => updateParams({ search: '' })}
-                  className="text-muted hover:text-fg1 absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
+                  className="text-muted hover:text-fg1 absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
                   aria-label="Clear search"
                 >
                   <i className="bi-x icon-sm" />
@@ -158,7 +158,6 @@ export default function Applications() {
                 placeholder="All Statuses"
                 size="xs"
                 containerBackground="bg1"
-                disabled={applications.length === 0}
               />
               <Dropdown
                 options={[
@@ -173,7 +172,7 @@ export default function Applications() {
                 placeholder="All Sources"
                 size="xs"
                 containerBackground="bg1"
-                disabled={applications.length === 0 || sources.length === 0}
+                disabled={sources.length === 0}
               />
               <Dropdown
                 options={[
@@ -190,7 +189,6 @@ export default function Applications() {
                 placeholder="25 / page"
                 size="xs"
                 containerBackground="bg1"
-                disabled={applications.length === 0}
               />
             </div>
           </div>
@@ -228,19 +226,19 @@ export default function Applications() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-tertiary border-b">
-                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
                       Company
                     </th>
-                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
                       Position
                     </th>
-                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
                       Status
                     </th>
-                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
                       Applied
                     </th>
-                    <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
                       Rounds
                     </th>
                   </tr>

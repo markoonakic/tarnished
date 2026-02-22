@@ -28,6 +28,8 @@ dependencies = [
     "markdownify>=1.2.2",
     "pillow>=12.1.1",
     "cairosvg>=2.8.2",
+    "python-magic>=0.4.27",
+    "psycopg[binary]>=3.3.3",
 ]
 
 [build-system]

@@ -136,11 +136,11 @@ export default function SettingsStatuses() {
                       style={{ backgroundColor: status.color }}
                     />
                     <span className="text-fg1">{status.name}</span>
-                    {status.is_default && (
-                      <span className="text-muted text-xs">(Default)</span>
-                    )}
                   </div>
                   <div className="flex items-center gap-2">
+                    {status.is_default && (
+                      <span className="text-muted text-xs">Default</span>
+                    )}
                     {!status.is_default && (
                       <button
                         onClick={() => startEditStatus(status)}
@@ -176,7 +176,7 @@ export default function SettingsStatuses() {
                     value={editStatusName}
                     onChange={(e) => setEditStatusName(e.target.value)}
                     placeholder="Status name"
-                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
                   <input
                     type="color"
@@ -206,7 +206,7 @@ export default function SettingsStatuses() {
                   value={newStatusName}
                   onChange={(e) => setNewStatusName(e.target.value)}
                   placeholder="New status name"
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
                 <input
                   type="color"
