@@ -127,7 +127,7 @@ export default function StatusHistoryModal({
                       {formatDateTime(entry.changed_at)}
                     </p>
                     {entry.note && (
-                      <p className="text-secondary mt-2 whitespace-pre-wrap text-sm">
+                      <p className="text-secondary mt-2 text-sm whitespace-pre-wrap">
                         {entry.note}
                       </p>
                     )}

@@ -13,7 +13,7 @@ export default function ToastContainer() {
 
   return (
     <div
-      className="fixed right-4 top-4 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2"
+      className="fixed top-4 right-4 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2"
       aria-live="polite"
       aria-label="Notifications"
     >

@@ -205,6 +205,10 @@ export default function ImportModal({
                   <span className="text-primary text-right">
                     {validation.summary.applications}
                   </span>
+                  <span>Job Leads:</span>
+                  <span className="text-primary text-right">
+                    {validation.summary.job_leads || 0}
+                  </span>
                   <span>Rounds:</span>
                   <span className="text-primary text-right">
                     {validation.summary.rounds}
@@ -248,7 +252,7 @@ export default function ImportModal({
                   />
                   <span className="text-yellow">
                     Replace existing data (warning: this deletes current
-                    applications)
+                    applications, job leads, and custom statuses)
                   </span>
                 </label>
               )}
@@ -279,7 +283,7 @@ export default function ImportModal({
                 type="file"
                 accept=".zip"
                 onChange={handleFileSelect}
-                className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
 
               {file && (

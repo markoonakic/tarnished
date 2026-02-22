@@ -264,7 +264,7 @@ export default function ApplicationDetail() {
                 <i className="bi-file-text icon-sm"></i>
                 Description
               </h3>
-              <div className="text-primary whitespace-pre-wrap break-words text-sm">
+              <div className="text-primary text-sm break-words whitespace-pre-wrap">
                 {application.job_description}
               </div>
             </div>

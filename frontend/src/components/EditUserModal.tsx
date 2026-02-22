@@ -145,7 +145,7 @@ export default function EditUserModal({
               <span className="text-primary text-sm">Admin</span>
             </label>
             {isCurrentUser && (
-              <p className="text-muted ml-7 mt-1 text-xs">
+              <p className="text-muted mt-1 ml-7 text-xs">
                 You cannot change your own admin status
               </p>
             )}
@@ -163,7 +163,7 @@ export default function EditUserModal({
               <span className="text-primary text-sm">Active</span>
             </label>
             {isCurrentUser && (
-              <p className="text-muted ml-7 mt-1 text-xs">
+              <p className="text-muted mt-1 ml-7 text-xs">
                 You cannot change your own active status
               </p>
             )}
@@ -181,7 +181,7 @@ export default function EditUserModal({
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+              className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               placeholder="Leave blank to keep current password"
               minLength={8}
             />

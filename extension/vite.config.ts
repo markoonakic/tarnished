@@ -46,7 +46,7 @@ function copyPublicFiles() {
       if (existsSync(manifestSrc)) {
         copyFileSync(manifestSrc, manifestDest);
       }
-    }
+    },
   };
 }
 
@@ -110,7 +110,10 @@ export default defineConfig({
       enforce: 'post',
       generateBundle(options, bundle) {
         // Scripts that need to be self-contained (inlined)
-        const scriptsToInline = ['content/index.js', 'content/iframe-scanner.js'];
+        const scriptsToInline = [
+          'content/index.js',
+          'content/iframe-scanner.js',
+        ];
 
         for (const scriptName of scriptsToInline) {
           const script = bundle[scriptName];
@@ -148,7 +151,11 @@ export default defineConfig({
           for (const chunkPath of chunksToDelete) {
             let usedByOther = false;
             for (const [name, item] of Object.entries(bundle)) {
-              if (item.type === 'chunk' && !scriptsToInline.includes(name) && item.imports?.includes(chunkPath)) {
+              if (
+                item.type === 'chunk' &&
+                !scriptsToInline.includes(name) &&
+                item.imports?.includes(chunkPath)
+              ) {
                 usedByOther = true;
                 break;
               }

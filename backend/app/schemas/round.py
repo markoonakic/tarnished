@@ -14,6 +14,7 @@ class RoundTypeResponse(BaseModel):
 class RoundMediaResponse(BaseModel):
     id: str
     file_path: str
+    original_filename: str | None = None
     media_type: str
     uploaded_at: datetime
 

@@ -298,7 +298,7 @@ export default function ApplicationModal({
                 type="text"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 required
                 autoFocus
               />
@@ -316,7 +316,7 @@ export default function ApplicationModal({
                 type="text"
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
-                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 required
               />
             </div>
@@ -356,7 +356,7 @@ export default function ApplicationModal({
                 type="date"
                 value={appliedAt}
                 onChange={(e) => setAppliedAt(e.target.value)}
-                className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
             </div>
 
@@ -377,7 +377,7 @@ export default function ApplicationModal({
                 }}
                 onBlur={handleJobUrlBlur}
                 placeholder="example.com or https://..."
-                className={`bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 ${
+                className={`bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none ${
                   jobUrlError ? 'border-red-bright border' : ''
                 }`}
               />
@@ -399,7 +399,7 @@ export default function ApplicationModal({
                 value={salaryMin}
                 onChange={(e) => setSalaryMin(e.target.value)}
                 placeholder="e.g. 100"
-                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
             </div>
 
@@ -416,7 +416,7 @@ export default function ApplicationModal({
                 value={salaryMax}
                 onChange={(e) => setSalaryMax(e.target.value)}
                 placeholder="e.g. 150"
-                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
             </div>
 
@@ -463,7 +463,7 @@ export default function ApplicationModal({
                   value={recruiterName}
                   onChange={(e) => setRecruiterName(e.target.value)}
                   placeholder="e.g. John Smith"
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
               </div>
 
@@ -480,7 +480,7 @@ export default function ApplicationModal({
                   value={recruiterTitle}
                   onChange={(e) => setRecruiterTitle(e.target.value)}
                   placeholder="e.g. Senior Recruiter"
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
               </div>
 
@@ -497,7 +497,7 @@ export default function ApplicationModal({
                   value={recruiterLinkedinUrl}
                   onChange={(e) => setRecruiterLinkedinUrl(e.target.value)}
                   placeholder="https://linkedin.com/in/..."
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
               </div>
             </div>
@@ -521,7 +521,7 @@ export default function ApplicationModal({
                   onChange={(e) => setRequirementsMustHave(e.target.value)}
                   rows={3}
                   placeholder="One requirement per line&#10;e.g. React experience&#10;5+ years TypeScript"
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
               </div>
 
@@ -538,7 +538,7 @@ export default function ApplicationModal({
                   onChange={(e) => setRequirementsNiceToHave(e.target.value)}
                   rows={3}
                   placeholder="One requirement per line&#10;e.g. Docker experience&#10;AWS certification"
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
               </div>
 
@@ -555,7 +555,7 @@ export default function ApplicationModal({
                   value={source}
                   onChange={(e) => setSource(e.target.value)}
                   placeholder="e.g. LinkedIn, Indeed, Referral"
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
               </div>
             </div>
@@ -574,7 +574,7 @@ export default function ApplicationModal({
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
                 rows={4}
-                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
             </div>
           </div>

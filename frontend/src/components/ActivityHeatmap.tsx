@@ -321,7 +321,7 @@ export default function ActivityHeatmap() {
           </div>
 
           {hoveredCell && (
-            <div className="bg-secondary border-tertiary absolute right-0 top-0 rounded border px-2 py-1 text-sm">
+            <div className="bg-secondary border-tertiary absolute top-0 right-0 rounded border px-2 py-1 text-sm">
               <span className="text-primary font-medium">
                 {hoveredCell.count}
               </span>

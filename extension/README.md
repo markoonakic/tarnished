@@ -14,14 +14,14 @@ A browser extension for detecting job postings and saving them to your Tarnished
 
 The extension uses a weighted scoring system to detect job postings on the following platforms:
 
-| Platform | Detection Method |
-|----------|------------------|
-| LinkedIn Jobs | Domain matching |
-| Indeed | Domain matching |
-| Greenhouse | Domain matching |
-| Lever | Domain matching |
-| Workday | Domain matching |
-| Glassdoor | Domain matching |
+| Platform              | Detection Method |
+| --------------------- | ---------------- |
+| LinkedIn Jobs         | Domain matching  |
+| Indeed                | Domain matching  |
+| Greenhouse            | Domain matching  |
+| Lever                 | Domain matching  |
+| Workday               | Domain matching  |
+| Glassdoor             | Domain matching  |
 | Any site with JSON-LD | Schema detection |
 
 ### Detection Signals
@@ -39,14 +39,14 @@ A score of 30 or higher triggers job detection.
 
 The autofill feature can automatically populate the following form fields:
 
-| Field | Matching Patterns |
-|-------|-------------------|
-| First Name | `first`, `fname` |
-| Last Name | `last`, `surname`, `lname` |
-| Email | `type="email"`, `email` |
-| Phone | `type="tel"`, `phone`, `mobile`, `cell` |
-| Location | `location`, `city`, `address` |
-| LinkedIn URL | `linkedin`, `linkedin_url` |
+| Field        | Matching Patterns                       |
+| ------------ | --------------------------------------- |
+| First Name   | `first`, `fname`                        |
+| Last Name    | `last`, `surname`, `lname`              |
+| Email        | `type="email"`, `email`                 |
+| Phone        | `type="tel"`, `phone`, `mobile`, `cell` |
+| Location     | `location`, `city`, `address`           |
+| LinkedIn URL | `linkedin`, `linkedin_url`              |
 
 **Note**: Autofill only fills empty, visible text fields. Already-filled fields are skipped.
 
@@ -55,16 +55,19 @@ The autofill feature can automatically populate the following form fields:
 ### Development Build
 
 1. Clone the repository and navigate to the extension directory:
+
    ```bash
    cd extension
    ```
 
 2. Install dependencies:
+
    ```bash
    yarn install
    ```
 
 3. Build the extension:
+
    ```bash
    yarn build
    ```
@@ -76,6 +79,7 @@ The autofill feature can automatically populate the following form fields:
 ### Development Mode
 
 For development with hot-reloading:
+
 ```bash
 yarn dev
 ```
@@ -163,16 +167,16 @@ If you visit a job posting URL that's already saved:
 
 ## Error Messages
 
-| Error | Meaning | Solution |
-|-------|---------|----------|
-| Configure the extension in settings first | Missing app URL or API key | Open settings and configure both fields |
-| Invalid app URL | URL format is incorrect | Ensure URL starts with `http://` or `https://` |
-| Invalid API key | API key is invalid or expired | Generate a new API key in Tarnished settings |
-| Could not connect to server | Network or server issue | Check network connection and server status |
-| Request timed out | Server took too long to respond | Try again or check server load |
-| No job posting found on this page | Detection score below threshold | Page may not be a job posting |
-| Could not extract job data | Extraction failed | Try refreshing the page |
-| This job is already in your leads | Duplicate URL detected | No action needed |
+| Error                                     | Meaning                         | Solution                                       |
+| ----------------------------------------- | ------------------------------- | ---------------------------------------------- |
+| Configure the extension in settings first | Missing app URL or API key      | Open settings and configure both fields        |
+| Invalid app URL                           | URL format is incorrect         | Ensure URL starts with `http://` or `https://` |
+| Invalid API key                           | API key is invalid or expired   | Generate a new API key in Tarnished settings   |
+| Could not connect to server               | Network or server issue         | Check network connection and server status     |
+| Request timed out                         | Server took too long to respond | Try again or check server load                 |
+| No job posting found on this page         | Detection score below threshold | Page may not be a job posting                  |
+| Could not extract job data                | Extraction failed               | Try refreshing the page                        |
+| This job is already in your leads         | Duplicate URL detected          | No action needed                               |
 
 ## Architecture
 

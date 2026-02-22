@@ -31,12 +31,14 @@ from app.models.application import Application
 from app.models.job_lead import JobLead
 from app.models.status import ApplicationStatus
 from app.schemas.application import ApplicationListItem
+from app.schemas.errors import ErrorCode, make_error_response
 from app.schemas.job_lead import (
     JobLeadCreate,
     JobLeadListResponse,
     JobLeadResponse,
 )
 from app.services.extraction import (
+    ExtractionAuthError,
     ExtractionError,
     ExtractionInvalidResponseError,
     ExtractionTimeoutError,
@@ -222,7 +224,11 @@ async def create_job_lead(
         )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"A job lead already exists for this URL. ID: {existing.id}",
+            detail=make_error_response(
+                ErrorCode.DUPLICATE_RESOURCE,
+                detail=f"A job lead already exists for this URL. ID: {existing.id}",
+                message_override="This job has already been saved",
+            ),
         )
 
     # Step 1: Get content for extraction
@@ -253,30 +259,52 @@ async def create_job_lead(
             api_key=ai_api_key,
             api_base=ai_api_base,
         )
+    except ExtractionAuthError as e:
+        logger.error(f"AI auth error for {url}: {e.message}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=make_error_response(
+                ErrorCode.AI_KEY_NOT_CONFIGURED,
+                detail=e.message,
+            ),
+        )
     except ExtractionTimeoutError as e:
         logger.error(f"Extraction timeout for {url}: {e.message}")
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail="Job data extraction timed out. Please try again later.",
+            detail=make_error_response(
+                ErrorCode.AI_TIMEOUT,
+                detail=e.message,
+            ),
         )
     except NoJobFoundError as e:
         logger.warning(f"No job found at {url}: {e.message}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Could not extract job posting data from the provided URL. "
-            "Please ensure the URL points to a valid job posting.",
+            detail=make_error_response(
+                ErrorCode.AI_EXTRACTION_FAILED,
+                detail=e.message,
+                message_override="Could not extract job posting data from this page",
+                action_override="Make sure the URL points to a valid job posting",
+            ),
         )
     except ExtractionInvalidResponseError as e:
         logger.error(f"Invalid extraction response for {url}: {e.message}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to extract job data due to an AI service error. Please try again later.",
+            detail=make_error_response(
+                ErrorCode.AI_SERVICE_ERROR,
+                detail=e.message,
+            ),
         )
     except ExtractionError as e:
         logger.error(f"Extraction error for {url}: {e.message}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Failed to extract job data: {e.message}",
+            detail=make_error_response(
+                ErrorCode.AI_SERVICE_ERROR,
+                detail=e.message,
+            ),
         )
 
     # Step 3: Create JobLead record
@@ -465,9 +493,20 @@ async def retry_job_lead_extraction(
             logger.info(
                 f"Successfully re-extracted job: {extracted.title} at {extracted.company}"
             )
+        except ExtractionAuthError as e:
+            logger.error(f"AI auth error for {job_lead.url}: {e.message}")
+            job_lead.status = "failed"
+            job_lead.error_message = "AI API key not configured"
+            await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=make_error_response(
+                    ErrorCode.AI_KEY_NOT_CONFIGURED,
+                    detail=e.message,
+                ),
+            )
         except ExtractionTimeoutError as e:
             logger.error(f"Extraction timeout for {job_lead.url}: {e.message}")
-            # Update job lead status to failed with error
             job_lead.status = "failed"
             job_lead.error_message = (
                 "Job data extraction timed out. Please try again later."
@@ -475,38 +514,46 @@ async def retry_job_lead_extraction(
             await db.commit()
             raise HTTPException(
                 status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-                detail="Job data extraction timed out. Please try again later.",
+                detail=make_error_response(
+                    ErrorCode.AI_TIMEOUT,
+                    detail=e.message,
+                ),
             )
         except NoJobFoundError as e:
             logger.warning(f"No job found at {job_lead.url}: {e.message}")
-            # Update job lead status to failed with error
             job_lead.status = "failed"
-            job_lead.error_message = "Could not extract job posting data. Please ensure the URL points to a valid job posting."
+            job_lead.error_message = "Could not extract job posting data."
             await db.commit()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Could not extract job posting data from the provided URL. "
-                "Please ensure the URL points to a valid job posting.",
+                detail=make_error_response(
+                    ErrorCode.AI_EXTRACTION_FAILED,
+                    detail=e.message,
+                ),
             )
         except ExtractionInvalidResponseError as e:
             logger.error(f"Invalid extraction response for {job_lead.url}: {e.message}")
-            # Update job lead status to failed with error
             job_lead.status = "failed"
-            job_lead.error_message = "Failed to extract job data due to an AI service error. Please try again later."
+            job_lead.error_message = "AI service error. Please try again later."
             await db.commit()
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Failed to extract job data due to an AI service error. Please try again later.",
+                detail=make_error_response(
+                    ErrorCode.AI_SERVICE_ERROR,
+                    detail=e.message,
+                ),
             )
         except ExtractionError as e:
             logger.error(f"Extraction error for {job_lead.url}: {e.message}")
-            # Update job lead status to failed with error
             job_lead.status = "failed"
             job_lead.error_message = f"Failed to extract job data: {e.message}"
             await db.commit()
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Failed to extract job data: {e.message}",
+                detail=make_error_response(
+                    ErrorCode.AI_SERVICE_ERROR,
+                    detail=e.message,
+                ),
             )
 
         # Step 5: Update job lead fields with new extraction
@@ -709,8 +756,19 @@ async def convert_job_lead_to_application(
 
     db.add(application)
 
-    # Flush to get the application ID before committing
+    # Flush to get the application ID before creating history
     await db.flush()
+
+    # Seed initial status history for Sankey chart
+    from app.models import ApplicationStatusHistory
+
+    history_entry = ApplicationStatusHistory(
+        application_id=application.id,
+        from_status_id=None,
+        to_status_id=default_status.id,
+        changed_at=datetime.now(UTC),
+    )
+    db.add(history_entry)
 
     # Step 5: Set the job_lead_id on the application (for reference)
     # Note: We keep the job lead until the application is successfully created,

@@ -182,7 +182,9 @@ export function detectJobPage(): DetectionResult {
       let foundJobPosting = false;
 
       // Check direct @type (single or array)
-      const types = Array.isArray(data['@type']) ? data['@type'] : [data['@type']];
+      const types = Array.isArray(data['@type'])
+        ? data['@type']
+        : [data['@type']];
       if (types.includes('JobPosting')) {
         foundJobPosting = true;
       }
@@ -190,7 +192,9 @@ export function detectJobPage(): DetectionResult {
       // Check @graph array (common pattern for multiple entities)
       if (!foundJobPosting && data['@graph'] && Array.isArray(data['@graph'])) {
         for (const item of data['@graph']) {
-          const itemTypes = Array.isArray(item['@type']) ? item['@type'] : [item['@type']];
+          const itemTypes = Array.isArray(item['@type'])
+            ? item['@type']
+            : [item['@type']];
           if (itemTypes.includes('JobPosting')) {
             foundJobPosting = true;
             break;

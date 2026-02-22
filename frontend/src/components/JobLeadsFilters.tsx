@@ -11,7 +11,6 @@ interface JobLeadsFiltersProps {
   value: JobLeadsFiltersValue;
   onChange: (value: JobLeadsFiltersValue) => void;
   sources: string[];
-  hasData: boolean;
 }
 
 const statusOptions: DropdownOption[] = [
@@ -37,7 +36,6 @@ export default function JobLeadsFilters({
   value,
   onChange,
   sources,
-  hasData,
 }: JobLeadsFiltersProps) {
   const sourceOptions: DropdownOption[] = [
     { value: '', label: 'All Sources' },
@@ -69,7 +67,6 @@ export default function JobLeadsFilters({
         placeholder="All Statuses"
         size="xs"
         containerBackground="bg1"
-        disabled={!hasData}
       />
       <Dropdown
         options={sourceOptions}
@@ -78,7 +75,7 @@ export default function JobLeadsFilters({
         placeholder="All Sources"
         size="xs"
         containerBackground="bg1"
-        disabled={!hasData || sources.length === 0}
+        disabled={sources.length === 0}
       />
       <Dropdown
         options={sortOptions}
@@ -87,7 +84,6 @@ export default function JobLeadsFilters({
         placeholder="Newest First"
         size="xs"
         containerBackground="bg1"
-        disabled={!hasData}
       />
       <Dropdown
         options={perPageOptions}
@@ -96,7 +92,6 @@ export default function JobLeadsFilters({
         placeholder="25 / page"
         size="xs"
         containerBackground="bg1"
-        disabled={!hasData}
       />
     </div>
   );

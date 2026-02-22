@@ -40,20 +40,20 @@ class TestImportService:
     def test_supported_version_constant(self, import_service):
         """ImportService should have SUPPORTED_VERSION class attribute."""
         assert hasattr(ImportService, "SUPPORTED_VERSION")
-        assert ImportService.SUPPORTED_VERSION == "1.0"
+        assert ImportService.SUPPORTED_VERSION == "1.0.0"
 
     # === validate_export_data tests ===
 
     def test_validate_export_data_checks_version(self, import_service):
         """Should validate export version."""
-        valid_data = {"export_version": "1.0", "models": {}}
+        valid_data = {"format_version": "1.0.0", "models": {}}
         is_valid, error = import_service.validate_export_data(valid_data)
         assert is_valid is True
         assert error is None
 
     def test_validate_rejects_invalid_version(self, import_service):
         """Should reject exports with wrong version."""
-        invalid_data = {"export_version": "2.0", "models": {}}
+        invalid_data = {"format_version": "2.0.0", "models": {}}
         is_valid, error = import_service.validate_export_data(invalid_data)
         assert is_valid is False
         assert "version" in error.lower()
@@ -67,14 +67,14 @@ class TestImportService:
 
     def test_validate_rejects_missing_models(self, import_service):
         """Should reject exports missing models."""
-        invalid_data = {"export_version": "1.0"}
+        invalid_data = {"format_version": "1.0.0"}
         is_valid, error = import_service.validate_export_data(invalid_data)
         assert is_valid is False
         assert "model" in error.lower()
 
     def test_validate_rejects_non_dict_models(self, import_service):
         """Should reject exports where models is not a dict."""
-        invalid_data = {"export_version": "1.0", "models": "not a dict"}
+        invalid_data = {"format_version": "1.0.0", "models": "not a dict"}
         is_valid, error = import_service.validate_export_data(invalid_data)
         assert is_valid is False
         assert "dictionary" in error.lower()
@@ -122,7 +122,7 @@ class TestImportService:
         mock_model_class.return_value = mock_instance
 
         export_data = {
-            "export_version": "1.0",
+            "format_version": "1.0.0",
             "models": {
                 "Application": [
                     {
@@ -149,12 +149,12 @@ class TestImportService:
             ):
                 mock_get.return_value = [ExportableModel(mock_model_class, 1)]
 
-                counts = import_service.import_user_data(
+                result = import_service.import_user_data(
                     export_data=export_data, user_id="user-1", session=mock_session
                 )
 
         assert import_service.id_mapper.has_mapping("Application", "old-app-1")
-        assert counts["Application"] == 1
+        assert result["counts"]["Application"] == 1
 
     def test_import_returns_counts_dict(self, import_service):
         """Should return counts of imported records per model."""
@@ -166,7 +166,7 @@ class TestImportService:
         mock_model_class.return_value = mock_instance
 
         export_data = {
-            "export_version": "1.0",
+            "format_version": "1.0.0",
             "models": {
                 "TestModel": [
                     {"__original_id__": "old-1", "name": "Test1", "id": "old-1"},
@@ -189,11 +189,11 @@ class TestImportService:
             ):
                 mock_get.return_value = [ExportableModel(mock_model_class, 1)]
 
-                counts = import_service.import_user_data(
+                result = import_service.import_user_data(
                     export_data=export_data, user_id="user-1", session=mock_session
                 )
 
-        assert counts["TestModel"] == 2
+        assert result["counts"]["TestModel"] == 2
 
     def test_import_processes_models_in_order(self, import_service):
         """Should process models in registry order (parents before children)."""
@@ -208,7 +208,7 @@ class TestImportService:
         mock_child.return_value = Mock()
 
         export_data = {
-            "export_version": "1.0",
+            "format_version": "1.0.0",
             "models": {
                 "Parent": [{"__original_id__": "p1", "id": "p1"}],
                 "Child": [{"__original_id__": "c1", "id": "c1"}],
@@ -252,7 +252,7 @@ class TestImportService:
         mock_model_b.return_value = Mock()
 
         export_data = {
-            "export_version": "1.0",
+            "format_version": "1.0.0",
             "models": {
                 "ModelA": [{"__original_id__": "a1", "id": "a1"}]
                 # ModelB is not in the export
@@ -275,12 +275,12 @@ class TestImportService:
                     ExportableModel(mock_model_b, 2),
                 ]
 
-                counts = import_service.import_user_data(
+                result = import_service.import_user_data(
                     export_data=export_data, user_id="user-1", session=mock_session
                 )
 
-        assert "ModelA" in counts
-        assert "ModelB" not in counts
+        assert "ModelA" in result["counts"]
+        assert "ModelB" not in result["counts"]
 
     # === _import_record tests ===
 

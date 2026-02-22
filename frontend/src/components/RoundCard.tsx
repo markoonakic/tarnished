@@ -253,7 +253,7 @@ export default function RoundCard({
 
       {round.notes_summary && (
         <div className="mb-3">
-          <p className="text-secondary whitespace-pre-wrap text-sm">
+          <p className="text-secondary text-sm whitespace-pre-wrap">
             {round.notes_summary}
           </p>
         </div>
@@ -400,7 +400,7 @@ export default function RoundCard({
             {round.transcript_summary && (
               <div className="bg-bg3 mt-2 rounded px-3 py-2">
                 <p className="text-muted mb-1 text-sm">Summary:</p>
-                <p className="text-secondary whitespace-pre-wrap text-sm">
+                <p className="text-secondary text-sm whitespace-pre-wrap">
                   {round.transcript_summary}
                 </p>
               </div>

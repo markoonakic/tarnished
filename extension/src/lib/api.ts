@@ -15,7 +15,12 @@ import {
   AlreadySavedError,
   TimeoutErrorCode,
   NetworkErrorCode,
+  parseBackendError,
+  ExtensionError,
 } from './errors';
+
+// Re-export ExtensionError for instanceof checks
+export { ExtensionError };
 
 // ============================================================================
 // Types
@@ -93,6 +98,8 @@ export interface ApiError {
   message: string;
   status: number;
   detail?: string;
+  code?: string;
+  action?: string;
 }
 
 /**
@@ -140,13 +147,14 @@ export class ApiClientError extends Error {
   }
 }
 
-
 /**
  * Error thrown when authentication fails.
  * Maps to AuthFailedError in the errors module.
  */
 export class AuthenticationError extends ApiClientError {
-  constructor(message: string = 'Authentication failed. Please check your API key.') {
+  constructor(
+    message: string = 'Authentication failed. Please check your API key.'
+  ) {
     super(message, 401);
     this.name = 'AuthenticationError';
   }
@@ -203,7 +211,9 @@ export class TimeoutError extends ApiClientError {
  * Maps to NetworkErrorCode in the errors module.
  */
 export class NetworkError extends ApiClientError {
-  constructor(message: string = 'Network error. Please check your connection.') {
+  constructor(
+    message: string = 'Network error. Please check your connection.'
+  ) {
     super(message, 0);
     this.name = 'NetworkError';
   }
@@ -245,7 +255,9 @@ export class ServerError extends ApiClientError {
  */
 function truncateText(text: string): string {
   if (text.length > MAX_TEXT_SIZE) {
-    console.warn(`Text content truncated from ${text.length} to ${MAX_TEXT_SIZE} characters`);
+    console.warn(
+      `Text content truncated from ${text.length} to ${MAX_TEXT_SIZE} characters`
+    );
     return text.substring(0, MAX_TEXT_SIZE);
   }
   return text;
@@ -260,26 +272,50 @@ function createTimeoutController(): {
   timeoutId: number;
 } {
   const controller = new AbortController();
-  const timeoutId = self.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutId = self.setTimeout(
+    () => controller.abort(),
+    REQUEST_TIMEOUT_MS
+  );
   return { controller, timeoutId };
 }
 
 /**
  * Parses an error response from the API.
  * @param response - The fetch Response object
- * @returns ApiError with parsed details
+ * @returns ApiError with parsed details including error code and action
  */
 async function parseErrorResponse(response: Response): Promise<ApiError> {
   let detail: string | undefined;
   let message = `Request failed with status ${response.status}`;
+  let code: string | undefined;
+  let action: string | undefined;
 
   try {
     const body = await response.json();
-    detail = body.detail || body.message;
-    if (detail) {
-      message = detail;
+    console.log('[API] Raw error body:', JSON.stringify(body, null, 2));
+    // Handle structured error response from backend
+    // Backend returns: { detail: { code, message, detail, action } }
+    // Or legacy format: { detail: "string message" }
+    if (body.detail && typeof body.detail === 'object') {
+      // New structured format
+      code = body.detail.code;
+      message = body.detail.message || message;
+      detail = body.detail.detail;
+      action = body.detail.action;
+      console.log(
+        '[API] Parsed structured error - code:',
+        code,
+        'message:',
+        message
+      );
+    } else {
+      // Legacy format or simple string
+      message = body.message || body.detail || message;
+      detail = typeof body.detail === 'string' ? body.detail : undefined;
+      console.log('[API] Parsed legacy error - message:', message);
     }
-  } catch {
+  } catch (e) {
+    console.log('[API] Failed to parse error body:', e);
     // Ignore JSON parsing errors
   }
 
@@ -287,6 +323,8 @@ async function parseErrorResponse(response: Response): Promise<ApiError> {
     message,
     status: response.status,
     detail,
+    code,
+    action,
   };
 }
 
@@ -296,6 +334,12 @@ async function parseErrorResponse(response: Response): Promise<ApiError> {
  * @throws Appropriate error class based on the error type
  */
 function handleFetchError(error: unknown): never {
+  // Re-throw ExtensionErrors (includes AI-specific errors, AuthFailedError, etc.)
+  if (error instanceof ExtensionError) {
+    throw error;
+  }
+
+  // Re-throw ApiClientErrors (includes ServerError, AuthenticationError, etc.)
   if (error instanceof ApiClientError) {
     throw error;
   }
@@ -336,12 +380,17 @@ function extractExistingId(message: string): string | undefined {
  * @throws NetworkError if there's a network error
  * @throws ServerError if the server returns an error
  */
-export async function saveJobLead(url: string, text: string): Promise<JobLeadResponse> {
+export async function saveJobLead(
+  url: string,
+  text: string
+): Promise<JobLeadResponse> {
   const settings = (await getSettings()) as Settings;
   const { appUrl, apiKey } = settings;
 
   if (!appUrl || !apiKey) {
-    throw new AuthenticationError('App URL or API key not configured. Please check your extension settings.');
+    throw new AuthenticationError(
+      'App URL or API key not configured. Please check your extension settings.'
+    );
   }
 
   const truncatedText = truncateText(text);
@@ -360,7 +409,29 @@ export async function saveJobLead(url: string, text: string): Promise<JobLeadRes
 
     if (!response.ok) {
       const error = await parseErrorResponse(response);
+      console.log('[API] Error response:', JSON.stringify(error, null, 2));
 
+      // If we have a structured error code from backend, use it
+      if (error.code) {
+        console.log(
+          '[API] Found error code:',
+          error.code,
+          '- using parseBackendError'
+        );
+        throw parseBackendError({
+          code: error.code,
+          message: error.message,
+          detail: error.detail,
+          action: error.action,
+        });
+      }
+
+      console.log(
+        '[API] No error code, using status-based mapping for status:',
+        response.status
+      );
+
+      // Fallback to HTTP status-based mapping
       switch (response.status) {
         case 401:
           throw new AuthenticationError(error.detail);
@@ -380,6 +451,7 @@ export async function saveJobLead(url: string, text: string): Promise<JobLeadRes
 
     return response.json();
   } catch (error) {
+    console.log('[API] Caught error:', error);
     handleFetchError(error);
   } finally {
     clearTimeout(timeoutId);
@@ -395,12 +467,16 @@ export async function saveJobLead(url: string, text: string): Promise<JobLeadRes
  * @throws TimeoutError if the request times out
  * @throws NetworkError if there's a network error
  */
-export async function checkExistingLead(url: string): Promise<JobLeadResponse | null> {
+export async function checkExistingLead(
+  url: string
+): Promise<JobLeadResponse | null> {
   const settings = (await getSettings()) as Settings;
   const { appUrl, apiKey } = settings;
 
   if (!appUrl || !apiKey) {
-    throw new AuthenticationError('App URL or API key not configured. Please check your extension settings.');
+    throw new AuthenticationError(
+      'App URL or API key not configured. Please check your extension settings.'
+    );
   }
 
   const { controller, timeoutId } = createTimeoutController();
@@ -463,7 +539,9 @@ export interface ApplicationListResponse {
  * @param url - The URL to check
  * @returns The existing application if found, null otherwise
  */
-export async function checkExistingApplication(url: string): Promise<ApplicationResponse | null> {
+export async function checkExistingApplication(
+  url: string
+): Promise<ApplicationResponse | null> {
   const settings = (await getSettings()) as Settings;
   const { appUrl, apiKey } = settings;
 
@@ -517,12 +595,16 @@ export async function checkExistingApplication(url: string): Promise<Application
  * @throws AuthenticationError if the API key is invalid
  * @throws ApiClientError if the conversion fails
  */
-export async function convertLeadToApplication(leadId: string): Promise<ApplicationResponse> {
+export async function convertLeadToApplication(
+  leadId: string
+): Promise<ApplicationResponse> {
   const settings = (await getSettings()) as Settings;
   const { appUrl, apiKey } = settings;
 
   if (!appUrl || !apiKey) {
-    throw new AuthenticationError('App URL or API key not configured. Please check your extension settings.');
+    throw new AuthenticationError(
+      'App URL or API key not configured. Please check your extension settings.'
+    );
   }
 
   const { controller, timeoutId } = createTimeoutController();
@@ -582,7 +664,9 @@ export async function getProfile(): Promise<UserProfileResponse> {
   const { appUrl, apiKey } = settings;
 
   if (!appUrl || !apiKey) {
-    throw new AuthenticationError('App URL or API key not configured. Please check your extension settings.');
+    throw new AuthenticationError(
+      'App URL or API key not configured. Please check your extension settings.'
+    );
   }
 
   const { controller, timeoutId } = createTimeoutController();
@@ -667,7 +751,9 @@ export async function testConnection(): Promise<boolean> {
       throw new TimeoutError('Connection test timed out.');
     }
 
-    throw new NetworkError(error instanceof Error ? error.message : 'Connection failed');
+    throw new NetworkError(
+      error instanceof Error ? error.message : 'Connection failed'
+    );
   } finally {
     clearTimeout(timeoutId);
   }
@@ -789,24 +875,38 @@ export async function extractApplication(
   const { controller, timeoutId } = createTimeoutController();
 
   try {
-    const response = await fetch(buildUrl(appUrl, `${API_ENDPOINTS.APPLICATIONS}/extract`), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': apiKey,
-      },
-      body: JSON.stringify({
-        url: data.url,
-        status_id: data.status_id,
-        applied_at: data.applied_at || new Date().toISOString().split('T')[0],
-        text: data.text ? truncateText(data.text) : undefined,
-      }),
-      signal: controller.signal,
-    });
+    const response = await fetch(
+      buildUrl(appUrl, `${API_ENDPOINTS.APPLICATIONS}/extract`),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+        },
+        body: JSON.stringify({
+          url: data.url,
+          status_id: data.status_id,
+          applied_at: data.applied_at || new Date().toISOString().split('T')[0],
+          text: data.text ? truncateText(data.text) : undefined,
+        }),
+        signal: controller.signal,
+      }
+    );
 
     if (!response.ok) {
       const error = await parseErrorResponse(response);
 
+      // If we have a structured error code from backend, use it
+      if (error.code) {
+        throw parseBackendError({
+          code: error.code,
+          message: error.message,
+          detail: error.detail,
+          action: error.action,
+        });
+      }
+
+      // Fallback to HTTP status-based mapping
       switch (response.status) {
         case 401:
           throw new AuthenticationError(error.detail);
@@ -841,7 +941,9 @@ export async function getStatuses(): Promise<StatusResponse[]> {
   const { appUrl, apiKey } = settings;
 
   if (!appUrl || !apiKey) {
-    throw new AuthenticationError('App URL or API key not configured. Please check your extension settings.');
+    throw new AuthenticationError(
+      'App URL or API key not configured. Please check your extension settings.'
+    );
   }
 
   const { controller, timeoutId } = createTimeoutController();

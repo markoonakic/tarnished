@@ -190,7 +190,7 @@ export default function Admin() {
                       placeholder="e.g., gpt-4o, claude-3-sonnet"
                       value={aiModel}
                       onChange={(e) => setAiModel(e.target.value)}
-                      className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-4 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                      className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-4 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                     />
                     <p className="text-muted mt-1 text-xs">
                       The LiteLLM model identifier for AI features
@@ -217,12 +217,12 @@ export default function Admin() {
                         }
                         value={aiApiKey}
                         onChange={(e) => setAiApiKey(e.target.value)}
-                        className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-4 py-2 pr-10 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                        className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-4 py-2 pr-10 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                       />
                       <button
                         type="button"
                         onClick={() => setShowApiKey(!showApiKey)}
-                        className="text-muted hover:text-fg1 absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer p-1 transition-all duration-200 ease-in-out"
+                        className="text-muted hover:text-fg1 absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer p-1 transition-all duration-200 ease-in-out"
                         title={showApiKey ? 'Hide API key' : 'Show API key'}
                       >
                         <i
@@ -253,7 +253,7 @@ export default function Admin() {
                       placeholder="e.g., http://localhost:4000"
                       value={aiBaseUrl}
                       onChange={(e) => setAiBaseUrl(e.target.value)}
-                      className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-4 py-2 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                      className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-4 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                     />
                     <p className="text-muted mt-1 text-xs">
                       Custom endpoint for self-hosted LiteLLM instances
@@ -293,18 +293,18 @@ export default function Admin() {
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                   {/* Search Input */}
                   <div className="relative min-w-0 flex-1">
-                    <i className="bi-search icon-sm text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                    <i className="bi-search icon-sm text-muted absolute top-1/2 left-3 -translate-y-1/2" />
                     <input
                       type="text"
                       placeholder="Search by email..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pl-9 pr-9 transition-all duration-200 ease-in-out focus:outline-none focus:ring-1"
+                      className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                     />
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery('')}
-                        className="text-muted hover:text-fg1 absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
+                        className="text-muted hover:text-fg1 absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
                         aria-label="Clear search"
                       >
                         <i className="bi-x icon-sm" />
@@ -334,19 +334,19 @@ export default function Admin() {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="border-tertiary border-b">
-                      <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                      <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
                         Email
                       </th>
-                      <th className="text-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                      <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
                         Joined
                       </th>
-                      <th className="text-muted px-4 py-3 text-center text-xs font-bold uppercase tracking-wide">
+                      <th className="text-muted px-4 py-3 text-center text-xs font-bold tracking-wide uppercase">
                         Admin
                       </th>
-                      <th className="text-muted px-4 py-3 text-center text-xs font-bold uppercase tracking-wide">
+                      <th className="text-muted px-4 py-3 text-center text-xs font-bold tracking-wide uppercase">
                         Active
                       </th>
-                      <th className="text-muted px-4 py-3 text-right text-xs font-bold uppercase tracking-wide">
+                      <th className="text-muted px-4 py-3 text-right text-xs font-bold tracking-wide uppercase">
                         Actions
                       </th>
                     </tr>

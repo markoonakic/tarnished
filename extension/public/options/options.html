@@ -1,33 +1,36 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tarnished Settings</title>
-  <link rel="icon" type="image/svg+xml" href="../icons/tree.svg">
-  <link rel="stylesheet" href="options.css">
-</head>
-<body>
-  <div class="container">
-    <h1>Tarnished Settings</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tarnished Settings</title>
+    <link rel="icon" type="image/svg+xml" href="../icons/tree.svg" />
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Tarnished Settings</h1>
 
-    <div class="form-group">
-      <label for="appUrl">App URL</label>
-      <input type="url" id="appUrl" placeholder="https://jobs.example.com">
-      <small>The URL where your Tarnished instance is hosted</small>
+      <div class="form-group">
+        <label for="appUrl">App URL</label>
+        <input type="url" id="appUrl" placeholder="https://jobs.example.com" />
+        <small>The URL where your Tarnished instance is hosted</small>
+      </div>
+
+      <div class="form-group">
+        <label for="apiKey">API Key</label>
+        <input type="password" id="apiKey" placeholder="Your API key" />
+        <small
+          >Get your API key from
+          <a href="#" id="apiKeyLink">Tarnished Settings</a></small
+        >
+      </div>
+
+      <div class="form-group">
+        <button id="saveBtn" class="primary">Save</button>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label for="apiKey">API Key</label>
-      <input type="password" id="apiKey" placeholder="Your API key">
-      <small>Get your API key from <a href="#" id="apiKeyLink">Tarnished Settings</a></small>
-    </div>
-
-    <div class="form-group">
-      <button id="saveBtn" class="primary">Save</button>
-    </div>
-  </div>
-
-  <script type="module" src="./index.js"></script>
-</body>
+    <script type="module" src="./index.js"></script>
+  </body>
 </html>

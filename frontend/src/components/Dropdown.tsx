@@ -193,7 +193,7 @@ export default function Dropdown({
         aria-controls="dropdown-listbox"
         aria-selected={!!selectedOption}
         aria-disabled={disabled}
-        className={`flex w-full items-center justify-between gap-3 ${triggerBg} text-fg1 hover:border-accent-bright focus:ring-accent-bright rounded border-0 focus:outline-none focus:ring-1 ${isOpen ? 'ring-accent-bright ring-1' : ''} ${sizeClasses[size]} transition-all duration-200 ease-in-out ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} `}
+        className={`flex w-full items-center justify-between gap-3 ${triggerBg} text-fg1 hover:border-accent-bright focus:ring-accent-bright rounded border-0 focus:ring-1 focus:outline-none ${isOpen ? 'ring-accent-bright ring-1' : ''} ${sizeClasses[size]} transition-all duration-200 ease-in-out ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} `}
       >
         <span className={selectedOption ? 'text-fg1' : 'text-fg4'}>
           {selectedOption ? selectedOption.label : placeholder}

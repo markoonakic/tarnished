@@ -17,7 +17,7 @@ class ExportService:
     registered models.
     """
 
-    EXPORT_VERSION = "1.0"
+    EXPORT_VERSION = "1.0.0"
 
     def __init__(self, registry: ExportRegistry):
         self.registry = registry
@@ -37,8 +37,8 @@ class ExportService:
             Dictionary with all user data ready for JSON serialization
         """
         result = {
-            "export_version": self.EXPORT_VERSION,
-            "exported_at": datetime.now(UTC).isoformat(),
+            "format_version": self.EXPORT_VERSION,
+            "export_timestamp": datetime.now(UTC).isoformat(),
             "user": {"id": user_id},
             "models": {},
         }
@@ -64,6 +64,28 @@ class ExportService:
     ) -> list:
         """Get all records for a model belonging to a user."""
         from app.models import Application
+
+        # Special handling for ApplicationStatus: include global statuses too
+        # since applications can reference global (user_id=None) statuses
+        if model_class.__name__ == "ApplicationStatus":
+            return (
+                session.query(model_class)
+                .filter(
+                    (model_class.user_id == user_id) | (model_class.user_id.is_(None))
+                )
+                .all()
+            )
+
+        # Special handling for RoundType: include global round types too
+        # since rounds can reference global (user_id=None) round types
+        if model_class.__name__ == "RoundType":
+            return (
+                session.query(model_class)
+                .filter(
+                    (model_class.user_id == user_id) | (model_class.user_id.is_(None))
+                )
+                .all()
+            )
 
         # Check if model has user_id column
         if hasattr(model_class, "user_id"):

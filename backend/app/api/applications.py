@@ -1,5 +1,5 @@
-import os
 from datetime import UTC, date, datetime
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.api.job_leads import _fetch_html, _get_ai_settings
 from app.api.streak import record_streak_activity
+from app.api.utils.zip_utils import ALLOWED_DOCUMENT_TYPES, store_file, validate_file
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import (
@@ -30,7 +31,9 @@ from app.schemas.application import (
     ApplicationResponse,
     ApplicationUpdate,
 )
+from app.schemas.errors import ErrorCode, make_error_response
 from app.services.extraction import (
+    ExtractionAuthError,
     ExtractionError,
     ExtractionInvalidResponseError,
     ExtractionTimeoutError,
@@ -217,21 +220,34 @@ async def create_application_from_url(
             api_key=ai_api_key,
             api_base=ai_api_base,
         )
+    except ExtractionAuthError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=make_error_response(
+                ErrorCode.AI_KEY_NOT_CONFIGURED, detail=e.message
+            ),
+        )
     except ExtractionTimeoutError as e:
         raise HTTPException(
-            status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=e.message
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail=make_error_response(ErrorCode.AI_TIMEOUT, detail=e.message),
         )
     except ExtractionInvalidResponseError as e:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.message
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=make_error_response(ErrorCode.AI_SERVICE_ERROR, detail=e.message),
         )
     except NoJobFoundError as e:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=e.message
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=make_error_response(
+                ErrorCode.AI_EXTRACTION_FAILED, detail=e.message
+            ),
         )
     except ExtractionError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.message
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=make_error_response(ErrorCode.AI_SERVICE_ERROR, detail=e.message),
         )
 
     # 4. Create the application with all extracted data
@@ -418,37 +434,42 @@ async def upload_cv(
             status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
         )
 
-    allowed_types = [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ]
-    if file.content_type not in allowed_types:
+    settings = get_settings()
+    upload_dir = Path(settings.upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    # Read file content
+    content = await file.read()
+    max_size = settings.max_document_size_mb * 1024 * 1024
+    if len(content) > max_size:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File must be PDF or Word document",
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File exceeds maximum size of {settings.max_document_size_mb}MB",
         )
 
-    if application.cv_path and os.path.exists(application.cv_path):
-        os.remove(application.cv_path)
+    # Write to temp file for magic byte validation
+    import tempfile
 
-    settings = get_settings()
-    os.makedirs(settings.upload_dir, exist_ok=True)
-    ext = os.path.splitext(file.filename or "")[1] or ".pdf"
-    file_name = f"cv_{application_id}{ext}"
-    file_path = os.path.join(settings.upload_dir, file_name)
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        tmp.write(content)
+        tmp_path = Path(tmp.name)
 
-    with open(file_path, "wb") as f:
-        content = await file.read()
-        max_size = settings.max_document_size_mb * 1024 * 1024
-        if len(content) > max_size:
+    try:
+        # Validate file type using magic bytes
+        is_valid, detected_type = validate_file(tmp_path, ALLOWED_DOCUMENT_TYPES)
+        if not is_valid:
             raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File exceeds maximum size of {settings.max_document_size_mb}MB",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid file type: {detected_type}. Must be a document (PDF, DOCX, DOC, TXT, MD, RTF)",
             )
-        f.write(content)
+
+        # Store file using CAS
+        file_path = await store_file(content, upload_dir)
+    finally:
+        tmp_path.unlink(missing_ok=True)
 
     application.cv_path = file_path
+    application.cv_original_filename = file.filename
     await db.commit()
 
     result = await db.execute(
@@ -477,10 +498,9 @@ async def delete_cv(
             status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
         )
 
-    if application.cv_path and os.path.exists(application.cv_path):
-        os.remove(application.cv_path)
-
+    # Note: We don't delete CAS files as they may be shared/deduplicated
     application.cv_path = None
+    application.cv_original_filename = None
     await db.commit()
 
     result = await db.execute(
@@ -510,37 +530,42 @@ async def upload_cover_letter(
             status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
         )
 
-    allowed_types = [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ]
-    if file.content_type not in allowed_types:
+    settings = get_settings()
+    upload_dir = Path(settings.upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    # Read file content
+    content = await file.read()
+    max_size = settings.max_document_size_mb * 1024 * 1024
+    if len(content) > max_size:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File must be PDF or Word document",
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File exceeds maximum size of {settings.max_document_size_mb}MB",
         )
 
-    if application.cover_letter_path and os.path.exists(application.cover_letter_path):
-        os.remove(application.cover_letter_path)
+    # Write to temp file for magic byte validation
+    import tempfile
 
-    settings = get_settings()
-    os.makedirs(settings.upload_dir, exist_ok=True)
-    ext = os.path.splitext(file.filename or "")[1] or ".pdf"
-    file_name = f"cover_letter_{application_id}{ext}"
-    file_path = os.path.join(settings.upload_dir, file_name)
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        tmp.write(content)
+        tmp_path = Path(tmp.name)
 
-    with open(file_path, "wb") as f:
-        content = await file.read()
-        max_size = settings.max_document_size_mb * 1024 * 1024
-        if len(content) > max_size:
+    try:
+        # Validate file type using magic bytes
+        is_valid, detected_type = validate_file(tmp_path, ALLOWED_DOCUMENT_TYPES)
+        if not is_valid:
             raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File exceeds maximum size of {settings.max_document_size_mb}MB",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid file type: {detected_type}. Must be a document (PDF, DOCX, DOC, TXT, MD, RTF)",
             )
-        f.write(content)
+
+        # Store file using CAS
+        file_path = await store_file(content, upload_dir)
+    finally:
+        tmp_path.unlink(missing_ok=True)
 
     application.cover_letter_path = file_path
+    application.cover_letter_original_filename = file.filename
     await db.commit()
 
     result = await db.execute(
@@ -569,10 +594,9 @@ async def delete_cover_letter(
             status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
         )
 
-    if application.cover_letter_path and os.path.exists(application.cover_letter_path):
-        os.remove(application.cover_letter_path)
-
+    # Note: We don't delete CAS files as they may be shared/deduplicated
     application.cover_letter_path = None
+    application.cover_letter_original_filename = None
     await db.commit()
 
     result = await db.execute(

@@ -301,8 +301,8 @@ class TestJSONExport:
         # Verify new introspective export structure
         assert "user" in data
         assert "models" in data
-        assert "export_version" in data
-        assert "exported_at" in data
+        assert "format_version" in data
+        assert "export_timestamp" in data
 
         # Verify user data
         assert data["user"]["email"] == "test@example.com"

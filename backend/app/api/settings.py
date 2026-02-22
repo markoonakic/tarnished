@@ -245,3 +245,58 @@ async def create_round_type(
     await db.commit()
     await db.refresh(round_type)
     return round_type
+
+
+@router.patch("/round-types/{round_type_id}", response_model=RoundTypeFullResponse)
+async def update_round_type(
+    round_type_id: str,
+    data: RoundTypeCreate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(RoundType).where(RoundType.id == round_type_id))
+    round_type = result.scalar_one_or_none()
+
+    if not round_type:
+        raise HTTPException(status_code=404, detail="Round type not found")
+
+    # Only allow editing user-owned round types
+    if round_type.user_id is None:
+        raise HTTPException(status_code=403, detail="Cannot edit default round types")
+
+    if round_type.user_id != user.id:
+        raise HTTPException(
+            status_code=403, detail="Not authorized to edit this round type"
+        )
+
+    if data.name is not None:
+        round_type.name = data.name
+
+    await db.commit()
+    await db.refresh(round_type)
+    return round_type
+
+
+@router.delete("/round-types/{round_type_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_round_type(
+    round_type_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(RoundType).where(RoundType.id == round_type_id))
+    round_type = result.scalar_one_or_none()
+
+    if not round_type:
+        raise HTTPException(status_code=404, detail="Round type not found")
+
+    # Only allow deleting user-owned round types
+    if round_type.user_id is None:
+        raise HTTPException(status_code=403, detail="Cannot delete default round types")
+
+    if round_type.user_id != user.id:
+        raise HTTPException(
+            status_code=403, detail="Not authorized to delete this round type"
+        )
+
+    await db.delete(round_type)
+    await db.commit()

@@ -160,7 +160,9 @@ async def get_sankey_data(
                     color=status_name_to_color.get(
                         status_name, "#8ec07c"
                     ),  # Fallback, frontend uses theme
-                    value=initial_status_counts.get(status_name),  # Initial apps at this status
+                    value=initial_status_counts.get(
+                        status_name
+                    ),  # Initial apps at this status
                 )
             )
 
@@ -171,7 +173,7 @@ async def get_sankey_data(
     for _app_id, transitions in app_transitions.items():
         visited_statuses = set()  # Track statuses visited in this application's journey
 
-        for i, t in enumerate(transitions):
+        for t in transitions:
             # Skip initial status entries (from_status=None) - counted via node value instead
             if t["from_status"] is None:
                 visited_statuses.add(t["to_status"])

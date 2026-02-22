@@ -119,14 +119,14 @@ export default function FlameEmblem() {
           className={`relative rounded-lg border-2 px-12 py-4 ${flameState === 'COLD' ? 'border-tertiary' : isEmber ? 'border-orange' : 'border-fg1'} transition-all duration-300`}
         >
           {/* Decorative corners */}
-          <div className="border-fg0 absolute left-0 top-0 h-3 w-3 rounded-tl-sm border-l-2 border-t-2"></div>
-          <div className="border-fg0 absolute right-0 top-0 h-3 w-3 rounded-tr-sm border-r-2 border-t-2"></div>
+          <div className="border-fg0 absolute top-0 left-0 h-3 w-3 rounded-tl-sm border-t-2 border-l-2"></div>
+          <div className="border-fg0 absolute top-0 right-0 h-3 w-3 rounded-tr-sm border-t-2 border-r-2"></div>
           <div className="border-fg0 absolute bottom-0 left-0 h-3 w-3 rounded-bl-sm border-b-2 border-l-2"></div>
-          <div className="border-fg0 absolute bottom-0 right-0 h-3 w-3 rounded-br-sm border-b-2 border-r-2"></div>
+          <div className="border-fg0 absolute right-0 bottom-0 h-3 w-3 rounded-br-sm border-r-2 border-b-2"></div>
 
           {/* Flame display */}
           <div className="mb-3 text-center">
-            <div className="text-primary whitespace-pre font-mono text-xs leading-tight">
+            <div className="text-primary font-mono text-xs leading-tight whitespace-pre">
               {getFlameArt()}
             </div>
           </div>

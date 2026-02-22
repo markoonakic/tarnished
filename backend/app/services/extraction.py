@@ -145,6 +145,12 @@ class ExtractionInvalidResponseError(ExtractionError):
     pass
 
 
+class ExtractionAuthError(ExtractionError):
+    """Raised when the AI API key is missing or invalid."""
+
+    pass
+
+
 class NoJobFoundError(ExtractionError):
     """Raised when no job posting data can be extracted from the content."""
 
@@ -364,6 +370,14 @@ Job Posting Content:
     if api_base:
         completion_kwargs["api_base"] = api_base
 
+    # Check for API key before making the request
+    if not api_key:
+        logger.error("AI API key not configured")
+        raise ExtractionAuthError(
+            "AI API key not configured. Please add your API key in Settings.",
+            details={"model": extraction_model, "url": url},
+        )
+
     # Allow one retry for invalid JSON responses
     max_attempts = 2
     _last_parse_error: tuple[str, str] | None = None  # (error_message, raw_response)
@@ -491,6 +505,20 @@ Job Posting Content:
                 details={"model": extraction_model, "url": url, "timeout": timeout},
             ) from e
 
+        except openai.AuthenticationError as e:
+            logger.error(f"LLM authentication error: {e}")
+            raise ExtractionAuthError(
+                "AI API key is invalid or expired. Please check your API key in Settings.",
+                details={"model": extraction_model, "url": url},
+            ) from e
+
+        except openai.RateLimitError as e:
+            logger.error(f"LLM rate limit error: {e}")
+            raise ExtractionTimeoutError(
+                "AI service is rate limited. Please wait a moment and try again.",
+                details={"model": extraction_model, "url": url},
+            ) from e
+
         except openai.APIError as e:
             logger.error(f"LLM API error: {e}")
             raise ExtractionInvalidResponseError(
@@ -505,6 +533,7 @@ Job Posting Content:
         except (
             ExtractionTimeoutError,
             ExtractionInvalidResponseError,
+            ExtractionAuthError,
             NoJobFoundError,
         ):
             # Re-raise our custom exceptions

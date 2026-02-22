@@ -94,7 +94,7 @@ export default function SettingsAPIKey() {
                 Your API Key
               </span>
               <div className="flex items-center gap-2">
-                <div className="text-fg1 bg-bg2 flex-1 overflow-x-auto break-all rounded px-3 py-2 font-mono text-sm">
+                <div className="text-fg1 bg-bg2 flex-1 overflow-x-auto rounded px-3 py-2 font-mono text-sm break-all">
                   {displayKey}
                 </div>
                 <button

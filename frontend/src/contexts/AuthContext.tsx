@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const setupResponse = await api.get('/api/auth/setup-status');
       if (setupResponse.data.needs_setup) {
         setUser(null);
-        setLoading(false);
+        // Don't set loading=false - we're redirecting, keep showing loading state
         // Don't redirect if already on the register page
         if (!window.location.pathname.startsWith('/register')) {
           window.location.href = '/register?setup=true';
