@@ -59,8 +59,7 @@ COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PATH="/app/.venv/bin:$PATH" \
-    UPLOAD_DIR=/app/data/uploads \
-    DATABASE_URL=sqlite+aiosqlite:///app/data/tarnished.db
+    UPLOAD_DIR=/app/data/uploads
 
 # Copy application code
 COPY --chown=appuser:appuser backend/app ./app
