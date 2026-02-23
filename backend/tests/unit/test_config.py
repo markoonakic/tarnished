@@ -9,13 +9,21 @@ Tests for:
 from app.core.config import Settings
 
 
+def create_test_settings(**kwargs) -> Settings:
+    """Create Settings instance without reading .env file.
+
+    Pydantic-settings reads .env by default, which can interfere with tests.
+    This helper disables .env file reading for isolated testing.
+    """
+    return Settings(_env_file=None, **kwargs)  # type: ignore[arg-type]
+
+
 class TestGetDatabaseUrl:
     """Tests for Settings.get_database_url() method."""
 
     def test_database_url_takes_precedence(self):
         """Test that explicit DATABASE_URL is used over discrete settings."""
-        settings = Settings(
-            _env_file=None,  # Disable .env file reading
+        settings = create_test_settings(
             database_url="postgresql+asyncpg://user:pass@host:5432/db",
             postgres_host="other-host",
             postgres_user="other-user",
@@ -26,8 +34,7 @@ class TestGetDatabaseUrl:
 
     def test_discrete_postgres_settings_used_when_no_database_url(self):
         """Test that discrete PostgreSQL settings are used when DATABASE_URL not set."""
-        settings = Settings(
-            _env_file=None,  # Disable .env file reading
+        settings = create_test_settings(
             database_url=None,
             postgres_host="postgres.example.com",
             postgres_port=5432,
@@ -43,8 +50,7 @@ class TestGetDatabaseUrl:
 
     def test_password_with_special_characters_encoded(self):
         """Test that passwords with special characters are URL-encoded."""
-        settings = Settings(
-            _env_file=None,  # Disable .env file reading
+        settings = create_test_settings(
             database_url=None,
             postgres_host="postgres.example.com",
             postgres_user="tarnished",
@@ -60,18 +66,14 @@ class TestGetDatabaseUrl:
 
     def test_sqlite_fallback_when_no_postgres_settings(self):
         """Test that SQLite is used when no PostgreSQL settings provided."""
-        settings = Settings(
-            _env_file=None,  # Disable .env file reading
-            database_url=None,
-        )
+        settings = create_test_settings(database_url=None)
 
         url = settings.get_database_url()
         assert "sqlite+aiosqlite" in url
 
     def test_partial_postgres_settings_falls_back_to_sqlite(self):
         """Test that partial PostgreSQL settings (missing password) falls back to SQLite."""
-        settings = Settings(
-            _env_file=None,  # Disable .env file reading
+        settings = create_test_settings(
             database_url=None,
             postgres_host="postgres.example.com",
             postgres_user="tarnished",
