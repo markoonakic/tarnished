@@ -32,7 +32,7 @@ class ErrorCode(str, Enum):
 
     # Authentication errors
     AUTH_INVALID_API_KEY = "AUTH_INVALID_API_KEY"
-    AUTH_TOKEN_EXPIRED = "AUTH_TOKEN_EXPIRED"
+    AUTH_TOKEN_EXPIRED = "AUTH_TOKEN_EXPIRED"  # nosec B105 # error code, not a password
     AUTH_UNAUTHORIZED = "AUTH_UNAUTHORIZED"
 
     # Validation errors

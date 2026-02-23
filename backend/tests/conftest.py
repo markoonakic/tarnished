@@ -4,6 +4,7 @@
 import os
 
 os.environ["ENABLE_RATE_LIMITING"] = "false"
+os.environ["SECRET_KEY"] = "test-secret-key-for-pytest"
 
 import asyncio
 from typing import AsyncGenerator, Generator
