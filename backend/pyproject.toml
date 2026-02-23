@@ -26,8 +26,6 @@ dependencies = [
     "litellm>=1.81.11",
     "readability-lxml>=0.8.4.1",
     "markdownify>=1.2.2",
-    "pillow>=12.1.1",
-    "cairosvg>=2.8.2",
     "python-magic>=0.4.27",
     "psycopg[binary]>=3.3.3",
 ]

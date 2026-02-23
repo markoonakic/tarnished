@@ -43,6 +43,8 @@ FROM python:3.12-alpine
 RUN apk add --no-cache \
     libpq \
     postgresql-libs \
+    libmagic \
+    libffi \
     curl
 
 WORKDIR /app
