@@ -30,7 +30,9 @@ class TestGetDatabaseUrl:
             postgres_password="other-pass",
         )
 
-        assert settings.get_database_url() == "postgresql+asyncpg://user:pass@host:5432/db"
+        assert (
+            settings.get_database_url() == "postgresql+asyncpg://user:pass@host:5432/db"
+        )
 
     def test_discrete_postgres_settings_used_when_no_database_url(self):
         """Test that discrete PostgreSQL settings are used when DATABASE_URL not set."""
