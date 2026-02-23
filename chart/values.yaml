@@ -145,6 +145,9 @@ livenessProbe:
   httpGet:
     path: /health
     port: http
+    httpHeaders:
+      - name: Host
+        value: localhost
   initialDelaySeconds: 30
   periodSeconds: 10
   timeoutSeconds: 5
@@ -154,6 +157,9 @@ readinessProbe:
   httpGet:
     path: /health
     port: http
+    httpHeaders:
+      - name: Host
+        value: localhost
   initialDelaySeconds: 10
   periodSeconds: 5
   timeoutSeconds: 3
