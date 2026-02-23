@@ -148,3 +148,73 @@ The chart deploys with secure defaults:
 ## First-Time Setup
 
 After installation, navigate to the application URL and create your admin account. The first registered user automatically becomes the administrator.
+
+## Secrets
+
+When deploying to production, you should create Kubernetes Secrets externally and reference them via `existingSecret` values.
+
+### Application Secret Key
+
+Required for JWT token signing:
+
+```bash
+kubectl create secret generic tarnished-secrets \
+  --from-literal=secret-key='your-secure-random-string-here'
+```
+
+Then in your values:
+
+```yaml
+secretKey:
+  existingSecret: tarnished-secrets
+  existingSecretKey: secret-key
+```
+
+### PostgreSQL Credentials (when postgresql.enabled=true)
+
+Required keys:
+
+| Key      | Description                                                      |
+|----------|------------------------------------------------------------------|
+| password | PostgreSQL user password (URL encoding NOT required - app handles it) |
+
+```bash
+kubectl create secret generic tarnished-db \
+  --from-literal=password='your-postgres-password'
+```
+
+Then in your values:
+
+```yaml
+postgresql:
+  enabled: true
+  host: your-postgres-host
+  user: tarnished
+  database: tarnished
+  existingSecret: tarnished-db
+  existingSecretPasswordKey: password
+```
+
+**Note:** The password can contain special characters (`@`, `:`, `/`, etc.) - the application handles URL encoding automatically. Do NOT pre-encode the password.
+
+### Complete Production Example
+
+```yaml
+# values-production.yaml
+postgresql:
+  enabled: true
+  host: tarnished-postgres-postgresql
+  user: tarnished
+  database: tarnished
+  existingSecret: tarnished-db
+
+secretKey:
+  existingSecret: tarnished-secrets
+
+ingress:
+  enabled: true
+  className: nginx
+  host: jobs.example.com
+  tls:
+    enabled: true
+```
