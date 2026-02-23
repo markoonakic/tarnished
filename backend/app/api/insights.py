@@ -46,7 +46,7 @@ def _get_sync_engine():
     """Get or create the sync database engine (lazy initialization)."""
     global _sync_engine
     if _sync_engine is None:
-        sync_url = settings.database_url
+        sync_url = settings.get_database_url()
         if "+aiosqlite" in sync_url:
             sync_url = sync_url.replace("+aiosqlite", "")
         elif "+asyncpg" in sync_url:
