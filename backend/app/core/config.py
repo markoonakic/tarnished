@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # SQLite fallback path
     sqlite_path: str = "./data/app.db"
 
-    secret_key: str = "change-me-in-production"
+    secret_key: str  # Required: must be set via SECRET_KEY env var
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
@@ -58,21 +58,13 @@ class Settings(BaseSettings):
         # SQLite fallback
         return f"sqlite+aiosqlite:///{self.sqlite_path}"
 
-    def model_post_init(self, __context: object) -> None:
-        if self.secret_key == "change-me-in-production":
-            if os.getenv("ENV", "development").lower() == "production":
-                raise ValueError(
-                    "SECRET_KEY must be changed from default in production"
-                )
-            logger.warning("Using default secret key — not suitable for production")
-
     class Config:
         env_file = ".env"
 
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    return Settings()  # pyright: ignore[reportCallIssue] # pydantic-settings loads from env
 
 
 def resolve_upload_path(stored_path: str) -> str:
