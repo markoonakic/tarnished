@@ -6,8 +6,6 @@ Tests for:
 - Password encoding in constructed URLs
 """
 
-import os
-
 from app.core.config import Settings
 
 
