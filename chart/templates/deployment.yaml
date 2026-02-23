@@ -62,7 +62,7 @@ spec:
               value: {{ .Values.postgresql.password | quote }}
             {{- end }}
             {{- end }}
-            {{- if and .Values.secretKey.existingSecret (not .Values.postgresql.enabled) }}
+            {{- if .Values.secretKey.existingSecret }}
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
