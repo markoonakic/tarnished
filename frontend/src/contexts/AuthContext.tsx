@@ -23,11 +23,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const setupResponse = await api.get('/api/auth/setup-status');
       if (setupResponse.data.needs_setup) {
         setUser(null);
-        // Don't set loading=false - we're redirecting, keep showing loading state
         // Don't redirect if already on the register page
         if (!window.location.pathname.startsWith('/register')) {
+          // Don't set loading=false - we're redirecting, keep showing loading state
           window.location.href = '/register?setup=true';
+          return;
         }
+        // Already on register page, allow form to display
+        setLoading(false);
         return;
       }
     } catch {
