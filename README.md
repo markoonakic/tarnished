@@ -97,11 +97,18 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | `sqlite+aiosqlite:///app/data/tarnished.db` | Database connection |
+| `DATABASE_URL` | *(none)* | Full database URL (takes precedence) |
+| `POSTGRES_HOST` | *(none)* | PostgreSQL host (discrete config) |
+| `POSTGRES_PORT` | `5432` | PostgreSQL port |
+| `POSTGRES_USER` | *(none)* | PostgreSQL username |
+| `POSTGRES_PASSWORD` | *(none)* | PostgreSQL password (special chars OK) |
+| `POSTGRES_DB` | `tarnished` | PostgreSQL database name |
 | `SECRET_KEY` | auto-generated | JWT signing key |
 | `APP_URL` | `http://localhost:5577` | Public URL (CORS, TrustedHost) |
 | `APP_PORT` | `5577` | External port mapping |
 | `UPLOAD_DIR` | `/app/data/uploads` | File upload location |
+
+> **Note:** If no database is configured, SQLite is used as fallback (`/app/data/tarnished.db`).
 
 See `.env.example` for all options.
 
