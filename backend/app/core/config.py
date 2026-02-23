@@ -1,6 +1,5 @@
 import logging
 import os
-
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings
@@ -74,3 +73,34 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def resolve_upload_path(stored_path: str) -> str:
+    """Resolve a stored file path to an absolute filesystem path.
+
+    Handles paths stored in the database which may have different formats:
+    - 'uploads/user_id/hash.pdf' (new format)
+    - './uploads/hash.mp3' (old format with relative prefix)
+
+    The UPLOAD_DIR env var determines where files are actually stored:
+    - Dev: './uploads' (relative to project root)
+    - Prod: '/app/data/uploads' (absolute path in container)
+
+    Args:
+        stored_path: Path as stored in database (e.g., 'uploads/user_id/file.pdf')
+
+    Returns:
+        Absolute or relative path that can be used with os.path.exists(), FileResponse, etc.
+    """
+    settings = get_settings()
+    upload_dir = settings.upload_dir
+
+    # Normalize the stored path by removing common prefixes
+    path = stored_path
+    if path.startswith("./"):
+        path = path[2:]
+    if path.startswith("uploads/"):
+        path = path[8:]  # Remove 'uploads/' prefix
+
+    # Join with configured upload directory
+    return os.path.join(upload_dir, path)
