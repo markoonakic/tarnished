@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import resolve_upload_path
 from app.core.database import get_db
 from app.core.deps import get_current_user, get_current_user_optional
 from app.core.security import (
@@ -90,11 +91,14 @@ async def get_media_file(
     if not media:
         raise HTTPException(status_code=404, detail="Media not found")
 
-    if not os.path.exists(media.file_path):
+    # Resolve stored path to actual filesystem path using UPLOAD_DIR
+    file_path = resolve_upload_path(media.file_path)
+
+    if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
 
     # Determine media type
-    media_type, _ = mimetypes.guess_type(media.file_path)
+    media_type, _ = mimetypes.guess_type(file_path)
     if not media_type:
         if media.media_type == "video":
             media_type = "video/mp4"
@@ -104,7 +108,7 @@ async def get_media_file(
             media_type = "application/octet-stream"
 
     # Use original filename if available, otherwise fall back to hash-based name
-    filename = media.original_filename or os.path.basename(media.file_path)
+    filename = media.original_filename or os.path.basename(file_path)
 
     if disposition == "attachment":
         headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
@@ -116,7 +120,7 @@ async def get_media_file(
         headers = {"Content-Disposition": f'inline; filename="{filename}"'}
 
     return FileResponse(
-        media.file_path,
+        file_path,
         media_type=media_type,
         headers=headers,
     )
@@ -183,7 +187,8 @@ async def get_round_transcript_file(
     if not round_obj or not round_obj.transcript_path:
         raise HTTPException(status_code=404, detail="Transcript not found")
 
-    file_path = round_obj.transcript_path
+    # Resolve stored path to actual filesystem path using UPLOAD_DIR
+    file_path = resolve_upload_path(round_obj.transcript_path)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
 
@@ -293,8 +298,13 @@ async def get_file(
         "cover-letter": application.cover_letter_original_filename,
     }
 
-    file_path = path_map.get(doc_type)
-    if not file_path or not os.path.exists(file_path):
+    stored_path = path_map.get(doc_type)
+    if not stored_path:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # Resolve stored path to actual filesystem path using UPLOAD_DIR
+    file_path = resolve_upload_path(stored_path)
+    if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
 
     # Determine media type
