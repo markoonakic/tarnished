@@ -103,7 +103,7 @@ postgresql:
   # -- Database password (ignored if existingSecret is set)
   password: ""
   # -- Use an existing Kubernetes Secret for PostgreSQL credentials
-  # Secret must contain: password (and optionally database-url)
+  # Secret must contain: password (URL encoding NOT required - app handles it)
   existingSecret: ""
   # -- Key within the existing secret for the password
   existingSecretPasswordKey: "password"
