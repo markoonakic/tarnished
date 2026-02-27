@@ -18,7 +18,7 @@ Think of it as a command center for your job search. Track applications, store y
 
 - **Customizable Pipeline** - Define your own statuses and interview round types to match your unique job search process.
 
-- **Customizable Themes** - Choose from Gruvbox Dark, Gruvbox Light, Catppuccin, or Dracula. Pick your accent color to match your style.
+- **Customizable Themes** - Choose from Gruvbox, Catppuccin, Dracula... Pick your accent color to match your style.
 
 - **Full Data Portability** - Export all your data (JSON, CSV, or ZIP with media) and import to migrate or backup.
 
