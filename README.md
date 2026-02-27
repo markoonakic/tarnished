@@ -18,8 +18,6 @@ Think of it as a command center for your job search. Track applications, store y
 
 - **Customizable Pipeline** - Define your own statuses and interview round types to match your unique job search process.
 
-- **Dark & Light Themes** - Choose between dark and light mode, or let it follow your system preference.
-
 - **Full Data Portability** - Export all your data (JSON, CSV, or ZIP with media) and import to migrate or backup.
 
 - **Your Data, Your Server** - 100% self-hosted. No accounts, no tracking, no cloud. Everything stays on your hardware.
