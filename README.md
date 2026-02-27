@@ -1,119 +1,158 @@
 # Tarnished
 
-A full-stack job application tracking system built with **React 19 + TypeScript + Tailwind CSS 4.1** (frontend) and **FastAPI + SQLAlchemy** (backend).
+Tarnished is a self-hosted job application tracker designed to help you manage every stage of your job search.
 
-## Tooling
+Think of it as a command center for your job search. Track applications, store your CVs and cover letters, analyze interview videos, and let AI analyze where your pipeline is breaking so you can focus on what actually matters.
 
-- **Frontend**: Yarn (`cd frontend && yarn add <pkg>`)
-- **Backend**: uv (`cd backend && uv add <pkg>`)
+## Features
 
-## Design Guidelines
+- **Track Every Application** - Company, position, salary, status, contacts, links... Never lose track of where you applied, and how you applied.
 
-**Read the relevant guidelines file before making changes:**
-- **Frontend**: `frontend/DESIGN_GUIDELINES.md` — mandatory for all UI changes
-- **Backend**: `backend/DESIGN_GUIDELINES.md` — mandatory for all API changes
+- **Documents & Media** - Upload your CV and cover letter for each application. Upload recorded video or audio of interviews for later review.
 
-### The 5-Layer Rule (Most Critical Pattern)
+- **Debug Your Job Search** - AI-powered insights analyze your pipeline to find where you're getting stuck. See conversion rates between stages, identify if you're failing at technical or behavioral interviews, and get actionable recommendations to improve.
 
-All backgrounds, hover states, and inputs follow a strict 5-layer color hierarchy:
+- **Save Jobs from Anywhere** - The browser extension extracts job details from any page with a job description using AI, no need to manually copy-paste.
 
-```
-bg0 (darkest) → bg1 → bg2 → bg3 → bg4 (lightest)
-```
+- **Visualize Your Pipeline** - Dashboard with response rates, interview conversion funnels, and weekly activity tracking.
 
-- **Hover backgrounds = container + 1 layer** (e.g., button in `bg-bg2` uses `hover:bg-bg3`)
-- **Modal reset rule**: Modals start at `bg1`, then layer from there
-- **Wrap-around**: After `bg4`, start over at `bg0`
+- **Customizable Pipeline** - Define your own statuses and interview round types to match your unique job search process.
 
-### Key Conventions
+- **Full Data Portability** - Export all your data (JSON, CSV, or ZIP with media) and import to migrate or backup.
 
-- **Icons**: Bootstrap Icons only (`<i className="bi-*" />`). No other icon libraries. Size with `.icon-xs` through `.icon-2xl`.
-- **Colors**: CSS variables only (`bg-bg1`, `text-fg1`, `text-aqua`). Never hardcode hex values.
-- **Buttons**: 4 variants — Primary (`bg-aqua`), Neutral (`bg-transparent text-fg1`), Danger (`bg-transparent text-red`), Icon-only
-- **cursor-pointer**: Required on ALL interactive elements (`<button>`, `<a>`, `onClick` handlers)
-- **Transitions**: `transition-all duration-200 ease-in-out` on all interactive elements
-- **Destructive actions**: Always say "Delete", never "Remove"
-- **Dropdowns**: Use the `Dropdown` component, never native `<select>`
+- **Your Data, Your Server** - 100% self-hosted. No accounts, no tracking, no cloud. Everything stays on your hardware.
 
-## Project Structure
-
-```
-frontend/          # React 19 + Vite 7
-  src/
-    components/    # Reusable UI components
-    pages/         # Route-level page components
-    lib/           # API clients, types, utilities
-    contexts/      # React contexts (Auth, Theme)
-    hooks/         # Custom hooks
-backend/           # FastAPI + SQLAlchemy
-  app/
-    api/           # Route handlers
-    core/          # Config, security, deps
-    models/        # SQLAlchemy models
-```
-
-## Commands
-
-### Frontend
-- `cd frontend && yarn dev` — Start frontend dev server
-- `cd frontend && yarn build` — Build frontend for production
-- `cd frontend && yarn lint` — Lint frontend code
-- `cd frontend && npx tsc --noEmit` — Type-check frontend
-
-### Backend
-- `cd backend && uv run uvicorn app.main:app --reload` — Start backend dev server
-- `cd backend && uv run pytest` — Run backend tests
-- `cd backend && uv run alembic upgrade head` — Run database migrations
-
-## Deployment
-
-### Docker Compose (Recommended for Self-Hosting)
+## Quick Start
 
 ```bash
-# Quick start with SQLite
+git clone https://github.com/markoonakic/tarnished.git
+cd tarnished
 docker-compose up -d
 
-# Access at http://localhost:5577
-# First user becomes admin automatically
+# Open in browser
+open http://localhost:5577
 ```
 
-### With PostgreSQL
+That's it. The first account you create becomes admin automatically.
+
+### Where is my data?
+
+Your data is stored in the `./data` folder (for SQLite) or your PostgreSQL database. Back up this folder to save your data.
+
+## Installation
+
+### Docker Compose
+
+#### SQLite Mode (Default)
+
+Best for personal use, home servers, and trying it out.
 
 ```bash
-# Create .env file
+git clone https://github.com/markoonakic/tarnished.git
+cd tarnished
+docker-compose up -d
+```
+
+#### PostgreSQL Mode (Recommended for "production")
+
+Best for multi-user deployments or when you need better performance.
+
+```bash
+git clone https://github.com/markoonakic/tarnished.git
+cd tarnished
+
+# Create .env with PostgreSQL password
 echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)" > .env
 
-# Run with PostgreSQL
+# Start
 docker-compose -f docker-compose.postgres.yml up -d
 ```
 
-### Kubernetes (Helm)
+### Helm Chart
+
+For Kubernetes deployments.
 
 ```bash
+# Install with SQLite (default)
 helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished
+
+# Or with PostgreSQL
+helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
+  --set postgresql.enabled=true \
+  --set postgresql.host=postgres.example.com \
+  --set postgresql.password=your-password
 ```
+
+See [chart/README.md](chart/README.md) for full configuration options.
+
+## Configuration
+
+### Environment Variables
+
+| Variable            | Default                 | Description                     |
+| ------------------- | ----------------------- | ------------------------------- |
+| `APP_PORT`          | `5577`                  | Port the app listens on         |
+| `APP_URL`           | `http://localhost:5577` | Public URL (for CORS and links) |
+| `POSTGRES_HOST`     | _(SQLite)_              | PostgreSQL host                 |
+| `POSTGRES_PASSWORD` | _(SQLite)_              | PostgreSQL password             |
+| `SECRET_KEY`        | auto-generated          | JWT signing key                 |
+
+See `.env.example` for all available options.
+
+## AI Features
+
+Tarnished uses AI for job extraction and pipeline insights. You need to bring your own API key.
+
+### Supported Providers
+
+Works with any provider supported by [LiteLLM](https://litellm.ai/), including:
+
+- OpenAI, Anthropic, Google Gemini, Azure OpenAI
+- Self-hosted models (Ollama, llama.cpp, vLLM, etc.)
 
 ### Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | *(none)* | Full database URL (takes precedence) |
-| `POSTGRES_HOST` | *(none)* | PostgreSQL host (discrete config) |
-| `POSTGRES_PORT` | `5432` | PostgreSQL port |
-| `POSTGRES_USER` | *(none)* | PostgreSQL username |
-| `POSTGRES_PASSWORD` | *(none)* | PostgreSQL password (special chars OK) |
-| `POSTGRES_DB` | `tarnished` | PostgreSQL database name |
-| `SECRET_KEY` | auto-generated | JWT signing key |
-| `APP_URL` | `http://localhost:5577` | Public URL (CORS, TrustedHost) |
-| `APP_PORT` | `5577` | External port mapping |
-| `UPLOAD_DIR` | `/app/data/uploads` | File upload location |
+1. Go to **Settings** → **AI Settings** (admin only)
+2. Enter your model (e.g., `gpt-4o-mini`, `claude-3-haiku`, `ollama/llama3`)
+3. Enter your API key
+4. (Optional) Enter a custom base URL
+5. Click Save
 
-> **Note:** If no database is configured, SQLite is used as fallback (`/app/data/tarnished.db`).
+Your API key is encrypted and stored in the database.
 
-See `.env.example` for all options.
+**Note:** AI features use your own API key. You're responsible for any costs.
 
-## Gotchas
+## Browser Extention
 
-- Backend requires a `.env` file — see `backend/.env.postgresql` for reference.
-- Install backend deps with `cd backend && uv sync`, frontend deps with `cd frontend && yarn install`.
-- Hover translate animations (`hover:-translate-y-0.5`) need `will-change-transform` for smooth GPU-accelerated rendering.
+The browser extention lets you save jobs from anywhere and autofill application forms.
+
+### Installation
+
+1. Download the latest release from [GitHub Releases](https://github.com/markoonakic/tarnished/releases)
+2. Extract the ZIP file for your browser (Chrome or Firefox)
+3. Load the extension:
+   - **Chrome**: Go to `chrome://extensions/`, enable "Developer mode", click "Load unpacked", select the extracted folder
+   - **Firefox**: Go to `about:debugging#/runtime/this-firefox`, click "Load Temporary Add-on", select any file in the extracted folder
+
+### Configuration
+
+1. Click the extension icon in your browser toolbar
+2. Click the **Settings** button (gear icon), then go to settings page
+3. Enter your **App URL** (e.g., `http://localhost:5577` or your public URL)
+4. Enter your **API Key** (generate one in Tarnished under Settings > API Keys)
+
+See [extension/README.md](extension/README.md) for full documentation.
+
+## Support
+
+- **Bug Reports**: [GitHub Issues](https://github.com/markoonakic/tarnished/issues)
+- **Feature Requests**: [GitHub Issues](https://github.com/markoonakic/tarnished/issues)
+- **Discussion**: [GitHub Discussions](https://github.com/markoonakic/tarnished/discussions)
+
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## License
+
+MIT License — see [LICENSE](LICENSE)
