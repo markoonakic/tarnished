@@ -133,13 +133,9 @@ export default function DocumentSection({ application, onUpdate }: Props) {
               </span>
               <button
                 onClick={() => handlePreview(type)}
-                disabled={!canPreview || isUploading}
+                disabled={isUploading}
                 className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
-                title={
-                  canPreview
-                    ? 'Preview'
-                    : 'Preview not available for this file type'
-                }
+                title={canPreview ? 'Preview' : 'View/Download'}
               >
                 <i className="bi-eye icon-sm"></i>
                 Preview
