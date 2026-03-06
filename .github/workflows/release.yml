@@ -24,6 +24,9 @@ jobs:
         working-directory: backend
         run: uv sync
 
+      - name: Configure environment
+        run: echo "SECRET_KEY=$(openssl rand -hex 32)" >> $GITHUB_ENV
+
       - name: Check for schema drift
         working-directory: backend
         run: |
