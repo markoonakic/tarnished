@@ -373,7 +373,8 @@ export default function RoundCard({
               <div className="flex min-w-0 items-center gap-2">
                 <i className="bi-file-text icon-md text-red-bright flex-shrink-0" />
                 <span className="text-primary truncate text-sm">
-                  {round.transcript_path.split('/').pop()}
+                  {round.transcript_original_filename ||
+                    round.transcript_path.split('/').pop()}
                 </span>
               </div>
               <div className="flex flex-shrink-0 items-center gap-2">

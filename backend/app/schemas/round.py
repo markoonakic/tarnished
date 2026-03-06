@@ -46,6 +46,7 @@ class RoundResponse(BaseModel):
     outcome: str | None
     notes_summary: str | None
     transcript_path: str | None
+    transcript_original_filename: str | None = None
     transcript_summary: str | None
     media: list[RoundMediaResponse]
     created_at: datetime

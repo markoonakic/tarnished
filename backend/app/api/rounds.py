@@ -285,6 +285,7 @@ async def upload_transcript(
 
     # Update round
     round.transcript_path = file_path
+    round.transcript_original_filename = sanitize_filename(file.filename or "unnamed")
     await db.commit()
     await record_streak_activity(user=user, db=db)
 
@@ -317,5 +318,6 @@ async def delete_transcript(
 
     # Note: We don't delete CAS files as they may be shared/deduplicated
     round.transcript_path = None
+    round.transcript_original_filename = None
     round.transcript_summary = None
     await db.commit()

@@ -332,7 +332,9 @@ export default function RoundForm({
             <div className="bg-secondary border-tertiary mt-2 flex items-center gap-2 rounded border p-2">
               <i className="bi-file-text icon-md text-red-bright"></i>
               <span className="text-primary truncate text-sm">
-                Current: {round.transcript_path.split('/').pop()}
+                Current:{' '}
+                {round.transcript_original_filename ||
+                  round.transcript_path.split('/').pop()}
               </span>
             </div>
           )}

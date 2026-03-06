@@ -8,7 +8,12 @@ from sqlalchemy.orm import selectinload
 
 from app.api.job_leads import _fetch_html, _get_ai_settings
 from app.api.streak import record_streak_activity
-from app.api.utils.zip_utils import ALLOWED_DOCUMENT_TYPES, store_file, validate_file
+from app.api.utils.zip_utils import (
+    ALLOWED_DOCUMENT_TYPES,
+    sanitize_filename,
+    store_file,
+    validate_file,
+)
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import (
@@ -469,7 +474,7 @@ async def upload_cv(
         tmp_path.unlink(missing_ok=True)
 
     application.cv_path = file_path
-    application.cv_original_filename = file.filename
+    application.cv_original_filename = sanitize_filename(file.filename or "unnamed")
     await db.commit()
 
     result = await db.execute(
@@ -565,7 +570,9 @@ async def upload_cover_letter(
         tmp_path.unlink(missing_ok=True)
 
     application.cover_letter_path = file_path
-    application.cover_letter_original_filename = file.filename
+    application.cover_letter_original_filename = sanitize_filename(
+        file.filename or "unnamed"
+    )
     await db.commit()
 
     result = await db.execute(

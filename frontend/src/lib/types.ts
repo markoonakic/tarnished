@@ -35,6 +35,7 @@ export interface Round {
   outcome: string | null;
   notes_summary: string | null;
   transcript_path: string | null;
+  transcript_original_filename: string | null;
   transcript_summary: string | null;
   media: RoundMedia[];
   created_at: string;

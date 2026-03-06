@@ -2313,7 +2313,7 @@ wheels = [
 
 [[package]]
 name = "tarnished-backend"
-version = "0.1.14"
+version = "0.1.23"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -2346,6 +2346,7 @@ dependencies = [
 dev = [
     { name = "bandit" },
     { name = "black" },
+    { name = "httpx" },
     { name = "pyright" },
     { name = "ruff" },
 ]
@@ -2382,6 +2383,7 @@ requires-dist = [
 dev = [
     { name = "bandit", specifier = ">=1.9.3" },
     { name = "black", specifier = ">=26.1.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "pyright", specifier = ">=1.1.408" },
     { name = "ruff", specifier = ">=0.15.1" },
 ]

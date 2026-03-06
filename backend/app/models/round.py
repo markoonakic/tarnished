@@ -36,6 +36,9 @@ class Round(Base):
     outcome: Mapped[str | None] = mapped_column(String(100), nullable=True)
     notes_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     transcript_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    transcript_original_filename: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
     transcript_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
