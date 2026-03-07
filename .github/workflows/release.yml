@@ -163,16 +163,6 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
 
-      - name: Scan base images for vulnerabilities
-        uses: aquasecurity/trivy-action@0.35.0
-        with:
-          scan-type: 'image'
-          image-ref: 'python:3.12-alpine'
-          format: 'table'
-          exit-code: '1'
-          severity: 'CRITICAL'
-          ignore-unfixed: true
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -191,7 +181,6 @@ jobs:
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL'
-          skip-setup-trivy: true
 
   helm:
     runs-on: ubuntu-latest
