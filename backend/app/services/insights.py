@@ -108,6 +108,11 @@ def generate_insights(
             "AI not configured. Please configure AI settings in admin panel."
         )
 
+    if model and "/" not in model:
+        raise ValueError(
+            "Model must include provider prefix (e.g. cerebras/gpt-oss-120b)"
+        )
+
     user_prompt = build_analytics_prompt_data(
         pipeline_data, interview_data, activity_data, period
     )

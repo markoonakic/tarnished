@@ -28,7 +28,7 @@ export default function Analytics() {
     if (error) {
       toast.error(error);
     }
-  }, [error, toast]);
+  }, [error]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Layout>
