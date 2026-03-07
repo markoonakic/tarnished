@@ -1,17 +1,14 @@
 """Insights API router for AI-powered analytics insights."""
 
-import asyncio
 import logging
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import case, create_engine, extract, func, or_, select
+from sqlalchemy import case, extract, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session as SyncSession
+from sqlalchemy.orm import Session
 
-from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.security import decrypt_api_key
@@ -30,54 +27,39 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Thread pool for running sync AI operations
-_executor = ThreadPoolExecutor(max_workers=4)
-
-settings = get_settings()
-
-# Module-level sync engine (lazy initialization)
-_sync_engine = None
-
 # Far past date for "all time" queries
 FAR_PAST_DATE = date(2000, 1, 1)
 
 
-def _get_sync_engine():
-    """Get or create the sync database engine (lazy initialization)."""
-    global _sync_engine
-    if _sync_engine is None:
-        sync_url = settings.get_database_url()
-        if "+aiosqlite" in sync_url:
-            sync_url = sync_url.replace("+aiosqlite", "")
-        elif "+asyncpg" in sync_url:
-            sync_url = sync_url.replace("+asyncpg", "+psycopg2")
-        _sync_engine = create_engine(sync_url)
-    return _sync_engine
-
-
-def _get_sync_session() -> SyncSession:
-    """Create a sync database session for use in thread pool."""
-    return SyncSession(bind=_get_sync_engine())
-
-
-def _generate_insights_sync(
+def _generate_insights_with_session(
+    session: Session,
     pipeline_data: dict,
     interview_data: dict,
     activity_data: dict,
     period: str,
 ) -> GraceInsights:
-    """Sync wrapper for generate_insights that creates its own session."""
-    sync_session = _get_sync_session()
-    try:
-        return generate_insights(
-            db=sync_session,
-            pipeline_data=pipeline_data,
-            interview_data=interview_data,
-            activity_data=activity_data,
-            period=period,
-        )
-    finally:
-        sync_session.close()
+    """Sync wrapper for generate_insights using a session from run_sync.
+
+    This function receives a synchronous Session from AsyncSession.run_sync(),
+    which uses the existing async connection without needing a separate sync engine.
+
+    Args:
+        session: Synchronous SQLAlchemy Session (provided by run_sync)
+        pipeline_data: Analytics data for pipeline overview
+        interview_data: Analytics data for interview metrics
+        activity_data: Analytics data for activity tracking
+        period: Time period string (7d, 30d, 3m, all)
+
+    Returns:
+        GraceInsights with AI-generated recommendations
+    """
+    return generate_insights(
+        db=session,
+        pipeline_data=pipeline_data,
+        interview_data=interview_data,
+        activity_data=activity_data,
+        period=period,
+    )
 
 
 @router.get("/insights/configured")
@@ -114,17 +96,22 @@ async def get_insights(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Generate AI-powered insights for analytics data."""
+    """Generate AI-powered insights for analytics data.
+
+    Uses AsyncSession.run_sync() to run the synchronous LiteLLM-based
+    insights generation on the existing async connection. This avoids
+    needing a separate sync engine with different driver configuration.
+    """
     try:
         analytics = await _get_analytics_for_insights(
             db, current_user.id, request.period
         )
 
-        # Run sync AI generation in thread pool to avoid blocking
-        loop = asyncio.get_event_loop()
-        insights = await loop.run_in_executor(
-            _executor,
-            _generate_insights_sync,
+        # Use run_sync to execute sync AI generation on the async connection.
+        # This is the SQLAlchemy-recommended pattern for mixing sync/async code.
+        # No separate sync engine or thread pool needed.
+        insights = await db.run_sync(
+            _generate_insights_with_session,
             analytics.get("pipeline_overview", {}),
             analytics.get("interview_analytics", {}),
             analytics.get("activity_tracking", {}),
