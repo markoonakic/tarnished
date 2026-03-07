@@ -39,8 +39,9 @@ RUN uv venv /app/.venv && \
 # Stage 3: Production runtime
 FROM python:3.12-alpine
 
-# Install runtime dependencies only (no build tools)
-RUN apk add --no-cache \
+# Upgrade base packages to fix CVEs, then install runtime dependencies
+RUN apk upgrade --no-cache && \
+    apk add --no-cache \
     libpq \
     postgresql-libs \
     libmagic \
