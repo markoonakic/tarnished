@@ -341,6 +341,11 @@ def extract_with_llm(
     extraction_model = model or os.getenv("LITELLM_MODEL", DEFAULT_EXTRACTION_MODEL)
     logger.info(f"Starting LLM extraction with model: {extraction_model}")
 
+    if extraction_model and "/" not in extraction_model:
+        raise ValueError(
+            "Model must include provider prefix (e.g. cerebras/gpt-oss-120b)"
+        )
+
     # Build the user message with URL context and content
     user_message = f"""Source URL: {url}
 
