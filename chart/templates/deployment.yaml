@@ -41,6 +41,9 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["alembic", "upgrade", "head"]
           env:
+            # PATH is required for venv binaries (Kubernetes doesn't inherit Docker ENV)
+            - name: PATH
+              value: "/app/.venv/bin:/usr/local/bin:/usr/bin:/bin"
             {{- if .Values.postgresql.enabled }}
             # Discrete PostgreSQL settings - app constructs URL with proper encoding
             - name: POSTGRES_HOST
@@ -90,6 +93,9 @@ spec:
               containerPort: 5577
               protocol: TCP
           env:
+            # PATH is required for venv binaries (Kubernetes doesn't inherit Docker ENV)
+            - name: PATH
+              value: "/app/.venv/bin:/usr/local/bin:/usr/bin:/bin"
             {{- if .Values.postgresql.enabled }}
             # Discrete PostgreSQL settings - app constructs URL with proper encoding
             - name: POSTGRES_HOST
