@@ -65,7 +65,11 @@ class TestInsightsConfiguredEndpoint:
 
     @pytest.mark.asyncio
     async def test_configured_returns_true_when_api_key_set(
-        self, client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict[str, str]
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        test_user: User,
+        auth_headers: dict[str, str],
     ):
         """Test that configured returns True when API key is set."""
         from app.core.security import encrypt_api_key
@@ -102,7 +106,11 @@ class TestInsightsGenerationEndpoint:
 
     @pytest.mark.asyncio
     async def test_insights_generates_successfully_with_ai_configured(
-        self, client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict[str, str]
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        test_user: User,
+        auth_headers: dict[str, str],
     ):
         """Test that insights are generated when AI is configured."""
         from app.core.security import encrypt_api_key
@@ -135,9 +143,7 @@ class TestInsightsGenerationEndpoint:
             ),
         )
 
-        with patch(
-            "app.api.insights.generate_insights", return_value=mock_insights
-        ):
+        with patch("app.api.insights.generate_insights", return_value=mock_insights):
             response = await client.post(
                 "/api/analytics/insights", json={"period": "30d"}, headers=auth_headers
             )
@@ -149,7 +155,11 @@ class TestInsightsGenerationEndpoint:
 
     @pytest.mark.asyncio
     async def test_insights_accepts_all_period_values(
-        self, client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict[str, str]
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        test_user: User,
+        auth_headers: dict[str, str],
     ):
         """Test that insights accepts all valid period values."""
         from app.core.security import encrypt_api_key
@@ -175,12 +185,12 @@ class TestInsightsGenerationEndpoint:
             ),
         )
 
-        with patch(
-            "app.api.insights.generate_insights", return_value=mock_insights
-        ):
+        with patch("app.api.insights.generate_insights", return_value=mock_insights):
             for period in ["7d", "30d", "3m", "all"]:
                 response = await client.post(
-                    "/api/analytics/insights", json={"period": period}, headers=auth_headers
+                    "/api/analytics/insights",
+                    json={"period": period},
+                    headers=auth_headers,
                 )
                 assert response.status_code == 200, f"Failed for period {period}"
 
