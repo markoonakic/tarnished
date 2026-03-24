@@ -12,6 +12,7 @@
 import browser from 'webextension-polyfill';
 import { getSettings, setSettings, type Settings } from '../lib/storage';
 import { getThemeColors, applyThemeToDocument } from '../lib/theme-utils';
+import { debug, warn, error as logError } from '../lib/logger';
 import { normalizeBaseUrl } from '../lib/url';
 
 // ============================================================================
@@ -32,12 +33,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const colors = await getThemeColors();
     applyThemeToDocument(colors);
-    console.log('[Options] Applied theme, accent:', colors.accent);
+    debug('Options', 'Applied theme, accent:', colors.accent);
 
     // Update favicon with accent color
     await updateFavicon(colors.accent);
   } catch (error) {
-    console.warn('[Options] Failed to load theme:', error);
+    warn('Options', 'Failed to load theme:', error);
   }
 
   await loadSettings();
@@ -68,9 +69,9 @@ async function updateFavicon(accentColor: string): Promise<void> {
       favicon.href = svgDataUrl;
     }
 
-    console.log('[Options] Updated favicon with accent color:', accentColor);
+    debug('Options', 'Updated favicon with accent color:', accentColor);
   } catch (error) {
-    console.warn('[Options] Failed to update favicon:', error);
+    warn('Options', 'Failed to update favicon:', error);
   }
 }
 
@@ -83,7 +84,7 @@ async function loadSettings(): Promise<void> {
     appUrlInput.value = settings.appUrl;
     apiKeyInput.value = settings.apiKey;
   } catch (error) {
-    console.error('Failed to load settings:', error);
+    logError('Options', 'Failed to load settings:', error);
   }
 }
 
@@ -160,7 +161,7 @@ async function handleSave(): Promise<void> {
       saveBtn.textContent = 'Save';
     }, 1500);
   } catch (error) {
-    console.error('Failed to save settings:', error);
+    logError('Options', 'Failed to save settings:', error);
     saveBtn.disabled = false;
     saveBtn.style.width = '';
     saveBtn.textContent = 'Error!';

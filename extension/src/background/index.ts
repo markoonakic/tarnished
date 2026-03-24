@@ -7,15 +7,17 @@ import browser from 'webextension-polyfill';
 import { getProfile } from '../lib/api';
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
 import { ThemeColors, UserSettings, DEFAULT_COLORS } from '../lib/theme';
-import { SETTINGS_STORAGE_KEY } from '../lib/theme-utils';
+import {
+  getSettings,
+  getThemeColorsCache,
+  setThemeColorsCache,
+  getAutoFillOnLoad,
+} from '../lib/storage';
 import { buildUrl } from '../lib/url';
 import { debug, warn, error } from '../lib/logger';
 
 async function fetchThemeSettings(): Promise<ThemeColors> {
-  const { appUrl, apiKey } = (await browser.storage.local.get([
-    'appUrl',
-    'apiKey',
-  ])) as { appUrl?: string; apiKey?: string };
+  const { appUrl, apiKey } = await getSettings();
 
   if (!appUrl || !apiKey) {
     debug('Theme', 'Extension not configured, using default colors');
@@ -41,21 +43,17 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
     debug('Theme', 'Loaded theme:', settings.theme, 'accent:', settings.accent);
 
     // Cache settings for popup
-    await browser.storage.local.set({
-      [SETTINGS_STORAGE_KEY]: settings.colors,
-    });
+    await setThemeColorsCache(settings.colors);
 
     return settings.colors;
   } catch (err) {
     error('Theme', 'Fetch failed:', err);
 
     // Try to use cached settings
-    const cached = (await browser.storage.local.get(
-      SETTINGS_STORAGE_KEY
-    )) as Record<string, ThemeColors>;
-    if (cached[SETTINGS_STORAGE_KEY]) {
+    const cached = await getThemeColorsCache();
+    if (cached !== DEFAULT_COLORS) {
       debug('Theme', 'Using cached colors');
-      return cached[SETTINGS_STORAGE_KEY];
+      return cached;
     }
 
     return DEFAULT_COLORS;
@@ -67,10 +65,7 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
  * Falls back to DEFAULT_COLORS if not cached
  */
 async function getAccentColor(): Promise<string> {
-  const cached = (await browser.storage.local.get(
-    SETTINGS_STORAGE_KEY
-  )) as Record<string, ThemeColors>;
-  const colors: ThemeColors = cached[SETTINGS_STORAGE_KEY] || DEFAULT_COLORS;
+  const colors = await getThemeColorsCache();
   return colors.accent;
 }
 
@@ -260,10 +255,7 @@ const THEME_FETCH_INTERVAL = 30000;
  */
 async function loadAutoFillSetting(): Promise<void> {
   try {
-    const result = (await browser.storage.local.get('autoFillOnLoad')) as {
-      autoFillOnLoad?: boolean;
-    };
-    autoFillOnLoad = result.autoFillOnLoad ?? false;
+    autoFillOnLoad = await getAutoFillOnLoad();
   } catch (err) {
     warn('AutoFill', 'Failed to load setting:', err);
   }

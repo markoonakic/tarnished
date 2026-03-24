@@ -1,4 +1,4 @@
-import { API_BASE } from './api';
+import { buildAuthenticatedEventSourceUrl, fetchWithAuth } from './api';
 
 interface ImportValidation {
   valid: boolean;
@@ -29,20 +29,12 @@ export interface ImportProgress {
   };
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem('access_token');
-  return {
-    Authorization: `Bearer ${token}`,
-  };
-}
-
 export async function validateImport(file: File): Promise<ImportValidation> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${API_BASE}/api/import/validate`, {
+  const response = await fetchWithAuth('/api/import/validate', {
     method: 'POST',
-    headers: getAuthHeaders(),
     body: formData,
   });
 
@@ -64,9 +56,8 @@ export async function importData(
   formData.append('file', file);
   formData.append('override', override.toString());
 
-  const response = await fetch(`${API_BASE}/api/import/import`, {
+  const response = await fetchWithAuth('/api/import/import', {
     method: 'POST',
-    headers: getAuthHeaders(),
     body: formData,
   });
 
@@ -83,15 +74,9 @@ export function connectToImportProgress(
   onProgress: (progress: ImportProgress) => void,
   onComplete: () => void
 ): EventSource {
-  const token = localStorage.getItem('access_token');
-  // API_BASE may be empty in development, so use window.location.origin as fallback
-  const baseUrl = API_BASE || window.location.origin;
-  const url = new URL(`${baseUrl}/api/import/progress/${importId}`);
-  if (token) {
-    url.searchParams.append('token', token);
-  }
-
-  const eventSource = new EventSource(url.toString());
+  const eventSource = new EventSource(
+    buildAuthenticatedEventSourceUrl(`/api/import/progress/${importId}`)
+  );
 
   eventSource.addEventListener('progress', (e) => {
     const progress = JSON.parse(e.data) as ImportProgress;
