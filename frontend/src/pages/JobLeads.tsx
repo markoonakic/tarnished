@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { getJobLeads } from '../lib/jobLeads';
+import { getJobLeads, getJobLeadSources } from '../lib/jobLeads';
 import type { JobLead, JobLeadStatus } from '../lib/types';
 import Layout from '../components/Layout';
 import EmptyState from '../components/EmptyState';
@@ -63,6 +63,7 @@ export default function JobLeads() {
   const toast = useToastContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [jobLeads, setJobLeads] = useState<JobLead[]>([]);
+  const [sources, setSources] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [perPage, setPerPage] = useState(25);
@@ -77,25 +78,9 @@ export default function JobLeads() {
   // Debounce search input
   const debouncedSearch = useDebounce(search, 300);
 
-  // Extract unique sources from job leads for the filter dropdown
-  const sources = useMemo(() => {
-    const uniqueSources = new Set<string>();
-    jobLeads.forEach((lead) => {
-      if (lead.source) {
-        uniqueSources.add(lead.source);
-      }
-    });
-    return Array.from(uniqueSources).sort();
-  }, [jobLeads]);
-
   const isFiltered = search || statusFilter || sourceFilter;
 
-  // Load job leads when filters change
-  useEffect(() => {
-    loadJobLeads();
-  }, [page, debouncedSearch, statusFilter, sourceFilter, sortFilter, perPage]);
-
-  async function loadJobLeads() {
+  const loadJobLeads = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string | number> = {
@@ -103,8 +88,6 @@ export default function JobLeads() {
         per_page: perPage,
       };
       if (statusFilter) params.status = statusFilter;
-      // Note: search, source, and sort are not yet implemented in the backend
-      // but we send them anyway for forward compatibility
       if (debouncedSearch) params.search = debouncedSearch;
       if (sourceFilter) params.source = sourceFilter;
       if (sortFilter) params.sort = sortFilter;
@@ -117,28 +100,56 @@ export default function JobLeads() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [
+    page,
+    perPage,
+    statusFilter,
+    debouncedSearch,
+    sourceFilter,
+    sortFilter,
+    toast,
+  ]);
 
-  function updateParams(updates: Record<string, string>) {
-    const newParams = new URLSearchParams(searchParams);
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value) {
-        newParams.set(key, value);
-      } else {
-        newParams.delete(key);
-      }
-    });
-    // Reset to page 1 when filters change
-    if (
-      updates.search !== undefined ||
-      updates.status !== undefined ||
-      updates.source !== undefined ||
-      updates.sort !== undefined
-    ) {
-      newParams.set('page', '1');
+  const loadSources = useCallback(async () => {
+    try {
+      setSources(await getJobLeadSources());
+    } catch {
+      setSources([]);
     }
-    setSearchParams(newParams);
-  }
+  }, []);
+
+  // Load job leads when filters change
+  useEffect(() => {
+    loadJobLeads();
+  }, [loadJobLeads]);
+
+  useEffect(() => {
+    loadSources();
+  }, [loadSources]);
+
+  const updateParams = useCallback(
+    (updates: Record<string, string>) => {
+      const newParams = new URLSearchParams(searchParams);
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value) {
+          newParams.set(key, value);
+        } else {
+          newParams.delete(key);
+        }
+      });
+      // Reset to page 1 when filters change
+      if (
+        updates.search !== undefined ||
+        updates.status !== undefined ||
+        updates.source !== undefined ||
+        updates.sort !== undefined
+      ) {
+        newParams.set('page', '1');
+      }
+      setSearchParams(newParams);
+    },
+    [searchParams, setSearchParams]
+  );
 
   const handleFiltersChange = useCallback(
     (filters: JobLeadsFiltersValue) => {
@@ -152,7 +163,7 @@ export default function JobLeads() {
         updateParams({ page: '1' });
       }
     },
-    [searchParams, perPage]
+    [perPage, updateParams]
   );
 
   function formatDate(dateStr: string | null) {

@@ -252,6 +252,44 @@ class TestJobLeadsList:
         assert len(data["items"]) == 1
         assert data["items"][0]["source"] == "LinkedIn"
 
+
+class TestJobLeadSources:
+    async def test_list_job_lead_sources_returns_distinct_values(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        db: AsyncSession,
+        test_user: User,
+    ):
+        db.add_all(
+            [
+                JobLead(
+                    user_id=test_user.id,
+                    url="https://linkedin.com/jobs/source-1",
+                    status="extracted",
+                    source="LinkedIn",
+                ),
+                JobLead(
+                    user_id=test_user.id,
+                    url="https://linkedin.com/jobs/source-2",
+                    status="extracted",
+                    source="LinkedIn",
+                ),
+                JobLead(
+                    user_id=test_user.id,
+                    url="https://indeed.com/jobs/source-3",
+                    status="extracted",
+                    source="Indeed",
+                ),
+            ]
+        )
+        await db.commit()
+
+        response = await client.get("/api/job-leads/sources", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert response.json()["sources"] == ["Indeed", "LinkedIn"]
+
     async def test_list_job_leads_search_matches_company_and_title(
         self,
         client: AsyncClient,
@@ -366,6 +404,58 @@ class TestApplicationsList:
         data = response.json()
         assert len(data["items"]) == 1
         assert data["items"][0]["source"] == "LinkedIn"
+
+
+class TestApplicationSources:
+    async def test_list_application_sources_returns_distinct_values(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        db: AsyncSession,
+        test_user: User,
+    ):
+        status = ApplicationStatus(
+            name="Applied",
+            color="#83a598",
+            is_default=False,
+            user_id=test_user.id,
+            order=1,
+        )
+        db.add(status)
+        await db.commit()
+        await db.refresh(status)
+
+        db.add_all(
+            [
+                Application(
+                    user_id=test_user.id,
+                    company="One",
+                    job_title="Engineer",
+                    status_id=status.id,
+                    source="LinkedIn",
+                ),
+                Application(
+                    user_id=test_user.id,
+                    company="Two",
+                    job_title="Engineer",
+                    status_id=status.id,
+                    source="LinkedIn",
+                ),
+                Application(
+                    user_id=test_user.id,
+                    company="Three",
+                    job_title="Engineer",
+                    status_id=status.id,
+                    source="Indeed",
+                ),
+            ]
+        )
+        await db.commit()
+
+        response = await client.get("/api/applications/sources", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert response.json()["sources"] == ["Indeed", "LinkedIn"]
 
 
 class TestApplicationsWrite:

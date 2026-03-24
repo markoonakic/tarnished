@@ -162,6 +162,21 @@ async def list_job_leads(
     )
 
 
+@router.get("/sources")
+async def list_job_lead_sources(
+    user: User = Depends(get_current_user_flexible),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(JobLead.source)
+        .where(JobLead.user_id == user.id, JobLead.source.is_not(None))
+        .distinct()
+        .order_by(JobLead.source.asc())
+    )
+    sources = [source for source in result.scalars().all() if source]
+    return {"sources": sources}
+
+
 @router.get("/{job_lead_id}", response_model=JobLeadResponse)
 async def get_job_lead(
     job_lead_id: str,
