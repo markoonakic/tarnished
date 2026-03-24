@@ -1,13 +1,8 @@
-import browser from 'webextension-polyfill';
-import { ThemeColors, DEFAULT_COLORS } from './theme';
-
-const SETTINGS_STORAGE_KEY = 'themeSettings';
+import { ThemeColors } from './theme';
+import { getThemeColorsCache, THEME_SETTINGS_STORAGE_KEY } from './storage';
 
 export async function getThemeColors(): Promise<ThemeColors> {
-  const cached = (await browser.storage.local.get(
-    SETTINGS_STORAGE_KEY
-  )) as Record<string, ThemeColors>;
-  return cached[SETTINGS_STORAGE_KEY] || DEFAULT_COLORS;
+  return getThemeColorsCache();
 }
 
 export function applyThemeToDocument(colors: ThemeColors): void {
@@ -32,4 +27,4 @@ export function applyThemeToDocument(colors: ThemeColors): void {
   root.style.setProperty('--green', colors.green);
 }
 
-export { SETTINGS_STORAGE_KEY };
+export { THEME_SETTINGS_STORAGE_KEY as SETTINGS_STORAGE_KEY };

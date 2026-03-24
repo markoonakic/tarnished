@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'fs';
 
@@ -51,6 +51,9 @@ function copyPublicFiles() {
 }
 
 export default defineConfig({
+  test: {
+    environment: 'jsdom',
+  },
   build: {
     outDir: 'dist',
     emptyDirBeforeWrite: true,

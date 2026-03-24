@@ -10,6 +10,7 @@
 
 import { getSettings } from './storage';
 import { buildUrl } from './url';
+import { debug, warn } from './logger';
 import {
   AuthFailedError,
   AlreadySavedError,
@@ -255,7 +256,8 @@ export class ServerError extends ApiClientError {
  */
 function truncateText(text: string): string {
   if (text.length > MAX_TEXT_SIZE) {
-    console.warn(
+    warn(
+      'API',
       `Text content truncated from ${text.length} to ${MAX_TEXT_SIZE} characters`
     );
     return text.substring(0, MAX_TEXT_SIZE);
@@ -292,7 +294,7 @@ async function parseErrorResponse(response: Response): Promise<ApiError> {
 
   try {
     const body = await response.json();
-    console.log('[API] Raw error body:', JSON.stringify(body, null, 2));
+    debug('API', 'Raw error body:', JSON.stringify(body, null, 2));
     // Handle structured error response from backend
     // Backend returns: { detail: { code, message, detail, action } }
     // Or legacy format: { detail: "string message" }
@@ -302,20 +304,15 @@ async function parseErrorResponse(response: Response): Promise<ApiError> {
       message = body.detail.message || message;
       detail = body.detail.detail;
       action = body.detail.action;
-      console.log(
-        '[API] Parsed structured error - code:',
-        code,
-        'message:',
-        message
-      );
+      debug('API', 'Parsed structured error - code:', code, 'message:', message);
     } else {
       // Legacy format or simple string
       message = body.message || body.detail || message;
       detail = typeof body.detail === 'string' ? body.detail : undefined;
-      console.log('[API] Parsed legacy error - message:', message);
+      debug('API', 'Parsed legacy error - message:', message);
     }
   } catch (e) {
-    console.log('[API] Failed to parse error body:', e);
+    debug('API', 'Failed to parse error body:', e);
     // Ignore JSON parsing errors
   }
 
@@ -409,15 +406,11 @@ export async function saveJobLead(
 
     if (!response.ok) {
       const error = await parseErrorResponse(response);
-      console.log('[API] Error response:', JSON.stringify(error, null, 2));
+      debug('API', 'Error response:', JSON.stringify(error, null, 2));
 
       // If we have a structured error code from backend, use it
       if (error.code) {
-        console.log(
-          '[API] Found error code:',
-          error.code,
-          '- using parseBackendError'
-        );
+        debug('API', 'Found error code:', error.code, '- using parseBackendError');
         throw parseBackendError({
           code: error.code,
           message: error.message,
@@ -426,10 +419,7 @@ export async function saveJobLead(
         });
       }
 
-      console.log(
-        '[API] No error code, using status-based mapping for status:',
-        response.status
-      );
+      debug('API', 'No error code, using status-based mapping for status:', response.status);
 
       // Fallback to HTTP status-based mapping
       switch (response.status) {
@@ -451,7 +441,7 @@ export async function saveJobLead(
 
     return response.json();
   } catch (error) {
-    console.log('[API] Caught error:', error);
+    debug('API', 'Caught error:', error);
     handleFetchError(error);
   } finally {
     clearTimeout(timeoutId);
@@ -501,7 +491,7 @@ export async function checkExistingLead(
       }
 
       const error = await parseErrorResponse(response);
-      console.warn('Failed to check existing lead:', error.message);
+      warn('API', 'Failed to check existing lead:', error.message);
       return null;
     }
 
@@ -516,7 +506,7 @@ export async function checkExistingLead(
     }
 
     // For check operations, log and return null instead of throwing
-    console.warn('Error checking existing lead:', error);
+    warn('API', 'Error checking existing lead:', error);
     return null;
   } finally {
     clearTimeout(timeoutId);
@@ -567,7 +557,7 @@ export async function checkExistingApplication(
       if (response.status === 401) {
         return null;
       }
-      console.warn('Failed to check existing application:', response.status);
+      warn('API', 'Failed to check existing application:', response.status);
       return null;
     }
 
@@ -580,7 +570,7 @@ export async function checkExistingApplication(
     if (error instanceof Error && error.name === 'AbortError') {
       return null;
     }
-    console.warn('Error checking existing application:', error);
+    warn('API', 'Error checking existing application:', error);
     return null;
   } finally {
     clearTimeout(timeoutId);

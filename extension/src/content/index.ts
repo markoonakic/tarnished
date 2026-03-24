@@ -12,6 +12,7 @@
 
 import browser from 'webextension-polyfill';
 import { detectJobPage, type DetectionResult } from '../lib/detection';
+import { debug, warn } from '../lib/logger';
 import {
   getAutofillEngine,
   type AutofillProfile,
@@ -71,12 +72,10 @@ async function injectIntoIframes(): Promise<void> {
         const script = iframe.contentDocument.createElement('script');
         script.src = browser.runtime.getURL('content/iframe-scanner.js');
         script.onload = () => {
-          console.log('[Tarnished] Injected scanner into same-origin iframe');
+          debug('Content', 'Injected scanner into same-origin iframe');
         };
         script.onerror = () => {
-          console.warn(
-            '[Tarnished] Failed to inject into iframe, requesting background injection'
-          );
+          warn('Content', 'Failed to inject into iframe, requesting background injection');
           requestBackgroundInjection(iframe);
         };
         iframe.contentDocument.documentElement.appendChild(script);
@@ -103,7 +102,7 @@ async function requestBackgroundInjection(
       frameSrc: iframe.src,
     });
   } catch (error) {
-    console.warn('[Tarnished] Failed to request iframe injection:', error);
+    warn('Content', 'Failed to request iframe injection:', error);
   }
 }
 
@@ -124,7 +123,7 @@ function setupIframeMessageListener(): void {
       const key = event.origin + (payload.path || '');
       iframeResults.set(key, payload);
 
-      console.log('[Tarnished] Received iframe scan result:', {
+      debug('Content', 'Received iframe scan result:', {
         origin: event.origin,
         hasApplicationForm: payload.hasApplicationForm,
         fillableFieldCount: payload.fillableFieldCount,
@@ -135,7 +134,7 @@ function setupIframeMessageListener(): void {
     }
 
     if (type === IFRAME_AUTOFILL_RESULT && payload) {
-      console.log('[Tarnished] Iframe autofill result:', payload);
+      debug('Content', 'Iframe autofill result:', payload);
     }
   });
 }
@@ -217,7 +216,7 @@ function scanForFields(): void {
   // Check for iframes
   const iframes = document.querySelectorAll('iframe');
 
-  console.log('[Tarnished] Main frame field scan result:', {
+  debug('Content', 'Main frame field scan result:', {
     totalInputsOnPage: allInputs.length,
     hasApplicationForm: result.hasApplicationForm,
     totalRelevantFields: result.totalRelevantFields,
@@ -234,8 +233,9 @@ function scanForFields(): void {
   // If no inputs found and we haven't exhausted retries, try again later
   if (allInputs.length === 0 && scanRetryCount < MAX_SCAN_RETRIES) {
     scanRetryCount++;
-    console.log(
-      `[Tarnished] No inputs found, retrying in ${SCAN_RETRY_DELAY}ms (attempt ${scanRetryCount}/${MAX_SCAN_RETRIES})`
+    debug(
+      'Content',
+      `No inputs found, retrying in ${SCAN_RETRY_DELAY}ms (attempt ${scanRetryCount}/${MAX_SCAN_RETRIES})`
     );
     setTimeout(scanForFields, SCAN_RETRY_DELAY);
     return;
@@ -315,7 +315,7 @@ function setupMutationObserver(): void {
 function runDetection(): void {
   const result = detectJobPage();
 
-  console.log('[Tarnished] Job detection result:', {
+  debug('Content', 'Job detection result:', {
     isJobPage: result.isJobPage,
     score: result.score,
     signals: result.signals,
@@ -331,7 +331,7 @@ function runDetection(): void {
       url: window.location.href,
     })
     .catch((error) => {
-      console.warn('Tarnished: Failed to send detection result:', error);
+      warn('Content', 'Failed to send detection result:', error);
     });
 
   // Also scan for fillable fields

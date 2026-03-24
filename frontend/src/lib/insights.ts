@@ -1,4 +1,4 @@
-import { API_BASE } from './api';
+import { fetchWithAuth, isAuthenticated } from './api';
 
 export interface SectionInsight {
   key_insight: string;
@@ -18,19 +18,11 @@ export interface GraceInsights {
  * Check if AI is configured for insights
  */
 export async function isAIConfigured(): Promise<boolean> {
-  const token = localStorage.getItem('access_token');
-  if (!token) {
+  if (!isAuthenticated()) {
     return false;
   }
 
-  const response = await fetch(
-    `${API_BASE}/api/analytics/insights/configured`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const response = await fetchWithAuth('/api/analytics/insights/configured');
 
   if (!response.ok) {
     return false;
@@ -44,16 +36,14 @@ export async function isAIConfigured(): Promise<boolean> {
  * Generate AI insights for analytics
  */
 export async function generateInsights(period: string): Promise<GraceInsights> {
-  const token = localStorage.getItem('access_token');
-  if (!token) {
+  if (!isAuthenticated()) {
     throw new Error('Not authenticated');
   }
 
-  const response = await fetch(`${API_BASE}/api/analytics/insights`, {
+  const response = await fetchWithAuth('/api/analytics/insights', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ period }),
   });

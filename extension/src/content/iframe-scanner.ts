@@ -615,8 +615,6 @@
       return;
     }
 
-    console.log('[Tarnished] Iframe scanner initialized');
-
     setupMessageListener();
 
     if (document.readyState === 'complete') {

@@ -8,13 +8,6 @@
  * - Helper functions for error classification
  */
 
-// V8-specific stack trace capture (available in Chrome/Node.js)
-declare global {
-  interface ErrorConstructor {
-    captureStackTrace?(targetObject: object, constructorOpt?: Function): void;
-  }
-}
-
 // ============================================================================
 // Error Codes
 // ============================================================================

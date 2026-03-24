@@ -16,7 +16,7 @@
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["chrome", "webextension-polyfill"]
+    "types": ["chrome", "webextension-polyfill", "vitest/globals", "node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

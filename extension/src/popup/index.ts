@@ -4,7 +4,12 @@
  */
 
 import browser from 'webextension-polyfill';
-import { getSettings, type Settings } from '../lib/storage';
+import {
+  getSettings,
+  getAutoFillOnLoad,
+  setAutoFillOnLoad,
+  type Settings,
+} from '../lib/storage';
 import {
   checkExistingLead,
   checkExistingApplication,
@@ -18,6 +23,7 @@ import {
 } from '../lib/api';
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
 import { getErrorMessage, isRecoverable, mapApiError } from '../lib/errors';
+import { debug, warn, error as logError } from '../lib/logger';
 import { getThemeColors, applyThemeToDocument } from './lib/theme';
 
 // ============================================================================
@@ -306,9 +312,9 @@ async function handleAutoFillToggle(): Promise<void> {
 
   // Save to storage
   try {
-    await browser.storage.local.set({ autoFillOnLoad });
+    await setAutoFillOnLoad(autoFillOnLoad);
   } catch (error) {
-    console.warn('Failed to save autoFillOnLoad setting:', error);
+    warn('Popup', 'Failed to save autoFillOnLoad setting:', error);
   }
 }
 
@@ -317,15 +323,12 @@ async function handleAutoFillToggle(): Promise<void> {
  */
 async function loadAutoFillSetting(): Promise<void> {
   try {
-    const result = (await browser.storage.local.get('autoFillOnLoad')) as {
-      autoFillOnLoad?: boolean;
-    };
-    autoFillOnLoad = result.autoFillOnLoad ?? false;
+    autoFillOnLoad = await getAutoFillOnLoad();
     if (elements.autoFillToggle) {
       elements.autoFillToggle.checked = autoFillOnLoad;
     }
   } catch (error) {
-    console.warn('Failed to load autoFillOnLoad setting:', error);
+    warn('Popup', 'Failed to load autoFillOnLoad setting:', error);
   }
 }
 
@@ -345,7 +348,7 @@ async function showNotification(title: string, message: string): Promise<void> {
       message,
     });
   } catch (error) {
-    console.warn('Failed to show notification:', error);
+    warn('Popup', 'Failed to show notification:', error);
   }
 }
 
@@ -395,7 +398,7 @@ function showErrorNotification(message: string): void {
  */
 function openSettings(): void {
   browser.runtime.openOptionsPage().catch((error) => {
-    console.error('Failed to open settings:', error);
+    logError('Popup', 'Failed to open settings:', error);
   });
 }
 
@@ -409,11 +412,11 @@ function openJobLeads(): void {
         ? `${settings.appUrl}/job-leads/${existingLead.id}`
         : `${settings.appUrl}/job-leads`;
       browser.tabs.create({ url }).catch((error) => {
-        console.error('Failed to open job leads:', error);
+        logError('Popup', 'Failed to open job leads:', error);
       });
     })
     .catch((error) => {
-      console.error('Failed to get settings for opening job leads:', error);
+      logError('Popup', 'Failed to get settings for opening job leads:', error);
     });
 }
 
@@ -427,11 +430,11 @@ function openApplications(applicationId?: string): void {
         ? `${settings.appUrl}/applications/${applicationId}`
         : `${settings.appUrl}/applications`;
       browser.tabs.create({ url }).catch((error) => {
-        console.error('Failed to open applications:', error);
+        logError('Popup', 'Failed to open applications:', error);
       });
     })
     .catch((error) => {
-      console.error('Failed to get settings for opening applications:', error);
+      logError('Popup', 'Failed to get settings for opening applications:', error);
     });
 }
 
@@ -510,7 +513,7 @@ async function getAppliedStatusId(): Promise<string | null> {
     }
     return appliedStatusId;
   } catch (error) {
-    console.warn('Failed to get statuses:', error);
+    warn('Popup', 'Failed to get statuses:', error);
     return null;
   }
 }
@@ -543,18 +546,13 @@ async function saveAsApplication(): Promise<void> {
     let text: string | undefined;
     try {
       text = await getTextFromContentScript();
-      console.log('Got text from content script:', text?.substring(0, 100));
+      debug('Popup', 'Got text from content script:', text?.substring(0, 100));
     } catch (e) {
-      console.warn('Failed to get text from content script:', e);
+      warn('Popup', 'Failed to get text from content script:', e);
       // Continue without text - backend will try to fetch HTML
     }
 
-    console.log(
-      'Calling extractApplication with text:',
-      !!text,
-      'length:',
-      text?.length
-    );
+    debug('Popup', 'Calling extractApplication with text:', !!text, 'length:', text?.length);
 
     // Extract and create application using server-side LLM extraction
     const result = await extractApplication({
@@ -767,7 +765,7 @@ async function getFormDetectionFromContentScript(): Promise<FormDetectionState |
 
     return null;
   } catch (error) {
-    console.warn('Failed to get form detection from content script:', error);
+    warn('Popup', 'Failed to get form detection from content script:', error);
     return null;
   }
 }
@@ -820,7 +818,7 @@ async function determineState(): Promise<void> {
         tabId: currentTabId,
       });
     } catch (error) {
-      console.warn('Failed to get tab status from background:', error);
+      warn('Popup', 'Failed to get tab status from background:', error);
     }
 
     // Fallback: If no cached status, request detection directly from content script
@@ -838,7 +836,7 @@ async function determineState(): Promise<void> {
           };
         }
       } catch (error) {
-        console.warn('Failed to get detection from content script:', error);
+        warn('Popup', 'Failed to get detection from content script:', error);
       }
     }
 
@@ -852,11 +850,11 @@ async function determineState(): Promise<void> {
     // Check both in parallel for efficiency
     const [lead, application] = await Promise.all([
       checkExistingLead(currentTabUrl).catch((e) => {
-        console.warn('Failed to check existing lead:', e);
+        warn('Popup', 'Failed to check existing lead:', e);
         return null;
       }),
       checkExistingApplication(currentTabUrl).catch((e) => {
-        console.warn('Failed to check existing application:', e);
+        warn('Popup', 'Failed to check existing application:', e);
         return null;
       }),
     ]);
@@ -1067,21 +1065,18 @@ async function init(): Promise<void> {
   // Load and apply theme colors
   try {
     const colors = await getThemeColors();
-    console.log('[Popup] Theme colors loaded:', colors);
+    debug('Popup', 'Theme colors loaded:', colors);
     applyThemeToDocument(colors);
-    console.log('[Popup] Applied theme, accent:', colors.accent);
+    debug('Popup', 'Applied theme, accent:', colors.accent);
 
     // Update favicon with accent color
     await updateFavicon(colors.accent);
 
     // Debug: Verify CSS variables were set
     const root = document.documentElement;
-    console.log(
-      '[Popup] CSS var --accent:',
-      root.style.getPropertyValue('--accent')
-    );
+    debug('Popup', 'CSS var --accent:', root.style.getPropertyValue('--accent'));
   } catch (error) {
-    console.warn('Failed to load theme:', error);
+    warn('Popup', 'Failed to load theme:', error);
   }
 
   // Trigger background refresh for next time
@@ -1121,16 +1116,16 @@ async function updateFavicon(accentColor: string): Promise<void> {
       favicon.href = svgDataUrl;
     }
 
-    console.log('[Popup] Updated favicon with accent color:', accentColor);
+    debug('Popup', 'Updated favicon with accent color:', accentColor);
   } catch (error) {
-    console.warn('[Popup] Failed to update favicon:', error);
+    warn('Popup', 'Failed to update favicon:', error);
   }
 }
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   init().catch((error) => {
-    console.error('Failed to initialize popup:', error);
+    logError('Popup', 'Failed to initialize popup:', error);
     showError('Failed to initialize');
   });
 });
