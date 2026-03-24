@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Tarnished API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Tarnished API", version="0.1.24", lifespan=lifespan)
 
 # Register rate limiter
 app.state.limiter = limiter
@@ -85,7 +85,7 @@ def cors_origin_validator(origin: str) -> bool:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"(chrome-extension://.*|moz-extension://.*|extension://.*|.*)",
+    allow_origin_regex=r"(chrome-extension://.*|moz-extension://.*|extension://.*)",
     allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],

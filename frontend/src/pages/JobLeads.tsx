@@ -35,6 +35,12 @@ function getStatusStyles(status: JobLeadStatus): {
   dot: string;
 } {
   switch (status) {
+    case 'converted':
+      return {
+        bg: 'bg-blue-bright/20',
+        text: 'text-blue-bright',
+        dot: 'bg-blue-bright',
+      };
     case 'extracted':
       return {
         bg: 'bg-green-bright/20',

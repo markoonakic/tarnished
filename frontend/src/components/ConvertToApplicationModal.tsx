@@ -66,17 +66,10 @@ export default function ConvertToApplicationModal({
         navigate(`/applications/${application.id}`);
       }
     } catch (err) {
-      // Handle the case where backend endpoint is not implemented
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to convert job lead';
 
-      if (errorMessage.includes('not yet implemented')) {
-        toast.warning(
-          'This feature is coming soon. The backend endpoint is not yet available.'
-        );
-      } else {
-        toast.error(errorMessage);
-      }
+      toast.error(errorMessage);
       // Keep modal open on error
     } finally {
       setIsConverting(false);
@@ -133,8 +126,8 @@ export default function ConvertToApplicationModal({
             <p className="text-fg1 text-sm">{company}</p>
           </div>
           <p className="text-muted mt-4 text-sm">
-            This will create a new application and remove this lead from your
-            leads list.
+            This will create a new application and mark this lead as converted
+            so you can still trace it later.
           </p>
         </div>
 

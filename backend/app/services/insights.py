@@ -54,7 +54,7 @@ def get_ai_config(db: Session) -> tuple[str, str | None, str | None]:
             settings_map[setting.key] = setting.value or ""
 
     return (
-        settings_map.get("litellm_model", "gpt-4o-mini"),
+        settings_map.get("litellm_model", "openai/gpt-4o-mini"),
         settings_map.get("api_key") or None,
         settings_map.get("litellm_base_url") or None,
     )
@@ -106,11 +106,6 @@ def generate_insights(
     if not api_key:
         raise ValueError(
             "AI not configured. Please configure AI settings in admin panel."
-        )
-
-    if model and "/" not in model:
-        raise ValueError(
-            "Model must include provider prefix (e.g. cerebras/gpt-oss-120b)"
         )
 
     user_prompt = build_analytics_prompt_data(

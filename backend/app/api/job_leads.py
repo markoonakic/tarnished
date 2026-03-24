@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -98,7 +98,11 @@ async def list_job_leads(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     status_filter: str | None = Query(None, alias="status"),
-    search: str | None = Query(None, description="Search by URL (exact match)"),
+    search: str | None = Query(
+        None, description="Search by company, title, or URL"
+    ),
+    source: str | None = Query(None, description="Filter by exact source"),
+    sort: str = Query("newest", pattern="^(newest|oldest)$"),
     user: User = Depends(get_current_user_flexible),
     db: AsyncSession = Depends(get_db),
 ):
@@ -108,7 +112,9 @@ async def list_job_leads(
         page: Page number (1-indexed).
         per_page: Items per page (max 100).
         status_filter: Optional status filter (pending, extracted, failed).
-        search: Optional URL search (exact match, used by extension to check existing leads).
+        search: Optional text search across company, title, and URL.
+        source: Optional exact source filter.
+        sort: Sort order by scraped date.
         user: The authenticated user.
         db: Database session.
 
@@ -120,17 +126,29 @@ async def list_job_leads(
     if status_filter:
         query = query.where(JobLead.status == status_filter)
 
-    # Search by exact URL match (used by extension to check for existing leads)
+    if source:
+        query = query.where(JobLead.source == source)
+
     if search:
-        query = query.where(JobLead.url == search)
+        search_term = f"%{search}%"
+        query = query.where(
+            or_(
+                JobLead.url.ilike(search_term),
+                JobLead.company.ilike(search_term),
+                JobLead.title.ilike(search_term),
+            )
+        )
 
     # Get total count
     count_query = select(func.count()).select_from(query.subquery())
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
-    # Order by most recent first, then apply pagination
-    query = query.order_by(JobLead.scraped_at.desc())
+    if sort == "oldest":
+        query = query.order_by(JobLead.scraped_at.asc())
+    else:
+        query = query.order_by(JobLead.scraped_at.desc())
+
     query = query.offset((page - 1) * per_page).limit(per_page)
 
     result = await db.execute(query)
@@ -770,9 +788,10 @@ async def convert_job_lead_to_application(
     )
     db.add(history_entry)
 
-    # Step 5: Set the job_lead_id on the application (for reference)
-    # Note: We keep the job lead until the application is successfully created,
-    # then delete it to clean up
+    # Step 5: Mark the lead as converted and link the created application.
+    # Keep the lead for traceability and to allow the UI to link back to it.
+    job_lead.status = "converted"
+    job_lead.converted_to_application_id = application.id
 
     await db.commit()
 
@@ -790,10 +809,6 @@ async def convert_job_lead_to_application(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve created application",
         )
-
-    # Step 6: Delete the job lead after successful conversion
-    await db.delete(job_lead)
-    await db.commit()
 
     logger.info(
         f"Successfully converted job lead to application {application.id}: {application.job_title} at {application.company}"

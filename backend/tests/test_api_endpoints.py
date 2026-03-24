@@ -24,7 +24,7 @@ from app.core.security import (
     generate_api_token,
     get_password_hash,
 )
-from app.models import JobLead, SystemSettings, User
+from app.models import Application, ApplicationStatus, JobLead, SystemSettings, User
 from app.models.user_profile import UserProfile
 
 # ============================================================================
@@ -219,6 +219,282 @@ class TestJobLeadsList:
         data = response.json()
         for item in data["items"]:
             assert item["status"] == "extracted"
+
+    async def test_list_job_leads_source_filter(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        db: AsyncSession,
+        test_user: User,
+    ):
+        lead1 = JobLead(
+            user_id=test_user.id,
+            url="https://linkedin.com/jobs/source-filter-1",
+            status="extracted",
+            source="LinkedIn",
+        )
+        lead2 = JobLead(
+            user_id=test_user.id,
+            url="https://indeed.com/jobs/source-filter-2",
+            status="extracted",
+            source="Indeed",
+        )
+        db.add_all([lead1, lead2])
+        await db.commit()
+
+        response = await client.get(
+            "/api/job-leads?source=LinkedIn",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert len(data["items"]) == 1
+        assert data["items"][0]["source"] == "LinkedIn"
+
+    async def test_list_job_leads_search_matches_company_and_title(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        db: AsyncSession,
+        test_user: User,
+    ):
+        lead1 = JobLead(
+            user_id=test_user.id,
+            url="https://example.com/jobs/search-company",
+            status="extracted",
+            title="Platform Engineer",
+            company="Acme Robotics",
+        )
+        lead2 = JobLead(
+            user_id=test_user.id,
+            url="https://example.com/jobs/search-other",
+            status="extracted",
+            title="Designer",
+            company="Other Company",
+        )
+        db.add_all([lead1, lead2])
+        await db.commit()
+
+        response = await client.get(
+            "/api/job-leads?search=Acme",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert len(data["items"]) == 1
+        assert data["items"][0]["company"] == "Acme Robotics"
+
+    async def test_list_job_leads_sort_oldest_first(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        db: AsyncSession,
+        test_user: User,
+    ):
+        lead1 = JobLead(
+            user_id=test_user.id,
+            url="https://example.com/jobs/sort-oldest",
+            status="extracted",
+            title="Oldest",
+        )
+        lead2 = JobLead(
+            user_id=test_user.id,
+            url="https://example.com/jobs/sort-newest",
+            status="extracted",
+            title="Newest",
+        )
+        db.add_all([lead1, lead2])
+        await db.commit()
+
+        response = await client.get(
+            "/api/job-leads?sort=oldest",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        titles = [item["title"] for item in data["items"]]
+        assert titles.index("Oldest") < titles.index("Newest")
+
+
+class TestApplicationsList:
+    """Tests for GET /api/applications endpoint."""
+
+    async def test_list_applications_source_filter(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        db: AsyncSession,
+        test_user: User,
+    ):
+        status = ApplicationStatus(
+            name="Applied",
+            color="#83a598",
+            is_default=False,
+            user_id=test_user.id,
+            order=1,
+        )
+        db.add(status)
+        await db.commit()
+        await db.refresh(status)
+
+        app1 = Application(
+            user_id=test_user.id,
+            company="One",
+            job_title="Engineer",
+            status_id=status.id,
+            source="LinkedIn",
+        )
+        app2 = Application(
+            user_id=test_user.id,
+            company="Two",
+            job_title="Engineer",
+            status_id=status.id,
+            source="Indeed",
+        )
+        db.add_all([app1, app2])
+        await db.commit()
+
+        response = await client.get(
+            "/api/applications?source=LinkedIn",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert len(data["items"]) == 1
+        assert data["items"][0]["source"] == "LinkedIn"
+
+
+class TestApplicationsWrite:
+    async def test_create_application_persists_rich_fields(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        db: AsyncSession,
+        test_user: User,
+    ):
+        status = ApplicationStatus(
+            name="Applied",
+            color="#83a598",
+            is_default=False,
+            user_id=test_user.id,
+            order=1,
+        )
+        db.add(status)
+        await db.commit()
+        await db.refresh(status)
+
+        response = await client.post(
+            "/api/applications",
+            headers=auth_headers,
+            json={
+                "company": "Rich Fields Co",
+                "job_title": "Staff Engineer",
+                "job_description": "Primary description",
+                "status_id": status.id,
+                "location": "Remote",
+                "recruiter_title": "Senior Recruiter",
+                "skills": ["Python", "FastAPI"],
+                "years_experience_min": 5,
+                "years_experience_max": 8,
+                "source": "LinkedIn",
+            },
+        )
+        assert response.status_code == 201
+
+        data = response.json()
+        assert data["location"] == "Remote"
+        assert data["recruiter_title"] == "Senior Recruiter"
+        assert data["skills"] == ["Python", "FastAPI"]
+        assert data["years_experience_min"] == 5
+        assert data["years_experience_max"] == 8
+
+    async def test_update_application_persists_rich_fields(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        db: AsyncSession,
+        test_user: User,
+    ):
+        status = ApplicationStatus(
+            name="Applied",
+            color="#83a598",
+            is_default=False,
+            user_id=test_user.id,
+            order=1,
+        )
+        db.add(status)
+        await db.commit()
+        await db.refresh(status)
+
+        application = Application(
+            user_id=test_user.id,
+            company="Update Co",
+            job_title="Engineer",
+            status_id=status.id,
+        )
+        db.add(application)
+        await db.commit()
+        await db.refresh(application)
+
+        response = await client.patch(
+            f"/api/applications/{application.id}",
+            headers=auth_headers,
+            json={
+                "location": "Berlin",
+                "recruiter_title": "Hiring Manager",
+                "skills": ["React"],
+                "years_experience_min": 3,
+                "years_experience_max": 6,
+            },
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["location"] == "Berlin"
+        assert data["recruiter_title"] == "Hiring Manager"
+        assert data["skills"] == ["React"]
+        assert data["years_experience_min"] == 3
+        assert data["years_experience_max"] == 6
+
+
+class TestJobLeadConversion:
+    async def test_convert_job_lead_preserves_lead_and_links_application(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        db: AsyncSession,
+        test_user: User,
+        test_job_lead: JobLead,
+    ):
+        status = ApplicationStatus(
+            name="Applied",
+            color="#83a598",
+            is_default=False,
+            user_id=test_user.id,
+            order=1,
+        )
+        db.add(status)
+        await db.commit()
+
+        response = await client.post(
+            f"/api/job-leads/{test_job_lead.id}/convert",
+            headers=auth_headers,
+        )
+        assert response.status_code == 201
+
+        application = response.json()
+        assert application["job_lead_id"] == test_job_lead.id
+
+        result = await db.execute(
+            select(JobLead).where(JobLead.id == test_job_lead.id)
+        )
+        refreshed_lead = result.scalar_one()
+        assert refreshed_lead.converted_to_application_id == application["id"]
+        assert refreshed_lead.status == "converted"
 
 
 class TestJobLeadsGet:
@@ -1148,3 +1424,32 @@ class TestHealthCheck:
 
         data = response.json()
         assert data["status"] == "healthy"
+
+
+class TestCorsPolicy:
+    async def test_cors_does_not_allow_arbitrary_origin(self, client: AsyncClient):
+        response = await client.options(
+            "/health",
+            headers={
+                "Origin": "https://evil.example.com",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+
+        assert response.status_code == 400
+        assert response.headers.get("access-control-allow-origin") is None
+
+    async def test_cors_allows_browser_extension_origins(self, client: AsyncClient):
+        response = await client.options(
+            "/health",
+            headers={
+                "Origin": "chrome-extension://abcdefghijklmnop",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+
+        assert response.status_code == 200
+        assert (
+            response.headers.get("access-control-allow-origin")
+            == "chrome-extension://abcdefghijklmnop"
+        )

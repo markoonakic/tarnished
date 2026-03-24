@@ -115,7 +115,7 @@ Works with any provider supported by [LiteLLM](https://litellm.ai/), including:
 ### Configuration
 
 1. Go to **Settings** → **AI Settings** (admin only)
-2. Enter your model (e.g., `gpt-4o-mini`, `claude-3-haiku`, `ollama/llama3`)
+2. Enter your model (e.g., `openai/gpt-4o-mini`, `anthropic/claude-3-haiku`, `ollama/llama3`)
 3. Enter your API key
 4. (Optional) Enter a custom base URL
 5. Click Save

@@ -39,7 +39,7 @@ from app.schemas.job_lead import JobLeadExtractionInput
 logger = logging.getLogger(__name__)
 
 # Default model for extraction (can be overridden via parameter or env var)
-DEFAULT_EXTRACTION_MODEL = "gpt-4o-mini"
+DEFAULT_EXTRACTION_MODEL = "openai/gpt-4o-mini"
 
 # System prompt for job extraction
 EXTRACTION_SYSTEM_PROMPT = """You are a job posting data extractor. Your task is to extract structured job posting information from the provided text content and return it as valid JSON.
@@ -340,11 +340,6 @@ def extract_with_llm(
     # Determine which model to use
     extraction_model = model or os.getenv("LITELLM_MODEL", DEFAULT_EXTRACTION_MODEL)
     logger.info(f"Starting LLM extraction with model: {extraction_model}")
-
-    if extraction_model and "/" not in extraction_model:
-        raise ValueError(
-            "Model must include provider prefix (e.g. cerebras/gpt-oss-120b)"
-        )
 
     # Build the user message with URL context and content
     user_message = f"""Source URL: {url}

@@ -75,6 +75,7 @@ export default function JobLeadDetail() {
       pending: 'bg-yellow-bright/20 text-yellow-bright',
       extracted: 'bg-green-bright/20 text-green-bright',
       failed: 'bg-red-bright/20 text-red-bright',
+      converted: 'bg-blue-bright/20 text-blue-bright',
     };
     return colors[status];
   }

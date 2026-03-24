@@ -86,6 +86,8 @@ export interface ApplicationCreate {
   job_url?: string;
   status_id: string;
   applied_at?: string;
+  description?: string | null;
+  location?: string | null;
   salary_min?: number;
   salary_max?: number;
   salary_currency?: string;
@@ -94,6 +96,9 @@ export interface ApplicationCreate {
   recruiter_linkedin_url?: string;
   requirements_must_have?: string[];
   requirements_nice_to_have?: string[];
+  skills?: string[];
+  years_experience_min?: number | null;
+  years_experience_max?: number | null;
   source?: string;
 }
 
@@ -104,6 +109,8 @@ export interface ApplicationUpdate {
   job_url?: string | null;
   status_id?: string;
   applied_at?: string;
+  description?: string | null;
+  location?: string | null;
   salary_min?: number | null;
   salary_max?: number | null;
   salary_currency?: string | null;
@@ -112,6 +119,9 @@ export interface ApplicationUpdate {
   recruiter_linkedin_url?: string | null;
   requirements_must_have?: string[] | null;
   requirements_nice_to_have?: string[] | null;
+  skills?: string[] | null;
+  years_experience_min?: number | null;
+  years_experience_max?: number | null;
   source?: string | null;
 }
 
@@ -139,7 +149,7 @@ export interface ApplicationStatusHistory {
   note: string | null;
 }
 
-export type JobLeadStatus = 'pending' | 'extracted' | 'failed';
+export type JobLeadStatus = 'pending' | 'extracted' | 'failed' | 'converted';
 
 export interface JobLead {
   id: string;
