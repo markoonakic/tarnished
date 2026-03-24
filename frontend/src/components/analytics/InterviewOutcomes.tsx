@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import { getInterviewRoundsData, type OutcomeData } from '@/lib/analytics';
@@ -20,11 +20,7 @@ export default function InterviewOutcomes({
   const [error, setError] = useState('');
   const colors = useThemeColors();
 
-  useEffect(() => {
-    loadData();
-  }, [period, roundType]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const result = await getInterviewRoundsData(period, roundType);
@@ -35,7 +31,11 @@ export default function InterviewOutcomes({
     } finally {
       setLoading(false);
     }
-  }
+  }, [period, roundType]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const option: EChartsOption = useMemo(() => {
     if (data.length === 0) return {};

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAPIKey, regenerateAPIKey } from '../../lib/settings';
 import type { APIKeyResponse } from '../../lib/types';
 import { useToast } from '@/hooks/useToast';
@@ -13,11 +13,7 @@ export default function SettingsAPIKey() {
   const [copied, setCopied] = useState(false);
   const [showFullKey, setShowFullKey] = useState(false);
 
-  useEffect(() => {
-    loadAPIKey();
-  }, []);
-
-  async function loadAPIKey() {
+  const loadAPIKey = useCallback(async () => {
     try {
       const data = await getAPIKey();
       setApiKeyData(data);
@@ -26,7 +22,11 @@ export default function SettingsAPIKey() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    loadAPIKey();
+  }, [loadAPIKey]);
 
   async function handleCopyKey() {
     // Always copy the full key

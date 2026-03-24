@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getHeatmapData } from '../lib/analytics';
 import type { HeatmapData } from '../lib/analytics';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -40,11 +40,7 @@ export default function ActivityHeatmap() {
   const currentYear = new Date().getFullYear();
   const years = [currentYear, currentYear - 1, currentYear - 2];
 
-  useEffect(() => {
-    loadData();
-  }, [viewMode]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const result = await getHeatmapData(viewMode);
@@ -54,7 +50,11 @@ export default function ActivityHeatmap() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [viewMode]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   function getLevel(count: number, maxCount: number): number {
     if (count === 0) return 0;
