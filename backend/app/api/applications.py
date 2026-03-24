@@ -115,6 +115,21 @@ async def list_applications(
     )
 
 
+@router.get("/sources")
+async def list_application_sources(
+    user: User = Depends(get_current_user_flexible),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Application.source)
+        .where(Application.user_id == user.id, Application.source.is_not(None))
+        .distinct()
+        .order_by(Application.source.asc())
+    )
+    sources = [source for source in result.scalars().all() if source]
+    return {"sources": sources}
+
+
 @router.post(
     "", response_model=ApplicationListItem, status_code=status.HTTP_201_CREATED
 )

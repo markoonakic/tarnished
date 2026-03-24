@@ -16,6 +16,10 @@ export interface ListParams {
   date_to?: string;
 }
 
+interface ApplicationSourcesResponse {
+  sources: string[];
+}
+
 export async function listApplications(
   params: ListParams = {}
 ): Promise<ApplicationListResponse> {
@@ -26,6 +30,13 @@ export async function listApplications(
 export async function getApplication(id: string): Promise<Application> {
   const response = await api.get(`/api/applications/${id}`);
   return response.data;
+}
+
+export async function getApplicationSources(): Promise<string[]> {
+  const response = await api.get<ApplicationSourcesResponse>(
+    '/api/applications/sources'
+  );
+  return response.data.sources;
 }
 
 export async function createApplication(

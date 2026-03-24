@@ -17,6 +17,10 @@ interface JobLeadsListResponse {
   per_page: number;
 }
 
+interface JobLeadSourcesResponse {
+  sources: string[];
+}
+
 /**
  * List job leads for the authenticated user with pagination and filtering.
  */
@@ -33,6 +37,13 @@ export async function getJobLeads(
 export async function getJobLead(id: string): Promise<JobLead> {
   const response = await api.get(`/api/job-leads/${id}`);
   return response.data;
+}
+
+export async function getJobLeadSources(): Promise<string[]> {
+  const response = await api.get<JobLeadSourcesResponse>(
+    '/api/job-leads/sources'
+  );
+  return response.data.sources;
 }
 
 /**

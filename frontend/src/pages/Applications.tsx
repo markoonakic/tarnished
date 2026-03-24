@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { listApplications } from '../lib/applications';
+import { getApplicationSources, listApplications } from '../lib/applications';
 import type { ListParams } from '../lib/applications';
 import { listStatuses } from '../lib/settings';
 import type { Application, Status } from '../lib/types';
@@ -20,22 +20,12 @@ export default function Applications() {
   const toast = useToastContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [applications, setApplications] = useState<Application[]>([]);
+  const [sources, setSources] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-
-  // Compute unique sources from applications
-  const sources = useMemo(() => {
-    const uniqueSources = new Set<string>();
-    applications.forEach((app) => {
-      if (app.source) {
-        uniqueSources.add(app.source);
-      }
-    });
-    return Array.from(uniqueSources).sort();
-  }, [applications]);
 
   const page = parseInt(searchParams.get('page') || '1');
   const [perPage, setPerPage] = useState(25);
@@ -44,24 +34,16 @@ export default function Applications() {
   const search = searchParams.get('search') || '';
   const isFiltered = search || statusFilter || sourceFilter;
 
-  useEffect(() => {
-    loadStatuses();
-  }, []);
-
-  useEffect(() => {
-    loadApplications();
-  }, [page, perPage, statusFilter, sourceFilter, search]);
-
-  async function loadStatuses() {
+  const loadStatuses = useCallback(async () => {
     try {
       const data = await listStatuses();
       setStatuses(data);
     } catch {
       // statuses are optional for filtering
     }
-  }
+  }, []);
 
-  async function loadApplications() {
+  const loadApplications = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -80,7 +62,27 @@ export default function Applications() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, perPage, statusFilter, sourceFilter, search, toast]);
+
+  const loadSources = useCallback(async () => {
+    try {
+      setSources(await getApplicationSources());
+    } catch {
+      setSources([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStatuses();
+  }, [loadStatuses]);
+
+  useEffect(() => {
+    loadApplications();
+  }, [loadApplications]);
+
+  useEffect(() => {
+    loadSources();
+  }, [loadSources]);
 
   function updateParams(updates: Record<string, string>) {
     const newParams = new URLSearchParams(searchParams);
