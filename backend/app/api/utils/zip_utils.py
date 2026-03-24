@@ -249,7 +249,7 @@ def is_path_safe(base_path: str, file_path: str) -> bool:
             return False
 
         return True
-    except Exception:
+    except (OSError, RuntimeError):
         return False
 
 
@@ -270,6 +270,9 @@ async def validate_zip_safety(zip_path: str) -> dict:
 
     file_count = 0
     total_uncompressed_size = 0
+
+    if not isinstance(zip_path, (str, os.PathLike)):
+        raise TypeError("zip_path must be a filesystem path")
 
     try:
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
@@ -325,9 +328,9 @@ async def validate_zip_safety(zip_path: str) -> dict:
         }
     except zipfile.BadZipFile:
         raise ValueError("Invalid ZIP file")
-    except Exception as e:
-        if isinstance(e, ValueError):
-            raise
+    except ValueError:
+        raise
+    except (OSError, RuntimeError, zipfile.LargeZipFile) as e:
         raise ValueError(f"Error validating ZIP: {str(e)}")
 
 
