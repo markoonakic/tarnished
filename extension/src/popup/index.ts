@@ -25,22 +25,12 @@ import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
 import { getErrorMessage, isRecoverable, mapApiError } from '../lib/errors';
 import { debug, warn, error as logError } from '../lib/logger';
 import { getThemeColors, applyThemeToDocument } from './lib/theme';
-
-// ============================================================================
-// Types
-// ============================================================================
-
-/**
- * Popup state types
- */
-type PopupState =
-  | 'loading'
-  | 'no-settings'
-  | 'not-detected'
-  | 'detected'
-  | 'saved'
-  | 'saving'
-  | 'error';
+import {
+  createPopupView,
+  type FormDetectionState,
+  type JobInfo,
+  type PopupState,
+} from './view';
 
 /**
  * Tab status from background script
@@ -50,23 +40,6 @@ interface TabStatus {
   score: number;
   signals: string[];
   url: string;
-}
-
-/**
- * Form detection state from content script
- */
-interface FormDetectionState {
-  hasApplicationForm: boolean;
-  fillableFieldCount: number;
-}
-
-/**
- * Job info to display in the UI
- */
-interface JobInfo {
-  title: string | null;
-  company: string | null;
-  location: string | null;
 }
 
 // ============================================================================
@@ -102,9 +75,6 @@ let autoFillOnLoad = false;
 
 /** Cached "Applied" status ID */
 let appliedStatusId: string | null = null;
-
-/** Current popup state (for message handler updates) */
-let currentState: PopupState = 'loading';
 
 // ============================================================================
 // DOM Elements
@@ -160,16 +130,12 @@ const elements = {
   errorText: document.getElementById('errorText'),
 };
 
-// State container mapping
-const stateContainers: Record<PopupState, HTMLElement | null> = {
-  loading: elements.stateLoading,
-  'no-settings': elements.stateNoSettings,
-  'not-detected': elements.stateNotDetected,
-  detected: elements.stateDetected,
-  saved: elements.stateSaved,
-  saving: elements.stateSaving,
-  error: elements.stateError,
-};
+const popupView = createPopupView(document, formDetection);
+
+function setFormDetectionState(next: FormDetectionState): void {
+  formDetection = next;
+  popupView.setFormDetection(next);
+}
 
 // ============================================================================
 // State Management
@@ -179,97 +145,29 @@ const stateContainers: Record<PopupState, HTMLElement | null> = {
  * Shows the specified state and hides all others
  */
 function showState(state: PopupState): void {
-  // Update current state tracking
-  currentState = state;
-
-  // Hide all states
-  Object.values(stateContainers).forEach((container) => {
-    if (container) {
-      container.classList.add('hidden');
-    }
-  });
-
-  // Show the requested state
-  const targetContainer = stateContainers[state];
-  if (targetContainer) {
-    targetContainer.classList.remove('hidden');
-  }
-
-  // Update autofill section visibility based on form detection
-  updateAutofillVisibility(state);
+  popupView.showState(state);
 }
 
 /**
  * Updates the visibility of autofill sections based on form detection state
  */
 function updateAutofillVisibility(state: PopupState): void {
-  // Show autofill section if we have at least 1 fillable field OR if we detected an application form
-  const showAutofill =
-    formDetection.hasApplicationForm || formDetection.fillableFieldCount >= 1;
-
-  // Update field counts
-  const countText = `${formDetection.fillableFieldCount} field${formDetection.fillableFieldCount !== 1 ? 's' : ''}`;
-  if (elements.autofillDetectedCount) {
-    elements.autofillDetectedCount.textContent = countText;
-  }
-  if (elements.autofillSavedCount) {
-    elements.autofillSavedCount.textContent = countText;
-  }
-  if (elements.autofillOnlyCount) {
-    elements.autofillOnlyCount.textContent = countText;
-  }
-
-  // Show/hide sections based on state
-  if (state === 'detected' && elements.autofillDetectedSection) {
-    elements.autofillDetectedSection.classList.toggle('hidden', !showAutofill);
-  }
-  if (state === 'saved' && elements.autofillSavedSection) {
-    elements.autofillSavedSection.classList.toggle('hidden', !showAutofill);
-  }
-  if (state === 'not-detected' && elements.autofillOnlySection) {
-    elements.autofillOnlySection.classList.toggle('hidden', !showAutofill);
-  }
+  popupView.setFormDetection(formDetection);
+  popupView.updateAutofillVisibility(state);
 }
 
 /**
  * Update job info display in the UI
  */
 function updateJobInfoDisplay(info: JobInfo, prefix: 'job' | 'savedJob'): void {
-  const titleEl = elements[
-    `${prefix}Title` as keyof typeof elements
-  ] as HTMLElement | null;
-  const companyEl = elements[
-    `${prefix}Company` as keyof typeof elements
-  ] as HTMLElement | null;
-  const locationEl = elements[
-    `${prefix}Location` as keyof typeof elements
-  ] as HTMLElement | null;
-
-  if (titleEl) {
-    titleEl.textContent = info.title || 'Unknown Position';
-  }
-  if (companyEl) {
-    companyEl.textContent = info.company || '';
-  }
-  if (locationEl) {
-    locationEl.textContent = info.location || '';
-  }
+  popupView.updateJobInfoDisplay(info, prefix);
 }
 
 /**
  * Shows the error state with a specific message
  */
 function showError(message: string, recoverable: boolean = true): void {
-  if (elements.errorText) {
-    elements.errorText.textContent = message;
-  }
-
-  // Show/hide retry button based on recoverability
-  if (elements.retryBtn) {
-    elements.retryBtn.classList.toggle('hidden', !recoverable);
-  }
-
-  showState('error');
+  popupView.showError(message, recoverable);
 }
 
 // ============================================================================
@@ -843,7 +741,7 @@ async function determineState(): Promise<void> {
     // Step 5: Get form detection state
     const formDetectionResult = await getFormDetectionFromContentScript();
     if (formDetectionResult) {
-      formDetection = formDetectionResult;
+      setFormDetectionState(formDetectionResult);
     }
 
     // Step 6: Check if this URL already exists as a job lead or application
@@ -1145,12 +1043,12 @@ browser.runtime.onMessage.addListener((message: unknown) => {
     fillableFieldCount?: number;
   };
   if (msg.type === 'FORM_DETECTION_UPDATE') {
-    formDetection = {
+    setFormDetectionState({
       hasApplicationForm: msg.hasApplicationForm ?? false,
       fillableFieldCount: msg.fillableFieldCount ?? 0,
-    };
+    });
     // Update autofill visibility based on new form detection state
-    updateAutofillVisibility(currentState);
+    updateAutofillVisibility(popupView.getCurrentState());
   }
   return undefined;
 });
