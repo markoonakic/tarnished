@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getApplication, deleteApplication } from '../lib/applications';
 import { deleteRound } from '../lib/rounds';
@@ -26,11 +26,9 @@ export default function ApplicationDetail() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  useEffect(() => {
-    if (id) loadApplication();
-  }, [id]);
+  const loadApplication = useCallback(async () => {
+    if (!id) return;
 
-  async function loadApplication() {
     setLoading(true);
     setError('');
     try {
@@ -43,7 +41,11 @@ export default function ApplicationDetail() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id, toast]);
+
+  useEffect(() => {
+    loadApplication();
+  }, [loadApplication]);
 
   async function handleDelete() {
     if (!confirm('Are you sure you want to delete this application?')) return;

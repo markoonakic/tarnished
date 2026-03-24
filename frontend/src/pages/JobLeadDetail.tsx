@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getJobLead, deleteJobLead, retryJobLead } from '../lib/jobLeads';
 import type { JobLead } from '../lib/types';
@@ -15,11 +15,9 @@ export default function JobLeadDetail() {
   const [error, setError] = useState('');
   const [showConvertModal, setShowConvertModal] = useState(false);
 
-  useEffect(() => {
-    if (id) loadJobLead();
-  }, [id]);
+  const loadJobLead = useCallback(async () => {
+    if (!id) return;
 
-  async function loadJobLead() {
     setLoading(true);
     setError('');
     try {
@@ -32,7 +30,11 @@ export default function JobLeadDetail() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id, toast]);
+
+  useEffect(() => {
+    loadJobLead();
+  }, [loadJobLead]);
 
   async function handleDelete() {
     if (!confirm('Are you sure you want to delete this job lead?')) return;
@@ -60,7 +62,6 @@ export default function JobLeadDetail() {
   }
 
   async function handleConverted(applicationId: string) {
-    // Job lead is deleted after conversion, so navigate to the new application
     toast.success('Job lead converted to application');
     navigate(`/applications/${applicationId}`);
   }

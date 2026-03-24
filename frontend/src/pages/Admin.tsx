@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { listUsers, getAdminStats, deleteUser } from '../lib/admin';
 import type { AdminUser, AdminStats } from '../lib/admin';
@@ -37,11 +37,7 @@ export default function Admin() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [page, perPage]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [usersData, statsData, aiSettingsData] = await Promise.all([
@@ -64,7 +60,11 @@ export default function Admin() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, perPage]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   function handlePerPageChange(newPerPage: number) {
     setPerPage(newPerPage);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createRound, updateRound, uploadRoundTranscript } from '../lib/rounds';
 import { listRoundTypes } from '../lib/settings';
 import type { Round, RoundType, RoundCreate, RoundUpdate } from '../lib/types';
@@ -79,11 +79,7 @@ export default function RoundForm({
     };
   }, []);
 
-  useEffect(() => {
-    loadRoundTypes();
-  }, []);
-
-  async function loadRoundTypes() {
+  const loadRoundTypes = useCallback(async () => {
     try {
       const data = await listRoundTypes();
       setRoundTypes(data);
@@ -94,7 +90,11 @@ export default function RoundForm({
     } catch {
       setError('Failed to load round types');
     }
-  }
+  }, [round]);
+
+  useEffect(() => {
+    loadRoundTypes();
+  }, [loadRoundTypes]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

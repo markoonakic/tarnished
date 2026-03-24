@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/useToast';
 import { getProfile, updateProfile } from '@/lib/profile';
 import type { UserProfile } from '@/lib/types';
@@ -11,11 +11,7 @@ export default function SettingsProfile() {
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     try {
       const data = await getProfile();
       setProfile(data);
@@ -24,7 +20,11 @@ export default function SettingsProfile() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();

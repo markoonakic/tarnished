@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import type {
@@ -24,11 +24,7 @@ export default function InterviewTimeline({
   const [error, setError] = useState('');
   const colors = useThemeColors();
 
-  useEffect(() => {
-    loadData();
-  }, [period, roundType]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const result = await getInterviewRoundsData(period, roundType);
@@ -39,17 +35,24 @@ export default function InterviewTimeline({
     } finally {
       setLoading(false);
     }
-  }
+  }, [period, roundType]);
 
-  function getSpeedInfo(avgDays: number): { label: string; color: string } {
-    if (avgDays <= 3) {
-      return { label: 'Fast', color: colors.green };
-    } else if (avgDays <= 7) {
-      return { label: 'Normal', color: colors.aqua };
-    } else {
-      return { label: 'Slow', color: colors.orange };
-    }
-  }
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const getSpeedInfo = useCallback(
+    (avgDays: number): { label: string; color: string } => {
+      if (avgDays <= 3) {
+        return { label: 'Fast', color: colors.green };
+      } else if (avgDays <= 7) {
+        return { label: 'Normal', color: colors.aqua };
+      } else {
+        return { label: 'Slow', color: colors.orange };
+      }
+    },
+    [colors.aqua, colors.green, colors.orange]
+  );
 
   const option: EChartsOption = useMemo(() => {
     if (data.length === 0) return {};
@@ -187,7 +190,7 @@ export default function InterviewTimeline({
         },
       ],
     };
-  }, [data, colors]);
+  }, [data, colors, getSpeedInfo]);
 
   if (loading) {
     return <Loading message="Loading interview timeline..." size="sm" />;

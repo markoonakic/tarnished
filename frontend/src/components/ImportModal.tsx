@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   validateImport,
   importData,
@@ -48,6 +48,12 @@ export default function ImportModal({
     }
   }, [isOpen]);
 
+  const handleClose = useCallback(() => {
+    if (importing) return;
+    reset();
+    onClose();
+  }, [importing, onClose]);
+
   useEffect(() => {
     if (isOpen) {
       const handleEscape = (e: KeyboardEvent) => {
@@ -56,13 +62,7 @@ export default function ImportModal({
       window.addEventListener('keydown', handleEscape);
       return () => window.removeEventListener('keydown', handleEscape);
     }
-  }, [isOpen, importing]);
-
-  const handleClose = () => {
-    if (importing) return;
-    reset();
-    onClose();
-  };
+  }, [isOpen, importing, handleClose]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];

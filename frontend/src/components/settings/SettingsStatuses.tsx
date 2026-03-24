@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   listStatuses,
   createStatus,
@@ -24,18 +24,7 @@ export default function SettingsStatuses() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  // Update default new status color when theme changes (only if user hasn't started entering a name)
-  useEffect(() => {
-    if (!newStatusName) {
-      setNewStatusColor(getDefaultNewStatusColor(colors));
-    }
-  }, [colors.aquaBright]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const statusData = await listStatuses();
       setStatuses(statusData);
@@ -44,7 +33,18 @@ export default function SettingsStatuses() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Update default new status color when theme changes (only if user hasn't started entering a name)
+  useEffect(() => {
+    if (!newStatusName) {
+      setNewStatusColor(getDefaultNewStatusColor(colors));
+    }
+  }, [colors, newStatusName]);
 
   async function handleAddStatus(e: React.FormEvent) {
     e.preventDefault();
