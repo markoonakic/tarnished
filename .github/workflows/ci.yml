@@ -93,6 +93,10 @@ jobs:
         working-directory: frontend
         run: npx tsc --noEmit
 
+      - name: Vitest
+        working-directory: frontend
+        run: yarn test:run
+
       - name: Build
         working-directory: frontend
         run: yarn build
@@ -156,6 +160,11 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         working-directory: extension
         run: npx tsc --noEmit
+
+      - name: Vitest
+        if: steps.changes.outputs.changed == 'true'
+        working-directory: extension
+        run: yarn test:run
 
       - name: Build
         if: steps.changes.outputs.changed == 'true'
