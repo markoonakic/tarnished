@@ -505,6 +505,15 @@ async def retry_job_lead_extraction(
     except HTTPException:
         # Re-raise HTTP exceptions from fetch/extract
         raise
+    except ValueError as e:
+        logger.error(f"Value error during retry for job lead {job_lead_id}: {e}")
+        job_lead.status = "failed"
+        job_lead.error_message = f"Retry failed: {str(e)}"
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except Exception as e:
         logger.error(f"Unexpected error during retry for job lead {job_lead_id}: {e}")
         # Update job lead status to failed with error
