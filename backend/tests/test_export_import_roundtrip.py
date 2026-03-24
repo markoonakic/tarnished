@@ -342,7 +342,7 @@ class TestFileExtraction:
         tmp_path: Path,
     ):
         """Test that file extraction verifies SHA256 checksums."""
-        from app.api.import_router import extract_files_from_new_format
+        from app.services.import_execution import extract_files_from_new_format
 
         # Create a test file with known content
         test_content = b"Test file content for SHA256 verification"
@@ -389,7 +389,7 @@ class TestFileExtraction:
             )
 
         # Extract should succeed with valid hash
-        with patch("app.api.import_router.UPLOAD_DIR", str(tmp_path / "uploads")):
+        with patch("app.services.import_execution.UPLOAD_DIR", str(tmp_path / "uploads")):
             file_mapping = extract_files_from_new_format(str(zip_path), "test-user")
 
         # File should be mapped
@@ -401,7 +401,7 @@ class TestFileExtraction:
         tmp_path: Path,
     ):
         """Test that file extraction rejects files with mismatched SHA256."""
-        from app.api.import_router import extract_files_from_new_format
+        from app.services.import_execution import extract_files_from_new_format
 
         test_content = b"Test file content"
         wrong_hash = "0" * 64  # Wrong hash
@@ -445,7 +445,7 @@ class TestFileExtraction:
         upload_dir = tmp_path / "uploads"
         upload_dir.mkdir(exist_ok=True)
 
-        with patch("app.api.import_router.UPLOAD_DIR", str(upload_dir)):
+        with patch("app.services.import_execution.UPLOAD_DIR", str(upload_dir)):
             with pytest.raises(ValueError) as exc_info:
                 extract_files_from_new_format(str(zip_path), "test-user")
 
