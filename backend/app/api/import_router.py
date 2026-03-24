@@ -43,6 +43,7 @@ from app.api.utils.zip_utils import validate_zip_safety
 from app.services.export_registry import default_registry
 from app.services.import_id_mapper import IDMapper
 from app.services.import_service import ImportService
+from app.services.import_validation import is_new_export_format, validate_import_payload
 
 logger = logging.getLogger(__name__)
 
@@ -457,11 +458,6 @@ def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]
     return file_mapping
 
 
-def is_new_export_format(data: dict) -> bool:
-    """Check if data uses the new introspective export format."""
-    return "format_version" in data and "models" in data
-
-
 def _run_import_user_data(
     sync_session, export_data: dict, user_id: str, override: bool, file_mapping: dict
 ) -> dict:
@@ -595,80 +591,6 @@ async def import_applications(
     }
 
 
-async def _collect_new_format_warnings(
-    db: AsyncSession, user_id: str, models: dict
-) -> list[str]:
-    """Collect warnings for new format import.
-
-    Args:
-        db: Database session
-        user_id: Current user ID
-        models: The models dict from export data
-
-    Returns:
-        List of warning messages
-    """
-    warnings = []
-
-    # Check for existing applications
-    result = await db.execute(select(Application).where(Application.user_id == user_id))
-    existing_count = len(result.scalars().all())
-    if existing_count > 0:
-        warnings.append(
-            f"You have {existing_count} existing applications. Import will add to these unless you choose to override."
-        )
-
-    # Check for missing statuses - in new format, statuses are in ApplicationStatus model
-    # Get status names from exported data
-    exported_statuses = set()
-    for status in models.get("ApplicationStatus", []):
-        if status.get("name"):
-            exported_statuses.add(status["name"])
-
-    # Also check Application status_id references (they reference existing or exported statuses)
-    # Since we merge by name, we need to check what names will be new
-
-    # Get existing status names (global + user's)
-    existing_statuses_result = await db.execute(
-        select(ApplicationStatus.name).where(
-            (ApplicationStatus.user_id == user_id) | (ApplicationStatus.user_id == None)
-        )
-    )
-    existing_status_names = {s[0] for s in existing_statuses_result.all()}
-
-    # Find statuses that would be created (not in existing)
-    new_statuses = exported_statuses - existing_status_names
-    if new_statuses:
-        status_list = list(new_statuses)[:5]
-        status_str = ", ".join(status_list)
-        if len(new_statuses) > 5:
-            status_str += "..."
-        warnings.append(f"Will create {len(new_statuses)} new statuses: {status_str}")
-
-    # Check for missing round types
-    exported_round_types = set()
-    for rt in models.get("RoundType", []):
-        if rt.get("name"):
-            exported_round_types.add(rt["name"])
-
-    existing_round_types_result = await db.execute(
-        select(RoundType.name).where(
-            (RoundType.user_id == user_id) | (RoundType.user_id == None)
-        )
-    )
-    existing_round_type_names = {rt[0] for rt in existing_round_types_result.all()}
-
-    new_round_types = exported_round_types - existing_round_type_names
-    if new_round_types:
-        rt_list = list(new_round_types)[:5]
-        rt_str = ", ".join(rt_list)
-        if len(new_round_types) > 5:
-            rt_str += "..."
-        warnings.append(f"Will create {len(new_round_types)} new round types: {rt_str}")
-
-    return warnings
-
-
 @router.post("/validate")
 @conditional_rate_limit("5/hour")
 async def validate_import(
@@ -707,138 +629,22 @@ async def validate_import(
 
             data = json.loads(data_json)
 
-        # Detect format and validate accordingly
-        if is_new_export_format(data):
-            # === NEW FORMAT (v1.0+) ===
-            from app.services.import_id_mapper import IDMapper
+        validation = await validate_import_payload(db, user_id, data, zip_info)
 
-            id_mapper = IDMapper()
-            import_service = ImportService(
-                registry=default_registry, id_mapper=id_mapper
-            )
+        await log_import_event(
+            db,
+            user_id,
+            "validation_success",
+            {
+                "filename": file.filename,
+                "format": "v1.0" if is_new_export_format(data) else "legacy",
+                "applications_count": validation.summary.get("applications", 0),
+                "rounds_count": validation.summary.get("rounds", 0),
+            },
+            request,
+        )
 
-            # Validate format structure
-            is_valid, error = import_service.validate_export_data(data)
-            if not is_valid:
-                return ImportValidationResponse(valid=False, summary={}, errors=[error])
-
-            models = data.get("models", {})
-
-            # Count only CUSTOM statuses/round types (those with user_id set)
-            # Global ones (user_id=null) are included for name-matching during import
-            def count_custom(items: list) -> int:
-                return sum(1 for item in items if item.get("user_id"))
-
-            summary = {
-                "applications": len(models.get("Application", [])),
-                "rounds": len(models.get("Round", [])),
-                "status_history": len(models.get("ApplicationStatusHistory", [])),
-                "custom_statuses": count_custom(models.get("ApplicationStatus", [])),
-                "custom_round_types": count_custom(models.get("RoundType", [])),
-                "job_leads": len(models.get("JobLead", [])),
-                "files": zip_info["file_count"]
-                - 2,  # -2 for data.json and manifest.json
-            }
-
-            # Collect warnings
-            warnings = await _collect_new_format_warnings(db, user_id, models)
-
-            # Log successful validation
-            await log_import_event(
-                db,
-                user_id,
-                "validation_success",
-                {
-                    "filename": file.filename,
-                    "format": "v1.0",
-                    "applications_count": summary["applications"],
-                    "rounds_count": summary["rounds"],
-                },
-                request,
-            )
-
-            return ImportValidationResponse(
-                valid=True,
-                summary=summary,
-                warnings=warnings,
-            )
-        else:
-            # === LEGACY FORMAT ===
-            # Validate with Pydantic
-            validated_data = ImportDataSchema(**data)
-
-            # Log successful validation
-            await log_import_event(
-                db,
-                user_id,
-                "validation_success",
-                {
-                    "filename": file.filename,
-                    "format": "legacy",
-                    "applications_count": len(validated_data.applications),
-                    "rounds_count": sum(
-                        len(app.rounds) for app in validated_data.applications
-                    ),
-                },
-                request,
-            )
-
-            # Check for override warning
-            result = await db.execute(
-                select(Application).where(Application.user_id == user.id)
-            )
-            existing_count = len(result.scalars().all())
-
-            warnings = []
-            if existing_count > 0:
-                warnings.append(
-                    f"You have {existing_count} existing applications. Import will add to these unless you choose to override."
-                )
-
-            # Check for missing statuses/round types
-            existing_statuses = await db.execute(
-                select(ApplicationStatus.name).where(
-                    (ApplicationStatus.user_id == user.id)
-                    | (ApplicationStatus.user_id == None)
-                )
-            )
-            existing_status_names = {s[0] for s in existing_statuses.all()}
-
-            needed_statuses = set()
-            for app in validated_data.applications:
-                needed_statuses.add(app.status)
-                for hist in app.status_history:
-                    if hist.to_status:
-                        needed_statuses.add(hist.to_status)
-                    if hist.from_status:
-                        needed_statuses.add(hist.from_status)
-
-            missing_statuses = needed_statuses - existing_status_names
-            if missing_statuses:
-                status_list = list(missing_statuses)[:5]
-                status_str = ", ".join(status_list)
-                if len(missing_statuses) > 5:
-                    status_str += "..."
-                warnings.append(
-                    f"Will create {len(missing_statuses)} new statuses: {status_str}"
-                )
-
-            return ImportValidationResponse(
-                valid=True,
-                summary={
-                    "applications": len(validated_data.applications),
-                    "rounds": sum(
-                        len(app.rounds) for app in validated_data.applications
-                    ),
-                    "status_history": sum(
-                        len(app.status_history) for app in validated_data.applications
-                    ),
-                    "custom_statuses": len(validated_data.custom_statuses),
-                    "custom_round_types": len(validated_data.custom_round_types),
-                    "files": zip_info["file_count"] - 1,  # -1 for data.json
-                },
-                warnings=warnings,
-            )
+        return validation
 
     except HTTPException:
         raise

@@ -437,7 +437,7 @@ class TestImportValidationBasic:
         files = {"file": ("import.zip", zip_buffer.read(), "application/zip")}
 
         with patch(
-            "app.api.import_router._collect_new_format_warnings",
+            "app.services.import_validation._collect_new_format_warnings",
             side_effect=ValueError("Warning collection failed"),
         ):
             response = await client.post(
