@@ -6,7 +6,6 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.job_leads import _fetch_html, _get_ai_settings
 from app.api.streak import record_streak_activity
 from app.api.utils.zip_utils import (
     ALLOWED_DOCUMENT_TYPES,
@@ -45,6 +44,8 @@ from app.services.extraction import (
     NoJobFoundError,
     extract_job_data,
 )
+from app.services.ai_settings import get_ai_settings
+from app.services.job_fetch import fetch_job_posting_html
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
 
@@ -238,7 +239,7 @@ async def create_application_from_url(
         text_content = data.text
     else:
         try:
-            html_content = await _fetch_html(data.url)
+            html_content = await fetch_job_posting_html(data.url)
             text_content = None
         except Exception as e:
             raise HTTPException(
@@ -247,16 +248,16 @@ async def create_application_from_url(
             )
 
     # 3. Get AI settings and extract job data
-    ai_model, ai_api_key, ai_api_base = await _get_ai_settings(db)
+    ai_settings = await get_ai_settings(db)
 
     try:
         extracted = await extract_job_data(
             html=html_content,
             text=text_content,
             url=data.url,
-            model=ai_model,
-            api_key=ai_api_key,
-            api_base=ai_api_base,
+            model=ai_settings.model,
+            api_key=ai_settings.api_key,
+            api_base=ai_settings.base_url,
         )
     except ExtractionAuthError as e:
         raise HTTPException(

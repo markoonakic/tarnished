@@ -11,16 +11,15 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.core.security import decrypt_api_key
 from app.models import (
     Application,
     ApplicationStatus,
     Round,
     RoundType,
-    SystemSettings,
     User,
 )
 from app.schemas.insights import GraceInsights, InsightsRequest
+from app.services.ai_settings import get_ai_settings
 from app.services.insights import generate_insights
 
 logger = logging.getLogger(__name__)
@@ -69,22 +68,8 @@ async def is_ai_configured(
 ):
     """Check if AI is configured for insights generation."""
     try:
-        result = await db.execute(
-            select(SystemSettings).where(
-                SystemSettings.key == SystemSettings.KEY_LITELLM_API_KEY
-            )
-        )
-        setting = result.scalars().first()
-
-        if not setting or not setting.value:
-            return {"configured": False}
-
-        try:
-            api_key = decrypt_api_key(setting.value)
-            return {"configured": bool(api_key)}
-        except Exception as e:
-            logger.exception("Failed to decrypt API key: %s", e)
-            return {"configured": False}
+        settings = await get_ai_settings(db)
+        return {"configured": settings.is_configured}
     except Exception as e:
         logger.exception("Failed to check AI configuration: %s", e)
         return {"configured": False}

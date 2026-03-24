@@ -884,7 +884,7 @@ class TestJobLeadsRetry:
     ):
         """Test successfully retrying a failed job lead."""
         with (
-            patch("app.api.job_leads._fetch_html") as mock_fetch,
+            patch("app.api.job_leads.fetch_job_posting_html") as mock_fetch,
             patch("app.api.job_leads.extract_job_data") as mock_extract,
         ):
             from app.schemas.job_lead import JobLeadExtractionInput
@@ -1342,8 +1342,19 @@ class TestAdminAISettingsUpdate:
         self,
         client: AsyncClient,
         admin_auth_headers: dict,
+        db: AsyncSession,
     ):
         """Test partial update of AI settings."""
+        from app.core.security import encrypt_api_key
+
+        db.add(
+            SystemSettings(
+                key=SystemSettings.KEY_LITELLM_API_KEY,
+                value=encrypt_api_key("sk-existing-1234"),
+            )
+        )
+        await db.commit()
+
         response = await client.put(
             "/api/admin/ai-settings",
             headers=admin_auth_headers,
@@ -1353,6 +1364,8 @@ class TestAdminAISettingsUpdate:
 
         data = response.json()
         assert data["litellm_model"] == "claude-3-sonnet"
+        assert data["litellm_api_key_masked"] == "...1234"
+        assert data["is_configured"] is True
 
     async def test_update_ai_settings_empty_model_validation(
         self,
