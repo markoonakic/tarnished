@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Any
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.schemas.round import RoundResponse
 
@@ -65,15 +65,16 @@ class ApplicationUpdate(BaseModel):
 
 
 class StatusResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     name: str
     color: str
 
-    class Config:
-        from_attributes = True
-
 
 class ApplicationListItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     company: str
     job_title: str
@@ -112,15 +113,10 @@ class ApplicationListItem(BaseModel):
             return []
         return v
 
-    class Config:
-        from_attributes = True
-
-
 class ApplicationResponse(ApplicationListItem):
-    rounds: list[RoundResponse] = []
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    rounds: list[RoundResponse] = []
 
 
 class ApplicationListResponse(BaseModel):

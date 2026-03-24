@@ -2,13 +2,15 @@ import logging
 import os
 from functools import lru_cache
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
 
 logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env")
+
     # Legacy: Full database URL (takes precedence if set)
     database_url: str | None = None
 
@@ -57,10 +59,6 @@ class Settings(BaseSettings):
 
         # SQLite fallback
         return f"sqlite+aiosqlite:///{self.sqlite_path}"
-
-    class Config:
-        env_file = ".env"
-
 
 @lru_cache
 def get_settings() -> Settings:

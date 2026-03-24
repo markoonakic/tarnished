@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.admin import (
     AdminRoundTypeUpdate,
@@ -81,14 +81,14 @@ class NeedsAttentionResponse(BaseModel):
 
 
 class ApplicationStatusHistoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     from_status: StatusResponse | None
     to_status: StatusResponse
     changed_at: datetime
     note: str | None
 
-    class Config:
-        from_attributes = True
 
 
 __all__ = [

@@ -1,9 +1,11 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class AdminUserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     email: str
     is_admin: bool
@@ -11,8 +13,6 @@ class AdminUserResponse(BaseModel):
     created_at: datetime
     application_count: int = 0
 
-    class Config:
-        from_attributes = True
 
 
 class AdminUserUpdate(BaseModel):

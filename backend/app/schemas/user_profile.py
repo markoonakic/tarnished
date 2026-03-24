@@ -5,7 +5,7 @@ These schemas handle request/response validation for the user profile API endpoi
 
 from typing import Any
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class WorkHistoryItem(BaseModel):
@@ -163,6 +163,8 @@ class UserProfileCreate(UserProfileBase):
 
 
 class UserProfileResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Full response schema for a user profile.
 
     Includes all fields from the UserProfile model.
@@ -191,6 +193,3 @@ class UserProfileResponse(BaseModel):
     work_history: list[dict[str, Any]] | None
     education: list[dict[str, Any]] | None
     skills: list[str] | None
-
-    class Config:
-        from_attributes = True

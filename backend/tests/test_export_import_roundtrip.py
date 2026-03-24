@@ -8,7 +8,7 @@ import hashlib
 import io
 import json
 import zipfile
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -128,7 +128,7 @@ class TestExportImportRoundTrip:
             company="Test Company",
             job_title="Software Engineer",
             status_id=test_statuses[0].id,
-            applied_at=datetime.utcnow(),
+            applied_at=datetime.now(UTC),
         )
         db.add(app)
         await db.commit()
@@ -179,7 +179,7 @@ class TestExportImportRoundTrip:
             company="Export Company",
             job_title="Backend Engineer",
             status_id=test_statuses[0].id,
-            applied_at=datetime.utcnow(),
+            applied_at=datetime.now(UTC),
         )
         db.add(app)
         await db.commit()
@@ -240,7 +240,7 @@ class TestExportImportRoundTrip:
             company="Round Test Company",
             job_title="Full Stack Engineer",
             status_id=test_statuses[1].id,  # Interview
-            applied_at=datetime.utcnow(),
+            applied_at=datetime.now(UTC),
         )
         db.add(app)
         await db.commit()
@@ -249,7 +249,7 @@ class TestExportImportRoundTrip:
         round1 = Round(
             application_id=app.id,
             round_type_id=test_round_types[0].id,  # Phone Screen
-            scheduled_at=datetime.utcnow(),
+            scheduled_at=datetime.now(UTC),
             notes_summary="Great conversation about system design",
         )
         db.add(round1)
@@ -308,7 +308,7 @@ class TestExportImportRoundTrip:
             company="Validation Company",
             job_title="QA Engineer",
             status_id=test_statuses[0].id,
-            applied_at=datetime.utcnow(),
+            applied_at=datetime.now(UTC),
         )
         db.add(app)
         await db.commit()
