@@ -714,6 +714,18 @@ class TestImportValidationSummary:
 class TestValidateZIPSafety:
     """Test validate_zip_safety function directly."""
 
+    def test_is_path_safe_raises_for_invalid_argument_type(self):
+        from app.api.utils.zip_utils import is_path_safe
+
+        with pytest.raises(TypeError):
+            is_path_safe("/tmp", None)  # type: ignore[arg-type]
+
+    async def test_validate_zip_safety_raises_for_invalid_argument_type(self):
+        from app.api.utils.zip_utils import validate_zip_safety
+
+        with pytest.raises(TypeError):
+            await validate_zip_safety(None)  # type: ignore[arg-type]
+
     async def test_validate_safe_zip(self):
         """Test validate_zip_safety with safe ZIP."""
         # Create safe ZIP
