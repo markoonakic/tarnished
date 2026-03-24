@@ -25,13 +25,18 @@ class ApplicationCreate(BaseModel):
     # New fields for manual entry or job lead conversion
     job_lead_id: str | None = None
     description: str | None = None
+    location: str | None = None
     salary_min: int | None = None
     salary_max: int | None = None
     salary_currency: str | None = None
     recruiter_name: str | None = None
+    recruiter_title: str | None = None
     recruiter_linkedin_url: str | None = None
     requirements_must_have: list[str] = []
     requirements_nice_to_have: list[str] = []
+    skills: list[str] = []
+    years_experience_min: int | None = None
+    years_experience_max: int | None = None
     source: str | None = None
 
 
@@ -44,13 +49,18 @@ class ApplicationUpdate(BaseModel):
     applied_at: date | None = None
     # New fields for updates
     description: str | None = None
+    location: str | None = None
     salary_min: int | None = None
     salary_max: int | None = None
     salary_currency: str | None = None
     recruiter_name: str | None = None
+    recruiter_title: str | None = None
     recruiter_linkedin_url: str | None = None
     requirements_must_have: list[str] | None = None
     requirements_nice_to_have: list[str] | None = None
+    skills: list[str] | None = None
+    years_experience_min: int | None = None
+    years_experience_max: int | None = None
     source: str | None = None
 
 

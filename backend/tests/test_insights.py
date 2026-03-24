@@ -6,6 +6,7 @@ Tests for:
 - Error handling when AI not configured
 """
 
+import os
 from unittest.mock import patch
 
 import pytest
@@ -214,10 +215,15 @@ class TestInsightsWithPostgreSQL:
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(
-        True,  # Skip by default - enable manually for PostgreSQL testing
-        reason="Requires PostgreSQL database. Set DATABASE_URL and remove skip to run.",
+        "postgresql" not in os.environ.get("TEST_DATABASE_URL", ""),
+        reason="Requires PostgreSQL test database. Set TEST_DATABASE_URL to a postgresql URL.",
     )
-    async def test_insights_with_postgresql_database(self):
+    async def test_insights_with_postgresql_database(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        auth_headers: dict[str, str],
+    ):
         """Test that insights works with PostgreSQL backend.
 
         This test verifies the fix for the bug where insights generation
@@ -230,12 +236,42 @@ class TestInsightsWithPostgreSQL:
         The fix uses AsyncSession.run_sync() which doesn't need a separate
         sync engine at all.
         """
-        import os
+        from app.core.security import encrypt_api_key
 
-        # Verify we're actually testing with PostgreSQL
-        db_url = os.environ.get("DATABASE_URL", "")
-        assert "postgresql" in db_url, "This test requires PostgreSQL DATABASE_URL"
+        db_url = os.environ.get("TEST_DATABASE_URL", "")
+        assert "postgresql" in db_url, "This test requires PostgreSQL TEST_DATABASE_URL"
 
-        # This should not raise 'No module named psycopg2'
-        # Note: This test would need client and auth setup for PostgreSQL
-        # The key verification is that no psycopg2 error occurs
+        encrypted_key = encrypt_api_key("test-api-key")
+        db.add(
+            SystemSettings(key=SystemSettings.KEY_LITELLM_API_KEY, value=encrypted_key)
+        )
+        await db.commit()
+
+        mock_insights = GraceInsights(
+            overall_grace="PostgreSQL guidance",
+            pipeline_overview=SectionInsight(
+                key_insight="Test insight",
+                trend="Stable",
+                priority_actions=["Action 1"],
+            ),
+            interview_analytics=SectionInsight(
+                key_insight="Test insight",
+                trend="Stable",
+                priority_actions=["Action 2"],
+            ),
+            activity_tracking=SectionInsight(
+                key_insight="Test insight",
+                trend="Stable",
+                priority_actions=["Action 3"],
+            ),
+        )
+
+        with patch("app.api.insights.generate_insights", return_value=mock_insights):
+            response = await client.post(
+                "/api/analytics/insights",
+                json={"period": "30d"},
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 200
+        assert response.json()["overall_grace"] == "PostgreSQL guidance"

@@ -54,6 +54,7 @@ async def list_applications(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     status_id: str | None = None,
+    source: str | None = None,
     search: str | None = None,
     url: str | None = Query(
         None, description="Filter by exact job URL (used by extension)"
@@ -71,6 +72,9 @@ async def list_applications(
 
     if status_id:
         query = query.where(Application.status_id == status_id)
+
+    if source:
+        query = query.where(Application.source == source)
 
     # Exact URL match (used by extension to check for existing applications)
     if url:
@@ -141,6 +145,20 @@ async def create_application(
         job_url=data.job_url,
         status_id=data.status_id,
         applied_at=data.applied_at or date.today(),
+        description=data.description,
+        location=data.location,
+        salary_min=data.salary_min,
+        salary_max=data.salary_max,
+        salary_currency=data.salary_currency,
+        recruiter_name=data.recruiter_name,
+        recruiter_title=data.recruiter_title,
+        recruiter_linkedin_url=data.recruiter_linkedin_url,
+        requirements_must_have=data.requirements_must_have,
+        requirements_nice_to_have=data.requirements_nice_to_have,
+        skills=data.skills,
+        years_experience_min=data.years_experience_min,
+        years_experience_max=data.years_experience_max,
+        source=data.source,
     )
     db.add(application)
     await db.flush()  # Get the generated ID

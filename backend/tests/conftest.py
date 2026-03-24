@@ -16,8 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.database import Base
 from app.main import app
 
-# Test database URL (SQLite in memory for fast tests)
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+# Test database URL (SQLite by default, override for integration tests)
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 
 
 @pytest.fixture(scope="session")

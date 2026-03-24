@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 import os
 import re
 import tempfile
@@ -7,7 +8,13 @@ import zipfile
 from pathlib import Path
 
 import aiofiles
-import magic
+
+logger = logging.getLogger(__name__)
+
+try:
+    import magic
+except ImportError:
+    magic = None
 
 # MIME type to extension mapping for CAS storage
 MIME_TO_EXTENSION = {
@@ -41,6 +48,14 @@ ALLOWED_AUDIO_TYPES = {"audio/mpeg", "audio/wav", "audio/mp4", "audio/ogg"}
 ALLOWED_MEDIA_TYPES = ALLOWED_VIDEO_TYPES | ALLOWED_AUDIO_TYPES
 
 
+def detect_mime_type(content: bytes) -> str:
+    """Detect MIME type from bytes with a safe fallback."""
+    if magic is None:
+        return "application/octet-stream"
+
+    return magic.from_buffer(content, mime=True)
+
+
 def detect_extension(content: bytes) -> str:
     """Detect file extension from magic bytes.
 
@@ -50,7 +65,10 @@ def detect_extension(content: bytes) -> str:
     Returns:
         File extension including the dot (e.g., '.pdf')
     """
-    mime_type = magic.from_buffer(content, mime=True)
+    if magic is None:
+        return ".bin"
+
+    mime_type = detect_mime_type(content)
     return MIME_TO_EXTENSION.get(mime_type, ".bin")
 
 
@@ -120,6 +138,10 @@ def validate_file(file_path: Path, allowed_types: set) -> tuple[bool, str]:
     Returns:
         Tuple of (is_valid, detected_mime_type)
     """
+    if magic is None:
+        logger.warning("libmagic unavailable, skipping MIME validation for %s", file_path)
+        return True, "application/octet-stream"
+
     detected = magic.from_file(str(file_path), mime=True)
     return detected in allowed_types, detected
 
@@ -385,7 +407,7 @@ async def create_zip_export(
                 content = cv_path.read_bytes()
                 file_registry[zip_path] = {
                     "original_name": "resume" + cv_path.suffix,
-                    "mime_type": magic.from_buffer(content, mime=True),
+                    "mime_type": detect_mime_type(content),
                     "size_bytes": len(content),
                     "sha256": hashlib.sha256(content).hexdigest(),
                     "entity_type": "Application",
@@ -403,7 +425,7 @@ async def create_zip_export(
                 content = cl_path.read_bytes()
                 file_registry[zip_path] = {
                     "original_name": "cover_letter" + cl_path.suffix,
-                    "mime_type": magic.from_buffer(content, mime=True),
+                    "mime_type": detect_mime_type(content),
                     "size_bytes": len(content),
                     "sha256": hashlib.sha256(content).hexdigest(),
                     "entity_type": "Application",
@@ -430,7 +452,7 @@ async def create_zip_export(
                     content = transcript_path.read_bytes()
                     file_registry[zip_path] = {
                         "original_name": "transcript" + transcript_path.suffix,
-                        "mime_type": magic.from_buffer(content, mime=True),
+                        "mime_type": detect_mime_type(content),
                         "size_bytes": len(content),
                         "sha256": hashlib.sha256(content).hexdigest(),
                         "entity_type": "Round",
@@ -457,7 +479,7 @@ async def create_zip_export(
                         )
                         file_registry[zip_path] = {
                             "original_name": original_name,
-                            "mime_type": magic.from_buffer(content, mime=True),
+                            "mime_type": detect_mime_type(content),
                             "size_bytes": len(content),
                             "sha256": hashlib.sha256(content).hexdigest(),
                             "entity_type": "RoundMedia",

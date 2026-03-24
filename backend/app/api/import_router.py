@@ -283,12 +283,11 @@ def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]
     """
     import hashlib
 
-    import magic
-
     from app.api.utils.zip_utils import (
         ALLOWED_DOCUMENT_TYPES,
         ALLOWED_MEDIA_TYPES,
         detect_extension,
+        detect_mime_type,
     )
 
     user_upload_dir = Path(UPLOAD_DIR) / str(user_id)
@@ -365,7 +364,9 @@ def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]
                     )
 
                 # Verify MIME type using magic bytes
-                detected_mime = magic.from_buffer(content, mime=True)
+                detected_mime = detect_mime_type(content)
+                if detected_mime == "application/octet-stream":
+                    detected_mime = file_info.get("mime_type", detected_mime)
                 file_field = file_info.get("field", "")
 
                 # Determine allowed types based on field
@@ -422,9 +423,15 @@ def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]
                     content = zip_ref.read(file_info.filename)
 
                     # Verify MIME type - be permissive in fallback mode
-                    detected_mime = magic.from_buffer(content, mime=True)
+                    detected_mime = detect_mime_type(content)
+                    if detected_mime == "application/octet-stream":
+                        logger.warning(
+                            "libmagic unavailable while importing %s; skipping strict MIME validation",
+                            file_info.filename,
+                        )
+                        detected_mime = None
                     all_allowed = ALLOWED_DOCUMENT_TYPES | ALLOWED_MEDIA_TYPES
-                    if detected_mime not in all_allowed:
+                    if detected_mime is not None and detected_mime not in all_allowed:
                         raise ValueError(
                             f"Invalid file type for {file_info.filename}: "
                             f"detected {detected_mime}"
