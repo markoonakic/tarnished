@@ -913,6 +913,7 @@ async def import_data(
 
     import_id = str(uuid.uuid4())
     temp_path = None
+    user_id = str(user.id)
 
     try:
         # Initialize progress
@@ -974,9 +975,9 @@ async def import_data(
         # Detect format and use appropriate extraction method
         is_new_format = is_new_export_format(data)
         if is_new_format:
-            file_mapping = extract_files_from_new_format(temp_path, str(user.id))
+            file_mapping = extract_files_from_new_format(temp_path, user_id)
         else:
-            file_mapping = extract_files_from_zip(temp_path, str(user.id))
+            file_mapping = extract_files_from_zip(temp_path, user_id)
 
         # Stage 4: Override if requested
         if override:
@@ -1024,7 +1025,7 @@ async def import_data(
         if is_new_export_format(data):
             # Use the new ImportService for v1.0 exports
             result = await db.run_sync(
-                _run_import_user_data, data, str(user.id), override, file_mapping
+                _run_import_user_data, data, user_id, override, file_mapping
             )
 
             # result is now {"counts": {...}, "warnings": [...]}
@@ -1088,7 +1089,7 @@ async def import_data(
 
             import_result = await import_applications(
                 db,
-                str(user.id),
+                user_id,
                 validated_data.applications,
                 file_mapping,
                 progress_update,
@@ -1104,7 +1105,7 @@ async def import_data(
         # Log successful import
         await log_import_event(
             db,
-            user.id,
+            user_id,
             "success",
             {
                 "import_id": import_id,
@@ -1135,7 +1136,7 @@ async def import_data(
         # Log HTTP exception
         await log_import_event(
             db,
-            user.id,
+            user_id,
             "failed",
             {
                 "import_id": import_id,
@@ -1148,12 +1149,27 @@ async def import_data(
             import_id, success=False, result={"error": "Validation failed"}
         )
         raise
+    except ValueError as e:
+        await db.rollback()
+        await log_import_event(
+            db,
+            user_id,
+            "failed",
+            {
+                "import_id": import_id,
+                "override": override,
+                "error": str(e),
+            },
+            request,
+        )
+        ImportProgress.complete(import_id, success=False, result={"error": str(e)})
+        raise HTTPException(status_code=400, detail=f"Import failed: {str(e)}")
     except Exception as e:
         await db.rollback()
         # Log import failure
         await log_import_event(
             db,
-            user.id,
+            user_id,
             "failed",
             {
                 "import_id": import_id,

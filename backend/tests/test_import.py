@@ -10,6 +10,7 @@ import json
 import os
 import tempfile
 import zipfile
+from unittest.mock import patch
 from datetime import date, datetime
 
 import pytest
@@ -719,6 +720,27 @@ class TestValidateZIPSafety:
 
 class TestImportData:
     """Test the actual import functionality."""
+
+    async def test_import_returns_400_for_value_errors(
+        self,
+        client: AsyncClient,
+        import_user: dict,
+        sample_import_zip_with_phone_screen: str,
+    ):
+        """Domain validation failures during import should stay client-visible."""
+        with patch("app.api.import_router.import_applications") as mock_import:
+            mock_import.side_effect = ValueError("Bad import payload")
+
+            with open(sample_import_zip_with_phone_screen, "rb") as f:
+                response = await client.post(
+                    "/api/import/import",
+                    files={"file": ("import.zip", f, "application/zip")},
+                    headers=import_user,
+                    data={"override": "false"},
+                )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Import failed: Bad import payload"
 
     async def test_import_creates_missing_status(
         self,
