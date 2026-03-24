@@ -40,9 +40,12 @@ import_schemas = importlib.import_module("app.schemas.import")
 ImportDataSchema = import_schemas.ImportDataSchema
 ImportValidationResponse = import_schemas.ImportValidationResponse
 from app.api.utils.zip_utils import validate_zip_safety
-from app.services.export_registry import default_registry
-from app.services.import_id_mapper import IDMapper
-from app.services.import_service import ImportService
+from app.services.import_execution import (
+    clear_existing_import_data,
+    extract_import_file_mapping,
+    import_payload_data,
+    verify_new_format_manifest_checksum,
+)
 from app.services.import_validation import is_new_export_format, validate_import_payload
 
 logger = logging.getLogger(__name__)
@@ -458,21 +461,6 @@ def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]
     return file_mapping
 
 
-def _run_import_user_data(
-    sync_session, export_data: dict, user_id: str, override: bool, file_mapping: dict
-) -> dict:
-    """Synchronous helper to run the import service."""
-    id_mapper = IDMapper()
-    import_service = ImportService(registry=default_registry, id_mapper=id_mapper)
-    return import_service.import_user_data(
-        export_data=export_data,
-        user_id=user_id,
-        session=sync_session,
-        override=override,
-        file_mapping=file_mapping,
-    )
-
-
 async def import_applications(
     db: AsyncSession,
     user_id: str,
@@ -759,32 +747,7 @@ async def import_data(
         with zipfile.ZipFile(temp_path, "r") as zip_ref:
             data_json = zip_ref.read("data.json")
             data = json.loads(data_json)
-
-            # For new format, verify data.json checksum from manifest
-            if is_new_export_format(data):
-                try:
-                    manifest_json = zip_ref.read("manifest.json")
-                    manifest = json.loads(manifest_json)
-
-                    # Verify data.json checksum
-                    expected_checksum = manifest.get("checksums", {}).get(
-                        "data.json", ""
-                    )
-                    if expected_checksum:
-                        # Remove "sha256:" prefix if present
-                        expected_hash = expected_checksum.replace("sha256:", "")
-                        actual_hash = hashlib.sha256(data_json).hexdigest()
-
-                        if actual_hash != expected_hash:
-                            raise ValueError(
-                                f"data.json checksum mismatch: export may be corrupted. "
-                                f"Expected {expected_hash[:16]}..., got {actual_hash[:16]}..."
-                            )
-                except KeyError:
-                    # No manifest.json - this is unusual for new format
-                    logger.warning(
-                        "New format export missing manifest.json - skipping checksum verification"
-                    )
+            verify_new_format_manifest_checksum(data, data_json, zip_ref)
 
         # Stage 3: Extract files
         ImportProgress.update(
@@ -792,11 +755,7 @@ async def import_data(
         )
 
         # Detect format and use appropriate extraction method
-        is_new_format = is_new_export_format(data)
-        if is_new_format:
-            file_mapping = extract_files_from_new_format(temp_path, user_id)
-        else:
-            file_mapping = extract_files_from_zip(temp_path, user_id)
+        file_mapping = extract_import_file_mapping(temp_path, user_id, data)
 
         # Stage 4: Override if requested
         if override:
@@ -807,112 +766,24 @@ async def import_data(
                 message="Removing existing data...",
             )
 
-            # Delete existing applications (cascade will handle related data)
-            result = await db.execute(
-                select(Application).where(Application.user_id == user.id)
-            )
-            for app in result.scalars().all():
-                await db.delete(app)
-
-            # Delete existing job leads
-            result = await db.execute(select(JobLead).where(JobLead.user_id == user.id))
-            for lead in result.scalars().all():
-                await db.delete(lead)
-
-            # Delete user's custom statuses (not global ones)
-            result = await db.execute(
-                select(ApplicationStatus).where(ApplicationStatus.user_id == user.id)
-            )
-            for status in result.scalars().all():
-                await db.delete(status)
-
-            # Delete user's custom round types (not global ones)
-            result = await db.execute(
-                select(RoundType).where(RoundType.user_id == user.id)
-            )
-            for rt in result.scalars().all():
-                await db.delete(rt)
-
-            await db.flush()
+            await clear_existing_import_data(db, user_id)
 
         # Stage 5: Import data
         ImportProgress.update(
             import_id, stage="importing", percent=50, message="Importing data..."
         )
 
-        # Check if this is the new format or legacy format
-        if is_new_export_format(data):
-            # Use the new ImportService for v1.0 exports
-            result = await db.run_sync(
-                _run_import_user_data, data, user_id, override, file_mapping
-            )
+        def progress_update(**kwargs):
+            percent = 50 + int(kwargs.pop("percent", 0) * 0.4)
+            ImportProgress.update(import_id, percent=percent, **kwargs)
 
-            # result is now {"counts": {...}, "warnings": [...]}
-            counts = result.get("counts", {})
-            import_warnings = result.get("warnings", [])
-
-            # Map result keys to expected format
-            import_result = {
-                "applications": counts.get("Application", 0),
-                "rounds": counts.get("Round", 0),
-                "status_history": counts.get("ApplicationStatusHistory", 0),
-                "statuses": counts.get("ApplicationStatus", 0),
-                "round_types": counts.get("RoundType", 0),
-                "media": counts.get("RoundMedia", 0),
-                "warnings": import_warnings,
-            }
-        else:
-            # Legacy format - use the old import logic
-            validated_data = ImportDataSchema(**data)
-
-            # Import custom statuses
-            for status_data in validated_data.custom_statuses:
-                existing = await db.execute(
-                    select(ApplicationStatus)
-                    .where(ApplicationStatus.user_id == user.id)
-                    .where(ApplicationStatus.name == status_data.name)
-                )
-                if not existing.scalar_one_or_none():
-                    status = ApplicationStatus(
-                        user_id=user.id,
-                        name=status_data.name,
-                        color=status_data.color or "#6B7280",
-                        is_default=status_data.is_default,
-                        order=status_data.order or 999,
-                    )
-                    db.add(status)
-
-            await db.flush()
-
-            # Import custom round types
-            for type_data in validated_data.custom_round_types:
-                existing = await db.execute(
-                    select(RoundType)
-                    .where(RoundType.user_id == user.id)
-                    .where(RoundType.name == type_data.name)
-                )
-                if not existing.scalar_one_or_none():
-                    round_type = RoundType(
-                        user_id=user.id,
-                        name=type_data.name,
-                        is_default=type_data.is_default,
-                    )
-                    db.add(round_type)
-
-            await db.flush()
-
-            # Import applications with progress callback
-            def progress_update(**kwargs):
-                percent = 50 + int(kwargs.pop("percent", 0) * 0.4)  # 50-90%
-                ImportProgress.update(import_id, percent=percent, **kwargs)
-
-            import_result = await import_applications(
-                db,
-                user_id,
-                validated_data.applications,
-                file_mapping,
-                progress_update,
-            )
+        import_result = await import_payload_data(
+            db,
+            user_id,
+            data,
+            file_mapping,
+            progress_update,
+        )
 
         # Stage 6: Complete
         ImportProgress.update(

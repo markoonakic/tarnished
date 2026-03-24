@@ -789,7 +789,7 @@ class TestImportData:
         sample_import_zip_with_phone_screen: str,
     ):
         """Domain validation failures during import should stay client-visible."""
-        with patch("app.api.import_router.import_applications") as mock_import:
+        with patch("app.services.import_execution.import_applications") as mock_import:
             mock_import.side_effect = ValueError("Bad import payload")
 
             with open(sample_import_zip_with_phone_screen, "rb") as f:
