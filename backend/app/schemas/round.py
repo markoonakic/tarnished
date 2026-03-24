@@ -1,25 +1,24 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class RoundTypeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     name: str
 
-    class Config:
-        from_attributes = True
-
 
 class RoundMediaResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     file_path: str
     original_filename: str | None = None
     media_type: str
     uploaded_at: datetime
 
-    class Config:
-        from_attributes = True
 
 
 class RoundCreate(BaseModel):
@@ -39,6 +38,8 @@ class RoundUpdate(BaseModel):
 
 
 class RoundResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     round_type: RoundTypeResponse
     scheduled_at: datetime | None
@@ -50,6 +51,3 @@ class RoundResponse(BaseModel):
     transcript_summary: str | None
     media: list[RoundMediaResponse]
     created_at: datetime
-
-    class Config:
-        from_attributes = True

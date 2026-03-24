@@ -1,6 +1,6 @@
 """AI Settings schemas for LiteLLM configuration."""
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class AISettingsUpdate(BaseModel):
@@ -45,6 +45,8 @@ class AISettingsUpdate(BaseModel):
 
 
 class AISettingsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Schema for AI settings response (GET /api/admin/ai-settings).
 
     The API key is masked for security - only showing last 4 characters
@@ -63,6 +65,3 @@ class AISettingsResponse(BaseModel):
     is_configured: bool = Field(
         description="Whether AI settings have been configured with valid credentials",
     )
-
-    class Config:
-        from_attributes = True

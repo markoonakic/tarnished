@@ -65,7 +65,8 @@ tmp/
 *~
 
 # Core dumps
-core
+/core
+core.*
 
 # Editor swap files
 *.swp

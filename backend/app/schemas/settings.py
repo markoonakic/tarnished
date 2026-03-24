@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class StatusCreate(BaseModel):
@@ -12,14 +12,14 @@ class StatusUpdate(BaseModel):
 
 
 class StatusFullResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     name: str
     color: str
     is_default: bool
     order: int
 
-    class Config:
-        from_attributes = True
 
 
 class RoundTypeCreate(BaseModel):
@@ -27,15 +27,17 @@ class RoundTypeCreate(BaseModel):
 
 
 class RoundTypeFullResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     name: str
     is_default: bool
 
-    class Config:
-        from_attributes = True
 
 
 class APIKeyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Response schema for the user's API key status.
 
     Returns whether the user has an API token set, and if so,
@@ -53,8 +55,6 @@ class APIKeyResponse(BaseModel):
         description="Full API key (only returned when regenerating, shown once)",
     )
 
-    class Config:
-        from_attributes = True
 
 
 class ThemeColors(BaseModel):

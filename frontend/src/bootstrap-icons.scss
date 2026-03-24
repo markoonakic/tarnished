@@ -1,4 +1,5 @@
 // Bootstrap Icons - official Vite fix
 // https://icons.getbootstrap.com/ - "This is currently required for Vite and Parcel"
-$bootstrap-icons-font-dir: 'bootstrap-icons/font/fonts';
-@import 'bootstrap-icons/font/bootstrap-icons.scss';
+@use 'bootstrap-icons/font/bootstrap-icons.scss' with (
+  $bootstrap-icons-font-dir: 'bootstrap-icons/font/fonts'
+);

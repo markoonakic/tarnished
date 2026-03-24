@@ -9,7 +9,7 @@ from datetime import date, datetime
 from typing import Annotated
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Job Lead Status Enum (as Literal for type safety)
 JobLeadStatus = Annotated[str, Field(pattern="^(pending|extracted|failed)$")]
@@ -81,6 +81,8 @@ class JobLeadCreate(BaseModel):
 
 
 class JobLeadResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Full response schema for a job lead.
 
     Includes all fields from the JobLead model.
@@ -123,11 +125,11 @@ class JobLeadResponse(BaseModel):
     converted_to_application_id: str | None
     error_message: str | None
 
-    class Config:
-        from_attributes = True
 
 
 class JobLeadListItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Simplified job lead schema for list views.
 
     Contains essential fields for listing without full details.
@@ -147,8 +149,6 @@ class JobLeadListItem(BaseModel):
     converted_to_application_id: str | None
     error_message: str | None
 
-    class Config:
-        from_attributes = True
 
 
 class JobLeadListResponse(BaseModel):
