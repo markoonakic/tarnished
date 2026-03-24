@@ -97,7 +97,7 @@ class ImportService:
             export_data: Dictionary from export
             user_id: User ID to import for
             session: SQLAlchemy session
-            override: If True, delete existing data first (not yet implemented)
+            override: Whether existing user data was cleared before import.
             file_mapping: Mapping from ZIP paths to CAS paths for file remapping
 
         Returns:
