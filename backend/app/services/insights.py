@@ -5,9 +5,8 @@ from typing import Any
 from litellm import completion
 from sqlalchemy.orm import Session
 
-from app.core.security import decrypt_api_key
-from app.models.system_settings import SystemSettings
 from app.schemas.insights import GraceInsights, SectionInsight
+from app.services.ai_settings import get_ai_settings_sync
 
 logger = logging.getLogger(__name__)
 
@@ -34,31 +33,6 @@ Output valid JSON matching this structure:
   "interview_analytics": { ... same structure ... },
   "activity_tracking": { ... same structure ... }
 }"""
-
-
-def get_ai_config(db: Session) -> tuple[str, str | None, str | None]:
-    """Get AI configuration from system settings.
-
-    Returns:
-        Tuple of (model, api_key, base_url)
-    """
-    settings_map: dict[str, str] = {}
-    for setting in db.query(SystemSettings).all():
-        if setting.key == "litellm_api_key":
-            try:
-                settings_map["api_key"] = decrypt_api_key(setting.value)  # type: ignore[arg-type]
-            except Exception:
-                logger.warning("Failed to decrypt API key")
-                settings_map["api_key"] = ""
-        else:
-            settings_map[setting.key] = setting.value or ""
-
-    return (
-        settings_map.get("litellm_model", "openai/gpt-4o-mini"),
-        settings_map.get("api_key") or None,
-        settings_map.get("litellm_base_url") or None,
-    )
-
 
 def build_analytics_prompt_data(
     pipeline_data: dict[str, Any],
@@ -101,7 +75,10 @@ def generate_insights(
     period: str,
 ) -> GraceInsights:
     """Generate AI insights from analytics data."""
-    model, api_key, base_url = get_ai_config(db)
+    settings = get_ai_settings_sync(db)
+    model = settings.model or "openai/gpt-4o-mini"
+    api_key = settings.api_key
+    base_url = settings.base_url
 
     if not api_key:
         raise ValueError(

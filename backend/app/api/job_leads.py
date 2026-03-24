@@ -14,7 +14,6 @@ browser extension authentication (API token).
 import logging
 from datetime import UTC, datetime
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,8 +24,7 @@ from app.core.deps import (
     get_current_user_by_api_token,
     get_current_user_flexible,
 )
-from app.core.security import decrypt_api_key
-from app.models import SystemSettings, User
+from app.models import User
 from app.models.application import Application
 from app.models.job_lead import JobLead
 from app.models.status import ApplicationStatus
@@ -45,53 +43,12 @@ from app.services.extraction import (
     NoJobFoundError,
     extract_job_data,
 )
+from app.services.ai_settings import get_ai_settings
+from app.services.job_fetch import fetch_job_posting_html
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/job-leads", tags=["job-leads"])
-
-# HTTP client settings for fetching job posting URLs
-HTTP_TIMEOUT_SECONDS = 30
-HTTP_MAX_REDIRECTS = 5
-HTTP_USER_AGENT = "Mozilla/5.0 (compatible; TarnishedBot/1.0)"
-
-
-async def _get_ai_settings(
-    db: AsyncSession,
-) -> tuple[str | None, str | None, str | None]:
-    """Get AI settings from the database.
-
-    Returns:
-        Tuple of (model, api_key, api_base) - all may be None if not configured.
-    """
-    # Fetch all AI settings in one query
-    result = await db.execute(
-        select(SystemSettings).where(
-            SystemSettings.key.in_(
-                [
-                    SystemSettings.KEY_LITELLM_MODEL,
-                    SystemSettings.KEY_LITELLM_API_KEY,
-                    SystemSettings.KEY_LITELLM_BASE_URL,
-                ]
-            )
-        )
-    )
-    settings = {s.key: s.value for s in result.scalars().all()}
-
-    # Get model
-    model = settings.get(SystemSettings.KEY_LITELLM_MODEL)
-
-    # Decrypt API key if present
-    api_key = None
-    encrypted_key = settings.get(SystemSettings.KEY_LITELLM_API_KEY)
-    if encrypted_key:
-        api_key = decrypt_api_key(encrypted_key)
-
-    # Get base URL
-    api_base = settings.get(SystemSettings.KEY_LITELLM_BASE_URL)
-
-    return model, api_key, api_base
-
 
 @router.get("", response_model=JobLeadListResponse)
 async def list_job_leads(
@@ -275,22 +232,22 @@ async def create_job_lead(
         html_content = data.html
         text_content = None
     else:
-        html_content = await _fetch_html(url)
+        html_content = await fetch_job_posting_html(url)
         logger.debug(f"Fetched HTML content ({len(html_content)} chars)")
         text_content = None
 
     # Step 2: Extract job data using AI
     # Get AI settings from database
-    ai_model, ai_api_key, ai_api_base = await _get_ai_settings(db)
+    ai_settings = await get_ai_settings(db)
 
     try:
         extracted = await extract_job_data(
             html=html_content,
             text=text_content,
             url=url,
-            model=ai_model,
-            api_key=ai_api_key,
-            api_base=ai_api_base,
+            model=ai_settings.model,
+            api_key=ai_settings.api_key,
+            api_base=ai_settings.base_url,
         )
     except ExtractionAuthError as e:
         logger.error(f"AI auth error for {url}: {e.message}")
@@ -375,83 +332,6 @@ async def create_job_lead(
     return job_lead
 
 
-async def _fetch_html(url: str) -> str:
-    """Fetch HTML content from a URL.
-
-    Args:
-        url: The URL to fetch.
-
-    Returns:
-        HTML content as a string.
-
-    Raises:
-        HTTPException: If the fetch fails (timeout, 404, etc.).
-    """
-    headers = {
-        "User-Agent": HTTP_USER_AGENT,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-    }
-
-    async with httpx.AsyncClient(
-        timeout=HTTP_TIMEOUT_SECONDS,
-        follow_redirects=True,
-        max_redirects=HTTP_MAX_REDIRECTS,
-    ) as client:
-        try:
-            response = await client.get(url, headers=headers)
-            response.raise_for_status()
-        except httpx.TimeoutException:
-            logger.warning(f"Timeout fetching URL: {url}")
-            raise HTTPException(
-                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-                detail="The job posting URL timed out. Please try again later.",
-            )
-        except httpx.TooManyRedirects:
-            logger.warning(f"Too many redirects for URL: {url}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="The URL has too many redirects. Please provide a direct job posting URL.",
-            )
-        except httpx.HTTPStatusError as e:
-            status_code = e.response.status_code
-            logger.warning(f"HTTP error {status_code} for URL: {url}")
-            if status_code == 404:
-                detail = (
-                    "The job posting was not found (404). It may have been removed."
-                )
-            elif status_code == 403:
-                detail = "Access to the job posting was denied (403). The page may require authentication."
-            elif status_code >= 500:
-                detail = f"The job posting server returned an error ({status_code}). Please try again later."
-            else:
-                detail = f"Failed to fetch job posting (HTTP {status_code})."
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=detail,
-            )
-        except httpx.RequestError as e:
-            logger.error(f"Request error for URL {url}: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Failed to fetch the job posting URL: {str(e)}",
-            )
-
-        # Validate content type
-        content_type = response.headers.get("content-type", "")
-        if (
-            "text/html" not in content_type
-            and "application/xhtml+xml" not in content_type
-        ):
-            logger.warning(f"Non-HTML content type for URL {url}: {content_type}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="The URL does not point to an HTML page. Please provide a job posting URL.",
-            )
-
-        return response.text
-
-
 @router.post("/{job_lead_id}/retry", response_model=JobLeadResponse)
 async def retry_job_lead_extraction(
     job_lead_id: str,
@@ -508,20 +388,20 @@ async def retry_job_lead_extraction(
 
     try:
         # Step 3: Re-fetch HTML content from the URL
-        html_content = await _fetch_html(job_lead.url)
+        html_content = await fetch_job_posting_html(job_lead.url)
         logger.debug(f"Re-fetched HTML content ({len(html_content)} chars)")
 
         # Step 4: Extract job data using AI
         # Get AI settings from database
-        ai_model, ai_api_key, ai_api_base = await _get_ai_settings(db)
+        ai_settings = await get_ai_settings(db)
 
         try:
             extracted = await extract_job_data(
                 html_content,
                 job_lead.url,
-                model=ai_model,
-                api_key=ai_api_key,
-                api_base=ai_api_base,
+                model=ai_settings.model,
+                api_key=ai_settings.api_key,
+                api_base=ai_settings.base_url,
             )
             logger.info(
                 f"Successfully re-extracted job: {extracted.title} at {extracted.company}"
