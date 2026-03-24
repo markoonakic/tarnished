@@ -949,6 +949,32 @@ class TestJobLeadsRetry:
         assert data["title"] == "Retried Job"
         assert data["error_message"] is None
 
+    async def test_retry_job_lead_returns_400_for_value_errors(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        failed_job_lead: JobLead,
+        db: AsyncSession,
+    ):
+        with (
+            patch("app.api.job_leads.fetch_job_posting_html") as mock_fetch,
+            patch("app.api.job_leads.extract_job_data") as mock_extract,
+        ):
+            mock_fetch.return_value = "<html><body>Job content</body></html>"
+            mock_extract.side_effect = ValueError("Invalid extracted payload")
+
+            response = await client.post(
+                f"/api/job-leads/{failed_job_lead.id}/retry",
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Invalid extracted payload"
+
+        await db.refresh(failed_job_lead)
+        assert failed_job_lead.status == "failed"
+        assert failed_job_lead.error_message == "Retry failed: Invalid extracted payload"
+
 
 # ============================================================================
 # User Profile API Tests

@@ -684,6 +684,7 @@ async def validate_import(
     """
 
     temp_path = None
+    user_id = str(user.id)
     try:
         # Stream upload to disk
         temp_path = create_secure_temp_file(file.filename or "import.zip")
@@ -740,12 +741,12 @@ async def validate_import(
             }
 
             # Collect warnings
-            warnings = await _collect_new_format_warnings(db, str(user.id), models)
+            warnings = await _collect_new_format_warnings(db, user_id, models)
 
             # Log successful validation
             await log_import_event(
                 db,
-                user.id,
+                user_id,
                 "validation_success",
                 {
                     "filename": file.filename,
@@ -769,7 +770,7 @@ async def validate_import(
             # Log successful validation
             await log_import_event(
                 db,
-                user.id,
+                user_id,
                 "validation_success",
                 {
                     "filename": file.filename,
@@ -841,11 +842,23 @@ async def validate_import(
 
     except HTTPException:
         raise
+    except ValueError as e:
+        await log_import_event(
+            db,
+            user_id,
+            "validation_failed",
+            {
+                "filename": file.filename,
+                "error": str(e),
+            },
+            request,
+        )
+        return ImportValidationResponse(valid=False, summary={}, errors=[str(e)])
     except Exception as e:
         # Log validation failure
         await log_import_event(
             db,
-            user.id,
+            user_id,
             "validation_failed",
             {
                 "filename": file.filename,

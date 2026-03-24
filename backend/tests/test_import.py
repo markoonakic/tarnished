@@ -5,6 +5,7 @@ including ZIP file safety validation and data validation.
 """
 
 import asyncio
+import hashlib
 import io
 import json
 import os
@@ -401,6 +402,54 @@ class TestImportValidationBasic:
         data = response.json()
         assert data["valid"] is False
         assert len(data["errors"]) > 0
+
+    async def test_validate_returns_invalid_for_value_errors_during_warning_collection(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+    ):
+        """Expected validation-time value errors should stay in the invalid response path."""
+        data = {
+            "format_version": "1.0.0",
+            "export_timestamp": "2026-03-24T00:00:00Z",
+            "models": {
+                "Application": [],
+                "ApplicationStatus": [],
+                "RoundType": [],
+                "ApplicationStatusHistory": [],
+                "Round": [],
+            },
+        }
+        data_json = json.dumps(data).encode()
+        manifest = {
+            "format_version": "1.0.0",
+            "checksums": {
+                "data.json": f"sha256:{hashlib.sha256(data_json).hexdigest()}"
+            },
+        }
+
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr("manifest.json", json.dumps(manifest))
+            zipf.writestr("data.json", data_json)
+        zip_buffer.seek(0)
+
+        files = {"file": ("import.zip", zip_buffer.read(), "application/zip")}
+
+        with patch(
+            "app.api.import_router._collect_new_format_warnings",
+            side_effect=ValueError("Warning collection failed"),
+        ):
+            response = await client.post(
+                "/api/import/validate",
+                files=files,
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["valid"] is False
+        assert data["errors"] == ["Warning collection failed"]
 
 
 class TestImportValidationWarnings:
