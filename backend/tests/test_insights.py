@@ -201,6 +201,26 @@ class TestInsightsGenerationEndpoint:
         response = await client.post("/api/analytics/insights", json={"period": "30d"})
         assert response.status_code == 401
 
+    @pytest.mark.asyncio
+    async def test_insights_preserves_http_exceptions(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+    ):
+        """HTTP exceptions from lower layers should not be wrapped as generic 500s."""
+        from fastapi import HTTPException
+
+        with patch(
+            "app.api.insights._get_analytics_for_insights",
+            side_effect=HTTPException(status_code=503, detail="Analytics unavailable"),
+        ):
+            response = await client.post(
+                "/api/analytics/insights", json={"period": "30d"}, headers=auth_headers
+            )
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Analytics unavailable"
+
 
 class TestInsightsWithPostgreSQL:
     """Tests specifically for PostgreSQL compatibility.
