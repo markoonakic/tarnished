@@ -550,6 +550,45 @@ class TestApplicationsWrite:
         assert data["years_experience_min"] == 3
         assert data["years_experience_max"] == 6
 
+    async def test_extract_application_preserves_fetch_http_errors(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        user_with_api_token: User,
+    ):
+        status = ApplicationStatus(
+            name="Applied",
+            color="#83a598",
+            is_default=False,
+            user_id=user_with_api_token.id,
+            order=1,
+        )
+        db.add(status)
+        await db.commit()
+        await db.refresh(status)
+
+        headers = {"Authorization": f"Bearer {user_with_api_token.api_token}"}
+
+        with patch("app.api.applications.fetch_job_posting_html") as mock_fetch:
+            from fastapi import HTTPException
+
+            mock_fetch.side_effect = HTTPException(
+                status_code=502,
+                detail="Upstream fetch failed",
+            )
+
+            response = await client.post(
+                "/api/applications/extract",
+                headers=headers,
+                json={
+                    "url": "https://example.com/jobs/123",
+                    "status_id": status.id,
+                },
+            )
+
+        assert response.status_code == 502
+        assert response.json()["detail"] == "Upstream fetch failed"
+
 
 class TestJobLeadConversion:
     async def test_convert_job_lead_preserves_lead_and_links_application(

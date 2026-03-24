@@ -238,14 +238,8 @@ async def create_application_from_url(
         html_content = None
         text_content = data.text
     else:
-        try:
-            html_content = await fetch_job_posting_html(data.url)
-            text_content = None
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Failed to fetch URL: {str(e)}",
-            )
+        html_content = await fetch_job_posting_html(data.url)
+        text_content = None
 
     # 3. Get AI settings and extract job data
     ai_settings = await get_ai_settings(db)
