@@ -8,7 +8,6 @@ import {
   getSettings,
   getAutoFillOnLoad,
   setAutoFillOnLoad,
-  type Settings,
 } from '../lib/storage';
 import {
   checkExistingLead,
@@ -34,6 +33,7 @@ import {
   type FormDetectionState,
 } from './detection';
 import { getThemeColors, applyThemeToDocument } from './lib/theme';
+import { createPopupSettingsController } from './settings';
 import {
   createPopupView,
   type JobInfo,
@@ -139,6 +139,53 @@ const elements = {
 };
 
 const popupView = createPopupView(document, formDetection);
+const popupSettings = createPopupSettingsController({
+  deps: {
+    setAutoFillOnLoad,
+    getAutoFillOnLoad,
+    openOptionsPage: () => browser.runtime.openOptionsPage(),
+    createTab: (options) => browser.tabs.create(options).then(() => undefined),
+    getSettings: async () => {
+      const settings = await getSettings();
+      return { appUrl: settings.appUrl };
+    },
+  },
+  state: {
+    get settingsOpen() {
+      return settingsOpen;
+    },
+    set settingsOpen(value) {
+      settingsOpen = value;
+    },
+    get autoFillOnLoad() {
+      return autoFillOnLoad;
+    },
+    set autoFillOnLoad(value) {
+      autoFillOnLoad = value;
+    },
+    get existingLead() {
+      return existingLead ? { id: existingLead.id } : null;
+    },
+    set existingLead(value) {
+      existingLead = value ? ({ ...existingLead, id: value.id } as typeof existingLead) : null;
+    },
+    get existingApplication() {
+      return existingApplication ? { id: existingApplication.id } : null;
+    },
+    set existingApplication(value) {
+      existingApplication = value
+        ? ({ ...existingApplication, id: value.id } as typeof existingApplication)
+        : null;
+    },
+  },
+  elements: {
+    settingsDropdown: elements.settingsDropdown,
+    settingsBtn: elements.settingsBtn,
+    autoFillToggle: elements.autoFillToggle,
+  },
+  warn,
+  logError,
+});
 const popupActions = createPopupActions({
   deps: {
     getStatuses,
@@ -255,56 +302,28 @@ function showError(message: string, recoverable: boolean = true): void {
  * Toggles the settings dropdown visibility
  */
 function toggleSettingsDropdown(): void {
-  settingsOpen = !settingsOpen;
-  if (elements.settingsDropdown) {
-    elements.settingsDropdown.classList.toggle('hidden', !settingsOpen);
-  }
+  popupSettings.toggleSettingsDropdown();
 }
 
 /**
  * Closes the settings dropdown if clicking outside
  */
 function handleDocumentClick(event: MouseEvent): void {
-  const target = event.target as HTMLElement;
-  // Don't close if clicking inside the dropdown or on the settings button
-  if (
-    settingsOpen &&
-    elements.settingsBtn &&
-    !elements.settingsBtn.contains(target) &&
-    elements.settingsDropdown &&
-    !elements.settingsDropdown.contains(target)
-  ) {
-    settingsOpen = false;
-    elements.settingsDropdown.classList.add('hidden');
-  }
+  popupSettings.handleDocumentClick(event);
 }
 
 /**
  * Handles the auto-fill toggle change
  */
 async function handleAutoFillToggle(): Promise<void> {
-  autoFillOnLoad = elements.autoFillToggle?.checked ?? false;
-
-  // Save to storage
-  try {
-    await setAutoFillOnLoad(autoFillOnLoad);
-  } catch (error) {
-    warn('Popup', 'Failed to save autoFillOnLoad setting:', error);
-  }
+  await popupSettings.handleAutoFillToggle();
 }
 
 /**
  * Loads the auto-fill on load setting from storage
  */
 async function loadAutoFillSetting(): Promise<void> {
-  try {
-    autoFillOnLoad = await getAutoFillOnLoad();
-    if (elements.autoFillToggle) {
-      elements.autoFillToggle.checked = autoFillOnLoad;
-    }
-  } catch (error) {
-    warn('Popup', 'Failed to load autoFillOnLoad setting:', error);
-  }
+  await popupSettings.loadAutoFillSetting();
 }
 
 // ============================================================================
@@ -372,45 +391,21 @@ function showErrorNotification(message: string): void {
  * Opens the extension settings/options page
  */
 function openSettings(): void {
-  browser.runtime.openOptionsPage().catch((error) => {
-    logError('Popup', 'Failed to open settings:', error);
-  });
+  popupSettings.openSettings();
 }
 
 /**
  * Opens the Job Leads page in the web app
  */
 function openJobLeads(): void {
-  getSettings()
-    .then((settings: Settings) => {
-      const url = existingLead
-        ? `${settings.appUrl}/job-leads/${existingLead.id}`
-        : `${settings.appUrl}/job-leads`;
-      browser.tabs.create({ url }).catch((error) => {
-        logError('Popup', 'Failed to open job leads:', error);
-      });
-    })
-    .catch((error) => {
-      logError('Popup', 'Failed to get settings for opening job leads:', error);
-    });
+  void popupSettings.openJobLeads();
 }
 
 /**
  * Opens the Applications page in the web app
  */
 function openApplications(applicationId?: string): void {
-  getSettings()
-    .then((settings: Settings) => {
-      const url = applicationId
-        ? `${settings.appUrl}/applications/${applicationId}`
-        : `${settings.appUrl}/applications`;
-      browser.tabs.create({ url }).catch((error) => {
-        logError('Popup', 'Failed to open applications:', error);
-      });
-    })
-    .catch((error) => {
-      logError('Popup', 'Failed to get settings for opening applications:', error);
-    });
+  void popupSettings.openApplications(applicationId);
 }
 
 /**
