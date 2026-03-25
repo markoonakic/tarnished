@@ -323,7 +323,7 @@ class TestExtractWithLlm:
     def test_extract_with_llm_timeout_raises_error(self):
         """Test that LLM timeout raises ExtractionTimeoutError."""
         with patch("app.services.extraction.completion") as mock_completion:
-            mock_completion.side_effect = openai.APITimeoutError("timeout")
+            mock_completion.side_effect = openai.APITimeoutError(request=MagicMock())
 
             with pytest.raises(ExtractionTimeoutError, match="timed out"):
                 extract_with_llm(
@@ -545,10 +545,18 @@ class TestJobLeadExtractionInputSchema:
         data = JobLeadExtractionInput(
             title="Software Engineer",
             company="Tech Corp",
+            description=None,
             location="Remote",
             salary_min=100000,
             salary_max=150000,
             salary_currency="USD",
+            recruiter_name=None,
+            recruiter_title=None,
+            recruiter_linkedin_url=None,
+            years_experience_min=None,
+            years_experience_max=None,
+            source=None,
+            posted_date=None,
             requirements_must_have=["Python"],
             requirements_nice_to_have=["Docker"],
             skills=["Python", "SQL"],
@@ -561,7 +569,22 @@ class TestJobLeadExtractionInputSchema:
 
     def test_optional_fields_default_to_none(self):
         """Test that optional fields default to None or empty list."""
-        data = JobLeadExtractionInput()
+        data = JobLeadExtractionInput(
+            title=None,
+            company=None,
+            description=None,
+            location=None,
+            salary_min=None,
+            salary_max=None,
+            salary_currency=None,
+            recruiter_name=None,
+            recruiter_title=None,
+            recruiter_linkedin_url=None,
+            years_experience_min=None,
+            years_experience_max=None,
+            source=None,
+            posted_date=None,
+        )
 
         assert data.title is None
         assert data.company is None
@@ -576,22 +599,82 @@ class TestJobLeadExtractionInputSchema:
     def test_salary_max_must_be_gte_salary_min(self):
         """Test that salary_max >= salary_min validation."""
         # Valid: salary_max >= salary_min
-        valid = JobLeadExtractionInput(salary_min=100000, salary_max=150000)
+        valid = JobLeadExtractionInput(
+            title=None,
+            company=None,
+            description=None,
+            location=None,
+            salary_min=100000,
+            salary_max=150000,
+            salary_currency=None,
+            recruiter_name=None,
+            recruiter_title=None,
+            recruiter_linkedin_url=None,
+            years_experience_min=None,
+            years_experience_max=None,
+            source=None,
+            posted_date=None,
+        )
         assert valid.salary_max == 150000
 
         # Invalid: salary_max < salary_min
         with pytest.raises(Exception):  # Pydantic ValidationError
-            JobLeadExtractionInput(salary_min=150000, salary_max=100000)
+            JobLeadExtractionInput(
+                title=None,
+                company=None,
+                description=None,
+                location=None,
+                salary_min=150000,
+                salary_max=100000,
+                salary_currency=None,
+                recruiter_name=None,
+                recruiter_title=None,
+                recruiter_linkedin_url=None,
+                years_experience_min=None,
+                years_experience_max=None,
+                source=None,
+                posted_date=None,
+            )
 
     def test_experience_range_validation(self):
         """Test that years_experience_max >= years_experience_min validation."""
         # Valid
-        valid = JobLeadExtractionInput(years_experience_min=3, years_experience_max=5)
+        valid = JobLeadExtractionInput(
+            title=None,
+            company=None,
+            description=None,
+            location=None,
+            salary_min=None,
+            salary_max=None,
+            salary_currency=None,
+            recruiter_name=None,
+            recruiter_title=None,
+            recruiter_linkedin_url=None,
+            years_experience_min=3,
+            years_experience_max=5,
+            source=None,
+            posted_date=None,
+        )
         assert valid.years_experience_max == 5
 
         # Invalid
         with pytest.raises(Exception):  # Pydantic ValidationError
-            JobLeadExtractionInput(years_experience_min=5, years_experience_max=3)
+            JobLeadExtractionInput(
+                title=None,
+                company=None,
+                description=None,
+                location=None,
+                salary_min=None,
+                salary_max=None,
+                salary_currency=None,
+                recruiter_name=None,
+                recruiter_title=None,
+                recruiter_linkedin_url=None,
+                years_experience_min=5,
+                years_experience_max=3,
+                source=None,
+                posted_date=None,
+            )
 
 
 class TestExtractionErrorTypes:
