@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getApplication, deleteApplication } from '../lib/applications';
 import { deleteRound } from '../lib/rounds';
+import {
+  mergeApplicationRoundMedia,
+  preserveApplicationRounds,
+  removeApplicationRound,
+  upsertApplicationRound,
+} from '../lib/applicationDetailState';
 import type { Application, Round } from '../lib/types';
 import { getStatusColor } from '../lib/statusColors';
 import { useThemeColors } from '../hooks/useThemeColors';
@@ -61,10 +67,7 @@ export default function ApplicationDetail() {
   }
 
   function handleDocumentUpdate(updated: Application) {
-    // Preserve existing rounds since document endpoints don't return them
-    setApplication((prev) =>
-      prev ? { ...updated, rounds: prev.rounds } : updated
-    );
+    setApplication((prev) => preserveApplicationRounds(prev, updated));
   }
 
   async function handleDeleteRound(roundId: string) {
@@ -72,14 +75,7 @@ export default function ApplicationDetail() {
     try {
       await deleteRound(roundId);
 
-      setApplication((prev) =>
-        prev
-          ? {
-              ...prev,
-              rounds: prev.rounds?.filter((r) => r.id !== roundId) || [],
-            }
-          : null
-      );
+      setApplication((prev) => removeApplicationRound(prev, roundId));
       toast.success('Round deleted');
     } catch {
       const errorMsg = 'Failed to delete round';
@@ -95,16 +91,10 @@ export default function ApplicationDetail() {
     setApplication((prev) => {
       if (!prev) return null;
 
-      const rounds = prev.rounds || [];
-      const existingIndex = rounds.findIndex((r) => r.id === savedRound.id);
-
-      if (existingIndex >= 0) {
-        const newRounds = [...rounds];
-        newRounds[existingIndex] = savedRound;
-        return { ...prev, rounds: newRounds };
-      } else {
-        return { ...prev, rounds: [...rounds, savedRound] };
-      }
+      return {
+        ...prev,
+        rounds: upsertApplicationRound(prev.rounds, savedRound),
+      };
     });
   }
 
@@ -112,21 +102,9 @@ export default function ApplicationDetail() {
     try {
       const updatedApplication = await getApplication(id!);
 
-      setApplication((prev) => {
-        if (!prev) return updatedApplication;
-
-        const updatedRound = updatedApplication.rounds?.find(
-          (r) => r.id === roundId
-        );
-        if (!updatedRound) return prev;
-
-        return {
-          ...prev,
-          rounds:
-            prev.rounds?.map((r) => (r.id === roundId ? updatedRound : r)) ||
-            [],
-        };
-      });
+      setApplication((prev) =>
+        mergeApplicationRoundMedia(prev, updatedApplication, roundId)
+      );
     } catch {
       const errorMsg = 'Failed to refresh media';
       setError(errorMsg);
