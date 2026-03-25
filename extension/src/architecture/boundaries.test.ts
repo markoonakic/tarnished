@@ -32,4 +32,12 @@ describe('extension architecture boundaries', () => {
       expect(source).not.toMatch(/browser\.storage\.local\.(get|set)/);
     }
   });
+
+  it('keeps popup entry focused on wiring instead of notification and favicon details', () => {
+    const source = readFileSync(resolve(extensionRoot, 'src/popup/index.ts'), 'utf8');
+
+    expect(source).not.toMatch(/browser\.notifications\.create/);
+    expect(source).not.toMatch(/\bfetch\(/);
+    expect(source).not.toMatch(/querySelector\(\s*'link\[rel="icon"\]'/);
+  });
 });
