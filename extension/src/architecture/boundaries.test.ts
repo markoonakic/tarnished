@@ -41,6 +41,12 @@ describe('extension architecture boundaries', () => {
     expect(source).not.toMatch(/querySelector\(\s*'link\[rel="icon"\]'/);
   });
 
+  it('keeps popup entry free of direct element listener registration details', () => {
+    const source = readFileSync(resolve(extensionRoot, 'src/popup/index.ts'), 'utf8');
+
+    expect(source).not.toMatch(/elements\.[A-Za-z0-9_]+\?\.addEventListener/);
+  });
+
   it('keeps background entry focused on orchestration instead of icon rendering internals', () => {
     const source = readFileSync(resolve(extensionRoot, 'src/background/index.ts'), 'utf8');
 

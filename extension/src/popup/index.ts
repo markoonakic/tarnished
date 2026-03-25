@@ -46,6 +46,7 @@ import {
   type JobInfo,
   type PopupState,
 } from './view';
+import { bindPopupEventListeners } from './event-listeners';
 
 /**
  * Tab status from background script
@@ -593,48 +594,38 @@ async function determineState(): Promise<void> {
  * Set up button click handlers
  */
 function setupEventListeners(): void {
-  // Settings
-  elements.settingsBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleSettingsDropdown();
+  bindPopupEventListeners({
+    elements,
+    document,
+    toggleSettingsDropdown,
+    openSettings,
+    closeSettingsDropdown: () => {
+      settingsOpen = false;
+    },
+    handleAutoFillToggle: () => {
+      void handleAutoFillToggle();
+    },
+    handleDocumentClick,
+    saveJobLead: () => {
+      void saveJobLead();
+    },
+    saveAsApplication: () => {
+      void saveAsApplication();
+    },
+    openJobLeads,
+    openApplications,
+    getExistingApplicationId: () => existingApplication?.id ?? null,
+    getExistingLeadId: () => existingLead?.id ?? null,
+    handleConvertToApplication: () => {
+      void handleConvertToApplication();
+    },
+    retryAction: () => {
+      void retryAction();
+    },
+    autofillFormHandler: () => {
+      void autofillFormHandler();
+    },
   });
-  elements.openSettingsBtn?.addEventListener('click', openSettings);
-  elements.openSettingsFromDropdown?.addEventListener('click', () => {
-    // Close dropdown and open settings
-    settingsOpen = false;
-    if (elements.settingsDropdown) {
-      elements.settingsDropdown.classList.add('hidden');
-    }
-    openSettings();
-  });
-  elements.autoFillToggle?.addEventListener('change', handleAutoFillToggle);
-
-  // Close dropdown when clicking outside
-  document.addEventListener('click', handleDocumentClick);
-
-  // Job actions
-  elements.saveAsLeadBtn?.addEventListener('click', saveJobLead);
-  elements.saveAsApplicationBtn?.addEventListener('click', saveAsApplication);
-  elements.viewBtn?.addEventListener('click', () => {
-    // Priority: newly created application > existing application > existing lead
-    const newApplicationId = elements.viewBtn?.dataset.applicationId;
-    if (newApplicationId) {
-      openApplications(newApplicationId);
-    } else if (existingApplication) {
-      openApplications(existingApplication.id);
-    } else if (existingLead) {
-      openJobLeads();
-    } else {
-      openJobLeads();
-    }
-  });
-  elements.convertBtn?.addEventListener('click', handleConvertToApplication);
-  elements.retryBtn?.addEventListener('click', retryAction);
-
-  // Autofill buttons
-  elements.autofillBtnDetected?.addEventListener('click', autofillFormHandler);
-  elements.autofillBtnSaved?.addEventListener('click', autofillFormHandler);
-  elements.autofillBtnOnly?.addEventListener('click', autofillFormHandler);
 }
 
 /**
