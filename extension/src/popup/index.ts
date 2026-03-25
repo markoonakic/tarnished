@@ -24,10 +24,18 @@ import {
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
 import { getErrorMessage, isRecoverable, mapApiError } from '../lib/errors';
 import { debug, warn, error as logError } from '../lib/logger';
+import {
+  extractCompanyFromDocument,
+  extractLocationFromDocument,
+  extractTitleFromDocument,
+  getFormDetectionFromContentScript,
+  getTextFromContentScript,
+  isRestrictedUrl,
+  type FormDetectionState,
+} from './detection';
 import { getThemeColors, applyThemeToDocument } from './lib/theme';
 import {
   createPopupView,
-  type FormDetectionState,
   type JobInfo,
   type PopupState,
 } from './view';
@@ -351,7 +359,7 @@ async function saveJobLead(): Promise<void> {
 
   try {
     // Get text content from content script (preferred over HTML)
-    const text = await getTextFromContentScript();
+    const text = await getCurrentTabText();
 
     // Import the save function
     const { saveJobLead: saveLead } = await import('../lib/api');
@@ -443,7 +451,7 @@ async function saveAsApplication(): Promise<void> {
     // Get text content from content script (same as job leads)
     let text: string | undefined;
     try {
-      text = await getTextFromContentScript();
+      text = await getCurrentTabText();
       debug('Popup', 'Got text from content script:', text?.substring(0, 100));
     } catch (e) {
       warn('Popup', 'Failed to get text from content script:', e);
@@ -621,47 +629,20 @@ async function autofillFormHandler(): Promise<void> {
 /**
  * Get text content from the content script
  */
-async function getTextFromContentScript(): Promise<string> {
+async function getCurrentTabText(): Promise<string> {
   if (!currentTabId) {
     throw new Error('No active tab');
   }
 
-  try {
-    const response = (await browser.tabs.sendMessage(currentTabId, {
-      type: 'GET_TEXT',
-    })) as { text?: string };
-
-    if (response && response.text) {
-      return response.text;
-    }
-
-    throw new Error('No text content received');
-  } catch (error) {
-    throw new Error('Failed to get page content');
-  }
+  return getTextFromContentScript(currentTabId);
 }
 
 /**
  * Get form detection state from content script
  */
-async function getFormDetectionFromContentScript(): Promise<FormDetectionState | null> {
-  if (!currentTabId) {
-    return null;
-  }
-
+async function getCurrentFormDetection(): Promise<FormDetectionState | null> {
   try {
-    const response = (await browser.tabs.sendMessage(currentTabId, {
-      type: 'SCAN_FIELDS',
-    })) as { hasApplicationForm?: boolean; fillableFieldCount?: number };
-
-    if (response && typeof response.fillableFieldCount === 'number') {
-      return {
-        hasApplicationForm: response.hasApplicationForm ?? false,
-        fillableFieldCount: response.fillableFieldCount,
-      };
-    }
-
-    return null;
+    return await getFormDetectionFromContentScript(currentTabId);
   } catch (error) {
     warn('Popup', 'Failed to get form detection from content script:', error);
     return null;
@@ -739,7 +720,7 @@ async function determineState(): Promise<void> {
     }
 
     // Step 5: Get form detection state
-    const formDetectionResult = await getFormDetectionFromContentScript();
+    const formDetectionResult = await getCurrentFormDetection();
     if (formDetectionResult) {
       setFormDetectionState(formDetectionResult);
     }
@@ -794,9 +775,9 @@ async function determineState(): Promise<void> {
       // Job detected and not yet saved
       // Extract job info from detection signals (placeholder for now)
       currentJobInfo = {
-        title: extractTitleFromPage(),
-        company: extractCompanyFromPage(),
-        location: extractLocationFromPage(),
+        title: extractTitleFromDocument(document),
+        company: extractCompanyFromDocument(document),
+        location: extractLocationFromDocument(document),
       };
       // Hide convert button for new detections
       elements.convertBtn?.classList.add('hidden');
@@ -816,94 +797,6 @@ async function determineState(): Promise<void> {
 /**
  * Check if URL is restricted (chrome://, about:, etc.)
  */
-function isRestrictedUrl(url: string): boolean {
-  const restrictedPrefixes = [
-    'chrome://',
-    'chrome-extension://',
-    'about:',
-    'edge://',
-    'brave://',
-    'opera://',
-    'vivaldi://',
-    'moz-extension://',
-    'resource://',
-  ];
-
-  return restrictedPrefixes.some((prefix) => url.startsWith(prefix));
-}
-
-/**
- * Extract job title from page (placeholder implementation)
- * Uses common selectors to find job title
- */
-function extractTitleFromPage(): string | null {
-  // Try common job title selectors
-  const selectors = [
-    '[data-testid="job-title"]',
-    '.job-title',
-    '.jobTitle',
-    'h1[data-job-id]',
-    'h1.job-search-title',
-    '.posting-headline h2',
-    '.job-posting h1',
-    'h1.title',
-  ];
-
-  for (const selector of selectors) {
-    const element = document.querySelector(selector);
-    if (element && element.textContent) {
-      return element.textContent.trim();
-    }
-  }
-
-  return null;
-}
-
-/**
- * Extract company name from page (placeholder implementation)
- */
-function extractCompanyFromPage(): string | null {
-  const selectors = [
-    '[data-testid="company-name"]',
-    '.company-name',
-    '.companyName',
-    '.posting-headline .company',
-    '.job-posting .company',
-    '.company-link',
-  ];
-
-  for (const selector of selectors) {
-    const element = document.querySelector(selector);
-    if (element && element.textContent) {
-      return element.textContent.trim();
-    }
-  }
-
-  return null;
-}
-
-/**
- * Extract location from page (placeholder implementation)
- */
-function extractLocationFromPage(): string | null {
-  const selectors = [
-    '[data-testid="job-location"]',
-    '.job-location',
-    '.location',
-    '.jobLocation',
-    '.posting-headline .location',
-  ];
-
-  for (const selector of selectors) {
-    const element = document.querySelector(selector);
-    if (element && element.textContent) {
-      return element.textContent.trim();
-    }
-  }
-
-  return null;
-}
-
 // ============================================================================
 // Initialization
 // ============================================================================
