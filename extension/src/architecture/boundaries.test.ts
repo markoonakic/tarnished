@@ -40,4 +40,11 @@ describe('extension architecture boundaries', () => {
     expect(source).not.toMatch(/\bfetch\(/);
     expect(source).not.toMatch(/querySelector\(\s*'link\[rel="icon"\]'/);
   });
+
+  it('keeps background entry focused on orchestration instead of icon rendering internals', () => {
+    const source = readFileSync(resolve(extensionRoot, 'src/background/index.ts'), 'utf8');
+
+    expect(source).not.toMatch(/new OffscreenCanvas/);
+    expect(source).not.toMatch(/\bcreateImageBitmap\(/);
+  });
 });
