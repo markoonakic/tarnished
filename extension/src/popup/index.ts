@@ -41,6 +41,7 @@ import { createBrowserNotifier, createPopupNotifications } from './notifications
 import { createPopupSaveLeadController } from './save-job-lead';
 import { createPopupSettingsController } from './settings';
 import { createPopupStateController } from './state';
+import { handlePopupRuntimeMessage } from './runtime-messages';
 import {
   createPopupView,
   type JobInfo,
@@ -679,20 +680,11 @@ document.addEventListener('DOMContentLoaded', () => {
  * This allows the popup to update its UI when forms are dynamically detected
  */
 browser.runtime.onMessage.addListener((message: unknown) => {
-  const msg = message as {
-    type: string;
-    hasApplicationForm?: boolean;
-    fillableFieldCount?: number;
-  };
-  if (msg.type === 'FORM_DETECTION_UPDATE') {
-    setFormDetectionState({
-      hasApplicationForm: msg.hasApplicationForm ?? false,
-      fillableFieldCount: msg.fillableFieldCount ?? 0,
-    });
-    // Update autofill visibility based on new form detection state
-    updateAutofillVisibility(popupView.getCurrentState());
-  }
-  return undefined;
+  return handlePopupRuntimeMessage(message, {
+    setFormDetectionState,
+    updateAutofillVisibility,
+    getCurrentState: () => popupView.getCurrentState(),
+  });
 });
 
 // Export for module detection

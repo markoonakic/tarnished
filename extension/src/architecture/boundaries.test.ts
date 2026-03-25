@@ -47,6 +47,12 @@ describe('extension architecture boundaries', () => {
     expect(source).not.toMatch(/elements\.[A-Za-z0-9_]+\?\.addEventListener/);
   });
 
+  it('keeps popup entry free of runtime message branching details', () => {
+    const source = readFileSync(resolve(extensionRoot, 'src/popup/index.ts'), 'utf8');
+
+    expect(source).not.toMatch(/msg\.type === 'FORM_DETECTION_UPDATE'/);
+  });
+
   it('keeps background entry focused on orchestration instead of icon rendering internals', () => {
     const source = readFileSync(resolve(extensionRoot, 'src/background/index.ts'), 'utf8');
 
