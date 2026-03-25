@@ -24,6 +24,7 @@ import { getErrorMessage, isRecoverable, mapApiError } from '../lib/errors';
 import { debug, warn, error as logError } from '../lib/logger';
 import { createPopupActions } from './actions';
 import { createPopupAutofillController } from './autofill';
+import { applyPopupTheme, fetchRuntimeText, updatePopupFavicon } from './bootstrap';
 import {
   extractCompanyFromDocument,
   extractLocationFromDocument,
@@ -34,6 +35,7 @@ import {
   type FormDetectionState,
 } from './detection';
 import { getThemeColors, applyThemeToDocument } from './lib/theme';
+import { createBrowserNotifier, createPopupNotifications } from './notifications';
 import { createPopupSaveLeadController } from './save-job-lead';
 import { createPopupSettingsController } from './settings';
 import { createPopupStateController } from './state';
@@ -140,6 +142,17 @@ const elements = {
   // Error display
   errorText: document.getElementById('errorText'),
 };
+
+const popupNotifications = createPopupNotifications({
+  notify: createBrowserNotifier(browser.notifications),
+  warn,
+});
+const {
+  showNotification,
+  showSuccessNotification,
+  showApplicationSuccessNotification,
+  showErrorNotification,
+} = popupNotifications;
 
 const popupView = createPopupView(document, formDetection);
 const popupSaveLead = createPopupSaveLeadController({
@@ -470,59 +483,6 @@ async function loadAutoFillSetting(): Promise<void> {
 // Notifications
 // ============================================================================
 
-/**
- * Show a browser notification
- */
-async function showNotification(title: string, message: string): Promise<void> {
-  try {
-    await browser.notifications.create({
-      type: 'basic',
-      iconUrl: '/icons/icon48.png',
-      title,
-      message,
-    });
-  } catch (error) {
-    warn('Popup', 'Failed to show notification:', error);
-  }
-}
-
-/**
- * Show a success notification for saved job lead
- */
-function showSuccessNotification(
-  title: string | null,
-  company: string | null
-): void {
-  const jobTitle = title || 'Job Lead';
-  const companyText = company ? ` at ${company}` : '';
-  showNotification(
-    'Job Saved!',
-    `${jobTitle}${companyText} has been saved to Job Leads.`
-  );
-}
-
-/**
- * Show a success notification for saved application
- */
-function showApplicationSuccessNotification(
-  title: string | null,
-  company: string | null
-): void {
-  const jobTitle = title || 'Application';
-  const companyText = company ? ` at ${company}` : '';
-  showNotification(
-    'Application Added!',
-    `${jobTitle}${companyText} has been added as an application.`
-  );
-}
-
-/**
- * Show an error notification
- */
-function showErrorNotification(message: string): void {
-  showNotification('Error', message);
-}
-
 // ============================================================================
 // Actions
 // ============================================================================
@@ -685,25 +645,25 @@ function setupEventListeners(): void {
  * Initialize the popup
  */
 async function init(): Promise<void> {
-  // Load and apply theme colors
-  try {
-    const colors = await getThemeColors();
-    debug('Popup', 'Theme colors loaded:', colors);
-    applyThemeToDocument(colors);
-    debug('Popup', 'Applied theme, accent:', colors.accent);
-
-    // Update favicon with accent color
-    await updateFavicon(colors.accent);
-
-    // Debug: Verify CSS variables were set
-    const root = document.documentElement;
-    debug('Popup', 'CSS var --accent:', root.style.getPropertyValue('--accent'));
-  } catch (error) {
-    warn('Popup', 'Failed to load theme:', error);
-  }
-
-  // Trigger background refresh for next time
-  browser.runtime.sendMessage({ type: 'REFRESH_THEME' });
+  await applyPopupTheme({
+    getThemeColors,
+    applyThemeToDocument,
+    updateFavicon: (accentColor) =>
+      updatePopupFavicon({
+        accentColor,
+        document,
+        getRuntimeUrl: (path) => browser.runtime.getURL(path),
+        fetchText: fetchRuntimeText,
+        debug,
+        warn,
+      }),
+    refreshTheme: () => {
+      void browser.runtime.sendMessage({ type: 'REFRESH_THEME' });
+    },
+    debug,
+    warn,
+    rootStyle: document.documentElement.style,
+  });
 
   // Load auto-fill setting
   await loadAutoFillSetting();
@@ -713,36 +673,6 @@ async function init(): Promise<void> {
 
   // Determine and show the appropriate state
   await determineState();
-}
-
-/**
- * Update the page favicon with the accent color
- */
-async function updateFavicon(accentColor: string): Promise<void> {
-  try {
-    // Fetch the tree SVG
-    const svgUrl = browser.runtime.getURL('icons/tree.svg');
-    const response = await fetch(svgUrl);
-    let svg = await response.text();
-
-    // Replace fill color with accent color
-    svg = svg.replace(/fill="[^"]*"/g, `fill="${accentColor}"`);
-
-    // Create data URL
-    const svgDataUrl = `data:image/svg+xml,${encodeURIComponent(svg)}`;
-
-    // Update favicon
-    const favicon = document.querySelector(
-      'link[rel="icon"]'
-    ) as HTMLLinkElement;
-    if (favicon) {
-      favicon.href = svgDataUrl;
-    }
-
-    debug('Popup', 'Updated favicon with accent color:', accentColor);
-  } catch (error) {
-    warn('Popup', 'Failed to update favicon:', error);
-  }
 }
 
 // Initialize when DOM is ready
