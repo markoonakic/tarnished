@@ -34,6 +34,7 @@ import {
   type FormDetectionState,
 } from './detection';
 import { getThemeColors, applyThemeToDocument } from './lib/theme';
+import { createPopupSaveLeadController } from './save-job-lead';
 import { createPopupSettingsController } from './settings';
 import {
   createPopupView,
@@ -140,6 +141,52 @@ const elements = {
 };
 
 const popupView = createPopupView(document, formDetection);
+const popupSaveLead = createPopupSaveLeadController({
+  deps: {
+    getCurrentTabText,
+    saveJobLead: async (url, text) => {
+      const { saveJobLead } = await import('../lib/api');
+      return saveJobLead(url, text);
+    },
+    setJobStatus: async (url, status) => {
+      const { setJobStatus } = await import('../lib/storage');
+      await setJobStatus(url, status);
+    },
+  },
+  ui: {
+    showState,
+    showError,
+    showErrorNotification,
+    showSuccessNotification,
+    updateJobInfoDisplay: (info) => updateJobInfoDisplay(info, 'savedJob'),
+  },
+  state: {
+    get currentTabUrl() {
+      return currentTabUrl;
+    },
+    set currentTabUrl(value) {
+      currentTabUrl = value;
+    },
+    get currentJobInfo() {
+      return currentJobInfo;
+    },
+    set currentJobInfo(value) {
+      currentJobInfo = value;
+    },
+    get existingLead() {
+      return existingLead;
+    },
+    set existingLead(value) {
+      existingLead = value;
+    },
+  },
+  elements: {
+    savedMessage: elements.savedMessage as { textContent: string | null } | null,
+  },
+  mapApiError,
+  getErrorMessage,
+  isRecoverable,
+});
 const popupAutofill = createPopupAutofillController({
   deps: {
     getProfile,
@@ -435,57 +482,7 @@ function openApplications(applicationId?: string): void {
  * Saves the current job lead to the backend
  */
 async function saveJobLead(): Promise<void> {
-  if (!currentTabUrl) {
-    const errorMsg = 'No URL to save';
-    showError(errorMsg);
-    showErrorNotification(errorMsg);
-    return;
-  }
-
-  showState('saving');
-
-  try {
-    // Get text content from content script (preferred over HTML)
-    const text = await getCurrentTabText();
-
-    // Import the save function
-    const { saveJobLead: saveLead } = await import('../lib/api');
-    const result = await saveLead(currentTabUrl, text);
-
-    // Update existing lead info
-    existingLead = result;
-    currentJobInfo = {
-      title: result.title,
-      company: result.company,
-      location: result.location || null,
-    };
-
-    // Update cached job status to reflect that this job is now saved
-    const { setJobStatus } = await import('../lib/storage');
-    await setJobStatus(currentTabUrl, {
-      url: currentTabUrl,
-      isJobPage: true,
-      existingLeadId: result.id,
-      title: result.title,
-      company: result.company,
-    });
-
-    // Show success notification
-    showSuccessNotification(result.title, result.company);
-
-    // Update saved message and show saved state
-    if (elements.savedMessage) {
-      elements.savedMessage.textContent = 'Saved to Job Leads';
-    }
-    updateJobInfoDisplay(currentJobInfo, 'savedJob');
-    showState('saved');
-  } catch (error) {
-    // Map API errors to user-friendly messages
-    const extensionError = mapApiError(error);
-    const message = getErrorMessage(extensionError);
-    showError(message, isRecoverable(extensionError));
-    showErrorNotification(message);
-  }
+  await popupSaveLead.saveJobLead();
 }
 
 /**
