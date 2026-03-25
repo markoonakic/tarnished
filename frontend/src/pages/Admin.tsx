@@ -4,6 +4,11 @@ import { listUsers, getAdminStats, deleteUser } from '../lib/admin';
 import type { AdminUser, AdminStats } from '../lib/admin';
 import { getAISettings, updateAISettings } from '../lib/aiSettings';
 import type { AISettingsResponse } from '../lib/aiSettings';
+import {
+  buildAISettingsUpdatePayload,
+  createAdminUserSearchFilter,
+  getAISettingsFormValues,
+} from '../lib/adminPageState';
 import { useToast } from '../hooks/useToast';
 import Layout from '../components/Layout';
 import Dropdown from '../components/Dropdown';
@@ -51,10 +56,10 @@ export default function Admin() {
       setStats(statsData);
       setAiSettings(aiSettingsData);
 
-      // Populate form with existing settings
-      setAiModel(aiSettingsData.litellm_model || '');
-      setAiBaseUrl(aiSettingsData.litellm_base_url || '');
-      // Don't populate API key - it's masked for security
+      const formValues = getAISettingsFormValues(aiSettingsData);
+      setAiModel(formValues.model);
+      setAiApiKey(formValues.apiKey);
+      setAiBaseUrl(formValues.baseUrl);
     } catch {
       setError('Failed to load admin data. You may not have admin privileges.');
     } finally {
@@ -93,19 +98,11 @@ export default function Admin() {
   async function handleSaveAISettings() {
     setSavingAi(true);
     try {
-      const updateData: {
-        litellm_model?: string | null;
-        litellm_api_key?: string | null;
-        litellm_base_url?: string | null;
-      } = {
-        litellm_model: aiModel || null,
-        litellm_base_url: aiBaseUrl || null,
-      };
-
-      // Only include API key if user entered a new value
-      if (aiApiKey) {
-        updateData.litellm_api_key = aiApiKey;
-      }
+      const updateData = buildAISettingsUpdatePayload({
+        model: aiModel,
+        apiKey: aiApiKey,
+        baseUrl: aiBaseUrl,
+      });
 
       const updated = await updateAISettings(updateData);
       setAiSettings(updated);
@@ -118,9 +115,7 @@ export default function Admin() {
     }
   }
 
-  const filteredUsers = users.filter((u) =>
-    u.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users.filter(createAdminUserSearchFilter(searchQuery));
 
   return (
     <Layout>
