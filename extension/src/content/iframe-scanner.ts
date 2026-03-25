@@ -567,31 +567,36 @@
     });
   }
 
+  function shouldScheduleFormRescan(mutations: MutationRecord[]): boolean {
+    for (const mutation of mutations) {
+      if (mutation.addedNodes.length === 0) {
+        continue;
+      }
+
+      for (const node of mutation.addedNodes) {
+        if (!(node instanceof HTMLElement)) {
+          continue;
+        }
+
+        if (
+          node.tagName === 'INPUT' ||
+          node.tagName === 'TEXTAREA' ||
+          node.tagName === 'IFRAME' ||
+          node.querySelector('input, textarea, iframe')
+        ) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   function setupMutationObserver(): void {
     let scanTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const observer = new MutationObserver((mutations) => {
-      let shouldScan = false;
-
-      for (const mutation of mutations) {
-        if (mutation.addedNodes.length > 0) {
-          for (const node of mutation.addedNodes) {
-            if (node instanceof HTMLElement) {
-              if (
-                node.tagName === 'INPUT' ||
-                node.tagName === 'TEXTAREA' ||
-                node.querySelector('input, textarea')
-              ) {
-                shouldScan = true;
-                break;
-              }
-            }
-          }
-        }
-        if (shouldScan) break;
-      }
-
-      if (shouldScan) {
+      if (shouldScheduleFormRescan([...mutations])) {
         if (scanTimeout) clearTimeout(scanTimeout);
         scanTimeout = setTimeout(() => {
           scanAndReport();

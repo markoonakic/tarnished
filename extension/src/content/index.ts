@@ -11,6 +11,7 @@
  */
 
 import browser from 'webextension-polyfill';
+import { shouldScheduleFormRescan } from './scan-trigger';
 import { detectJobPage, type DetectionResult } from '../lib/detection';
 import { debug, warn } from '../lib/logger';
 import {
@@ -272,29 +273,7 @@ function debouncedScan(): void {
  */
 function setupMutationObserver(): void {
   const observer = new MutationObserver((mutations) => {
-    let shouldScan = false;
-
-    for (const mutation of mutations) {
-      if (mutation.addedNodes.length > 0) {
-        for (const node of mutation.addedNodes) {
-          if (node instanceof HTMLElement) {
-            if (
-              node.tagName === 'INPUT' ||
-              node.tagName === 'TEXTAREA' ||
-              node.tagName === 'IFRAME' ||
-              node.querySelector('input, textarea, iframe')
-            ) {
-              shouldScan = true;
-              break;
-            }
-          }
-        }
-      }
-
-      if (shouldScan) break;
-    }
-
-    if (shouldScan) {
+    if (shouldScheduleFormRescan([...mutations])) {
       debouncedScan();
     }
   });
