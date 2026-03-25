@@ -341,26 +341,22 @@ export function mapApiError(error: unknown): ExtensionError {
 
   // Map specific error names to ExtensionErrors
   if (error instanceof Error) {
-    const errorName = error.constructor.name;
+    const errorCode = mapApiErrorNameToCode(error.constructor.name);
 
-    switch (errorName) {
-      case 'AuthenticationError':
+    switch (errorCode) {
+      case ERROR_CODES.AUTH_FAILED:
         return new AuthFailedError({ cause: error });
-      case 'DuplicateLeadError':
-        // Extract existing ID if available
-        const match = error.message.match(/ID:\s*([a-f0-9-]+)/i);
-        return new AlreadySavedError(match?.[1], { cause: error });
-      case 'TimeoutError':
+      case ERROR_CODES.ALREADY_SAVED:
+        return new AlreadySavedError(extractDuplicateResourceId(error.message) ?? undefined, {
+          cause: error,
+        });
+      case ERROR_CODES.TIMEOUT:
         return new TimeoutErrorCode({ cause: error });
-      case 'NetworkError':
+      case ERROR_CODES.NETWORK:
         return new NetworkErrorCode({ cause: error });
-      case 'ServerError':
-        return new NetworkErrorCode({ cause: error });
-      case 'ApiClientError':
-        // 422 and other client errors from API - likely extraction failures
+      case ERROR_CODES.EXTRACTION_FAILED:
         return new ExtractionFailedError({ cause: error });
       default:
-        // For other errors, create a generic network error
         return new NetworkErrorCode({ cause: error });
     }
   }
@@ -423,12 +419,12 @@ export function parseBackendError(response: {
         cause: new Error(response.detail || response.message),
       });
     case ERROR_CODES.DUPLICATE_RESOURCE:
-      const match = (response.detail || response.message || '').match(
-        /ID:\s*([a-f0-9-]+)/i
+      return new AlreadySavedError(
+        extractDuplicateResourceId(response.detail || response.message || '') ?? undefined,
+        {
+          cause: new Error(response.message),
+        }
       );
-      return new AlreadySavedError(match?.[1], {
-        cause: new Error(response.message),
-      });
     case ERROR_CODES.NETWORK:
     case ERROR_CODES.TIMEOUT:
       return new TimeoutErrorCode({
@@ -441,3 +437,7 @@ export function parseBackendError(response: {
       });
   }
 }
+import {
+  extractDuplicateResourceId,
+  mapApiErrorNameToCode,
+} from './error-mapping';
