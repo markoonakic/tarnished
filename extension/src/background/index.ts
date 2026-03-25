@@ -4,6 +4,12 @@
  */
 
 import browser from 'webextension-polyfill';
+import {
+  createOffscreenIconCanvas,
+  createRuntimeBitmap,
+  fetchRuntimeBlob,
+  updateActionIcon,
+} from './icon';
 import { getProfile } from '../lib/api';
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
 import { ThemeColors, UserSettings, DEFAULT_COLORS } from '../lib/theme';
@@ -69,147 +75,20 @@ async function getAccentColor(): Promise<string> {
   return colors.accent;
 }
 
-/**
- * Update the extension icon with the accent color
- *
- * Cross-browser approach (Chrome + Firefox):
- * 1. Load the pre-rendered PNG icon
- * 2. Tint it with the accent color using canvas globalCompositeOperation
- * 3. This works reliably in service workers unlike SVG manipulation
- */
 async function updateIconColor(accentHex: string): Promise<void> {
-  debug('Icon', 'Starting color update to:', accentHex);
-
-  const sizes = [16, 48, 128] as const;
-  const imageDataMap: Record<number, ImageData> = {};
-
-  // Load the PNG icon and tint it
-  for (const size of sizes) {
-    try {
-      const iconName = `icon${size}.png`;
-      const iconUrl = browser.runtime.getURL(`icons/${iconName}`);
-
-      // Fetch the PNG
-      const response = await fetch(iconUrl);
-      const pngBlob = await response.blob();
-
-      // Create ImageBitmap from PNG (this works reliably in service workers)
-      const bitmap = await createImageBitmap(pngBlob);
-      debug(
-        'Icon',
-        `Loaded ${iconName}, size:`,
-        bitmap.width,
-        'x',
-        bitmap.height
-      );
-
-      // Create canvas for tinting
-      const canvas = new OffscreenCanvas(size, size);
-      const ctx = canvas.getContext('2d');
-
-      if (!ctx) {
-        error('Icon', 'Failed to get canvas context for size', size);
-        bitmap.close();
-        continue;
-      }
-
-      // Clear canvas
-      ctx.clearRect(0, 0, size, size);
-
-      // Draw the original icon
-      ctx.drawImage(bitmap, 0, 0, size, size);
-
-      // Tint with accent color using multiply blend mode
-      // This preserves the shape but applies the color
-      ctx.globalCompositeOperation = 'source-in';
-      ctx.fillStyle = accentHex;
-      ctx.fillRect(0, 0, size, size);
-
-      // Get ImageData
-      imageDataMap[size] = ctx.getImageData(0, 0, size, size);
-
-      // Clean up
-      bitmap.close();
-    } catch (err) {
-      error('Icon', `Failed to load/tint icon for size ${size}:`, err);
-      // Fall back to drawing a simple tree
-      const canvas = new OffscreenCanvas(size, size);
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, size, size);
-        drawTreeIcon(ctx, size, accentHex);
-        imageDataMap[size] = ctx.getImageData(0, 0, size, size);
-      }
-    }
-  }
-
-  // Set icon with generated ImageData
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await browser.action.setIcon({
-      imageData: {
-        16: imageDataMap[16],
-        48: imageDataMap[48],
-        128: imageDataMap[128],
-      },
-    } as any);
-    debug('Icon', 'Successfully updated with accent color:', accentHex);
-  } catch (err) {
-    error('Icon', 'Failed to set icon:', err);
-  }
-}
-
-/**
- * Draw a simple tree icon using canvas paths (fallback)
- * This is used when the PNG icons cannot be loaded
- */
-function drawTreeIcon(
-  ctx: OffscreenCanvasRenderingContext2D,
-  size: number,
-  color: string
-): void {
-  const scale = size / 128;
-
-  ctx.fillStyle = color;
-  ctx.strokeStyle = color;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  // Draw tree trunk (rectangle at bottom center)
-  const trunkWidth = 20 * scale;
-  const trunkHeight = 30 * scale;
-  const trunkX = (size - trunkWidth) / 2;
-  const trunkY = size - trunkHeight - 5 * scale;
-
-  ctx.fillRect(trunkX, trunkY, trunkWidth, trunkHeight);
-
-  // Draw tree foliage (stacked triangles forming a tree shape)
-  const centerX = size / 2;
-  const baseY = trunkY + 5 * scale;
-
-  // Bottom layer (widest)
-  ctx.beginPath();
-  ctx.moveTo(centerX, baseY - 50 * scale);
-  ctx.lineTo(centerX - 45 * scale, baseY);
-  ctx.lineTo(centerX + 45 * scale, baseY);
-  ctx.closePath();
-  ctx.fill();
-
-  // Middle layer
-  ctx.beginPath();
-  ctx.moveTo(centerX, baseY - 75 * scale);
-  ctx.lineTo(centerX - 35 * scale, baseY - 30 * scale);
-  ctx.lineTo(centerX + 35 * scale, baseY - 30 * scale);
-  ctx.closePath();
-  ctx.fill();
-
-  // Top layer (narrowest)
-  ctx.beginPath();
-  ctx.moveTo(centerX, baseY - 100 * scale);
-  ctx.lineTo(centerX - 25 * scale, baseY - 55 * scale);
-  ctx.lineTo(centerX + 25 * scale, baseY - 55 * scale);
-  ctx.closePath();
-  ctx.fill();
+  await updateActionIcon({
+    accentHex,
+    getRuntimeUrl: (path) => browser.runtime.getURL(path),
+    fetchBlob: fetchRuntimeBlob,
+    createImageBitmap: createRuntimeBitmap,
+    createCanvas: createOffscreenIconCanvas,
+    setIcon: async (imageData) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await browser.action.setIcon({ imageData } as any);
+    },
+    debug,
+    error,
+  });
 }
 
 /**
