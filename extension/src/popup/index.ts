@@ -19,10 +19,11 @@ import {
   type JobLeadResponse,
   type ApplicationResponse,
 } from '../lib/api';
-import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
+import { hasAutofillData } from '../lib/autofill';
 import { getErrorMessage, isRecoverable, mapApiError } from '../lib/errors';
 import { debug, warn, error as logError } from '../lib/logger';
 import { createPopupActions } from './actions';
+import { createPopupAutofillController } from './autofill';
 import {
   extractCompanyFromDocument,
   extractLocationFromDocument,
@@ -139,6 +140,28 @@ const elements = {
 };
 
 const popupView = createPopupView(document, formDetection);
+const popupAutofill = createPopupAutofillController({
+  deps: {
+    getProfile,
+    sendAutofillMessage: (tabId, profile) =>
+      browser.tabs.sendMessage(tabId, {
+        type: 'AUTOFILL_FORM',
+        profile,
+      }) as Promise<{ filledCount?: number }>,
+    hasAutofillData,
+  },
+  state: {
+    get currentTabId() {
+      return currentTabId;
+    },
+  },
+  ui: {
+    showNotification,
+    showErrorNotification,
+  },
+  mapApiError,
+  getErrorMessage,
+});
 const popupSettings = createPopupSettingsController({
   deps: {
     setAutoFillOnLoad,
@@ -494,62 +517,7 @@ async function retryAction(): Promise<void> {
  * for autofill.
  */
 async function autofillFormHandler(): Promise<void> {
-  if (!currentTabId) {
-    showErrorNotification('No active tab');
-    return;
-  }
-
-  try {
-    // Fetch profile from backend
-    const profile = await getProfile();
-
-    // Check if profile has any data
-    const autofillProfile: AutofillProfile = {
-      first_name: profile.first_name,
-      last_name: profile.last_name,
-      email: profile.email,
-      phone: profile.phone,
-      city: profile.city,
-      country: profile.country,
-      linkedin_url: profile.linkedin_url,
-    };
-
-    if (!hasAutofillData(autofillProfile)) {
-      showErrorNotification(
-        'Set up your profile in the app to enable autofill'
-      );
-      return;
-    }
-
-    // Send autofill request to content script
-    const response = (await browser.tabs.sendMessage(currentTabId, {
-      type: 'AUTOFILL_FORM',
-      profile: autofillProfile,
-    })) as { filledCount?: number };
-
-    if (response && typeof response.filledCount === 'number') {
-      if (response.filledCount > 0) {
-        showNotification(
-          'Autofill Complete',
-          `Filled ${response.filledCount} field${response.filledCount !== 1 ? 's' : ''}.`
-        );
-      } else {
-        showNotification(
-          'No Fields Found',
-          'No empty form fields found to fill.'
-        );
-      }
-    } else {
-      showNotification(
-        'Autofill Failed',
-        'Could not complete autofill. Try refreshing the page.'
-      );
-    }
-  } catch (error) {
-    const extensionError = mapApiError(error);
-    const message = getErrorMessage(extensionError);
-    showErrorNotification(message);
-  }
+  await popupAutofill.autofillFormHandler();
 }
 
 // ============================================================================
