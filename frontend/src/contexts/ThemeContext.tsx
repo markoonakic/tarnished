@@ -7,6 +7,13 @@ import {
   type ReactNode,
 } from 'react';
 import api from '../lib/api';
+import {
+  getAccentOverrides,
+  getStoredTheme,
+  persistAccentOverrides,
+  persistThemeSelection,
+  updateThemeFavicon,
+} from '../lib/themePreferences';
 
 interface Theme {
   id: string;
@@ -64,17 +71,6 @@ const ACCENT_OPTIONS: AccentOption[] = [
   { name: 'red', cssVar: '--red', cssVarBright: '--red-bright' },
 ];
 
-const STORAGE_KEY_ACCENTS = 'themeAccents';
-
-function getAccentOverrides(): Record<string, string> {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY_ACCENTS);
-    return stored ? JSON.parse(stored) : {};
-  } catch {
-    return {};
-  }
-}
-
 function applyAccentColor(colorName: string) {
   const option = ACCENT_OPTIONS.find((opt) => opt.name === colorName);
   if (option) {
@@ -89,37 +85,16 @@ function applyAccentColor(colorName: string) {
   }
 }
 
-// Fetch and update favicon with dynamic accent color
-async function updateFavicon(colorHex: string) {
-  try {
-    const response = await fetch('/tree.svg');
-    let svg = await response.text();
-    svg = svg.replace(/fill="[^"]*"/g, `fill="${colorHex}"`);
-    const dataUrl = `data:image/svg+xml,${encodeURIComponent(svg)}`;
-
-    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'icon';
-      link.type = 'image/svg+xml';
-      document.head.appendChild(link);
-    }
-    link.href = dataUrl;
-  } catch {
-    // Silently fail - fallback to static favicon
-  }
-}
-
 function getResolvedAccentColor(colorName: string): string {
   const option = ACCENT_OPTIONS.find((opt) => opt.name === colorName);
-  if (!option) return '#8ec07c'; // fallback
+  if (!option) return '#8ec07c';
 
   const style = getComputedStyle(document.documentElement);
   return style.getPropertyValue(option.cssVar).trim() || '#8ec07c';
 }
 
 function initTheme() {
-  const stored = localStorage.getItem('theme') || 'gruvbox-dark';
+  const stored = getStoredTheme();
   document.documentElement.setAttribute('data-theme', stored);
 
   // Apply stored accent override for the current theme
@@ -129,13 +104,13 @@ function initTheme() {
 
   // Update favicon after a frame to ensure CSS vars are resolved
   requestAnimationFrame(() => {
-    updateFavicon(getResolvedAccentColor(accentForTheme));
+    void updateThemeFavicon(getResolvedAccentColor(accentForTheme));
   });
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [currentTheme, setCurrentTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'gruvbox-dark';
+    return getStoredTheme();
   });
 
   const [accentOverrides, setAccentOverrides] = useState<
@@ -154,9 +129,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     async (theme: string, accent: string) => {
       try {
         await api.patch('/api/users/settings', { theme, accent });
-      } catch (error) {
-        // Silent fail - backend sync is nice-to-have, not critical
-        console.warn('Failed to sync theme settings to backend:', error);
+      } catch {
+        return;
       }
     },
     []
@@ -164,7 +138,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setTheme = useCallback(
     (themeId: string) => {
-      localStorage.setItem('theme', themeId);
+      persistThemeSelection(themeId);
       document.documentElement.setAttribute('data-theme', themeId);
       setCurrentTheme(themeId);
 
@@ -174,7 +148,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
       // Update favicon after CSS vars resolve
       requestAnimationFrame(() => {
-        updateFavicon(getResolvedAccentColor(accentForTheme));
+        void updateThemeFavicon(getResolvedAccentColor(accentForTheme));
       });
 
       // Sync to backend
@@ -187,7 +161,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     (colorName: string) => {
       // Update localStorage
       const newOverrides = { ...accentOverrides, [currentTheme]: colorName };
-      localStorage.setItem(STORAGE_KEY_ACCENTS, JSON.stringify(newOverrides));
+      persistAccentOverrides(newOverrides);
       setAccentOverrides(newOverrides);
 
       // Apply immediately via CSS custom properties
@@ -195,7 +169,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
       // Update favicon after CSS vars resolve
       requestAnimationFrame(() => {
-        updateFavicon(getResolvedAccentColor(colorName));
+        void updateThemeFavicon(getResolvedAccentColor(colorName));
       });
 
       // Sync to backend
