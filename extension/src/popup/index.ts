@@ -8,6 +8,7 @@ import {
   getSettings,
   getAutoFillOnLoad,
   setAutoFillOnLoad,
+  setJobStatus,
 } from '../lib/storage';
 import {
   checkExistingLead,
@@ -16,6 +17,7 @@ import {
   getProfile,
   extractApplication,
   getStatuses,
+  saveJobLead as saveJobLeadRequest,
   type JobLeadResponse,
   type ApplicationResponse,
 } from '../lib/api';
@@ -158,14 +160,8 @@ const popupView = createPopupView(document, formDetection);
 const popupSaveLead = createPopupSaveLeadController({
   deps: {
     getCurrentTabText,
-    saveJobLead: async (url, text) => {
-      const { saveJobLead } = await import('../lib/api');
-      return saveJobLead(url, text);
-    },
-    setJobStatus: async (url, status) => {
-      const { setJobStatus } = await import('../lib/storage');
-      await setJobStatus(url, status);
-    },
+    saveJobLead: saveJobLeadRequest,
+    setJobStatus,
   },
   ui: {
     showState,
