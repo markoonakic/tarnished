@@ -127,6 +127,7 @@ class TestSerializeModelInstance:
 
         result = serialize_model_instance(user)
 
+        assert result is not None
         assert result["id"] == "user-1"
         assert result["email"] == "test@example.com"
 
@@ -145,6 +146,7 @@ class TestSerializeModelInstance:
 
         result = serialize_model_instance(post)
 
+        assert result is not None
         assert result["created_at"] == "2026-02-16T12:00:00"
 
     def test_serialize_json_field(self, session):
@@ -161,6 +163,7 @@ class TestSerializeModelInstance:
 
         result = serialize_model_instance(post)
 
+        assert result is not None
         assert result["tags"] == ["python", "sqlalchemy"]
 
     def test_serialize_none_as_null(self, session):
@@ -171,6 +174,7 @@ class TestSerializeModelInstance:
 
         result = serialize_model_instance(post)
 
+        assert result is not None
         assert result["content"] is None
 
     def test_exclude_relationships_by_default(self, session):
@@ -182,6 +186,7 @@ class TestSerializeModelInstance:
 
         result = serialize_model_instance(post, include_relationships=False)
 
+        assert result is not None
         assert "user" not in result
         assert "user_id" in result  # FK column should still be there
 
@@ -194,6 +199,7 @@ class TestSerializeModelInstance:
 
         result = serialize_model_instance(post, include_relationships=True)
 
+        assert result is not None
         assert "__rel__user" in result
         assert result["__rel__user"]["id"] == "user-1"
         assert result["__rel__user"]["email"] == "test@example.com"
@@ -209,6 +215,7 @@ class TestSerializeModelInstance:
             post, include_relationships=True, relationship_prefix="related_"
         )
 
+        assert result is not None
         assert "related_user" in result
         assert result["related_user"]["id"] == "user-1"
 
@@ -258,6 +265,7 @@ class TestSerializeCollectionRelationships:
 
         result = serialize_model_instance(author, include_relationships=True)
 
+        assert result is not None
         assert "__rel__books" in result
         assert isinstance(result["__rel__books"], list)
         assert len(result["__rel__books"]) == 2
@@ -275,5 +283,6 @@ class TestSerializeCollectionRelationships:
 
         result = serialize_model_instance(author, include_relationships=True)
 
+        assert result is not None
         assert "__rel__books" in result
         assert result["__rel__books"] == []
