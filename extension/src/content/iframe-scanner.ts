@@ -13,11 +13,15 @@
  */
 
 (function iframeScanner() {
+  const IFRAME_SCANNER_FLAG = '__tarnishedIframeScannerInitialized';
+  type IframeScannerWindow = Window & {
+    [IFRAME_SCANNER_FLAG]?: boolean;
+  };
   // Guard against re-injection
-  if ((window as any).__tarnishedIframeScannerInitialized) {
+  if ((window as IframeScannerWindow)[IFRAME_SCANNER_FLAG]) {
     return;
   }
-  (window as any).__tarnishedIframeScannerInitialized = true;
+  (window as IframeScannerWindow)[IFRAME_SCANNER_FLAG] = true;
 
   // ============================================================================
   // Types (inlined from types.ts)
