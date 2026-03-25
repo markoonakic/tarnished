@@ -10,6 +10,7 @@ import {
   fetchRuntimeBlob,
   updateActionIcon,
 } from './icon';
+import { buildActionIconPayload } from './icon-payload';
 import { getProfile } from '../lib/api';
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
 import { ThemeColors, UserSettings, DEFAULT_COLORS } from '../lib/theme';
@@ -83,8 +84,7 @@ async function updateIconColor(accentHex: string): Promise<void> {
     createImageBitmap: createRuntimeBitmap,
     createCanvas: createOffscreenIconCanvas,
     setIcon: async (imageData) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await browser.action.setIcon({ imageData } as any);
+      await browser.action.setIcon(buildActionIconPayload(imageData));
     },
     debug,
     error,
