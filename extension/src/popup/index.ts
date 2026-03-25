@@ -36,6 +36,7 @@ import {
 import { getThemeColors, applyThemeToDocument } from './lib/theme';
 import { createPopupSaveLeadController } from './save-job-lead';
 import { createPopupSettingsController } from './settings';
+import { createPopupStateController } from './state';
 import {
   createPopupView,
   type JobInfo,
@@ -255,6 +256,75 @@ const popupSettings = createPopupSettingsController({
   },
   warn,
   logError,
+});
+const popupState = createPopupStateController({
+  deps: {
+    getSettings: async () => {
+      const settings = await getSettings();
+      return { appUrl: settings.appUrl, apiKey: settings.apiKey };
+    },
+    queryTabs: () => browser.tabs.query({ active: true, currentWindow: true }),
+    getTabStatus: (tabId) =>
+      browser.runtime.sendMessage({ type: 'GET_TAB_STATUS', tabId }) as Promise<TabStatus | null>,
+    getDetection: (tabId) =>
+      browser.tabs.sendMessage(tabId, {
+        type: 'GET_DETECTION',
+      }) as Promise<{ isJobPage?: boolean; score?: number; signals?: string[] } | null>,
+    getFormDetection: getCurrentFormDetection,
+    checkExistingLead,
+    checkExistingApplication,
+    isRestrictedUrl,
+    extractTitle: () => extractTitleFromDocument(document),
+    extractCompany: () => extractCompanyFromDocument(document),
+    extractLocation: () => extractLocationFromDocument(document),
+  },
+  ui: {
+    showState,
+    showError,
+    updateJobInfoDisplay,
+    setFormDetectionState,
+  },
+  state: {
+    get currentTabId() {
+      return currentTabId;
+    },
+    set currentTabId(value) {
+      currentTabId = value;
+    },
+    get currentTabUrl() {
+      return currentTabUrl;
+    },
+    set currentTabUrl(value) {
+      currentTabUrl = value;
+    },
+    get currentJobInfo() {
+      return currentJobInfo;
+    },
+    set currentJobInfo(value) {
+      currentJobInfo = value;
+    },
+    get existingLead() {
+      return existingLead;
+    },
+    set existingLead(value) {
+      existingLead = value;
+    },
+    get existingApplication() {
+      return existingApplication;
+    },
+    set existingApplication(value) {
+      existingApplication = value;
+    },
+  },
+  elements: {
+    savedMessage: elements.savedMessage as { textContent: string | null } | null,
+    convertBtn: elements.convertBtn as {
+      classList: { add: (token: string) => void; remove: (token: string) => void };
+    } | null,
+  },
+  warn,
+  getErrorMessage,
+  isRecoverable,
 });
 const popupActions = createPopupActions({
   deps: {
@@ -553,140 +623,7 @@ async function getCurrentFormDetection(): Promise<FormDetectionState | null> {
  * Determines which state to show based on settings, detection, and existing leads
  */
 async function determineState(): Promise<void> {
-  showState('loading');
-
-  try {
-    // Step 1: Check if settings are configured
-    const settings = await getSettings();
-    if (!settings.appUrl || !settings.apiKey) {
-      showState('no-settings');
-      return;
-    }
-
-    // Step 2: Get current tab
-    const tabs = await browser.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    const currentTab = tabs[0];
-
-    if (!currentTab || !currentTab.id || !currentTab.url) {
-      showError('No active tab found');
-      return;
-    }
-
-    currentTabId = currentTab.id;
-    currentTabUrl = currentTab.url;
-
-    // Step 3: Check for restricted URLs
-    if (isRestrictedUrl(currentTabUrl)) {
-      showError('Cannot access this page (restricted URL)');
-      return;
-    }
-
-    // Step 4: Get detection status from background script
-    let tabStatus: TabStatus | null = null;
-    try {
-      tabStatus = await browser.runtime.sendMessage({
-        type: 'GET_TAB_STATUS',
-        tabId: currentTabId,
-      });
-    } catch (error) {
-      warn('Popup', 'Failed to get tab status from background:', error);
-    }
-
-    // Fallback: If no cached status, request detection directly from content script
-    if (!tabStatus) {
-      try {
-        const detectionResult = (await browser.tabs.sendMessage(currentTabId, {
-          type: 'GET_DETECTION',
-        })) as { isJobPage?: boolean; score?: number; signals?: string[] };
-        if (detectionResult) {
-          tabStatus = {
-            isJobPage: detectionResult.isJobPage ?? false,
-            score: detectionResult.score ?? 0,
-            signals: detectionResult.signals ?? [],
-            url: currentTabUrl,
-          };
-        }
-      } catch (error) {
-        warn('Popup', 'Failed to get detection from content script:', error);
-      }
-    }
-
-    // Step 5: Get form detection state
-    const formDetectionResult = await getCurrentFormDetection();
-    if (formDetectionResult) {
-      setFormDetectionState(formDetectionResult);
-    }
-
-    // Step 6: Check if this URL already exists as a job lead or application
-    // Check both in parallel for efficiency
-    const [lead, application] = await Promise.all([
-      checkExistingLead(currentTabUrl).catch((e) => {
-        warn('Popup', 'Failed to check existing lead:', e);
-        return null;
-      }),
-      checkExistingApplication(currentTabUrl).catch((e) => {
-        warn('Popup', 'Failed to check existing application:', e);
-        return null;
-      }),
-    ]);
-
-    existingLead = lead;
-    existingApplication = application;
-
-    // Step 7: Determine the state to show
-    // Priority: Application > Lead > Detected > Not detected
-    if (existingApplication) {
-      // URL already exists as an application - highest priority
-      currentJobInfo = {
-        title: existingApplication.job_title,
-        company: existingApplication.company,
-        location: existingApplication.location || null,
-      };
-      if (elements.savedMessage) {
-        elements.savedMessage.textContent = 'Added as Application';
-      }
-      // Hide convert button for applications
-      elements.convertBtn?.classList.add('hidden');
-      updateJobInfoDisplay(currentJobInfo, 'savedJob');
-      showState('saved');
-    } else if (existingLead) {
-      // URL exists as a lead - show saved state with option to convert
-      currentJobInfo = {
-        title: existingLead.title,
-        company: existingLead.company,
-        location: existingLead.location || null,
-      };
-      if (elements.savedMessage) {
-        elements.savedMessage.textContent = 'Saved to Job Leads';
-      }
-      // Show convert button for leads
-      elements.convertBtn?.classList.remove('hidden');
-      updateJobInfoDisplay(currentJobInfo, 'savedJob');
-      showState('saved');
-    } else if (tabStatus && tabStatus.isJobPage) {
-      // Job detected and not yet saved
-      // Extract job info from detection signals (placeholder for now)
-      currentJobInfo = {
-        title: extractTitleFromDocument(document),
-        company: extractCompanyFromDocument(document),
-        location: extractLocationFromDocument(document),
-      };
-      // Hide convert button for new detections
-      elements.convertBtn?.classList.add('hidden');
-      updateJobInfoDisplay(currentJobInfo, 'job');
-      showState('detected');
-    } else {
-      // Not a job page
-      showState('not-detected');
-    }
-  } catch (error) {
-    const message = getErrorMessage(error);
-    const recoverable = isRecoverable(error);
-    showError(message, recoverable);
-  }
+  await popupState.determineState();
 }
 
 /**
