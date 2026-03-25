@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
 import { createApplication, updateApplication } from '../lib/applications';
+import {
+  buildCreateApplicationPayload,
+  buildUpdateApplicationPayload,
+  getApplicationModalDefaults,
+  getApplicationModalValues,
+  isValidApplicationUrl,
+  normalizeApplicationUrl,
+} from '../lib/applicationModalForm';
 import { listStatuses } from '../lib/settings';
 import type {
   Status,
@@ -45,30 +53,11 @@ export default function ApplicationModal({
   const [requirementsNiceToHave, setRequirementsNiceToHave] = useState('');
   const [source, setSource] = useState('');
 
-  function normalizeUrl(url: string): string {
-    if (!url) return url;
-    const trimmed = url.trim();
-    if (trimmed && !trimmed.match(/^https?:\/\//i)) {
-      return `https://${trimmed}`;
-    }
-    return trimmed;
-  }
-
-  function isValidUrl(url: string): boolean {
-    if (!url) return true;
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
   function handleJobUrlBlur() {
     if (jobUrl) {
-      const normalized = normalizeUrl(jobUrl);
+      const normalized = normalizeApplicationUrl(jobUrl);
       setJobUrl(normalized);
-      if (!isValidUrl(normalized)) {
+      if (!isValidApplicationUrl(normalized)) {
         setJobUrlError('Please enter a valid URL');
       } else {
         setJobUrlError('');
@@ -96,55 +85,39 @@ export default function ApplicationModal({
       setJobUrlError('');
 
       if (isEditing && application) {
-        setCompany(application.company);
-        setJobTitle(application.job_title);
-        setJobDescription(application.job_description || '');
-        setJobUrl(application.job_url || '');
-        setStatusId(application.status.id);
-        setAppliedAt(application.applied_at.split('T')[0]);
-        setSalaryMin(
-          application.salary_min !== null
-            ? String(application.salary_min / 1000)
-            : ''
-        );
-        setSalaryMax(
-          application.salary_max !== null
-            ? String(application.salary_max / 1000)
-            : ''
-        );
-        setSalaryCurrency(application.salary_currency || 'USD');
-        setRecruiterName(application.recruiter_name || '');
-        setRecruiterTitle(application.recruiter_title || '');
-        setRecruiterLinkedinUrl(application.recruiter_linkedin_url || '');
-        setRequirementsMustHave(
-          application.requirements_must_have?.join('\n') || ''
-        );
-        setRequirementsNiceToHave(
-          application.requirements_nice_to_have?.join('\n') || ''
-        );
-        setSource(application.source || '');
+        const values = getApplicationModalValues(application);
+        setCompany(values.company);
+        setJobTitle(values.jobTitle);
+        setJobDescription(values.jobDescription);
+        setJobUrl(values.jobUrl);
+        setStatusId(values.statusId);
+        setAppliedAt(values.appliedAt);
+        setSalaryMin(values.salaryMin);
+        setSalaryMax(values.salaryMax);
+        setSalaryCurrency(values.salaryCurrency);
+        setRecruiterName(values.recruiterName);
+        setRecruiterTitle(values.recruiterTitle);
+        setRecruiterLinkedinUrl(values.recruiterLinkedinUrl);
+        setRequirementsMustHave(values.requirementsMustHave);
+        setRequirementsNiceToHave(values.requirementsNiceToHave);
+        setSource(values.source);
       } else {
-        // Create mode - set defaults
-        setCompany('');
-        setJobTitle('');
-        setJobDescription('');
-        setJobUrl('');
-        setSalaryMin('');
-        setSalaryMax('');
-        setSalaryCurrency('USD');
-        setRecruiterName('');
-        setRecruiterTitle('');
-        setRecruiterLinkedinUrl('');
-        setRequirementsMustHave('');
-        setRequirementsNiceToHave('');
-        setSource('');
-        setAppliedAt(new Date().toISOString().split('T')[0]);
-        // Set default status after statuses are loaded
-        if (statuses.length > 0) {
-          const defaultStatus =
-            statuses.find((s) => s.is_default) || statuses[0];
-          setStatusId(defaultStatus.id);
-        }
+        const values = getApplicationModalDefaults(statuses);
+        setCompany(values.company);
+        setJobTitle(values.jobTitle);
+        setJobDescription(values.jobDescription);
+        setJobUrl(values.jobUrl);
+        setStatusId(values.statusId);
+        setAppliedAt(values.appliedAt);
+        setSalaryMin(values.salaryMin);
+        setSalaryMax(values.salaryMax);
+        setSalaryCurrency(values.salaryCurrency);
+        setRecruiterName(values.recruiterName);
+        setRecruiterTitle(values.recruiterTitle);
+        setRecruiterLinkedinUrl(values.recruiterLinkedinUrl);
+        setRequirementsMustHave(values.requirementsMustHave);
+        setRequirementsNiceToHave(values.requirementsNiceToHave);
+        setSource(values.source);
       }
     }
   }, [isOpen, isEditing, application, statuses]);
@@ -169,8 +142,8 @@ export default function ApplicationModal({
       return;
     }
 
-    const normalizedUrl = normalizeUrl(jobUrl);
-    if (normalizedUrl && !isValidUrl(normalizedUrl)) {
+    const normalizedUrl = normalizeApplicationUrl(jobUrl);
+    if (normalizedUrl && !isValidApplicationUrl(normalizedUrl)) {
       setJobUrlError('Please enter a valid URL');
       return;
     }
@@ -179,60 +152,31 @@ export default function ApplicationModal({
     setError('');
 
     try {
-      const salaryMinNum = salaryMin ? parseInt(salaryMin, 10) * 1000 : null;
-      const salaryMaxNum = salaryMax ? parseInt(salaryMax, 10) * 1000 : null;
-      const requirementsMustHaveArray = requirementsMustHave.trim()
-        ? requirementsMustHave
-            .split('\n')
-            .map((s) => s.trim())
-            .filter(Boolean)
-        : null;
-      const requirementsNiceToHaveArray = requirementsNiceToHave.trim()
-        ? requirementsNiceToHave
-            .split('\n')
-            .map((s) => s.trim())
-            .filter(Boolean)
-        : null;
+      const values = {
+        company,
+        jobTitle,
+        jobDescription,
+        jobUrl: normalizedUrl,
+        statusId,
+        appliedAt,
+        salaryMin,
+        salaryMax,
+        salaryCurrency,
+        recruiterName,
+        recruiterTitle,
+        recruiterLinkedinUrl,
+        requirementsMustHave,
+        requirementsNiceToHave,
+        source,
+      };
 
       if (isEditing && application) {
-        const data: ApplicationUpdate = {
-          company,
-          job_title: jobTitle,
-          job_description: jobDescription || null,
-          job_url: normalizedUrl || null,
-          status_id: statusId,
-          applied_at: appliedAt,
-          salary_min: salaryMinNum,
-          salary_max: salaryMaxNum,
-          salary_currency: salaryCurrency || null,
-          recruiter_name: recruiterName || null,
-          recruiter_title: recruiterTitle || null,
-          recruiter_linkedin_url: recruiterLinkedinUrl || null,
-          requirements_must_have: requirementsMustHaveArray,
-          requirements_nice_to_have: requirementsNiceToHaveArray,
-          source: source || null,
-        };
+        const data: ApplicationUpdate = buildUpdateApplicationPayload(values);
         await updateApplication(application.id, data);
         onSuccess(application.id);
         onClose();
       } else {
-        const data: ApplicationCreate = {
-          company,
-          job_title: jobTitle,
-          job_description: jobDescription || undefined,
-          job_url: normalizedUrl || undefined,
-          status_id: statusId,
-          applied_at: appliedAt,
-          salary_min: salaryMinNum ?? undefined,
-          salary_max: salaryMaxNum ?? undefined,
-          salary_currency: salaryCurrency,
-          recruiter_name: recruiterName || undefined,
-          recruiter_title: recruiterTitle || undefined,
-          recruiter_linkedin_url: recruiterLinkedinUrl || undefined,
-          requirements_must_have: requirementsMustHaveArray ?? undefined,
-          requirements_nice_to_have: requirementsNiceToHaveArray ?? undefined,
-          source: source || undefined,
-        };
+        const data: ApplicationCreate = buildCreateApplicationPayload(values);
         const created = await createApplication(data);
         onSuccess(created.id);
         onClose();
