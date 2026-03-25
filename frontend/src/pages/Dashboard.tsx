@@ -10,6 +10,10 @@ import KPICards from '../components/dashboard/KPICards';
 import NeedsAttention from '../components/dashboard/NeedsAttention';
 import ImportModal from '../components/ImportModal';
 import ApplicationModal from '../components/ApplicationModal';
+import {
+  hasSeenImportPrompt,
+  markImportPromptSeen,
+} from '../lib/dashboardPrompt';
 
 export default function Dashboard() {
   useAuth();
@@ -27,14 +31,11 @@ export default function Dashboard() {
         setTotalApplications(data.total);
 
         // Show import prompt if no applications and user hasn't dismissed it
-        if (data.total === 0) {
-          const hasSeenPrompt = localStorage.getItem('import-prompt-seen');
-          if (!hasSeenPrompt) {
-            setShowImportPrompt(true);
-          }
+        if (data.total === 0 && !hasSeenImportPrompt()) {
+          setShowImportPrompt(true);
         }
       } catch {
-        // silently fail - dashboard still usable without total count
+        setShowImportPrompt(false);
       } finally {
         setLoading(false);
       }
@@ -46,7 +47,7 @@ export default function Dashboard() {
   if (loading) return null;
 
   const handleDismissPrompt = () => {
-    localStorage.setItem('import-prompt-seen', 'true');
+    markImportPromptSeen();
     setShowImportPrompt(false);
   };
 
@@ -60,8 +61,11 @@ export default function Dashboard() {
   };
 
   const handleImportSuccess = () => {
+    markImportPromptSeen();
     setShowImportModal(false);
-    window.location.reload();
+    setShowImportPrompt(false);
+    setTotalApplications((count) => (count === 0 ? 1 : count));
+    navigate('/applications');
   };
 
   return (
