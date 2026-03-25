@@ -68,8 +68,14 @@
 - Frontend:
   - application detail state transitions extracted to:
     - `frontend/src/lib/applicationDetailState.ts`
+  - application modal form logic extracted to:
+    - `frontend/src/lib/applicationModalForm.ts`
 - Backend:
   - final `backend/tests/test_api_endpoints.py` pyright warnings removed
+ - Extension:
+   - error-name and duplicate-id mapping extracted to:
+     - `extension/src/lib/error-mapping.ts`
+   - popup save-lead wiring no longer dynamically imports the shared API barrel
 
 ## Recent Commit Sequence
 
@@ -89,6 +95,9 @@
 - `2913a65` `refactor: compact extension background icon flow`
 - `ed5e667` `refactor: compact frontend application detail state`
 - `d448e36` `chore: finish backend typing cleanup`
+- `5ee6639` `refactor: compact frontend application modal logic`
+- `4f2e434` `refactor: compact extension error mapping`
+- `9ad53c2` `fix: remove popup api barrel dynamic import`
 
 ---
 
@@ -296,6 +305,10 @@ git commit -m "docs: refresh compaction handoff"
 ## Latest Audit Notes
 
 - Final Task 5 verification rerun completed on `2026-03-25` after Tasks 1-5 were executed in this worktree.
+- Additional cleanup wave completed on `2026-03-25` after the handoff:
+  - extracted `frontend/src/lib/applicationModalForm.ts`
+  - extracted `extension/src/lib/error-mapping.ts`
+  - removed the popup dynamic import that caused the extension Vite chunk warning
 - Verified after Tasks 1-4:
   - `backend`: `uv run pyright` -> `0 errors, 0 warnings`
   - `backend`: `uv run pytest -q` -> `293 passed, 1 skipped`
@@ -306,11 +319,10 @@ git commit -m "docs: refresh compaction handoff"
   - `frontend/src/components/ErrorBoundary.tsx` still uses `console.error` and `window.location.reload()` as explicit last-resort recovery behavior
   - `extension/src/lib/logger.ts` is expected to wrap `console.*`
   - several backend `except Exception` handlers remain in extraction/import/security paths and should be treated as targeted follow-up work, not blanket cleanup
-- Extension build still emits the known Vite warning that `extension/src/lib/api.ts` is both dynamically and statically imported; this remains non-blocking cleanup debt.
 - Highest-value remaining product-facing cleanup appears to be:
-  1. `frontend/src/components/ApplicationModal.tsx`
-  2. `extension/src/lib/errors.ts` or `extension/src/lib/detection.ts`
-  3. `frontend/src/pages/Admin.tsx`
+  1. `frontend/src/pages/Admin.tsx`
+  2. `extension/src/lib/errors.ts` or `extension/src/content/iframe-scanner.ts`
+  3. `frontend/src/components/ApplicationModal.tsx` for a second pass only if more extraction value remains
 
 ## Important Context For Next Agent
 
