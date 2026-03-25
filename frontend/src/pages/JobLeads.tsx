@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getJobLeads, getJobLeadSources } from '../lib/jobLeads';
+import { parsePositivePageParam } from '../lib/paginationParams';
 import type { JobLead, JobLeadStatus } from '../lib/types';
 import Layout from '../components/Layout';
 import EmptyState from '../components/EmptyState';
@@ -69,7 +70,7 @@ export default function JobLeads() {
   const [perPage, setPerPage] = useState(25);
 
   // Get filter values from URL
-  const page = parseInt(searchParams.get('page') || '1');
+  const page = parsePositivePageParam(searchParams.get('page'));
   const search = searchParams.get('search') || '';
   const statusFilter = searchParams.get('status') || '';
   const sourceFilter = searchParams.get('source') || '';

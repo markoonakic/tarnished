@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { getApplicationSources, listApplications } from '../lib/applications';
 import type { ListParams } from '../lib/applications';
+import { parsePositivePageParam } from '../lib/paginationParams';
 import { listStatuses } from '../lib/settings';
 import type { Application, Status } from '../lib/types';
 import { getStatusColor } from '../lib/statusColors';
@@ -27,7 +28,7 @@ export default function Applications() {
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const page = parseInt(searchParams.get('page') || '1');
+  const page = parsePositivePageParam(searchParams.get('page'));
   const [perPage, setPerPage] = useState(25);
   const statusFilter = searchParams.get('status') || '';
   const sourceFilter = searchParams.get('source') || '';
