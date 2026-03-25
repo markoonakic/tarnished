@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getJobLead, deleteJobLead, retryJobLead } from '../lib/jobLeads';
+import {
+  formatExperienceRange,
+  formatSalaryRange,
+  getJobLeadStatusBadgeClass,
+} from '../lib/jobLeadDetailView';
 import type { JobLead } from '../lib/types';
 import { useToastContext } from '../contexts/ToastContext';
 import Layout from '../components/Layout';
@@ -69,16 +74,6 @@ export default function JobLeadDetail() {
   function formatDateTime(dateStr: string | null) {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleString();
-  }
-
-  function getStatusBadge(status: JobLead['status']) {
-    const colors = {
-      pending: 'bg-yellow-bright/20 text-yellow-bright',
-      extracted: 'bg-green-bright/20 text-green-bright',
-      failed: 'bg-red-bright/20 text-red-bright',
-      converted: 'bg-blue-bright/20 text-blue-bright',
-    };
-    return colors[status];
   }
 
   function getSourceBadge(source: string | null) {
@@ -154,7 +149,7 @@ export default function JobLeadDetail() {
             </div>
             <div className="flex flex-col items-end gap-2">
               <span
-                className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${getStatusBadge(jobLead.status)}`}
+                className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${getJobLeadStatusBadgeClass(jobLead.status)}`}
               >
                 <span className="h-2 w-2 rounded-full bg-current" />
                 {jobLead.status}
@@ -231,10 +226,11 @@ export default function JobLeadDetail() {
                 Salary Range
               </h3>
               <p className="text-primary font-medium">
-                {jobLead.salary_currency || 'USD'}{' '}
-                {jobLead.salary_min?.toLocaleString() || '???'}
-                {' - '}
-                {jobLead.salary_max?.toLocaleString() || '???'}
+                {formatSalaryRange(
+                  jobLead.salary_currency,
+                  jobLead.salary_min,
+                  jobLead.salary_max
+                )}
               </p>
             </div>
           )}
@@ -339,8 +335,10 @@ export default function JobLeadDetail() {
                 Experience Required
               </h3>
               <p className="text-primary font-medium">
-                {jobLead.years_experience_min ?? '?'}-
-                {jobLead.years_experience_max ?? '?'} years
+                {formatExperienceRange(
+                  jobLead.years_experience_min,
+                  jobLead.years_experience_max
+                )}
               </p>
             </div>
           )}
