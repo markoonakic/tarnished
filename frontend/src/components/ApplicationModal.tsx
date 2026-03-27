@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createApplication, updateApplication } from '../lib/applications';
 import {
   buildCreateApplicationPayload,
@@ -31,6 +31,7 @@ export default function ApplicationModal({
   application,
 }: ApplicationModalProps) {
   const isEditing = Boolean(application);
+  const initializedFormKeyRef = useRef<string | null>(null);
 
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,6 +53,26 @@ export default function ApplicationModal({
   const [requirementsMustHave, setRequirementsMustHave] = useState('');
   const [requirementsNiceToHave, setRequirementsNiceToHave] = useState('');
   const [source, setSource] = useState('');
+
+  function applyFormValues(
+    values: ReturnType<typeof getApplicationModalValues>
+  ) {
+    setCompany(values.company);
+    setJobTitle(values.jobTitle);
+    setJobDescription(values.jobDescription);
+    setJobUrl(values.jobUrl);
+    setStatusId(values.statusId);
+    setAppliedAt(values.appliedAt);
+    setSalaryMin(values.salaryMin);
+    setSalaryMax(values.salaryMax);
+    setSalaryCurrency(values.salaryCurrency);
+    setRecruiterName(values.recruiterName);
+    setRecruiterTitle(values.recruiterTitle);
+    setRecruiterLinkedinUrl(values.recruiterLinkedinUrl);
+    setRequirementsMustHave(values.requirementsMustHave);
+    setRequirementsNiceToHave(values.requirementsNiceToHave);
+    setSource(values.source);
+  }
 
   function handleJobUrlBlur() {
     if (jobUrl) {
@@ -80,47 +101,35 @@ export default function ApplicationModal({
 
   // Reset/populate form when modal opens
   useEffect(() => {
-    if (isOpen) {
-      setError('');
-      setJobUrlError('');
-
-      if (isEditing && application) {
-        const values = getApplicationModalValues(application);
-        setCompany(values.company);
-        setJobTitle(values.jobTitle);
-        setJobDescription(values.jobDescription);
-        setJobUrl(values.jobUrl);
-        setStatusId(values.statusId);
-        setAppliedAt(values.appliedAt);
-        setSalaryMin(values.salaryMin);
-        setSalaryMax(values.salaryMax);
-        setSalaryCurrency(values.salaryCurrency);
-        setRecruiterName(values.recruiterName);
-        setRecruiterTitle(values.recruiterTitle);
-        setRecruiterLinkedinUrl(values.recruiterLinkedinUrl);
-        setRequirementsMustHave(values.requirementsMustHave);
-        setRequirementsNiceToHave(values.requirementsNiceToHave);
-        setSource(values.source);
-      } else {
-        const values = getApplicationModalDefaults(statuses);
-        setCompany(values.company);
-        setJobTitle(values.jobTitle);
-        setJobDescription(values.jobDescription);
-        setJobUrl(values.jobUrl);
-        setStatusId(values.statusId);
-        setAppliedAt(values.appliedAt);
-        setSalaryMin(values.salaryMin);
-        setSalaryMax(values.salaryMax);
-        setSalaryCurrency(values.salaryCurrency);
-        setRecruiterName(values.recruiterName);
-        setRecruiterTitle(values.recruiterTitle);
-        setRecruiterLinkedinUrl(values.recruiterLinkedinUrl);
-        setRequirementsMustHave(values.requirementsMustHave);
-        setRequirementsNiceToHave(values.requirementsNiceToHave);
-        setSource(values.source);
-      }
+    if (!isOpen) {
+      initializedFormKeyRef.current = null;
+      return;
     }
+
+    const formKey = isEditing && application ? application.id : 'create';
+    if (initializedFormKeyRef.current === formKey) {
+      return;
+    }
+
+    setError('');
+    setJobUrlError('');
+
+    if (isEditing && application) {
+      applyFormValues(getApplicationModalValues(application));
+    } else {
+      applyFormValues(getApplicationModalDefaults(statuses));
+    }
+
+    initializedFormKeyRef.current = formKey;
   }, [isOpen, isEditing, application, statuses]);
+
+  useEffect(() => {
+    if (!isOpen || isEditing || statusId || statuses.length === 0) {
+      return;
+    }
+
+    setStatusId(getApplicationModalDefaults(statuses).statusId);
+  }, [isOpen, isEditing, statusId, statuses]);
 
   // Escape key handler
   useEffect(() => {
