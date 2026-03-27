@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 import { updateUser, deleteUser } from '../lib/admin';
+import {
+  buildUserUpdatePayload,
+  getEditUserModalState,
+} from '../lib/adminUserModalState';
 import type { AdminUser } from '../lib/admin';
 
 interface Props {
@@ -25,10 +29,11 @@ export default function EditUserModal({
   // Sync state with user prop
   useEffect(() => {
     if (user) {
-      setIsAdmin(user.is_admin);
-      setIsActive(user.is_active);
-      setPassword('');
-      setError('');
+      const initialState = getEditUserModalState(user);
+      setIsAdmin(initialState.isAdmin);
+      setIsActive(initialState.isActive);
+      setPassword(initialState.password);
+      setError(initialState.error);
     }
   }, [user]);
 
@@ -51,11 +56,10 @@ export default function EditUserModal({
     setError('');
 
     try {
-      await updateUser(user!.id, {
-        is_admin: isAdmin,
-        is_active: isActive,
-        ...(password ? { password } : {}),
-      });
+      await updateUser(
+        user!.id,
+        buildUserUpdatePayload({ isAdmin, isActive, password })
+      );
       onSuccess();
       onClose();
     } catch {
