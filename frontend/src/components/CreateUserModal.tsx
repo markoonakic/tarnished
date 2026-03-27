@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createUser } from '../lib/admin';
+import { getCreateUserModalState } from '../lib/adminUserModalState';
 
 interface Props {
   isOpen: boolean;
@@ -16,9 +17,10 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
   // Reset form when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
-      setEmail('');
-      setPassword('');
-      setError('');
+      const initialState = getCreateUserModalState();
+      setEmail(initialState.email);
+      setPassword(initialState.password);
+      setError(initialState.error);
     }
   }, [isOpen]);
 
