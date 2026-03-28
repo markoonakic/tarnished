@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useDeferredValue,
+  useRef,
+} from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { listUsers, getAdminStats, deleteUser } from '../lib/admin';
 import type { AdminUser, AdminStats } from '../lib/admin';
@@ -6,8 +12,8 @@ import { getAISettings, updateAISettings } from '../lib/aiSettings';
 import type { AISettingsResponse } from '../lib/aiSettings';
 import {
   buildAISettingsUpdatePayload,
-  createAdminUserSearchFilter,
   getAISettingsFormValues,
+  normalizeAdminUserSearchQuery,
 } from '../lib/adminPageState';
 import { useToast } from '../hooks/useToast';
 import Layout from '../components/Layout';
@@ -24,6 +30,7 @@ export default function Admin() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [aiSettings, setAiSettings] = useState<AISettingsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -41,12 +48,27 @@ export default function Admin() {
   const [aiBaseUrl, setAiBaseUrl] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
+  const latestAiSettings = useRef<AISettingsResponse | null>(null);
+  const hasLoadedData = useRef(false);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   const loadData = useCallback(async () => {
-    setLoading(true);
+    if (hasLoadedData.current) {
+      setUsersLoading(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
+      const normalizedSearchQuery = normalizeAdminUserSearchQuery(
+        deferredSearchQuery
+      );
       const [usersData, statsData, aiSettingsData] = await Promise.all([
-        listUsers({ page, per_page: perPage }),
+        listUsers({
+          page,
+          per_page: perPage,
+          query: normalizedSearchQuery,
+        }),
         getAdminStats(),
         getAISettings(),
       ]);
@@ -54,18 +76,34 @@ export default function Admin() {
       setTotalUsers(usersData.total);
       setTotalPages(usersData.total_pages);
       setStats(statsData);
-      setAiSettings(aiSettingsData);
 
-      const formValues = getAISettingsFormValues(aiSettingsData);
-      setAiModel(formValues.model);
-      setAiApiKey(formValues.apiKey);
-      setAiBaseUrl(formValues.baseUrl);
+      const shouldHydrateAiSettingsForm =
+        !latestAiSettings.current ||
+        latestAiSettings.current.litellm_model !== aiSettingsData.litellm_model ||
+        latestAiSettings.current.litellm_base_url !==
+          aiSettingsData.litellm_base_url ||
+        latestAiSettings.current.litellm_api_key_masked !==
+          aiSettingsData.litellm_api_key_masked;
+
+      setAiSettings(aiSettingsData);
+      latestAiSettings.current = aiSettingsData;
+
+      if (shouldHydrateAiSettingsForm) {
+        const formValues = getAISettingsFormValues(aiSettingsData);
+        setAiModel(formValues.model);
+        setAiApiKey(formValues.apiKey);
+        setAiBaseUrl(formValues.baseUrl);
+      }
+
+      setError('');
     } catch {
       setError('Failed to load admin data. You may not have admin privileges.');
     } finally {
       setLoading(false);
+      setUsersLoading(false);
+      hasLoadedData.current = true;
     }
-  }, [page, perPage]);
+  }, [deferredSearchQuery, page, perPage]);
 
   useEffect(() => {
     loadData();
@@ -74,6 +112,11 @@ export default function Admin() {
   function handlePerPageChange(newPerPage: number) {
     setPerPage(newPerPage);
     setPage(1); // Reset to first page when changing per-page
+  }
+
+  function handleSearchQueryChange(nextQuery: string) {
+    setSearchQuery(nextQuery);
+    setPage(1);
   }
 
   function formatDate(dateStr: string) {
@@ -89,7 +132,7 @@ export default function Admin() {
 
     try {
       await deleteUser(user.id);
-      loadData();
+      await loadData();
     } catch {
       setError('Failed to delete user');
     }
@@ -106,6 +149,7 @@ export default function Admin() {
 
       const updated = await updateAISettings(updateData);
       setAiSettings(updated);
+      latestAiSettings.current = updated;
       setAiApiKey(''); // Clear the API key field after save
       toast.success('AI settings saved successfully');
     } catch {
@@ -114,8 +158,6 @@ export default function Admin() {
       setSavingAi(false);
     }
   }
-
-  const filteredUsers = users.filter(createAdminUserSearchFilter(searchQuery));
 
   return (
     <Layout>
@@ -274,7 +316,12 @@ export default function Admin() {
 
             <section>
               <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <h2 className="text-primary text-xl font-bold">Users</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-primary text-xl font-bold">Users</h2>
+                  {usersLoading && (
+                    <span className="text-muted text-xs">Updating...</span>
+                  )}
+                </div>
                 <button
                   onClick={() => setShowCreateModal(true)}
                   className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
@@ -293,12 +340,12 @@ export default function Admin() {
                       type="text"
                       placeholder="Search by email..."
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => handleSearchQueryChange(e.target.value)}
                       className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                     />
                     {searchQuery && (
                       <button
-                        onClick={() => setSearchQuery('')}
+                        onClick={() => handleSearchQueryChange('')}
                         className="text-muted hover:text-fg1 absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
                         aria-label="Clear search"
                       >
@@ -347,27 +394,95 @@ export default function Admin() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredUsers.map((u, index) => (
-                      <tr
-                        key={u.id}
-                        className={`transition-colors duration-200 ${index < filteredUsers.length - 1 ? 'border-tertiary border-b' : ''}`}
-                      >
-                        <td className="text-primary px-4 py-3 text-sm">
+                    {users.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="text-muted px-4 py-8 text-center text-sm"
+                        >
+                          {searchQuery.trim()
+                            ? 'No users match this search.'
+                            : 'No users found.'}
+                        </td>
+                      </tr>
+                    ) : (
+                      users.map((u, index) => (
+                        <tr
+                          key={u.id}
+                          className={`transition-colors duration-200 ${index < users.length - 1 ? 'border-tertiary border-b' : ''}`}
+                        >
+                          <td className="text-primary px-4 py-3 text-sm">
+                            {u.email}
+                          </td>
+                          <td className="text-secondary px-4 py-3 text-sm">
+                            {formatDate(u.created_at)}
+                          </td>
+                          <td className="px-4 py-3 text-center text-sm">
+                            {u.is_admin ? (
+                              <span className="bg-purple-bright/20 text-purple-bright inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold">
+                                Admin
+                              </span>
+                            ) : (
+                              <span className="text-muted text-xs">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center text-sm">
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${
+                                u.is_active
+                                  ? 'bg-green-bright/20 text-green-bright'
+                                  : 'bg-red-bright/20 text-red-bright'
+                              }`}
+                            >
+                              {u.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-sm">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => setEditingUser(u)}
+                                className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
+                              >
+                                <i className="bi-pencil icon-xs"></i>
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(u)}
+                                className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
+                              >
+                                <i className="bi-trash icon-xs"></i>
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="mt-4 space-y-3 md:hidden">
+                {users.length === 0 ? (
+                  <div className="bg-secondary text-muted rounded-lg p-4 text-sm">
+                    {searchQuery.trim()
+                      ? 'No users match this search.'
+                      : 'No users found.'}
+                  </div>
+                ) : (
+                  users.map((u) => (
+                    <div key={u.id} className="bg-secondary rounded-lg p-4">
+                      <div className="mb-2 flex items-start justify-between gap-2">
+                        <span className="text-primary truncate text-sm font-medium">
                           {u.email}
-                        </td>
-                        <td className="text-secondary px-4 py-3 text-sm">
-                          {formatDate(u.created_at)}
-                        </td>
-                        <td className="px-4 py-3 text-center text-sm">
-                          {u.is_admin ? (
+                        </span>
+                        <div className="flex flex-shrink-0 items-center gap-1.5">
+                          {u.is_admin && (
                             <span className="bg-purple-bright/20 text-purple-bright inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold">
                               Admin
                             </span>
-                          ) : (
-                            <span className="text-muted text-xs">—</span>
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-center text-sm">
                           <span
                             className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${
                               u.is_active
@@ -377,77 +492,30 @@ export default function Admin() {
                           >
                             {u.is_active ? 'Active' : 'Inactive'}
                           </span>
-                        </td>
-                        <td className="px-4 py-3 text-right text-sm">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => setEditingUser(u)}
-                              className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
-                            >
-                              <i className="bi-pencil icon-xs"></i>
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteUser(u)}
-                              className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
-                            >
-                              <i className="bi-trash icon-xs"></i>
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile cards */}
-              <div className="mt-4 space-y-3 md:hidden">
-                {filteredUsers.map((u) => (
-                  <div key={u.id} className="bg-secondary rounded-lg p-4">
-                    <div className="mb-2 flex items-start justify-between gap-2">
-                      <span className="text-primary truncate text-sm font-medium">
-                        {u.email}
-                      </span>
-                      <div className="flex flex-shrink-0 items-center gap-1.5">
-                        {u.is_admin && (
-                          <span className="bg-purple-bright/20 text-purple-bright inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold">
-                            Admin
-                          </span>
-                        )}
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${
-                            u.is_active
-                              ? 'bg-green-bright/20 text-green-bright'
-                              : 'bg-red-bright/20 text-red-bright'
-                          }`}
+                        </div>
+                      </div>
+                      <div className="text-secondary mb-3 text-xs">
+                        Joined {formatDate(u.created_at)}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingUser(u)}
+                          className="text-fg1 hover:bg-bg2 hover:text-fg0 flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded bg-transparent px-3 py-2 text-xs transition-all duration-200 ease-in-out"
                         >
-                          {u.is_active ? 'Active' : 'Inactive'}
-                        </span>
+                          <i className="bi-pencil icon-xs"></i>
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(u)}
+                          className="text-red hover:bg-bg2 hover:text-red-bright flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded bg-transparent px-3 py-2 text-xs transition-all duration-200 ease-in-out"
+                        >
+                          <i className="bi-trash icon-xs"></i>
+                          Delete
+                        </button>
                       </div>
                     </div>
-                    <div className="text-secondary mb-3 text-xs">
-                      Joined {formatDate(u.created_at)}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setEditingUser(u)}
-                        className="text-fg1 hover:bg-bg2 hover:text-fg0 flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded bg-transparent px-3 py-2 text-xs transition-all duration-200 ease-in-out"
-                      >
-                        <i className="bi-pencil icon-xs"></i>
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(u)}
-                        className="text-red hover:bg-bg2 hover:text-red-bright flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded bg-transparent px-3 py-2 text-xs transition-all duration-200 ease-in-out"
-                      >
-                        <i className="bi-trash icon-xs"></i>
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
               {/* Pagination */}

@@ -22,6 +22,7 @@ export interface AdminUserListResponse {
 export async function listUsers(params?: {
   page?: number;
   per_page?: number;
+  query?: string;
 }): Promise<AdminUserListResponse> {
   const response = await api.get('/api/admin/users', { params });
   return response.data;

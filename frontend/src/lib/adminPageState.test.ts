@@ -2,20 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildAISettingsUpdatePayload,
-  createAdminUserSearchFilter,
   getAISettingsFormValues,
+  normalizeAdminUserSearchQuery,
 } from './adminPageState';
 
 describe('admin page state helpers', () => {
-  it('filters admin users case-insensitively by email', () => {
-    const users = [
-      { id: '1', email: 'alice@example.com' },
-      { id: '2', email: 'bob@example.com' },
-    ];
-
-    expect(users.filter(createAdminUserSearchFilter('ALICE'))).toEqual([
-      users[0],
-    ]);
+  it('normalizes admin user search queries for backend requests', () => {
+    expect(normalizeAdminUserSearchQuery('  alice@example.com  ')).toBe(
+      'alice@example.com'
+    );
+    expect(normalizeAdminUserSearchQuery('   ')).toBeUndefined();
   });
 
   it('hydrates ai settings form values without exposing the stored key', () => {

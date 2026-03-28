@@ -1,17 +1,15 @@
 import type { AISettingsResponse } from './aiSettings';
-import type { AdminUser } from './admin';
-
 export type AISettingsFormValues = {
   model: string;
   apiKey: string;
   baseUrl: string;
 };
 
-export function createAdminUserSearchFilter(query: string) {
-  const normalizedQuery = query.trim().toLowerCase();
-
-  return (user: Pick<AdminUser, 'email'>): boolean =>
-    user.email.toLowerCase().includes(normalizedQuery);
+export function normalizeAdminUserSearchQuery(
+  query: string
+): string | undefined {
+  const normalizedQuery = query.trim();
+  return normalizedQuery || undefined;
 }
 
 export function getAISettingsFormValues(

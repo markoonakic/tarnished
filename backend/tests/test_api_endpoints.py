@@ -1321,6 +1321,51 @@ class TestSettingsAPIKeyRegenerate:
 
 
 # ============================================================================
+# Admin Users API Tests
+# ============================================================================
+
+
+class TestAdminUsersList:
+    """Tests for GET /api/admin/users endpoint."""
+
+    async def test_list_users_filters_by_email_query(
+        self,
+        client: AsyncClient,
+        admin_auth_headers: dict,
+        db: AsyncSession,
+    ):
+        db.add_all(
+            [
+                User(
+                    email="alice@example.com",
+                    password_hash=get_password_hash("password123"),
+                    is_admin=False,
+                    is_active=True,
+                ),
+                User(
+                    email="bob@example.com",
+                    password_hash=get_password_hash("password123"),
+                    is_admin=False,
+                    is_active=True,
+                ),
+            ]
+        )
+        await db.commit()
+
+        response = await client.get(
+            "/api/admin/users?query=%20ALICE%20",
+            headers=admin_auth_headers,
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["total"] == 1
+        assert data["total_pages"] == 1
+        assert [item["email"] for item in data["items"]] == ["alice@example.com"]
+
+
+# ============================================================================
 # Admin AI Settings API Tests
 # ============================================================================
 
