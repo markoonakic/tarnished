@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 from typing import Any, Callable, Literal
 
 import httpx
@@ -79,6 +80,7 @@ class TarnishedClient:
         *,
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
+        files: dict[str, Any] | None = None,
         auth: AuthMode = "jwt",
         allow_refresh: bool = True,
     ) -> httpx.Response:
@@ -87,6 +89,7 @@ class TarnishedClient:
             path,
             params=params,
             json=json_body,
+            files=files,
             headers=self._build_auth_headers(auth),
         )
 
@@ -103,6 +106,7 @@ class TarnishedClient:
                 path,
                 params=params,
                 json_body=json_body,
+                files=files,
                 auth=auth,
                 allow_refresh=False,
             )
@@ -158,6 +162,64 @@ class TarnishedClient:
 
     def delete(self, path: str, *, auth: AuthMode = "jwt") -> None:
         self.request("DELETE", path, auth=auth)
+
+    def delete_json(self, path: str, *, auth: AuthMode = "jwt") -> Any:
+        return self._decode_response(self.request("DELETE", path, auth=auth))
+
+    def post_file_json(
+        self,
+        path: str,
+        *,
+        file_path: Path,
+        field_name: str = "file",
+        auth: AuthMode = "jwt",
+        content_type: str | None = None,
+        allow_refresh: bool = True,
+    ) -> Any:
+        with file_path.open("rb") as handle:
+            file_tuple: tuple[str, Any] | tuple[str, Any, str]
+            if content_type is None:
+                file_tuple = (file_path.name, handle)
+            else:
+                file_tuple = (file_path.name, handle, content_type)
+            response = self._client.request(
+                "POST",
+                path,
+                files={field_name: file_tuple},
+                headers=self._build_auth_headers(auth),
+            )
+
+        if (
+            response.status_code == 401
+            and allow_refresh
+            and auth in {"jwt", "flexible"}
+            and self.access_token
+            and self.refresh_token
+        ):
+            self.refresh_session()
+            return self.post_file_json(
+                path,
+                file_path=file_path,
+                field_name=field_name,
+                auth=auth,
+                content_type=content_type,
+                allow_refresh=False,
+            )
+
+        if response.is_error:
+            raise self._to_api_error(response)
+
+        return self._decode_response(response)
+
+    def get_bytes(
+        self,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        auth: AuthMode = "jwt",
+    ) -> tuple[bytes, httpx.Headers]:
+        response = self.request("GET", path, params=params, auth=auth)
+        return response.content, response.headers
 
     def refresh_session(self) -> None:
         if not self.refresh_token:

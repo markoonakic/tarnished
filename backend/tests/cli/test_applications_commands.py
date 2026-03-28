@@ -14,6 +14,11 @@ class FakeApplicationsClient:
             return {"sources": ["LinkedIn"]}
         if path == "/api/applications/app-123/history":
             return [{"id": "hist-1"}]
+        if path in {
+            "/api/files/app-123/cv/signed",
+            "/api/files/app-123/cover-letter/signed",
+        }:
+            return {"url": "/signed/file", "expires_in": 300}
         raise AssertionError(f"Unexpected GET path: {path}")
 
     def post_json(self, path, *, body, auth="jwt"):
@@ -34,6 +39,45 @@ class FakeApplicationsClient:
             "/api/applications/app-123",
             "/api/applications/app-123/history/hist-1",
         }
+
+    def delete_json(self, path, *, auth="jwt"):
+        assert auth == "jwt"
+        assert path in {
+            "/api/applications/app-123/cv",
+            "/api/applications/app-123/cover-letter",
+        }
+        return {"id": "app-123", "cv_path": None, "cover_letter_path": None}
+
+    def post_file_json(
+        self,
+        path,
+        *,
+        file_path,
+        field_name="file",
+        auth="jwt",
+        content_type=None,
+        allow_refresh=True,
+    ):
+        assert auth == "jwt"
+        assert field_name == "file"
+        assert file_path.exists()
+        assert path in {
+            "/api/applications/app-123/cv",
+            "/api/applications/app-123/cover-letter",
+        }
+        return {
+            "id": "app-123",
+            "cv_path": "uploads/file.bin",
+            "cover_letter_path": "uploads/file.bin",
+        }
+
+    def get_bytes(self, path, *, params=None, auth="jwt"):
+        assert auth == "jwt"
+        assert path in {
+            "/api/files/app-123/cv",
+            "/api/files/app-123/cover-letter",
+        }
+        return (b"document-bytes", {"Content-Type": "application/pdf"})
 
 
 def test_applications_list_emits_json(runner, cli_config_dir, monkeypatch):
@@ -96,3 +140,42 @@ def test_applications_delete_requires_yes(runner, cli_config_dir):
     assert result.exit_code != 0
     combined = result.output + result.stderr
     assert "--yes" in combined
+
+
+def test_applications_cv_upload_posts_file(
+    runner, cli_config_dir, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        state_module.AppState,
+        "build_client",
+        lambda self, auth_required=True, transport=None: FakeApplicationsClient(),
+    )
+    resume = tmp_path / "resume.pdf"
+    resume.write_bytes(b"%PDF-1.4")
+
+    result = runner.invoke(
+        app,
+        ["applications", "cv", "upload", "app-123", "--file", str(resume)],
+    )
+
+    assert result.exit_code == 0
+    assert '"id": "app-123"' in result.stdout
+
+
+def test_applications_cv_download_writes_file(
+    runner, cli_config_dir, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        state_module.AppState,
+        "build_client",
+        lambda self, auth_required=True, transport=None: FakeApplicationsClient(),
+    )
+    output = tmp_path / "resume.pdf"
+
+    result = runner.invoke(
+        app,
+        ["applications", "cv", "download", "app-123", "--output", str(output)],
+    )
+
+    assert result.exit_code == 0
+    assert output.read_bytes() == b"document-bytes"

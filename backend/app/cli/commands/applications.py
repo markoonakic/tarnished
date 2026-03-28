@@ -10,7 +10,11 @@ from app.schemas.application import ApplicationCreate, ApplicationUpdate
 
 app = typer.Typer(help="Manage job applications.")
 history_app = typer.Typer(help="Inspect and modify application history.")
+cv_app = typer.Typer(help="Manage CV documents.")
+cover_letter_app = typer.Typer(help="Manage cover-letter documents.")
 app.add_typer(history_app, name="history")
+app.add_typer(cv_app, name="cv")
+app.add_typer(cover_letter_app, name="cover-letter")
 
 
 @app.command("list")
@@ -162,3 +166,192 @@ def delete_history_entry(
         )
     except CLIError as exc:
         exit_for_error(state, exc)
+
+
+def _upload_document(
+    ctx: typer.Context,
+    *,
+    application_id: str,
+    file_path: Path,
+    doc_type: str,
+) -> None:
+    state = get_state(ctx)
+    try:
+        payload = state.build_client().post_file_json(
+            f"/api/applications/{application_id}/{doc_type}",
+            file_path=file_path,
+            auth="jwt",
+        )
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+def _delete_document(
+    ctx: typer.Context,
+    *,
+    application_id: str,
+    doc_type: str,
+    yes: bool,
+) -> None:
+    state = get_state(ctx)
+    require_yes(yes, resource=f"{doc_type} for application {application_id}")
+    try:
+        payload = state.build_client().delete_json(
+            f"/api/applications/{application_id}/{doc_type}",
+            auth="jwt",
+        )
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+def _get_document_url(
+    ctx: typer.Context,
+    *,
+    application_id: str,
+    doc_type: str,
+    disposition: str,
+) -> None:
+    state = get_state(ctx)
+    try:
+        payload = state.build_client().get_json(
+            f"/api/files/{application_id}/{doc_type}/signed",
+            params={"disposition": disposition},
+            auth="jwt",
+        )
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+def _download_document(
+    ctx: typer.Context,
+    *,
+    application_id: str,
+    doc_type: str,
+    output: Path,
+    disposition: str,
+) -> None:
+    state = get_state(ctx)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        content, _headers = state.build_client().get_bytes(
+            f"/api/files/{application_id}/{doc_type}",
+            params={"disposition": disposition},
+            auth="jwt",
+        )
+        output.write_bytes(content)
+        emit_result(
+            state,
+            {"output_path": str(output), "bytes": len(content)},
+            text=f"Downloaded {doc_type} to {output}",
+        )
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+@cv_app.command("upload")
+def upload_cv(
+    ctx: typer.Context,
+    application_id: str,
+    file_path: Path = typer.Option(..., "--file", exists=True, dir_okay=False),
+) -> None:
+    _upload_document(ctx, application_id=application_id, file_path=file_path, doc_type="cv")
+
+
+@cv_app.command("delete")
+def delete_cv(
+    ctx: typer.Context,
+    application_id: str,
+    yes: bool = typer.Option(False, "--yes"),
+) -> None:
+    _delete_document(ctx, application_id=application_id, doc_type="cv", yes=yes)
+
+
+@cv_app.command("url")
+def get_cv_url(
+    ctx: typer.Context,
+    application_id: str,
+    disposition: str = typer.Option("attachment"),
+) -> None:
+    _get_document_url(
+        ctx,
+        application_id=application_id,
+        doc_type="cv",
+        disposition=disposition,
+    )
+
+
+@cv_app.command("download")
+def download_cv(
+    ctx: typer.Context,
+    application_id: str,
+    output: Path = typer.Option(..., "--output"),
+    disposition: str = typer.Option("attachment"),
+) -> None:
+    _download_document(
+        ctx,
+        application_id=application_id,
+        doc_type="cv",
+        output=output,
+        disposition=disposition,
+    )
+
+
+@cover_letter_app.command("upload")
+def upload_cover_letter(
+    ctx: typer.Context,
+    application_id: str,
+    file_path: Path = typer.Option(..., "--file", exists=True, dir_okay=False),
+) -> None:
+    _upload_document(
+        ctx,
+        application_id=application_id,
+        file_path=file_path,
+        doc_type="cover-letter",
+    )
+
+
+@cover_letter_app.command("delete")
+def delete_cover_letter(
+    ctx: typer.Context,
+    application_id: str,
+    yes: bool = typer.Option(False, "--yes"),
+) -> None:
+    _delete_document(
+        ctx,
+        application_id=application_id,
+        doc_type="cover-letter",
+        yes=yes,
+    )
+
+
+@cover_letter_app.command("url")
+def get_cover_letter_url(
+    ctx: typer.Context,
+    application_id: str,
+    disposition: str = typer.Option("attachment"),
+) -> None:
+    _get_document_url(
+        ctx,
+        application_id=application_id,
+        doc_type="cover-letter",
+        disposition=disposition,
+    )
+
+
+@cover_letter_app.command("download")
+def download_cover_letter(
+    ctx: typer.Context,
+    application_id: str,
+    output: Path = typer.Option(..., "--output"),
+    disposition: str = typer.Option("attachment"),
+) -> None:
+    _download_document(
+        ctx,
+        application_id=application_id,
+        doc_type="cover-letter",
+        output=output,
+        disposition=disposition,
+    )

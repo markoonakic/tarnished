@@ -12,6 +12,8 @@ from app.cli.commands import (
     dashboard,
     job_leads,
     profile,
+    round_types,
+    rounds,
     statuses,
 )
 from app.cli.state import AppState
@@ -30,6 +32,8 @@ app.add_typer(applications.app, name="applications")
 app.add_typer(job_leads.app, name="job-leads")
 app.add_typer(profile.app, name="profile")
 app.add_typer(statuses.app, name="statuses")
+app.add_typer(round_types.app, name="round-types")
+app.add_typer(rounds.app, name="rounds")
 app.add_typer(dashboard.app, name="dashboard")
 app.add_typer(analytics.app, name="analytics")
 
