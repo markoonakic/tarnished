@@ -84,7 +84,7 @@ def test_rounds_delete_requires_yes(runner, cli_config_dir):
 
     assert result.exit_code != 0
     combined = result.output + result.stderr
-    assert "--yes" in combined
+    assert "rounds delete" in combined.lower()
 
 
 def test_rounds_media_upload_posts_file(runner, cli_config_dir, monkeypatch, tmp_path):

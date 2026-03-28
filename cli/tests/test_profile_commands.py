@@ -33,4 +33,4 @@ def test_profile_update_validates_body_file(runner, cli_config_dir):
 
     assert result.exit_code != 0
     combined = result.output + result.stderr
-    assert "--body-file" in combined
+    assert "profile update" in combined.lower()

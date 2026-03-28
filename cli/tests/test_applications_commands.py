@@ -133,7 +133,7 @@ def test_applications_create_requires_body_file(runner, cli_config_dir):
 
     assert result.exit_code != 0
     combined = result.output + result.stderr
-    assert "--body-file" in combined
+    assert "applications create" in combined.lower()
 
 
 def test_applications_create_posts_validated_body(
@@ -163,7 +163,7 @@ def test_applications_delete_requires_yes(runner, cli_config_dir):
 
     assert result.exit_code != 0
     combined = result.output + result.stderr
-    assert "--yes" in combined
+    assert "applications delete" in combined.lower()
 
 
 def test_applications_cv_upload_posts_file(

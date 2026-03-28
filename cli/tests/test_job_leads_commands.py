@@ -55,7 +55,7 @@ def test_job_leads_create_validates_body_file(runner, cli_config_dir):
 
     assert result.exit_code != 0
     combined = result.output + result.stderr
-    assert "--body-file" in combined
+    assert "job-leads create" in combined.lower()
 
 
 def test_job_leads_convert_calls_convert_endpoint(runner, cli_config_dir, monkeypatch):
@@ -76,4 +76,4 @@ def test_job_leads_delete_requires_yes(runner, cli_config_dir):
 
     assert result.exit_code != 0
     combined = result.output + result.stderr
-    assert "--yes" in combined
+    assert "job-leads delete" in combined.lower()

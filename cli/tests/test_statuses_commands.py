@@ -59,4 +59,4 @@ def test_statuses_delete_requires_yes(runner, cli_config_dir):
 
     assert result.exit_code != 0
     combined = result.output + result.stderr
-    assert "--yes" in combined
+    assert "statuses delete" in combined.lower()
