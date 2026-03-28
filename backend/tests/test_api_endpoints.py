@@ -628,7 +628,9 @@ class TestApplicationsWrite:
                     )
                 ),
             ),
-            patch("app.api.applications.extract_job_data", new_callable=AsyncMock) as mock_extract,
+            patch(
+                "app.api.applications.extract_job_data", new_callable=AsyncMock
+            ) as mock_extract,
         ):
             from app.schemas.job_lead import JobLeadExtractionInput
 
@@ -696,9 +698,7 @@ class TestJobLeadConversion:
         application = response.json()
         assert application["job_lead_id"] == test_job_lead.id
 
-        result = await db.execute(
-            select(JobLead).where(JobLead.id == test_job_lead.id)
-        )
+        result = await db.execute(select(JobLead).where(JobLead.id == test_job_lead.id))
         refreshed_lead = result.scalar_one()
         assert refreshed_lead.converted_to_application_id == application["id"]
         assert refreshed_lead.status == "converted"
@@ -854,7 +854,9 @@ class TestJobLeadsCreate:
                     )
                 ),
             ),
-            patch("app.api.job_leads.extract_job_data", new_callable=AsyncMock) as mock_extract,
+            patch(
+                "app.api.job_leads.extract_job_data", new_callable=AsyncMock
+            ) as mock_extract,
         ):
             from app.schemas.job_lead import JobLeadExtractionInput
 
@@ -1153,7 +1155,9 @@ class TestJobLeadsRetry:
 
         await db.refresh(failed_job_lead)
         assert failed_job_lead.status == "failed"
-        assert failed_job_lead.error_message == "Retry failed: Invalid extracted payload"
+        assert (
+            failed_job_lead.error_message == "Retry failed: Invalid extracted payload"
+        )
 
 
 # ============================================================================

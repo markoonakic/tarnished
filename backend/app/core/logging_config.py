@@ -13,6 +13,7 @@ import sys
 # Only import json logger if available (graceful fallback)
 try:
     from pythonjsonlogger import json
+
     JSON_LOGGER_AVAILABLE = True
 except ImportError:
     JSON_LOGGER_AVAILABLE = False
@@ -25,7 +26,9 @@ def setup_logging(log_level: str | None = None) -> None:
         log_level: Optional log level override (DEBUG, INFO, WARNING, ERROR)
     """
     env = os.getenv("ENV", "development").lower()
-    level = log_level or os.getenv("LOG_LEVEL", "INFO" if env == "production" else "DEBUG")
+    level = log_level or os.getenv(
+        "LOG_LEVEL", "INFO" if env == "production" else "DEBUG"
+    )
     numeric_level = getattr(logging, level.upper(), logging.INFO)
 
     # Get root logger
@@ -48,13 +51,13 @@ def setup_logging(log_level: str | None = None) -> None:
                 "asctime": "timestamp",
                 "levelname": "level",
                 "name": "logger",
-            }
+            },
         )
     else:
         # Human-readable formatter for development
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
 
     console_handler.setFormatter(formatter)

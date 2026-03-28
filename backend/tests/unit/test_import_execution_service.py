@@ -62,7 +62,9 @@ async def test_import_payload_data_maps_new_format_counts(db):
 
 @pytest.mark.asyncio
 async def test_import_payload_data_imports_legacy_custom_metadata(db):
-    user = User(email="legacy-import-exec@example.com", password_hash="hashed", is_active=True)
+    user = User(
+        email="legacy-import-exec@example.com", password_hash="hashed", is_active=True
+    )
     db.add(user)
     await db.commit()
     await db.refresh(user)
@@ -70,7 +72,12 @@ async def test_import_payload_data_imports_legacy_custom_metadata(db):
     data = {
         "user": {"email": "legacy@example.com"},
         "custom_statuses": [
-            {"name": "Custom Status", "color": "#123456", "is_default": False, "order": 3}
+            {
+                "name": "Custom Status",
+                "color": "#123456",
+                "is_default": False,
+                "order": 3,
+            }
         ],
         "custom_round_types": [{"name": "Panel", "is_default": False}],
         "applications": [],
@@ -78,7 +85,9 @@ async def test_import_payload_data_imports_legacy_custom_metadata(db):
 
     with patch(
         "app.services.import_execution.import_applications",
-        new=AsyncMock(return_value={"applications": 0, "rounds": 0, "status_history": 0}),
+        new=AsyncMock(
+            return_value={"applications": 0, "rounds": 0, "status_history": 0}
+        ),
     ):
         result = await import_payload_data(
             db,
@@ -89,7 +98,9 @@ async def test_import_payload_data_imports_legacy_custom_metadata(db):
         )
 
     statuses = await db.execute(
-        __import__("sqlalchemy").select(ApplicationStatus).where(ApplicationStatus.user_id == user.id)
+        __import__("sqlalchemy")
+        .select(ApplicationStatus)
+        .where(ApplicationStatus.user_id == user.id)
     )
     round_types = await db.execute(
         __import__("sqlalchemy").select(RoundType).where(RoundType.user_id == user.id)
@@ -113,13 +124,16 @@ def test_extract_import_file_mapping_uses_new_format_manifest(tmp_path):
         zipf.writestr("manifest.json", json.dumps(manifest))
         zipf.writestr("data.json", data_json)
 
-    with patch(
-        "app.services.import_execution.extract_files_from_new_format",
-        return_value={"old": "new"},
-    ) as new_format_extract, patch(
-        "app.services.import_execution.extract_files_from_zip",
-        return_value={"old": "legacy"},
-    ) as legacy_extract:
+    with (
+        patch(
+            "app.services.import_execution.extract_files_from_new_format",
+            return_value={"old": "new"},
+        ) as new_format_extract,
+        patch(
+            "app.services.import_execution.extract_files_from_zip",
+            return_value={"old": "legacy"},
+        ) as legacy_extract,
+    ):
         result = extract_import_file_mapping(str(zip_path), "user-1", data)
 
     new_format_extract.assert_called_once_with(str(zip_path), "user-1")

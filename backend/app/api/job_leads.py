@@ -49,14 +49,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/job-leads", tags=["job-leads"])
 
+
 @router.get("", response_model=JobLeadListResponse)
 async def list_job_leads(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     status_filter: str | None = Query(None, alias="status"),
-    search: str | None = Query(
-        None, description="Search by company, title, or URL"
-    ),
+    search: str | None = Query(None, description="Search by company, title, or URL"),
     source: str | None = Query(None, description="Filter by exact source"),
     sort: str = Query("newest", pattern="^(newest|oldest)$"),
     user: User = Depends(get_current_user_flexible),

@@ -146,7 +146,9 @@ def validate_file(file_path: Path, allowed_types: set) -> tuple[bool, str]:
         Tuple of (is_valid, detected_mime_type)
     """
     if magic is None:
-        logger.warning("libmagic unavailable, skipping MIME validation for %s", file_path)
+        logger.warning(
+            "libmagic unavailable, skipping MIME validation for %s", file_path
+        )
         return True, "application/octet-stream"
 
     detected = magic.from_file(str(file_path), mime=True)

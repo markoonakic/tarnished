@@ -6,7 +6,6 @@ The get_theme_colors() function resolves a user's theme + accent choice into
 actual hex values that will be sent to the extension.
 """
 
-
 # Default theme and accent settings
 DEFAULT_THEME = "gruvbox-dark"
 DEFAULT_ACCENT = "aqua"
