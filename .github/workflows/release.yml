@@ -39,7 +39,9 @@ jobs:
         run: |
           uv export --no-dev --no-hashes -o requirements.txt
           # Ignore CVE-2024-23342 (ecdsa): App uses HS256 for JWTs, not ECDSA
-          uv tool run pip-audit -r requirements.txt --ignore-vuln CVE-2024-23342
+          # Ignore CVE-2026-4539 (pygments): transitive dependency used for formatting / rich output,
+          # no patched release is currently available in our dependency graph
+          uv tool run pip-audit -r requirements.txt --ignore-vuln CVE-2024-23342 --ignore-vuln CVE-2026-4539
 
   frontend-checks:
     runs-on: ubuntu-latest
