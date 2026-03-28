@@ -17,7 +17,6 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import (
     get_current_user,
-    get_current_user_by_api_token,
     get_current_user_flexible,
 )
 from app.models import (
@@ -36,6 +35,7 @@ from app.schemas.application import (
     ApplicationUpdate,
 )
 from app.schemas.errors import ErrorCode, make_error_response
+from app.services.ai_settings import get_ai_settings
 from app.services.extraction import (
     ExtractionAuthError,
     ExtractionError,
@@ -44,7 +44,6 @@ from app.services.extraction import (
     NoJobFoundError,
     extract_job_data,
 )
-from app.services.ai_settings import get_ai_settings
 from app.services.job_fetch import fetch_job_posting_html
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
@@ -204,12 +203,13 @@ async def create_application(
 )
 async def create_application_from_url(
     data: ApplicationExtractRequest,
-    user: User = Depends(get_current_user_by_api_token),
+    user: User = Depends(get_current_user_flexible),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Extract job data from a URL using LLM and create an application.
-    This provides the same extraction quality as job leads.
+    This provides the same extraction quality as job leads and can be used
+    from JWT-backed sessions as well as API-token-based clients.
     """
     # 1. Validate status exists
     result = await db.execute(

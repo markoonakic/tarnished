@@ -3,6 +3,7 @@ set -eu
 
 ROOT="$(git rev-parse --show-toplevel)"
 BACKEND_BIN="$ROOT/backend/.venv/bin"
+CLI_BIN="$ROOT/cli/.venv/bin"
 FRONTEND_BIN="$ROOT/frontend/node_modules/.bin"
 EXTENSION_BIN="$ROOT/extension/node_modules/.bin"
 
@@ -28,19 +29,36 @@ backend_changed_python_files() {
   printf '%s\n' "$CHANGED_FILES" | grep -E '^backend/.*\.py$' || true
 }
 
+cli_changed_python_files() {
+  printf '%s\n' "$CHANGED_FILES" | grep -E '^cli/.*\.py$' || true
+}
+
 echo "Running pre-push checks..."
 
 if has_changes '^backend/'; then
   require_executable "$BACKEND_BIN/ruff"
   require_executable "$BACKEND_BIN/pyright"
   BACKEND_CHANGED="$(backend_changed_python_files)"
+  cd "$ROOT/backend"
   if [ -n "$BACKEND_CHANGED" ]; then
     echo ">> Backend: ruff check (changed files)"
     printf '%s\n' "$BACKEND_CHANGED" | sed "s#^backend/##" | xargs "$BACKEND_BIN/ruff" check
   fi
   echo ">> Backend: pyright"
-  cd "$ROOT/backend"
   "$BACKEND_BIN/pyright"
+fi
+
+if has_changes '^cli/'; then
+  require_executable "$CLI_BIN/ruff"
+  require_executable "$CLI_BIN/pyright"
+  CLI_CHANGED="$(cli_changed_python_files)"
+  cd "$ROOT/cli"
+  if [ -n "$CLI_CHANGED" ]; then
+    echo ">> CLI: ruff check (changed files)"
+    printf '%s\n' "$CLI_CHANGED" | sed "s#^cli/##" | xargs "$CLI_BIN/ruff" check
+  fi
+  echo ">> CLI: pyright"
+  "$CLI_BIN/pyright" src tests
 fi
 
 if has_changes '^frontend/'; then

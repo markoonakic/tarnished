@@ -43,7 +43,9 @@ def create_refresh_token(data: dict) -> str:
 def decode_token(token: str) -> dict | None:
     """Decode and validate a JWT token, returning payload or None."""
     try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
+        )
         return payload
     except JWTError:
         return None
@@ -65,7 +67,9 @@ def create_file_token(application_id: str, doc_type: str, user_id: str) -> str:
 def decode_file_token(token: str) -> dict | None:
     """Decode and validate a file access token."""
     try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
+        )
         if payload.get("type") != "file":
             return None
         return payload
@@ -88,7 +92,9 @@ def create_media_token(media_id: str, user_id: str) -> str:
 def decode_media_token(token: str) -> dict | None:
     """Decode and validate a media access token."""
     try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
+        )
         if payload.get("type") != "media":
             return None
         return payload
@@ -111,7 +117,9 @@ def create_round_transcript_token(round_id: str, user_id: str) -> str:
 def decode_round_transcript_token(token: str) -> dict | None:
     """Decode and validate a round transcript access token."""
     try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
+        )
         if payload.get("type") != "round_transcript":
             return None
         return payload
