@@ -6,7 +6,11 @@ from app.cli.client import CLIError
 from app.cli.input import load_model_body, require_yes
 from app.cli.output import emit_result, exit_for_error
 from app.cli.state import get_state
-from app.schemas.application import ApplicationCreate, ApplicationUpdate
+from app.schemas.application import (
+    ApplicationCreate,
+    ApplicationExtractRequest,
+    ApplicationUpdate,
+)
 
 app = typer.Typer(help="Manage job applications.")
 history_app = typer.Typer(help="Inspect and modify application history.")
@@ -73,6 +77,24 @@ def create_application(
     try:
         payload = state.build_client().post_json(
             "/api/applications",
+            body=body,
+            auth="flexible",
+        )
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+@app.command("extract")
+def extract_application(
+    ctx: typer.Context,
+    body_file: Path = typer.Option(..., "--body-file", exists=True),
+) -> None:
+    state = get_state(ctx)
+    body = load_model_body(body_file, ApplicationExtractRequest)
+    try:
+        payload = state.build_client().post_json(
+            "/api/applications/extract",
             body=body,
             auth="flexible",
         )

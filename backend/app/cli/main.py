@@ -14,10 +14,12 @@ from app.cli.commands import (
     exports,
     imports,
     job_leads,
+    preferences,
     profile,
     round_types,
     rounds,
     statuses,
+    user_settings,
 )
 from app.cli.state import AppState
 
@@ -38,6 +40,8 @@ app.add_typer(profile.app, name="profile")
 app.add_typer(statuses.app, name="statuses")
 app.add_typer(round_types.app, name="round-types")
 app.add_typer(rounds.app, name="rounds")
+app.add_typer(user_settings.app, name="user-settings")
+app.add_typer(preferences.app, name="preferences")
 app.add_typer(exports.app, name="export")
 app.add_typer(imports.app, name="import")
 app.add_typer(dashboard.app, name="dashboard")

@@ -1,8 +1,12 @@
+from pathlib import Path
+
 import typer
 
 from app.cli.client import CLIError
+from app.cli.input import load_model_body
 from app.cli.output import emit_result, exit_for_error
 from app.cli.state import get_state
+from app.schemas.insights import InsightsRequest
 
 app = typer.Typer(help="Read analytics data.")
 
@@ -80,6 +84,33 @@ def get_interview_rounds(
         payload = state.build_client().get_json(
             "/api/analytics/interview-rounds",
             params=params,
+        )
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+@app.command("insights-configured")
+def get_insights_configured(ctx: typer.Context) -> None:
+    state = get_state(ctx)
+    try:
+        payload = state.build_client().get_json("/api/analytics/insights/configured")
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+@app.command("insights")
+def get_insights(
+    ctx: typer.Context,
+    body_file: Path = typer.Option(..., "--body-file", exists=True),
+) -> None:
+    state = get_state(ctx)
+    body = load_model_body(body_file, InsightsRequest)
+    try:
+        payload = state.build_client().post_json(
+            "/api/analytics/insights",
+            body=body,
         )
         emit_result(state, payload)
     except CLIError as exc:

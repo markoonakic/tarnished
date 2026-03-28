@@ -22,10 +22,15 @@ class FakeApplicationsClient:
         raise AssertionError(f"Unexpected GET path: {path}")
 
     def post_json(self, path, *, body, auth="jwt"):
-        assert path == "/api/applications"
-        assert auth == "flexible"
-        assert body["company"] == "Tarnished"
-        return {"id": "app-123", "company": body["company"], "job_title": body["job_title"]}
+        if path == "/api/applications":
+            assert auth == "flexible"
+            assert body["company"] == "Tarnished"
+            return {"id": "app-123", "company": body["company"], "job_title": body["job_title"]}
+        if path == "/api/applications/extract":
+            assert auth == "flexible"
+            assert body["url"] == "https://example.com/job"
+            return {"id": "app-123", "company": "Tarnished", "job_title": "Extracted Role"}
+        raise AssertionError(f"Unexpected POST path: {path}")
 
     def patch_json(self, path, *, body, auth="jwt"):
         assert path == "/api/applications/app-123"
@@ -179,3 +184,25 @@ def test_applications_cv_download_writes_file(
 
     assert result.exit_code == 0
     assert output.read_bytes() == b"document-bytes"
+
+
+def test_applications_extract_posts_validated_body(
+    runner, cli_config_dir, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(
+        state_module.AppState,
+        "build_client",
+        lambda self, auth_required=True, transport=None: FakeApplicationsClient(),
+    )
+    body_file = tmp_path / "extract.json"
+    body_file.write_text(
+        '{"url":"https://example.com/job","status_id":"status-1","text":"source text"}'
+    )
+
+    result = runner.invoke(
+        app,
+        ["applications", "extract", "--body-file", str(body_file)],
+    )
+
+    assert result.exit_code == 0
+    assert '"job_title": "Extracted Role"' in result.stdout
