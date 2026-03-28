@@ -34,6 +34,7 @@ from app.schemas.job_lead import (
     JobLeadListResponse,
     JobLeadResponse,
 )
+from app.services.ai_settings import get_ai_settings
 from app.services.extraction import (
     ExtractionAuthError,
     ExtractionError,
@@ -42,7 +43,6 @@ from app.services.extraction import (
     NoJobFoundError,
     extract_job_data,
 )
-from app.services.ai_settings import get_ai_settings
 from app.services.job_fetch import fetch_job_posting_html
 
 logger = logging.getLogger(__name__)
