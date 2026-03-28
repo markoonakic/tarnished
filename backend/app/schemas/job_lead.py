@@ -126,7 +126,6 @@ class JobLeadResponse(BaseModel):
     error_message: str | None
 
 
-
 class JobLeadListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -148,7 +147,6 @@ class JobLeadListItem(BaseModel):
     scraped_at: datetime
     converted_to_application_id: str | None
     error_message: str | None
-
 
 
 class JobLeadListResponse(BaseModel):

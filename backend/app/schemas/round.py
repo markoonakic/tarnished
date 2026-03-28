@@ -20,7 +20,6 @@ class RoundMediaResponse(BaseModel):
     uploaded_at: datetime
 
 
-
 class RoundCreate(BaseModel):
     round_type_id: str
     scheduled_at: datetime | None = None

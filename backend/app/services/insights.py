@@ -34,6 +34,7 @@ Output valid JSON matching this structure:
   "activity_tracking": { ... same structure ... }
 }"""
 
+
 def build_analytics_prompt_data(
     pipeline_data: dict[str, Any],
     interview_data: dict[str, Any],

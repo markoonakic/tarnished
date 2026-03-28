@@ -113,6 +113,7 @@ class ApplicationListItem(BaseModel):
             return []
         return v
 
+
 class ApplicationResponse(ApplicationListItem):
     model_config = ConfigDict(from_attributes=True)
 

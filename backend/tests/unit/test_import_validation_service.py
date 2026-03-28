@@ -71,7 +71,9 @@ async def test_validate_import_payload_summarizes_new_format_and_existing_data(d
 
 
 @pytest.mark.asyncio
-async def test_validate_import_payload_summarizes_legacy_format_and_missing_statuses(db):
+async def test_validate_import_payload_summarizes_legacy_format_and_missing_statuses(
+    db,
+):
     user = User(
         email="legacy-validation@example.com",
         password_hash="hashed",

@@ -60,6 +60,7 @@ class Settings(BaseSettings):
         # SQLite fallback
         return f"sqlite+aiosqlite:///{self.sqlite_path}"
 
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()  # pyright: ignore[reportCallIssue] # pydantic-settings loads from env

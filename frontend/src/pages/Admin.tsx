@@ -60,9 +60,8 @@ export default function Admin() {
     }
 
     try {
-      const normalizedSearchQuery = normalizeAdminUserSearchQuery(
-        deferredSearchQuery
-      );
+      const normalizedSearchQuery =
+        normalizeAdminUserSearchQuery(deferredSearchQuery);
       const [usersData, statsData, aiSettingsData] = await Promise.all([
         listUsers({
           page,
@@ -79,7 +78,8 @@ export default function Admin() {
 
       const shouldHydrateAiSettingsForm =
         !latestAiSettings.current ||
-        latestAiSettings.current.litellm_model !== aiSettingsData.litellm_model ||
+        latestAiSettings.current.litellm_model !==
+          aiSettingsData.litellm_model ||
         latestAiSettings.current.litellm_base_url !==
           aiSettingsData.litellm_base_url ||
         latestAiSettings.current.litellm_api_key_masked !==

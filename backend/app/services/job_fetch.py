@@ -44,7 +44,9 @@ async def fetch_job_posting_html(url: str) -> str:
             status_code = exc.response.status_code
             logger.warning("HTTP error %s for URL: %s", status_code, url)
             if status_code == 404:
-                detail = "The job posting was not found (404). It may have been removed."
+                detail = (
+                    "The job posting was not found (404). It may have been removed."
+                )
             elif status_code == 403:
                 detail = "Access to the job posting was denied (403). The page may require authentication."
             elif status_code >= 500:

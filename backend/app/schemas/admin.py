@@ -14,7 +14,6 @@ class AdminUserResponse(BaseModel):
     application_count: int = 0
 
 
-
 class AdminUserUpdate(BaseModel):
     is_active: bool | None = None
     is_admin: bool | None = None

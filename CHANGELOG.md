@@ -11,6 +11,34 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 - Release recovery can now be run through GitHub Actions without moving an existing tag.
 - Local Git hooks use repo-local tools instead of depending on ambient global package manager state.
 
+## [0.1.2] - 2026-03-28
+
+### Added
+
+- Standalone `tarnished-cli` package under `cli/` with its own tests, build metadata, and release artifacts.
+- CLI `auth register` command, including support for the initial setup flow via `--needs-setup`.
+- Dedicated CLI CI and release workflow jobs, including optional PyPI Trusted Publishing support.
+
+### Changed
+
+- CLI source and tests were moved out of the backend package into a separate `tarnished_cli` namespace.
+- Backend packaging no longer ships the CLI executable or CLI-only runtime dependencies.
+- CLI installation docs now target `uv tool install tarnished-cli` and `pipx install tarnished-cli`.
+
+### Fixed
+
+- WAV round-media uploads now handle libmagic WAV aliases correctly and preserve `.wav` storage.
+- CLI auth storage now scopes keyring entries by config directory and profile, preventing cross-profile credential leaks.
+
+### Validation
+
+- Backend tests: `300 passed, 1 skipped`
+- Backend pyright: `0 errors, 0 warnings`
+- Standalone CLI tests: `52 passed`
+- Standalone CLI Ruff and Pyright passed
+- Built CLI wheel installed successfully via `uv tool install`
+- Installed `tarnished` binary executed successfully against a healthy local dev instance
+
 ## [0.1.1] - 2026-03-28
 
 ### Added
