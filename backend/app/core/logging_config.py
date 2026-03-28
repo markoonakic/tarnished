@@ -9,7 +9,6 @@ In development, uses human-readable console output.
 import logging
 import os
 import sys
-from typing import Optional
 
 # Only import json logger if available (graceful fallback)
 try:
@@ -19,7 +18,7 @@ except ImportError:
     JSON_LOGGER_AVAILABLE = False
 
 
-def setup_logging(log_level: Optional[str] = None) -> None:
+def setup_logging(log_level: str | None = None) -> None:
     """Configure logging based on environment.
 
     Args:

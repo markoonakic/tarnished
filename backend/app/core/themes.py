@@ -6,7 +6,6 @@ The get_theme_colors() function resolves a user's theme + accent choice into
 actual hex values that will be sent to the extension.
 """
 
-from typing import Dict
 
 # Default theme and accent settings
 DEFAULT_THEME = "gruvbox-dark"
@@ -140,7 +139,7 @@ THEMES = {
 }
 
 
-def get_theme_colors(theme: str, accent: str) -> Dict[str, str]:
+def get_theme_colors(theme: str, accent: str) -> dict[str, str]:
     """
     Get theme colors for the specified theme and accent color.
 
