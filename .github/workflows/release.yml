@@ -42,6 +42,7 @@ jobs:
     outputs:
       version: ${{ steps.resolve.outputs.version }}
       ref: ${{ steps.resolve.outputs.ref }}
+      release_tag: ${{ steps.resolve.outputs.release_tag }}
       publish_extension_assets: ${{ steps.resolve.outputs.publish_extension_assets }}
       publish_docker: ${{ steps.resolve.outputs.publish_docker }}
       publish_helm: ${{ steps.resolve.outputs.publish_helm }}
@@ -83,6 +84,7 @@ jobs:
           {
             echo "version=$VERSION"
             echo "ref=$REF"
+            echo "release_tag=v$VERSION"
             echo "publish_extension_assets=$PUBLISH_EXTENSION_ASSETS"
             echo "publish_docker=$PUBLISH_DOCKER"
             echo "publish_helm=$PUBLISH_HELM"
@@ -94,6 +96,35 @@ jobs:
             fi
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
+
+  github-release-notes:
+    runs-on: ubuntu-latest
+    needs: [release-meta, backend-checks, frontend-checks]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release-meta.outputs.ref }}
+
+      - name: Update GitHub release body from changelog
+        env:
+          TAG: ${{ needs.release-meta.outputs.release_tag }}
+          VERSION: ${{ needs.release-meta.outputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          awk -v section="## ["$VERSION"]" '
+            $0 == section { printing=1; print; next }
+            printing && /^## \[/ { exit }
+            printing { print }
+          ' CHANGELOG.md > /tmp/release-notes.md
+
+          if [ ! -s /tmp/release-notes.md ]; then
+            echo "Failed to extract changelog entry for $VERSION"
+            exit 1
+          fi
+
+          gh release edit "$TAG" --notes-file /tmp/release-notes.md
   # All check jobs run in parallel
   backend-checks:
     runs-on: ubuntu-latest
@@ -181,7 +212,7 @@ jobs:
 
   extension:
     runs-on: ubuntu-latest
-    needs: release-meta
+    needs: [release-meta, github-release-notes]
     if: needs.release-meta.outputs.publish_extension_assets == 'true'
     permissions:
       contents: write
@@ -234,7 +265,7 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
-    needs: [release-meta, backend-checks, frontend-checks]
+    needs: [release-meta, backend-checks, frontend-checks, github-release-notes]
     if: needs.release-meta.outputs.publish_docker == 'true'
     permissions:
       packages: write
@@ -276,7 +307,7 @@ jobs:
 
   helm:
     runs-on: ubuntu-latest
-    needs: [release-meta, backend-checks, frontend-checks, docker]
+    needs: [release-meta, backend-checks, frontend-checks, docker, github-release-notes]
     if: needs.release-meta.outputs.publish_helm == 'true' && (needs.release-meta.outputs.publish_docker == 'false' || needs.docker.result == 'success')
     permissions:
       packages: write
