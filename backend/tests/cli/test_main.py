@@ -12,6 +12,8 @@ def test_root_help_lists_command_groups(runner):
     assert "statuses" in result.output
     assert "round-types" in result.output
     assert "rounds" in result.output
+    assert "export" in result.output
+    assert "import" in result.output
     assert "dashboard" in result.output
     assert "analytics" in result.output
 

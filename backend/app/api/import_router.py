@@ -285,6 +285,12 @@ async def import_progress(import_id: str):
     )
 
 
+@router.get("/status/{import_id}")
+async def import_status(import_id: str):
+    """JSON status endpoint for CLI and polling clients."""
+    return ImportProgress.get_progress(import_id)
+
+
 @router.post("/import")
 @conditional_rate_limit("5/hour")
 async def import_data(

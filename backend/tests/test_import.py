@@ -20,6 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.import_router import ImportProgress
 from app.core.security import create_access_token, get_password_hash
 from app.models import (
     Application,
@@ -306,6 +307,45 @@ class TestImportValidationAuthentication:
         )
         # Should get 200 or 422 (validation error), but not 401
         assert response.status_code != 401
+
+
+class TestImportStatusEndpoint:
+    async def test_import_status_returns_unknown_for_missing_id(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+    ):
+        response = await client.get(
+            "/api/import/status/missing-import-id",
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "unknown"
+
+    async def test_import_status_returns_current_progress(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+    ):
+        import_id = "test-import-status"
+        ImportProgress.create(import_id)
+        ImportProgress.update(
+            import_id,
+            stage="importing",
+            percent=60,
+            message="Importing data...",
+        )
+
+        response = await client.get(
+            f"/api/import/status/{import_id}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "pending"
+        assert data["stage"] == "importing"
+        assert data["percent"] == 60
 
 
 class TestImportValidationBasic:

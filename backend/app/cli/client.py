@@ -172,6 +172,7 @@ class TarnishedClient:
         *,
         file_path: Path,
         field_name: str = "file",
+        data: dict[str, Any] | None = None,
         auth: AuthMode = "jwt",
         content_type: str | None = None,
         allow_refresh: bool = True,
@@ -186,6 +187,7 @@ class TarnishedClient:
                 "POST",
                 path,
                 files={field_name: file_tuple},
+                data=data,
                 headers=self._build_auth_headers(auth),
             )
 
@@ -201,6 +203,7 @@ class TarnishedClient:
                 path,
                 file_path=file_path,
                 field_name=field_name,
+                data=data,
                 auth=auth,
                 content_type=content_type,
                 allow_refresh=False,
