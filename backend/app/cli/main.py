@@ -6,6 +6,7 @@ from pathlib import Path
 import typer
 
 from app.cli.commands import (
+    admin,
     analytics,
     applications,
     auth,
@@ -30,6 +31,7 @@ def _cli_version() -> str:
 
 app = typer.Typer(no_args_is_help=True, help="Agent-first CLI for Tarnished.")
 app.add_typer(auth.app, name="auth")
+app.add_typer(admin.app, name="admin")
 app.add_typer(applications.app, name="applications")
 app.add_typer(job_leads.app, name="job-leads")
 app.add_typer(profile.app, name="profile")

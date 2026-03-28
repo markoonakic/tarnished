@@ -6,6 +6,7 @@ def test_root_help_lists_command_groups(runner):
 
     assert result.exit_code == 0
     assert "auth" in result.output
+    assert "admin" in result.output
     assert "applications" in result.output
     assert "job-leads" in result.output
     assert "profile" in result.output

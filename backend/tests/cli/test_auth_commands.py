@@ -25,6 +25,24 @@ class FakeWhoamiClient:
         }
 
 
+class FakeAPIKeyClient:
+    def get_json(self, path, *, params=None, auth="jwt"):
+        assert path == "/api/settings/api-key"
+        return {
+            "has_api_key": True,
+            "api_key_masked": "abcd...wxyz",
+            "api_key_full": "secret-full-key",
+        }
+
+    def post_json(self, path, *, body, auth="jwt"):
+        assert path == "/api/settings/api-key/regenerate"
+        return {
+            "has_api_key": True,
+            "api_key_masked": "efgh...ijkl",
+            "api_key_full": "new-secret-key",
+        }
+
+
 def _load_auth_file_only(profile="default", *, config_dir=None):
     return load_auth_impl(profile, config_dir=config_dir, prefer_keyring=False)
 
@@ -87,3 +105,35 @@ def test_whoami_returns_identity(runner, cli_config_dir, monkeypatch):
 
     assert result.exit_code == 0
     assert '"email": "test@example.com"' in result.stdout
+
+
+def test_api_key_show_stores_full_key(runner, cli_config_dir, monkeypatch):
+    monkeypatch.setattr(state_module, "load_auth", _load_auth_file_only)
+    monkeypatch.setattr(state_module, "save_auth", _save_auth_file_only)
+    monkeypatch.setattr(
+        state_module.AppState,
+        "build_client",
+        lambda self, auth_required=True, transport=None: FakeAPIKeyClient(),
+    )
+
+    result = runner.invoke(app, ["auth", "api-key", "show"])
+
+    assert result.exit_code == 0
+    stored = load_auth_impl(config_dir=cli_config_dir, prefer_keyring=False)
+    assert stored.api_key == "secret-full-key"
+
+
+def test_api_key_regenerate_updates_stored_key(runner, cli_config_dir, monkeypatch):
+    monkeypatch.setattr(state_module, "load_auth", _load_auth_file_only)
+    monkeypatch.setattr(state_module, "save_auth", _save_auth_file_only)
+    monkeypatch.setattr(
+        state_module.AppState,
+        "build_client",
+        lambda self, auth_required=True, transport=None: FakeAPIKeyClient(),
+    )
+
+    result = runner.invoke(app, ["auth", "api-key", "regenerate"])
+
+    assert result.exit_code == 0
+    stored = load_auth_impl(config_dir=cli_config_dir, prefer_keyring=False)
+    assert stored.api_key == "new-secret-key"

@@ -77,6 +77,10 @@ class AppState:
         self.tokens.refresh_token = None
         save_auth(self.tokens, self.profile, config_dir=self.config_dir)
 
+    def save_api_key(self, api_key: str | None) -> None:
+        self.tokens.api_key = api_key
+        save_auth(self.tokens, self.profile, config_dir=self.config_dir)
+
     def clear_all_auth(self) -> None:
         self.tokens = StoredAuth()
         clear_auth(self.profile, config_dir=self.config_dir)
