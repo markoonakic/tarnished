@@ -122,11 +122,27 @@ jobs:
           VERSION: ${{ needs.release-meta.outputs.version }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          awk -v section="## ["$VERSION"]" '
-            $0 == section { printing=1; print; next }
-            printing && /^## \[/ { exit }
-            printing { print }
-          ' CHANGELOG.md > /tmp/release-notes.md
+          python - <<'PY'
+          from pathlib import Path
+          import os
+
+          version = os.environ["VERSION"]
+          changelog = Path("CHANGELOG.md").read_text().splitlines()
+          heading = f"## [{version}]"
+
+          collected: list[str] = []
+          printing = False
+          for line in changelog:
+              if line.startswith(heading):
+                  printing = True
+              elif printing and line.startswith("## ["):
+                  break
+
+              if printing:
+                  collected.append(line)
+
+          Path("/tmp/release-notes.md").write_text("\n".join(collected).strip() + "\n")
+          PY
 
           if [ ! -s /tmp/release-notes.md ]; then
             echo "Failed to extract changelog entry for $VERSION"
