@@ -19,7 +19,7 @@ pipx install tarnished-cli
 Install from a built wheel before PyPI publication:
 
 ```bash
-uv tool install ./dist/tarnished_cli-0.1.1-py3-none-any.whl
+uv tool install ./dist/tarnished_cli-0.1.2-py3-none-any.whl
 ```
 
 ## OpenClaw / Agent Install
@@ -33,7 +33,7 @@ uv tool install tarnished-cli
 Version-pinned:
 
 ```bash
-uv tool install 'tarnished-cli==0.1.1'
+uv tool install 'tarnished-cli==0.1.2'
 ```
 
 Then run:

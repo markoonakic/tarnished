@@ -1,3 +1,5 @@
+from importlib.metadata import version
+
 from tarnished_cli.main import app
 
 
@@ -25,4 +27,4 @@ def test_version_option(runner):
     result = runner.invoke(app, ["--version"])
 
     assert result.exit_code == 0
-    assert "0.1.1" in result.output
+    assert version("tarnished-cli") in result.output
