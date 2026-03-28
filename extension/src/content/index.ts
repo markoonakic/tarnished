@@ -11,6 +11,7 @@
  */
 
 import browser from 'webextension-polyfill';
+import { createIframeRegistry, type IframeScanResult } from './iframe-registry';
 import { shouldScheduleFormRescan } from './scan-trigger';
 import { detectJobPage, type DetectionResult } from '../lib/detection';
 import { debug, warn } from '../lib/logger';
@@ -39,20 +40,7 @@ let scanRetryCount = 0;
 const MAX_SCAN_RETRIES = 5;
 const SCAN_RETRY_DELAY = 1000; // 1 second
 
-// Track iframe scan results
-interface IframeScanResult {
-  hasApplicationForm: boolean;
-  fillableFieldCount: number;
-  fields: Array<{
-    fieldType: string;
-    score: number;
-    id: string;
-    name: string;
-    placeholder: string;
-  }>;
-}
-
-const iframeResults = new Map<string, IframeScanResult>();
+const iframeRegistry = createIframeRegistry();
 
 // ============================================================================
 // Iframe Handling
@@ -120,9 +108,13 @@ function setupIframeMessageListener(): void {
     const { type, payload } = event.data || {};
 
     if (type === IFRAME_SCAN_RESULT && payload) {
-      // Store result keyed by iframe origin + path
-      const key = event.origin + (payload.path || '');
-      iframeResults.set(key, payload);
+      iframeRegistry.recordScanResult(
+        {
+          origin: event.origin,
+          source: event.source,
+        },
+        payload as IframeScanResult
+      );
 
       debug('Content', 'Received iframe scan result:', {
         origin: event.origin,
@@ -152,7 +144,7 @@ function aggregateAndReport(): void {
   let hasApplicationForm = mainResult.hasApplicationForm;
 
   // Add iframe results
-  for (const [, result] of iframeResults) {
+  for (const result of iframeRegistry.getResults()) {
     totalFillable += result.fillableFieldCount;
     if (result.hasApplicationForm) {
       hasApplicationForm = true;
@@ -179,21 +171,7 @@ function aggregateAndReport(): void {
  * Send autofill command to all iframes.
  */
 function sendAutofillToIframes(profile: AutofillProfile): void {
-  const iframes = document.querySelectorAll('iframe');
-
-  for (const iframe of iframes) {
-    try {
-      iframe.contentWindow?.postMessage(
-        {
-          type: IFRAME_AUTOFILL,
-          payload: { profile },
-        },
-        '*'
-      );
-    } catch {
-      // Ignore cross-origin errors
-    }
-  }
+  iframeRegistry.sendAutofill(IFRAME_AUTOFILL, profile);
 }
 
 // ============================================================================

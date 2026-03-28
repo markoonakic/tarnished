@@ -475,6 +475,18 @@
   const SCAN_RESULT_MSG = `${MESSAGE_PREFIX}IFRAME_SCAN_RESULT`;
   const AUTOFILL_MSG = `${MESSAGE_PREFIX}IFRAME_AUTOFILL`;
 
+  function getParentOrigin(): string | null {
+    if (!document.referrer) {
+      return null;
+    }
+
+    try {
+      return new URL(document.referrer).origin;
+    } catch {
+      return null;
+    }
+  }
+
   // ============================================================================
   // Profile Value Mapping
   // ============================================================================
@@ -511,6 +523,7 @@
 
   function scanAndReport(): void {
     const result = scanForFillableFields();
+    const parentOrigin = getParentOrigin();
 
     if (result.fillableFields.length > 0 || result.hasApplicationForm) {
       window.parent.postMessage(
@@ -529,7 +542,7 @@
             })),
           },
         },
-        '*'
+        parentOrigin ?? '*'
       );
     }
   }
@@ -537,6 +550,7 @@
   function handleAutofill(profile: AutofillProfile): void {
     const result = scanForFillableFields();
     let filledCount = 0;
+    const parentOrigin = getParentOrigin();
 
     for (const scoredField of result.fillableFields) {
       const value = getFieldValue(scoredField.fieldType, profile);
@@ -553,13 +567,18 @@
         type: `${MESSAGE_PREFIX}IFRAME_AUTOFILL_RESULT`,
         payload: { filledCount },
       },
-      '*'
+      parentOrigin ?? '*'
     );
   }
 
   function setupMessageListener(): void {
+    const parentOrigin = getParentOrigin();
+
     window.addEventListener('message', (event) => {
       if (event.source !== window.parent) {
+        return;
+      }
+      if (parentOrigin && event.origin !== parentOrigin) {
         return;
       }
 

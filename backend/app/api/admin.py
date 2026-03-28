@@ -27,19 +27,14 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 async def list_users(
     page: int = Query(1, ge=1),
     per_page: int = Query(25, ge=1, le=100),
+    query: str | None = Query(None, min_length=1),
     _: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    # Get total count
-    count_result = await db.execute(select(func.count(User.id)))
-    total = count_result.scalar() or 0
+    normalized_query = query.strip() if query else None
 
-    # Calculate total pages
-    total_pages = (total + per_page - 1) // per_page if total > 0 else 1
-
-    # Get paginated users with application counts
-    offset = (page - 1) * per_page
-    result = await db.execute(
+    count_query = select(func.count(User.id))
+    users_query = (
         select(
             User,
             func.count(Application.id).label("app_count"),
@@ -47,9 +42,23 @@ async def list_users(
         .outerjoin(Application)
         .group_by(User.id)
         .order_by(User.created_at.desc())
-        .offset(offset)
-        .limit(per_page)
     )
+
+    if normalized_query:
+        email_filter = User.email.ilike(f"%{normalized_query}%")
+        count_query = count_query.where(email_filter)
+        users_query = users_query.where(email_filter)
+
+    # Get total count
+    count_result = await db.execute(count_query)
+    total = count_result.scalar() or 0
+
+    # Calculate total pages
+    total_pages = (total + per_page - 1) // per_page if total > 0 else 1
+
+    # Get paginated users with application counts
+    offset = (page - 1) * per_page
+    result = await db.execute(users_query.offset(offset).limit(per_page))
     rows = result.all()
 
     items = [
