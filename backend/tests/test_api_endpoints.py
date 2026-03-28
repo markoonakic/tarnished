@@ -26,6 +26,7 @@ from app.core.security import (
 )
 from app.models import Application, ApplicationStatus, JobLead, SystemSettings, User
 from app.models.user_profile import UserProfile
+from app.services.ai_settings import AISettingsState
 
 # ============================================================================
 # Fixtures
@@ -589,6 +590,74 @@ class TestApplicationsWrite:
         assert response.status_code == 502
         assert response.json()["detail"] == "Upstream fetch failed"
 
+    async def test_extract_application_accepts_jwt_session(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+        db: AsyncSession,
+        test_user: User,
+    ):
+        status = ApplicationStatus(
+            name="Applied",
+            color="#83a598",
+            is_default=False,
+            user_id=test_user.id,
+            order=1,
+        )
+        db.add(status)
+        await db.commit()
+        await db.refresh(status)
+
+        with (
+            patch(
+                "app.api.applications.get_ai_settings",
+                AsyncMock(
+                    return_value=AISettingsState(
+                        model="test-model",
+                        api_key="test-key",
+                        base_url="https://example.test",
+                    )
+                ),
+            ),
+            patch("app.api.applications.extract_job_data", new_callable=AsyncMock) as mock_extract,
+        ):
+            from app.schemas.job_lead import JobLeadExtractionInput
+
+            mock_extract.return_value = JobLeadExtractionInput(
+                title="JWT Extracted Role",
+                company="JWT Company",
+                description="Created via JWT session",
+                location="Remote",
+                salary_min=None,
+                salary_max=None,
+                salary_currency=None,
+                recruiter_name=None,
+                recruiter_title=None,
+                recruiter_linkedin_url=None,
+                years_experience_min=None,
+                years_experience_max=None,
+                source="LinkedIn",
+                posted_date=None,
+                requirements_must_have=[],
+                requirements_nice_to_have=[],
+                skills=["Python"],
+            )
+
+            response = await client.post(
+                "/api/applications/extract",
+                headers=auth_headers,
+                json={
+                    "url": "https://example.com/jobs/jwt-app",
+                    "status_id": status.id,
+                    "text": "JWT-authenticated extraction source text",
+                },
+            )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["company"] == "JWT Company"
+        assert data["job_title"] == "JWT Extracted Role"
+
 
 class TestJobLeadConversion:
     async def test_convert_job_lead_preserves_lead_and_links_application(
@@ -757,6 +826,62 @@ class TestJobLeadsCreate:
         data = response.json()
         assert data["title"] == "New Job"
         assert data["company"] == "New Company"
+
+    async def test_create_job_lead_with_jwt_session(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+        test_user: User,
+    ):
+        """Test creating a job lead using a normal JWT session."""
+        with (
+            patch(
+                "app.api.job_leads.get_ai_settings",
+                AsyncMock(
+                    return_value=AISettingsState(
+                        model="test-model",
+                        api_key="test-key",
+                        base_url="https://example.test",
+                    )
+                ),
+            ),
+            patch("app.api.job_leads.extract_job_data", new_callable=AsyncMock) as mock_extract,
+        ):
+            from app.schemas.job_lead import JobLeadExtractionInput
+
+            mock_extract.return_value = JobLeadExtractionInput(
+                title="JWT Job",
+                company="JWT Company",
+                description="Created via JWT session",
+                location="Remote",
+                salary_min=None,
+                salary_max=None,
+                salary_currency=None,
+                recruiter_name=None,
+                recruiter_title=None,
+                recruiter_linkedin_url=None,
+                years_experience_min=None,
+                years_experience_max=None,
+                source="Company Website",
+                posted_date=None,
+                requirements_must_have=[],
+                requirements_nice_to_have=[],
+                skills=["Python"],
+            )
+
+            response = await client.post(
+                "/api/job-leads",
+                headers=auth_headers,
+                json={
+                    "url": "https://example.com/job/new-jwt",
+                    "text": "JWT-authenticated extraction source text",
+                },
+            )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["title"] == "JWT Job"
+        assert data["company"] == "JWT Company"
 
     async def test_create_job_lead_with_x_api_key(
         self,
