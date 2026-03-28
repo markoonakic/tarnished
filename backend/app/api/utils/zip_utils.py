@@ -29,6 +29,7 @@ MIME_TO_EXTENSION = {
     "video/quicktime": ".mov",
     "audio/mpeg": ".mp3",
     "audio/wav": ".wav",
+    "audio/x-wav": ".wav",
     "audio/mp4": ".m4a",
     "audio/ogg": ".ogg",
 }
@@ -44,7 +45,13 @@ ALLOWED_DOCUMENT_TYPES = {
 }
 
 ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime"}
-ALLOWED_AUDIO_TYPES = {"audio/mpeg", "audio/wav", "audio/mp4", "audio/ogg"}
+ALLOWED_AUDIO_TYPES = {
+    "audio/mpeg",
+    "audio/wav",
+    "audio/x-wav",
+    "audio/mp4",
+    "audio/ogg",
+}
 ALLOWED_MEDIA_TYPES = ALLOWED_VIDEO_TYPES | ALLOWED_AUDIO_TYPES
 
 

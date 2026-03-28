@@ -12,6 +12,7 @@ All tests verify authentication requirements and success/error cases.
 # pyright: reportCallIssue=warning
 # Pydantic v2 optional fields cause false positives with pyright
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -24,7 +25,15 @@ from app.core.security import (
     generate_api_token,
     get_password_hash,
 )
-from app.models import Application, ApplicationStatus, JobLead, SystemSettings, User
+from app.models import (
+    Application,
+    ApplicationStatus,
+    JobLead,
+    Round,
+    RoundType,
+    SystemSettings,
+    User,
+)
 from app.models.user_profile import UserProfile
 from app.services.ai_settings import AISettingsState
 
@@ -1832,6 +1841,83 @@ class TestHealthCheck:
 
         data = response.json()
         assert data["status"] == "healthy"
+
+
+class TestRoundMediaUploads:
+    async def test_upload_media_accepts_wav_audio(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+        db: AsyncSession,
+        test_user: User,
+    ):
+        status_obj = ApplicationStatus(
+            name="Applied",
+            color="#83a598",
+            is_default=False,
+            user_id=test_user.id,
+            order=1,
+        )
+        round_type = RoundType(
+            name="Phone Screen",
+            is_default=False,
+            user_id=test_user.id,
+        )
+        db.add_all([status_obj, round_type])
+        await db.commit()
+        await db.refresh(status_obj)
+        await db.refresh(round_type)
+
+        application = Application(
+            user_id=test_user.id,
+            company="SmokeCo",
+            job_title="CLI Audio Test",
+            status_id=status_obj.id,
+        )
+        db.add(application)
+        await db.commit()
+        await db.refresh(application)
+
+        round_obj = Round(
+            application_id=application.id,
+            round_type_id=round_type.id,
+        )
+        db.add(round_obj)
+        await db.commit()
+        await db.refresh(round_obj)
+
+        wav_bytes = (
+            b"RIFF"
+            + (36 + 1600).to_bytes(4, "little")
+            + b"WAVEfmt "
+            + (16).to_bytes(4, "little")
+            + (1).to_bytes(2, "little")
+            + (1).to_bytes(2, "little")
+            + (8000).to_bytes(4, "little")
+            + (16000).to_bytes(4, "little")
+            + (2).to_bytes(2, "little")
+            + (16).to_bytes(2, "little")
+            + b"data"
+            + (1600).to_bytes(4, "little")
+            + (b"\x00\x00" * 800)
+        )
+
+        fake_magic = SimpleNamespace(
+            from_buffer=lambda *_args, **_kwargs: "audio/x-wav",
+            from_file=lambda *_args, **_kwargs: "audio/x-wav",
+        )
+        with patch("app.api.utils.zip_utils.magic", fake_magic):
+            response = await client.post(
+                f"/api/rounds/{round_obj.id}/media",
+                headers=auth_headers,
+                files={"file": ("sample.wav", wav_bytes, "audio/wav")},
+            )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["media"][0]["media_type"] == "audio"
+        assert payload["media"][0]["original_filename"] == "sample.wav"
+        assert payload["media"][0]["file_path"].endswith(".wav")
 
 
 class TestCorsPolicy:
