@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Tarnished API", version="0.1.24", lifespan=lifespan)
+app = FastAPI(title="Tarnished API", version="0.1.1", lifespan=lifespan)
 
 # Register rate limiter
 app.state.limiter = limiter
