@@ -1,1 +1,14 @@
-cd frontend && yarn lint-staged
+#!/bin/sh
+set -eu
+
+ROOT="$(git rev-parse --show-toplevel)"
+FRONTEND_BIN="$ROOT/frontend/node_modules/.bin"
+
+if [ ! -x "$FRONTEND_BIN/lint-staged" ]; then
+  echo "Missing frontend dependency: $FRONTEND_BIN/lint-staged"
+  echo "Install frontend dependencies before committing."
+  exit 1
+fi
+
+cd "$ROOT/frontend"
+"$FRONTEND_BIN/lint-staged"
