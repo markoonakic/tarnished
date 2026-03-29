@@ -29,6 +29,7 @@ MIME_TO_EXTENSION = {
     "video/quicktime": ".mov",
     "audio/mpeg": ".mp3",
     "audio/wav": ".wav",
+    "audio/x-wav": ".wav",
     "audio/mp4": ".m4a",
     "audio/ogg": ".ogg",
 }
@@ -44,7 +45,13 @@ ALLOWED_DOCUMENT_TYPES = {
 }
 
 ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime"}
-ALLOWED_AUDIO_TYPES = {"audio/mpeg", "audio/wav", "audio/mp4", "audio/ogg"}
+ALLOWED_AUDIO_TYPES = {
+    "audio/mpeg",
+    "audio/wav",
+    "audio/x-wav",
+    "audio/mp4",
+    "audio/ogg",
+}
 ALLOWED_MEDIA_TYPES = ALLOWED_VIDEO_TYPES | ALLOWED_AUDIO_TYPES
 
 
@@ -139,7 +146,9 @@ def validate_file(file_path: Path, allowed_types: set) -> tuple[bool, str]:
         Tuple of (is_valid, detected_mime_type)
     """
     if magic is None:
-        logger.warning("libmagic unavailable, skipping MIME validation for %s", file_path)
+        logger.warning(
+            "libmagic unavailable, skipping MIME validation for %s", file_path
+        )
         return True, "application/octet-stream"
 
     detected = magic.from_file(str(file_path), mime=True)

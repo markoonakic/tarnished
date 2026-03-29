@@ -1,0 +1,1 @@
+"""Tarnished CLI package."""

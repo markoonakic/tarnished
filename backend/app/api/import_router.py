@@ -17,18 +17,13 @@ from datetime import UTC, datetime, timedelta
 import aiofiles
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.rate_limit import limiter
 from app.models import (
-    Application,
-    ApplicationStatus,
     AuditLog,
-    JobLead,
-    RoundType,
     User,
 )
 
@@ -288,6 +283,12 @@ async def import_progress(import_id: str):
             "Connection": "keep-alive",
         },
     )
+
+
+@router.get("/status/{import_id}")
+async def import_status(import_id: str):
+    """JSON status endpoint for CLI and polling clients."""
+    return ImportProgress.get_progress(import_id)
 
 
 @router.post("/import")
