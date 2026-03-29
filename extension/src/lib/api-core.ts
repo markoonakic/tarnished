@@ -121,7 +121,9 @@ export class ApiClientError extends Error {
 }
 
 export class AuthenticationError extends ApiClientError {
-  constructor(message: string = 'Authentication failed. Please check your API key.') {
+  constructor(
+    message: string = 'Authentication failed. Please check your API key.'
+  ) {
     super(message, 401);
     this.name = 'AuthenticationError';
   }
@@ -153,7 +155,9 @@ export class TimeoutError extends ApiClientError {
 }
 
 export class NetworkError extends ApiClientError {
-  constructor(message: string = 'Network error. Please check your connection.') {
+  constructor(
+    message: string = 'Network error. Please check your connection.'
+  ) {
     super(message, 0);
     this.name = 'NetworkError';
   }
@@ -185,19 +189,30 @@ export async function getConfiguredSettings(): Promise<Settings> {
 
 export function truncateText(text: string): string {
   if (text.length > MAX_TEXT_SIZE) {
-    warn('API', `Text content truncated from ${text.length} to ${MAX_TEXT_SIZE} characters`);
+    warn(
+      'API',
+      `Text content truncated from ${text.length} to ${MAX_TEXT_SIZE} characters`
+    );
     return text.substring(0, MAX_TEXT_SIZE);
   }
   return text;
 }
 
-export function createTimeoutController(): { controller: AbortController; timeoutId: number } {
+export function createTimeoutController(): {
+  controller: AbortController;
+  timeoutId: number;
+} {
   const controller = new AbortController();
-  const timeoutId = self.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutId = self.setTimeout(
+    () => controller.abort(),
+    REQUEST_TIMEOUT_MS
+  );
   return { controller, timeoutId };
 }
 
-export async function parseErrorResponse(response: Response): Promise<ApiError> {
+export async function parseErrorResponse(
+  response: Response
+): Promise<ApiError> {
   let detail: string | undefined;
   let message = `Request failed with status ${response.status}`;
   let code: string | undefined;
@@ -211,7 +226,13 @@ export async function parseErrorResponse(response: Response): Promise<ApiError> 
       message = body.detail.message || message;
       detail = body.detail.detail;
       action = body.detail.action;
-      debug('API', 'Parsed structured error - code:', code, 'message:', message);
+      debug(
+        'API',
+        'Parsed structured error - code:',
+        code,
+        'message:',
+        message
+      );
     } else {
       message = body.message || body.detail || message;
       detail = typeof body.detail === 'string' ? body.detail : undefined;
@@ -244,7 +265,10 @@ export async function fetchJson<T>(
   init: RequestInit,
   opts: { allowStructuredErrors?: boolean; requireAuth?: boolean } = {}
 ): Promise<T> {
-  const settings = opts.requireAuth === false ? ((await getSettings()) as Settings) : await getConfiguredSettings();
+  const settings =
+    opts.requireAuth === false
+      ? ((await getSettings()) as Settings)
+      : await getConfiguredSettings();
   const { appUrl, apiKey } = settings;
   const { controller, timeoutId } = createTimeoutController();
 
@@ -274,7 +298,8 @@ export async function fetchJson<T>(
         case 408:
           throw new TimeoutError(error.detail);
         default:
-          if (response.status >= 500) throw new ServerError(error.message, response.status);
+          if (response.status >= 500)
+            throw new ServerError(error.message, response.status);
           throw new ApiClientError(error.message, response.status);
       }
     }

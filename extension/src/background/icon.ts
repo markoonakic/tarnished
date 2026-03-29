@@ -85,7 +85,13 @@ export async function updateActionIcon(options: {
       const pngBlob = await fetchBlob(iconUrl);
       const bitmap = await createImageBitmap(pngBlob);
 
-      debug('Icon', `Loaded ${iconName}, size:`, bitmap.width, 'x', bitmap.height);
+      debug(
+        'Icon',
+        `Loaded ${iconName}, size:`,
+        bitmap.width,
+        'x',
+        bitmap.height
+      );
 
       const canvas = createCanvas(size);
       const ctx = canvas.getContext('2d');

@@ -26,7 +26,10 @@ export function createPopupNotifications(options: {
 }) {
   const { notify, warn } = options;
 
-  async function showNotification(title: string, message: string): Promise<void> {
+  async function showNotification(
+    title: string,
+    message: string
+  ): Promise<void> {
     try {
       await notify(title, message);
     } catch (error) {

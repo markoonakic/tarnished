@@ -99,7 +99,10 @@ export function createPopupView(
       (elements.autofillOnlyCount.textContent = countText);
 
     if (state === 'detected' && elements.autofillDetectedSection) {
-      elements.autofillDetectedSection.classList.toggle('hidden', !showAutofill);
+      elements.autofillDetectedSection.classList.toggle(
+        'hidden',
+        !showAutofill
+      );
     }
     if (state === 'saved' && elements.autofillSavedSection) {
       elements.autofillSavedSection.classList.toggle('hidden', !showAutofill);
@@ -118,7 +121,10 @@ export function createPopupView(
     updateAutofillVisibility(state);
   }
 
-  function updateJobInfoDisplay(info: JobInfo, prefix: 'job' | 'savedJob'): void {
+  function updateJobInfoDisplay(
+    info: JobInfo,
+    prefix: 'job' | 'savedJob'
+  ): void {
     const titleEl = elements[`${prefix}Title` as const];
     const companyEl = elements[`${prefix}Company` as const];
     const locationEl = elements[`${prefix}Location` as const];

@@ -4,8 +4,18 @@ type JobInfo = {
   location: string | null;
 };
 
-type LeadLike = { id: string; title?: string | null; company?: string | null; location?: string | null } | null;
-type ApplicationLike = { id: string; job_title: string; company: string; location?: string | null } | null;
+type LeadLike = {
+  id: string;
+  title?: string | null;
+  company?: string | null;
+  location?: string | null;
+} | null;
+type ApplicationLike = {
+  id: string;
+  job_title: string;
+  company: string;
+  location?: string | null;
+} | null;
 
 type ActionDeps = {
   getStatuses: () => Promise<Array<{ id: string; name: string }>>;
@@ -80,7 +90,9 @@ export function createPopupActions(options: {
 
     try {
       const statuses = await deps.getStatuses();
-      const appliedStatus = statuses.find((s) => s.name.toLowerCase() === 'applied');
+      const appliedStatus = statuses.find(
+        (s) => s.name.toLowerCase() === 'applied'
+      );
       if (appliedStatus) {
         state.appliedStatusId = appliedStatus.id;
       }
@@ -114,12 +126,22 @@ export function createPopupActions(options: {
       let text: string | undefined;
       try {
         text = await deps.getCurrentTabText();
-        debug('Popup', 'Got text from content script:', text?.substring(0, 100));
+        debug(
+          'Popup',
+          'Got text from content script:',
+          text?.substring(0, 100)
+        );
       } catch (e) {
         warn('Popup', 'Failed to get text from content script:', e);
       }
 
-      debug('Popup', 'Calling extractApplication with text:', !!text, 'length:', text?.length);
+      debug(
+        'Popup',
+        'Calling extractApplication with text:',
+        !!text,
+        'length:',
+        text?.length
+      );
 
       const result = await deps.extractApplication({
         url: state.currentTabUrl,
