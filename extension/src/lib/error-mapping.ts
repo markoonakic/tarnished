@@ -10,9 +10,10 @@ export const API_ERROR_NAME_TO_CODE = {
 export function mapApiErrorNameToCode(
   errorName: string
 ): (typeof API_ERROR_NAME_TO_CODE)[keyof typeof API_ERROR_NAME_TO_CODE] | null {
-  return API_ERROR_NAME_TO_CODE[
-    errorName as keyof typeof API_ERROR_NAME_TO_CODE
-  ] ?? null;
+  return (
+    API_ERROR_NAME_TO_CODE[errorName as keyof typeof API_ERROR_NAME_TO_CODE] ??
+    null
+  );
 }
 
 export function extractDuplicateResourceId(message: string): string | null {
