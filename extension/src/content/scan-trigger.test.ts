@@ -20,7 +20,9 @@ describe('content scan trigger helpers', () => {
     expect(
       shouldScheduleFormRescan([
         { addedNodes: [wrapper] } as unknown as MutationRecord,
-        { addedNodes: [document.createElement('iframe')] } as unknown as MutationRecord,
+        {
+          addedNodes: [document.createElement('iframe')],
+        } as unknown as MutationRecord,
       ])
     ).toBe(true);
   });

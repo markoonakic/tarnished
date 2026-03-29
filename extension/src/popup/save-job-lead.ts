@@ -30,7 +30,10 @@ export function createPopupSaveLeadController(options: {
     showState: (state: 'saving' | 'saved') => void;
     showError: (message: string, recoverable?: boolean) => void;
     showErrorNotification: (message: string) => void;
-    showSuccessNotification: (title: string | null, company: string | null) => void;
+    showSuccessNotification: (
+      title: string | null,
+      company: string | null
+    ) => void;
     updateJobInfoDisplay: (info: JobInfo, prefix: 'savedJob') => void;
   };
   state: {
@@ -45,7 +48,15 @@ export function createPopupSaveLeadController(options: {
   getErrorMessage: (error: unknown) => string;
   isRecoverable: (error: unknown) => boolean;
 }) {
-  const { deps, ui, state, elements, mapApiError, getErrorMessage, isRecoverable } = options;
+  const {
+    deps,
+    ui,
+    state,
+    elements,
+    mapApiError,
+    getErrorMessage,
+    isRecoverable,
+  } = options;
 
   async function saveJobLead(): Promise<void> {
     if (!state.currentTabUrl) {

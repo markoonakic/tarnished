@@ -4,14 +4,20 @@ import { describe, expect, it } from 'vitest';
 
 describe('extension api boundaries', () => {
   it('keeps the api barrel free of direct fetch logic', () => {
-    const source = readFileSync(resolve(process.cwd(), 'src/lib/api.ts'), 'utf8');
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/lib/api.ts'),
+      'utf8'
+    );
 
     expect(source).not.toMatch(/fetch\(/);
     expect(source).not.toMatch(/createTimeoutController/);
   });
 
   it('avoids dynamically importing the shared api barrel from popup wiring', () => {
-    const source = readFileSync(resolve(process.cwd(), 'src/popup/index.ts'), 'utf8');
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/popup/index.ts'),
+      'utf8'
+    );
 
     expect(source).not.toMatch(/import\('\.\.\/lib\/api'\)/);
   });

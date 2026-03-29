@@ -1,5 +1,8 @@
 type ListenerElement = {
-  addEventListener: (type: string, listener: EventListenerOrEventListenerObject) => void;
+  addEventListener: (
+    type: string,
+    listener: EventListenerOrEventListenerObject
+  ) => void;
 };
 
 type ViewButtonElement = ListenerElement & {

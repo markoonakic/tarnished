@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  createPopupView,
-  type JobInfo,
-  type PopupState,
-} from './view';
+import { createPopupView, type JobInfo, type PopupState } from './view';
 
 function setupDom() {
   document.body.innerHTML = `
@@ -47,8 +43,12 @@ describe('popup view', () => {
 
     view.showState('saved');
 
-    expect(document.getElementById('state-saved')?.classList.contains('hidden')).toBe(false);
-    expect(document.getElementById('state-loading')?.classList.contains('hidden')).toBe(true);
+    expect(
+      document.getElementById('state-saved')?.classList.contains('hidden')
+    ).toBe(false);
+    expect(
+      document.getElementById('state-loading')?.classList.contains('hidden')
+    ).toBe(true);
     expect(view.getCurrentState()).toBe('saved');
   });
 
@@ -60,8 +60,14 @@ describe('popup view', () => {
 
     view.showState('detected');
 
-    expect(document.getElementById('autofillDetectedCount')?.textContent).toBe('3 fields');
-    expect(document.getElementById('autofillDetectedSection')?.classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('autofillDetectedCount')?.textContent).toBe(
+      '3 fields'
+    );
+    expect(
+      document
+        .getElementById('autofillDetectedSection')
+        ?.classList.contains('hidden')
+    ).toBe(false);
   });
 
   it('updates job info and shows recoverable errors', () => {
@@ -78,11 +84,21 @@ describe('popup view', () => {
     view.updateJobInfoDisplay(info, 'savedJob');
     view.showError('Something broke', true);
 
-    expect(document.getElementById('savedJobTitle')?.textContent).toBe('Engineer');
-    expect(document.getElementById('savedJobCompany')?.textContent).toBe('Acme');
-    expect(document.getElementById('savedJobLocation')?.textContent).toBe('Remote');
-    expect(document.getElementById('errorText')?.textContent).toBe('Something broke');
-    expect(document.getElementById('retryBtn')?.classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('savedJobTitle')?.textContent).toBe(
+      'Engineer'
+    );
+    expect(document.getElementById('savedJobCompany')?.textContent).toBe(
+      'Acme'
+    );
+    expect(document.getElementById('savedJobLocation')?.textContent).toBe(
+      'Remote'
+    );
+    expect(document.getElementById('errorText')?.textContent).toBe(
+      'Something broke'
+    );
+    expect(
+      document.getElementById('retryBtn')?.classList.contains('hidden')
+    ).toBe(false);
     expect(view.getCurrentState()).toBe('error' satisfies PopupState);
   });
 });

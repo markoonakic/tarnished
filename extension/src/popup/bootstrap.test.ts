@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { applyPopupTheme, fetchRuntimeText, updatePopupFavicon } from './bootstrap';
+import {
+  applyPopupTheme,
+  fetchRuntimeText,
+  updatePopupFavicon,
+} from './bootstrap';
 
 describe('popup bootstrap helpers', () => {
   it('recolors the popup favicon from the runtime asset', async () => {
@@ -19,7 +23,9 @@ describe('popup bootstrap helpers', () => {
     });
 
     expect(favicon.href).toContain('data:image/svg+xml,');
-    expect(decodeURIComponent(favicon.href.split(',')[1] ?? '')).toContain('fill="#00ffaa"');
+    expect(decodeURIComponent(favicon.href.split(',')[1] ?? '')).toContain(
+      'fill="#00ffaa"'
+    );
   });
 
   it('loads theme colors, updates favicon, and asks the background script to refresh', async () => {
@@ -52,7 +58,9 @@ describe('popup bootstrap helpers', () => {
     } as unknown as Response);
 
     try {
-      await expect(fetchRuntimeText('chrome-extension://tree.svg')).resolves.toBe('<svg />');
+      await expect(
+        fetchRuntimeText('chrome-extension://tree.svg')
+      ).resolves.toBe('<svg />');
     } finally {
       globalThis.fetch = originalFetch;
     }

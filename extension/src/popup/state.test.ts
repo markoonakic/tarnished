@@ -23,8 +23,18 @@ describe('popup state controller', () => {
     currentTabId: null as number | null,
     currentTabUrl: null as string | null,
     currentJobInfo: { title: null, company: null, location: null },
-    existingLead: null as { id: string; title: string | null; company: string | null; location?: string | null } | null,
-    existingApplication: null as { id: string; job_title: string; company: string; location?: string | null } | null,
+    existingLead: null as {
+      id: string;
+      title: string | null;
+      company: string | null;
+      location?: string | null;
+    } | null,
+    existingApplication: null as {
+      id: string;
+      job_title: string;
+      company: string;
+      location?: string | null;
+    } | null,
   };
 
   const elements = {
@@ -85,13 +95,24 @@ describe('popup state controller', () => {
     queryTabs.mockResolvedValue([{ id: 5, url: 'https://example.com/job' }]);
     getTabStatus.mockResolvedValue(null);
     getDetection.mockResolvedValue({ isJobPage: true, score: 5, signals: [] });
-    getFormDetection.mockResolvedValue({ hasApplicationForm: true, fillableFieldCount: 2 });
-    checkExistingLead.mockResolvedValue({ id: 'lead-1', title: 'Engineer', company: 'Acme', location: 'Remote' });
+    getFormDetection.mockResolvedValue({
+      hasApplicationForm: true,
+      fillableFieldCount: 2,
+    });
+    checkExistingLead.mockResolvedValue({
+      id: 'lead-1',
+      title: 'Engineer',
+      company: 'Acme',
+      location: 'Remote',
+    });
     checkExistingApplication.mockResolvedValue(null);
 
     await createSubject().determineState();
 
-    expect(setFormDetectionState).toHaveBeenCalledWith({ hasApplicationForm: true, fillableFieldCount: 2 });
+    expect(setFormDetectionState).toHaveBeenCalledWith({
+      hasApplicationForm: true,
+      fillableFieldCount: 2,
+    });
     expect(elements.savedMessage.textContent).toBe('Saved to Job Leads');
     expect(updateJobInfoDisplay).toHaveBeenCalledWith(
       { title: 'Engineer', company: 'Acme', location: 'Remote' },
@@ -103,7 +124,12 @@ describe('popup state controller', () => {
   it('shows detected state for a new job page', async () => {
     getSettings.mockResolvedValue({ appUrl: 'https://app', apiKey: 'key' });
     queryTabs.mockResolvedValue([{ id: 7, url: 'https://example.com/job' }]);
-    getTabStatus.mockResolvedValue({ isJobPage: true, score: 9, signals: [], url: 'https://example.com/job' });
+    getTabStatus.mockResolvedValue({
+      isJobPage: true,
+      score: 9,
+      signals: [],
+      url: 'https://example.com/job',
+    });
     getFormDetection.mockResolvedValue(null);
     checkExistingLead.mockResolvedValue(null);
     checkExistingApplication.mockResolvedValue(null);

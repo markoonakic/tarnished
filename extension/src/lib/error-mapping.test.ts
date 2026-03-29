@@ -17,9 +17,13 @@ describe('extension error mapping helpers', () => {
   });
 
   it('maps known api client error names to extension error codes', () => {
-    expect(mapApiErrorNameToCode('AuthenticationError')).toBe('ERR_AUTH_FAILED');
+    expect(mapApiErrorNameToCode('AuthenticationError')).toBe(
+      'ERR_AUTH_FAILED'
+    );
     expect(mapApiErrorNameToCode('TimeoutError')).toBe('ERR_TIMEOUT');
-    expect(mapApiErrorNameToCode('DuplicateLeadError')).toBe('ERR_ALREADY_SAVED');
+    expect(mapApiErrorNameToCode('DuplicateLeadError')).toBe(
+      'ERR_ALREADY_SAVED'
+    );
   });
 
   it('returns null for unmapped runtime error names', () => {

@@ -34,7 +34,10 @@ describe('extension architecture boundaries', () => {
   });
 
   it('keeps popup entry focused on wiring instead of notification and favicon details', () => {
-    const source = readFileSync(resolve(extensionRoot, 'src/popup/index.ts'), 'utf8');
+    const source = readFileSync(
+      resolve(extensionRoot, 'src/popup/index.ts'),
+      'utf8'
+    );
 
     expect(source).not.toMatch(/browser\.notifications\.create/);
     expect(source).not.toMatch(/\bfetch\(/);
@@ -42,19 +45,28 @@ describe('extension architecture boundaries', () => {
   });
 
   it('keeps popup entry free of direct element listener registration details', () => {
-    const source = readFileSync(resolve(extensionRoot, 'src/popup/index.ts'), 'utf8');
+    const source = readFileSync(
+      resolve(extensionRoot, 'src/popup/index.ts'),
+      'utf8'
+    );
 
     expect(source).not.toMatch(/elements\.[A-Za-z0-9_]+\?\.addEventListener/);
   });
 
   it('keeps popup entry free of runtime message branching details', () => {
-    const source = readFileSync(resolve(extensionRoot, 'src/popup/index.ts'), 'utf8');
+    const source = readFileSync(
+      resolve(extensionRoot, 'src/popup/index.ts'),
+      'utf8'
+    );
 
     expect(source).not.toMatch(/msg\.type === 'FORM_DETECTION_UPDATE'/);
   });
 
   it('keeps background entry focused on orchestration instead of icon rendering internals', () => {
-    const source = readFileSync(resolve(extensionRoot, 'src/background/index.ts'), 'utf8');
+    const source = readFileSync(
+      resolve(extensionRoot, 'src/background/index.ts'),
+      'utf8'
+    );
 
     expect(source).not.toMatch(/new OffscreenCanvas/);
     expect(source).not.toMatch(/\bcreateImageBitmap\(/);

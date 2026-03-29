@@ -47,9 +47,14 @@ describe('popup detection helpers', () => {
   it('gets text and form detection from content script', async () => {
     sendMessage
       .mockResolvedValueOnce({ text: 'job posting text' })
-      .mockResolvedValueOnce({ hasApplicationForm: true, fillableFieldCount: 4 });
+      .mockResolvedValueOnce({
+        hasApplicationForm: true,
+        fillableFieldCount: 4,
+      });
 
-    await expect(getTextFromContentScript(123)).resolves.toBe('job posting text');
+    await expect(getTextFromContentScript(123)).resolves.toBe(
+      'job posting text'
+    );
     await expect(getFormDetectionFromContentScript(123)).resolves.toEqual({
       hasApplicationForm: true,
       fillableFieldCount: 4,

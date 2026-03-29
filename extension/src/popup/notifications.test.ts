@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createBrowserNotifier, createPopupNotifications } from './notifications';
+import {
+  createBrowserNotifier,
+  createPopupNotifications,
+} from './notifications';
 
 describe('popup notifications', () => {
   it('formats a saved job lead notification with fallback title', async () => {

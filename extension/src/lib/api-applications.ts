@@ -12,14 +12,20 @@ import {
   truncateText,
 } from './api-core';
 
-export async function checkExistingApplication(url: string): Promise<ApplicationResponse | null> {
+export async function checkExistingApplication(
+  url: string
+): Promise<ApplicationResponse | null> {
   const settings = await getConfiguredSettings().catch(() => null);
   if (!settings) return null;
   const { controller, timeoutId } = createTimeoutController();
   try {
     const response = await fetch(
       `${buildUrl(settings.appUrl, API_ENDPOINTS.APPLICATIONS)}?url=${encodeURIComponent(url)}`,
-      { method: 'GET', headers: { 'X-API-Key': settings.apiKey }, signal: controller.signal }
+      {
+        method: 'GET',
+        headers: { 'X-API-Key': settings.apiKey },
+        signal: controller.signal,
+      }
     );
     if (!response.ok) {
       if (response.status === 401) return null;
@@ -37,11 +43,16 @@ export async function checkExistingApplication(url: string): Promise<Application
   }
 }
 
-export async function convertLeadToApplication(leadId: string): Promise<ApplicationResponse> {
-  return fetchJson<ApplicationResponse>(`${API_ENDPOINTS.JOB_LEADS}/${leadId}/convert`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
+export async function convertLeadToApplication(
+  leadId: string
+): Promise<ApplicationResponse> {
+  return fetchJson<ApplicationResponse>(
+    `${API_ENDPOINTS.JOB_LEADS}/${leadId}/convert`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
 }
 
 export async function createApplicationFromJob(data: {
@@ -72,17 +83,23 @@ export async function createApplicationFromJob(data: {
   });
 }
 
-export async function extractApplication(data: ApplicationExtractRequest): Promise<ApplicationResponse> {
-  return fetchJson<ApplicationResponse>(`${API_ENDPOINTS.APPLICATIONS}/extract`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      url: data.url,
-      status_id: data.status_id,
-      applied_at: data.applied_at || new Date().toISOString().split('T')[0],
-      text: data.text ? truncateText(data.text) : undefined,
-    }),
-  }, { allowStructuredErrors: true });
+export async function extractApplication(
+  data: ApplicationExtractRequest
+): Promise<ApplicationResponse> {
+  return fetchJson<ApplicationResponse>(
+    `${API_ENDPOINTS.APPLICATIONS}/extract`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: data.url,
+        status_id: data.status_id,
+        applied_at: data.applied_at || new Date().toISOString().split('T')[0],
+        text: data.text ? truncateText(data.text) : undefined,
+      }),
+    },
+    { allowStructuredErrors: true }
+  );
 }
 
 export async function getStatuses(): Promise<StatusResponse[]> {

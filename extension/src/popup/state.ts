@@ -27,10 +27,14 @@ export function createPopupStateController(options: {
     getSettings: () => Promise<{ appUrl: string; apiKey: string }>;
     queryTabs: () => Promise<Array<{ id?: number; url?: string }>>;
     getTabStatus: (tabId: number) => Promise<TabStatus | null>;
-    getDetection: (
-      tabId: number
-    ) => Promise<{ isJobPage?: boolean; score?: number; signals?: string[] } | null>;
-    getFormDetection: (tabId: number | null) => Promise<FormDetectionState | null>;
+    getDetection: (tabId: number) => Promise<{
+      isJobPage?: boolean;
+      score?: number;
+      signals?: string[];
+    } | null>;
+    getFormDetection: (
+      tabId: number | null
+    ) => Promise<FormDetectionState | null>;
     checkExistingLead: (url: string) => Promise<LeadLike>;
     checkExistingApplication: (url: string) => Promise<ApplicationLike>;
     isRestrictedUrl: (url: string) => boolean;
@@ -54,14 +58,18 @@ export function createPopupStateController(options: {
   elements: {
     savedMessage: { textContent: string | null } | null;
     convertBtn: {
-      classList: { add: (token: string) => void; remove: (token: string) => void };
+      classList: {
+        add: (token: string) => void;
+        remove: (token: string) => void;
+      };
     } | null;
   };
   warn: (context: string, ...args: unknown[]) => void;
   getErrorMessage: (error: unknown) => string;
   isRecoverable: (error: unknown) => boolean;
 }) {
-  const { deps, ui, state, elements, warn, getErrorMessage, isRecoverable } = options;
+  const { deps, ui, state, elements, warn, getErrorMessage, isRecoverable } =
+    options;
 
   async function determineState(): Promise<void> {
     ui.showState('loading');

@@ -266,9 +266,7 @@
     return score;
   }
 
-  function scoreField(
-    element: HTMLInputElement | HTMLTextAreaElement
-  ): {
+  function scoreField(element: HTMLInputElement | HTMLTextAreaElement): {
     element: HTMLInputElement | HTMLTextAreaElement;
     fieldType: FieldType;
     score: number;

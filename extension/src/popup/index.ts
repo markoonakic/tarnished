@@ -26,7 +26,11 @@ import { getErrorMessage, isRecoverable, mapApiError } from '../lib/errors';
 import { debug, warn, error as logError } from '../lib/logger';
 import { createPopupActions } from './actions';
 import { createPopupAutofillController } from './autofill';
-import { applyPopupTheme, fetchRuntimeText, updatePopupFavicon } from './bootstrap';
+import {
+  applyPopupTheme,
+  fetchRuntimeText,
+  updatePopupFavicon,
+} from './bootstrap';
 import {
   extractCompanyFromDocument,
   extractLocationFromDocument,
@@ -37,16 +41,15 @@ import {
   type FormDetectionState,
 } from './detection';
 import { getThemeColors, applyThemeToDocument } from './lib/theme';
-import { createBrowserNotifier, createPopupNotifications } from './notifications';
+import {
+  createBrowserNotifier,
+  createPopupNotifications,
+} from './notifications';
 import { createPopupSaveLeadController } from './save-job-lead';
 import { createPopupSettingsController } from './settings';
 import { createPopupStateController } from './state';
 import { handlePopupRuntimeMessage } from './runtime-messages';
-import {
-  createPopupView,
-  type JobInfo,
-  type PopupState,
-} from './view';
+import { createPopupView, type JobInfo, type PopupState } from './view';
 import { bindPopupEventListeners } from './event-listeners';
 
 /**
@@ -193,7 +196,9 @@ const popupSaveLead = createPopupSaveLeadController({
     },
   },
   elements: {
-    savedMessage: elements.savedMessage as { textContent: string | null } | null,
+    savedMessage: elements.savedMessage as {
+      textContent: string | null;
+    } | null,
   },
   mapApiError,
   getErrorMessage,
@@ -249,14 +254,19 @@ const popupSettings = createPopupSettingsController({
       return existingLead ? { id: existingLead.id } : null;
     },
     set existingLead(value) {
-      existingLead = value ? ({ ...existingLead, id: value.id } as typeof existingLead) : null;
+      existingLead = value
+        ? ({ ...existingLead, id: value.id } as typeof existingLead)
+        : null;
     },
     get existingApplication() {
       return existingApplication ? { id: existingApplication.id } : null;
     },
     set existingApplication(value) {
       existingApplication = value
-        ? ({ ...existingApplication, id: value.id } as typeof existingApplication)
+        ? ({
+            ...existingApplication,
+            id: value.id,
+          } as typeof existingApplication)
         : null;
     },
   },
@@ -276,11 +286,18 @@ const popupState = createPopupStateController({
     },
     queryTabs: () => browser.tabs.query({ active: true, currentWindow: true }),
     getTabStatus: (tabId) =>
-      browser.runtime.sendMessage({ type: 'GET_TAB_STATUS', tabId }) as Promise<TabStatus | null>,
+      browser.runtime.sendMessage({
+        type: 'GET_TAB_STATUS',
+        tabId,
+      }) as Promise<TabStatus | null>,
     getDetection: (tabId) =>
       browser.tabs.sendMessage(tabId, {
         type: 'GET_DETECTION',
-      }) as Promise<{ isJobPage?: boolean; score?: number; signals?: string[] } | null>,
+      }) as Promise<{
+        isJobPage?: boolean;
+        score?: number;
+        signals?: string[];
+      } | null>,
     getFormDetection: getCurrentFormDetection,
     checkExistingLead,
     checkExistingApplication,
@@ -328,9 +345,14 @@ const popupState = createPopupStateController({
     },
   },
   elements: {
-    savedMessage: elements.savedMessage as { textContent: string | null } | null,
+    savedMessage: elements.savedMessage as {
+      textContent: string | null;
+    } | null,
     convertBtn: elements.convertBtn as {
-      classList: { add: (token: string) => void; remove: (token: string) => void };
+      classList: {
+        add: (token: string) => void;
+        remove: (token: string) => void;
+      };
     } | null,
   },
   warn,

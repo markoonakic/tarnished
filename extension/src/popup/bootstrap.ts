@@ -13,7 +13,8 @@ export async function updatePopupFavicon(options: {
   debug: (context: string, ...args: unknown[]) => void;
   warn: (context: string, ...args: unknown[]) => void;
 }): Promise<void> {
-  const { accentColor, document, getRuntimeUrl, fetchText, debug, warn } = options;
+  const { accentColor, document, getRuntimeUrl, fetchText, debug, warn } =
+    options;
 
   try {
     const svgUrl = getRuntimeUrl('icons/tree.svg');
@@ -21,7 +22,9 @@ export async function updatePopupFavicon(options: {
     svg = svg.replace(/fill="[^"]*"/g, `fill="${accentColor}"`);
 
     const svgDataUrl = `data:image/svg+xml,${encodeURIComponent(svg)}`;
-    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
+    const favicon = document.querySelector(
+      'link[rel="icon"]'
+    ) as HTMLLinkElement | null;
     if (favicon) {
       favicon.href = svgDataUrl;
     }

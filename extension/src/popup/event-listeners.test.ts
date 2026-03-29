@@ -27,7 +27,10 @@ describe('popup event listeners', () => {
   });
 
   it('registers popup button handlers through the shared binding helper', () => {
-    const makeElement = () => ({ addEventListener: vi.fn(), classList: { add: vi.fn() } });
+    const makeElement = () => ({
+      addEventListener: vi.fn(),
+      classList: { add: vi.fn() },
+    });
     const elements = {
       settingsBtn: makeElement(),
       openSettingsBtn: makeElement(),

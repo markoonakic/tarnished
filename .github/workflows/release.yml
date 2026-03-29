@@ -301,12 +301,14 @@ jobs:
         run: yarn build:firefox
 
       - name: Upload extension to release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ needs.release-meta.outputs.version }}
-          files: |
-            extension/tarnished-chrome.zip
-            extension/tarnished-firefox.zip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ needs.release-meta.outputs.version }}
+        run: |
+          gh release upload "$TAG" \
+            extension/tarnished-chrome.zip \
+            extension/tarnished-firefox.zip \
+            --clobber
 
   cli-package:
     runs-on: ubuntu-latest
@@ -335,7 +337,7 @@ jobs:
         run: uv build
 
       - name: Upload CLI distributions as workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cli-dist
           path: |
@@ -343,12 +345,11 @@ jobs:
             cli/dist/*.tar.gz
 
       - name: Upload CLI artifacts to release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ needs.release-meta.outputs.version }}
-          files: |
-            cli/dist/*.whl
-            cli/dist/*.tar.gz
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ needs.release-meta.outputs.version }}
+        run: |
+          gh release upload "$TAG" cli/dist/* --clobber
 
   cli-pypi-publish:
     runs-on: ubuntu-latest
@@ -361,7 +362,7 @@ jobs:
       id-token: write
     steps:
       - name: Download CLI distributions
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: cli-dist
           path: cli/dist

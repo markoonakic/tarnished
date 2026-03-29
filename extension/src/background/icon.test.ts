@@ -31,7 +31,9 @@ describe('background icon helpers', () => {
       accentHex: '#00ffaa',
       getRuntimeUrl: vi.fn((path: string) => `chrome-extension://${path}`),
       fetchBlob: vi.fn().mockResolvedValue(new Blob(['icon'])),
-      createImageBitmap: vi.fn().mockResolvedValue({ width: 48, height: 48, close }),
+      createImageBitmap: vi
+        .fn()
+        .mockResolvedValue({ width: 48, height: 48, close }),
       createCanvas: (size) => ({
         getContext: () => {
           const context = createFakeContext(size);

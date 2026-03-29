@@ -64,7 +64,10 @@ async function injectIntoIframes(): Promise<void> {
           debug('Content', 'Injected scanner into same-origin iframe');
         };
         script.onerror = () => {
-          warn('Content', 'Failed to inject into iframe, requesting background injection');
+          warn(
+            'Content',
+            'Failed to inject into iframe, requesting background injection'
+          );
           requestBackgroundInjection(iframe);
         };
         iframe.contentDocument.documentElement.appendChild(script);
