@@ -4,13 +4,144 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the leading v
+        required: true
+      ref:
+        description: Git ref or exact commit SHA to publish from
+        required: true
+      publish_extension_assets:
+        description: Upload extension ZIPs to the GitHub release
+        type: boolean
+        default: false
+      publish_docker:
+        description: Publish Docker images to GHCR
+        type: boolean
+        default: true
+      publish_helm:
+        description: Publish Helm chart to GHCR
+        type: boolean
+        default: true
+      publish_cli_package:
+        description: Publish the CLI package to PyPI
+        type: boolean
+        default: false
+      publish_rolling_tags:
+        description: Also publish rolling image tags (major.minor and latest)
+        type: boolean
+        default: false
+
+run-name: >-
+  Release ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
+  release-meta:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      ref: ${{ steps.resolve.outputs.ref }}
+      release_tag: ${{ steps.resolve.outputs.release_tag }}
+      publish_extension_assets: ${{ steps.resolve.outputs.publish_extension_assets }}
+      publish_docker: ${{ steps.resolve.outputs.publish_docker }}
+      publish_helm: ${{ steps.resolve.outputs.publish_helm }}
+      publish_cli_package: ${{ steps.resolve.outputs.publish_cli_package }}
+      docker_tags: ${{ steps.resolve.outputs.docker_tags }}
+    steps:
+      - name: Resolve release metadata
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_REF: ${{ inputs.ref }}
+          INPUT_PUBLISH_EXTENSION_ASSETS: ${{ inputs.publish_extension_assets }}
+          INPUT_PUBLISH_DOCKER: ${{ inputs.publish_docker }}
+          INPUT_PUBLISH_HELM: ${{ inputs.publish_helm }}
+          INPUT_PUBLISH_CLI_PACKAGE: ${{ inputs.publish_cli_package }}
+          INPUT_PUBLISH_ROLLING_TAGS: ${{ inputs.publish_rolling_tags }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            VERSION="$INPUT_VERSION"
+            REF="$INPUT_REF"
+            PUBLISH_EXTENSION_ASSETS="$INPUT_PUBLISH_EXTENSION_ASSETS"
+            PUBLISH_DOCKER="$INPUT_PUBLISH_DOCKER"
+            PUBLISH_HELM="$INPUT_PUBLISH_HELM"
+            PUBLISH_CLI_PACKAGE="$INPUT_PUBLISH_CLI_PACKAGE"
+            PUBLISH_ROLLING_TAGS="$INPUT_PUBLISH_ROLLING_TAGS"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+            REF="$GITHUB_SHA"
+            PUBLISH_EXTENSION_ASSETS="true"
+            PUBLISH_DOCKER="true"
+            PUBLISH_HELM="true"
+            PUBLISH_CLI_PACKAGE="false"
+            PUBLISH_ROLLING_TAGS="true"
+          fi
+
+          MINOR_TAG="$(printf '%s' "$VERSION" | awk -F. '{print $1 "." $2}')"
+          IMAGE="ghcr.io/${REPOSITORY_OWNER}/tarnished"
+
+          {
+            echo "version=$VERSION"
+            echo "ref=$REF"
+            echo "release_tag=v$VERSION"
+            echo "publish_extension_assets=$PUBLISH_EXTENSION_ASSETS"
+            echo "publish_docker=$PUBLISH_DOCKER"
+            echo "publish_helm=$PUBLISH_HELM"
+            echo "publish_cli_package=$PUBLISH_CLI_PACKAGE"
+            echo "docker_tags<<EOF"
+            echo "$IMAGE:$VERSION"
+            if [ "$PUBLISH_ROLLING_TAGS" = "true" ]; then
+              echo "$IMAGE:$MINOR_TAG"
+              echo "$IMAGE:latest"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+  github-release-notes:
+    runs-on: ubuntu-latest
+    needs: [release-meta, backend-checks, cli-checks, frontend-checks]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release-meta.outputs.ref }}
+
+      - name: Update GitHub release body from changelog
+        env:
+          TAG: ${{ needs.release-meta.outputs.release_tag }}
+          VERSION: ${{ needs.release-meta.outputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          awk -v section="## ["$VERSION"]" '
+            $0 == section { printing=1; print; next }
+            printing && /^## \[/ { exit }
+            printing { print }
+          ' CHANGELOG.md > /tmp/release-notes.md
+
+          if [ ! -s /tmp/release-notes.md ]; then
+            echo "Failed to extract changelog entry for $VERSION"
+            exit 1
+          fi
+
+          gh release edit "$TAG" --notes-file /tmp/release-notes.md
   # All check jobs run in parallel
   backend-checks:
     runs-on: ubuntu-latest
+    needs: release-meta
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release-meta.outputs.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -39,12 +170,53 @@ jobs:
         run: |
           uv export --no-dev --no-hashes -o requirements.txt
           # Ignore CVE-2024-23342 (ecdsa): App uses HS256 for JWTs, not ECDSA
-          uv tool run pip-audit -r requirements.txt --ignore-vuln CVE-2024-23342
+          # Ignore CVE-2026-4539 (pygments): transitive dependency used for formatting / rich output,
+          # no patched release is currently available in our dependency graph
+          uv tool run pip-audit -r requirements.txt --no-deps --disable-pip --ignore-vuln CVE-2024-23342 --ignore-vuln CVE-2026-4539
+
+  cli-checks:
+    runs-on: ubuntu-latest
+    needs: release-meta
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release-meta.outputs.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install dependencies
+        working-directory: cli
+        run: uv sync
+
+      - name: Ruff check
+        working-directory: cli
+        run: uv run ruff check src tests
+
+      - name: Ruff format check
+        working-directory: cli
+        run: uv run ruff format --check src tests
+
+      - name: Pyright
+        working-directory: cli
+        run: uv run pyright src tests
+
+      - name: Run tests
+        working-directory: cli
+        run: uv run pytest -q
 
   frontend-checks:
     runs-on: ubuntu-latest
+    needs: release-meta
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release-meta.outputs.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -85,11 +257,14 @@ jobs:
 
   extension:
     runs-on: ubuntu-latest
-    # No dependency on other jobs - runs in parallel
+    needs: [release-meta, github-release-notes]
+    if: needs.release-meta.outputs.publish_extension_assets == 'true'
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release-meta.outputs.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -128,17 +303,84 @@ jobs:
       - name: Upload extension to release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ needs.release-meta.outputs.version }}
           files: |
             extension/tarnished-chrome.zip
             extension/tarnished-firefox.zip
 
+  cli-package:
+    runs-on: ubuntu-latest
+    needs: [release-meta, cli-checks, github-release-notes]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release-meta.outputs.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install CLI dependencies
+        working-directory: cli
+        run: uv sync
+
+      - name: Build CLI distributions
+        working-directory: cli
+        run: uv build
+
+      - name: Upload CLI distributions as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-dist
+          path: |
+            cli/dist/*.whl
+            cli/dist/*.tar.gz
+
+      - name: Upload CLI artifacts to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.release-meta.outputs.version }}
+          files: |
+            cli/dist/*.whl
+            cli/dist/*.tar.gz
+
+  cli-pypi-publish:
+    runs-on: ubuntu-latest
+    needs: [release-meta, cli-package]
+    if: needs.release-meta.outputs.publish_cli_package == 'true'
+    environment:
+      name: pypi
+      url: https://pypi.org/project/tarnished-cli/
+    permissions:
+      id-token: write
+    steps:
+      - name: Download CLI distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-dist
+          path: cli/dist
+
+      - name: Publish CLI package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: cli/dist
+
   docker:
     runs-on: ubuntu-latest
-    needs: [backend-checks, frontend-checks]
+    needs: [release-meta, backend-checks, frontend-checks, github-release-notes]
+    if: needs.release-meta.outputs.publish_docker == 'true'
     permissions:
       packages: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release-meta.outputs.ref }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -153,42 +395,34 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/tarnished
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ needs.release-meta.outputs.docker_tags }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/tarnished:buildcache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/tarnished:buildcache,mode=max
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.35.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/tarnished:${{ steps.meta.outputs.version }}
+          image-ref: ghcr.io/${{ github.repository_owner }}/tarnished:${{ needs.release-meta.outputs.version }}
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL'
 
   helm:
     runs-on: ubuntu-latest
-    needs: docker
+    needs: [release-meta, backend-checks, frontend-checks, docker, github-release-notes]
+    if: needs.release-meta.outputs.publish_helm == 'true' && (needs.release-meta.outputs.publish_docker == 'false' || needs.docker.result == 'success')
     permissions:
       packages: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release-meta.outputs.ref }}
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -198,6 +432,6 @@ jobs:
 
       - name: Package and push Helm chart
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${{ needs.release-meta.outputs.version }}
           helm package chart/ --version $VERSION --app-version $VERSION
           helm push tarnished-$VERSION.tgz oci://ghcr.io/${{ github.repository_owner }}/charts

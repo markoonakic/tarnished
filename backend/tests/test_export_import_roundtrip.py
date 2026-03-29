@@ -389,7 +389,9 @@ class TestFileExtraction:
             )
 
         # Extract should succeed with valid hash
-        with patch("app.services.import_execution.UPLOAD_DIR", str(tmp_path / "uploads")):
+        with patch(
+            "app.services.import_execution.UPLOAD_DIR", str(tmp_path / "uploads")
+        ):
             file_mapping = extract_files_from_new_format(str(zip_path), "test-user")
 
         # File should be mapped

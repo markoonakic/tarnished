@@ -57,7 +57,9 @@ async def _load_settings_records(
 
 
 def _load_settings_records_sync(db: Session) -> dict[str, SystemSettings]:
-    result = db.execute(select(SystemSettings).where(SystemSettings.key.in_(AI_SETTINGS_KEYS)))
+    result = db.execute(
+        select(SystemSettings).where(SystemSettings.key.in_(AI_SETTINGS_KEYS))
+    )
     return {setting.key: setting for setting in result.scalars().all()}
 
 

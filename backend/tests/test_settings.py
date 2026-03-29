@@ -11,7 +11,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import generate_api_token, get_password_hash
+from app.core.security import create_access_token, generate_api_token, get_password_hash
 from app.core.themes import (
     ACCENT_OPTIONS,
     DEFAULT_ACCENT,
@@ -70,6 +70,13 @@ def auth_headers_with_settings(test_user_with_settings: User) -> dict[str, str]:
     return {"X-API-Key": test_user_with_settings.api_token}
 
 
+@pytest.fixture
+def bearer_auth_headers(test_user: User) -> dict[str, str]:
+    """Create JWT auth headers for a regular user."""
+    token = create_access_token({"sub": test_user.id})
+    return {"Authorization": f"Bearer {token}"}
+
+
 # ============================================================================
 # GET /api/users/settings Tests
 # ============================================================================
@@ -95,6 +102,20 @@ class TestGetSettings:
 
         data = response.json()
         # Should return default theme and accent
+        assert data["theme"] == DEFAULT_THEME
+        assert data["accent"] == DEFAULT_ACCENT
+        assert "colors" in data
+
+    async def test_get_settings_with_bearer_jwt(
+        self,
+        client: AsyncClient,
+        bearer_auth_headers: dict[str, str],
+    ):
+        """Test getting settings with a normal JWT session."""
+        response = await client.get("/api/users/settings", headers=bearer_auth_headers)
+        assert response.status_code == 200
+
+        data = response.json()
         assert data["theme"] == DEFAULT_THEME
         assert data["accent"] == DEFAULT_ACCENT
         assert "colors" in data

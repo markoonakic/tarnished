@@ -9,6 +9,8 @@ from app.models import User
 from app.schemas.ai_settings import AISettingsResponse, AISettingsUpdate
 from app.services.ai_settings import (
     get_ai_settings as get_ai_settings_state,
+)
+from app.services.ai_settings import (
     update_ai_settings as update_ai_settings_state,
 )
 

@@ -90,7 +90,6 @@ class ApplicationStatusHistoryResponse(BaseModel):
     note: str | None
 
 
-
 __all__ = [
     "StreakResponse",
     "Token",

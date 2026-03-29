@@ -21,7 +21,6 @@ class StatusFullResponse(BaseModel):
     order: int
 
 
-
 class RoundTypeCreate(BaseModel):
     name: str
 
@@ -32,7 +31,6 @@ class RoundTypeFullResponse(BaseModel):
     id: str
     name: str
     is_default: bool
-
 
 
 class APIKeyResponse(BaseModel):
@@ -54,7 +52,6 @@ class APIKeyResponse(BaseModel):
         default=None,
         description="Full API key (only returned when regenerating, shown once)",
     )
-
 
 
 class ThemeColors(BaseModel):

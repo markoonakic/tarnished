@@ -21,7 +21,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import (
     get_current_user,
-    get_current_user_by_api_token,
     get_current_user_flexible,
 )
 from app.models import User
@@ -35,6 +34,7 @@ from app.schemas.job_lead import (
     JobLeadListResponse,
     JobLeadResponse,
 )
+from app.services.ai_settings import get_ai_settings
 from app.services.extraction import (
     ExtractionAuthError,
     ExtractionError,
@@ -43,21 +43,19 @@ from app.services.extraction import (
     NoJobFoundError,
     extract_job_data,
 )
-from app.services.ai_settings import get_ai_settings
 from app.services.job_fetch import fetch_job_posting_html
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/job-leads", tags=["job-leads"])
 
+
 @router.get("", response_model=JobLeadListResponse)
 async def list_job_leads(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     status_filter: str | None = Query(None, alias="status"),
-    search: str | None = Query(
-        None, description="Search by company, title, or URL"
-    ),
+    search: str | None = Query(None, description="Search by company, title, or URL"),
     source: str | None = Query(None, description="Filter by exact source"),
     sort: str = Query("newest", pattern="^(newest|oldest)$"),
     user: User = Depends(get_current_user_flexible),
@@ -173,7 +171,7 @@ async def get_job_lead(
 @router.post("", response_model=JobLeadResponse, status_code=status.HTTP_201_CREATED)
 async def create_job_lead(
     data: JobLeadCreate,
-    user: User = Depends(get_current_user_by_api_token),
+    user: User = Depends(get_current_user_flexible),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new job lead by extracting data from a job posting URL.
@@ -183,12 +181,12 @@ async def create_job_lead(
     2. Uses AI to extract structured job data from the HTML
     3. Creates a JobLead record in the database
 
-    The endpoint supports both Bearer token and X-API-Key authentication
-    for use with browser extensions.
+    The endpoint supports both JWT bearer sessions and API-token-based auth
+    so it can be used by the web app, CLI, and browser extension.
 
     Args:
         data: JobLeadCreate schema with url (required) and optional html content.
-        user: The authenticated user (via API token).
+        user: The authenticated user.
         db: Database session.
 
     Returns:
