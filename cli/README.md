@@ -16,6 +16,19 @@ Alternative:
 pipx install tarnished-cli
 ```
 
+Homebrew convenience path:
+
+```bash
+brew tap markoonakic/tap
+brew install tarnished-cli
+```
+
+For agents and automation, keep using:
+
+```bash
+uv tool install tarnished-cli
+```
+
 Install from a built wheel before PyPI publication:
 
 ```bash

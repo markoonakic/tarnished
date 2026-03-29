@@ -87,6 +87,23 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
 
 See [chart/README.md](chart/README.md) for full configuration options.
 
+### CLI
+
+Tarnished also ships a standalone CLI.
+
+Recommended install path:
+
+```bash
+uv tool install tarnished-cli
+```
+
+Homebrew convenience path:
+
+```bash
+brew tap markoonakic/tap
+brew install tarnished-cli
+```
+
 ## Configuration
 
 ### Environment Variables
