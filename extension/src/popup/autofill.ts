@@ -33,11 +33,16 @@ export function createPopupAutofillController(options: {
       const profile = await deps.getProfile();
 
       if (!deps.hasAutofillData(profile)) {
-        ui.showErrorNotification('Set up your profile in the app to enable autofill');
+        ui.showErrorNotification(
+          'Set up your profile in the app to enable autofill'
+        );
         return;
       }
 
-      const response = await deps.sendAutofillMessage(state.currentTabId, profile);
+      const response = await deps.sendAutofillMessage(
+        state.currentTabId,
+        profile
+      );
 
       if (typeof response?.filledCount === 'number') {
         if (response.filledCount > 0) {
@@ -46,7 +51,10 @@ export function createPopupAutofillController(options: {
             `Filled ${response.filledCount} field${response.filledCount !== 1 ? 's' : ''}.`
           );
         } else {
-          ui.showNotification('No Fields Found', 'No empty form fields found to fill.');
+          ui.showNotification(
+            'No Fields Found',
+            'No empty form fields found to fill.'
+          );
         }
       } else {
         ui.showNotification(

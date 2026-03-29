@@ -347,9 +347,12 @@ export function mapApiError(error: unknown): ExtensionError {
       case ERROR_CODES.AUTH_FAILED:
         return new AuthFailedError({ cause: error });
       case ERROR_CODES.ALREADY_SAVED:
-        return new AlreadySavedError(extractDuplicateResourceId(error.message) ?? undefined, {
-          cause: error,
-        });
+        return new AlreadySavedError(
+          extractDuplicateResourceId(error.message) ?? undefined,
+          {
+            cause: error,
+          }
+        );
       case ERROR_CODES.TIMEOUT:
         return new TimeoutErrorCode({ cause: error });
       case ERROR_CODES.NETWORK:
@@ -420,7 +423,8 @@ export function parseBackendError(response: {
       });
     case ERROR_CODES.DUPLICATE_RESOURCE:
       return new AlreadySavedError(
-        extractDuplicateResourceId(response.detail || response.message || '') ?? undefined,
+        extractDuplicateResourceId(response.detail || response.message || '') ??
+          undefined,
         {
           cause: new Error(response.message),
         }

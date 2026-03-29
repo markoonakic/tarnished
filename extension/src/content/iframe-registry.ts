@@ -16,7 +16,9 @@ export interface IframeScanResult {
 }
 
 function isPostMessageTarget(source: MessageEventSource | null): boolean {
-  return typeof source === 'object' && source !== null && 'postMessage' in source;
+  return (
+    typeof source === 'object' && source !== null && 'postMessage' in source
+  );
 }
 
 function getIframeResultKey(origin: string, path?: string): string {
@@ -45,10 +47,13 @@ export function createIframeRegistry() {
   const trackedIframes = new Map<string, TrackedIframe>();
 
   return {
-    recordScanResult(event: {
-      origin: string;
-      source: MessageEventSource | null;
-    }, payload: IframeScanResult): void {
+    recordScanResult(
+      event: {
+        origin: string;
+        source: MessageEventSource | null;
+      },
+      payload: IframeScanResult
+    ): void {
       trackedIframes.set(getIframeResultKey(event.origin, payload.path), {
         origin: event.origin,
         result: payload,
