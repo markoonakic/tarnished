@@ -8,7 +8,16 @@ from tarnished_cli.models import JobLeadCreate
 from tarnished_cli.output import emit_result, exit_for_error
 from tarnished_cli.state import get_state
 
-app = typer.Typer(help="Manage job leads.")
+JOB_LEADS_HELP = """Manage job leads.
+
+Examples:
+  tarnished job-leads list --json
+  tarnished job-leads create --body-file job-lead.json
+  tarnished job-leads convert lead-123
+"""
+
+
+app = typer.Typer(help=JOB_LEADS_HELP)
 
 
 @app.command("list")

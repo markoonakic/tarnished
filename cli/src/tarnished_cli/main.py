@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from textwrap import dedent
 
 import typer
 
@@ -31,7 +32,19 @@ def _cli_version() -> str:
         return "0.0.0"
 
 
-app = typer.Typer(no_args_is_help=True, help="Agent-first CLI for Tarnished.")
+ROOT_HELP = dedent(
+    """\
+    Agent-first CLI for Tarnished.
+
+    Examples:
+      tarnished auth status --json
+      tarnished applications list --json
+      tarnished <command> --help
+    """
+)
+
+
+app = typer.Typer(no_args_is_help=True, help=ROOT_HELP)
 app.add_typer(auth.app, name="auth")
 app.add_typer(admin.app, name="admin")
 app.add_typer(applications.app, name="applications")
