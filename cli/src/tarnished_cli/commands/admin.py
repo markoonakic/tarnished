@@ -14,7 +14,16 @@ from tarnished_cli.models import (
 from tarnished_cli.output import emit_result, exit_for_error
 from tarnished_cli.state import get_state
 
-app = typer.Typer(help="Admin-only commands.")
+ADMIN_HELP = """Admin-only commands. Use only when you need privileged access.
+
+Examples:
+  tarnished admin stats --json
+  tarnished admin users list --json
+  tarnished admin ai-settings get --json
+"""
+
+
+app = typer.Typer(help=ADMIN_HELP)
 users_app = typer.Typer(help="Manage users.")
 applications_app = typer.Typer(help="Inspect all applications.")
 statuses_app = typer.Typer(help="Manage default statuses.")

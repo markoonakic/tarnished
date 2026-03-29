@@ -12,7 +12,16 @@ from tarnished_cli.models import (
 from tarnished_cli.output import emit_result, exit_for_error
 from tarnished_cli.state import get_state
 
-app = typer.Typer(help="Manage job applications.")
+APPLICATIONS_HELP = """Manage job applications.
+
+Examples:
+  tarnished applications list --json
+  tarnished applications create --body-file create-application.json
+  tarnished applications delete app-123 --yes
+"""
+
+
+app = typer.Typer(help=APPLICATIONS_HELP)
 history_app = typer.Typer(help="Inspect and modify application history.")
 cv_app = typer.Typer(help="Manage CV documents.")
 cover_letter_app = typer.Typer(help="Manage cover-letter documents.")
