@@ -8,7 +8,16 @@ from tarnished_cli.models import InsightsRequest
 from tarnished_cli.output import emit_result, exit_for_error
 from tarnished_cli.state import get_state
 
-app = typer.Typer(help="Read analytics data.")
+ANALYTICS_HELP = """Read analytics data.
+
+Examples:
+  tarnished analytics kpis --period 30d --json
+  tarnished analytics heatmap --year 2026 --json
+  tarnished analytics insights --body-file insights.json
+"""
+
+
+app = typer.Typer(help=ANALYTICS_HELP)
 
 
 @app.command("kpis")

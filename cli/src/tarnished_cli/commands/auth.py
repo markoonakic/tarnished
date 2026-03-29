@@ -4,7 +4,16 @@ from tarnished_cli.client import CLIError
 from tarnished_cli.output import emit_error, emit_result
 from tarnished_cli.state import get_state
 
-app = typer.Typer(help="Authenticate and inspect session state.")
+AUTH_HELP = """Authenticate and inspect session state.
+
+Examples:
+  tarnished auth status
+  tarnished auth login --email you@example.com --password '...'
+  tarnished auth register --email you@example.com --password '...'
+"""
+
+
+app = typer.Typer(help=AUTH_HELP)
 api_key_app = typer.Typer(help="Manage stored API key state.")
 app.add_typer(api_key_app, name="api-key")
 
