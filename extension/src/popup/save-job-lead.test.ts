@@ -14,7 +14,11 @@ describe('popup save job lead controller', () => {
 
   const state: {
     currentTabUrl: string | null;
-    currentJobInfo: { title: string | null; company: string | null; location: string | null };
+    currentJobInfo: {
+      title: string | null;
+      company: string | null;
+      location: string | null;
+    };
     existingLead: {
       id: string;
       title: string | null;
@@ -89,7 +93,12 @@ describe('popup save job lead controller', () => {
       title: 'Engineer',
       company: 'Acme',
     });
-    expect(state.existingLead).toEqual({ id: 'lead-1', title: 'Engineer', company: 'Acme', location: 'Remote' });
+    expect(state.existingLead).toEqual({
+      id: 'lead-1',
+      title: 'Engineer',
+      company: 'Acme',
+      location: 'Remote',
+    });
     expect(elements.savedMessage.textContent).toBe('Saved to Job Leads');
     expect(showSuccessNotification).toHaveBeenCalledWith('Engineer', 'Acme');
     expect(showState).toHaveBeenCalledWith('saved');

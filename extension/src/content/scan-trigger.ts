@@ -11,9 +11,7 @@ function isFormScanNode(node: Node): boolean {
   );
 }
 
-export function shouldScheduleFormRescan(
-  mutations: MutationRecord[]
-): boolean {
+export function shouldScheduleFormRescan(mutations: MutationRecord[]): boolean {
   for (const mutation of mutations) {
     if (mutation.addedNodes.length === 0) {
       continue;
