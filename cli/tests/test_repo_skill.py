@@ -53,3 +53,24 @@ def test_tarnished_skill_mentions_json_profiles_and_admin_safety():
     assert "prefer explicit `--profile`" in content
     assert "admin" in content.lower()
     assert "Use only when you need privileged access." in content
+
+
+def test_tarnished_skill_covers_auth_statuses_dashboard_and_import_safety():
+    content = SKILL_MD.read_text()
+
+    assert "tarnished auth status --json" in content
+    assert "tarnished auth api-key show --json" in content
+    assert "tarnished dashboard summary --json" in content
+    assert "tarnished statuses list --json" in content
+    assert "tarnished import validate" in content
+    assert "tarnished import run" in content
+
+
+def test_tarnished_skill_covers_round_and_document_recipes():
+    content = SKILL_MD.read_text()
+
+    assert "tarnished job-leads convert" in content
+    assert "tarnished applications cv url" in content
+    assert "tarnished rounds media upload" in content
+    assert "tarnished rounds transcript upload" in content
+    assert "server-backed data/actions" in content

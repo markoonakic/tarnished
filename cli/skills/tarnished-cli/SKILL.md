@@ -7,7 +7,24 @@ description: Use this skill whenever the user wants to operate Tarnished through
 
 Use the Tarnished CLI as the primary interface to Tarnished's server-backed product surface.
 
-The CLI covers the backend-backed functionality of the web app. It does not reproduce browser-only behavior such as charts, modals, navigation, or extension-driven DOM automation.
+The CLI covers the full server-backed Tarnished surface:
+
+- `auth`
+- `applications`
+- `job-leads`
+- `dashboard`
+- `analytics`
+- `statuses`
+- `round-types`
+- `rounds`
+- `profile`
+- `preferences`
+- `user-settings`
+- `export`
+- `import`
+- `admin`
+
+The CLI covers server-backed data/actions from the product. It does not reproduce browser-rendered presentation or browser-only behavior such as charts, modals, page navigation, extension popups, or DOM automation.
 
 ## Preflight
 
@@ -15,6 +32,7 @@ The CLI covers the backend-backed functionality of the web app. It does not repr
    - `tarnished --version`
 2. Check session state:
    - `tarnished auth status --json`
+   - if not authenticated, use `tarnished auth --help` and run the appropriate `login` or `register` flow
 3. If the target environment is ambiguous, prefer explicit targeting:
    - `--profile`
    - `--base-url`
@@ -39,6 +57,8 @@ Common starting points:
 
 - Applications:
   - `tarnished applications list --json`
+  - `tarnished statuses list --json`
+  - use `tarnished statuses list --json` before filtering applications by `status_id`
   - `tarnished applications get <application-id> --json`
 - Job leads:
   - `tarnished job-leads list --json`
@@ -49,7 +69,10 @@ Common starting points:
   - `tarnished analytics weekly --period 30d --json`
   - `tarnished analytics sankey --json`
 - Profile and settings:
+  - `tarnished auth whoami --json`
+  - `tarnished auth api-key show --json`
   - `tarnished profile get --json`
+  - `tarnished dashboard summary --json`
   - `tarnished user-settings get --json`
   - `tarnished preferences get --json`
 
@@ -69,6 +92,8 @@ Examples:
   - `tarnished applications extract --body-file extract-application.json`
 - Create a job lead:
   - `tarnished job-leads create --body-file create-job-lead.json`
+- Convert a lead into an application:
+  - `tarnished job-leads convert <job-lead-id>`
 - Update a profile:
   - `tarnished profile update --body-file profile-update.json`
 
@@ -117,6 +142,20 @@ The CLI also covers:
 - `import`
 - API key management via `tarnished auth api-key ...`
 
+Useful operator recipes:
+
+- Signed application document URLs:
+  - `tarnished applications cv url <application-id>`
+  - `tarnished applications cover-letter url <application-id>`
+- Round transcript and media flows:
+  - `tarnished rounds transcript upload <round-id> --file-path transcript.txt`
+  - `tarnished rounds media upload <round-id> --file-path interview.wav`
+  - `tarnished rounds transcript url <round-id>`
+  - `tarnished rounds media url <round-id>`
+- Import safety:
+  - `tarnished import validate <export-file>`
+  - `tarnished import run <export-file> --wait`
+
 Use command-group help for exact syntax:
 
 - `tarnished rounds --help`
@@ -129,4 +168,4 @@ Use command-group help for exact syntax:
 - Prefer `--json` whenever a downstream agent or tool will parse the output.
 - Prefer explicit environment targeting with `--profile` or `--base-url` rather than assuming the default target.
 - Do not use `admin` unless the task requires privileged operations.
-- Do not describe the CLI as reproducing browser UI behavior; it exposes the server-backed product surface.
+- Do not describe the CLI as reproducing browser UI behavior; it exposes server-backed data/actions, not browser-rendered presentation.

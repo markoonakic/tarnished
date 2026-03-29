@@ -1,0 +1,82 @@
+[
+  {
+    "query": "i need to see every application in my tarnished instance that is still in the applied stage and dump it as json so another agent can sort them by age",
+    "should_trigger": true
+  },
+  {
+    "query": "can you use tarnished to create a new application for ExampleCo from this body file i already prepared in /tmp/create-application.json and keep the output machine readable",
+    "should_trigger": true
+  },
+  {
+    "query": "my local job tracker on http://127.0.0.1:5577 has a lead i want converted into an application, please do it through the tarnished cli not the browser",
+    "should_trigger": true
+  },
+  {
+    "query": "check whether im logged into tarnished on the prod profile and if not tell me what auth command i should run next",
+    "should_trigger": true
+  },
+  {
+    "query": "pull the 30 day kpis and weekly analytics from tarnished as json because i want another script to compare my response rate week over week",
+    "should_trigger": true
+  },
+  {
+    "query": "i want to export my tarnished data before i mess with imports, use the cli and give me the safest command flow",
+    "should_trigger": true
+  },
+  {
+    "query": "use tarnished admin commands to list users on my self hosted instance and show me the output as json, dont click through the UI",
+    "should_trigger": true
+  },
+  {
+    "query": "there is a cv attached to application app-123 in tarnished and i need the signed download url through the cli",
+    "should_trigger": true
+  },
+  {
+    "query": "for my job tracker instance, add a new lead from /tmp/lead.json and then list the latest job leads back to me in json",
+    "should_trigger": true
+  },
+  {
+    "query": "i recorded an interview round and need to manage the round data, transcript, and media through tarnished commands instead of the site",
+    "should_trigger": true
+  },
+  {
+    "query": "can you inspect the Tarnished analytics experience and tell me whether the sankey chart is visually broken on mobile, even if you need to look at the browser rather than raw json",
+    "should_trigger": false
+  },
+  {
+    "query": "my Tarnished pipeline looks bad but i dont actually want commands run, i just want strategic advice on whether i should keep applying or pause for interview prep",
+    "should_trigger": false
+  },
+  {
+    "query": "use kubectl to inspect why the tarnished deployment in my homelab namespace keeps restarting and check pod logs, this is cluster debugging not cli usage",
+    "should_trigger": false
+  },
+  {
+    "query": "write release notes for Tarnished CLI 0.1.3 and mention the new analytics and import work, but do not run the tarnished command at all",
+    "should_trigger": false
+  },
+  {
+    "query": "i have a csv exported from Tarnished but i want you to analyze it with python and charts directly, not through the tarnished command",
+    "should_trigger": false
+  },
+  {
+    "query": "fix the React settings page in Tarnished where the API key form jumps around during loading, and only use the cli if you need sample data, the main task is frontend code",
+    "should_trigger": false
+  },
+  {
+    "query": "open the Tarnished browser extension popup and check whether autofill is working on this greenhouse form, so this is extension behavior not cli automation",
+    "should_trigger": false
+  },
+  {
+    "query": "show me how to install tarnished-cli with homebrew on a new machine and explain the setup, i dont need you to operate the CLI after that",
+    "should_trigger": false
+  },
+  {
+    "query": "i want a shell alias so zsh autocomplete works better for tarnished, this is terminal config work around the cli rather than actual Tarnished operations",
+    "should_trigger": false
+  },
+  {
+    "query": "please design a prettier dashboard for my job tracker with better spacing and color hierarchy, but do not use the CLI because this is a product design task",
+    "should_trigger": false
+  }
+]
