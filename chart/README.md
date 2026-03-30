@@ -100,6 +100,7 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
 | `postgresql.existingSecret` | string | `""` | Existing secret for PostgreSQL credentials |
 | `secretKey.existingSecret` | string | `""` | Existing secret for SECRET_KEY |
 | `secretKey.existingSecretKey` | string | `secret-key` | Key within existing secret |
+| `trustedHosts` | list | `[]` | Extra hostnames allowed by TrustedHostMiddleware |
 | `env` | list | `[]` | Additional environment variables |
 | `envFrom` | list | `[]` | Environment variables from ConfigMaps/Secrets |
 | `resources.requests.memory` | string | `256Mi` | Memory request |

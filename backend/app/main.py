@@ -1,7 +1,6 @@
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from urllib.parse import urlparse
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -68,16 +67,9 @@ app.add_middleware(
     expose_headers=["Content-Disposition", "Content-Type", "Content-Length"],
 )
 
-# Add TrustedHost middleware - auto-include APP_URL hostname
-allowed_hosts = ["localhost", "127.0.0.1", "test"]
-if settings.app_url:
-    parsed = urlparse(settings.app_url)
-    if parsed.hostname and parsed.hostname not in allowed_hosts:
-        allowed_hosts.append(parsed.hostname)
-
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=allowed_hosts,
+    allowed_hosts=settings.get_trusted_hosts(),
 )
 
 

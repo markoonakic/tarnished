@@ -130,6 +130,10 @@ spec:
             - name: APP_URL
               value: {{ if .Values.ingress.tls.enabled }}"https://{{ .Values.ingress.host }}"{{ else }}"http://{{ .Values.ingress.host }}"{{ end }}
             {{- end }}
+            {{- if .Values.trustedHosts }}
+            - name: TRUSTED_HOSTS
+              value: {{ join "," .Values.trustedHosts | quote }}
+            {{- end }}
             {{- with .Values.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

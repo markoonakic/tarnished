@@ -11,6 +11,26 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 - Release recovery can now be run through GitHub Actions without moving an existing tag.
 - Local Git hooks use repo-local tools instead of depending on ambient global package manager state.
 
+## [0.1.3] - 2026-03-30
+
+### Changed
+
+- Tarnished backend now supports deployment-configured trusted hosts so in-cluster clients can use Kubernetes service DNS without spoofing the public ingress hostname.
+- Helm chart now exposes `trustedHosts` as a first-class value instead of requiring ad hoc env overrides.
+
+### Fixed
+
+- In-cluster service-to-service clients such as OpenClaw can now target Tarnished through internal Kubernetes service DNS when the deployment config opts in to those hostnames.
+
+### Validation
+
+- Backend tests: `302 passed, 1 skipped`
+- Backend pyright: `0 errors, 0 warnings`
+- Targeted backend Ruff checks passed for the touched files
+- Standalone CLI tests: `65 passed`
+- CLI wheel built successfully as `tarnished_cli-0.1.3-py3-none-any.whl`
+- Helm lint and template checks passed, including `trustedHosts` env rendering
+
 ## [0.1.2] - 2026-03-28
 
 ### Added

@@ -1,6 +1,7 @@
 import logging
 import os
 from functools import lru_cache
+from urllib.parse import urlparse
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
@@ -34,6 +35,7 @@ class Settings(BaseSettings):
     max_media_size_mb: int = 500
     cors_origins: str = "http://localhost:5173,http://localhost:5174"
     app_url: str = "http://localhost:5577"
+    trusted_hosts: str = ""
 
     def get_database_url(self) -> str:
         """Build database URL with proper encoding.
@@ -59,6 +61,37 @@ class Settings(BaseSettings):
 
         # SQLite fallback
         return f"sqlite+aiosqlite:///{self.sqlite_path}"
+
+    def get_trusted_hosts(self) -> list[str]:
+        hosts: list[str] = ["localhost", "127.0.0.1", "test"]
+
+        app_host = _normalize_host(self.app_url)
+        if app_host:
+            hosts.append(app_host)
+
+        for raw_host in self.trusted_hosts.split(","):
+            host = _normalize_host(raw_host)
+            if host:
+                hosts.append(host)
+
+        deduped_hosts: list[str] = []
+        for host in hosts:
+            if host not in deduped_hosts:
+                deduped_hosts.append(host)
+
+        return deduped_hosts
+
+
+def _normalize_host(value: str | None) -> str | None:
+    if not value:
+        return None
+
+    raw = value.strip()
+    if not raw:
+        return None
+
+    parsed = urlparse(raw if "://" in raw else f"//{raw}")
+    return parsed.hostname or raw
 
 
 @lru_cache

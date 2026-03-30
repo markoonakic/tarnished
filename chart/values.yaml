@@ -120,6 +120,11 @@ env: []
   # - name: APP_URL
   #   value: https://jobs.example.com
 
+# -- Extra hostnames allowed by TrustedHostMiddleware.
+# These are appended to localhost/test defaults and the APP_URL hostname.
+trustedHosts: []
+  # - tarnished.tarnished.svc.cluster.local
+
 # -- Additional environment variables from ConfigMaps/Secrets
 envFrom: []
 

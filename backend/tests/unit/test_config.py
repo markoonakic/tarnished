@@ -84,3 +84,37 @@ class TestGetDatabaseUrl:
 
         url = settings.get_database_url()
         assert "sqlite+aiosqlite" in url
+
+
+class TestTrustedHosts:
+    """Tests for trusted host resolution."""
+
+    def test_trusted_hosts_include_defaults_app_url_and_explicit_entries(self):
+        settings = create_test_settings(
+            app_url="https://tarnished.sarma.love",
+            trusted_hosts="tarnished, tarnished.tarnished.svc.cluster.local",
+        )
+
+        assert settings.get_trusted_hosts() == [
+            "localhost",
+            "127.0.0.1",
+            "test",
+            "tarnished.sarma.love",
+            "tarnished",
+            "tarnished.tarnished.svc.cluster.local",
+        ]
+
+    def test_trusted_hosts_strip_whitespace_ports_and_duplicates(self):
+        settings = create_test_settings(
+            app_url="https://tarnished.sarma.love:443",
+            trusted_hosts=" localhost, tarnished ,tarnished, tarnished.tarnished.svc.cluster.local:5577 ",
+        )
+
+        assert settings.get_trusted_hosts() == [
+            "localhost",
+            "127.0.0.1",
+            "test",
+            "tarnished.sarma.love",
+            "tarnished",
+            "tarnished.tarnished.svc.cluster.local",
+        ]
