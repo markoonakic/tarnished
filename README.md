@@ -108,13 +108,14 @@ brew install tarnished-cli
 
 ### Environment Variables
 
-| Variable            | Default                 | Description                     |
-| ------------------- | ----------------------- | ------------------------------- |
-| `APP_PORT`          | `5577`                  | Port the app listens on         |
-| `APP_URL`           | `http://localhost:5577` | Public URL (for CORS and links) |
-| `POSTGRES_HOST`     | _(SQLite)_              | PostgreSQL host                 |
-| `POSTGRES_PASSWORD` | _(SQLite)_              | PostgreSQL password             |
-| `SECRET_KEY`        | auto-generated          | JWT signing key                 |
+| Variable            | Default                 | Description                                                      |
+| ------------------- | ----------------------- | ---------------------------------------------------------------- |
+| `APP_PORT`          | `5577`                  | Port the app listens on                                          |
+| `APP_URL`           | `http://localhost:5577` | Public URL (for CORS and links)                                  |
+| `TRUSTED_HOSTS`     | _(empty)_               | Extra comma-separated hostnames allowed by TrustedHostMiddleware |
+| `POSTGRES_HOST`     | _(SQLite)_              | PostgreSQL host                                                  |
+| `POSTGRES_PASSWORD` | _(SQLite)_              | PostgreSQL password                                              |
+| `SECRET_KEY`        | auto-generated          | JWT signing key                                                  |
 
 See `.env.example` for all available options.
 
