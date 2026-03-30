@@ -122,8 +122,8 @@ jobs:
           VERSION: ${{ needs.release-meta.outputs.version }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          awk -v section="## ["$VERSION"]" '
-            $0 == section { printing=1; print; next }
+          awk -v version="$VERSION" '
+            $0 ~ "^## \\[" version "\\]" { printing=1; print; next }
             printing && /^## \[/ { exit }
             printing { print }
           ' CHANGELOG.md > /tmp/release-notes.md
