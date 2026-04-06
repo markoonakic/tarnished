@@ -579,13 +579,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/chrome@npm:^0.1.38":
-  version: 0.1.38
-  resolution: "@types/chrome@npm:0.1.38"
+"@types/chrome@npm:^0.1.39":
+  version: 0.1.39
+  resolution: "@types/chrome@npm:0.1.39"
   dependencies:
     "@types/filesystem": "npm:*"
     "@types/har-format": "npm:*"
-  checksum: 10/f21f15d8196be335937a763f647c4cbdc36befa59626011b97bcb50dd1091215032417eab013cda6e05db121365e7fadbceb11a72e9a008b9ade3c73af7cedd1
+  checksum: 10/4dc391eea8e01ded290bc2440647ff7c1199a490c7de32bfd1474c6221d149da55a16aa2ed9341bbac017b0b0fbb755a61a1553f8683018b40caee090acc9e65
   languageName: node
   linkType: hard
 
@@ -626,12 +626,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^25.3.3":
-  version: 25.5.0
-  resolution: "@types/node@npm:25.5.0"
+"@types/node@npm:^25.5.2":
+  version: 25.5.2
+  resolution: "@types/node@npm:25.5.2"
   dependencies:
     undici-types: "npm:~7.18.0"
-  checksum: 10/b1e8116bd8c9ff62e458b76d28a59cf7631537bb17e8961464bf754dd5b07b46f1620f568b2f89970505af9eef478dd74c614651b454c1ea95949ec472c64fcb
+  checksum: 10/11782030f910ecf600cd537791980bd8b68496570ecd633d512d713b5b8a16ea3740fce85c82d0593305f809a7c205d7e86c07f179063fc98f014a7f9b013166
   languageName: node
   linkType: hard
 
@@ -1764,8 +1764,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "tarnished-extension@workspace:."
   dependencies:
-    "@types/chrome": "npm:^0.1.38"
-    "@types/node": "npm:^25.3.3"
+    "@types/chrome": "npm:^0.1.39"
+    "@types/node": "npm:^25.5.2"
     "@types/webextension-polyfill": "npm:^0.12.5"
     jsdom: "npm:^29.0.1"
     prettier: "npm:^3.5.1"
