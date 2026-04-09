@@ -57,27 +57,11 @@ class AppState:
         auth_required: bool = True,
         transport: object | None = None,
     ) -> TarnishedClient:
-        access_token = (
-            self.tokens.access_token if auth_required else self.tokens.access_token
-        )
         return TarnishedClient(
             base_url=self.base_url,
-            access_token=access_token,
-            refresh_token=self.tokens.refresh_token,
-            api_key=self.tokens.api_key,
-            on_token_refresh=self.save_tokens,
+            api_key=self.tokens.api_key if auth_required else None,
             transport=transport,  # type: ignore[arg-type]
         )
-
-    def save_tokens(self, access_token: str, refresh_token: str) -> None:
-        self.tokens.access_token = access_token
-        self.tokens.refresh_token = refresh_token
-        save_auth(self.tokens, self.profile, config_dir=self.config_dir)
-
-    def clear_tokens(self) -> None:
-        self.tokens.access_token = None
-        self.tokens.refresh_token = None
-        save_auth(self.tokens, self.profile, config_dir=self.config_dir)
 
     def save_api_key(self, api_key: str | None) -> None:
         self.tokens.api_key = api_key

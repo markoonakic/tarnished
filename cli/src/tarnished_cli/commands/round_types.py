@@ -15,7 +15,7 @@ app = typer.Typer(help="Manage round types.")
 def list_round_types(ctx: typer.Context) -> None:
     state = get_state(ctx)
     try:
-        payload = state.build_client().get_json("/api/round-types", auth="jwt")
+        payload = state.build_client().get_json("/api/round-types", auth="api_key")
         emit_result(state, payload)
     except CLIError as exc:
         exit_for_error(state, exc)
@@ -32,7 +32,7 @@ def create_round_type(
         payload = state.build_client().post_json(
             "/api/round-types",
             body=body,
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -51,7 +51,7 @@ def update_round_type(
         payload = state.build_client().patch_json(
             f"/api/round-types/{round_type_id}",
             body=body,
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -67,7 +67,7 @@ def delete_round_type(
     state = get_state(ctx)
     require_yes(yes, resource=f"round type {round_type_id}")
     try:
-        state.build_client().delete(f"/api/round-types/{round_type_id}", auth="jwt")
+        state.build_client().delete(f"/api/round-types/{round_type_id}", auth="api_key")
         emit_result(
             state,
             {"deleted": True, "id": round_type_id},

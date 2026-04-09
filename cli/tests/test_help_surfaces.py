@@ -27,7 +27,7 @@ def test_auth_help_includes_preflight_examples(runner):
     assert result.exit_code == 0
     assert "Examples:" in output
     assert "tarnished auth status" in output
-    assert "tarnished auth login --email" in output
+    assert "tarnished auth api-key set --value" in output
 
 
 def test_applications_help_includes_json_and_body_file_examples(runner):

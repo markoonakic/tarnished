@@ -1,26 +1,23 @@
 from tarnished_cli.auth_storage import StoredAuth, load_auth, save_auth
 
 
-def test_save_and_load_file_fallback_auth(cli_config_dir):
-    auth = StoredAuth(access_token="a", refresh_token="r", api_key=None)
+def test_save_and_load_file_fallback_api_key(cli_config_dir):
+    auth = StoredAuth(api_key="api-key-123")
     save_auth(auth, config_dir=cli_config_dir, prefer_keyring=False)
 
     loaded = load_auth(config_dir=cli_config_dir, prefer_keyring=False)
 
-    assert loaded.access_token == "a"
-    assert loaded.refresh_token == "r"
+    assert loaded.api_key == "api-key-123"
 
 
-def test_env_auth_overrides_stored_auth(monkeypatch, cli_config_dir):
-    auth = StoredAuth(access_token="file-a", refresh_token="file-r", api_key=None)
+def test_env_auth_overrides_stored_api_key(monkeypatch, cli_config_dir):
+    auth = StoredAuth(api_key="file-key")
     save_auth(auth, config_dir=cli_config_dir, prefer_keyring=False)
-    monkeypatch.setenv("TARNISHED_ACCESS_TOKEN", "env-a")
-    monkeypatch.setenv("TARNISHED_REFRESH_TOKEN", "env-r")
+    monkeypatch.setenv("TARNISHED_API_KEY", "env-key")
 
     loaded = load_auth(config_dir=cli_config_dir, prefer_keyring=False)
 
-    assert loaded.access_token == "env-a"
-    assert loaded.refresh_token == "env-r"
+    assert loaded.api_key == "env-key"
 
 
 def test_keyring_auth_is_namespaced_by_config_dir(monkeypatch, tmp_path):
@@ -47,10 +44,10 @@ def test_keyring_auth_is_namespaced_by_config_dir(monkeypatch, tmp_path):
 
     first_dir = tmp_path / "first"
     second_dir = tmp_path / "second"
-    save_auth(StoredAuth(access_token="token-a"), config_dir=first_dir)
+    save_auth(StoredAuth(api_key="token-a"), config_dir=first_dir)
 
     loaded_first = load_auth(config_dir=first_dir)
     loaded_second = load_auth(config_dir=second_dir)
 
-    assert loaded_first.access_token == "token-a"
-    assert loaded_second.access_token is None
+    assert loaded_first.api_key == "token-a"
+    assert loaded_second.api_key is None

@@ -3,7 +3,7 @@ from tarnished_cli.main import app
 
 
 class FakeUserSettingsClient:
-    def get_json(self, path, *, params=None, auth="jwt"):
+    def get_json(self, path, *, params=None, auth="api_key"):
         if path == "/api/users/settings":
             return {"theme": "gruvbox-dark", "accent": "aqua", "colors": {}}
         if path == "/api/user-preferences":
@@ -14,11 +14,11 @@ class FakeUserSettingsClient:
             }
         raise AssertionError(f"Unexpected GET path: {path}")
 
-    def patch_json(self, path, *, body, auth="jwt"):
+    def patch_json(self, path, *, body, auth="api_key"):
         assert path == "/api/users/settings"
         return {"message": "Settings updated", "settings": body}
 
-    def put_json(self, path, *, body, auth="jwt"):
+    def put_json(self, path, *, body, auth="api_key"):
         assert path == "/api/user-preferences"
         return {
             "show_streak_stats": body.get("show_streak_stats", True),

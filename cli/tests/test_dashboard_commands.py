@@ -3,7 +3,7 @@ from tarnished_cli.main import app
 
 
 class FakeDashboardClient:
-    def get_json(self, path, *, params=None, auth="jwt"):
+    def get_json(self, path, *, params=None, auth="api_key"):
         if path == "/api/dashboard/kpis":
             return {"last_7_days": 3, "last_30_days": 10, "active_opportunities": 4}
         if path == "/api/dashboard/needs-attention":

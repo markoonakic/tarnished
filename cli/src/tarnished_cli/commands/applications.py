@@ -56,7 +56,7 @@ def list_applications(
     params = {key: value for key, value in params.items() if value is not None}
     try:
         payload = state.build_client().get_json(
-            "/api/applications", params=params, auth="flexible"
+            "/api/applications", params=params, auth="api_key"
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -69,7 +69,7 @@ def get_application(ctx: typer.Context, application_id: str) -> None:
     try:
         payload = state.build_client().get_json(
             f"/api/applications/{application_id}",
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -87,7 +87,7 @@ def create_application(
         payload = state.build_client().post_json(
             "/api/applications",
             body=body,
-            auth="flexible",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -105,7 +105,7 @@ def extract_application(
         payload = state.build_client().post_json(
             "/api/applications/extract",
             body=body,
-            auth="flexible",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -124,7 +124,7 @@ def update_application(
         payload = state.build_client().patch_json(
             f"/api/applications/{application_id}",
             body=body,
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -140,7 +140,7 @@ def delete_application(
     state = get_state(ctx)
     require_yes(yes, resource=f"application {application_id}")
     try:
-        state.build_client().delete(f"/api/applications/{application_id}", auth="jwt")
+        state.build_client().delete(f"/api/applications/{application_id}", auth="api_key")
         emit_result(
             state,
             {"deleted": True, "id": application_id},
@@ -156,7 +156,7 @@ def list_sources(ctx: typer.Context) -> None:
     try:
         payload = state.build_client().get_json(
             "/api/applications/sources",
-            auth="flexible",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -169,7 +169,7 @@ def list_history(ctx: typer.Context, application_id: str) -> None:
     try:
         payload = state.build_client().get_json(
             f"/api/applications/{application_id}/history",
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -188,7 +188,7 @@ def delete_history_entry(
     try:
         state.build_client().delete(
             f"/api/applications/{application_id}/history/{history_id}",
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(
             state,
@@ -211,7 +211,7 @@ def _upload_document(
         payload = state.build_client().post_file_json(
             f"/api/applications/{application_id}/{doc_type}",
             file_path=file_path,
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -230,7 +230,7 @@ def _delete_document(
     try:
         payload = state.build_client().delete_json(
             f"/api/applications/{application_id}/{doc_type}",
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -249,7 +249,7 @@ def _get_document_url(
         payload = state.build_client().get_json(
             f"/api/files/{application_id}/{doc_type}/signed",
             params={"disposition": disposition},
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -270,7 +270,7 @@ def _download_document(
         content, _headers = state.build_client().get_bytes(
             f"/api/files/{application_id}/{doc_type}",
             params={"disposition": disposition},
-            auth="jwt",
+            auth="api_key",
         )
         output.write_bytes(content)
         emit_result(

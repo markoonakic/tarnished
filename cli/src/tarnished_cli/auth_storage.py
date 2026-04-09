@@ -11,19 +11,15 @@ from pydantic import BaseModel
 
 from tarnished_cli.config import resolve_config_dir
 
-ACCESS_TOKEN_ENV = "TARNISHED_ACCESS_TOKEN"
-REFRESH_TOKEN_ENV = "TARNISHED_REFRESH_TOKEN"
 API_KEY_ENV = "TARNISHED_API_KEY"
 KEYRING_SERVICE = "tarnished-cli"
 
 
 class StoredAuth(BaseModel):
-    access_token: str | None = None
-    refresh_token: str | None = None
     api_key: str | None = None
 
     def is_empty(self) -> bool:
-        return not any([self.access_token, self.refresh_token, self.api_key])
+        return self.api_key is None
 
 
 def resolve_auth_path(profile: str = "default", config_dir: Path | None = None) -> Path:
@@ -36,16 +32,10 @@ def _keyring_account(profile: str = "default", config_dir: Path | None = None) -
 
 
 def _env_auth() -> StoredAuth | None:
-    access_token = os.getenv(ACCESS_TOKEN_ENV)
-    refresh_token = os.getenv(REFRESH_TOKEN_ENV)
     api_key = os.getenv(API_KEY_ENV)
-    if not any([access_token, refresh_token, api_key]):
+    if not api_key:
         return None
-    return StoredAuth(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        api_key=api_key,
-    )
+    return StoredAuth(api_key=api_key)
 
 
 def _read_auth_file(path: Path) -> StoredAuth:

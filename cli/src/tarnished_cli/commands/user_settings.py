@@ -17,7 +17,7 @@ def get_user_settings(ctx: typer.Context) -> None:
     try:
         payload = state.build_client().get_json(
             "/api/users/settings",
-            auth="flexible",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -35,7 +35,7 @@ def update_user_settings(
         payload = state.build_client().patch_json(
             "/api/users/settings",
             body=body,
-            auth="flexible",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:

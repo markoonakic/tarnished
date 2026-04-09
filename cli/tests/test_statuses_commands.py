@@ -3,24 +3,24 @@ from tarnished_cli.main import app
 
 
 class FakeStatusesClient:
-    def get_json(self, path, *, params=None, auth="jwt"):
+    def get_json(self, path, *, params=None, auth="api_key"):
         assert path == "/api/statuses"
-        assert auth == "flexible"
+        assert auth == "api_key"
         return [{"id": "status-1", "name": "Applied"}]
 
-    def post_json(self, path, *, body, auth="jwt"):
+    def post_json(self, path, *, body, auth="api_key"):
         assert path == "/api/statuses"
-        assert auth == "jwt"
+        assert auth == "api_key"
         assert body["name"] == "Applied"
         return {"id": "status-1", "name": "Applied"}
 
-    def patch_json(self, path, *, body, auth="jwt"):
+    def patch_json(self, path, *, body, auth="api_key"):
         assert path == "/api/statuses/status-1"
-        assert auth == "jwt"
+        assert auth == "api_key"
         return {"id": "status-1", "color": body["color"]}
 
-    def delete(self, path, *, auth="jwt"):
-        assert auth == "jwt"
+    def delete(self, path, *, auth="api_key"):
+        assert auth == "api_key"
         assert path == "/api/statuses/status-1"
 
 

@@ -3,14 +3,14 @@ from tarnished_cli.main import app
 
 
 class FakeRoundTypesClient:
-    def get_json(self, path, *, params=None, auth="jwt"):
+    def get_json(self, path, *, params=None, auth="api_key"):
         assert path == "/api/round-types"
-        assert auth == "jwt"
+        assert auth == "api_key"
         return [{"id": "rt-1", "name": "Phone Screen"}]
 
-    def post_json(self, path, *, body, auth="jwt"):
+    def post_json(self, path, *, body, auth="api_key"):
         assert path == "/api/round-types"
-        assert auth == "jwt"
+        assert auth == "api_key"
         assert body["name"] == "Phone Screen"
         return {"id": "rt-1", "name": "Phone Screen"}
 

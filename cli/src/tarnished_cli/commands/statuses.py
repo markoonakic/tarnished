@@ -15,7 +15,7 @@ app = typer.Typer(help="Manage application statuses.")
 def list_statuses(ctx: typer.Context) -> None:
     state = get_state(ctx)
     try:
-        payload = state.build_client().get_json("/api/statuses", auth="flexible")
+        payload = state.build_client().get_json("/api/statuses", auth="api_key")
         emit_result(state, payload)
     except CLIError as exc:
         exit_for_error(state, exc)
@@ -29,7 +29,7 @@ def create_status(
     state = get_state(ctx)
     body = load_model_body(body_file, StatusCreate)
     try:
-        payload = state.build_client().post_json("/api/statuses", body=body, auth="jwt")
+        payload = state.build_client().post_json("/api/statuses", body=body, auth="api_key")
         emit_result(state, payload)
     except CLIError as exc:
         exit_for_error(state, exc)
@@ -47,7 +47,7 @@ def update_status(
         payload = state.build_client().patch_json(
             f"/api/statuses/{status_id}",
             body=body,
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -63,7 +63,7 @@ def delete_status(
     state = get_state(ctx)
     require_yes(yes, resource=f"status {status_id}")
     try:
-        state.build_client().delete(f"/api/statuses/{status_id}", auth="jwt")
+        state.build_client().delete(f"/api/statuses/{status_id}", auth="api_key")
         emit_result(
             state,
             {"deleted": True, "id": status_id},

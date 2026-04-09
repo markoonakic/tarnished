@@ -3,14 +3,14 @@ from tarnished_cli.main import app
 
 
 class FakeProfileClient:
-    def get_json(self, path, *, params=None, auth="jwt"):
+    def get_json(self, path, *, params=None, auth="api_key"):
         assert path == "/api/profile"
-        assert auth == "flexible"
+        assert auth == "api_key"
         return {"user_id": "user-1", "email": "test@example.com"}
 
-    def put_json(self, path, *, body, auth="jwt"):
+    def put_json(self, path, *, body, auth="api_key"):
         assert path == "/api/profile"
-        assert auth == "jwt"
+        assert auth == "api_key"
         assert body["first_name"] == "Marko"
         return {"user_id": "user-1", "first_name": "Marko"}
 
