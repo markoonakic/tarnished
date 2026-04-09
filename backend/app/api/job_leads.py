@@ -22,6 +22,8 @@ from app.core.database import get_db
 from app.core.deps import (
     get_current_user,
     get_current_user_flexible,
+    require_api_key_scope,
+    require_api_key_scopes,
 )
 from app.models import User
 from app.models.application import Application
@@ -59,6 +61,7 @@ async def list_job_leads(
     source: str | None = Query(None, description="Filter by exact source"),
     sort: str = Query("newest", pattern="^(newest|oldest)$"),
     user: User = Depends(get_current_user_flexible),
+    _: object = Depends(require_api_key_scope("job_leads:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """List job leads for the authenticated user with pagination.
@@ -120,6 +123,7 @@ async def list_job_leads(
 @router.get("/sources")
 async def list_job_lead_sources(
     user: User = Depends(get_current_user_flexible),
+    _: object = Depends(require_api_key_scope("job_leads:read")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -136,6 +140,7 @@ async def list_job_lead_sources(
 async def get_job_lead(
     job_lead_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("job_leads:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single job lead by ID.
@@ -172,6 +177,7 @@ async def get_job_lead(
 async def create_job_lead(
     data: JobLeadCreate,
     user: User = Depends(get_current_user_flexible),
+    _: object = Depends(require_api_key_scope("job_leads:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new job lead by extracting data from a job posting URL.
@@ -334,6 +340,7 @@ async def create_job_lead(
 async def retry_job_lead_extraction(
     job_lead_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("job_leads:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Retry extraction for a failed job lead.
@@ -528,6 +535,7 @@ async def retry_job_lead_extraction(
 async def delete_job_lead(
     job_lead_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("job_leads:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a job lead by ID.
@@ -569,6 +577,9 @@ async def delete_job_lead(
 async def convert_job_lead_to_application(
     job_lead_id: str,
     user: User = Depends(get_current_user_flexible),
+    _: object = Depends(
+        require_api_key_scopes("job_leads:write", "applications:write")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     """Convert a job lead to an application.

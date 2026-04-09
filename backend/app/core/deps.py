@@ -122,6 +122,22 @@ def require_api_key_scope(scope: str):
     return dependency
 
 
+def require_api_key_scopes(*scopes: str):
+    async def dependency(
+        auth: AuthContext = Depends(get_current_auth_context),
+    ) -> AuthContext:
+        if auth.auth_method == "api_key" and auth.api_key:
+            missing = [scope for scope in scopes if scope not in auth.api_key.scopes]
+            if missing:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"API key lacks required scopes: {', '.join(missing)}",
+                )
+        return auth
+
+    return dependency
+
+
 async def get_current_user_jwt(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
@@ -178,6 +194,31 @@ async def get_current_user_optional(
         return None
     result = await db.execute(select(User).where(User.id == user_id))
     return result.scalars().first()
+
+
+async def get_current_user_optional_flexible(
+    credentials: HTTPAuthorizationCredentials | None = Depends(
+        HTTPBearer(auto_error=False)
+    ),
+    x_api_key: Annotated[str | None, Header()] = None,
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    if credentials:
+        payload = decode_token(credentials.credentials)
+        if payload and payload.get("type") == "access":
+            user_id = payload.get("sub")
+            if user_id:
+                result = await db.execute(select(User).where(User.id == user_id))
+                user = result.scalars().first()
+                if user and user.is_active:
+                    return user
+
+    if x_api_key:
+        _api_key, user = await _get_api_key_and_user(x_api_key, db)
+        if user and user.is_active:
+            return user
+
+    return None
 
 
 async def get_current_user_by_api_token(

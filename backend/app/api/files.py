@@ -9,7 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import resolve_upload_path
 from app.core.database import get_db
-from app.core.deps import get_current_user, get_current_user_optional
+from app.core.deps import (
+    get_current_user,
+    get_current_user_optional_flexible,
+    require_api_key_scope,
+)
 from app.core.security import (
     create_file_token,
     create_media_token,
@@ -34,6 +38,7 @@ async def get_media_signed_url(
     media_id: str,
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("files:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a signed URL for media file access."""
@@ -59,7 +64,7 @@ async def get_media_file(
     media_id: str,
     token: str | None = Query(None),
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
-    user: User | None = Depends(get_current_user_optional),  # type: ignore[assignment]
+    user: User | None = Depends(get_current_user_optional_flexible),  # type: ignore[assignment]
     db: AsyncSession = Depends(get_db),
 ):
     """Serve a media file. Accepts either auth header or signed token."""
@@ -132,6 +137,7 @@ async def get_round_transcript_signed_url(
     round_id: str,
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("files:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a signed URL for round transcript access."""
@@ -156,7 +162,7 @@ async def get_round_transcript_file(
     round_id: str,
     token: str | None = Query(None),
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
-    user: User | None = Depends(get_current_user_optional),  # type: ignore[assignment]
+    user: User | None = Depends(get_current_user_optional_flexible),  # type: ignore[assignment]
     db: AsyncSession = Depends(get_db),
 ):
     """Serve a round transcript file. Accepts either auth header or signed token."""
@@ -220,6 +226,7 @@ async def get_signed_url(
     doc_type: str,
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("files:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a signed URL for file access."""
@@ -256,7 +263,7 @@ async def get_file(
     doc_type: str,
     token: str | None = Query(None),
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
-    user: User | None = Depends(get_current_user_optional),  # type: ignore[assignment]
+    user: User | None = Depends(get_current_user_optional_flexible),  # type: ignore[assignment]
     db: AsyncSession = Depends(get_db),
 ):
     """Serve a file. Accepts either auth header or signed token."""

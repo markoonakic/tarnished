@@ -15,12 +15,13 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
 import aiofiles
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_api_key_scope
+from app.core.security import decode_token
 from app.core.rate_limit import limiter
 from app.models import (
     AuditLog,
@@ -167,6 +168,7 @@ async def validate_import(
     request: Request,
     file: UploadFile,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("import:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Validate an import ZIP file without importing data.
@@ -249,8 +251,14 @@ async def validate_import(
 
 
 @router.get("/progress/{import_id}")
-async def import_progress(import_id: str):
+async def import_progress(
+    import_id: str,
+    token: str | None = Query(None),
+):
     """Server-Sent Events endpoint for import progress."""
+    payload = decode_token(token) if token else None
+    if not payload or payload.get("type") != "access":
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     async def event_stream():
         progress = ImportProgress.get_progress(import_id)
@@ -286,7 +294,11 @@ async def import_progress(import_id: str):
 
 
 @router.get("/status/{import_id}")
-async def import_status(import_id: str):
+async def import_status(
+    import_id: str,
+    _: User = Depends(get_current_user),
+    __: object = Depends(require_api_key_scope("import:write")),
+):
     """JSON status endpoint for CLI and polling clients."""
     return ImportProgress.get_progress(import_id)
 
@@ -298,6 +310,7 @@ async def import_data(
     file: UploadFile,
     override: bool = Form(False),
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("import:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Import data from a ZIP file.

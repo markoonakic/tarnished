@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.database import get_db
-from app.core.deps import get_current_user_flexible
+from app.core.deps import get_current_user_flexible, require_api_key_scope
 from app.core.themes import (
     ACCENT_OPTIONS,
     DEFAULT_ACCENT,
@@ -20,6 +20,7 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 @router.get("/settings", response_model=UserSettingsResponse)
 async def get_user_settings(
     current_user: User = Depends(get_current_user_flexible),
+    _: object = Depends(require_api_key_scope("user_settings:read")),
 ):
     """Get user theme settings with resolved colors for extension."""
     settings = current_user.settings or {}
@@ -35,6 +36,7 @@ async def get_user_settings(
 async def update_user_settings(
     update: UserSettingsUpdate,
     current_user: User = Depends(get_current_user_flexible),
+    _: object = Depends(require_api_key_scope("user_settings:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Update user theme settings."""

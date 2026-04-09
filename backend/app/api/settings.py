@@ -144,6 +144,7 @@ async def delete_api_key(
 @router.get("/statuses", response_model=list[StatusFullResponse])
 async def list_statuses(
     user: User = Depends(get_current_user_flexible),
+    _: object = Depends(require_api_key_scope("statuses:read")),
     db: AsyncSession = Depends(get_db),
 ):
     # Get user's custom statuses first
@@ -176,6 +177,7 @@ async def list_statuses(
 async def create_status(
     data: StatusCreate,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("statuses:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -209,6 +211,7 @@ async def update_status(
     status_id: str,
     data: StatusUpdate,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("statuses:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -254,6 +257,7 @@ async def update_status(
 async def delete_status(
     status_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("statuses:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -299,6 +303,7 @@ async def list_round_types(
 async def create_round_type(
     data: RoundTypeCreate,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("round_types:write")),
     db: AsyncSession = Depends(get_db),
 ):
     round_type = RoundType(
@@ -317,6 +322,7 @@ async def update_round_type(
     round_type_id: str,
     data: RoundTypeCreate,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("round_types:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(RoundType).where(RoundType.id == round_type_id))
@@ -346,6 +352,7 @@ async def update_round_type(
 async def delete_round_type(
     round_type_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("round_types:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(RoundType).where(RoundType.id == round_type_id))

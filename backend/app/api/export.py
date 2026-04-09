@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.api.utils.zip_utils import create_zip_export
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_api_key_scope
 from app.models import Application, ApplicationStatusHistory, Round, User
 from app.services.export_registry import default_registry
 from app.services.export_service import ExportService
@@ -42,6 +42,7 @@ def _run_export_user_data(sync_session: Session, user_id: str) -> dict:
 @router.get("/json")
 async def export_json(
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("export:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Export all user data as JSON using the introspective export service."""
@@ -61,6 +62,7 @@ async def export_json(
 @router.get("/csv")
 async def export_csv(
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("export:read")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -267,6 +269,7 @@ async def export_csv(
 @router.get("/zip")
 async def export_zip(
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("export:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Export all data as a ZIP file containing JSON and media files."""

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_admin
+from app.core.deps import get_current_admin, require_api_key_scope
 from app.models import User
 from app.schemas.ai_settings import AISettingsResponse, AISettingsUpdate
 from app.services.ai_settings import (
@@ -20,6 +20,7 @@ router = APIRouter(prefix="/api/admin/ai-settings", tags=["ai-settings"])
 @router.get("", response_model=AISettingsResponse)
 async def get_ai_settings(
     _: User = Depends(get_current_admin),
+    __: object = Depends(require_api_key_scope("admin:read")),
     db: AsyncSession = Depends(get_db),
 ) -> AISettingsResponse:
     """Get current AI/LiteLLM configuration.
@@ -40,6 +41,7 @@ async def get_ai_settings(
 async def update_ai_settings(
     data: AISettingsUpdate,
     _: User = Depends(get_current_admin),
+    __: object = Depends(require_api_key_scope("admin:write")),
     db: AsyncSession = Depends(get_db),
 ) -> AISettingsResponse:
     """Update AI/LiteLLM configuration.

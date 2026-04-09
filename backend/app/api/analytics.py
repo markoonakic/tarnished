@@ -5,7 +5,7 @@ from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_api_key_scope
 from app.models import (
     Application,
     ApplicationStatus,
@@ -38,6 +38,7 @@ FAR_PAST_DATE = date(2000, 1, 1)
 @router.get("/sankey", response_model=SankeyData)
 async def get_sankey_data(
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("analytics:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -221,6 +222,7 @@ async def get_heatmap_data(
     year: int | None = None,
     rolling: bool = False,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("analytics:read")),
     db: AsyncSession = Depends(get_db),
 ):
     today = date.today()
@@ -260,6 +262,7 @@ async def get_heatmap_data(
 async def get_analytics_kpis(
     period: str = "30d",
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("analytics:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -360,6 +363,7 @@ async def get_analytics_kpis(
 async def get_weekly_data(
     period: str = "30d",
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("analytics:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -452,6 +456,7 @@ async def get_interview_rounds_analytics(
     period: str = "all",
     round_type: str | None = None,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("analytics:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """
