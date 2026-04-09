@@ -20,7 +20,7 @@ def validate_import(
         payload = state.build_client().post_file_json(
             "/api/import/validate",
             file_path=file_path,
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -42,7 +42,7 @@ def run_import(
             "/api/import/import",
             file_path=file_path,
             data={"override": "true" if override else "false"},
-            auth="jwt",
+            auth="api_key",
         )
         if not wait:
             emit_result(state, payload)
@@ -53,7 +53,7 @@ def run_import(
         while True:
             status = state.build_client().get_json(
                 f"/api/import/status/{import_id}",
-                auth="jwt",
+                auth="api_key",
             )
             if status.get("status") == "complete":
                 emit_result(state, status)
@@ -71,7 +71,7 @@ def get_import_status(ctx: typer.Context, import_id: str) -> None:
     try:
         payload = state.build_client().get_json(
             f"/api/import/status/{import_id}",
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:

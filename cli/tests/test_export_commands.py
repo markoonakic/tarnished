@@ -3,8 +3,8 @@ from tarnished_cli.main import app
 
 
 class FakeExportClient:
-    def get_bytes(self, path, *, params=None, auth="jwt"):
-        assert auth == "jwt"
+    def get_bytes(self, path, *, params=None, auth="api_key"):
+        assert auth == "api_key"
         assert path in {"/api/export/json", "/api/export/csv", "/api/export/zip"}
         return (b"export-bytes", {"Content-Type": "application/octet-stream"})
 

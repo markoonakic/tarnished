@@ -15,7 +15,7 @@ app = typer.Typer(help="Read and update the user profile.")
 def get_profile(ctx: typer.Context) -> None:
     state = get_state(ctx)
     try:
-        payload = state.build_client().get_json("/api/profile", auth="flexible")
+        payload = state.build_client().get_json("/api/profile", auth="api_key")
         emit_result(state, payload)
     except CLIError as exc:
         exit_for_error(state, exc)
@@ -29,7 +29,7 @@ def update_profile(
     state = get_state(ctx)
     body = load_model_body(body_file, UserProfileUpdate)
     try:
-        payload = state.build_client().put_json("/api/profile", body=body, auth="jwt")
+        payload = state.build_client().put_json("/api/profile", body=body, auth="api_key")
         emit_result(state, payload)
     except CLIError as exc:
         exit_for_error(state, exc)

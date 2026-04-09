@@ -13,20 +13,20 @@ class FakeImportClient:
         file_path,
         field_name="file",
         data=None,
-        auth="jwt",
+        auth="api_key",
         content_type=None,
         allow_refresh=True,
     ):
         assert file_path.exists()
-        assert auth == "jwt"
+        assert auth == "api_key"
         if path == "/api/import/validate":
             return {"valid": True, "summary": {"applications": 1}, "errors": []}
         if path == "/api/import/import":
             return {"import_id": "import-123", "status": "processing"}
         raise AssertionError(f"Unexpected import POST path: {path}")
 
-    def get_json(self, path, *, params=None, auth="jwt"):
-        assert auth == "jwt"
+    def get_json(self, path, *, params=None, auth="api_key"):
+        assert auth == "api_key"
         if path == "/api/import/status/import-123":
             self.status_calls += 1
             if self.status_calls == 1:

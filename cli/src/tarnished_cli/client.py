@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -9,8 +8,7 @@ from typing import Any, Literal
 
 import httpx
 
-AuthMode = Literal["none", "jwt", "api_key", "flexible"]
-TokenUpdateHook = Callable[[str, str], None]
+AuthMode = Literal["none", "api_key"]
 
 
 def _resolve_cli_version() -> str:
@@ -42,17 +40,11 @@ class TarnishedClient:
         self,
         *,
         base_url: str,
-        access_token: str | None = None,
-        refresh_token: str | None = None,
         api_key: str | None = None,
-        on_token_refresh: TokenUpdateHook | None = None,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
-        self.access_token = access_token
-        self.refresh_token = refresh_token
         self.api_key = api_key
-        self._on_token_refresh = on_token_refresh
         self._client = httpx.Client(
             base_url=self.base_url,
             follow_redirects=True,
@@ -82,8 +74,7 @@ class TarnishedClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
         files: dict[str, Any] | None = None,
-        auth: AuthMode = "jwt",
-        allow_refresh: bool = True,
+        auth: AuthMode = "api_key",
     ) -> httpx.Response:
         response = self._client.request(
             method,
@@ -93,24 +84,6 @@ class TarnishedClient:
             files=files,
             headers=self._build_auth_headers(auth),
         )
-
-        if (
-            response.status_code == 401
-            and allow_refresh
-            and auth in {"jwt", "flexible"}
-            and self.access_token
-            and self.refresh_token
-        ):
-            self.refresh_session()
-            return self.request(
-                method,
-                path,
-                params=params,
-                json_body=json_body,
-                files=files,
-                auth=auth,
-                allow_refresh=False,
-            )
 
         if response.is_error:
             raise self._to_api_error(response)
@@ -122,7 +95,7 @@ class TarnishedClient:
         path: str,
         *,
         params: dict[str, Any] | None = None,
-        auth: AuthMode = "jwt",
+        auth: AuthMode = "api_key",
     ) -> Any:
         return self._decode_response(
             self.request("GET", path, params=params, auth=auth)
@@ -133,7 +106,7 @@ class TarnishedClient:
         path: str,
         *,
         body: dict[str, Any],
-        auth: AuthMode = "jwt",
+        auth: AuthMode = "api_key",
     ) -> Any:
         return self._decode_response(
             self.request("POST", path, json_body=body, auth=auth)
@@ -144,7 +117,7 @@ class TarnishedClient:
         path: str,
         *,
         body: dict[str, Any],
-        auth: AuthMode = "jwt",
+        auth: AuthMode = "api_key",
     ) -> Any:
         return self._decode_response(
             self.request("PATCH", path, json_body=body, auth=auth)
@@ -155,16 +128,16 @@ class TarnishedClient:
         path: str,
         *,
         body: dict[str, Any],
-        auth: AuthMode = "jwt",
+        auth: AuthMode = "api_key",
     ) -> Any:
         return self._decode_response(
             self.request("PUT", path, json_body=body, auth=auth)
         )
 
-    def delete(self, path: str, *, auth: AuthMode = "jwt") -> None:
+    def delete(self, path: str, *, auth: AuthMode = "api_key") -> None:
         self.request("DELETE", path, auth=auth)
 
-    def delete_json(self, path: str, *, auth: AuthMode = "jwt") -> Any:
+    def delete_json(self, path: str, *, auth: AuthMode = "api_key") -> Any:
         return self._decode_response(self.request("DELETE", path, auth=auth))
 
     def post_file_json(
@@ -174,9 +147,8 @@ class TarnishedClient:
         file_path: Path,
         field_name: str = "file",
         data: dict[str, Any] | None = None,
-        auth: AuthMode = "jwt",
+        auth: AuthMode = "api_key",
         content_type: str | None = None,
-        allow_refresh: bool = True,
     ) -> Any:
         with file_path.open("rb") as handle:
             file_tuple: tuple[str, Any] | tuple[str, Any, str]
@@ -192,24 +164,6 @@ class TarnishedClient:
                 headers=self._build_auth_headers(auth),
             )
 
-        if (
-            response.status_code == 401
-            and allow_refresh
-            and auth in {"jwt", "flexible"}
-            and self.access_token
-            and self.refresh_token
-        ):
-            self.refresh_session()
-            return self.post_file_json(
-                path,
-                file_path=file_path,
-                field_name=field_name,
-                data=data,
-                auth=auth,
-                content_type=content_type,
-                allow_refresh=False,
-            )
-
         if response.is_error:
             raise self._to_api_error(response)
 
@@ -220,62 +174,19 @@ class TarnishedClient:
         path: str,
         *,
         params: dict[str, Any] | None = None,
-        auth: AuthMode = "jwt",
+        auth: AuthMode = "api_key",
     ) -> tuple[bytes, httpx.Headers]:
         response = self.request("GET", path, params=params, auth=auth)
         return response.content, response.headers
 
-    def refresh_session(self) -> None:
-        if not self.refresh_token:
-            raise CLIError("This command requires login.")
-
-        response = self._client.post(
-            "/api/auth/refresh",
-            json={"refresh_token": self.refresh_token},
-        )
-        if response.is_error:
-            raise CLIError("Stored session expired. Run `tarnished auth login` again.")
-
-        payload = response.json()
-        access_token = payload.get("access_token")
-        refresh_token = payload.get("refresh_token")
-        if not access_token or not refresh_token:
-            raise CLIError("Refresh response did not include a full token pair.")
-
-        self.access_token = access_token
-        self.refresh_token = refresh_token
-        if self._on_token_refresh is not None:
-            self._on_token_refresh(access_token, refresh_token)
-
     def _build_auth_headers(self, auth: AuthMode) -> dict[str, str]:
-        headers: dict[str, str] = {}
-
         if auth == "none":
-            return headers
+            return {}
 
-        if auth == "jwt":
-            if not self.access_token:
-                raise CLIError(
-                    "This command requires login. Run `tarnished auth login`."
-                )
-            headers["Authorization"] = f"Bearer {self.access_token}"
-            return headers
+        if not self.api_key:
+            raise CLIError("This command requires an API key.")
 
-        if auth == "api_key":
-            if not self.api_key:
-                raise CLIError("This command requires an API key.")
-            headers["X-API-Key"] = self.api_key
-            return headers
-
-        if self.access_token:
-            headers["Authorization"] = f"Bearer {self.access_token}"
-            return headers
-
-        if self.api_key:
-            headers["X-API-Key"] = self.api_key
-            return headers
-
-        raise CLIError("This command requires authentication.")
+        return {"X-API-Key": self.api_key}
 
     def _decode_response(self, response: httpx.Response) -> Any:
         if response.status_code == 204 or not response.content:

@@ -3,7 +3,7 @@ from tarnished_cli.main import app
 
 
 class FakeAdminClient:
-    def get_json(self, path, *, params=None, auth="jwt"):
+    def get_json(self, path, *, params=None, auth="api_key"):
         if path == "/api/admin/stats":
             return {
                 "total_users": 10,
@@ -24,12 +24,12 @@ class FakeAdminClient:
             }
         raise AssertionError(f"Unexpected admin GET path: {path}")
 
-    def post_json(self, path, *, body, auth="jwt"):
+    def post_json(self, path, *, body, auth="api_key"):
         assert path == "/api/admin/users"
         assert body["email"] == "new@example.com"
         return {"id": "u2", "email": body["email"]}
 
-    def patch_json(self, path, *, body, auth="jwt"):
+    def patch_json(self, path, *, body, auth="api_key"):
         if path == "/api/admin/users/u1":
             return {
                 "id": "u1",
@@ -42,7 +42,7 @@ class FakeAdminClient:
             return {"id": "rt-1", "name": body.get("name", "Phone Screen")}
         raise AssertionError(f"Unexpected admin PATCH path: {path}")
 
-    def put_json(self, path, *, body, auth="jwt"):
+    def put_json(self, path, *, body, auth="api_key"):
         assert path == "/api/admin/ai-settings"
         return {
             "litellm_model": body["litellm_model"],
@@ -51,7 +51,7 @@ class FakeAdminClient:
             "is_configured": True,
         }
 
-    def delete(self, path, *, auth="jwt"):
+    def delete(self, path, *, auth="api_key"):
         assert path == "/api/admin/users/u1"
 
 

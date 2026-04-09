@@ -13,7 +13,7 @@ def _download_export(ctx: typer.Context, *, endpoint: str, output: Path) -> None
     state = get_state(ctx)
     output.parent.mkdir(parents=True, exist_ok=True)
     try:
-        content, _headers = state.build_client().get_bytes(endpoint, auth="jwt")
+        content, _headers = state.build_client().get_bytes(endpoint, auth="api_key")
         output.write_bytes(content)
         emit_result(
             state,
