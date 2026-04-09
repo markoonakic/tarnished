@@ -37,6 +37,10 @@ class ImportService:
 
     SUPPORTED_VERSION = "1.0.0"
     RELATIONSHIP_PREFIX = "__rel__"
+    DEFERRED_FOREIGN_KEY_FIELDS = {
+        "Application": {"job_lead_id"},
+        "JobLead": {"converted_to_application_id"},
+    }
 
     def __init__(self, registry: ExportRegistry, id_mapper: IDMapper):
         """
@@ -48,6 +52,7 @@ class ImportService:
         """
         self.registry = registry
         self.id_mapper = id_mapper
+        self._deferred_foreign_keys: list[tuple[str, str, str, str]] = []
 
     def validate_export_data(self, data: dict[str, Any]) -> tuple[bool, str | None]:
         """
@@ -111,9 +116,8 @@ class ImportService:
         if not is_valid:
             raise ValueError(f"Invalid export data: {error}")
 
+        self._deferred_foreign_keys = []
         counts: dict[str, int] = {}
-        warnings: list[str] = []
-
         # Process models in order (parents before children)
         for exportable_model in self.registry.get_models():
             model_class = exportable_model.model_class
@@ -146,34 +150,26 @@ class ImportService:
                         imported += 1
             else:
                 for record_data in records:
-                    try:
-                        new_record = self._import_record(
-                            model_class, record_data, user_id, session, file_mapping
-                        )
-                        if new_record:
-                            imported += 1
-                    except Exception as e:
-                        # Log warning but continue with other records
-                        warnings.append(f"Failed to import {model_name}: {str(e)}")
+                    new_record = self._import_record(
+                        model_class, record_data, user_id, session, file_mapping
+                    )
+                    if new_record:
+                        imported += 1
 
             counts[model_name] = imported
 
-        # NOTE: FK validation is disabled for v1.0+ exports because all data is self-contained
-        # and FK relationships should be preserved within the same export file.
-        # The ID mapper correctly maps old IDs to new IDs during import.
-        # If validation is needed, it should be done differently - by checking the ID mapper
-        # instead of checking against the database.
-        #
-        # fk_errors = self.validate_fk_integrity(export_data, user_id, session)
-        # if fk_errors:
-        #     error_detail = "; ".join(fk_errors[:3])
-        #     if len(fk_errors) > 3:
-        #         error_detail += f" (and {len(fk_errors) - 3} more)"
-        #     raise ValueError(
-        #         f"{ERROR_MESSAGES['fk_integrity']} Details: {error_detail}"
-        #     )
+        self._resolve_deferred_foreign_keys(session)
 
-        return {"counts": counts, "warnings": warnings}
+        fk_errors = self.validate_fk_integrity(export_data, user_id, session)
+        if fk_errors:
+            error_detail = "; ".join(fk_errors[:3])
+            if len(fk_errors) > 3:
+                error_detail += f" (and {len(fk_errors) - 3} more)"
+            raise ValueError(
+                f"{ERROR_MESSAGES['fk_integrity']} Details: {error_detail}"
+            )
+
+        return {"counts": counts, "warnings": []}
 
     def _get_column_info(self, model_class: type) -> dict[str, Any]:
         """
@@ -231,6 +227,56 @@ class ImportService:
     # Fields that contain file paths needing remapping
     FILE_PATH_FIELDS = {"cv_path", "cover_letter_path", "transcript_path", "file_path"}
 
+    def _should_defer_foreign_key(self, model_name: str, field_name: str) -> bool:
+        return field_name in self.DEFERRED_FOREIGN_KEY_FIELDS.get(model_name, set())
+
+    def _resolve_deferred_foreign_keys(self, session: Session) -> None:
+        if not self._deferred_foreign_keys:
+            return
+
+        from app.models import Application, JobLead
+
+        model_map = {
+            "Application": Application,
+            "JobLead": JobLead,
+        }
+        errors: list[str] = []
+
+        for model_name, original_id, field_name, referenced_original_id in (
+            self._deferred_foreign_keys
+        ):
+            model_class = model_map.get(model_name)
+            referenced_model_name = self._guess_referenced_model(field_name)
+            if model_class is None or referenced_model_name is None:
+                errors.append(f"Unsupported deferred foreign key: {model_name}.{field_name}")
+                continue
+
+            imported_record_id = self.id_mapper.get(model_name, original_id)
+            imported_reference_id = self.id_mapper.get(
+                referenced_model_name, referenced_original_id
+            )
+
+            if not imported_record_id or not imported_reference_id:
+                errors.append(
+                    f"{model_name}.{field_name} references unresolved record: {referenced_original_id}"
+                )
+                continue
+
+            imported_record = session.get(model_class, imported_record_id)
+            if imported_record is None:
+                errors.append(f"Imported {model_name} record not found: {original_id}")
+                continue
+
+            setattr(imported_record, field_name, imported_reference_id)
+
+        if errors:
+            error_detail = "; ".join(errors[:3])
+            if len(errors) > 3:
+                error_detail += f" (and {len(errors) - 3} more)"
+            raise ValueError(f"{ERROR_MESSAGES['fk_integrity']} Details: {error_detail}")
+
+        session.flush()
+
     def _import_record(
         self,
         model_class: type,
@@ -275,6 +321,16 @@ class ImportService:
 
             # Only include fields that are actual columns on the model
             if key not in columns:
+                continue
+
+            if value and self._should_defer_foreign_key(model_class.__name__, key):
+                if not original_id:
+                    raise ValueError(
+                        f"{ERROR_MESSAGES['fk_integrity']} Details: missing __original_id__ for deferred field {model_class.__name__}.{key}"
+                    )
+                self._deferred_foreign_keys.append(
+                    (model_class.__name__, original_id, key, value)
+                )
                 continue
 
             # Remap file paths using file_mapping
@@ -368,6 +424,8 @@ class ImportService:
             return "ApplicationStatus"
         if fk_field == "round_type_id":
             return "RoundType"
+        if fk_field == "converted_to_application_id":
+            return "Application"
 
         if fk_field.endswith("_id"):
             model_name = fk_field[:-3]  # Remove _id suffix
@@ -578,6 +636,24 @@ class ImportService:
                 if not mapped_id:
                     errors.append(
                         f"StatusHistory references non-existent application ID: {app_id}"
+                    )
+
+        for app in models.get("Application", []):
+            job_lead_id = app.get("job_lead_id")
+            if job_lead_id:
+                mapped_id = self.id_mapper.get("JobLead", job_lead_id)
+                if not mapped_id:
+                    errors.append(
+                        f"Application references non-existent job lead ID: {job_lead_id}"
+                    )
+
+        for lead in models.get("JobLead", []):
+            application_id = lead.get("converted_to_application_id")
+            if application_id:
+                mapped_id = self.id_mapper.get("Application", application_id)
+                if not mapped_id:
+                    errors.append(
+                        f"JobLead references non-existent application ID: {application_id}"
                     )
 
         return errors
