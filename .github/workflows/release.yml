@@ -67,7 +67,9 @@ jobs:
           INPUT_PUBLISH_ROLLING_TAGS: ${{ inputs.publish_rolling_tags }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
           GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             VERSION="$INPUT_VERSION"
@@ -77,6 +79,10 @@ jobs:
             PUBLISH_HELM="$INPUT_PUBLISH_HELM"
             PUBLISH_CLI_PACKAGE="$INPUT_PUBLISH_CLI_PACKAGE"
             PUBLISH_ROLLING_TAGS="$INPUT_PUBLISH_ROLLING_TAGS"
+
+            if printf '%s' "$REF" | grep -Eq '^[0-9a-f]{7,40}$'; then
+              REF="$(gh api "repos/$GITHUB_REPOSITORY/commits/$REF" --jq '.sha')"
+            fi
           else
             VERSION="${GITHUB_REF_NAME#v}"
             REF="$GITHUB_SHA"
