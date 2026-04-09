@@ -5,6 +5,7 @@ Task 8.1: Test JobLead model creation with sample data
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_password_hash
@@ -216,3 +217,25 @@ class TestJobLeadModelCreation:
         assert "error" in repr_str
         assert "DevOps Engineer" in repr_str
         assert "Cloud Systems" in repr_str
+
+    async def test_duplicate_job_lead_url_is_rejected_per_user(
+        self, db: AsyncSession, test_user_for_job_lead: User
+    ):
+        """Test that the database rejects duplicate job lead URLs per user."""
+        first = JobLead(
+            user_id=test_user_for_job_lead.id,
+            url="https://example.com/job/unique-check",
+            status="extracted",
+        )
+        db.add(first)
+        await db.commit()
+
+        duplicate = JobLead(
+            user_id=test_user_for_job_lead.id,
+            url="https://example.com/job/unique-check",
+            status="pending",
+        )
+        db.add(duplicate)
+
+        with pytest.raises(IntegrityError):
+            await db.commit()

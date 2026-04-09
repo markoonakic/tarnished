@@ -72,7 +72,7 @@ async def test_job_leads_url_lookup_uses_exact_match_index(db_engine):
         )
         plan = _plan_text(result.fetchall())
 
-    assert "ix_job_leads_user_url" in plan
+    assert "uq_job_leads_user_url" in plan
 
 
 @pytest.mark.asyncio

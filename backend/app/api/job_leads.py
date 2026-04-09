@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -50,6 +51,13 @@ from app.services.reference_data import get_initial_application_status
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/job-leads", tags=["job-leads"])
+
+
+def _is_duplicate_job_lead_url_error(exc: IntegrityError) -> bool:
+    message = str(getattr(exc, "orig", exc)).lower()
+    return "uq_job_leads_user_url" in message or (
+        "job_leads.user_id, job_leads.url" in message
+    )
 
 
 @router.get("", response_model=JobLeadListResponse)
@@ -326,7 +334,20 @@ async def create_job_lead(
     )
 
     db.add(job_lead)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        if _is_duplicate_job_lead_url_error(exc):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=make_error_response(
+                    ErrorCode.DUPLICATE_RESOURCE,
+                    detail="A job lead already exists for this URL.",
+                    message_override="This job has already been saved",
+                ),
+            ) from exc
+        raise
     await db.refresh(job_lead)
 
     logger.info(

@@ -99,4 +99,4 @@ Index(
     postgresql_where=JobLead.source.is_not(None),
 )
 
-Index("ix_job_leads_user_url", JobLead.user_id, JobLead.url)
+Index("uq_job_leads_user_url", JobLead.user_id, JobLead.url, unique=True)
