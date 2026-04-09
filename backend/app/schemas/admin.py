@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from app.services.reference_data import normalize_reference_name
+from app.core.reference_names import normalize_reference_name
 
 
 class AdminUserResponse(BaseModel):

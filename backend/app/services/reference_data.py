@@ -1,18 +1,11 @@
 from collections.abc import Sequence
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.reference_names import normalize_reference_name, normalized_reference_name
 from app.models.round_type import RoundType
 from app.models.status import ApplicationStatus
-
-
-def normalize_reference_name(name: str) -> str:
-    return " ".join(name.strip().split())
-
-
-def normalized_name_sql(column):
-    return func.lower(func.trim(column))
 
 
 def _sort_statuses(statuses: Sequence[ApplicationStatus]) -> list[ApplicationStatus]:
@@ -29,10 +22,10 @@ def _sort_statuses(statuses: Sequence[ApplicationStatus]) -> list[ApplicationSta
 async def find_user_status_by_name(
     db: AsyncSession, user_id: str, name: str, exclude_id: str | None = None
 ) -> ApplicationStatus | None:
-    normalized_name = normalize_reference_name(name).casefold()
+    normalized_name = normalized_reference_name(name)
     stmt = select(ApplicationStatus).where(
         ApplicationStatus.user_id == user_id,
-        normalized_name_sql(ApplicationStatus.name) == normalized_name,
+        ApplicationStatus.normalized_name == normalized_name,
     )
     if exclude_id is not None:
         stmt = stmt.where(ApplicationStatus.id != exclude_id)
@@ -44,10 +37,10 @@ async def find_user_status_by_name(
 async def find_global_status_by_name(
     db: AsyncSession, name: str, exclude_id: str | None = None
 ) -> ApplicationStatus | None:
-    normalized_name = normalize_reference_name(name).casefold()
+    normalized_name = normalized_reference_name(name)
     stmt = select(ApplicationStatus).where(
         ApplicationStatus.user_id.is_(None),
-        normalized_name_sql(ApplicationStatus.name) == normalized_name,
+        ApplicationStatus.normalized_name == normalized_name,
     )
     if exclude_id is not None:
         stmt = stmt.where(ApplicationStatus.id != exclude_id)
@@ -63,9 +56,7 @@ async def list_visible_statuses(
         select(ApplicationStatus).where(ApplicationStatus.user_id == user_id)
     )
     user_statuses = list(user_result.scalars().all())
-    user_status_names = {
-        normalize_reference_name(status.name).casefold() for status in user_statuses
-    }
+    user_status_names = {status.normalized_name for status in user_statuses}
 
     default_result = await db.execute(
         select(ApplicationStatus).where(ApplicationStatus.user_id.is_(None))
@@ -73,7 +64,7 @@ async def list_visible_statuses(
     default_statuses = [
         status
         for status in default_result.scalars().all()
-        if normalize_reference_name(status.name).casefold() not in user_status_names
+        if status.normalized_name not in user_status_names
     ]
 
     return _sort_statuses([*user_statuses, *default_statuses])
@@ -87,7 +78,7 @@ async def get_initial_application_status(
         return None
 
     for status in visible_statuses:
-        if normalize_reference_name(status.name).casefold() == "applied":
+        if status.normalized_name == "applied":
             return status
 
     return visible_statuses[0]
@@ -105,10 +96,10 @@ async def find_visible_status_by_name(
 async def find_user_round_type_by_name(
     db: AsyncSession, user_id: str, name: str, exclude_id: str | None = None
 ) -> RoundType | None:
-    normalized_name = normalize_reference_name(name).casefold()
+    normalized_name = normalized_reference_name(name)
     stmt = select(RoundType).where(
         RoundType.user_id == user_id,
-        normalized_name_sql(RoundType.name) == normalized_name,
+        RoundType.normalized_name == normalized_name,
     )
     if exclude_id is not None:
         stmt = stmt.where(RoundType.id != exclude_id)
@@ -120,10 +111,10 @@ async def find_user_round_type_by_name(
 async def find_global_round_type_by_name(
     db: AsyncSession, name: str, exclude_id: str | None = None
 ) -> RoundType | None:
-    normalized_name = normalize_reference_name(name).casefold()
+    normalized_name = normalized_reference_name(name)
     stmt = select(RoundType).where(
         RoundType.user_id.is_(None),
-        normalized_name_sql(RoundType.name) == normalized_name,
+        RoundType.normalized_name == normalized_name,
     )
     if exclude_id is not None:
         stmt = stmt.where(RoundType.id != exclude_id)
@@ -135,10 +126,7 @@ async def find_global_round_type_by_name(
 async def list_visible_round_types(db: AsyncSession, user_id: str) -> list[RoundType]:
     user_result = await db.execute(select(RoundType).where(RoundType.user_id == user_id))
     user_round_types = list(user_result.scalars().all())
-    user_round_type_names = {
-        normalize_reference_name(round_type.name).casefold()
-        for round_type in user_round_types
-    }
+    user_round_type_names = {round_type.normalized_name for round_type in user_round_types}
 
     default_result = await db.execute(
         select(RoundType).where(RoundType.user_id.is_(None))
@@ -146,8 +134,7 @@ async def list_visible_round_types(db: AsyncSession, user_id: str) -> list[Round
     default_round_types = [
         round_type
         for round_type in default_result.scalars().all()
-        if normalize_reference_name(round_type.name).casefold()
-        not in user_round_type_names
+        if round_type.normalized_name not in user_round_type_names
     ]
 
     return sorted(

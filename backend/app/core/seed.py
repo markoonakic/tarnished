@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.reference_names import normalized_reference_name
 from app.models import ApplicationStatus, RoundType
-from app.services.reference_data import normalize_reference_name
 
 DEFAULT_STATUSES = [
     {"name": "Applied", "color": "#83a598", "order": 0},
@@ -30,12 +30,10 @@ async def seed_defaults(db: AsyncSession) -> None:
     existing_statuses = (
         await db.execute(select(ApplicationStatus).where(ApplicationStatus.user_id.is_(None)))
     ).scalars().all()
-    existing_status_names = {
-        normalize_reference_name(status.name).casefold() for status in existing_statuses
-    }
+    existing_status_names = {status.normalized_name for status in existing_statuses}
 
     for status_data in DEFAULT_STATUSES:
-        normalized_name = normalize_reference_name(status_data["name"]).casefold()
+        normalized_name = normalized_reference_name(status_data["name"])
         if normalized_name in existing_status_names:
             continue
 
@@ -53,12 +51,11 @@ async def seed_defaults(db: AsyncSession) -> None:
         await db.execute(select(RoundType).where(RoundType.user_id.is_(None)))
     ).scalars().all()
     existing_round_type_names = {
-        normalize_reference_name(round_type.name).casefold()
-        for round_type in existing_round_types
+        round_type.normalized_name for round_type in existing_round_types
     }
 
     for name in DEFAULT_ROUND_TYPES:
-        normalized_name = normalize_reference_name(name).casefold()
+        normalized_name = normalized_reference_name(name)
         if normalized_name in existing_round_type_names:
             continue
 

@@ -5,11 +5,11 @@ import importlib
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.reference_names import normalized_reference_name
 from app.models import Application, ApplicationStatus, RoundType
 from app.services.export_registry import default_registry
 from app.services.import_id_mapper import IDMapper
 from app.services.import_service import ImportService
-from app.services.reference_data import normalize_reference_name
 
 import_schemas = importlib.import_module("app.schemas.import")
 ImportDataSchema = import_schemas.ImportDataSchema
@@ -38,7 +38,7 @@ async def _collect_new_format_warnings(
         )
 
     exported_statuses = {
-        normalize_reference_name(status["name"]).casefold()
+        normalized_reference_name(status["name"])
         for status in models.get("ApplicationStatus", [])
         if status.get("name")
     }
@@ -49,7 +49,7 @@ async def _collect_new_format_warnings(
         )
     )
     existing_status_names = {
-        normalize_reference_name(s[0]).casefold() for s in existing_statuses_result.all()
+        normalized_reference_name(s[0]) for s in existing_statuses_result.all()
     }
 
     missing_statuses = exported_statuses - existing_status_names
@@ -63,7 +63,7 @@ async def _collect_new_format_warnings(
         )
 
     exported_round_types = {
-        normalize_reference_name(round_type["name"]).casefold()
+        normalized_reference_name(round_type["name"])
         for round_type in models.get("RoundType", [])
         if round_type.get("name")
     }
@@ -74,8 +74,7 @@ async def _collect_new_format_warnings(
         )
     )
     existing_round_type_names = {
-        normalize_reference_name(rt[0]).casefold()
-        for rt in existing_round_types_result.all()
+        normalized_reference_name(rt[0]) for rt in existing_round_types_result.all()
     }
 
     missing_round_types = exported_round_types - existing_round_type_names
@@ -141,19 +140,17 @@ async def _validate_legacy_payload(
         )
     )
     existing_status_names = {
-        normalize_reference_name(s[0]).casefold() for s in existing_statuses.all()
+        normalized_reference_name(s[0]) for s in existing_statuses.all()
     }
 
     needed_statuses = set()
     for app in validated_data.applications:
-        needed_statuses.add(normalize_reference_name(app.status).casefold())
+        needed_statuses.add(normalized_reference_name(app.status))
         for hist in app.status_history:
             if hist.to_status:
-                needed_statuses.add(normalize_reference_name(hist.to_status).casefold())
+                needed_statuses.add(normalized_reference_name(hist.to_status))
             if hist.from_status:
-                needed_statuses.add(
-                    normalize_reference_name(hist.from_status).casefold()
-                )
+                needed_statuses.add(normalized_reference_name(hist.from_status))
 
     missing_statuses = needed_statuses - existing_status_names
     if missing_statuses:
