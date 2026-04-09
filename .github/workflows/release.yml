@@ -452,7 +452,7 @@ jobs:
       - name: Install and smoke-test formula
         working-directory: ${{ steps.tap-path.outputs.path }}
         run: |
-          brew install --build-from-source ./Formula/tarnished-cli.rb
+          brew install --formula --build-from-source ./Formula/tarnished-cli.rb
           brew test tarnished-cli
           test "$(tarnished --version | tr -d '\n')" = "${{ needs.release-meta.outputs.version }}"
 
