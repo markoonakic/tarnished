@@ -5,7 +5,7 @@ READ_ONLY_PRESET = "read_only"
 IMPORT_EXPORT_PRESET = "import_export"
 CUSTOM_PRESET = "custom"
 
-ALL_SCOPES = [
+BASE_SCOPES = [
     "applications:read",
     "applications:write",
     "job_leads:read",
@@ -30,7 +30,15 @@ ALL_SCOPES = [
     "import:write",
 ]
 
-FULL_ACCESS_SCOPES = list(ALL_SCOPES)
+PRIVILEGED_SCOPES = [
+    "admin:read",
+    "admin:write",
+    "api_keys:manage",
+]
+
+ALL_SCOPES = BASE_SCOPES + PRIVILEGED_SCOPES
+
+FULL_ACCESS_SCOPES = list(BASE_SCOPES)
 
 CLI_SCOPES = [
     "applications:read",

@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_api_key_scope
 from app.models import (
     Application,
     ApplicationStatus,
@@ -65,6 +65,7 @@ def _generate_insights_with_session(
 async def is_ai_configured(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),  # Add authentication
+    __: object = Depends(require_api_key_scope("analytics:read")),
 ):
     """Check if AI is configured for insights generation."""
     try:
@@ -80,6 +81,7 @@ async def get_insights(
     request: InsightsRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("analytics:read")),
 ):
     """Generate AI-powered insights for analytics data.
 

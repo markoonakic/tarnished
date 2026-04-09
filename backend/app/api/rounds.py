@@ -16,7 +16,7 @@ from app.api.utils.zip_utils import (
 )
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_api_key_scope
 from app.models import Application, Round, RoundMedia, RoundType, User
 from app.schemas.round import RoundCreate, RoundResponse, RoundUpdate
 
@@ -47,6 +47,7 @@ async def create_round(
     application_id: str,
     data: RoundCreate,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("rounds:write")),
     db: AsyncSession = Depends(get_db),
 ):
     await get_user_application(application_id, user, db)
@@ -83,6 +84,7 @@ async def update_round(
     round_id: str,
     data: RoundUpdate,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("rounds:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -124,6 +126,7 @@ async def update_round(
 async def delete_round(
     round_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("rounds:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -148,6 +151,7 @@ async def upload_media(
     round_id: str,
     file: UploadFile,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -216,6 +220,7 @@ async def upload_media(
 async def delete_media(
     media_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -239,6 +244,7 @@ async def upload_transcript(
     round_id: str,
     file: UploadFile,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Upload transcript for a round. Accepts PDF, DOCX, DOC, TXT, MD, RTF."""
@@ -303,6 +309,7 @@ async def upload_transcript(
 async def delete_transcript(
     round_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete transcript from a round."""

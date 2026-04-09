@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_api_key_scope
 from app.models import User
 
 router = APIRouter(prefix="/api/user-preferences", tags=["user-preferences"])
@@ -31,7 +31,10 @@ def get_default_preferences() -> dict:
 
 
 @router.get("", response_model=UserPreferencesResponse)
-async def get_preferences(user: User = Depends(get_current_user)):
+async def get_preferences(
+    user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("preferences:read")),
+):
     """Get user preferences."""
     prefs = user.settings or {}
     defaults = get_default_preferences()
@@ -50,6 +53,7 @@ async def update_preferences(
     prefs_update: UserPreferencesUpdate,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("preferences:write")),
 ):
     """Update user preferences."""
     current = user.settings or {}

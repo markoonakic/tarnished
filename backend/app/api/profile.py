@@ -14,7 +14,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, get_current_user_flexible
+from app.core.deps import (
+    get_current_user,
+    get_current_user_flexible,
+    require_api_key_scope,
+)
 from app.models import User
 from app.models.user_profile import UserProfile
 from app.schemas.user_profile import (
@@ -57,6 +61,7 @@ def _build_profile_response(profile: UserProfile, user: User) -> UserProfileResp
 @router.get("", response_model=UserProfileResponse)
 async def get_profile(
     user: User = Depends(get_current_user_flexible),
+    _: object = Depends(require_api_key_scope("profile:read")),
     db: AsyncSession = Depends(get_db),
 ) -> UserProfileResponse:
     """Get the current user's profile, creating an empty one if it doesn't exist.
@@ -102,6 +107,7 @@ async def get_profile(
 async def update_profile(
     profile_update: UserProfileUpdate,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("profile:write")),
     db: AsyncSession = Depends(get_db),
 ) -> UserProfileResponse:
     """Update the current user's profile with partial update support.

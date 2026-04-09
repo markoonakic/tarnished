@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_api_key_scope
 from app.models import Application, ApplicationStatusHistory, User
 from app.schemas.application import StatusResponse
 
@@ -15,6 +15,7 @@ router = APIRouter(prefix="/api/applications", tags=["application-history"])
 async def get_application_history(
     application_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("applications:read")),
     db: AsyncSession = Depends(get_db),
 ):
     # Verify application belongs to user
@@ -65,6 +66,7 @@ async def delete_history_entry(
     application_id: str,
     history_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("applications:write")),
     db: AsyncSession = Depends(get_db),
 ):
     # Verify application belongs to user

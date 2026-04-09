@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_api_key_scope
 from app.models import Application, ApplicationStatus, User
 from app.schemas import (
     DashboardKPIsResponse,
@@ -19,6 +19,7 @@ router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 @router.get("/kpis", response_model=DashboardKPIsResponse)
 async def get_dashboard_kpis(
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("dashboard:read")),
     db: AsyncSession = Depends(get_db),
 ):
     today = date.today()
@@ -114,6 +115,7 @@ async def get_dashboard_kpis(
 @router.get("/needs-attention", response_model=NeedsAttentionResponse)
 async def get_needs_attention(
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("dashboard:read")),
     db: AsyncSession = Depends(get_db),
 ):
     today = date.today()
