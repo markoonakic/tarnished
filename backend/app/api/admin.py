@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
-from app.core.deps import get_current_admin
+from app.core.deps import get_current_admin, require_api_key_scope
 from app.core.security import get_password_hash
 from app.models import Application, ApplicationStatus, RoundType, User
 from app.schemas.admin import (
@@ -29,6 +29,7 @@ async def list_users(
     per_page: int = Query(25, ge=1, le=100),
     query: str | None = Query(None, min_length=1),
     _: User = Depends(get_current_admin),
+    __: object = Depends(require_api_key_scope("admin:read")),
     db: AsyncSession = Depends(get_db),
 ):
     normalized_query = query.strip() if query else None
@@ -87,6 +88,7 @@ async def update_user(
     user_id: str,
     data: AdminUserUpdate,
     admin: User = Depends(get_current_admin),
+    _: object = Depends(require_api_key_scope("admin:write")),
     db: AsyncSession = Depends(get_db),
 ):
     if user_id == admin.id:
@@ -137,6 +139,7 @@ async def update_user(
 async def create_user(
     user_data: AdminUserCreate,
     admin: User = Depends(get_current_admin),
+    _: object = Depends(require_api_key_scope("admin:write")),
     db: AsyncSession = Depends(get_db),
 ):
     # Check if email already exists
@@ -172,6 +175,7 @@ async def create_user(
 async def delete_user(
     user_id: str,
     admin: User = Depends(get_current_admin),
+    _: object = Depends(require_api_key_scope("admin:write")),
     db: AsyncSession = Depends(get_db),
 ):
     if user_id == admin.id:
@@ -195,6 +199,7 @@ async def delete_user(
 @router.get("/stats", response_model=AdminStatsResponse)
 async def get_stats(
     _: User = Depends(get_current_admin),
+    __: object = Depends(require_api_key_scope("admin:read")),
     db: AsyncSession = Depends(get_db),
 ):
     total_users = await db.execute(select(func.count(User.id)))
@@ -223,6 +228,7 @@ async def list_all_applications(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     _: User = Depends(get_current_admin),
+    __: object = Depends(require_api_key_scope("admin:read")),
     db: AsyncSession = Depends(get_db),
 ):
     query = select(Application).options(selectinload(Application.status))
@@ -249,6 +255,7 @@ async def update_default_status(
     status_id: str,
     data: AdminStatusUpdate,
     _: User = Depends(get_current_admin),
+    __: object = Depends(require_api_key_scope("admin:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -277,6 +284,7 @@ async def update_default_round_type(
     round_type_id: str,
     data: AdminRoundTypeUpdate,
     _: User = Depends(get_current_admin),
+    __: object = Depends(require_api_key_scope("admin:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(

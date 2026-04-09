@@ -57,6 +57,8 @@ export async function listAPIKeys(): Promise<APIKey[]> {
 
 export async function createAPIKey(data: {
   label: string;
+  preset: string;
+  scopes?: string[];
 }): Promise<APIKeyCreateResponse> {
   const response = await api.post('/api/settings/api-keys', data);
   return response.data;
@@ -64,7 +66,7 @@ export async function createAPIKey(data: {
 
 export async function updateAPIKey(
   id: string,
-  data: { label: string }
+  data: { label?: string; preset?: string; scopes?: string[] }
 ): Promise<APIKey> {
   const response = await api.patch(`/api/settings/api-keys/${id}`, data);
   return response.data;

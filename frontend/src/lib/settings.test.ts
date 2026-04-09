@@ -32,27 +32,34 @@ describe('settings api helpers', () => {
     expect(get).toHaveBeenCalledWith('/api/settings/api-keys');
   });
 
-  it('creates a named api key', async () => {
+  it('creates a named api key with a preset', async () => {
     post.mockResolvedValueOnce({ data: { id: 'key-1' } });
 
     const { createAPIKey } = await import('./settings');
 
-    await createAPIKey({ label: 'MacBook CLI' });
+    await createAPIKey({ label: 'MacBook CLI', preset: 'cli' });
 
     expect(post).toHaveBeenCalledWith('/api/settings/api-keys', {
       label: 'MacBook CLI',
+      preset: 'cli',
     });
   });
 
-  it('renames an api key', async () => {
+  it('updates api key preset and scopes', async () => {
     patch.mockResolvedValueOnce({ data: { id: 'key-1', label: 'New Label' } });
 
     const { updateAPIKey } = await import('./settings');
 
-    await updateAPIKey('key-1', { label: 'New Label' });
+    await updateAPIKey('key-1', {
+      label: 'New Label',
+      preset: 'custom',
+      scopes: ['round_types:read'],
+    });
 
     expect(patch).toHaveBeenCalledWith('/api/settings/api-keys/key-1', {
       label: 'New Label',
+      preset: 'custom',
+      scopes: ['round_types:read'],
     });
   });
 

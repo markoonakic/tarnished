@@ -1,10 +1,11 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.api_key_scopes import FULL_ACCESS_PRESET, FULL_ACCESS_SCOPES
 
 
 class UserAPIKey(Base):
@@ -17,6 +18,12 @@ class UserAPIKey(Base):
         String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     label: Mapped[str] = mapped_column(String(255), nullable=False)
+    preset: Mapped[str] = mapped_column(
+        String(50), nullable=False, default=FULL_ACCESS_PRESET
+    )
+    scopes: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default=lambda: list(FULL_ACCESS_SCOPES)
+    )
     key_prefix: Mapped[str] = mapped_column(String(32), nullable=False)
     key_hash: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

@@ -93,6 +93,32 @@ class TestAPIKeysCreate:
         assert api_key.key_prefix == payload["key_prefix"]
         assert api_key.key_hash != payload["api_key"]
 
+    async def test_create_api_key_with_extension_preset_assigns_preset_scopes(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        auth_headers: dict[str, str],
+    ) -> None:
+        response = await client.post(
+            "/api/settings/api-keys",
+            headers=auth_headers,
+            json={"label": "Firefox Extension", "preset": "extension"},
+        )
+
+        assert response.status_code == 201
+        payload = response.json()
+        assert payload["preset"] == "extension"
+        assert "job_leads:write" in payload["scopes"]
+        assert "user_settings:read" in payload["scopes"]
+        assert "import:write" not in payload["scopes"]
+
+        result = await db.execute(
+            select(UserAPIKey).where(UserAPIKey.id == payload["id"])
+        )
+        api_key = result.scalar_one()
+        assert api_key.preset == "extension"
+        assert "job_leads:write" in api_key.scopes
+
 
 class TestAPIKeyAuth:
     async def test_machine_route_accepts_x_api_key_from_user_api_keys(
@@ -175,6 +201,45 @@ class TestAPIKeysLifecycle:
         await db.refresh(api_key)
         assert api_key.label == "New Label"
 
+    async def test_update_api_key_can_switch_to_custom_scopes(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        test_user: User,
+        auth_headers: dict[str, str],
+    ) -> None:
+        api_key = UserAPIKey(
+            user_id=test_user.id,
+            label="Old Label",
+            preset="cli",
+            scopes=["applications:read", "applications:write"],
+            key_prefix="abcd1234",
+            key_hash=hash_api_key(generate_api_token()),
+        )
+        db.add(api_key)
+        await db.commit()
+        await db.refresh(api_key)
+
+        response = await client.patch(
+            f"/api/settings/api-keys/{api_key.id}",
+            headers=auth_headers,
+            json={
+                "label": "Custom Key",
+                "preset": "custom",
+                "scopes": ["round_types:read"],
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["label"] == "Custom Key"
+        assert payload["preset"] == "custom"
+        assert payload["scopes"] == ["round_types:read"]
+
+        await db.refresh(api_key)
+        assert api_key.preset == "custom"
+        assert api_key.scopes == ["round_types:read"]
+
     async def test_delete_api_key_revokes_instead_of_hard_deleting(
         self,
         client: AsyncClient,
@@ -227,6 +292,44 @@ class TestAPIKeyRouteCoverage:
 
         assert response.status_code == 200
 
+    async def test_api_key_without_round_types_read_scope_is_rejected(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        test_user: User,
+    ) -> None:
+        raw_key = generate_api_token()
+        db.add(
+            UserAPIKey(
+                user_id=test_user.id,
+                label="Restricted CLI",
+                preset="custom",
+                scopes=[],
+                key_prefix=raw_key[:8],
+                key_hash=hash_api_key(raw_key),
+            )
+        )
+        await db.commit()
+
+        response = await client.get(
+            "/api/round-types",
+            headers={"X-API-Key": raw_key},
+        )
+
+        assert response.status_code == 403
+
+    async def test_jwt_session_can_access_round_type_listing_without_api_key_scope(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+    ) -> None:
+        response = await client.get(
+            "/api/round-types",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+
 
 class TestLegacyAPIKeyEndpoints:
     async def test_legacy_get_api_key_endpoint_is_removed(
@@ -274,7 +377,7 @@ class TestLegacyAPIKeyEndpoints:
 
         assert response.status_code == 200
 
-    async def test_admin_api_key_can_access_admin_users(
+    async def test_admin_full_access_key_cannot_access_admin_users_by_default(
         self,
         client: AsyncClient,
         db: AsyncSession,
@@ -285,6 +388,32 @@ class TestLegacyAPIKeyEndpoints:
             UserAPIKey(
                 user_id=admin_user.id,
                 label="Admin CLI",
+                key_prefix=raw_key[:8],
+                key_hash=hash_api_key(raw_key),
+            )
+        )
+        await db.commit()
+
+        response = await client.get(
+            "/api/admin/users",
+            headers={"X-API-Key": raw_key},
+        )
+
+        assert response.status_code == 403
+
+    async def test_admin_key_with_admin_read_scope_can_access_admin_users(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        admin_user: User,
+    ) -> None:
+        raw_key = generate_api_token()
+        db.add(
+            UserAPIKey(
+                user_id=admin_user.id,
+                label="Admin CLI",
+                preset="custom",
+                scopes=["admin:read"],
                 key_prefix=raw_key[:8],
                 key_hash=hash_api_key(raw_key),
             )
