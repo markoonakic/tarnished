@@ -9,6 +9,7 @@ from app.models import Application, ApplicationStatus, RoundType
 from app.services.export_registry import default_registry
 from app.services.import_id_mapper import IDMapper
 from app.services.import_service import ImportService
+from app.services.reference_data import normalize_reference_name
 
 import_schemas = importlib.import_module("app.schemas.import")
 ImportDataSchema = import_schemas.ImportDataSchema
@@ -37,7 +38,7 @@ async def _collect_new_format_warnings(
         )
 
     exported_statuses = {
-        status["name"]
+        normalize_reference_name(status["name"]).casefold()
         for status in models.get("ApplicationStatus", [])
         if status.get("name")
     }
@@ -47,7 +48,9 @@ async def _collect_new_format_warnings(
             (ApplicationStatus.user_id == user_id) | (ApplicationStatus.user_id == None)
         )
     )
-    existing_status_names = {s[0] for s in existing_statuses_result.all()}
+    existing_status_names = {
+        normalize_reference_name(s[0]).casefold() for s in existing_statuses_result.all()
+    }
 
     missing_statuses = exported_statuses - existing_status_names
     if missing_statuses:
@@ -60,7 +63,7 @@ async def _collect_new_format_warnings(
         )
 
     exported_round_types = {
-        round_type["name"]
+        normalize_reference_name(round_type["name"]).casefold()
         for round_type in models.get("RoundType", [])
         if round_type.get("name")
     }
@@ -70,7 +73,10 @@ async def _collect_new_format_warnings(
             (RoundType.user_id == user_id) | (RoundType.user_id == None)
         )
     )
-    existing_round_type_names = {rt[0] for rt in existing_round_types_result.all()}
+    existing_round_type_names = {
+        normalize_reference_name(rt[0]).casefold()
+        for rt in existing_round_types_result.all()
+    }
 
     missing_round_types = exported_round_types - existing_round_type_names
     if missing_round_types:
@@ -134,16 +140,20 @@ async def _validate_legacy_payload(
             (ApplicationStatus.user_id == user_id) | (ApplicationStatus.user_id == None)
         )
     )
-    existing_status_names = {s[0] for s in existing_statuses.all()}
+    existing_status_names = {
+        normalize_reference_name(s[0]).casefold() for s in existing_statuses.all()
+    }
 
     needed_statuses = set()
     for app in validated_data.applications:
-        needed_statuses.add(app.status)
+        needed_statuses.add(normalize_reference_name(app.status).casefold())
         for hist in app.status_history:
             if hist.to_status:
-                needed_statuses.add(hist.to_status)
+                needed_statuses.add(normalize_reference_name(hist.to_status).casefold())
             if hist.from_status:
-                needed_statuses.add(hist.from_status)
+                needed_statuses.add(
+                    normalize_reference_name(hist.from_status).casefold()
+                )
 
     missing_statuses = needed_statuses - existing_status_names
     if missing_statuses:

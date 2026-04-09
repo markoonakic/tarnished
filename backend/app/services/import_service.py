@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapper, Session
 
 from app.services.export_registry import ExportRegistry
 from app.services.import_id_mapper import IDMapper
+from app.services.reference_data import normalize_reference_name, normalized_name_sql
 
 # User-facing error messages
 ERROR_MESSAGES = {
@@ -40,6 +41,11 @@ class ImportService:
     DEFERRED_FOREIGN_KEY_FIELDS = {
         "Application": {"job_lead_id"},
         "JobLead": {"converted_to_application_id"},
+    }
+    LEGACY_COLUMN_ALIASES = {
+        "Application": {
+            "description": "job_description",
+        }
     }
 
     def __init__(self, registry: ExportRegistry, id_mapper: IDMapper):
@@ -320,21 +326,33 @@ class ImportService:
                 continue
 
             # Only include fields that are actual columns on the model
+            target_key = key
+            alias_target = self.LEGACY_COLUMN_ALIASES.get(model_class.__name__, {}).get(
+                key
+            )
             if key not in columns:
+                if alias_target is None:
+                    continue
+                canonical_value = record_data.get(alias_target)
+                if alias_target not in columns or canonical_value not in (None, ""):
+                    continue
+                target_key = alias_target
+
+            if target_key not in columns:
                 continue
 
-            if value and self._should_defer_foreign_key(model_class.__name__, key):
+            if value and self._should_defer_foreign_key(model_class.__name__, target_key):
                 if not original_id:
                     raise ValueError(
-                        f"{ERROR_MESSAGES['fk_integrity']} Details: missing __original_id__ for deferred field {model_class.__name__}.{key}"
+                        f"{ERROR_MESSAGES['fk_integrity']} Details: missing __original_id__ for deferred field {model_class.__name__}.{target_key}"
                     )
                 self._deferred_foreign_keys.append(
-                    (model_class.__name__, original_id, key, value)
+                    (model_class.__name__, original_id, target_key, value)
                 )
                 continue
 
             # Remap file paths using file_mapping
-            if key in self.FILE_PATH_FIELDS and value and file_mapping:
+            if target_key in self.FILE_PATH_FIELDS and value and file_mapping:
                 # Try to find a matching path in the file mapping
                 # The export stores paths like "uploads/abc123.pdf" in data.json
                 # but file_mapping keys are ZIP paths like "applications/.../resume.pdf"
@@ -345,18 +363,18 @@ class ImportService:
                     value = remapped
 
             # Remap foreign keys if this looks like an FK field
-            if key.endswith("_id") and key != "id":
+            if target_key.endswith("_id") and target_key != "id":
                 # Try to remap this FK
-                ref_model = self._guess_referenced_model(key)
+                ref_model = self._guess_referenced_model(target_key)
                 if ref_model and value:
                     new_value = self.id_mapper.get(ref_model, value)
                     if new_value:
                         value = new_value
 
             # Deserialize value based on column type
-            value = self._deserialize_value(value, columns[key])
+            value = self._deserialize_value(value, columns[target_key])
 
-            new_data[key] = value
+            new_data[target_key] = value
 
         # Set new ID
         new_data["id"] = new_id
@@ -458,13 +476,13 @@ class ImportService:
         """
         from app.models import ApplicationStatus
 
-        status_name = status_data.get("name")
+        status_name = normalize_reference_name(status_data.get("name") or "")
         original_id = status_data.get("__original_id__")
 
         # 1. Check for global status with this name (SQLAlchemy 2.0 style)
         stmt = select(ApplicationStatus).where(
             ApplicationStatus.user_id.is_(None),
-            ApplicationStatus.name == status_name,
+            normalized_name_sql(ApplicationStatus.name) == status_name.casefold(),
         )
         global_status = session.execute(stmt).scalar_one_or_none()
         if global_status:
@@ -476,7 +494,7 @@ class ImportService:
         # 2. Check for user's existing custom status (SQLAlchemy 2.0 style)
         stmt = select(ApplicationStatus).where(
             ApplicationStatus.user_id == user_id,
-            ApplicationStatus.name == status_name,
+            normalized_name_sql(ApplicationStatus.name) == status_name.casefold(),
         )
         existing_status = session.execute(stmt).scalar_one_or_none()
         if existing_status:
@@ -531,13 +549,13 @@ class ImportService:
         """
         from app.models import RoundType
 
-        type_name = round_type_data.get("name")
+        type_name = normalize_reference_name(round_type_data.get("name") or "")
         original_id = round_type_data.get("__original_id__")
 
         # 1. Check for global round type with this name (SQLAlchemy 2.0 style)
         stmt = select(RoundType).where(
             RoundType.user_id.is_(None),
-            RoundType.name == type_name,
+            normalized_name_sql(RoundType.name) == type_name.casefold(),
         )
         global_type = session.execute(stmt).scalar_one_or_none()
         if global_type:
@@ -548,7 +566,7 @@ class ImportService:
         # 2. Check for user's existing custom type (SQLAlchemy 2.0 style)
         stmt = select(RoundType).where(
             RoundType.user_id == user_id,
-            RoundType.name == type_name,
+            normalized_name_sql(RoundType.name) == type_name.casefold(),
         )
         existing_type = session.execute(stmt).scalar_one_or_none()
         if existing_type:

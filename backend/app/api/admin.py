@@ -19,6 +19,10 @@ from app.schemas.admin import (
     AdminUserUpdate,
 )
 from app.schemas.application import ApplicationListResponse
+from app.services.reference_data import (
+    find_global_round_type_by_name,
+    find_global_status_by_name,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -271,6 +275,12 @@ async def update_default_status(
         )
 
     update_data = data.model_dump(exclude_unset=True)
+    if data.name is not None:
+        existing_status = await find_global_status_by_name(
+            db, data.name, exclude_id=status_obj.id
+        )
+        if existing_status is not None:
+            raise HTTPException(status_code=409, detail="Status name already exists")
     for key, value in update_data.items():
         setattr(status_obj, key, value)
 
@@ -300,6 +310,14 @@ async def update_default_round_type(
         )
 
     update_data = data.model_dump(exclude_unset=True)
+    if data.name is not None:
+        existing_round_type = await find_global_round_type_by_name(
+            db, data.name, exclude_id=round_type.id
+        )
+        if existing_round_type is not None:
+            raise HTTPException(
+                status_code=409, detail="Round type name already exists"
+            )
     for key, value in update_data.items():
         setattr(round_type, key, value)
 
