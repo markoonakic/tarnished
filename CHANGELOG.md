@@ -18,6 +18,7 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ### Fixed
 
+- Frontend production dependency `axios` was updated from `1.14.0` to `1.15.0` to address `GHSA-3p68-rc4w-qgx5` / `CVE-2026-39892`.
 - Converted applications now preserve `job_lead_id` and `converted_to_application_id` links during import/export round-trips under real foreign-key enforcement.
 - Production PostgreSQL migrations no longer fail on overlong unreleased Alembic revision identifiers.
 - Job-lead conversion now picks the correct initial status instead of arbitrary user-defined statuses such as `Wishlist`.
@@ -40,6 +41,7 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 - CLI Ruff, format check, and Pyright passed
 - Extension tests: `55 passed`
 - Extension build and Prettier check passed
+- Frontend production security audit passed with `yarn npm audit --all --recursive --environment production --severity high`
 - Fresh SQLite `alembic upgrade head`, `alembic check`, and `alembic heads` passed
 - Restored production PostgreSQL dump upgraded cleanly to head and passed `alembic check`
 
