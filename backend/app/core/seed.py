@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import ApplicationStatus, RoundType
+from app.services.reference_data import normalize_reference_name
 
 DEFAULT_STATUSES = [
     {"name": "Applied", "color": "#83a598", "order": 0},
@@ -25,14 +26,19 @@ DEFAULT_ROUND_TYPES = [
 
 
 async def seed_defaults(db: AsyncSession) -> None:
-    """Seed default application statuses and round types if none exist."""
-    result = await db.execute(
-        select(ApplicationStatus).where(ApplicationStatus.is_default == True)
-    )
-    if result.scalars().first():
-        return
+    """Seed default application statuses and round types if they are missing."""
+    existing_statuses = (
+        await db.execute(select(ApplicationStatus).where(ApplicationStatus.user_id.is_(None)))
+    ).scalars().all()
+    existing_status_names = {
+        normalize_reference_name(status.name).casefold() for status in existing_statuses
+    }
 
     for status_data in DEFAULT_STATUSES:
+        normalized_name = normalize_reference_name(status_data["name"]).casefold()
+        if normalized_name in existing_status_names:
+            continue
+
         status = ApplicationStatus(
             name=status_data["name"],
             color=status_data["color"],
@@ -41,9 +47,23 @@ async def seed_defaults(db: AsyncSession) -> None:
             user_id=None,
         )
         db.add(status)
+        existing_status_names.add(normalized_name)
+
+    existing_round_types = (
+        await db.execute(select(RoundType).where(RoundType.user_id.is_(None)))
+    ).scalars().all()
+    existing_round_type_names = {
+        normalize_reference_name(round_type.name).casefold()
+        for round_type in existing_round_types
+    }
 
     for name in DEFAULT_ROUND_TYPES:
+        normalized_name = normalize_reference_name(name).casefold()
+        if normalized_name in existing_round_type_names:
+            continue
+
         round_type = RoundType(name=name, is_default=True, user_id=None)
         db.add(round_type)
+        existing_round_type_names.add(normalized_name)
 
     await db.commit()

@@ -24,6 +24,12 @@ from app.services.export_registry import default_registry
 from app.services.import_id_mapper import IDMapper
 from app.services.import_service import ImportService
 from app.services.import_validation import is_new_export_format
+from app.services.reference_data import (
+    find_user_round_type_by_name,
+    find_user_status_by_name,
+    find_visible_round_type_by_name,
+    find_visible_status_by_name,
+)
 
 import_schemas = importlib.import_module("app.schemas.import")
 ImportDataSchema = import_schemas.ImportDataSchema
@@ -164,14 +170,7 @@ def _run_import_user_data(
 async def ensure_status_exists(
     db: AsyncSession, user_id: str, status_name: str
 ) -> ApplicationStatus:
-    result = await db.execute(
-        select(ApplicationStatus)
-        .where(
-            (ApplicationStatus.user_id == user_id) | (ApplicationStatus.user_id == None)
-        )
-        .where(ApplicationStatus.name == status_name)
-    )
-    status = result.scalar_one_or_none()
+    status = await find_visible_status_by_name(db, user_id, status_name)
     if not status:
         status = ApplicationStatus(
             user_id=user_id,
@@ -188,12 +187,7 @@ async def ensure_status_exists(
 async def ensure_round_type_exists(
     db: AsyncSession, user_id: str, type_name: str
 ) -> RoundType:
-    result = await db.execute(
-        select(RoundType)
-        .where((RoundType.user_id == user_id) | (RoundType.user_id == None))
-        .where(RoundType.name == type_name)
-    )
-    round_type = result.scalar_one_or_none()
+    round_type = await find_visible_round_type_by_name(db, user_id, type_name)
     if not round_type:
         round_type = RoundType(user_id=user_id, name=type_name, is_default=False)
         db.add(round_type)
@@ -335,12 +329,8 @@ async def import_payload_data(
 
     validated_data = ImportDataSchema(**data)
     for status_data in validated_data.custom_statuses:
-        existing = await db.execute(
-            select(ApplicationStatus)
-            .where(ApplicationStatus.user_id == user_id)
-            .where(ApplicationStatus.name == status_data.name)
-        )
-        if not existing.scalar_one_or_none():
+        existing = await find_user_status_by_name(db, user_id, status_data.name)
+        if existing is None:
             db.add(
                 ApplicationStatus(
                     user_id=user_id,
@@ -352,12 +342,8 @@ async def import_payload_data(
             )
     await db.flush()
     for type_data in validated_data.custom_round_types:
-        existing = await db.execute(
-            select(RoundType)
-            .where(RoundType.user_id == user_id)
-            .where(RoundType.name == type_data.name)
-        )
-        if not existing.scalar_one_or_none():
+        existing = await find_user_round_type_by_name(db, user_id, type_data.name)
+        if existing is None:
             db.add(
                 RoundType(
                     user_id=user_id,

@@ -24,7 +24,6 @@ class ApplicationCreate(BaseModel):
     applied_at: date | None = None
     # New fields for manual entry or job lead conversion
     job_lead_id: str | None = None
-    description: str | None = None
     location: str | None = None
     salary_min: int | None = None
     salary_max: int | None = None
@@ -48,7 +47,6 @@ class ApplicationUpdate(BaseModel):
     status_id: str | None = None
     applied_at: date | None = None
     # New fields for updates
-    description: str | None = None
     location: str | None = None
     salary_min: int | None = None
     salary_max: int | None = None
@@ -88,7 +86,6 @@ class ApplicationListItem(BaseModel):
     updated_at: datetime
     # New fields from job lead conversion
     job_lead_id: str | None
-    description: str | None
     location: str | None
     salary_min: int | None
     salary_max: int | None

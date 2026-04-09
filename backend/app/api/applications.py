@@ -164,7 +164,6 @@ async def create_application(
         job_url=data.job_url,
         status_id=data.status_id,
         applied_at=data.applied_at or date.today(),
-        description=data.description,
         location=data.location,
         salary_min=data.salary_min,
         salary_max=data.salary_max,

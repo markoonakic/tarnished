@@ -82,7 +82,6 @@ class Application(Base):
     )
 
     # Rich extraction fields (populated from JobLead conversion or direct extraction)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     salary_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
     salary_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
