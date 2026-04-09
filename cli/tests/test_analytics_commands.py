@@ -3,7 +3,7 @@ from tarnished_cli.main import app
 
 
 class FakeAnalyticsClient:
-    def get_json(self, path, *, params=None, auth="jwt"):
+    def get_json(self, path, *, params=None, auth="api_key"):
         if path == "/api/analytics/kpis":
             assert params is not None
             assert params["period"] == "30d"
@@ -25,7 +25,7 @@ class FakeAnalyticsClient:
             return {"configured": True}
         raise AssertionError(f"Unexpected GET path: {path}")
 
-    def post_json(self, path, *, body, auth="jwt"):
+    def post_json(self, path, *, body, auth="api_key"):
         assert path == "/api/analytics/insights"
         assert body["period"] == "30d"
         return {

@@ -3,10 +3,10 @@ from tarnished_cli.main import app
 
 
 class FakeApplicationsClient:
-    def get_json(self, path, *, params=None, auth="jwt"):
+    def get_json(self, path, *, params=None, auth="api_key"):
         if path == "/api/applications":
             assert params is not None
-            assert auth == "flexible"
+            assert auth == "api_key"
             return {
                 "items": [],
                 "total": 0,
@@ -30,9 +30,9 @@ class FakeApplicationsClient:
             return {"url": "/signed/file", "expires_in": 300}
         raise AssertionError(f"Unexpected GET path: {path}")
 
-    def post_json(self, path, *, body, auth="jwt"):
+    def post_json(self, path, *, body, auth="api_key"):
         if path == "/api/applications":
-            assert auth == "flexible"
+            assert auth == "api_key"
             assert body["company"] == "Tarnished"
             return {
                 "id": "app-123",
@@ -40,7 +40,7 @@ class FakeApplicationsClient:
                 "job_title": body["job_title"],
             }
         if path == "/api/applications/extract":
-            assert auth == "flexible"
+            assert auth == "api_key"
             assert body["url"] == "https://example.com/job"
             return {
                 "id": "app-123",
@@ -49,21 +49,21 @@ class FakeApplicationsClient:
             }
         raise AssertionError(f"Unexpected POST path: {path}")
 
-    def patch_json(self, path, *, body, auth="jwt"):
+    def patch_json(self, path, *, body, auth="api_key"):
         assert path == "/api/applications/app-123"
-        assert auth == "jwt"
+        assert auth == "api_key"
         assert body["location"] == "Remote"
         return {"id": "app-123", "location": "Remote"}
 
-    def delete(self, path, *, auth="jwt"):
-        assert auth == "jwt"
+    def delete(self, path, *, auth="api_key"):
+        assert auth == "api_key"
         assert path in {
             "/api/applications/app-123",
             "/api/applications/app-123/history/hist-1",
         }
 
-    def delete_json(self, path, *, auth="jwt"):
-        assert auth == "jwt"
+    def delete_json(self, path, *, auth="api_key"):
+        assert auth == "api_key"
         assert path in {
             "/api/applications/app-123/cv",
             "/api/applications/app-123/cover-letter",
@@ -76,11 +76,11 @@ class FakeApplicationsClient:
         *,
         file_path,
         field_name="file",
-        auth="jwt",
+        auth="api_key",
         content_type=None,
         allow_refresh=True,
     ):
-        assert auth == "jwt"
+        assert auth == "api_key"
         assert field_name == "file"
         assert file_path.exists()
         assert path in {
@@ -93,8 +93,8 @@ class FakeApplicationsClient:
             "cover_letter_path": "uploads/file.bin",
         }
 
-    def get_bytes(self, path, *, params=None, auth="jwt"):
-        assert auth == "jwt"
+    def get_bytes(self, path, *, params=None, auth="api_key"):
+        assert auth == "api_key"
         assert path in {
             "/api/files/app-123/cv",
             "/api/files/app-123/cover-letter",

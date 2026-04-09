@@ -3,9 +3,9 @@ from tarnished_cli.main import app
 
 
 class FakeRoundsClient:
-    def post_json(self, path, *, body, auth="jwt"):
+    def post_json(self, path, *, body, auth="api_key"):
         if path == "/api/applications/app-123/rounds":
-            assert auth == "jwt"
+            assert auth == "api_key"
             assert body["round_type_id"] == "rt-1"
             return {
                 "id": "round-1",
@@ -13,13 +13,13 @@ class FakeRoundsClient:
             }
         raise AssertionError(f"Unexpected POST path: {path}")
 
-    def patch_json(self, path, *, body, auth="jwt"):
+    def patch_json(self, path, *, body, auth="api_key"):
         assert path == "/api/rounds/round-1"
-        assert auth == "jwt"
+        assert auth == "api_key"
         return {"id": "round-1", "notes_summary": body["notes_summary"]}
 
-    def delete(self, path, *, auth="jwt"):
-        assert auth == "jwt"
+    def delete(self, path, *, auth="api_key"):
+        assert auth == "api_key"
         assert path in {
             "/api/rounds/round-1",
             "/api/media/media-1",
@@ -32,11 +32,11 @@ class FakeRoundsClient:
         *,
         file_path,
         field_name="file",
-        auth="jwt",
+        auth="api_key",
         content_type=None,
         allow_refresh=True,
     ):
-        assert auth == "jwt"
+        assert auth == "api_key"
         assert file_path.exists()
         if path == "/api/rounds/round-1/media":
             return {"id": "round-1", "media": [{"id": "media-1"}]}
@@ -44,14 +44,14 @@ class FakeRoundsClient:
             return {"id": "round-1", "transcript_path": "uploads/transcript.pdf"}
         raise AssertionError(f"Unexpected file POST path: {path}")
 
-    def get_json(self, path, *, params=None, auth="jwt"):
+    def get_json(self, path, *, params=None, auth="api_key"):
         if path == "/api/files/media/media-1/signed":
             return {"url": "/signed/media", "expires_in": 300}
         if path == "/api/files/rounds/round-1/transcript/signed":
             return {"url": "/signed/transcript", "expires_in": 300}
         raise AssertionError(f"Unexpected GET path: {path}")
 
-    def get_bytes(self, path, *, params=None, auth="jwt"):
+    def get_bytes(self, path, *, params=None, auth="api_key"):
         if path == "/api/files/media/media-1":
             return (b"media-bytes", {"Content-Type": "audio/mpeg"})
         if path == "/api/files/rounds/round-1/transcript":

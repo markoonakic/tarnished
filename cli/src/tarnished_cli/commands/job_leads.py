@@ -42,7 +42,7 @@ def list_job_leads(
     params = {key: value for key, value in params.items() if value is not None}
     try:
         payload = state.build_client().get_json(
-            "/api/job-leads", params=params, auth="flexible"
+            "/api/job-leads", params=params, auth="api_key"
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -55,7 +55,7 @@ def get_job_lead(ctx: typer.Context, job_lead_id: str) -> None:
     try:
         payload = state.build_client().get_json(
             f"/api/job-leads/{job_lead_id}",
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -73,7 +73,7 @@ def create_job_lead(
         payload = state.build_client().post_json(
             "/api/job-leads",
             body=body,
-            auth="flexible",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -87,7 +87,7 @@ def retry_job_lead(ctx: typer.Context, job_lead_id: str) -> None:
         payload = state.build_client().post_json(
             f"/api/job-leads/{job_lead_id}/retry",
             body={},
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -101,7 +101,7 @@ def convert_job_lead(ctx: typer.Context, job_lead_id: str) -> None:
         payload = state.build_client().post_json(
             f"/api/job-leads/{job_lead_id}/convert",
             body={},
-            auth="flexible",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -117,7 +117,7 @@ def delete_job_lead(
     state = get_state(ctx)
     require_yes(yes, resource=f"job lead {job_lead_id}")
     try:
-        state.build_client().delete(f"/api/job-leads/{job_lead_id}", auth="jwt")
+        state.build_client().delete(f"/api/job-leads/{job_lead_id}", auth="api_key")
         emit_result(
             state,
             {"deleted": True, "id": job_lead_id},
@@ -133,7 +133,7 @@ def list_job_lead_sources(ctx: typer.Context) -> None:
     try:
         payload = state.build_client().get_json(
             "/api/job-leads/sources",
-            auth="flexible",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:

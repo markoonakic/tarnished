@@ -3,10 +3,10 @@ from tarnished_cli.main import app
 
 
 class FakeJobLeadsClient:
-    def get_json(self, path, *, params=None, auth="jwt"):
+    def get_json(self, path, *, params=None, auth="api_key"):
         if path == "/api/job-leads":
             assert params is not None
-            assert auth == "flexible"
+            assert auth == "api_key"
             return {
                 "items": [],
                 "total": 0,
@@ -19,21 +19,21 @@ class FakeJobLeadsClient:
             return {"sources": ["LinkedIn"]}
         raise AssertionError(f"Unexpected GET path: {path}")
 
-    def post_json(self, path, *, body, auth="jwt"):
+    def post_json(self, path, *, body, auth="api_key"):
         if path == "/api/job-leads":
-            assert auth == "flexible"
+            assert auth == "api_key"
             assert body["url"] == "https://example.com/job"
             return {"id": "lead-123", "title": "CLI Role", "company": "Tarnished"}
         if path == "/api/job-leads/lead-123/retry":
-            assert auth == "jwt"
+            assert auth == "api_key"
             return {"id": "lead-123", "status": "extracted"}
         if path == "/api/job-leads/lead-123/convert":
-            assert auth == "flexible"
+            assert auth == "api_key"
             return {"id": "app-123", "job_lead_id": "lead-123"}
         raise AssertionError(f"Unexpected POST path: {path}")
 
-    def delete(self, path, *, auth="jwt"):
-        assert auth == "jwt"
+    def delete(self, path, *, auth="api_key"):
+        assert auth == "api_key"
         assert path == "/api/job-leads/lead-123"
 
 

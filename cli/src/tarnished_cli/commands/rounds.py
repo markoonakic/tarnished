@@ -27,7 +27,7 @@ def create_round(
         payload = state.build_client().post_json(
             f"/api/applications/{application_id}/rounds",
             body=body,
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -46,7 +46,7 @@ def update_round(
         payload = state.build_client().patch_json(
             f"/api/rounds/{round_id}",
             body=body,
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -62,7 +62,7 @@ def delete_round(
     state = get_state(ctx)
     require_yes(yes, resource=f"round {round_id}")
     try:
-        state.build_client().delete(f"/api/rounds/{round_id}", auth="jwt")
+        state.build_client().delete(f"/api/rounds/{round_id}", auth="api_key")
         emit_result(
             state,
             {"deleted": True, "id": round_id},
@@ -83,7 +83,7 @@ def upload_media(
         payload = state.build_client().post_file_json(
             f"/api/rounds/{round_id}/media",
             file_path=file_path,
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -99,7 +99,7 @@ def delete_media(
     state = get_state(ctx)
     require_yes(yes, resource=f"media {media_id}")
     try:
-        state.build_client().delete(f"/api/media/{media_id}", auth="jwt")
+        state.build_client().delete(f"/api/media/{media_id}", auth="api_key")
         emit_result(
             state,
             {"deleted": True, "id": media_id},
@@ -120,7 +120,7 @@ def get_media_url(
         payload = state.build_client().get_json(
             f"/api/files/media/{media_id}/signed",
             params={"disposition": disposition},
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -140,7 +140,7 @@ def download_media(
         content, _headers = state.build_client().get_bytes(
             f"/api/files/media/{media_id}",
             params={"disposition": disposition},
-            auth="jwt",
+            auth="api_key",
         )
         output.write_bytes(content)
         emit_result(
@@ -163,7 +163,7 @@ def upload_transcript(
         payload = state.build_client().post_file_json(
             f"/api/rounds/{round_id}/transcript",
             file_path=file_path,
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -179,7 +179,7 @@ def delete_transcript(
     state = get_state(ctx)
     require_yes(yes, resource=f"transcript for round {round_id}")
     try:
-        state.build_client().delete(f"/api/rounds/{round_id}/transcript", auth="jwt")
+        state.build_client().delete(f"/api/rounds/{round_id}/transcript", auth="api_key")
         emit_result(
             state,
             {"deleted": True, "round_id": round_id},
@@ -200,7 +200,7 @@ def get_transcript_url(
         payload = state.build_client().get_json(
             f"/api/files/rounds/{round_id}/transcript/signed",
             params={"disposition": disposition},
-            auth="jwt",
+            auth="api_key",
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -220,7 +220,7 @@ def download_transcript(
         content, _headers = state.build_client().get_bytes(
             f"/api/files/rounds/{round_id}/transcript",
             params={"disposition": disposition},
-            auth="jwt",
+            auth="api_key",
         )
         output.write_bytes(content)
         emit_result(
