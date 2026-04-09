@@ -5,7 +5,13 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, get_current_user_flexible, get_current_user_jwt
+from app.core.api_key_scopes import CUSTOM_PRESET, FULL_ACCESS_PRESET, resolve_scopes_for_preset
+from app.core.deps import (
+    get_current_user,
+    get_current_user_flexible,
+    get_current_user_jwt,
+    require_api_key_scope,
+)
 from app.core.security import generate_api_token, hash_api_key
 from app.models import ApplicationStatus, RoundType, User, UserAPIKey
 from app.schemas.api_keys import (
@@ -49,9 +55,16 @@ async def create_api_key(
     db: AsyncSession = Depends(get_db),
 ) -> UserAPIKeyCreateResponse:
     raw_key = generate_api_token()
+    scopes = (
+        list(data.scopes or [])
+        if data.preset == CUSTOM_PRESET
+        else resolve_scopes_for_preset(data.preset)
+    )
     api_key = UserAPIKey(
         user_id=user.id,
         label=data.label,
+        preset=data.preset,
+        scopes=scopes,
         key_prefix=raw_key[:8],
         key_hash=hash_api_key(raw_key),
     )
@@ -62,6 +75,8 @@ async def create_api_key(
     return UserAPIKeyCreateResponse(
         id=api_key.id,
         label=api_key.label,
+        preset=api_key.preset,
+        scopes=api_key.scopes,
         key_prefix=api_key.key_prefix,
         created_at=api_key.created_at,
         last_used_at=api_key.last_used_at,
@@ -87,7 +102,20 @@ async def update_api_key(
     if api_key is None:
         raise HTTPException(status_code=404, detail="API key not found")
 
-    api_key.label = data.label
+    if data.label is not None:
+        api_key.label = data.label
+
+    if data.preset is not None:
+        api_key.preset = data.preset
+        api_key.scopes = (
+            list(data.scopes or [])
+            if data.preset == CUSTOM_PRESET
+            else resolve_scopes_for_preset(data.preset)
+        )
+    elif data.scopes is not None:
+        api_key.preset = CUSTOM_PRESET
+        api_key.scopes = list(data.scopes)
+
     await db.commit()
     await db.refresh(api_key)
     return api_key
@@ -252,6 +280,7 @@ async def delete_status(
 @router.get("/round-types", response_model=list[RoundTypeFullResponse])
 async def list_round_types(
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("round_types:read")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(

@@ -11,6 +11,99 @@ import { useToast } from '@/hooks/useToast';
 import Loading from '../Loading';
 import { SettingsBackLink } from './SettingsLayout';
 
+const API_KEY_PRESETS = [
+  { value: 'full_access', label: 'Full Access' },
+  { value: 'cli', label: 'CLI' },
+  { value: 'extension', label: 'Extension' },
+  { value: 'read_only', label: 'Read Only' },
+  { value: 'import_export', label: 'Import / Export' },
+  { value: 'custom', label: 'Custom' },
+] as const;
+
+const PRESET_SCOPES: Record<string, string[]> = {
+  full_access: [
+    'applications:read',
+    'applications:write',
+    'job_leads:read',
+    'job_leads:write',
+    'profile:read',
+    'profile:write',
+    'rounds:read',
+    'rounds:write',
+    'statuses:read',
+    'statuses:write',
+    'round_types:read',
+    'round_types:write',
+    'dashboard:read',
+    'analytics:read',
+    'preferences:read',
+    'preferences:write',
+    'user_settings:read',
+    'user_settings:write',
+    'files:read',
+    'files:write',
+    'export:read',
+    'import:write',
+  ],
+  cli: [
+    'applications:read',
+    'applications:write',
+    'job_leads:read',
+    'job_leads:write',
+    'profile:read',
+    'profile:write',
+    'rounds:read',
+    'rounds:write',
+    'statuses:read',
+    'statuses:write',
+    'round_types:read',
+    'round_types:write',
+    'dashboard:read',
+    'analytics:read',
+    'preferences:read',
+    'preferences:write',
+    'user_settings:read',
+    'user_settings:write',
+    'files:read',
+    'files:write',
+    'export:read',
+    'import:write',
+  ],
+  extension: [
+    'applications:read',
+    'applications:write',
+    'job_leads:read',
+    'job_leads:write',
+    'profile:read',
+    'statuses:read',
+    'user_settings:read',
+  ],
+  read_only: [
+    'applications:read',
+    'job_leads:read',
+    'profile:read',
+    'rounds:read',
+    'statuses:read',
+    'round_types:read',
+    'dashboard:read',
+    'analytics:read',
+    'preferences:read',
+    'user_settings:read',
+    'files:read',
+    'export:read',
+  ],
+  import_export: [
+    'applications:read',
+    'job_leads:read',
+    'export:read',
+    'import:write',
+  ],
+};
+
+const ALL_SCOPES = Array.from(
+  new Set(Object.values(PRESET_SCOPES).flat())
+).sort();
+
 function formatDate(value: string | null): string {
   if (!value) {
     return 'Never';
@@ -34,6 +127,11 @@ export default function SettingsAPIKey() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [newLabel, setNewLabel] = useState('');
+  const [newPreset, setNewPreset] = useState<string>('full_access');
+  const [newScopes, setNewScopes] = useState<string[]>(
+    PRESET_SCOPES.full_access
+  );
+  const [advancedScopesOpen, setAdvancedScopesOpen] = useState(false);
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState('');
@@ -62,16 +160,37 @@ export default function SettingsAPIKey() {
 
     setSubmitting(true);
     try {
-      const created = await createAPIKey({ label });
+      const payload =
+        newPreset === 'custom'
+          ? { label, preset: 'custom', scopes: newScopes }
+          : { label, preset: newPreset };
+      const created = await createAPIKey(payload);
       setApiKeys((current) => [created, ...current]);
       setRevealedKey(created.api_key);
       setNewLabel('');
+      setNewPreset('full_access');
+      setNewScopes(PRESET_SCOPES.full_access);
+      setAdvancedScopesOpen(false);
       toast.success('API key created');
     } catch {
       toast.error('Failed to create API key');
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handlePresetChange(value: string) {
+    setNewPreset(value);
+    setNewScopes(PRESET_SCOPES[value] ?? []);
+  }
+
+  function handleScopeToggle(scope: string) {
+    setNewPreset('custom');
+    setNewScopes((current) =>
+      current.includes(scope)
+        ? current.filter((item) => item !== scope)
+        : [...current, scope].sort()
+    );
   }
 
   async function handleCopyRevealedKey() {
@@ -155,6 +274,28 @@ export default function SettingsAPIKey() {
                   placeholder="MacBook CLI"
                   className="bg-bg2 text-fg1 border-bg3 focus:border-accent flex-1 rounded border px-3 py-2 text-sm transition-all duration-200 ease-in-out outline-none"
                 />
+                <div className="flex flex-col gap-1">
+                  <label className="text-muted text-xs">Preset</label>
+                  <select
+                    value={newPreset}
+                    onChange={(event) => handlePresetChange(event.target.value)}
+                    className="bg-bg2 text-fg1 border-bg3 focus:border-accent rounded border px-3 py-2 text-sm transition-all duration-200 ease-in-out outline-none"
+                  >
+                    {API_KEY_PRESETS.map((preset) => (
+                      <option key={preset.value} value={preset.value}>
+                        {preset.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAdvancedScopesOpen((current) => !current)}
+                  className="bg-bg3 hover:bg-bg4 text-fg1 flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-sm transition-all duration-200 ease-in-out"
+                >
+                  <i className="bi-sliders icon-sm" />
+                  Advanced Scopes
+                </button>
                 <button
                   onClick={handleCreateKey}
                   disabled={submitting}
@@ -164,6 +305,29 @@ export default function SettingsAPIKey() {
                   Create API Key
                 </button>
               </div>
+              {advancedScopesOpen && (
+                <div className="border-bg3 mt-4 rounded border p-3">
+                  <p className="text-muted mb-3 text-xs">
+                    Editing scopes directly will turn this key into a custom
+                    key.
+                  </p>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {ALL_SCOPES.map((scope) => (
+                      <label
+                        key={scope}
+                        className="text-fg1 flex items-center gap-2 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={newScopes.includes(scope)}
+                          onChange={() => handleScopeToggle(scope)}
+                        />
+                        {scope}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {revealedKey && (
@@ -235,6 +399,14 @@ export default function SettingsAPIKey() {
                         <p className="text-fg2 font-mono text-sm">
                           {formatMaskedKey(apiKey.key_prefix)}
                         </p>
+                        <p className="text-muted text-xs">
+                          Preset: {apiKey.preset}
+                        </p>
+                        {apiKey.preset === 'custom' && (
+                          <p className="text-muted text-xs">
+                            Scopes: {apiKey.scopes.join(', ')}
+                          </p>
+                        )}
                         <p className="text-muted text-xs">
                           Created: {formatDate(apiKey.created_at)}
                         </p>
