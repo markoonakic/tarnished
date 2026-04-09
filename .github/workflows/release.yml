@@ -412,13 +412,28 @@ jobs:
         id: tap-path
         run: echo "path=$(brew --repository)/Library/Taps/markoonakic/homebrew-tap" >> "$GITHUB_OUTPUT"
 
-      - name: Check out Homebrew tap
-        uses: actions/checkout@v6
-        with:
-          repository: markoonakic/homebrew-tap
-          path: ${{ steps.tap-path.outputs.path }}
-          ssh-key: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
-          persist-credentials: false
+      - name: Prepare SSH for Homebrew tap clone
+        env:
+          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          eval "$(ssh-agent -s)"
+          printf '%s\n' "$HOMEBREW_TAP_DEPLOY_KEY" | tr -d '\r' | ssh-add -
+
+          {
+            echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
+            echo "SSH_AGENT_PID=$SSH_AGENT_PID"
+          } >> "$GITHUB_ENV"
+
+      - name: Clone Homebrew tap
+        run: |
+          mkdir -p "$(dirname "${{ steps.tap-path.outputs.path }}")"
+          rm -rf "${{ steps.tap-path.outputs.path }}"
+          git clone git@github.com:markoonakic/homebrew-tap.git "${{ steps.tap-path.outputs.path }}"
 
       - name: Update formula release artifact from PyPI
         run: |
