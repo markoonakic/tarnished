@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.services.reference_data import normalize_reference_name
+from app.core.reference_names import normalize_reference_name
 
 
 class StatusCreate(BaseModel):
