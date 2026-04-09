@@ -135,6 +135,10 @@ export default function SettingsAPIKey() {
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState('');
+  const [editingPreset, setEditingPreset] = useState<string>('full_access');
+  const [editingScopes, setEditingScopes] = useState<string[]>([]);
+  const [editingAdvancedScopesOpen, setEditingAdvancedScopesOpen] =
+    useState(false);
 
   const loadAPIKeys = useCallback(async () => {
     try {
@@ -193,6 +197,15 @@ export default function SettingsAPIKey() {
     );
   }
 
+  function handleEditingScopeToggle(scope: string) {
+    setEditingPreset('custom');
+    setEditingScopes((current) =>
+      current.includes(scope)
+        ? current.filter((item) => item !== scope)
+        : [...current, scope].sort()
+    );
+  }
+
   async function handleCopyRevealedKey() {
     if (!revealedKey) {
       return;
@@ -215,12 +228,19 @@ export default function SettingsAPIKey() {
 
     setSubmitting(true);
     try {
-      const updated = await updateAPIKey(id, { label });
+      const payload =
+        editingPreset === 'custom'
+          ? { label, preset: 'custom', scopes: editingScopes }
+          : { label, preset: editingPreset };
+      const updated = await updateAPIKey(id, payload);
       setApiKeys((current) =>
         current.map((item) => (item.id === id ? updated : item))
       );
       setEditingId(null);
       setEditingLabel('');
+      setEditingPreset('full_access');
+      setEditingScopes([]);
+      setEditingAdvancedScopesOpen(false);
       toast.success('API key updated');
     } catch {
       toast.error('Failed to update API key');
@@ -366,14 +386,67 @@ export default function SettingsAPIKey() {
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div className="space-y-1">
                         {editingId === apiKey.id ? (
-                          <div className="flex flex-col gap-2 md:flex-row">
-                            <input
-                              value={editingLabel}
-                              onChange={(event) =>
-                                setEditingLabel(event.target.value)
-                              }
-                              className="bg-bg2 text-fg1 border-bg3 focus:border-accent rounded border px-3 py-2 text-sm transition-all duration-200 ease-in-out outline-none"
-                            />
+                          <div className="space-y-3">
+                            <div className="flex flex-col gap-2 md:flex-row">
+                              <input
+                                value={editingLabel}
+                                onChange={(event) =>
+                                  setEditingLabel(event.target.value)
+                                }
+                                className="bg-bg2 text-fg1 border-bg3 focus:border-accent rounded border px-3 py-2 text-sm transition-all duration-200 ease-in-out outline-none"
+                              />
+                              <select
+                                value={editingPreset}
+                                onChange={(event) => {
+                                  const value = event.target.value;
+                                  setEditingPreset(value);
+                                  setEditingScopes(PRESET_SCOPES[value] ?? []);
+                                }}
+                                className="bg-bg2 text-fg1 border-bg3 focus:border-accent rounded border px-3 py-2 text-sm transition-all duration-200 ease-in-out outline-none"
+                              >
+                                {API_KEY_PRESETS.map((preset) => (
+                                  <option
+                                    key={preset.value}
+                                    value={preset.value}
+                                  >
+                                    {preset.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEditingAdvancedScopesOpen(
+                                    (current) => !current
+                                  )
+                                }
+                                className="bg-bg3 hover:bg-bg4 text-fg1 flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-sm transition-all duration-200 ease-in-out"
+                              >
+                                <i className="bi-sliders icon-sm" />
+                                Advanced Scopes
+                              </button>
+                            </div>
+                            {editingAdvancedScopesOpen && (
+                              <div className="border-bg3 rounded border p-3">
+                                <div className="grid gap-2 md:grid-cols-2">
+                                  {ALL_SCOPES.map((scope) => (
+                                    <label
+                                      key={`${apiKey.id}-${scope}`}
+                                      className="text-fg1 flex items-center gap-2 text-sm"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={editingScopes.includes(scope)}
+                                        onChange={() =>
+                                          handleEditingScopeToggle(scope)
+                                        }
+                                      />
+                                      {scope}
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             <div className="flex gap-2">
                               <button
                                 onClick={() => handleRenameKey(apiKey.id)}
@@ -386,6 +459,9 @@ export default function SettingsAPIKey() {
                                 onClick={() => {
                                   setEditingId(null);
                                   setEditingLabel('');
+                                  setEditingPreset('full_access');
+                                  setEditingScopes([]);
+                                  setEditingAdvancedScopesOpen(false);
                                 }}
                                 className="text-muted hover:text-fg1 cursor-pointer rounded px-3 py-2 text-sm transition-all duration-200 ease-in-out"
                               >
@@ -421,6 +497,9 @@ export default function SettingsAPIKey() {
                             onClick={() => {
                               setEditingId(apiKey.id);
                               setEditingLabel(apiKey.label);
+                              setEditingPreset(apiKey.preset);
+                              setEditingScopes(apiKey.scopes);
+                              setEditingAdvancedScopesOpen(false);
                             }}
                             className="bg-bg3 hover:bg-bg4 text-fg1 cursor-pointer rounded px-3 py-2 text-sm transition-all duration-200 ease-in-out"
                           >
