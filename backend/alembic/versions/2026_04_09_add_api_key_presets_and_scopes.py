@@ -1,7 +1,7 @@
 """add_api_key_presets_and_scopes
 
-Revision ID: 2026_04_09_add_api_key_presets_and_scopes
-Revises: 2026_04_09_drop_users_api_token
+Revision ID: 20260409_api_key_scopes
+Revises: 20260409_api_keys
 Create Date: 2026-04-09 11:20:00.000000
 
 """
@@ -15,8 +15,8 @@ import sqlalchemy as sa
 from app.core.api_key_scopes import FULL_ACCESS_PRESET, resolve_scopes_for_preset
 
 # revision identifiers, used by Alembic.
-revision: str = "2026_04_09_add_api_key_presets_and_scopes"
-down_revision: str | Sequence[str] | None = "2026_04_09_drop_users_api_token"
+revision: str = "20260409_api_key_scopes"
+down_revision: str | Sequence[str] | None = "20260409_api_keys"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
