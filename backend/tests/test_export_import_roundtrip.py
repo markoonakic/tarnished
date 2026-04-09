@@ -14,17 +14,24 @@ from unittest.mock import patch
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import create_engine, event, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
+from app.core.database import Base
 from app.core.security import create_access_token, get_password_hash
 from app.models import (
     Application,
     ApplicationStatus,
+    JobLead,
     Round,
     RoundType,
     User,
 )
+from app.services.export_registry import default_registry
+from app.services.export_service import ExportService
+from app.services.import_id_mapper import IDMapper
+from app.services.import_service import ImportService
 
 
 @pytest.fixture
@@ -331,6 +338,110 @@ class TestExportImportRoundTrip:
         assert result["valid"] is True
         assert result["summary"]["applications"] == 1
         assert "warnings" in result
+
+
+class TestImportIntegrityGuards:
+    async def test_test_db_enforces_sqlite_foreign_keys(self, db: AsyncSession):
+        result = await db.execute(text("PRAGMA foreign_keys"))
+        assert result.scalar_one() == 1
+
+    def test_import_service_preserves_converted_job_lead_links_with_fk_enforcement(
+        self,
+    ):
+        def make_engine():
+            engine = create_engine("sqlite:///:memory:")
+
+            @event.listens_for(engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA foreign_keys=ON")
+                cursor.close()
+
+            return engine
+
+        source_engine = make_engine()
+        Base.metadata.create_all(source_engine)
+
+        with Session(source_engine) as session:
+            user = User(email="source@example.com", password_hash="hashed", is_active=True)
+            session.add(user)
+            session.flush()
+
+            status = ApplicationStatus(
+                name="Applied",
+                color="#83a598",
+                is_default=False,
+                user_id=user.id,
+                order=1,
+            )
+            session.add(status)
+            session.flush()
+
+            job_lead = JobLead(
+                user_id=user.id,
+                status="converted",
+                title="Engineer",
+                company="Acme",
+                url="https://example.com/jobs/1",
+                description="Lead description",
+                scraped_at=datetime.now(UTC),
+                requirements_must_have=[],
+                requirements_nice_to_have=[],
+                skills=[],
+            )
+            session.add(job_lead)
+            session.flush()
+
+            application = Application(
+                user_id=user.id,
+                company="Acme",
+                job_title="Engineer",
+                job_description="Canonical description",
+                status_id=status.id,
+                applied_at=datetime.now(UTC),
+                job_lead_id=job_lead.id,
+            )
+            session.add(application)
+            session.flush()
+
+            job_lead.converted_to_application_id = application.id
+            session.commit()
+
+            export_data = ExportService(default_registry).export_user_data(
+                user.id, session
+            )
+
+        target_engine = make_engine()
+        Base.metadata.create_all(target_engine)
+
+        with Session(target_engine) as session:
+            importing_user = User(
+                email="import@example.com", password_hash="hashed", is_active=True
+            )
+            session.add(importing_user)
+            session.commit()
+            importing_user_id = importing_user.id
+
+        with Session(target_engine) as session:
+            import_result = ImportService(
+                registry=default_registry, id_mapper=IDMapper()
+            ).import_user_data(
+                export_data=export_data,
+                user_id=importing_user_id,
+                session=session,
+            )
+            session.commit()
+
+            assert import_result["warnings"] == []
+
+            imported_application = session.execute(select(Application)).scalar_one()
+            imported_job_lead = session.execute(select(JobLead)).scalar_one()
+
+            assert imported_application.job_lead_id == imported_job_lead.id
+            assert (
+                imported_job_lead.converted_to_application_id
+                == imported_application.id
+            )
 
 
 class TestFileExtraction:
