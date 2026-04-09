@@ -11,14 +11,19 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import create_access_token, generate_api_token, get_password_hash
+from app.core.security import (
+    create_access_token,
+    generate_api_token,
+    get_password_hash,
+    hash_api_key,
+)
 from app.core.themes import (
     ACCENT_OPTIONS,
     DEFAULT_ACCENT,
     DEFAULT_THEME,
     THEMES,
 )
-from app.models import User
+from app.models import User, UserAPIKey
 
 # ============================================================================
 # Fixtures
@@ -28,33 +33,53 @@ from app.models import User
 @pytest.fixture
 async def test_user(db: AsyncSession) -> User:
     """Create a regular test user with API token."""
+    raw_api_key = generate_api_token()
     user = User(
         email="settings_test@example.com",
         password_hash=get_password_hash("testpass123"),
         is_admin=False,
         is_active=True,
-        api_token=generate_api_token(),
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
+    db.add(
+        UserAPIKey(
+            user_id=user.id,
+            label="Settings Test Key",
+            key_prefix=raw_api_key[:8],
+            key_hash=hash_api_key(raw_api_key),
+        )
+    )
+    await db.commit()
+    user.api_token = raw_api_key  # test convenience attribute
     return user
 
 
 @pytest.fixture
 async def test_user_with_settings(db: AsyncSession) -> User:
     """Create a user with existing settings and API token."""
+    raw_api_key = generate_api_token()
     user = User(
         email="settings_custom@example.com",
         password_hash=get_password_hash("testpass123"),
         is_admin=False,
         is_active=True,
         settings={"theme": "catppuccin", "accent": "blue"},
-        api_token=generate_api_token(),
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
+    db.add(
+        UserAPIKey(
+            user_id=user.id,
+            label="Settings Custom Key",
+            key_prefix=raw_api_key[:8],
+            key_hash=hash_api_key(raw_api_key),
+        )
+    )
+    await db.commit()
+    user.api_token = raw_api_key  # test convenience attribute
     return user
 
 

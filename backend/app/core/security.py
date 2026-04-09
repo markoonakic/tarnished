@@ -1,4 +1,5 @@
 import base64
+import hmac
 import hashlib
 import logging
 import secrets
@@ -188,3 +189,16 @@ def generate_api_token() -> str:
         A 32-character hexadecimal string (16 random bytes).
     """
     return secrets.token_hex(16)
+
+
+def hash_api_key(api_key: str) -> str:
+    """Create a stable keyed hash for API-key lookup.
+
+    API keys are already high-entropy random secrets, so a keyed SHA-256 HMAC
+    is sufficient and avoids storing the raw key in the database.
+    """
+    return hmac.new(
+        settings.secret_key.encode(),
+        api_key.encode(),
+        hashlib.sha256,
+    ).hexdigest()

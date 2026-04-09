@@ -20,9 +20,6 @@ class User(Base):
         String(255), unique=True, index=True, nullable=False
     )
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    api_token: Mapped[str | None] = mapped_column(
-        String(255), nullable=True
-    )  # hashed token for extension auth
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -53,4 +50,7 @@ class User(Base):
         back_populates="user",
         uselist=False,
         cascade="all, delete-orphan",
+    )
+    api_keys = relationship(
+        "UserAPIKey", back_populates="user", cascade="all, delete-orphan"
     )

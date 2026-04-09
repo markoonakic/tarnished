@@ -24,6 +24,7 @@ from app.core.security import (
     create_access_token,
     generate_api_token,
     get_password_hash,
+    hash_api_key,
 )
 from app.models import (
     Application,
@@ -33,6 +34,7 @@ from app.models import (
     RoundType,
     SystemSettings,
     User,
+    UserAPIKey,
 )
 from app.models.user_profile import UserProfile
 from app.services.ai_settings import AISettingsState
@@ -75,16 +77,26 @@ async def admin_user(db: AsyncSession) -> User:
 @pytest.fixture
 async def user_with_api_token(db: AsyncSession) -> User:
     """Create a user with an API token set."""
+    raw_api_key = generate_api_token()
     user = User(
         email="api_user@example.com",
         password_hash=get_password_hash("testpass123"),
         is_admin=False,
         is_active=True,
-        api_token=generate_api_token(),
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
+    db.add(
+        UserAPIKey(
+            user_id=user.id,
+            label="Test API Key",
+            key_prefix=raw_api_key[:8],
+            key_hash=hash_api_key(raw_api_key),
+        )
+    )
+    await db.commit()
+    user.api_token = raw_api_key  # test convenience attribute
     return user
 
 
@@ -577,7 +589,7 @@ class TestApplicationsWrite:
         await db.commit()
         await db.refresh(status)
 
-        headers = {"Authorization": f"Bearer {user_with_api_token.api_token}"}
+        headers = {"X-API-Key": user_with_api_token.api_token}
 
         with patch("app.api.applications.fetch_job_posting_html") as mock_fetch:
             from fastapi import HTTPException
@@ -786,55 +798,23 @@ class TestJobLeadsCreate:
         )
         assert response.status_code == 401
 
-    async def test_create_job_lead_with_bearer_token(
+    async def test_create_job_lead_rejects_api_key_in_bearer_token(
         self,
         client: AsyncClient,
         user_with_api_token: User,
     ):
-        """Test creating a job lead using Bearer token with API token."""
-        # Use the API token as a Bearer token
+        """Test creating a job lead rejects API keys in Bearer auth."""
         headers = {"Authorization": f"Bearer {user_with_api_token.api_token}"}
+        response = await client.post(
+            "/api/job-leads",
+            headers=headers,
+            json={
+                "url": "https://example.com/job/new-bearer",
+                "html": "<html><body><h1>Job</h1></body></html>",
+            },
+        )
 
-        # Mock the extraction service with AsyncMock
-        with patch(
-            "app.api.job_leads.extract_job_data", new_callable=AsyncMock
-        ) as mock_extract:
-            from app.schemas.job_lead import JobLeadExtractionInput
-
-            mock_extract.return_value = JobLeadExtractionInput(
-                title="New Job",
-                company="New Company",
-                description=None,
-                location="Remote",
-                salary_min=None,
-                salary_max=None,
-                salary_currency=None,
-                recruiter_name=None,
-                recruiter_title=None,
-                recruiter_linkedin_url=None,
-                years_experience_min=None,
-                years_experience_max=None,
-                source=None,
-                posted_date=None,
-                requirements_must_have=[],
-                requirements_nice_to_have=[],
-                skills=[],
-            )
-
-            # Provide HTML content to avoid URL fetching
-            response = await client.post(
-                "/api/job-leads",
-                headers=headers,
-                json={
-                    "url": "https://example.com/job/new-bearer",
-                    "html": "<html><body><h1>Job</h1></body></html>",
-                },
-            )
-
-        assert response.status_code == 201
-        data = response.json()
-        assert data["title"] == "New Job"
-        assert data["company"] == "New Company"
+        assert response.status_code == 401
 
     async def test_create_job_lead_with_jwt_session(
         self,
@@ -1362,103 +1342,6 @@ class TestProfileUpdate:
 
 
 # ============================================================================
-# Settings API Tests
-# ============================================================================
-
-
-class TestSettingsAPIKey:
-    """Tests for GET /api/settings/api-key endpoint."""
-
-    async def test_get_api_key_unauthenticated(self, client: AsyncClient):
-        """Test that getting API key requires authentication."""
-        response = await client.get("/api/settings/api-key")
-        assert response.status_code == 401
-
-    async def test_get_api_key_no_key(
-        self,
-        client: AsyncClient,
-        auth_headers: dict,
-    ):
-        """Test getting API key when user has none."""
-        response = await client.get("/api/settings/api-key", headers=auth_headers)
-        assert response.status_code == 200
-
-        data = response.json()
-        assert data["has_api_key"] is False
-        assert data["api_key_masked"] is None
-
-    async def test_get_api_key_with_key(
-        self,
-        client: AsyncClient,
-        user_with_api_token: User,
-    ):
-        """Test getting API key when user has one."""
-        token = create_access_token({"sub": user_with_api_token.id})
-        headers = {"Authorization": f"Bearer {token}"}
-
-        response = await client.get("/api/settings/api-key", headers=headers)
-        assert response.status_code == 200
-
-        data = response.json()
-        assert data["has_api_key"] is True
-        assert data["api_key_masked"] is not None
-        # Masked format: "abcd...wxyz" or similar
-        assert "..." in data["api_key_masked"]
-
-
-class TestSettingsAPIKeyRegenerate:
-    """Tests for POST /api/settings/api-key/regenerate endpoint."""
-
-    async def test_regenerate_api_key_unauthenticated(self, client: AsyncClient):
-        """Test that regenerating API key requires authentication."""
-        response = await client.post("/api/settings/api-key/regenerate")
-        assert response.status_code == 401
-
-    async def test_regenerate_api_key_creates_new(
-        self,
-        client: AsyncClient,
-        auth_headers: dict,
-        test_user: User,
-        db: AsyncSession,
-    ):
-        """Test that regenerating API key creates a new one."""
-        response = await client.post(
-            "/api/settings/api-key/regenerate",
-            headers=auth_headers,
-        )
-        assert response.status_code == 200
-
-        data = response.json()
-        assert data["has_api_key"] is True
-        assert data["api_key_masked"] is not None
-
-        # Verify the token was saved to the database
-        await db.refresh(test_user)
-        assert test_user.api_token is not None
-
-    async def test_regenerate_api_key_replaces_existing(
-        self,
-        client: AsyncClient,
-        user_with_api_token: User,
-        db: AsyncSession,
-    ):
-        """Test that regenerating replaces an existing API key."""
-        old_token = user_with_api_token.api_token
-        token = create_access_token({"sub": user_with_api_token.id})
-        headers = {"Authorization": f"Bearer {token}"}
-
-        response = await client.post(
-            "/api/settings/api-key/regenerate",
-            headers=headers,
-        )
-        assert response.status_code == 200
-
-        # Verify the token was changed
-        await db.refresh(user_with_api_token)
-        assert user_with_api_token.api_token != old_token
-
-
-# ============================================================================
 # Admin Users API Tests
 # ============================================================================
 
@@ -1695,51 +1578,23 @@ class TestAuthenticationMethods:
         response = await client.get("/api/profile", headers=headers)
         assert response.status_code == 200
 
-    async def test_bearer_token_api_token_auth(
+    async def test_bearer_token_api_token_auth_is_rejected(
         self,
         client: AsyncClient,
         user_with_api_token: User,
     ):
-        """Test authentication with API token as Bearer token."""
+        """Test API keys are rejected in Authorization Bearer."""
         headers = {"Authorization": f"Bearer {user_with_api_token.api_token}"}
+        response = await client.post(
+            "/api/job-leads",
+            headers=headers,
+            json={
+                "url": "https://example.com/job/auth-test",
+                "html": "<html><body><h1>Job</h1></body></html>",
+            },
+        )
 
-        # API token auth works for job_leads create endpoint
-        with patch(
-            "app.api.job_leads.extract_job_data", new_callable=AsyncMock
-        ) as mock_extract:
-            from app.schemas.job_lead import JobLeadExtractionInput
-
-            mock_extract.return_value = JobLeadExtractionInput(
-                title="Test",
-                company="Test",
-                description=None,
-                location=None,
-                salary_min=None,
-                salary_max=None,
-                salary_currency=None,
-                recruiter_name=None,
-                recruiter_title=None,
-                recruiter_linkedin_url=None,
-                years_experience_min=None,
-                years_experience_max=None,
-                source=None,
-                posted_date=None,
-                requirements_must_have=[],
-                requirements_nice_to_have=[],
-                skills=[],
-            )
-
-            # Provide HTML content to avoid URL fetching
-            response = await client.post(
-                "/api/job-leads",
-                headers=headers,
-                json={
-                    "url": "https://example.com/job/auth-test",
-                    "html": "<html><body><h1>Job</h1></body></html>",
-                },
-            )
-
-        assert response.status_code == 201
+        assert response.status_code == 401
 
     async def test_x_api_key_header_auth(
         self,
