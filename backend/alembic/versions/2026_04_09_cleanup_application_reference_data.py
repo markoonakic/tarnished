@@ -1,7 +1,7 @@
 """cleanup application reference data and description field
 
-Revision ID: 2026_04_09_cleanup_application_reference_data
-Revises: 2026_04_09_add_api_key_presets_and_scopes
+Revision ID: 20260409_app_ref_cleanup
+Revises: 20260409_api_key_scopes
 Create Date: 2026-04-09 13:55:00.000000
 
 """
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "2026_04_09_cleanup_application_reference_data"
-down_revision: str | Sequence[str] | None = "2026_04_09_add_api_key_presets_and_scopes"
+revision: str = "20260409_app_ref_cleanup"
+down_revision: str | Sequence[str] | None = "20260409_api_key_scopes"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
