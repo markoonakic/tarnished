@@ -388,7 +388,7 @@ jobs:
   tap-update:
     runs-on: macos-latest
     needs: [release-meta, cli-package, cli-pypi-publish]
-    if: needs.release-meta.outputs.publish_cli_package == 'true' && (needs.cli-pypi-publish.result == 'success' || needs.release-meta.outputs.cli_pypi_already_published == 'true')
+    if: always() && needs.release-meta.outputs.publish_cli_package == 'true' && needs.cli-package.result == 'success' && (needs.cli-pypi-publish.result == 'success' || needs.release-meta.outputs.cli_pypi_already_published == 'true')
     steps:
       - uses: actions/checkout@v6
         with:
