@@ -27,7 +27,7 @@ on:
       publish_cli_package:
         description: Publish the CLI package to PyPI
         type: boolean
-        default: false
+        default: true
       publish_rolling_tags:
         description: Also publish rolling image tags (major.minor and latest)
         type: boolean
@@ -51,6 +51,7 @@ jobs:
       publish_docker: ${{ steps.resolve.outputs.publish_docker }}
       publish_helm: ${{ steps.resolve.outputs.publish_helm }}
       publish_cli_package: ${{ steps.resolve.outputs.publish_cli_package }}
+      cli_pypi_already_published: ${{ steps.resolve.outputs.cli_pypi_already_published }}
       docker_tags: ${{ steps.resolve.outputs.docker_tags }}
     steps:
       - name: Resolve release metadata
@@ -82,12 +83,17 @@ jobs:
             PUBLISH_EXTENSION_ASSETS="true"
             PUBLISH_DOCKER="true"
             PUBLISH_HELM="true"
-            PUBLISH_CLI_PACKAGE="false"
+            PUBLISH_CLI_PACKAGE="true"
             PUBLISH_ROLLING_TAGS="true"
           fi
 
           MINOR_TAG="$(printf '%s' "$VERSION" | awk -F. '{print $1 "." $2}')"
           IMAGE="ghcr.io/${REPOSITORY_OWNER}/tarnished"
+          if curl --fail --silent --show-error "https://pypi.org/pypi/tarnished-cli/$VERSION/json" >/dev/null; then
+            CLI_PYPI_ALREADY_PUBLISHED="true"
+          else
+            CLI_PYPI_ALREADY_PUBLISHED="false"
+          fi
 
           {
             echo "version=$VERSION"
@@ -97,6 +103,7 @@ jobs:
             echo "publish_docker=$PUBLISH_DOCKER"
             echo "publish_helm=$PUBLISH_HELM"
             echo "publish_cli_package=$PUBLISH_CLI_PACKAGE"
+            echo "cli_pypi_already_published=$CLI_PYPI_ALREADY_PUBLISHED"
             echo "docker_tags<<EOF"
             echo "$IMAGE:$VERSION"
             if [ "$PUBLISH_ROLLING_TAGS" = "true" ]; then
@@ -354,7 +361,7 @@ jobs:
   cli-pypi-publish:
     runs-on: ubuntu-latest
     needs: [release-meta, cli-package]
-    if: needs.release-meta.outputs.publish_cli_package == 'true'
+    if: needs.release-meta.outputs.publish_cli_package == 'true' && needs.release-meta.outputs.cli_pypi_already_published != 'true'
     environment:
       name: pypi
       url: https://pypi.org/project/tarnished-cli/
@@ -371,6 +378,78 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: cli/dist
+
+  tap-update:
+    runs-on: macos-latest
+    needs: [release-meta, cli-package, cli-pypi-publish]
+    if: needs.release-meta.outputs.publish_cli_package == 'true' && (needs.cli-pypi-publish.result == 'success' || needs.release-meta.outputs.cli_pypi_already_published == 'true')
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release-meta.outputs.ref }}
+
+      - name: Verify tap deploy key is configured
+        env:
+          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+        run: |
+          if [ -z "$HOMEBREW_TAP_DEPLOY_KEY" ]; then
+            echo "HOMEBREW_TAP_DEPLOY_KEY is required to update markoonakic/homebrew-tap"
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Resolve Homebrew tap path
+        id: tap-path
+        run: echo "path=$(brew --repository)/Library/Taps/markoonakic/homebrew-tap" >> "$GITHUB_OUTPUT"
+
+      - name: Check out Homebrew tap
+        uses: actions/checkout@v6
+        with:
+          repository: markoonakic/homebrew-tap
+          path: ${{ steps.tap-path.outputs.path }}
+          ssh-key: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+          persist-credentials: false
+
+      - name: Update formula release artifact from PyPI
+        run: |
+          python3 .github/release-tools/update_homebrew_formula.py \
+            --formula "${{ steps.tap-path.outputs.path }}/Formula/tarnished-cli.rb" \
+            --package tarnished-cli \
+            --version "${{ needs.release-meta.outputs.version }}"
+
+      - name: Refresh Homebrew Python resources
+        run: |
+          brew update-python-resources markoonakic/tap/tarnished-cli \
+            --version "${{ needs.release-meta.outputs.version }}" \
+            --package-name tarnished-cli \
+            --install-dependencies
+
+      - name: Install and smoke-test formula
+        working-directory: ${{ steps.tap-path.outputs.path }}
+        run: |
+          brew install --build-from-source ./Formula/tarnished-cli.rb
+          brew test tarnished-cli
+          test "$(tarnished --version | tr -d '\n')" = "${{ needs.release-meta.outputs.version }}"
+
+      - name: Commit and push formula update
+        working-directory: ${{ steps.tap-path.outputs.path }}
+        env:
+          VERSION: ${{ needs.release-meta.outputs.version }}
+        run: |
+          if git diff --quiet -- Formula/tarnished-cli.rb; then
+            echo "Formula already matches tarnished-cli ${VERSION}"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/tarnished-cli.rb
+          git commit -m "tarnished-cli ${VERSION}"
+          git push origin HEAD:main
 
   docker:
     runs-on: ubuntu-latest
