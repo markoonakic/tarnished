@@ -11,6 +11,7 @@ from typing import AsyncGenerator, Generator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.database import Base
@@ -32,12 +33,30 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 async def db_engine():
     """Create a test database engine."""
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+    is_sqlite = "sqlite" in TEST_DATABASE_URL
+
+    if is_sqlite:
+
+        @event.listens_for(engine.sync_engine, "connect")
+        def set_sqlite_pragma(dbapi_connection, connection_record):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+
     async with engine.begin() as conn:
+        if is_sqlite:
+            await conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
         await conn.run_sync(Base.metadata.drop_all)
+        if is_sqlite:
+            await conn.exec_driver_sql("PRAGMA foreign_keys=ON")
         await conn.run_sync(Base.metadata.create_all)
     yield engine
     async with engine.begin() as conn:
+        if is_sqlite:
+            await conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
         await conn.run_sync(Base.metadata.drop_all)
+        if is_sqlite:
+            await conn.exec_driver_sql("PRAGMA foreign_keys=ON")
     await engine.dispose()
 
 
