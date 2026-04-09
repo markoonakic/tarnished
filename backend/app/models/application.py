@@ -1,7 +1,16 @@
 import uuid
 from datetime import UTC, date, datetime
 
-from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    JSON,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -19,7 +28,6 @@ class ApplicationStatusHistory(Base):
         String(36),
         ForeignKey("applications.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     from_status_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("application_statuses.id"), nullable=True
@@ -48,7 +56,7 @@ class Application(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False, index=True
+        String(36), ForeignKey("users.id"), nullable=False
     )
     company: Mapped[str] = mapped_column(String(255), nullable=False)
     job_title: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -115,3 +123,45 @@ class Application(Base):
     )
     # The job lead this application was created from (via job_lead_id FK)
     job_lead = relationship("JobLead", foreign_keys=[job_lead_id])
+
+
+Index(
+    "ix_application_status_history_application_changed_at",
+    ApplicationStatusHistory.application_id,
+    ApplicationStatusHistory.changed_at,
+)
+
+Index(
+    "ix_applications_user_applied_created",
+    Application.user_id,
+    Application.applied_at,
+    Application.created_at,
+)
+
+Index(
+    "ix_applications_user_status_applied_created",
+    Application.user_id,
+    Application.status_id,
+    Application.applied_at,
+    Application.created_at,
+)
+
+Index(
+    "ix_applications_user_source_applied_created",
+    Application.user_id,
+    Application.source,
+    Application.applied_at,
+    Application.created_at,
+    sqlite_where=Application.source.is_not(None),
+    postgresql_where=Application.source.is_not(None),
+)
+
+Index(
+    "ix_applications_user_job_url",
+    Application.user_id,
+    Application.job_url,
+    sqlite_where=Application.job_url.is_not(None),
+    postgresql_where=Application.job_url.is_not(None),
+)
+
+Index("ix_applications_status_id", Application.status_id)

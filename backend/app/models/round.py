@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from enum import Enum
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -69,3 +69,7 @@ class RoundMedia(Base):
     )
 
     round = relationship("Round", back_populates="media")
+
+
+Index("ix_rounds_round_type_id", Round.round_type_id)
+Index("ix_round_media_round_id", RoundMedia.round_id)
