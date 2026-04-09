@@ -250,13 +250,18 @@ class ImportService:
         }
         errors: list[str] = []
 
-        for model_name, original_id, field_name, referenced_original_id in (
-            self._deferred_foreign_keys
-        ):
+        for (
+            model_name,
+            original_id,
+            field_name,
+            referenced_original_id,
+        ) in self._deferred_foreign_keys:
             model_class = model_map.get(model_name)
             referenced_model_name = self._guess_referenced_model(field_name)
             if model_class is None or referenced_model_name is None:
-                errors.append(f"Unsupported deferred foreign key: {model_name}.{field_name}")
+                errors.append(
+                    f"Unsupported deferred foreign key: {model_name}.{field_name}"
+                )
                 continue
 
             imported_record_id = self.id_mapper.get(model_name, original_id)
@@ -281,7 +286,9 @@ class ImportService:
             error_detail = "; ".join(errors[:3])
             if len(errors) > 3:
                 error_detail += f" (and {len(errors) - 3} more)"
-            raise ValueError(f"{ERROR_MESSAGES['fk_integrity']} Details: {error_detail}")
+            raise ValueError(
+                f"{ERROR_MESSAGES['fk_integrity']} Details: {error_detail}"
+            )
 
         session.flush()
 
@@ -343,7 +350,9 @@ class ImportService:
             if target_key not in columns:
                 continue
 
-            if value and self._should_defer_foreign_key(model_class.__name__, target_key):
+            if value and self._should_defer_foreign_key(
+                model_class.__name__, target_key
+            ):
                 if not original_id:
                     raise ValueError(
                         f"{ERROR_MESSAGES['fk_integrity']} Details: missing __original_id__ for deferred field {model_class.__name__}.{target_key}"

@@ -29,7 +29,9 @@ def create_status(
     state = get_state(ctx)
     body = load_model_body(body_file, StatusCreate)
     try:
-        payload = state.build_client().post_json("/api/statuses", body=body, auth="api_key")
+        payload = state.build_client().post_json(
+            "/api/statuses", body=body, auth="api_key"
+        )
         emit_result(state, payload)
     except CLIError as exc:
         exit_for_error(state, exc)

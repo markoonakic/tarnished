@@ -3,8 +3,8 @@ import uuid
 from sqlalchemy import Boolean, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
-from app.core.reference_names import normalize_reference_name, normalized_reference_name
 from app.core.database import Base
+from app.core.reference_names import normalize_reference_name, normalized_reference_name
 from app.services.export_registry import exportable
 
 

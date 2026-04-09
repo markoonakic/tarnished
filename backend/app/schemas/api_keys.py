@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.core.api_key_scopes import CUSTOM_PRESET, PRESET_SCOPES, is_valid_scope
+from app.core.api_key_scopes import PRESET_SCOPES, is_valid_scope
 
 
 class UserAPIKeyResponse(BaseModel):

@@ -21,8 +21,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_api_key_scope
-from app.core.security import decode_token
 from app.core.rate_limit import limiter
+from app.core.security import decode_token
 from app.models import (
     AuditLog,
     User,
