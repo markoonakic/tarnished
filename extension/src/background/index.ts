@@ -37,7 +37,7 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
 
     const response = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        'X-API-Key': apiKey,
         'Content-Type': 'application/json',
       },
     });
