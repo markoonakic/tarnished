@@ -7,9 +7,11 @@ from uuid import uuid4
 from sqlalchemy import Date, DateTime, inspect, select
 from sqlalchemy.orm import Mapper, Session
 
+from app.core.reference_names import normalize_reference_name, normalized_reference_name
+from app.models.round_type import RoundType
+from app.models.status import ApplicationStatus
 from app.services.export_registry import ExportRegistry
 from app.services.import_id_mapper import IDMapper
-from app.services.reference_data import normalize_reference_name, normalized_name_sql
 
 # User-facing error messages
 ERROR_MESSAGES = {
@@ -474,15 +476,13 @@ class ImportService:
         Returns:
             Existing or created ApplicationStatus instance
         """
-        from app.models import ApplicationStatus
-
         status_name = normalize_reference_name(status_data.get("name") or "")
         original_id = status_data.get("__original_id__")
 
         # 1. Check for global status with this name (SQLAlchemy 2.0 style)
         stmt = select(ApplicationStatus).where(
             ApplicationStatus.user_id.is_(None),
-            normalized_name_sql(ApplicationStatus.name) == status_name.casefold(),
+            ApplicationStatus.normalized_name == normalized_reference_name(status_name),
         )
         global_status = session.execute(stmt).scalar_one_or_none()
         if global_status:
@@ -494,7 +494,7 @@ class ImportService:
         # 2. Check for user's existing custom status (SQLAlchemy 2.0 style)
         stmt = select(ApplicationStatus).where(
             ApplicationStatus.user_id == user_id,
-            normalized_name_sql(ApplicationStatus.name) == status_name.casefold(),
+            ApplicationStatus.normalized_name == normalized_reference_name(status_name),
         )
         existing_status = session.execute(stmt).scalar_one_or_none()
         if existing_status:
@@ -547,15 +547,13 @@ class ImportService:
         Returns:
             Existing or created RoundType instance
         """
-        from app.models import RoundType
-
         type_name = normalize_reference_name(round_type_data.get("name") or "")
         original_id = round_type_data.get("__original_id__")
 
         # 1. Check for global round type with this name (SQLAlchemy 2.0 style)
         stmt = select(RoundType).where(
             RoundType.user_id.is_(None),
-            normalized_name_sql(RoundType.name) == type_name.casefold(),
+            RoundType.normalized_name == normalized_reference_name(type_name),
         )
         global_type = session.execute(stmt).scalar_one_or_none()
         if global_type:
@@ -566,7 +564,7 @@ class ImportService:
         # 2. Check for user's existing custom type (SQLAlchemy 2.0 style)
         stmt = select(RoundType).where(
             RoundType.user_id == user_id,
-            normalized_name_sql(RoundType.name) == type_name.casefold(),
+            RoundType.normalized_name == normalized_reference_name(type_name),
         )
         existing_type = session.execute(stmt).scalar_one_or_none()
         if existing_type:
