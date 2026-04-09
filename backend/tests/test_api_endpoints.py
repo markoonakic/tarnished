@@ -18,6 +18,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import (
@@ -26,6 +27,7 @@ from app.core.security import (
     get_password_hash,
     hash_api_key,
 )
+from app.main import app
 from app.models import (
     Application,
     ApplicationStatus,
@@ -1031,6 +1033,73 @@ class TestJobLeadsCreate:
         error = response.json()["detail"]
         assert error["code"] == "DUPLICATE_RESOURCE"
         assert "already" in error["message"].lower()
+
+    async def test_create_job_lead_duplicate_url_commit_race_returns_409(
+        self,
+        client: AsyncClient,
+        user_with_api_token: User,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """Test that commit-time duplicate races still return 409."""
+        headers = {"X-API-Key": user_with_api_token.api_token}
+
+        integrity_error = IntegrityError(
+            statement="INSERT INTO job_leads ...",
+            params={},
+            orig=Exception(
+                'duplicate key value violates unique constraint "uq_job_leads_user_url"'
+            ),
+        )
+
+        async def fail_commit():
+            raise integrity_error
+
+        async def noop_rollback():
+            return None
+
+        from app.core.database import get_db
+
+        override = app.dependency_overrides[get_db]
+        async for session in override():
+            monkeypatch.setattr(session, "commit", fail_commit)
+            monkeypatch.setattr(session, "rollback", noop_rollback)
+            break
+
+        with patch("app.api.job_leads.extract_job_data") as mock_extract:
+            from app.schemas.job_lead import JobLeadExtractionInput
+
+            mock_extract.return_value = JobLeadExtractionInput(
+                title="Race Job",
+                company="Race Co",
+                description=None,
+                location=None,
+                salary_min=None,
+                salary_max=None,
+                salary_currency=None,
+                recruiter_name=None,
+                recruiter_title=None,
+                recruiter_linkedin_url=None,
+                years_experience_min=None,
+                years_experience_max=None,
+                source=None,
+                posted_date=None,
+                requirements_must_have=[],
+                requirements_nice_to_have=[],
+                skills=[],
+            )
+
+            response = await client.post(
+                "/api/job-leads",
+                headers=headers,
+                json={
+                    "url": "https://example.com/job/race-check",
+                    "html": "<html><body><h1>Job</h1></body></html>",
+                },
+            )
+
+        assert response.status_code == 409
+        error = response.json()["detail"]
+        assert error["code"] == "DUPLICATE_RESOURCE"
 
     async def test_create_job_lead_with_html_content(
         self,
