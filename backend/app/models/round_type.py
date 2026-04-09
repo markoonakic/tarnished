@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy import Boolean, ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -22,3 +22,21 @@ class RoundType(Base):
 
     user = relationship("User", back_populates="custom_round_types")
     rounds = relationship("Round", back_populates="round_type")
+
+
+Index(
+    "uq_round_types_global_name_ci",
+    func.lower(func.trim(RoundType.name)),
+    unique=True,
+    sqlite_where=RoundType.user_id.is_(None),
+    postgresql_where=RoundType.user_id.is_(None),
+)
+
+Index(
+    "uq_round_types_user_name_ci",
+    RoundType.user_id,
+    func.lower(func.trim(RoundType.name)),
+    unique=True,
+    sqlite_where=RoundType.user_id.is_not(None),
+    postgresql_where=RoundType.user_id.is_not(None),
+)

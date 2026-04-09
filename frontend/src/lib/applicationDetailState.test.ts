@@ -48,7 +48,6 @@ function createApplication(rounds: Round[] = []): Application {
     updated_at: '2026-03-25T00:00:00Z',
     rounds,
     job_lead_id: null,
-    description: null,
     location: null,
     salary_min: null,
     salary_max: null,

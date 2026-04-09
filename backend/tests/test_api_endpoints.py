@@ -715,6 +715,43 @@ class TestJobLeadConversion:
         assert refreshed_lead.converted_to_application_id == application["id"]
         assert refreshed_lead.status == "converted"
 
+    async def test_convert_job_lead_uses_visible_applied_status_and_job_description(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        db: AsyncSession,
+        test_user: User,
+        test_job_lead: JobLead,
+    ):
+        test_job_lead.description = "Normalized lead description"
+        wishlist = ApplicationStatus(
+            name="Wishlist",
+            color="#83a598",
+            is_default=False,
+            user_id=test_user.id,
+            order=99,
+        )
+        applied = ApplicationStatus(
+            name="Applied",
+            color="#8ec07c",
+            is_default=True,
+            user_id=None,
+            order=0,
+        )
+        db.add_all([wishlist, applied])
+        await db.commit()
+
+        response = await client.post(
+            f"/api/job-leads/{test_job_lead.id}/convert",
+            headers=auth_headers,
+        )
+        assert response.status_code == 201
+
+        application = response.json()
+        assert application["status"]["name"] == "Applied"
+        assert application["job_description"] == "Normalized lead description"
+        assert "description" not in application
+
 
 class TestJobLeadsGet:
     """Tests for GET /api/job-leads/{id} endpoint."""
@@ -756,6 +793,51 @@ class TestJobLeadsGet:
         )
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
+
+
+class TestReferenceDataValidation:
+    async def test_create_status_rejects_case_insensitive_duplicate_for_user(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+        db: AsyncSession,
+        test_user: User,
+    ):
+        db.add(
+            ApplicationStatus(
+                name="Pipeline",
+                color="#123456",
+                is_default=False,
+                user_id=test_user.id,
+                order=1,
+            )
+        )
+        await db.commit()
+
+        response = await client.post(
+            "/api/statuses",
+            headers=auth_headers,
+            json={"name": " pipeline ", "color": "#abcdef"},
+        )
+
+        assert response.status_code == 409
+
+    async def test_create_round_type_rejects_duplicate_visible_name(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+        db: AsyncSession,
+    ):
+        db.add(RoundType(name="Phone Screen", is_default=True, user_id=None))
+        await db.commit()
+
+        response = await client.post(
+            "/api/round-types",
+            headers=auth_headers,
+            json={"name": " phone screen "},
+        )
+
+        assert response.status_code == 409
 
     async def test_get_job_lead_other_user(
         self,

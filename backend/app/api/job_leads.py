@@ -28,7 +28,6 @@ from app.core.deps import (
 from app.models import User
 from app.models.application import Application
 from app.models.job_lead import JobLead
-from app.models.status import ApplicationStatus
 from app.schemas.application import ApplicationListItem
 from app.schemas.errors import ErrorCode, make_error_response
 from app.schemas.job_lead import (
@@ -46,6 +45,7 @@ from app.services.extraction import (
     extract_job_data,
 )
 from app.services.job_fetch import fetch_job_posting_html
+from app.services.reference_data import get_initial_application_status
 
 logger = logging.getLogger(__name__)
 
@@ -635,23 +635,8 @@ async def convert_job_lead_to_application(
         f"Converting job lead {job_lead_id} to application: {job_lead.title} at {job_lead.company}"
     )
 
-    # Step 3: Get the user's default status (or first user status, or first default status)
-    from sqlalchemy import or_
-
-    status_result = await db.execute(
-        select(ApplicationStatus)
-        .where(
-            or_(
-                ApplicationStatus.user_id == user.id,
-                ApplicationStatus.user_id.is_(None),
-            )
-        )
-        .order_by(
-            ApplicationStatus.user_id.desc().nulls_last(), ApplicationStatus.order
-        )
-        .limit(1)
-    )
-    default_status = status_result.scalars().first()
+    # Step 3: Resolve the initial application status visible to this user.
+    default_status = await get_initial_application_status(db, user.id)
 
     if not default_status:
         raise HTTPException(
@@ -664,12 +649,12 @@ async def convert_job_lead_to_application(
         user_id=user.id,
         company=job_lead.company,
         job_title=job_lead.title,
+        job_description=job_lead.description,
         job_url=job_lead.url,
         job_lead_id=job_lead.id,
         status_id=default_status.id,
         applied_at=datetime.now(UTC).date(),
         # Rich extraction fields
-        description=job_lead.description,
         location=job_lead.location,
         salary_min=job_lead.salary_min,
         salary_max=job_lead.salary_max,

@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+from app.services.reference_data import normalize_reference_name
 
 
 class AdminUserResponse(BaseModel):
@@ -39,9 +41,29 @@ class AdminStatusUpdate(BaseModel):
     color: str | None = None
     order: int | None = None
 
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = normalize_reference_name(value)
+        if not normalized:
+            raise ValueError("Name cannot be empty")
+        return normalized
+
 
 class AdminRoundTypeUpdate(BaseModel):
     name: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = normalize_reference_name(value)
+        if not normalized:
+            raise ValueError("Name cannot be empty")
+        return normalized
 
 
 class AdminUserListResponse(BaseModel):

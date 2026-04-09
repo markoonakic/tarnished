@@ -56,7 +56,6 @@ export interface Application {
   rounds?: Round[];
   // New fields from job lead conversion
   job_lead_id: string | null;
-  description: string | null;
   location: string | null;
   salary_min: number | null;
   salary_max: number | null;
@@ -86,7 +85,6 @@ export interface ApplicationCreate {
   job_url?: string;
   status_id: string;
   applied_at?: string;
-  description?: string | null;
   location?: string | null;
   salary_min?: number;
   salary_max?: number;
@@ -109,7 +107,6 @@ export interface ApplicationUpdate {
   job_url?: string | null;
   status_id?: string;
   applied_at?: string;
-  description?: string | null;
   location?: string | null;
   salary_min?: number | null;
   salary_max?: number | null;

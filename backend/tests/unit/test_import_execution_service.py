@@ -4,8 +4,9 @@ import zipfile
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from sqlalchemy import select
 
-from app.models import ApplicationStatus, RoundType, User
+from app.models import Application, ApplicationStatus, RoundType, User
 from app.services.import_execution import (
     extract_import_file_mapping,
     import_payload_data,
@@ -109,6 +110,61 @@ async def test_import_payload_data_imports_legacy_custom_metadata(db):
     assert statuses.scalar_one().name == "Custom Status"
     assert round_types.scalar_one().name == "Panel"
     assert result == {"applications": 0, "rounds": 0, "status_history": 0}
+
+
+@pytest.mark.asyncio
+async def test_import_payload_data_prefers_user_status_override_over_global(db):
+    user = User(email="status-override@example.com", password_hash="hashed", is_active=True)
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    global_status = ApplicationStatus(
+        name="Applied",
+        color="#83a598",
+        is_default=True,
+        user_id=None,
+        order=0,
+    )
+    user_status = ApplicationStatus(
+        name="Applied",
+        color="#00ff00",
+        is_default=False,
+        user_id=user.id,
+        order=0,
+    )
+    db.add_all([global_status, user_status])
+    await db.commit()
+    await db.refresh(user_status)
+
+    data = {
+        "user": {"email": user.email},
+        "custom_statuses": [],
+        "custom_round_types": [],
+        "applications": [
+            {
+                "id": "legacy-app-1",
+                "company": "Acme",
+                "job_title": "Engineer",
+                "job_description": "Description",
+                "job_url": "https://example.com/jobs/1",
+                "status": "Applied",
+                "cv_path": None,
+                "applied_at": "2026-04-09",
+                "status_history": [],
+                "rounds": [],
+            }
+        ],
+    }
+
+    result = await import_payload_data(db, str(user.id), data, {}, lambda **_: None)
+
+    imported_application = (
+        await db.execute(select(Application).where(Application.user_id == user.id))
+    ).scalar_one()
+
+    assert imported_application.status_id == user_status.id
+    assert result["applications"] == 1
 
 
 def test_extract_import_file_mapping_uses_new_format_manifest(tmp_path):

@@ -443,6 +443,73 @@ class TestImportIntegrityGuards:
                 == imported_application.id
             )
 
+    def test_import_service_maps_legacy_application_description_to_job_description(
+        self,
+    ):
+        def make_engine():
+            engine = create_engine("sqlite:///:memory:")
+
+            @event.listens_for(engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA foreign_keys=ON")
+                cursor.close()
+
+            return engine
+
+        engine = make_engine()
+        Base.metadata.create_all(engine)
+
+        export_data = {
+            "format_version": "1.0.0",
+            "models": {
+                "ApplicationStatus": [
+                    {
+                        "__original_id__": "status-1",
+                        "id": "status-1",
+                        "name": "Applied",
+                        "color": "#83a598",
+                        "is_default": True,
+                        "user_id": None,
+                        "order": 0,
+                    }
+                ],
+                "Application": [
+                    {
+                        "__original_id__": "app-1",
+                        "id": "app-1",
+                        "company": "Acme",
+                        "job_title": "Engineer",
+                        "description": "Legacy exported description",
+                        "job_url": "https://example.com/jobs/1",
+                        "status_id": "status-1",
+                        "applied_at": "2026-04-09",
+                        "requirements_must_have": [],
+                        "requirements_nice_to_have": [],
+                        "skills": [],
+                    }
+                ],
+            },
+        }
+
+        with Session(engine) as session:
+            user = User(email="legacy-import@example.com", password_hash="hashed", is_active=True)
+            session.add(user)
+            session.commit()
+
+            import_result = ImportService(
+                registry=default_registry, id_mapper=IDMapper()
+            ).import_user_data(
+                export_data=export_data,
+                user_id=user.id,
+                session=session,
+            )
+            session.commit()
+
+            assert import_result["warnings"] == []
+            imported_application = session.execute(select(Application)).scalar_one()
+            assert imported_application.job_description == "Legacy exported description"
+
 
 class TestFileExtraction:
     """Tests for file extraction during import."""

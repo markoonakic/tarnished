@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String
+from sqlalchemy import Boolean, ForeignKey, Index, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -24,3 +24,21 @@ class ApplicationStatus(Base):
 
     user = relationship("User", back_populates="custom_statuses")
     applications = relationship("Application", back_populates="status")
+
+
+Index(
+    "uq_application_statuses_global_name_ci",
+    func.lower(func.trim(ApplicationStatus.name)),
+    unique=True,
+    sqlite_where=ApplicationStatus.user_id.is_(None),
+    postgresql_where=ApplicationStatus.user_id.is_(None),
+)
+
+Index(
+    "uq_application_statuses_user_name_ci",
+    ApplicationStatus.user_id,
+    func.lower(func.trim(ApplicationStatus.name)),
+    unique=True,
+    sqlite_where=ApplicationStatus.user_id.is_not(None),
+    postgresql_where=ApplicationStatus.user_id.is_not(None),
+)

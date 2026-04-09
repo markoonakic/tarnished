@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import and_, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -26,6 +26,12 @@ from app.schemas.settings import (
     StatusCreate,
     StatusFullResponse,
     StatusUpdate,
+)
+from app.services.reference_data import (
+    find_user_status_by_name,
+    find_visible_round_type_by_name,
+    list_visible_round_types,
+    list_visible_statuses,
 )
 
 router = APIRouter(prefix="/api", tags=["settings"])
@@ -147,28 +153,7 @@ async def list_statuses(
     _: object = Depends(require_api_key_scope("statuses:read")),
     db: AsyncSession = Depends(get_db),
 ):
-    # Get user's custom statuses first
-    user_result = await db.execute(
-        select(ApplicationStatus).where(ApplicationStatus.user_id == user.id)
-    )
-    user_statuses = user_result.scalars().all()
-    user_status_names = {s.name for s in user_statuses}
-
-    # Get default statuses, excluding ones user has overridden
-    default_result = await db.execute(
-        select(ApplicationStatus).where(
-            and_(
-                ApplicationStatus.user_id.is_(None),
-                ApplicationStatus.name.not_in(user_status_names),
-            )
-        )
-    )
-    default_statuses = default_result.scalars().all()
-
-    # Merge and sort by order
-    all_statuses = list(user_statuses) + list(default_statuses)
-    all_statuses.sort(key=lambda s: s.order)
-    return all_statuses
+    return await list_visible_statuses(db, user.id)
 
 
 @router.post(
@@ -180,6 +165,10 @@ async def create_status(
     _: object = Depends(require_api_key_scope("statuses:write")),
     db: AsyncSession = Depends(get_db),
 ):
+    existing_status = await find_user_status_by_name(db, user.id, data.name)
+    if existing_status is not None:
+        raise HTTPException(status_code=409, detail="Status name already exists")
+
     result = await db.execute(
         select(ApplicationStatus.order)
         .where(
@@ -224,6 +213,14 @@ async def update_status(
 
     # If editing a default status, create user override instead
     if status_obj.user_id is None:
+        existing_override = await find_user_status_by_name(db, user.id, status_obj.name)
+        if existing_override is not None:
+            if data.color is not None:
+                existing_override.color = data.color
+            await db.commit()
+            await db.refresh(existing_override)
+            return existing_override
+
         # Create user's personal copy with custom values
         new_status = ApplicationStatus(
             name=status_obj.name,
@@ -244,6 +241,11 @@ async def update_status(
         )
 
     if data.name is not None:
+        existing_status = await find_user_status_by_name(
+            db, user.id, data.name, exclude_id=status_obj.id
+        )
+        if existing_status is not None:
+            raise HTTPException(status_code=409, detail="Status name already exists")
         status_obj.name = data.name
     if data.color is not None:
         status_obj.color = data.color
@@ -287,12 +289,7 @@ async def list_round_types(
     _: object = Depends(require_api_key_scope("round_types:read")),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(RoundType).where(
-            or_(RoundType.user_id == user.id, RoundType.user_id.is_(None))
-        )
-    )
-    return result.scalars().all()
+    return await list_visible_round_types(db, user.id)
 
 
 @router.post(
@@ -306,6 +303,10 @@ async def create_round_type(
     _: object = Depends(require_api_key_scope("round_types:write")),
     db: AsyncSession = Depends(get_db),
 ):
+    existing_round_type = await find_visible_round_type_by_name(db, user.id, data.name)
+    if existing_round_type is not None:
+        raise HTTPException(status_code=409, detail="Round type name already exists")
+
     round_type = RoundType(
         name=data.name,
         is_default=False,
@@ -341,6 +342,9 @@ async def update_round_type(
         )
 
     if data.name is not None:
+        existing_round_type = await find_visible_round_type_by_name(db, user.id, data.name)
+        if existing_round_type is not None and existing_round_type.id != round_type.id:
+            raise HTTPException(status_code=409, detail="Round type name already exists")
         round_type.name = data.name
 
     await db.commit()

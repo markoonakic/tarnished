@@ -1,14 +1,34 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.services.reference_data import normalize_reference_name
 
 
 class StatusCreate(BaseModel):
     name: str
     color: str = "#83a598"
 
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        normalized = normalize_reference_name(value)
+        if not normalized:
+            raise ValueError("Name cannot be empty")
+        return normalized
+
 
 class StatusUpdate(BaseModel):
     name: str | None = None
     color: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = normalize_reference_name(value)
+        if not normalized:
+            raise ValueError("Name cannot be empty")
+        return normalized
 
 
 class StatusFullResponse(BaseModel):
@@ -23,6 +43,14 @@ class StatusFullResponse(BaseModel):
 
 class RoundTypeCreate(BaseModel):
     name: str
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        normalized = normalize_reference_name(value)
+        if not normalized:
+            raise ValueError("Name cannot be empty")
+        return normalized
 
 
 class RoundTypeFullResponse(BaseModel):
