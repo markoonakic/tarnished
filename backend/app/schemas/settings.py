@@ -33,27 +33,6 @@ class RoundTypeFullResponse(BaseModel):
     is_default: bool
 
 
-class APIKeyResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    """Response schema for the user's API key status.
-
-    Returns whether the user has an API token set, and if so,
-    a masked version showing only the first and last few characters.
-    When regenerating, the full key is returned once.
-    """
-
-    has_api_key: bool = Field(description="Whether the user has an API key configured")
-    api_key_masked: str | None = Field(
-        default=None,
-        description="Masked API key showing first 4 and last 4 characters (e.g., 'abcd...wxyz')",
-    )
-    api_key_full: str | None = Field(
-        default=None,
-        description="Full API key (only returned when regenerating, shown once)",
-    )
-
-
 class ThemeColors(BaseModel):
     """Resolved color values for extension consumption."""
 

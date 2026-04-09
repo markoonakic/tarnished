@@ -1,13 +1,20 @@
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, get_current_user_flexible
-from app.core.security import generate_api_token
-from app.models import ApplicationStatus, RoundType, User
+from app.core.deps import get_current_user, get_current_user_flexible, get_current_user_jwt
+from app.core.security import generate_api_token, hash_api_key
+from app.models import ApplicationStatus, RoundType, User, UserAPIKey
+from app.schemas.api_keys import (
+    UserAPIKeyCreate,
+    UserAPIKeyCreateResponse,
+    UserAPIKeyResponse,
+    UserAPIKeyUpdate,
+)
 from app.schemas.settings import (
-    APIKeyResponse,
     RoundTypeCreate,
     RoundTypeFullResponse,
     StatusCreate,
@@ -18,63 +25,92 @@ from app.schemas.settings import (
 router = APIRouter(prefix="/api", tags=["settings"])
 
 
-def _mask_api_token(token: str | None) -> str | None:
-    """Mask API token, showing first 4 and last 4 characters.
-
-    Args:
-        token: The API token to mask.
-
-    Returns:
-        Masked token in format "abcd...wxyz" or None if no token provided.
-    """
-    if not token:
-        return None
-    if len(token) <= 8:
-        # For short tokens, show first half and last half with ellipsis
-        half = len(token) // 2
-        return f"{token[:half]}...{token[-half:]}" if half > 0 else "****"
-    return f"{token[:4]}...{token[-4:]}"
-
-
-@router.get("/settings/api-key", response_model=APIKeyResponse)
-async def get_api_key(
-    user: User = Depends(get_current_user),
-) -> APIKeyResponse:
-    """Get the current user's API key status.
-
-    Returns whether the user has an API key configured, the masked version
-    for display, and the full key for clipboard copying.
-    """
-    has_api_key = bool(user.api_token)
-    api_key_masked = _mask_api_token(user.api_token)
-
-    return APIKeyResponse(
-        has_api_key=has_api_key,
-        api_key_masked=api_key_masked,
-        api_key_full=user.api_token,
-    )
-
-
-@router.post("/settings/api-key/regenerate", response_model=APIKeyResponse)
-async def regenerate_api_key(
-    user: User = Depends(get_current_user),
+@router.get("/settings/api-keys", response_model=list[UserAPIKeyResponse])
+async def list_api_keys(
+    user: User = Depends(get_current_user_jwt),
     db: AsyncSession = Depends(get_db),
-) -> APIKeyResponse:
-    """Regenerate the current user's API key.
-
-    Generates a new API token for the user and saves it to the database.
-    Returns the FULL token (only time it's shown) and the masked version.
-    """
-    new_token = generate_api_token()
-    user.api_token = new_token
-    await db.commit()
-    await db.refresh(user)
-
-    return APIKeyResponse(
-        has_api_key=True,
-        api_key_masked=_mask_api_token(new_token),
-        api_key_full=new_token,  # Return full key - only shown once!
+) -> list[UserAPIKey]:
+    result = await db.execute(
+        select(UserAPIKey)
+        .where(UserAPIKey.user_id == user.id)
+        .order_by(UserAPIKey.created_at.desc())
     )
+    return list(result.scalars().all())
+
+
+@router.post(
+    "/settings/api-keys",
+    response_model=UserAPIKeyCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_api_key(
+    data: UserAPIKeyCreate,
+    user: User = Depends(get_current_user_jwt),
+    db: AsyncSession = Depends(get_db),
+) -> UserAPIKeyCreateResponse:
+    raw_key = generate_api_token()
+    api_key = UserAPIKey(
+        user_id=user.id,
+        label=data.label,
+        key_prefix=raw_key[:8],
+        key_hash=hash_api_key(raw_key),
+    )
+    db.add(api_key)
+    await db.commit()
+    await db.refresh(api_key)
+
+    return UserAPIKeyCreateResponse(
+        id=api_key.id,
+        label=api_key.label,
+        key_prefix=api_key.key_prefix,
+        created_at=api_key.created_at,
+        last_used_at=api_key.last_used_at,
+        revoked_at=api_key.revoked_at,
+        api_key=raw_key,
+    )
+
+
+@router.patch("/settings/api-keys/{api_key_id}", response_model=UserAPIKeyResponse)
+async def update_api_key(
+    api_key_id: str,
+    data: UserAPIKeyUpdate,
+    user: User = Depends(get_current_user_jwt),
+    db: AsyncSession = Depends(get_db),
+) -> UserAPIKey:
+    result = await db.execute(
+        select(UserAPIKey).where(
+            UserAPIKey.id == api_key_id,
+            UserAPIKey.user_id == user.id,
+        )
+    )
+    api_key = result.scalar_one_or_none()
+    if api_key is None:
+        raise HTTPException(status_code=404, detail="API key not found")
+
+    api_key.label = data.label
+    await db.commit()
+    await db.refresh(api_key)
+    return api_key
+
+
+@router.delete("/settings/api-keys/{api_key_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_api_key(
+    api_key_id: str,
+    user: User = Depends(get_current_user_jwt),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    result = await db.execute(
+        select(UserAPIKey).where(
+            UserAPIKey.id == api_key_id,
+            UserAPIKey.user_id == user.id,
+        )
+    )
+    api_key = result.scalar_one_or_none()
+    if api_key is None:
+        raise HTTPException(status_code=404, detail="API key not found")
+
+    api_key.revoked_at = datetime.now(UTC)
+    await db.commit()
 
 
 @router.get("/statuses", response_model=list[StatusFullResponse])
