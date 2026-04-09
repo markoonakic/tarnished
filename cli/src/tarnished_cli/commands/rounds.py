@@ -179,7 +179,9 @@ def delete_transcript(
     state = get_state(ctx)
     require_yes(yes, resource=f"transcript for round {round_id}")
     try:
-        state.build_client().delete(f"/api/rounds/{round_id}/transcript", auth="api_key")
+        state.build_client().delete(
+            f"/api/rounds/{round_id}/transcript", auth="api_key"
+        )
         emit_result(
             state,
             {"deleted": True, "round_id": round_id},

@@ -155,18 +155,26 @@ def upgrade() -> None:
     bind = op.get_bind()
 
     with op.batch_alter_table("application_statuses", schema=None) as batch_op:
-        batch_op.add_column(sa.Column("normalized_name", sa.String(length=100), nullable=True))
+        batch_op.add_column(
+            sa.Column("normalized_name", sa.String(length=100), nullable=True)
+        )
 
     with op.batch_alter_table("round_types", schema=None) as batch_op:
-        batch_op.add_column(sa.Column("normalized_name", sa.String(length=100), nullable=True))
+        batch_op.add_column(
+            sa.Column("normalized_name", sa.String(length=100), nullable=True)
+        )
 
     _backfill_normalized_reference_names(bind)
 
     with op.batch_alter_table("application_statuses", schema=None) as batch_op:
-        batch_op.alter_column("normalized_name", existing_type=sa.String(length=100), nullable=False)
+        batch_op.alter_column(
+            "normalized_name", existing_type=sa.String(length=100), nullable=False
+        )
 
     with op.batch_alter_table("round_types", schema=None) as batch_op:
-        batch_op.alter_column("normalized_name", existing_type=sa.String(length=100), nullable=False)
+        batch_op.alter_column(
+            "normalized_name", existing_type=sa.String(length=100), nullable=False
+        )
 
     op.execute(sa.text("DROP INDEX IF EXISTS uq_application_statuses_global_name_ci"))
     op.execute(sa.text("DROP INDEX IF EXISTS uq_application_statuses_user_name_ci"))
@@ -215,8 +223,12 @@ def downgrade() -> None:
 
     op.drop_index("uq_round_types_user_name_ci", table_name="round_types")
     op.drop_index("uq_round_types_global_name_ci", table_name="round_types")
-    op.drop_index("uq_application_statuses_user_name_ci", table_name="application_statuses")
-    op.drop_index("uq_application_statuses_global_name_ci", table_name="application_statuses")
+    op.drop_index(
+        "uq_application_statuses_user_name_ci", table_name="application_statuses"
+    )
+    op.drop_index(
+        "uq_application_statuses_global_name_ci", table_name="application_statuses"
+    )
 
     op.create_index(
         "uq_application_statuses_global_name_ci",

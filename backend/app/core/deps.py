@@ -1,5 +1,5 @@
-from datetime import UTC, datetime
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, status
@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import decode_token, hash_api_key
-from app.models import User, UserAPIKey
+from app.models.user import User
+from app.models.user_api_key import UserAPIKey
 
 security = HTTPBearer()
 
@@ -24,7 +25,7 @@ class AuthContext:
 async def _get_api_key_and_user(
     raw_api_key: str,
     db: AsyncSession,
-) -> tuple[UserAPIKey | None, User | None]:
+) -> tuple[UserAPIKey | None, User | None]:  # pyright: ignore[reportGeneralTypeIssues]
     hashed_key = hash_api_key(raw_api_key)
     result = await db.execute(
         select(UserAPIKey, User)
@@ -112,7 +113,11 @@ def require_api_key_scope(scope: str):
     async def dependency(
         auth: AuthContext = Depends(get_current_auth_context),
     ) -> AuthContext:
-        if auth.auth_method == "api_key" and auth.api_key and scope not in auth.api_key.scopes:
+        if (
+            auth.auth_method == "api_key"
+            and auth.api_key
+            and scope not in auth.api_key.scopes
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"API key lacks required scope: {scope}",
@@ -202,7 +207,7 @@ async def get_current_user_optional_flexible(
     ),
     x_api_key: Annotated[str | None, Header()] = None,
     db: AsyncSession = Depends(get_db),
-) -> User | None:
+) -> User | None:  # pyright: ignore[reportGeneralTypeIssues]
     if credentials:
         payload = decode_token(credentials.credentials)
         if payload and payload.get("type") == "access":

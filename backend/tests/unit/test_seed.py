@@ -1,6 +1,5 @@
-from sqlalchemy import select
-
 import pytest
+from sqlalchemy import select
 
 from app.core.seed import DEFAULT_ROUND_TYPES, DEFAULT_STATUSES, seed_defaults
 from app.models import ApplicationStatus, RoundType
@@ -23,13 +22,19 @@ async def test_seed_defaults_fills_partial_default_data_without_duplicates(db):
     await seed_defaults(db)
 
     status_rows = (
-        await db.execute(
-            select(ApplicationStatus).where(ApplicationStatus.user_id.is_(None))
+        (
+            await db.execute(
+                select(ApplicationStatus).where(ApplicationStatus.user_id.is_(None))
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     round_type_rows = (
-        await db.execute(select(RoundType).where(RoundType.user_id.is_(None)))
-    ).scalars().all()
+        (await db.execute(select(RoundType).where(RoundType.user_id.is_(None))))
+        .scalars()
+        .all()
+    )
 
     assert sorted(status.name for status in status_rows) == sorted(
         status["name"] for status in DEFAULT_STATUSES

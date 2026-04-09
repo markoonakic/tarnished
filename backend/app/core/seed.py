@@ -28,8 +28,14 @@ DEFAULT_ROUND_TYPES = [
 async def seed_defaults(db: AsyncSession) -> None:
     """Seed default application statuses and round types if they are missing."""
     existing_statuses = (
-        await db.execute(select(ApplicationStatus).where(ApplicationStatus.user_id.is_(None)))
-    ).scalars().all()
+        (
+            await db.execute(
+                select(ApplicationStatus).where(ApplicationStatus.user_id.is_(None))
+            )
+        )
+        .scalars()
+        .all()
+    )
     existing_status_names = {status.normalized_name for status in existing_statuses}
 
     for status_data in DEFAULT_STATUSES:
@@ -48,8 +54,10 @@ async def seed_defaults(db: AsyncSession) -> None:
         existing_status_names.add(normalized_name)
 
     existing_round_types = (
-        await db.execute(select(RoundType).where(RoundType.user_id.is_(None)))
-    ).scalars().all()
+        (await db.execute(select(RoundType).where(RoundType.user_id.is_(None))))
+        .scalars()
+        .all()
+    )
     existing_round_type_names = {
         round_type.normalized_name for round_type in existing_round_types
     }

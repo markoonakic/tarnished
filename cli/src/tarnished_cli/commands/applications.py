@@ -140,7 +140,9 @@ def delete_application(
     state = get_state(ctx)
     require_yes(yes, resource=f"application {application_id}")
     try:
-        state.build_client().delete(f"/api/applications/{application_id}", auth="api_key")
+        state.build_client().delete(
+            f"/api/applications/{application_id}", auth="api_key"
+        )
         emit_result(
             state,
             {"deleted": True, "id": application_id},

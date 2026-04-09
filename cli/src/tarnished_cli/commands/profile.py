@@ -29,7 +29,9 @@ def update_profile(
     state = get_state(ctx)
     body = load_model_body(body_file, UserProfileUpdate)
     try:
-        payload = state.build_client().put_json("/api/profile", body=body, auth="api_key")
+        payload = state.build_client().put_json(
+            "/api/profile", body=body, auth="api_key"
+        )
         emit_result(state, payload)
     except CLIError as exc:
         exit_for_error(state, exc)

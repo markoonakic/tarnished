@@ -21,7 +21,7 @@ def _sort_statuses(statuses: Sequence[ApplicationStatus]) -> list[ApplicationSta
 
 async def find_user_status_by_name(
     db: AsyncSession, user_id: str, name: str, exclude_id: str | None = None
-) -> ApplicationStatus | None:
+) -> ApplicationStatus | None:  # pyright: ignore[reportGeneralTypeIssues]
     normalized_name = normalized_reference_name(name)
     stmt = select(ApplicationStatus).where(
         ApplicationStatus.user_id == user_id,
@@ -36,7 +36,7 @@ async def find_user_status_by_name(
 
 async def find_global_status_by_name(
     db: AsyncSession, name: str, exclude_id: str | None = None
-) -> ApplicationStatus | None:
+) -> ApplicationStatus | None:  # pyright: ignore[reportGeneralTypeIssues]
     normalized_name = normalized_reference_name(name)
     stmt = select(ApplicationStatus).where(
         ApplicationStatus.user_id.is_(None),
@@ -72,7 +72,7 @@ async def list_visible_statuses(
 
 async def get_initial_application_status(
     db: AsyncSession, user_id: str
-) -> ApplicationStatus | None:
+) -> ApplicationStatus | None:  # pyright: ignore[reportGeneralTypeIssues]
     visible_statuses = await list_visible_statuses(db, user_id)
     if not visible_statuses:
         return None
@@ -86,7 +86,7 @@ async def get_initial_application_status(
 
 async def find_visible_status_by_name(
     db: AsyncSession, user_id: str, name: str
-) -> ApplicationStatus | None:
+) -> ApplicationStatus | None:  # pyright: ignore[reportGeneralTypeIssues]
     user_status = await find_user_status_by_name(db, user_id, name)
     if user_status is not None:
         return user_status
@@ -95,7 +95,7 @@ async def find_visible_status_by_name(
 
 async def find_user_round_type_by_name(
     db: AsyncSession, user_id: str, name: str, exclude_id: str | None = None
-) -> RoundType | None:
+) -> RoundType | None:  # pyright: ignore[reportGeneralTypeIssues]
     normalized_name = normalized_reference_name(name)
     stmt = select(RoundType).where(
         RoundType.user_id == user_id,
@@ -110,7 +110,7 @@ async def find_user_round_type_by_name(
 
 async def find_global_round_type_by_name(
     db: AsyncSession, name: str, exclude_id: str | None = None
-) -> RoundType | None:
+) -> RoundType | None:  # pyright: ignore[reportGeneralTypeIssues]
     normalized_name = normalized_reference_name(name)
     stmt = select(RoundType).where(
         RoundType.user_id.is_(None),
@@ -124,9 +124,13 @@ async def find_global_round_type_by_name(
 
 
 async def list_visible_round_types(db: AsyncSession, user_id: str) -> list[RoundType]:
-    user_result = await db.execute(select(RoundType).where(RoundType.user_id == user_id))
+    user_result = await db.execute(
+        select(RoundType).where(RoundType.user_id == user_id)
+    )
     user_round_types = list(user_result.scalars().all())
-    user_round_type_names = {round_type.normalized_name for round_type in user_round_types}
+    user_round_type_names = {
+        round_type.normalized_name for round_type in user_round_types
+    }
 
     default_result = await db.execute(
         select(RoundType).where(RoundType.user_id.is_(None))
@@ -148,7 +152,7 @@ async def list_visible_round_types(db: AsyncSession, user_id: str) -> list[Round
 
 async def find_visible_round_type_by_name(
     db: AsyncSession, user_id: str, name: str
-) -> RoundType | None:
+) -> RoundType | None:  # pyright: ignore[reportGeneralTypeIssues]
     user_round_type = await find_user_round_type_by_name(db, user_id, name)
     if user_round_type is not None:
         return user_round_type

@@ -4,8 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.api_key_scopes import (
+    CUSTOM_PRESET,
+    resolve_scopes_for_preset,
+)
 from app.core.database import get_db
-from app.core.api_key_scopes import CUSTOM_PRESET, FULL_ACCESS_PRESET, resolve_scopes_for_preset
 from app.core.deps import (
     get_current_user,
     get_current_user_flexible,
@@ -127,7 +130,9 @@ async def update_api_key(
     return api_key
 
 
-@router.delete("/settings/api-keys/{api_key_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/settings/api-keys/{api_key_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_api_key(
     api_key_id: str,
     user: User = Depends(get_current_user_jwt),
@@ -342,9 +347,13 @@ async def update_round_type(
         )
 
     if data.name is not None:
-        existing_round_type = await find_visible_round_type_by_name(db, user.id, data.name)
+        existing_round_type = await find_visible_round_type_by_name(
+            db, user.id, data.name
+        )
         if existing_round_type is not None and existing_round_type.id != round_type.id:
-            raise HTTPException(status_code=409, detail="Round type name already exists")
+            raise HTTPException(
+                status_code=409, detail="Round type name already exists"
+            )
         round_type.name = data.name
 
     await db.commit()
