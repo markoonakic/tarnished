@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, date, datetime
 
-from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Date, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -16,7 +16,7 @@ class JobLead(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id"), nullable=False, index=True
+        String(36), ForeignKey("users.id"), nullable=False
     )
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
 
@@ -82,3 +82,21 @@ class JobLead(Base):
 
     def __repr__(self) -> str:
         return f"<JobLead(id={self.id}, status={self.status}, title={self.title}, company={self.company})>"
+
+
+Index(
+    "ix_job_leads_user_scraped_at",
+    JobLead.user_id,
+    JobLead.scraped_at,
+)
+
+Index(
+    "ix_job_leads_user_source_scraped_at",
+    JobLead.user_id,
+    JobLead.source,
+    JobLead.scraped_at,
+    sqlite_where=JobLead.source.is_not(None),
+    postgresql_where=JobLead.source.is_not(None),
+)
+
+Index("ix_job_leads_user_url", JobLead.user_id, JobLead.url)
