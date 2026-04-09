@@ -1,6 +1,6 @@
 """drop_users_api_token
 
-Revision ID: 2026_04_09_drop_users_api_token
+Revision ID: 20260409_api_keys
 Revises: 1620010fcb40
 Create Date: 2026-04-09 09:45:00.000000
 
@@ -18,7 +18,7 @@ import sqlalchemy as sa
 from app.core.config import get_settings
 
 # revision identifiers, used by Alembic.
-revision: str = "2026_04_09_drop_users_api_token"
+revision: str = "20260409_api_keys"
 down_revision: str | Sequence[str] | None = "1620010fcb40"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
