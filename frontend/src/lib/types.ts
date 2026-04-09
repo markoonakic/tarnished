@@ -191,8 +191,15 @@ export interface UserProfile {
   requires_sponsorship: boolean | null;
 }
 
-export interface APIKeyResponse {
-  has_api_key: boolean;
-  api_key_masked: string | null;
-  api_key_full?: string | null;
+export interface APIKey {
+  id: string;
+  label: string;
+  key_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface APIKeyCreateResponse extends APIKey {
+  api_key: string;
 }

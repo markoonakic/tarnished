@@ -1,5 +1,5 @@
 import api from './api';
-import type { APIKeyResponse, RoundType, Status } from './types';
+import type { APIKey, APIKeyCreateResponse, RoundType, Status } from './types';
 
 export async function listStatuses(): Promise<Status[]> {
   const response = await api.get('/api/statuses');
@@ -50,20 +50,26 @@ export async function deleteRoundType(id: string): Promise<void> {
   await api.delete(`/api/round-types/${id}`);
 }
 
-/**
- * Get the current user's API key status.
- * Returns whether the user has an API key and a masked version if so.
- */
-export async function getAPIKey(): Promise<APIKeyResponse> {
-  const response = await api.get('/api/settings/api-key');
+export async function listAPIKeys(): Promise<APIKey[]> {
+  const response = await api.get('/api/settings/api-keys');
   return response.data;
 }
 
-/**
- * Regenerate the current user's API key.
- * Returns the new API key status with a masked version.
- */
-export async function regenerateAPIKey(): Promise<APIKeyResponse> {
-  const response = await api.post('/api/settings/api-key/regenerate');
+export async function createAPIKey(data: {
+  label: string;
+}): Promise<APIKeyCreateResponse> {
+  const response = await api.post('/api/settings/api-keys', data);
   return response.data;
+}
+
+export async function updateAPIKey(
+  id: string,
+  data: { label: string }
+): Promise<APIKey> {
+  const response = await api.patch(`/api/settings/api-keys/${id}`, data);
+  return response.data;
+}
+
+export async function deleteAPIKey(id: string): Promise<void> {
+  await api.delete(`/api/settings/api-keys/${id}`);
 }
