@@ -18,6 +18,7 @@ from app.core.database import get_db
 from app.core.deps import (
     get_current_user,
     get_current_user_flexible,
+    require_api_key_scope,
 )
 from app.models import (
     Application,
@@ -62,6 +63,7 @@ async def list_applications(
     date_from: date | None = None,
     date_to: date | None = None,
     user: User = Depends(get_current_user_flexible),
+    _: object = Depends(require_api_key_scope("applications:read")),
     db: AsyncSession = Depends(get_db),
 ):
     query = (
@@ -118,6 +120,7 @@ async def list_applications(
 @router.get("/sources")
 async def list_application_sources(
     user: User = Depends(get_current_user_flexible),
+    _: object = Depends(require_api_key_scope("applications:read")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -136,6 +139,7 @@ async def list_application_sources(
 async def create_application(
     data: ApplicationCreate,
     user: User = Depends(get_current_user_flexible),
+    _: object = Depends(require_api_key_scope("applications:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -204,6 +208,7 @@ async def create_application(
 async def create_application_from_url(
     data: ApplicationExtractRequest,
     user: User = Depends(get_current_user_flexible),
+    _: object = Depends(require_api_key_scope("applications:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -340,6 +345,7 @@ async def create_application_from_url(
 async def get_application(
     application_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("applications:read")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -366,6 +372,7 @@ async def update_application(
     application_id: str,
     data: ApplicationUpdate,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("applications:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -430,6 +437,7 @@ async def update_application(
 async def delete_application(
     application_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("applications:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -453,6 +461,7 @@ async def upload_cv(
     application_id: str,
     file: UploadFile,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -517,6 +526,7 @@ async def upload_cv(
 async def delete_cv(
     application_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -549,6 +559,7 @@ async def upload_cover_letter(
     application_id: str,
     file: UploadFile,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -615,6 +626,7 @@ async def upload_cover_letter(
 async def delete_cover_letter(
     application_id: str,
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
