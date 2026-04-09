@@ -117,4 +117,55 @@ describe('SettingsAPIKey', () => {
       })
     );
   });
+
+  it('updates an existing key to custom scopes in edit mode', async () => {
+    listAPIKeys.mockResolvedValueOnce([
+      {
+        id: 'key-1',
+        label: 'MacBook CLI',
+        preset: 'cli',
+        scopes: ['applications:read', 'applications:write'],
+        key_prefix: 'abcd1234',
+        created_at: '2026-04-09T07:00:00Z',
+        last_used_at: null,
+        revoked_at: null,
+      },
+    ]);
+    updateAPIKey.mockResolvedValueOnce({
+      id: 'key-1',
+      label: 'MacBook CLI',
+      preset: 'custom',
+      scopes: ['round_types:read'],
+      key_prefix: 'abcd1234',
+      created_at: '2026-04-09T07:00:00Z',
+      last_used_at: null,
+      revoked_at: null,
+    });
+
+    render(
+      <MemoryRouter>
+        <SettingsAPIKey />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(listAPIKeys).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', { name: /rename/i }));
+    fireEvent.change(screen.getAllByRole('combobox')[1], {
+      target: { value: 'custom' },
+    });
+    fireEvent.click(
+      screen.getAllByRole('button', { name: /advanced scopes/i })[1]
+    );
+    fireEvent.click(screen.getByLabelText(/round_types:read/i));
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() =>
+      expect(updateAPIKey).toHaveBeenCalledWith('key-1', {
+        label: 'MacBook CLI',
+        preset: 'custom',
+        scopes: ['round_types:read'],
+      })
+    );
+  });
 });
