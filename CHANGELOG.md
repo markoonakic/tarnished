@@ -6,6 +6,43 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-04-09
+
+### Changed
+
+- Authentication is now split cleanly by client type: the web UI uses JWT sessions, while the CLI and browser extension use scoped API keys.
+- API keys now support multiple named keys per user, presets, custom scopes, and one-time secret reveal semantics.
+- Application posting text is now canonicalized on `job_description`, and converted job leads inherit the visible description correctly.
+- Status and round-type reference data now use shared case-insensitive normalization rules across settings, import, seeding, and conversion flows.
+- Schema parity between SQLite and PostgreSQL was tightened, including normalized reference-name columns and timezone-aware PostgreSQL timestamp alignment.
+
+### Fixed
+
+- Converted applications now preserve `job_lead_id` and `converted_to_application_id` links during import/export round-trips under real foreign-key enforcement.
+- Production PostgreSQL migrations no longer fail on overlong unreleased Alembic revision identifiers.
+- Job-lead conversion now picks the correct initial status instead of arbitrary user-defined statuses such as `Wishlist`.
+- Partial default seeding is now self-healing instead of silently leaving missing default statuses or round types behind.
+- Legacy exported application rows that still use `description` are migrated into `job_description` during import.
+
+### Security
+
+- API keys are hashed at rest and accepted only via `X-API-Key`, not bearer-token fallback.
+- Scoped API-key authorization is enforced across shared machine-client routes.
+- Import integrity validation now fails cleanly on unresolved relationships instead of silently drifting into partial broken state.
+
+### Validation
+
+- Backend tests: `320 passed, 1 skipped`
+- Backend Ruff, format check, and Pyright passed
+- Frontend tests: `38 passed`
+- Frontend build and ESLint passed
+- CLI tests: `62 passed`
+- CLI Ruff, format check, and Pyright passed
+- Extension tests: `55 passed`
+- Extension build and Prettier check passed
+- Fresh SQLite `alembic upgrade head`, `alembic check`, and `alembic heads` passed
+- Restored production PostgreSQL dump upgraded cleanly to head and passed `alembic check`
+
 ### Changed
 
 - Release recovery can now be run through GitHub Actions without moving an existing tag.

@@ -6,14 +6,14 @@ Create Date: 2026-04-09 09:45:00.000000
 
 """
 
-from collections.abc import Sequence
-from datetime import UTC, datetime
 import hashlib
 import hmac
 import uuid
+from collections.abc import Sequence
+from datetime import UTC, datetime
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 from app.core.config import get_settings
 
@@ -48,7 +48,9 @@ def upgrade() -> None:
 
     settings = get_settings()
     bind = op.get_bind()
-    rows = bind.execute(sa.text("SELECT id, api_token FROM users WHERE api_token IS NOT NULL"))
+    rows = bind.execute(
+        sa.text("SELECT id, api_token FROM users WHERE api_token IS NOT NULL")
+    )
     created_at = datetime.now(UTC)
 
     for row in rows:
@@ -89,6 +91,8 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade schema."""
     with op.batch_alter_table("users", schema=None) as batch_op:
-        batch_op.add_column(sa.Column("api_token", sa.String(length=255), nullable=True))
+        batch_op.add_column(
+            sa.Column("api_token", sa.String(length=255), nullable=True)
+        )
     op.drop_index(op.f("ix_user_api_keys_user_id"), table_name="user_api_keys")
     op.drop_table("user_api_keys")

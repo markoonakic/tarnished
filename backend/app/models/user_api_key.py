@@ -4,8 +4,8 @@ from datetime import UTC, datetime
 from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.database import Base
 from app.core.api_key_scopes import FULL_ACCESS_PRESET, FULL_ACCESS_SCOPES
+from app.core.database import Base
 
 
 class UserAPIKey(Base):

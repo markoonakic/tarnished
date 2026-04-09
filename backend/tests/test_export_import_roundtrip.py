@@ -363,7 +363,9 @@ class TestImportIntegrityGuards:
         Base.metadata.create_all(source_engine)
 
         with Session(source_engine) as session:
-            user = User(email="source@example.com", password_hash="hashed", is_active=True)
+            user = User(
+                email="source@example.com", password_hash="hashed", is_active=True
+            )
             session.add(user)
             session.flush()
 
@@ -439,8 +441,7 @@ class TestImportIntegrityGuards:
 
             assert imported_application.job_lead_id == imported_job_lead.id
             assert (
-                imported_job_lead.converted_to_application_id
-                == imported_application.id
+                imported_job_lead.converted_to_application_id == imported_application.id
             )
 
     def test_import_service_maps_legacy_application_description_to_job_description(
@@ -493,7 +494,11 @@ class TestImportIntegrityGuards:
         }
 
         with Session(engine) as session:
-            user = User(email="legacy-import@example.com", password_hash="hashed", is_active=True)
+            user = User(
+                email="legacy-import@example.com",
+                password_hash="hashed",
+                is_active=True,
+            )
             session.add(user)
             session.commit()
 

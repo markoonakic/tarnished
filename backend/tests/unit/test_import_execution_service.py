@@ -114,7 +114,9 @@ async def test_import_payload_data_imports_legacy_custom_metadata(db):
 
 @pytest.mark.asyncio
 async def test_import_payload_data_prefers_user_status_override_over_global(db):
-    user = User(email="status-override@example.com", password_hash="hashed", is_active=True)
+    user = User(
+        email="status-override@example.com", password_hash="hashed", is_active=True
+    )
     db.add(user)
     await db.commit()
     await db.refresh(user)

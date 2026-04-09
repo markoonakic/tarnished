@@ -6,11 +6,11 @@ Create Date: 2026-04-09 11:20:00.000000
 
 """
 
-from collections.abc import Sequence
 import json
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 from app.core.api_key_scopes import FULL_ACCESS_PRESET, resolve_scopes_for_preset
 
