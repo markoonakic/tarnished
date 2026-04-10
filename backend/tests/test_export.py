@@ -7,7 +7,9 @@ SQLite and PostgreSQL databases, ensuring data integrity and completeness.
 import csv
 import io
 import json
+import zipfile
 from datetime import date, datetime
+from pathlib import Path
 
 import pytest
 from httpx import AsyncClient
@@ -978,3 +980,43 @@ class TestZIPExport:
         content_disposition = response.headers.get("content-disposition", "")
         assert "tarnished-export-" in content_disposition
         assert ".zip" in content_disposition
+
+    async def test_zip_export_resolves_relative_stored_paths_against_absolute_upload_dir(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+        db: AsyncSession,
+        test_user: User,
+        test_statuses: list[ApplicationStatus],
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ):
+        upload_dir = tmp_path / "absolute-uploads"
+        upload_dir.mkdir()
+        stored_filename = "deadbeef.pdf"
+        (upload_dir / stored_filename).write_bytes(b"pdf-content")
+
+        application = Application(
+            user_id=test_user.id,
+            company="Export Files Co",
+            job_title="Backend Engineer",
+            status_id=test_statuses[1].id,
+            cv_path=f"uploads/{stored_filename}",
+            applied_at=date(2024, 2, 1),
+        )
+        db.add(application)
+        await db.commit()
+
+        from app.core.config import get_settings
+
+        monkeypatch.setattr(get_settings(), "upload_dir", str(upload_dir))
+
+        response = await client.get("/api/export/zip", headers=auth_headers)
+        assert response.status_code == 200
+
+        with zipfile.ZipFile(io.BytesIO(response.content), "r") as zf:
+            exported_files = [name for name in zf.namelist() if name.endswith(".pdf")]
+
+            assert any("resume.pdf" in name for name in exported_files)
+            resume_path = next(name for name in exported_files if name.endswith("resume.pdf"))
+            assert zf.read(resume_path) == b"pdf-content"

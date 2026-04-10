@@ -8,6 +8,7 @@ from sqlalchemy import select
 
 from app.models import Application, ApplicationStatus, RoundType, User
 from app.services.import_execution import (
+    extract_files_from_zip,
     extract_import_file_mapping,
     import_payload_data,
 )
@@ -197,3 +198,25 @@ def test_extract_import_file_mapping_uses_new_format_manifest(tmp_path):
     new_format_extract.assert_called_once_with(str(zip_path), "user-1")
     legacy_extract.assert_not_called()
     assert result == {"old": "new"}
+
+
+def test_extract_files_from_zip_renames_duplicate_filenames(tmp_path):
+    zip_path = tmp_path / "legacy-import.zip"
+    upload_root = tmp_path / "uploads"
+    user_id = "user-1"
+
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+        zipf.writestr("files/resume.pdf", b"first-pdf")
+        zipf.writestr("files/cover-letter/resume.pdf", b"second-pdf")
+
+    with patch("app.services.import_execution.UPLOAD_DIR", str(upload_root)):
+        mapping = extract_files_from_zip(str(zip_path), user_id)
+
+    user_upload_dir = upload_root / user_id
+    first_path = user_upload_dir / "resume.pdf"
+    second_path = user_upload_dir / "resume_1.pdf"
+
+    assert first_path.read_bytes() == b"first-pdf"
+    assert second_path.read_bytes() == b"second-pdf"
+    assert mapping["files/resume.pdf"] == f"{user_id}/resume.pdf"
+    assert mapping["files/cover-letter/resume.pdf"] == f"{user_id}/resume_1.pdf"

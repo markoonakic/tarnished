@@ -347,6 +347,65 @@ class TestImportStatusEndpoint:
         assert data["stage"] == "importing"
         assert data["percent"] == 60
 
+    async def test_import_status_rejects_other_users_progress(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+        db: AsyncSession,
+    ):
+        other_user = User(
+            email="other-import-status@example.com",
+            password_hash=get_password_hash("testpass123"),
+            is_admin=False,
+            is_active=True,
+        )
+        db.add(other_user)
+        await db.commit()
+        await db.refresh(other_user)
+
+        import_id = "foreign-import-status"
+        ImportProgress.create(import_id, str(other_user.id))
+        ImportProgress.update(
+            import_id,
+            stage="importing",
+            percent=60,
+            message="Importing data...",
+        )
+
+        response = await client.get(
+            f"/api/import/status/{import_id}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 404
+
+    async def test_import_progress_rejects_other_users_progress(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        test_user: User,
+    ):
+        other_user = User(
+            email="other-import-progress@example.com",
+            password_hash=get_password_hash("testpass123"),
+            is_admin=False,
+            is_active=True,
+        )
+        db.add(other_user)
+        await db.commit()
+        await db.refresh(other_user)
+
+        import_id = "foreign-import-progress"
+        ImportProgress.create(import_id, str(other_user.id))
+        token = create_access_token({"sub": test_user.id})
+
+        response = await client.get(
+            f"/api/import/progress/{import_id}",
+            params={"token": token},
+        )
+
+        assert response.status_code == 404
+
 
 class TestImportValidationBasic:
     """Test basic import validation functionality."""

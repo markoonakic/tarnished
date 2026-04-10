@@ -125,7 +125,7 @@ class ImportProgress:
         return cls._active_imports.get(import_id, {"status": "unknown"})
 
     @classmethod
-    def create(cls, import_id: str) -> dict:
+    def create(cls, import_id: str, user_id: str | None = None) -> dict:
         # Clean up old entries first
         cls._cleanup_old_entries()
 
@@ -136,6 +136,8 @@ class ImportProgress:
             "message": "Starting import...",
             "created_at": datetime.now(UTC).isoformat(),
         }
+        if user_id is not None:
+            progress["user_id"] = user_id
         cls._active_imports[import_id] = progress
         return progress
 
@@ -259,6 +261,11 @@ async def import_progress(
     payload = decode_token(token) if token else None
     if not payload or payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+    requester_id = payload.get("sub")
+    progress = ImportProgress.get_progress(import_id)
+    owner_id = progress.get("user_id")
+    if owner_id is not None and owner_id != requester_id:
+        raise HTTPException(status_code=404, detail="Import not found")
 
     async def event_stream():
         progress = ImportProgress.get_progress(import_id)
@@ -296,11 +303,15 @@ async def import_progress(
 @router.get("/status/{import_id}")
 async def import_status(
     import_id: str,
-    _: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     __: object = Depends(require_api_key_scope("import:write")),
 ):
     """JSON status endpoint for CLI and polling clients."""
-    return ImportProgress.get_progress(import_id)
+    progress = ImportProgress.get_progress(import_id)
+    owner_id = progress.get("user_id")
+    if owner_id is not None and owner_id != str(user.id):
+        raise HTTPException(status_code=404, detail="Import not found")
+    return progress
 
 
 @router.post("/import")
@@ -325,7 +336,7 @@ async def import_data(
 
     try:
         # Initialize progress
-        ImportProgress.create(import_id)
+        ImportProgress.create(import_id, user_id)
 
         # Stage 1: Upload
         ImportProgress.update(
