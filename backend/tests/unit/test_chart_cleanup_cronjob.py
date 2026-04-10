@@ -1,9 +1,7 @@
-import subprocess
 from pathlib import Path
+import subprocess
 
-import pytest
 import yaml
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 CHART_DIR = PROJECT_ROOT / "chart"
