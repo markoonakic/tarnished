@@ -47,6 +47,7 @@ backend/requirements.txt
 
 # Playwright MCP screenshots and snapshots
 .playwright-mcp/
+.pi-lens/
 
 # macOS
 .DS_Store
