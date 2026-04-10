@@ -244,6 +244,21 @@ def build_transcript_path(application: dict, round_data: dict, round_index: int)
     return f"{app_path}/rounds/{round_order} - {round_name}/transcript{ext}"
 
 
+def resolve_export_file_path(stored_path: str, base_upload_path: str) -> Path:
+    """Resolve a stored DB file path against the configured upload root."""
+    path = stored_path
+    if path.startswith("./"):
+        path = path[2:]
+    if path.startswith("uploads/"):
+        path = path[8:]
+
+    candidate = Path(path)
+    if candidate.is_absolute():
+        return candidate.resolve()
+
+    return (Path(base_upload_path).resolve() / candidate).resolve()
+
+
 def is_path_safe(base_path: str, file_path: str) -> bool:
     """Validate a file path is within the base directory to prevent path traversal."""
     try:
@@ -411,7 +426,7 @@ async def create_zip_export(
 
         # CV file
         if app.get("cv_path"):
-            cv_path = Path(app["cv_path"])
+            cv_path = resolve_export_file_path(app["cv_path"], base_upload_path)
             if cv_path.exists() and is_path_safe(str(base_path), str(cv_path)):
                 zip_path = build_application_path(app, "resume" + cv_path.suffix)
                 file_mappings.append((cv_path, zip_path))
@@ -429,7 +444,7 @@ async def create_zip_export(
 
         # Cover letter file
         if app.get("cover_letter_path"):
-            cl_path = Path(app["cover_letter_path"])
+            cl_path = resolve_export_file_path(app["cover_letter_path"], base_upload_path)
             if cl_path.exists() and is_path_safe(str(base_path), str(cl_path)):
                 zip_path = build_application_path(app, "cover_letter" + cl_path.suffix)
                 file_mappings.append((cl_path, zip_path))
@@ -454,7 +469,9 @@ async def create_zip_export(
 
             # Transcript
             if round_data.get("transcript_path"):
-                transcript_path = Path(round_data["transcript_path"])
+                transcript_path = resolve_export_file_path(
+                    round_data["transcript_path"], base_upload_path
+                )
                 if transcript_path.exists() and is_path_safe(
                     str(base_path), str(transcript_path)
                 ):
@@ -475,7 +492,9 @@ async def create_zip_export(
             # Round media
             for media in media_by_round.get(round_id, []):
                 if media.get("file_path"):
-                    media_path = Path(media["file_path"])
+                    media_path = resolve_export_file_path(
+                        media["file_path"], base_upload_path
+                    )
                     if media_path.exists() and is_path_safe(
                         str(base_path), str(media_path)
                     ):

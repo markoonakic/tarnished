@@ -55,7 +55,7 @@ def extract_files_from_zip(zip_path: str, user_id: str) -> dict[str, str]:
                     dest_path = user_upload_dir / f"{stem}_{counter}{suffix}"
                     counter += 1
 
-                zip_ref.extract(file_info, str(user_upload_dir))
+                dest_path.write_bytes(zip_ref.read(file_info.filename))
                 file_mapping[file_info.filename] = str(
                     dest_path.relative_to(Path(UPLOAD_DIR))
                 )
