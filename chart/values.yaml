@@ -189,3 +189,27 @@ tolerations: []
 
 # -- Affinity rules
 affinity: {}
+
+cleanup:
+  # -- Enable a Kubernetes CronJob that runs upload cleanup.
+  # Disabled by default; the cleanup command remains available manually for all deployment modes.
+  enabled: false
+  # -- Cron schedule for the cleanup job.
+  schedule: "0 3 * * *"
+  # -- CronJob time zone.
+  timeZone: "Etc/UTC"
+  # -- Cleanup mode: "dry-run" reports only, "delete" removes orphaned CAS blobs.
+  mode: dry-run
+  # -- Keep recent successful jobs.
+  successfulJobsHistoryLimit: 1
+  # -- Keep recent failed jobs.
+  failedJobsHistoryLimit: 1
+  # -- How long Kubernetes may delay a missed start before skipping it.
+  startingDeadlineSeconds: 600
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi

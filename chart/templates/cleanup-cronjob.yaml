@@ -1,0 +1,121 @@
+{{- if .Values.cleanup.enabled }}
+{{- if not .Values.persistence.enabled }}
+{{- fail "cleanup requires persistence.enabled=true because a separate CronJob cannot inspect the app pod's ephemeral storage" }}
+{{- end }}
+{{- if eq .Values.persistence.accessMode "ReadWriteOncePod" }}
+{{- fail "cleanup does not support persistence.accessMode=ReadWriteOncePod because the CronJob must mount the same volume as the app" }}
+{{- end }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "tarnished.fullname" . }}-cleanup
+  labels:
+    {{- include "tarnished.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.cleanup.schedule | quote }}
+  timeZone: {{ .Values.cleanup.timeZone | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ .Values.cleanup.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.cleanup.failedJobsHistoryLimit }}
+  startingDeadlineSeconds: {{ .Values.cleanup.startingDeadlineSeconds }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "tarnished.selectorLabels" . | nindent 12 }}
+        spec:
+          serviceAccountName: {{ include "tarnished.serviceAccountName" . }}
+          automountServiceAccountToken: false
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          restartPolicy: OnFailure
+          {{- if eq .Values.persistence.accessMode "ReadWriteOnce" }}
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchExpressions:
+                      - key: app.kubernetes.io/name
+                        operator: In
+                        values:
+                          - {{ include "tarnished.name" . }}
+                      - key: app.kubernetes.io/instance
+                        operator: In
+                        values:
+                          - {{ .Release.Name }}
+                  topologyKey: kubernetes.io/hostname
+          {{- end }}
+          containers:
+            - name: cleanup
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              command:
+                - /bin/sh
+                - -lc
+              args:
+                - >-
+                  if [ -z "$SECRET_KEY" ] && [ -f /app/data/.secret_key ]; then
+                    export SECRET_KEY="$(cat /app/data/.secret_key)";
+                  fi;
+                  if [ -z "$SECRET_KEY" ]; then
+                    echo "SECRET_KEY is required for cleanup jobs";
+                    exit 1;
+                  fi;
+                  exec python -m app.lib.cleanup_orphan_uploads --verbose{{ if eq .Values.cleanup.mode "delete" }} --delete{{ end }}
+              env:
+                - name: PATH
+                  value: "/app/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+                {{- if .Values.postgresql.enabled }}
+                - name: POSTGRES_HOST
+                  value: {{ .Values.postgresql.host | quote }}
+                - name: POSTGRES_PORT
+                  value: {{ .Values.postgresql.port | quote }}
+                - name: POSTGRES_USER
+                  value: {{ .Values.postgresql.user | quote }}
+                - name: POSTGRES_DB
+                  value: {{ .Values.postgresql.database | quote }}
+                {{- if .Values.postgresql.existingSecret }}
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.postgresql.existingSecret }}
+                      key: {{ .Values.postgresql.existingSecretPasswordKey }}
+                {{- else if .Values.postgresql.password }}
+                - name: POSTGRES_PASSWORD
+                  value: {{ .Values.postgresql.password | quote }}
+                {{- end }}
+                {{- end }}
+                {{- if .Values.secretKey.existingSecret }}
+                - name: SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secretKey.existingSecret }}
+                      key: {{ .Values.secretKey.existingSecretKey }}
+                {{- end }}
+                - name: UPLOAD_DIR
+                  value: /app/data/uploads
+                {{- with .Values.env }}
+                {{- toYaml . | nindent 16 }}
+                {{- end }}
+              envFrom:
+                {{- with .Values.envFrom }}
+                {{- toYaml . | nindent 16 }}
+                {{- end }}
+              resources:
+                {{- toYaml .Values.cleanup.resources | nindent 16 }}
+              volumeMounts:
+                - name: data
+                  mountPath: /app/data
+          volumes:
+            - name: data
+              {{- if .Values.persistence.existingClaim }}
+              persistentVolumeClaim:
+                claimName: {{ .Values.persistence.existingClaim }}
+              {{- else }}
+              persistentVolumeClaim:
+                claimName: {{ include "tarnished.fullname" . }}
+              {{- end }}
+{{- end }}
