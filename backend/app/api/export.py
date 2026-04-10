@@ -1,15 +1,17 @@
 import csv
 import io
 import json
+import os
 from datetime import datetime
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, selectinload
+from starlette.background import BackgroundTask
 
-from app.api.utils.zip_utils import create_zip_export
+from app.api.utils.zip_utils import create_zip_export_file
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_api_key_scope
@@ -18,6 +20,11 @@ from app.services.export_registry import default_registry
 from app.services.export_service import ExportService
 
 router = APIRouter(prefix="/api/export", tags=["export"])
+
+
+def _delete_temp_file(path: str) -> None:
+    if os.path.exists(path):
+        os.unlink(path)
 
 
 def _sanitize_csv_value(value: str | None) -> str:
@@ -284,14 +291,15 @@ async def export_zip(
     # Get upload directory from settings
     settings = get_settings()
 
-    # Create ZIP with all media files
-    zip_bytes = await create_zip_export(
+    # Create ZIP with all media files on disk so FileResponse can stream it.
+    zip_path = await create_zip_export_file(
         json_data, str(user.id), settings.upload_dir, user_email=user.email
     )
 
     filename = f"tarnished-export-{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip"
-    return StreamingResponse(
-        io.BytesIO(zip_bytes),
+    return FileResponse(
+        path=zip_path,
+        filename=filename,
         media_type="application/zip",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        background=BackgroundTask(_delete_temp_file, zip_path),
     )

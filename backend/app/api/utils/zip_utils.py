@@ -7,8 +7,6 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-import aiofiles
-
 logger = logging.getLogger(__name__)
 
 try:
@@ -358,12 +356,12 @@ async def validate_zip_safety(zip_path: str) -> dict:
         raise ValueError(f"Error validating ZIP: {str(e)}")
 
 
-async def create_zip_export(
+async def create_zip_export_file(
     json_data: str,
     user_id: str,
     base_upload_path: str,
     user_email: str | None = None,
-) -> bytes:
+) -> str:
     """Create a ZIP file with manifest, data.json, and all media files.
 
     Args:
@@ -373,7 +371,7 @@ async def create_zip_export(
         user_email: Optional user email for manifest
 
     Returns:
-        ZIP file as bytes
+        Path to the generated ZIP file
     """
     from datetime import UTC, datetime
 
@@ -541,29 +539,20 @@ async def create_zip_export(
         "files": file_registry,
     }
 
-    # Create temp file for ZIP (streaming ZIPs are complex)
+    # Create temp file for ZIP and let the caller stream/delete it.
     with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
         tmp_path = tmp.name
 
-    try:
-        with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            # Write manifest
-            zipf.writestr("manifest.json", json.dumps(manifest, indent=2))
+    with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+        # Write manifest
+        zipf.writestr("manifest.json", json.dumps(manifest, indent=2))
 
-            # Write data
-            zipf.writestr("data.json", json_data)
+        # Write data
+        zipf.writestr("data.json", json_data)
 
-            # Write files with human-readable paths
-            for source_path, zip_path in file_mappings:
-                if source_path.exists():
-                    zipf.write(source_path, zip_path)
+        # Write files with human-readable paths
+        for source_path, zip_path in file_mappings:
+            if source_path.exists():
+                zipf.write(source_path, zip_path)
 
-        # Read ZIP file
-        async with aiofiles.open(tmp_path, "rb") as f:
-            zip_bytes = await f.read()
-
-        return zip_bytes
-    finally:
-        # Cleanup temp file
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
+    return tmp_path

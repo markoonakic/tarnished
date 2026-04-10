@@ -14,6 +14,8 @@ from pathlib import Path
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.background import BackgroundTask
+from starlette.responses import FileResponse
 
 from app.core.security import create_access_token, get_password_hash
 from app.models import (
@@ -980,6 +982,21 @@ class TestZIPExport:
         content_disposition = response.headers.get("content-disposition", "")
         assert "tarnished-export-" in content_disposition
         assert ".zip" in content_disposition
+
+    async def test_zip_export_uses_file_response_with_background_cleanup(
+        self, db: AsyncSession, test_user: User
+    ):
+        from app.api.export import export_zip
+
+        route_response = await export_zip(user=test_user, db=db)
+
+        assert isinstance(route_response, FileResponse)
+        assert isinstance(route_response.background, BackgroundTask)
+        assert Path(route_response.path).exists()
+
+        await route_response.background()
+
+        assert not Path(route_response.path).exists()
 
     async def test_zip_export_resolves_relative_stored_paths_against_absolute_upload_dir(
         self,
