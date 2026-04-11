@@ -1,6 +1,6 @@
 import logging
-import os
 from functools import lru_cache
+from pathlib import Path
 from urllib.parse import urlparse
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -100,31 +100,43 @@ def get_settings() -> Settings:
 
 
 def resolve_upload_path(stored_path: str) -> str:
-    """Resolve a stored file path to an absolute filesystem path.
+    """Resolve a stored file path to a safe absolute filesystem path.
 
     Handles paths stored in the database which may have different formats:
-    - 'uploads/user_id/hash.pdf' (new format)
-    - './uploads/hash.mp3' (old format with relative prefix)
+    - 'uploads/hash.pdf' (canonical CAS format)
+    - './uploads/hash.mp3' (legacy relative prefix)
 
-    The UPLOAD_DIR env var determines where files are actually stored:
-    - Dev: './uploads' (relative to project root)
-    - Prod: '/app/data/uploads' (absolute path in container)
+    The resolved path must remain within the configured upload directory.
 
     Args:
-        stored_path: Path as stored in database (e.g., 'uploads/user_id/file.pdf')
+        stored_path: Path as stored in database.
 
     Returns:
-        Absolute or relative path that can be used with os.path.exists(), FileResponse, etc.
-    """
-    settings = get_settings()
-    upload_dir = settings.upload_dir
+        Safe absolute path that can be used with os.path.exists(), FileResponse, etc.
 
-    # Normalize the stored path by removing common prefixes
+    Raises:
+        ValueError: If the resolved path escapes the configured upload root.
+    """
+    upload_root = Path(get_settings().upload_dir).resolve()
+
     path = stored_path
     if path.startswith("./"):
         path = path[2:]
     if path.startswith("uploads/"):
-        path = path[8:]  # Remove 'uploads/' prefix
+        path = path[8:]
 
-    # Join with configured upload directory
-    return os.path.join(upload_dir, path)
+    candidate = Path(path)
+    resolved = (
+        candidate.resolve()
+        if candidate.is_absolute()
+        else (upload_root / candidate).resolve()
+    )
+
+    try:
+        resolved.relative_to(upload_root)
+    except ValueError as exc:
+        raise ValueError(
+            f"Resolved upload path escapes upload root: {stored_path}"
+        ) from exc
+
+    return str(resolved)

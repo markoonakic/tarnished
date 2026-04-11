@@ -4,9 +4,10 @@ from typing import Any
 
 from litellm import completion
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.schemas.insights import GraceInsights, SectionInsight
-from app.services.ai_settings import get_ai_settings_sync
+from app.services.ai_settings import AISettingsState, get_ai_settings_sync
 
 logger = logging.getLogger(__name__)
 
@@ -68,15 +69,21 @@ ACTIVITY TRACKING:
 Generate insights that help diagnose where to focus improvement efforts."""
 
 
-def generate_insights(
-    db: Session,
+def _validate_section(data: dict, name: str) -> dict:
+    required = ["key_insight", "trend", "priority_actions"]
+    if not all(k in data for k in required):
+        raise ValueError(f"AI response missing required fields for {name}")
+    return data
+
+
+def generate_insights_from_settings(
+    settings: AISettingsState,
     pipeline_data: dict[str, Any],
     interview_data: dict[str, Any],
     activity_data: dict[str, Any],
     period: str,
 ) -> GraceInsights:
-    """Generate AI insights from analytics data."""
-    settings = get_ai_settings_sync(db)
+    """Generate AI insights from analytics data using preloaded settings."""
     model = settings.model or "openai/gpt-4o-mini"
     api_key = settings.api_key
     base_url = settings.base_url
@@ -110,13 +117,6 @@ def generate_insights(
 
         insights_json = json.loads(content)
 
-        # Validate required fields exist
-        def _validate_section(data: dict, name: str) -> dict:
-            required = ["key_insight", "trend", "priority_actions"]
-            if not all(k in data for k in required):
-                raise ValueError(f"AI response missing required fields for {name}")
-            return data
-
         return GraceInsights(
             overall_grace=insights_json.get("overall_grace", ""),
             pipeline_overview=SectionInsight(
@@ -142,3 +142,39 @@ def generate_insights(
     except Exception as e:
         logger.error(f"AI service error: {e}")
         raise ValueError(f"AI service error: {e}")
+
+
+async def generate_insights_async(
+    settings: AISettingsState,
+    pipeline_data: dict[str, Any],
+    interview_data: dict[str, Any],
+    activity_data: dict[str, Any],
+    period: str,
+) -> GraceInsights:
+    """Run blocking insights generation off the event loop."""
+    return await run_in_threadpool(
+        generate_insights_from_settings,
+        settings,
+        pipeline_data,
+        interview_data,
+        activity_data,
+        period,
+    )
+
+
+def generate_insights(
+    db: Session,
+    pipeline_data: dict[str, Any],
+    interview_data: dict[str, Any],
+    activity_data: dict[str, Any],
+    period: str,
+) -> GraceInsights:
+    """Backward-compatible sync entrypoint for callers with a sync Session."""
+    settings = get_ai_settings_sync(db)
+    return generate_insights_from_settings(
+        settings,
+        pipeline_data,
+        interview_data,
+        activity_data,
+        period,
+    )

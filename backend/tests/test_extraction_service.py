@@ -10,7 +10,7 @@ including HTML preprocessing, LLM extraction, and error handling.
 # Pydantic v2 optional fields cause false positives with pyright
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import openai
 import pytest
@@ -535,6 +535,32 @@ class TestExtractJobData:
             # Verify timeout was passed
             call_kwargs = mock_completion.call_args
             assert call_kwargs[1]["timeout"] == 120
+
+    @pytest.mark.asyncio
+    async def test_extract_job_data_uses_async_llm_boundary(self):
+        """The async entrypoint should delegate blocking LLM work through an async boundary."""
+        expected = JobLeadExtractionInput(
+            title="Async Boundary Engineer",
+            company="Threadpool Corp",
+            requirements_must_have=[],
+            requirements_nice_to_have=[],
+            skills=[],
+        )
+
+        with patch(
+            "app.services.extraction.extract_with_llm_async",
+            new_callable=AsyncMock,
+        ) as mock_extract_with_llm_async:
+            mock_extract_with_llm_async.return_value = expected
+
+            result = await extract_job_data(
+                html=SAMPLE_JOB_HTML,
+                url="https://example.com/job/123",
+                api_key="test-key",
+            )
+
+        assert result.title == "Async Boundary Engineer"
+        mock_extract_with_llm_async.assert_awaited_once()
 
 
 class TestJobLeadExtractionInputSchema:

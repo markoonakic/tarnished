@@ -60,7 +60,8 @@ export async function deleteApplication(id: string): Promise<void> {
 
 export async function uploadCV(
   applicationId: string,
-  file: File
+  file: File,
+  onProgress?: (loaded: number, total: number) => void
 ): Promise<Application> {
   const formData = new FormData();
   formData.append('file', file);
@@ -69,6 +70,11 @@ export async function uploadCV(
     formData,
     {
       headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (event) => {
+        if (event.total) {
+          onProgress?.(event.loaded, event.total);
+        }
+      },
     }
   );
   return response.data;
@@ -81,7 +87,8 @@ export async function deleteCV(applicationId: string): Promise<Application> {
 
 export async function uploadCoverLetter(
   applicationId: string,
-  file: File
+  file: File,
+  onProgress?: (loaded: number, total: number) => void
 ): Promise<Application> {
   const formData = new FormData();
   formData.append('file', file);
@@ -90,6 +97,11 @@ export async function uploadCoverLetter(
     formData,
     {
       headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (event) => {
+        if (event.total) {
+          onProgress?.(event.loaded, event.total);
+        }
+      },
     }
   );
   return response.data;

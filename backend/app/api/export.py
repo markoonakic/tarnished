@@ -4,7 +4,7 @@ import json
 import os
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,11 +13,19 @@ from starlette.background import BackgroundTask
 
 from app.api.utils.zip_utils import create_zip_export_file
 from app.core.config import get_settings
-from app.core.database import get_db
+from app.core.database import async_session_maker, get_db
 from app.core.deps import get_current_user, require_api_key_scope
 from app.models import Application, ApplicationStatusHistory, Round, User
 from app.services.export_registry import default_registry
 from app.services.export_service import ExportService
+from app.services.transfer_jobs import (
+    complete_transfer_job,
+    create_transfer_job,
+    fail_transfer_job,
+    get_transfer_job_for_user,
+    serialize_transfer_job,
+    update_transfer_job_progress,
+)
 
 router = APIRouter(prefix="/api/export", tags=["export"])
 
@@ -43,6 +51,122 @@ def _run_export_user_data(sync_session: Session, user_id: str) -> dict:
     export_service = ExportService(registry=default_registry)
     return export_service.export_user_data(
         user_id=user_id, session=sync_session, include_media_paths=True
+    )
+
+
+async def process_export_zip_job(*, job_id: str, user_id: str, user_email: str) -> None:
+    try:
+        async with async_session_maker() as db:
+            await update_transfer_job_progress(
+                db,
+                job_id=job_id,
+                status="processing",
+                stage="exporting",
+                percent=20,
+                message="Collecting export data...",
+            )
+            data = await db.run_sync(_run_export_user_data, user_id)
+            data["user"]["email"] = user_email
+            json_data = json.dumps(data, indent=2)
+
+            await update_transfer_job_progress(
+                db,
+                job_id=job_id,
+                stage="archiving",
+                percent=70,
+                message="Preparing ZIP archive...",
+            )
+
+            settings = get_settings()
+            zip_path = await create_zip_export_file(
+                json_data,
+                user_id,
+                settings.upload_dir,
+                user_email=user_email,
+            )
+
+            filename = (
+                f"tarnished-export-{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip"
+            )
+            await complete_transfer_job(
+                db,
+                job_id=job_id,
+                message="Export ready",
+                artifact_path=zip_path,
+                result={"filename": filename},
+            )
+    except Exception as exc:
+        async with async_session_maker() as db:
+            await fail_transfer_job(
+                db,
+                job_id=job_id,
+                stage="archiving",
+                message=f"Export failed: {exc}",
+                error={"error": str(exc)},
+            )
+        raise
+
+
+@router.post("/zip-jobs", status_code=status.HTTP_202_ACCEPTED)
+async def start_export_zip_job(
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("export:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    job = await create_transfer_job(
+        db,
+        user_id=str(user.id),
+        job_type="export_zip",
+        status="queued",
+        stage="queued",
+        percent=0,
+        message="Queued for export",
+    )
+    background_tasks.add_task(
+        process_export_zip_job,
+        job_id=str(job.id),
+        user_id=str(user.id),
+        user_email=user.email,
+    )
+    return {"job_id": str(job.id), "status": "queued"}
+
+
+@router.get("/zip-jobs/{job_id}")
+async def get_export_zip_job(
+    job_id: str,
+    user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("export:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    job = await get_transfer_job_for_user(db, job_id=job_id, user_id=str(user.id))
+    if job is None or job.job_type != "export_zip":
+        raise HTTPException(status_code=404, detail="Export job not found")
+    return serialize_transfer_job(job)
+
+
+@router.get("/zip-jobs/{job_id}/download")
+async def download_export_zip_job(
+    job_id: str,
+    user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("export:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    job = await get_transfer_job_for_user(db, job_id=job_id, user_id=str(user.id))
+    if job is None or job.job_type != "export_zip":
+        raise HTTPException(status_code=404, detail="Export job not found")
+    if job.status != "complete" or not job.artifact_path:
+        raise HTTPException(status_code=409, detail="Export job not ready")
+    if not os.path.exists(job.artifact_path):
+        raise HTTPException(
+            status_code=410,
+            detail="Export file is no longer available. Please generate a new export.",
+        )
+    filename = (job.result or {}).get("filename") or f"export-{job_id}.zip"
+    return FileResponse(
+        path=job.artifact_path,
+        filename=filename,
+        media_type="application/zip",
     )
 
 

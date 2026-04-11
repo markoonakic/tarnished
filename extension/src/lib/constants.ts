@@ -1,9 +1,9 @@
 // Shared utilities and constants for the Tarnished extension
 
-// API endpoint constants
+// Legacy shared constants kept for backwards-compatible module boundaries.
 export const API_ENDPOINTS = {
-  JOB_LEADS: '/api/v1/job-leads',
-  AUTH: '/api/v1/auth',
+  JOB_LEADS: '/api/job-leads',
+  AUTH: '/api/auth',
 } as const;
 
 // Message types for extension communication
@@ -21,8 +21,6 @@ export const MESSAGE_TYPES = {
 // Storage keys
 export const STORAGE_KEYS = {
   SETTINGS: 'tarnished_settings',
-  AUTH_TOKEN: 'tarnished_auth_token',
-  API_URL: 'tarnished_api_url',
 } as const;
 
 // Default settings

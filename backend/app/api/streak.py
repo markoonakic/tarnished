@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_api_key_scope
 from app.models import User
 from app.schemas.streak import StreakResponse
 
@@ -151,6 +151,7 @@ def get_flame_stage(streak_days: int) -> dict:
 @router.get("", response_model=StreakResponse)
 async def get_streak(
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("streak:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Get current streak information for Flame of Focus display."""
@@ -198,6 +199,7 @@ async def get_streak(
 @router.post("/record")
 async def record_activity(
     user: User = Depends(get_current_user),
+    _: object = Depends(require_api_key_scope("streak:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Record activity that counts toward streak."""

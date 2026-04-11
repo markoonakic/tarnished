@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import {
   uploadCV,
   uploadCoverLetter,
@@ -21,13 +21,6 @@ export default function DocumentSection({ application, onUpdate }: Props) {
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
   const [justReplaced, setJustReplaced] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (progressRef.current) clearInterval(progressRef.current);
-    };
-  }, []);
 
   async function handleUpload(
     type: 'cv' | 'cover-letter',
@@ -39,21 +32,23 @@ export default function DocumentSection({ application, onUpdate }: Props) {
     setUploadProgress(0);
     setError('');
 
-    progressRef.current = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 90) return prev;
-        return prev + 10;
-      });
-    }, 100);
-
     try {
       let updated: Application;
       if (type === 'cv') {
-        updated = await uploadCV(application.id, file);
+        updated = await uploadCV(application.id, file, (loaded, total) => {
+          setUploadProgress(total > 0 ? Math.round((loaded / total) * 100) : 0);
+        });
       } else {
-        updated = await uploadCoverLetter(application.id, file);
+        updated = await uploadCoverLetter(
+          application.id,
+          file,
+          (loaded, total) => {
+            setUploadProgress(
+              total > 0 ? Math.round((loaded / total) * 100) : 0
+            );
+          }
+        );
       }
-      if (progressRef.current) clearInterval(progressRef.current);
       setUploadProgress(100);
       onUpdate(updated);
       if (isReplace) {
@@ -62,7 +57,6 @@ export default function DocumentSection({ application, onUpdate }: Props) {
       }
       setTimeout(() => setUploadProgress(0), 500);
     } catch {
-      if (progressRef.current) clearInterval(progressRef.current);
       setError(`Failed to upload ${type}`);
       setUploadProgress(0);
     } finally {

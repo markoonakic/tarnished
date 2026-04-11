@@ -7,7 +7,7 @@ Tests for:
 """
 
 import os
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
@@ -124,7 +124,6 @@ class TestInsightsGenerationEndpoint:
         db.add(setting)
         await db.commit()
 
-        # Mock the generate_insights function
         mock_insights = GraceInsights(
             overall_grace="Test guidance",
             pipeline_overview=SectionInsight(
@@ -144,7 +143,11 @@ class TestInsightsGenerationEndpoint:
             ),
         )
 
-        with patch("app.api.insights.generate_insights", return_value=mock_insights):
+        with patch(
+            "app.api.insights.generate_insights_async",
+            new_callable=AsyncMock,
+        ) as mock_generate_insights_async:
+            mock_generate_insights_async.return_value = mock_insights
             response = await client.post(
                 "/api/analytics/insights", json={"period": "30d"}, headers=auth_headers
             )
@@ -186,7 +189,11 @@ class TestInsightsGenerationEndpoint:
             ),
         )
 
-        with patch("app.api.insights.generate_insights", return_value=mock_insights):
+        with patch(
+            "app.api.insights.generate_insights_async",
+            new_callable=AsyncMock,
+        ) as mock_generate_insights_async:
+            mock_generate_insights_async.return_value = mock_insights
             for period in ["7d", "30d", "3m", "all"]:
                 response = await client.post(
                     "/api/analytics/insights",
@@ -194,6 +201,55 @@ class TestInsightsGenerationEndpoint:
                     headers=auth_headers,
                 )
                 assert response.status_code == 200, f"Failed for period {period}"
+
+    @pytest.mark.asyncio
+    async def test_insights_defaults_invalid_period_to_30d(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        auth_headers: dict[str, str],
+    ):
+        from app.core.security import encrypt_api_key
+
+        encrypted_key = encrypt_api_key("test-api-key")
+        db.add(
+            SystemSettings(key=SystemSettings.KEY_LITELLM_API_KEY, value=encrypted_key)
+        )
+        await db.commit()
+
+        mock_insights = GraceInsights(
+            overall_grace="Normalized",
+            pipeline_overview=SectionInsight(
+                key_insight="Pipeline",
+                trend="Stable",
+                priority_actions=["A"],
+            ),
+            interview_analytics=SectionInsight(
+                key_insight="Interview",
+                trend="Stable",
+                priority_actions=["B"],
+            ),
+            activity_tracking=SectionInsight(
+                key_insight="Activity",
+                trend="Stable",
+                priority_actions=["C"],
+            ),
+        )
+
+        with patch(
+            "app.api.insights.generate_insights_async",
+            new_callable=AsyncMock,
+        ) as mock_generate_insights_async:
+            mock_generate_insights_async.return_value = mock_insights
+            response = await client.post(
+                "/api/analytics/insights",
+                json={"period": "unexpected"},
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 200
+        assert mock_generate_insights_async.await_args is not None
+        assert mock_generate_insights_async.await_args.args[-1] == "30d"
 
     @pytest.mark.asyncio
     async def test_insights_requires_authentication(self, client: AsyncClient):
@@ -220,6 +276,57 @@ class TestInsightsGenerationEndpoint:
 
         assert response.status_code == 503
         assert response.json()["detail"] == "Analytics unavailable"
+
+    @pytest.mark.asyncio
+    async def test_insights_uses_async_generation_boundary(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        auth_headers: dict[str, str],
+    ):
+        """The API route should delegate blocking AI generation through an async boundary."""
+        from app.core.security import encrypt_api_key
+
+        encrypted_key = encrypt_api_key("test-api-key")
+        db.add(
+            SystemSettings(key=SystemSettings.KEY_LITELLM_API_KEY, value=encrypted_key)
+        )
+        await db.commit()
+
+        mock_insights = GraceInsights(
+            overall_grace="Async guidance",
+            pipeline_overview=SectionInsight(
+                key_insight="Pipeline",
+                trend="Stable",
+                priority_actions=["A"],
+            ),
+            interview_analytics=SectionInsight(
+                key_insight="Interviews",
+                trend="Stable",
+                priority_actions=["B"],
+            ),
+            activity_tracking=SectionInsight(
+                key_insight="Activity",
+                trend="Stable",
+                priority_actions=["C"],
+            ),
+        )
+
+        with patch(
+            "app.api.insights.generate_insights_async",
+            new_callable=AsyncMock,
+        ) as mock_generate_insights_async:
+            mock_generate_insights_async.return_value = mock_insights
+
+            response = await client.post(
+                "/api/analytics/insights",
+                json={"period": "30d"},
+                headers=auth_headers,
+            )
+
+        assert response.status_code == 200
+        assert response.json()["overall_grace"] == "Async guidance"
+        mock_generate_insights_async.assert_awaited_once()
 
 
 class TestInsightsWithPostgreSQL:
@@ -253,8 +360,8 @@ class TestInsightsWithPostgreSQL:
         1. Code tried to replace +asyncpg with +psycopg2 in sync URL
         2. Only psycopg (v3) was installed, not psycopg2
 
-        The fix uses AsyncSession.run_sync() which doesn't need a separate
-        sync engine at all.
+        The fix keeps DB access async, then runs blocking AI generation in a
+        threadpool boundary.
         """
         from app.core.security import encrypt_api_key
 
@@ -286,7 +393,11 @@ class TestInsightsWithPostgreSQL:
             ),
         )
 
-        with patch("app.api.insights.generate_insights", return_value=mock_insights):
+        with patch(
+            "app.api.insights.generate_insights_async",
+            new_callable=AsyncMock,
+        ) as mock_generate_insights_async:
+            mock_generate_insights_async.return_value = mock_insights
             response = await client.post(
                 "/api/analytics/insights",
                 json={"period": "30d"},
