@@ -6,6 +6,25 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-04-11
+
+### Fixed
+
+- Completed the Homebrew-compatible release of the CLI auth ergonomics follow-up by restoring the CLI root help wording expected by the tap smoke test while keeping the new API-key-first guidance underneath it.
+- Hardened CLI help-output assertions so ANSI/styled help rendering does not cause false CI failures in release automation.
+
+### Validation
+
+- Release-tools tests: `4 passed`
+- Backend tests: `368 passed, 2 skipped`
+- Backend Ruff: passed
+- Frontend tests: `19` files / `48` tests passed; build passed; `tsc --noEmit` passed
+- Extension tests: `20` files / `57` tests passed; build passed
+- CLI tests: `73 passed`
+- CLI Ruff: passed
+- CLI Pyright: `0 errors`
+- Live PostgreSQL validation remains green on the same runtime code path; the failed `0.1.6` release was a packaging/Homebrew smoke-test issue, not a database/runtime regression.
+
 ## [0.1.6] - 2026-04-11
 
 ### Added
