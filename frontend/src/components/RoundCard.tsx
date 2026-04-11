@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import {
   uploadMedia,
   deleteMedia,
@@ -39,18 +39,6 @@ export default function RoundCard({
   const [uploadingTranscriptProgress, setUploadingTranscriptProgress] =
     useState(0);
   const [playingMedia, setPlayingMedia] = useState<RoundMedia | null>(null);
-  const mediaProgressRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const transcriptProgressRef = useRef<ReturnType<typeof setInterval> | null>(
-    null
-  );
-
-  useEffect(() => {
-    return () => {
-      if (mediaProgressRef.current) clearInterval(mediaProgressRef.current);
-      if (transcriptProgressRef.current)
-        clearInterval(transcriptProgressRef.current);
-    };
-  }, []);
 
   function formatDateTime(dateStr: string | null) {
     if (!dateStr) return '-';
@@ -82,21 +70,16 @@ export default function RoundCard({
     setUploadingMediaFile(file);
     setUploadingMediaProgress(0);
 
-    mediaProgressRef.current = setInterval(() => {
-      setUploadingMediaProgress((prev) => {
-        if (prev >= 90) return prev;
-        return prev + 10;
-      });
-    }, 100);
-
     try {
-      await uploadMedia(round.id, file);
-      if (mediaProgressRef.current) clearInterval(mediaProgressRef.current);
+      await uploadMedia(round.id, file, (loaded, total) => {
+        setUploadingMediaProgress(
+          total > 0 ? Math.round((loaded / total) * 100) : 0
+        );
+      });
       setUploadingMediaProgress(100);
       onMediaChange();
       setTimeout(() => setUploadingMediaProgress(0), 500);
     } catch {
-      if (mediaProgressRef.current) clearInterval(mediaProgressRef.current);
       toast.error('Failed to upload media');
       setUploadingMediaProgress(0);
     } finally {
@@ -178,23 +161,16 @@ export default function RoundCard({
     setUploadingTranscriptFile(file);
     setUploadingTranscriptProgress(0);
 
-    transcriptProgressRef.current = setInterval(() => {
-      setUploadingTranscriptProgress((prev) => {
-        if (prev >= 90) return prev;
-        return prev + 10;
-      });
-    }, 100);
-
     try {
-      await uploadRoundTranscript(round.id, file);
-      if (transcriptProgressRef.current)
-        clearInterval(transcriptProgressRef.current);
+      await uploadRoundTranscript(round.id, file, (loaded, total) => {
+        setUploadingTranscriptProgress(
+          total > 0 ? Math.round((loaded / total) * 100) : 0
+        );
+      });
       setUploadingTranscriptProgress(100);
       onMediaChange();
       setTimeout(() => setUploadingTranscriptProgress(0), 500);
     } catch {
-      if (transcriptProgressRef.current)
-        clearInterval(transcriptProgressRef.current);
       toast.error('Failed to upload transcript');
       setUploadingTranscriptProgress(0);
     } finally {

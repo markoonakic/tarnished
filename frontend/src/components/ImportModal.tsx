@@ -3,8 +3,13 @@ import {
   validateImport,
   importData,
   connectToImportProgress,
-  type ImportProgress,
 } from '../lib/import';
+import {
+  createTransferStateFromJob,
+  createTransferStateFromUpload,
+  type TransferState,
+} from '../lib/transfer';
+import TransferProgressPanel from './transfer/TransferProgressPanel';
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -12,7 +17,7 @@ interface ImportModalProps {
   onSuccess: () => void;
 }
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB (matches backend limit per file)
+const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB total ZIP limit (matches backend ZIP validation)
 
 export default function ImportModal({
   isOpen,
@@ -27,14 +32,16 @@ export default function ImportModal({
     summary: Record<string, number>;
     warnings: string[];
   } | null>(null);
-  const [progress, setProgress] = useState<ImportProgress | null>(null);
+  const [transferState, setTransferState] = useState<TransferState | null>(
+    null
+  );
   const [error, setError] = useState('');
   const [override, setOverride] = useState(false);
 
   const reset = () => {
     setFile(null);
     setValidation(null);
-    setProgress(null);
+    setTransferState(null);
     setError('');
     setOverride(false);
     if (fileInputRef.current) {
@@ -79,7 +86,7 @@ export default function ImportModal({
 
     if (selected.size > MAX_FILE_SIZE) {
       setError(
-        `File too large (${(selected.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 100MB.`
+        `File too large (${(selected.size / 1024 / 1024).toFixed(1)}MB). Maximum archive size is 1GB.`
       );
       setFile(null);
       if (fileInputRef.current) {
@@ -117,19 +124,48 @@ export default function ImportModal({
 
     setImporting(true);
     setError('');
+    setTransferState(
+      createTransferStateFromUpload({
+        phase: 'uploading',
+        loaded: 0,
+        total: file.size,
+        fileName: file.name,
+      })
+    );
 
     try {
-      const { import_id } = await importData(file, override);
+      const { import_id } = await importData(
+        file,
+        override,
+        (loaded, total) => {
+          setTransferState(
+            createTransferStateFromUpload({
+              phase: 'uploading',
+              loaded,
+              total,
+              fileName: file.name,
+            })
+          );
+        }
+      );
 
       connectToImportProgress(
         import_id,
         (prog) => {
-          setProgress(prog);
+          setTransferState(createTransferStateFromJob(prog));
         },
-        () => {
+        (finalProgress) => {
           setImporting(false);
-          onSuccess();
-          reset();
+          if (finalProgress.status === 'complete') {
+            onSuccess();
+            reset();
+            return;
+          }
+          setError(
+            finalProgress.message ||
+              finalProgress.error?.error ||
+              'Import failed. Please try again.'
+          );
         }
       );
     } catch (err) {
@@ -181,18 +217,9 @@ export default function ImportModal({
             </div>
           )}
 
-          {progress ? (
-            <div className="py-8 text-center">
-              <div className="border-accent mb-4 inline-block h-12 w-12 animate-spin rounded-full border-4 border-t-transparent"></div>
-              <p className="text-primary">
-                {progress.message || 'Importing...'}
-              </p>
-              <div className="bg-tertiary mt-4 h-2 w-full rounded-full">
-                <div
-                  className="bg-accent h-2 rounded-full transition-all"
-                  style={{ width: `${progress.percent}%` }}
-                />
-              </div>
+          {transferState ? (
+            <div className="py-8">
+              <TransferProgressPanel state={transferState} />
             </div>
           ) : validation ? (
             <div>
@@ -276,6 +303,9 @@ export default function ImportModal({
             <div>
               <p className="text-secondary mb-4 text-sm">
                 Select a ZIP export file to import your job application data.
+                Large archives can take a while to upload and process. Files
+                larger than 100MB inside the ZIP may still fail backend
+                validation.
               </p>
 
               <input

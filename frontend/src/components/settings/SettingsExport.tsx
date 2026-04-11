@@ -1,10 +1,23 @@
 import { useState } from 'react';
-import { exportJSON, exportCSV, exportZIP } from '../../lib/export';
+import {
+  downloadZIPExportJob,
+  exportJSON,
+  exportCSV,
+  getZIPExportJobStatus,
+  startZIPExportJob,
+} from '../../lib/export';
+import {
+  createTransferStateFromJob,
+  type TransferState,
+} from '../../lib/transfer';
+import TransferProgressPanel from '../transfer/TransferProgressPanel';
 import { SettingsBackLink } from './SettingsLayout';
 
 export default function SettingsExport() {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
+  const [zipTransferState, setZipTransferState] =
+    useState<TransferState | null>(null);
 
   async function handleExportJSON() {
     setExporting(true);
@@ -30,8 +43,28 @@ export default function SettingsExport() {
 
   async function handleExportZIP() {
     setExporting(true);
+    setError('');
     try {
-      await exportZIP();
+      const { job_id } = await startZIPExportJob();
+      while (true) {
+        const job = await getZIPExportJobStatus(job_id);
+        const state = createTransferStateFromJob(job);
+        setZipTransferState(state);
+
+        if (job.status === 'complete') {
+          await downloadZIPExportJob(job_id);
+          setZipTransferState(null);
+          return;
+        }
+
+        if (job.status === 'failed') {
+          throw new Error(
+            job.message || job.error?.error || 'Failed to export data'
+          );
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
+      }
     } catch {
       setError('Failed to export data');
     } finally {
@@ -57,6 +90,12 @@ export default function SettingsExport() {
         <p className="text-muted mb-4 text-sm">
           Download all your application data for backup or analysis.
         </p>
+        {zipTransferState && (
+          <div className="mb-4">
+            <TransferProgressPanel state={zipTransferState} />
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-3">
           <button
             onClick={handleExportJSON}
