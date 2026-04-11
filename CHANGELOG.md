@@ -6,6 +6,34 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-04-11
+
+### Added
+
+- CLI `auth init` for validating and storing an API key locally without reintroducing JWT/session login flows.
+- CLI `auth whoami` and `auth doctor` commands for live identity checks and scope-aware diagnostics against the current machine-client auth model.
+- Backend `GET /api/auth/whoami` for safe self-identity introspection through the existing `AuthContext`, including presented API-key metadata when the caller uses an API key.
+
+### Changed
+
+- CLI help text, skill guidance, and README examples now consistently document the API-key-first auth flow.
+- CLI examples now reflect the real global flag contract for machine-readable output, using `tarnished --json ...` ordering consistently.
+
+### Fixed
+
+- CLI onboarding no longer leaves users guessing whether a stored key is valid or sufficiently scoped for common read workflows.
+- Export/import ZIP round-trips now preserve audio MIME metadata more reliably by retrying file-based libmagic detection when buffer-based detection falls back to `application/octet-stream` for audio blobs.
+
+### Validation
+
+- Release-tools tests: `4 passed`
+- Backend tests: `368 passed, 2 skipped`
+- Backend Ruff: passed
+- CLI tests: `73 passed`
+- CLI Ruff: passed
+- CLI Pyright: `0 errors`
+- Live PostgreSQL validation from the previous 0.1.5 release-prep remains green and no schema changes were introduced in 0.1.6.
+
 ## [0.1.5] - 2026-04-11
 
 ### Changed
