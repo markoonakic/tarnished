@@ -1,5 +1,6 @@
 import importlib
 import json
+import re
 from typing import Any, cast
 
 import pytest
@@ -373,11 +374,17 @@ def test_auth_doctor_reports_passing_checks_for_cli_preset_key(
     assert report["live_identity"]["api_key"]["preset"] == "cli"
 
 
+def _normalize_help(text: str) -> str:
+    text = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip().lower()
+
+
 def test_root_help_highlights_api_key_first_auth_flow(runner):
     result = runner.invoke(app, ["--help"])
 
     assert result.exit_code == 0
-    output = result.stdout.lower()
+    output = _normalize_help(result.stdout)
     assert "auth init --api-key" in output
     assert "auth doctor" in output
     assert "api-key auth" in output
@@ -387,7 +394,7 @@ def test_auth_help_mentions_web_managed_api_keys_and_doctor(runner):
     result = runner.invoke(app, ["auth", "--help"])
 
     assert result.exit_code == 0
-    output = result.stdout.lower()
+    output = _normalize_help(result.stdout)
     assert "web app" in output
     assert "auth doctor" in output
     assert "api-key" in output
