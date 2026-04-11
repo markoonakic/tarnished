@@ -15,8 +15,8 @@ def test_root_help_includes_examples_and_subcommand_hint(runner):
 
     assert result.exit_code == 0
     assert "Examples:" in output
-    assert "tarnished auth status --json" in output
-    assert "tarnished applications list --json" in output
+    assert "tarnished --json auth status" in output
+    assert "tarnished --json applications list" in output
     assert "tarnished <command> --help" in output
 
 
@@ -36,7 +36,7 @@ def test_applications_help_includes_json_and_body_file_examples(runner):
 
     assert result.exit_code == 0
     assert "Examples:" in output
-    assert "tarnished applications list --json" in output
+    assert "tarnished --json applications list" in output
     assert "tarnished applications create --body-file" in output
 
 
@@ -56,7 +56,7 @@ def test_analytics_help_includes_period_example(runner):
 
     assert result.exit_code == 0
     assert "Examples:" in output
-    assert "tarnished analytics kpis --period 30d --json" in output
+    assert "tarnished --json analytics kpis --period 30d" in output
 
 
 def test_admin_help_warns_and_includes_examples(runner):
@@ -66,4 +66,4 @@ def test_admin_help_warns_and_includes_examples(runner):
     assert result.exit_code == 0
     assert "Examples:" in output
     assert "Use only when you need privileged access." in output
-    assert "tarnished admin users list --json" in output
+    assert "tarnished --json admin users list" in output

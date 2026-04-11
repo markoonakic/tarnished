@@ -15,7 +15,7 @@ from tarnished_cli.state import get_state
 APPLICATIONS_HELP = """Manage job applications.
 
 Examples:
-  tarnished applications list --json
+  tarnished --json applications list
   tarnished applications create --body-file create-application.json
   tarnished applications delete app-123 --yes
 """

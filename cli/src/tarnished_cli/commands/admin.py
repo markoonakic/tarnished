@@ -17,9 +17,9 @@ from tarnished_cli.state import get_state
 ADMIN_HELP = """Admin-only commands. Use only when you need privileged access.
 
 Examples:
-  tarnished admin stats --json
-  tarnished admin users list --json
-  tarnished admin ai-settings get --json
+  tarnished --json admin stats
+  tarnished --json admin users list
+  tarnished --json admin ai-settings get
 """
 
 
