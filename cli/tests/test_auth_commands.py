@@ -1,3 +1,7 @@
+import importlib
+
+import pytest
+
 import tarnished_cli.state as state_module
 from tarnished_cli.auth_storage import load_auth as load_auth_impl
 from tarnished_cli.auth_storage import save_auth as save_auth_impl
@@ -65,3 +69,110 @@ def test_api_key_clear_removes_stored_key(runner, cli_config_dir, monkeypatch):
     assert result.exit_code == 0
     stored = load_auth_impl(config_dir=cli_config_dir, prefer_keyring=False)
     assert stored.api_key is None
+
+
+def _import_or_fail(module_name: str):
+    try:
+        return importlib.import_module(module_name)
+    except ModuleNotFoundError as exc:
+        pytest.fail(f"Expected module {module_name} to exist for Task 11: {exc}")
+
+
+def test_parse_live_identity_returns_exported_model_for_api_key_payload():
+    diagnostics_module = _import_or_fail("tarnished_cli.auth_diagnostics")
+    models_module = _import_or_fail("tarnished_cli.models")
+
+    parse_live_identity = getattr(diagnostics_module, "parse_live_identity", None)
+    live_auth_identity_model = getattr(models_module, "LiveAuthIdentity", None)
+
+    assert callable(parse_live_identity)
+    assert live_auth_identity_model is not None
+
+    identity = parse_live_identity(
+        {
+            "id": "user-1",
+            "email": "whoami@example.com",
+            "is_admin": False,
+            "is_active": True,
+            "auth_method": "api_key",
+            "api_key": {
+                "id": "key-1",
+                "label": "MacBook CLI",
+                "preset": "custom",
+                "scopes": ["applications:read"],
+                "key_prefix": "api-key-",
+                "created_at": "2026-04-11T10:00:00",
+                "last_used_at": "2026-04-11T11:00:00",
+                "revoked_at": None,
+            },
+        }
+    )
+
+    assert isinstance(identity, live_auth_identity_model)
+    assert identity.email == "whoami@example.com"
+    assert identity.auth_method == "api_key"
+    assert identity.api_key is not None
+    assert identity.api_key.label == "MacBook CLI"
+    assert identity.api_key.key_prefix == "api-key-"
+    assert identity.api_key.scopes == ["applications:read"]
+    assert identity.api_key.created_at.isoformat() == "2026-04-11T10:00:00"
+
+
+def test_build_auth_diagnostics_captures_stored_prefix_for_auth_init_groundwork():
+    diagnostics_module = _import_or_fail("tarnished_cli.auth_diagnostics")
+    models_module = _import_or_fail("tarnished_cli.models")
+
+    build_auth_diagnostics = getattr(diagnostics_module, "build_auth_diagnostics", None)
+    auth_diagnostics_model = getattr(models_module, "AuthDiagnostics", None)
+
+    assert callable(build_auth_diagnostics)
+    assert auth_diagnostics_model is not None
+
+    diagnostics = build_auth_diagnostics(
+        profile="default",
+        base_url="https://api.example.com",
+        stored_auth=state_module.StoredAuth(api_key="api-key-1234567890"),
+        live_identity={
+            "id": "user-1",
+            "email": "whoami@example.com",
+            "is_admin": False,
+            "is_active": True,
+            "auth_method": "api_key",
+            "api_key": {
+                "id": "key-1",
+                "label": "MacBook CLI",
+                "preset": "custom",
+                "scopes": ["applications:read"],
+                "key_prefix": "api-key-",
+                "created_at": "2026-04-11T10:00:00",
+                "last_used_at": "2026-04-11T11:00:00",
+                "revoked_at": None,
+            },
+        },
+    )
+
+    assert isinstance(diagnostics, auth_diagnostics_model)
+    assert diagnostics.profile == "default"
+    assert diagnostics.base_url == "https://api.example.com"
+    assert diagnostics.has_stored_api_key is True
+    assert diagnostics.stored_api_key_prefix == "api-key-"
+    assert diagnostics.live_identity is not None
+    assert diagnostics.live_identity.api_key is not None
+    assert diagnostics.live_identity.api_key.key_prefix == "api-key-"
+
+
+def test_build_auth_diagnostics_omits_prefix_when_no_local_api_key():
+    diagnostics_module = _import_or_fail("tarnished_cli.auth_diagnostics")
+    build_auth_diagnostics = getattr(diagnostics_module, "build_auth_diagnostics", None)
+
+    assert callable(build_auth_diagnostics)
+
+    diagnostics = build_auth_diagnostics(
+        profile="default",
+        base_url="https://api.example.com",
+        stored_auth=state_module.StoredAuth(),
+    )
+
+    assert diagnostics.has_stored_api_key is False
+    assert diagnostics.stored_api_key_prefix is None
+    assert diagnostics.live_identity is None
