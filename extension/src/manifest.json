@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tarnished",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Save job postings to Tarnished",
   "browser_specific_settings": {
     "gecko": {
