@@ -15,9 +15,11 @@ The web app is the authority for creating and rotating API keys. Use the CLI to
 validate, store, inspect, and diagnose a locally configured key.
 
 Examples:
+  tarnished auth status
   tarnished auth init --api-key '...'
-  tarnished auth doctor
   tarnished auth whoami
+  tarnished auth doctor
+  tarnished auth api-key set --value '...'
   tarnished auth api-key clear
 """
 
