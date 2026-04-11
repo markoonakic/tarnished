@@ -75,7 +75,10 @@ export async function importData(
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE}/api/import/import` || '/api/import/import');
+    const importUrl = API_BASE
+      ? `${API_BASE}/api/import/import`
+      : '/api/import/import';
+    xhr.open('POST', importUrl);
 
     const token = getAccessToken();
     if (token) {
