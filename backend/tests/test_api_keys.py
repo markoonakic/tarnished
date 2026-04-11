@@ -5,6 +5,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.api_key_scopes import ALL_SCOPES
 from app.core.security import (
     create_access_token,
     generate_api_token,
@@ -329,6 +330,82 @@ class TestAPIKeyRouteCoverage:
         )
 
         assert response.status_code == 200
+
+
+class TestStreakRouteCoverage:
+    async def test_api_key_without_streak_scope_is_rejected_for_get_streak(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        test_user: User,
+    ) -> None:
+        raw_key = generate_api_token()
+        db.add(
+            UserAPIKey(
+                user_id=test_user.id,
+                label="Restricted CLI",
+                preset="custom",
+                scopes=[],
+                key_prefix=raw_key[:8],
+                key_hash=hash_api_key(raw_key),
+            )
+        )
+        await db.commit()
+
+        response = await client.get(
+            "/api/streak",
+            headers={"X-API-Key": raw_key},
+        )
+
+        assert response.status_code == 403
+
+    async def test_api_key_without_streak_scope_is_rejected_for_record_activity(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        test_user: User,
+    ) -> None:
+        raw_key = generate_api_token()
+        db.add(
+            UserAPIKey(
+                user_id=test_user.id,
+                label="Restricted CLI",
+                preset="custom",
+                scopes=[],
+                key_prefix=raw_key[:8],
+                key_hash=hash_api_key(raw_key),
+            )
+        )
+        await db.commit()
+
+        response = await client.post(
+            "/api/streak/record",
+            headers={"X-API-Key": raw_key},
+        )
+
+        assert response.status_code == 403
+
+
+class TestScopeValidation:
+    async def test_dead_api_keys_manage_scope_is_not_valid_for_custom_keys(
+        self,
+        client: AsyncClient,
+        auth_headers: dict[str, str],
+    ) -> None:
+        assert "api_keys:manage" not in ALL_SCOPES
+
+        response = await client.post(
+            "/api/settings/api-keys",
+            headers=auth_headers,
+            json={
+                "label": "Invalid Scope Key",
+                "preset": "custom",
+                "scopes": ["api_keys:manage"],
+            },
+        )
+
+        assert response.status_code == 422
+        assert "Invalid API key scopes" in response.text
 
 
 class TestLegacyAPIKeyEndpoints:

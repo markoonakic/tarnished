@@ -1262,6 +1262,13 @@ class TestJobLeadsRetry:
         assert data["title"] == "Retried Job"
         assert data["error_message"] is None
 
+        assert mock_extract.await_count == 1
+        await_args = mock_extract.await_args
+        assert await_args is not None
+        assert await_args.args == ()
+        assert await_args.kwargs["html"] == "<html><body>Job content</body></html>"
+        assert await_args.kwargs["url"] == failed_job_lead.url
+
     async def test_retry_job_lead_returns_400_for_value_errors(
         self,
         client: AsyncClient,

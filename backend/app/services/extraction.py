@@ -33,6 +33,7 @@ import openai
 from litellm import completion
 from markdownify import markdownify as md
 from readability import Document
+from starlette.concurrency import run_in_threadpool
 
 from app.schemas.job_lead import JobLeadExtractionInput
 
@@ -557,6 +558,26 @@ Job Posting Content:
     )
 
 
+async def extract_with_llm_async(
+    content: str,
+    url: str,
+    model: str | None = None,
+    api_key: str | None = None,
+    api_base: str | None = None,
+    timeout: int = 60,
+) -> JobLeadExtractionInput:
+    """Run blocking LLM extraction off the event loop."""
+    return await run_in_threadpool(
+        extract_with_llm,
+        content,
+        url,
+        model,
+        api_key,
+        api_base,
+        timeout,
+    )
+
+
 async def extract_job_data(
     html: str | None = None,
     text: str | None = None,
@@ -616,7 +637,7 @@ async def extract_job_data(
         # Legacy: preprocess HTML to markdown
         logger.info(f"Using HTML mode ({len(html)} chars)")
         try:
-            content = preprocess_html(html)
+            content = await run_in_threadpool(preprocess_html, html)
         except ValueError as e:
             logger.error(f"HTML preprocessing failed: {e}")
             raise ExtractionError(f"Failed to preprocess HTML: {e}")
@@ -624,7 +645,7 @@ async def extract_job_data(
         raise ExtractionError("Either 'text' or 'html' must be provided")
 
     # Extract with LLM
-    job_data = extract_with_llm(
+    job_data = await extract_with_llm_async(
         content=content,
         url=url,
         model=model,
