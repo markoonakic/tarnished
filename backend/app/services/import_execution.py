@@ -38,27 +38,37 @@ UPLOAD_DIR = get_settings().upload_dir
 
 
 def extract_files_from_zip(zip_path: str, user_id: str) -> dict[str, str]:
-    user_upload_dir = Path(UPLOAD_DIR) / str(user_id)
-    user_upload_dir.mkdir(parents=True, exist_ok=True)
+    from app.api.utils.zip_utils import (
+        ALLOWED_DOCUMENT_TYPES,
+        ALLOWED_MEDIA_TYPES,
+        detect_extension,
+        detect_mime_type,
+    )
 
-    file_mapping = {}
+    upload_root = Path(UPLOAD_DIR)
+    upload_root.mkdir(parents=True, exist_ok=True)
+
+    file_mapping: dict[str, str] = {}
+    allowed_types = ALLOWED_DOCUMENT_TYPES | ALLOWED_MEDIA_TYPES
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
         for file_info in zip_ref.filelist:
             if file_info.filename.startswith("files/") and not file_info.is_dir():
-                filename = Path(file_info.filename).name
-                dest_path = user_upload_dir / filename
-
-                counter = 1
-                while dest_path.exists():
-                    stem = Path(file_info.filename).stem
-                    suffix = Path(file_info.filename).suffix
-                    dest_path = user_upload_dir / f"{stem}_{counter}{suffix}"
-                    counter += 1
-
-                dest_path.write_bytes(zip_ref.read(file_info.filename))
-                file_mapping[file_info.filename] = str(
-                    dest_path.relative_to(Path(UPLOAD_DIR))
-                )
+                content = zip_ref.read(file_info.filename)
+                detected_mime = detect_mime_type(content)
+                if (
+                    detected_mime != "application/octet-stream"
+                    and detected_mime not in allowed_types
+                ):
+                    raise ValueError(
+                        f"Invalid MIME type for legacy import file {file_info.filename}: {detected_mime}"
+                    )
+                file_hash = hashlib.sha256(content).hexdigest()
+                ext = detect_extension(content)
+                cas_filename = f"{file_hash}{ext}"
+                dest_path = upload_root / cas_filename
+                if not dest_path.exists():
+                    dest_path.write_bytes(content)
+                file_mapping[file_info.filename] = f"uploads/{cas_filename}"
 
     return file_mapping
 
@@ -73,8 +83,8 @@ def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]
         detect_mime_type,
     )
 
-    user_upload_dir = Path(UPLOAD_DIR) / str(user_id)
-    user_upload_dir.mkdir(parents=True, exist_ok=True)
+    upload_root = Path(UPLOAD_DIR)
+    upload_root.mkdir(parents=True, exist_ok=True)
     file_mapping: dict[str, str] = {}
 
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
@@ -133,14 +143,13 @@ def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]
 
                 ext = detect_extension(content)
                 cas_filename = f"{file_hash}{ext}"
-                cas_path = user_upload_dir / cas_filename
+                cas_path = upload_root / cas_filename
                 if not cas_path.exists():
                     cas_path.write_bytes(content)
-                new_cas_path = f"uploads/{user_upload_dir.name}/{cas_filename}"
+                new_cas_path = f"uploads/{cas_filename}"
                 for old_path in old_paths_in_data:
                     if file_hash in old_path:
                         file_mapping[old_path] = new_cas_path
-                        break
 
     return file_mapping
 
