@@ -1166,6 +1166,81 @@ class TestImportOverride:
         if os.path.exists(sample_import_zip_with_phone_screen):
             os.remove(sample_import_zip_with_phone_screen)
 
+    async def test_override_failure_keeps_existing_data(
+        self,
+        client: AsyncClient,
+        import_user: dict,
+        db: AsyncSession,
+    ):
+        """Override imports should not delete existing data when import fails."""
+        user_id = import_user["user_id"]
+
+        status = ApplicationStatus(
+            name="Existing Status", color="#000000", is_default=True, user_id=user_id
+        )
+        db.add(status)
+        await db.flush()
+
+        existing_app = Application(
+            user_id=user_id,
+            company="Do Not Delete",
+            job_title="Old Job",
+            status_id=status.id,
+            applied_at=date.today(),
+        )
+        db.add(existing_app)
+        await db.commit()
+
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr(
+                "data.json", json.dumps({"format_version": "1.0.0", "models": {}})
+            )
+        zip_buffer.seek(0)
+
+        with patch(
+            "app.api.import_router.import_payload_data",
+            side_effect=ValueError("Import exploded"),
+        ):
+            response = await client.post(
+                "/api/import/import",
+                files={"file": ("import.zip", zip_buffer, "application/zip")},
+                headers=import_user,
+                data={"override": "true"},
+            )
+
+        assert response.status_code == 202
+        import_id = response.json()["import_id"]
+
+        deadline = asyncio.get_running_loop().time() + 5.0
+        while True:
+            status_response = await client.get(
+                f"/api/import/status/{import_id}",
+                headers=import_user,
+            )
+            assert status_response.status_code == 200
+            payload = status_response.json()
+            if payload["status"] == "failed":
+                break
+            if asyncio.get_running_loop().time() >= deadline:
+                raise AssertionError(
+                    f"Timed out waiting for failed import job: {payload}"
+                )
+            await asyncio.sleep(0.1)
+
+        await db.rollback()
+        apps = (
+            (
+                await db.execute(
+                    select(Application).where(Application.user_id == user_id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert len(apps) == 1
+        assert apps[0].company == "Do Not Delete"
+
 
 class TestEndToEnd:
     """Test complete export to import workflow."""

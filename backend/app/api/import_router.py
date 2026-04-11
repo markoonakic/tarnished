@@ -205,26 +205,26 @@ async def process_import_job(
         )
         file_mapping = extract_import_file_mapping(temp_path, user_id, data)
 
+        if override:
+            stage = "clearing"
+            await _update_job(
+                job_id,
+                stage=stage,
+                percent=40,
+                message="Removing existing data...",
+            )
+
+        stage = "importing"
+        await _update_job(
+            job_id,
+            stage=stage,
+            percent=50,
+            message="Importing data...",
+        )
+
         async with async_session_maker() as db:
             if override:
-                stage = "clearing"
-                await update_transfer_job_progress(
-                    db,
-                    job_id=job_id,
-                    stage=stage,
-                    percent=40,
-                    message="Removing existing data...",
-                )
                 await clear_existing_import_data(db, user_id)
-
-            stage = "importing"
-            await update_transfer_job_progress(
-                db,
-                job_id=job_id,
-                stage=stage,
-                percent=50,
-                message="Importing data...",
-            )
 
             import_result = await import_payload_data(
                 db,
