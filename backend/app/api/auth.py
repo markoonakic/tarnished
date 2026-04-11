@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.deps import get_current_user_jwt
+from app.core.deps import AuthContext, get_current_auth_context, get_current_user_jwt
 from app.core.rate_limit import limiter
 from app.core.security import (
     create_access_token,
@@ -14,7 +14,15 @@ from app.core.security import (
     verify_password,
 )
 from app.models import User
-from app.schemas.auth import Token, TokenRefresh, UserCreate, UserLogin, UserResponse
+from app.schemas.api_keys import UserAPIKeyResponse
+from app.schemas.auth import (
+    AuthWhoAmIResponse,
+    Token,
+    TokenRefresh,
+    UserCreate,
+    UserLogin,
+    UserResponse,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 settings = get_settings()
@@ -120,6 +128,24 @@ async def refresh_token(
 @router.get("/me", response_model=UserResponse)
 async def get_me(user: User = Depends(get_current_user_jwt)):
     return user
+
+
+@router.get("/whoami", response_model=AuthWhoAmIResponse)
+async def get_whoami(
+    auth: AuthContext = Depends(get_current_auth_context),
+) -> AuthWhoAmIResponse:
+    return AuthWhoAmIResponse(
+        id=auth.user.id,
+        email=auth.user.email,
+        is_admin=auth.user.is_admin,
+        is_active=auth.user.is_active,
+        auth_method=auth.auth_method,
+        api_key=(
+            UserAPIKeyResponse.model_validate(auth.api_key)
+            if auth.api_key is not None
+            else None
+        ),
+    )
 
 
 @router.get("/setup-status")
