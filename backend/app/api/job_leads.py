@@ -423,8 +423,8 @@ async def retry_job_lead_extraction(
 
         try:
             extracted = await extract_job_data(
-                html_content,
-                job_lead.url,
+                html=html_content,
+                url=job_lead.url,
                 model=ai_settings.model,
                 api_key=ai_settings.api_key,
                 api_base=ai_settings.base_url,
