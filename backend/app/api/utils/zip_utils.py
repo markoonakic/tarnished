@@ -5,6 +5,7 @@ import os
 import re
 import tempfile
 import zipfile
+from contextlib import suppress
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -53,12 +54,55 @@ ALLOWED_AUDIO_TYPES = {
 ALLOWED_MEDIA_TYPES = ALLOWED_VIDEO_TYPES | ALLOWED_AUDIO_TYPES
 
 
+def _should_retry_mime_detection_from_file(content: bytes) -> bool:
+    if len(content) >= 12 and content.startswith(b"RIFF") and content[8:12] == b"WAVE":
+        return True
+
+    if content.startswith(b"ID3"):
+        return True
+
+    return (
+        len(content) >= 2
+        and content[0] == 0xFF
+        and content[1]
+        in {
+            0xFB,
+            0xF3,
+            0xF2,
+        }
+    )
+
+
 def detect_mime_type(content: bytes) -> str:
-    """Detect MIME type from bytes with a safe fallback."""
+    """Detect MIME type from bytes with a safe fallback.
+
+    Some audio formats are identified reliably by libmagic only when inspected
+    from a real file path rather than an in-memory buffer. When buffer-based
+    detection falls back to application/octet-stream for an audio-looking blob,
+    retry using a temporary file before giving up.
+    """
     if magic is None:
         return "application/octet-stream"
 
-    return magic.from_buffer(content, mime=True)
+    detected = magic.from_buffer(content, mime=True)
+    if detected != "application/octet-stream":
+        return detected
+
+    if not _should_retry_mime_detection_from_file(content):
+        return detected
+
+    tmp_path: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        return magic.from_file(tmp_path, mime=True)
+    except Exception:
+        return detected
+    finally:
+        if tmp_path is not None:
+            with suppress(OSError):
+                os.remove(tmp_path)
 
 
 def detect_extension(content: bytes) -> str:
@@ -442,7 +486,9 @@ async def create_zip_export_file(
 
         # Cover letter file
         if app.get("cover_letter_path"):
-            cl_path = resolve_export_file_path(app["cover_letter_path"], base_upload_path)
+            cl_path = resolve_export_file_path(
+                app["cover_letter_path"], base_upload_path
+            )
             if cl_path.exists() and is_path_safe(str(base_path), str(cl_path)):
                 zip_path = build_application_path(app, "cover_letter" + cl_path.suffix)
                 file_mappings.append((cl_path, zip_path))
