@@ -1,3 +1,8 @@
+from tarnished_cli.models.auth import (
+    AuthDiagnostics,
+    LiveAPIKeyMetadata,
+    LiveAuthIdentity,
+)
 from tarnished_cli.models.requests import (
     AdminRoundTypeUpdate,
     AdminStatusUpdate,
@@ -27,8 +32,11 @@ __all__ = [
     "ApplicationCreate",
     "ApplicationExtractRequest",
     "ApplicationUpdate",
+    "AuthDiagnostics",
     "InsightsRequest",
     "JobLeadCreate",
+    "LiveAPIKeyMetadata",
+    "LiveAuthIdentity",
     "RoundCreate",
     "RoundTypeCreate",
     "RoundUpdate",
