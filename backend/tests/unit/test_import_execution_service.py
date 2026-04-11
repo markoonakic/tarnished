@@ -200,23 +200,94 @@ def test_extract_import_file_mapping_uses_new_format_manifest(tmp_path):
     assert result == {"old": "new"}
 
 
-def test_extract_files_from_zip_renames_duplicate_filenames(tmp_path):
+def test_extract_files_from_new_format_normalizes_into_root_cas_layout(tmp_path):
+    zip_path = tmp_path / "new-format-import.zip"
+    upload_root = tmp_path / "uploads"
+    user_id = "user-1"
+    content = b"pdf-content"
+    content_hash = hashlib.sha256(content).hexdigest()
+    export_data = {
+        "format_version": "1.0.0",
+        "models": {
+            "Application": [
+                {
+                    "id": "app-1",
+                    "cv_path": f"uploads/{content_hash}.pdf",
+                }
+            ],
+            "Round": [],
+            "RoundMedia": [],
+        },
+    }
+    manifest = {
+        "files": {
+            "applications/Acme - Engineer (app-1)/resume.pdf": {
+                "sha256": content_hash,
+                "mime_type": "application/pdf",
+                "field": "cv_path",
+            }
+        }
+    }
+
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+        zipf.writestr("manifest.json", json.dumps(manifest))
+        zipf.writestr("data.json", json.dumps(export_data))
+        zipf.writestr("applications/Acme - Engineer (app-1)/resume.pdf", content)
+
+    with (
+        patch("app.services.import_execution.UPLOAD_DIR", str(upload_root)),
+        patch(
+            "app.api.utils.zip_utils.detect_mime_type", return_value="application/pdf"
+        ),
+        patch("app.api.utils.zip_utils.detect_extension", return_value=".pdf"),
+    ):
+        mapping = extract_import_file_mapping(str(zip_path), user_id, export_data)
+
+    expected_path = f"uploads/{content_hash}.pdf"
+    assert mapping[f"uploads/{content_hash}.pdf"] == expected_path
+    assert (upload_root / f"{content_hash}.pdf").read_bytes() == content
+
+
+def test_extract_files_from_zip_rejects_disallowed_mime_types(tmp_path):
+    zip_path = tmp_path / "legacy-import-invalid.zip"
+    upload_root = tmp_path / "uploads"
+
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+        zipf.writestr("files/resume.pdf", b"not-a-pdf")
+
+    with (
+        patch("app.services.import_execution.UPLOAD_DIR", str(upload_root)),
+        patch(
+            "app.api.utils.zip_utils.detect_mime_type",
+            return_value="application/x-msdownload",
+        ),
+    ):
+        with pytest.raises(ValueError, match="Invalid MIME type"):
+            extract_files_from_zip(str(zip_path), "user-1")
+
+
+def test_extract_files_from_zip_normalizes_legacy_files_into_cas_paths(tmp_path):
     zip_path = tmp_path / "legacy-import.zip"
     upload_root = tmp_path / "uploads"
     user_id = "user-1"
+    first_content = b"first-pdf"
+    second_content = b"second-pdf"
 
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-        zipf.writestr("files/resume.pdf", b"first-pdf")
-        zipf.writestr("files/cover-letter/resume.pdf", b"second-pdf")
+        zipf.writestr("files/resume.pdf", first_content)
+        zipf.writestr("files/cover-letter/resume.pdf", second_content)
 
     with patch("app.services.import_execution.UPLOAD_DIR", str(upload_root)):
         mapping = extract_files_from_zip(str(zip_path), user_id)
 
-    user_upload_dir = upload_root / user_id
-    first_path = user_upload_dir / "resume.pdf"
-    second_path = user_upload_dir / "resume_1.pdf"
+    expected_first = f"uploads/{hashlib.sha256(first_content).hexdigest()}.bin"
+    expected_second = f"uploads/{hashlib.sha256(second_content).hexdigest()}.bin"
 
-    assert first_path.read_bytes() == b"first-pdf"
-    assert second_path.read_bytes() == b"second-pdf"
-    assert mapping["files/resume.pdf"] == f"{user_id}/resume.pdf"
-    assert mapping["files/cover-letter/resume.pdf"] == f"{user_id}/resume_1.pdf"
+    assert mapping["files/resume.pdf"] == expected_first
+    assert mapping["files/cover-letter/resume.pdf"] == expected_second
+    assert (
+        upload_root / f"{hashlib.sha256(first_content).hexdigest()}.bin"
+    ).read_bytes() == first_content
+    assert (
+        upload_root / f"{hashlib.sha256(second_content).hexdigest()}.bin"
+    ).read_bytes() == second_content

@@ -97,7 +97,10 @@ async def get_media_file(
         raise HTTPException(status_code=404, detail="Media not found")
 
     # Resolve stored path to actual filesystem path using UPLOAD_DIR
-    file_path = resolve_upload_path(media.file_path)
+    try:
+        file_path = resolve_upload_path(media.file_path)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="File not found")
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
@@ -194,7 +197,10 @@ async def get_round_transcript_file(
         raise HTTPException(status_code=404, detail="Transcript not found")
 
     # Resolve stored path to actual filesystem path using UPLOAD_DIR
-    file_path = resolve_upload_path(round_obj.transcript_path)
+    try:
+        file_path = resolve_upload_path(round_obj.transcript_path)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="File not found")
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
 
@@ -310,7 +316,10 @@ async def get_file(
         raise HTTPException(status_code=404, detail="File not found")
 
     # Resolve stored path to actual filesystem path using UPLOAD_DIR
-    file_path = resolve_upload_path(stored_path)
+    try:
+        file_path = resolve_upload_path(stored_path)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="File not found")
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
 
