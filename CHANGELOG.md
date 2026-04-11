@@ -6,6 +6,39 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-04-11
+
+### Changed
+
+- Long-running import and ZIP export flows now use durable `transfer_jobs` with persisted status, stage, percent, result, and error metadata instead of in-memory progress state.
+- Frontend import/export UX now shows real upload and job progress, and document/round upload flows now use real progress callbacks instead of simulated progress.
+- Backend analytics and insights logic was consolidated and hardened, including shared analytics query extraction, async-safe AI boundaries, and explicit streak API-key scope enforcement.
+- Browser extension API boundaries were aligned with the live backend contract, removing stale `/api/v1` drift and legacy response-shape assumptions.
+- Release automation now ensures a GitHub release exists before attempting to edit notes or upload release assets during the release workflow.
+
+### Fixed
+
+- Override imports no longer commit destructive deletes before replacement imports succeed.
+- Import/export transfer cleanup and file-path handling were hardened, including safer upload-path resolution and durable cleanup reporting.
+- PostgreSQL schema parity now includes an explicit FK-name normalization migration for `job_leads.converted_to_application_id`, preventing teardown/runtime mismatches between migrations and ORM metadata.
+- Backend PostgreSQL validation no longer fails on SQLite-specific test assumptions; portability checks are now dialect-aware.
+- Export/import round-trips now preserve audio MIME metadata reliably by retrying file-based MIME detection when buffer-based libmagic detection falls back to `application/octet-stream` for audio blobs.
+- Import/export round-trips now use migration-backed test harnesses where realism matters, and transfer-job retention/cleanup behavior is covered by dedicated tests.
+
+### Validation
+
+- Merged `main` verification passed:
+  - Backend: `365 passed, 2 skipped`; Ruff passed
+  - Frontend: `19` test files / `48` tests passed; build passed; `tsc --noEmit` passed
+  - Extension: `20` test files / `57` tests passed; build passed
+  - CLI: `62 passed`; Ruff passed
+- Live PostgreSQL validation passed:
+  - Alembic upgrade to head passed
+  - Focused former PostgreSQL blockers went from `8 failed` to `8 passed`
+  - Full backend PostgreSQL pytest passed: `367 passed`
+  - `python -m app.lib.cleanup_transfer_jobs` dry-run passed
+- Manual QA against a temporary Postgres-backed dev instance covered export ZIP job flow, import job flow, job-lead conversion, and document/transcript upload paths.
+
 ## [0.1.4] - 2026-04-09
 
 ### Changed
