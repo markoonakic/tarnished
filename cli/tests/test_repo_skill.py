@@ -59,7 +59,7 @@ def test_tarnished_skill_covers_auth_statuses_dashboard_and_import_safety():
     content = SKILL_MD.read_text()
 
     assert "tarnished auth status --json" in content
-    assert "tarnished auth api-key show --json" in content
+    assert "tarnished auth doctor --json" in content
     assert "tarnished dashboard summary --json" in content
     assert "tarnished statuses list --json" in content
     assert "tarnished import validate" in content

@@ -30,9 +30,11 @@ The CLI covers server-backed data/actions from the product. It does not reproduc
 
 1. Check the CLI version:
    - `tarnished --version`
-2. Check session state:
+2. Check auth state:
    - `tarnished auth status --json`
-   - if not authenticated, use `tarnished auth --help` and run the appropriate `login` or `register` flow
+   - if not authenticated, create/rotate a key in the Tarnished web app, then run:
+     - `tarnished auth init --api-key '...'`
+     - `tarnished auth doctor --json`
 3. If the target environment is ambiguous, prefer explicit targeting:
    - `--profile`
    - `--base-url`
@@ -70,7 +72,7 @@ Common starting points:
   - `tarnished analytics sankey --json`
 - Profile and settings:
   - `tarnished auth whoami --json`
-  - `tarnished auth api-key show --json`
+  - `tarnished auth doctor --json`
   - `tarnished profile get --json`
   - `tarnished dashboard summary --json`
   - `tarnished user-settings get --json`
