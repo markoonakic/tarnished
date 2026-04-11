@@ -13,12 +13,14 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from httpx import AsyncClient
-from sqlalchemy import create_engine, event, select, text
+from sqlalchemy import create_engine, event, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
-from app.core.database import Base
 from app.core.security import create_access_token, get_password_hash
 from app.models import (
     Application,
@@ -30,8 +32,43 @@ from app.models import (
 )
 from app.services.export_registry import default_registry
 from app.services.export_service import ExportService
+from app.services.import_execution import extract_import_file_mapping
 from app.services.import_id_mapper import IDMapper
 from app.services.import_service import ImportService
+
+ALEMBIC_INI_PATH = Path(__file__).resolve().parents[1] / "alembic.ini"
+
+
+async def wait_for_import_completion(
+    client: AsyncClient,
+    headers: dict[str, str],
+    import_id: str,
+    *,
+    timeout_seconds: float = 6.0,
+) -> dict:
+    deadline = __import__("asyncio").get_running_loop().time() + timeout_seconds
+    while True:
+        response = await client.get(
+            f"/api/import/status/{import_id}",
+            headers=headers,
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        if payload["status"] == "complete":
+            return payload
+        if payload["status"] == "failed":
+            raise AssertionError(f"Import failed unexpectedly: {payload}")
+        if __import__("asyncio").get_running_loop().time() >= deadline:
+            raise AssertionError(f"Timed out waiting for import {import_id}: {payload}")
+        await __import__("asyncio").sleep(0.1)
+
+
+def run_migrations_on_sync_engine(engine) -> None:
+    with engine.begin() as connection:
+        cfg = Config(str(ALEMBIC_INI_PATH))
+        cfg.set_main_option("sqlalchemy.url", str(engine.url))
+        cfg.attributes["connection"] = connection
+        command.upgrade(cfg, "head")
 
 
 @pytest.fixture
@@ -180,9 +217,11 @@ class TestExportImportRoundTrip:
         auth_headers: dict,
     ):
         """Test export/import round-trip without files."""
+        user_id = test_user.id
+
         # Create test data
         app = Application(
-            user_id=test_user.id,
+            user_id=user_id,
             company="Export Company",
             job_title="Backend Engineer",
             status_id=test_statuses[0].id,
@@ -215,13 +254,16 @@ class TestExportImportRoundTrip:
         )
 
         # Check import response
-        assert import_response.status_code == 200
+        assert import_response.status_code == 202
         result = import_response.json()
         assert "import_id" in result
 
+        await wait_for_import_completion(client, auth_headers, result["import_id"])
+        await db.rollback()
+
         # Verify the application was imported
         result = await db.execute(
-            select(Application).where(Application.user_id == test_user.id)
+            select(Application).where(Application.user_id == user_id)
         )
         imported_apps = result.scalars().all()
         assert len(imported_apps) == 1
@@ -241,9 +283,11 @@ class TestExportImportRoundTrip:
         auth_headers: dict,
     ):
         """Test export/import round-trip with rounds."""
+        user_id = test_user.id
+
         # Create application with round
         app = Application(
-            user_id=test_user.id,
+            user_id=user_id,
             company="Round Test Company",
             job_title="Full Stack Engineer",
             status_id=test_statuses[1].id,  # Interview
@@ -283,11 +327,15 @@ class TestExportImportRoundTrip:
             headers=auth_headers,
         )
 
-        assert import_response.status_code == 200
+        assert import_response.status_code == 202
+        import_id = import_response.json()["import_id"]
+
+        await wait_for_import_completion(client, auth_headers, import_id)
+        await db.rollback()
 
         # Verify application and round were imported
         result = await db.execute(
-            select(Application).where(Application.user_id == test_user.id)
+            select(Application).where(Application.user_id == user_id)
         )
         imported_apps = result.scalars().all()
         assert len(imported_apps) == 1
@@ -342,8 +390,25 @@ class TestExportImportRoundTrip:
 
 class TestImportIntegrityGuards:
     async def test_test_db_enforces_sqlite_foreign_keys(self, db: AsyncSession):
-        result = await db.execute(text("PRAGMA foreign_keys"))
-        assert result.scalar_one() == 1
+        user = User(
+            email="fk-harness@example.com", password_hash="hashed", is_active=True
+        )
+        db.add(user)
+        await db.flush()
+
+        db.add(
+            Application(
+                user_id=user.id,
+                company="Acme",
+                job_title="Engineer",
+                status_id="missing-status-id",
+            )
+        )
+
+        with pytest.raises(IntegrityError):
+            await db.flush()
+
+        await db.rollback()
 
     def test_import_service_preserves_converted_job_lead_links_with_fk_enforcement(
         self,
@@ -360,7 +425,7 @@ class TestImportIntegrityGuards:
             return engine
 
         source_engine = make_engine()
-        Base.metadata.create_all(source_engine)
+        run_migrations_on_sync_engine(source_engine)
 
         with Session(source_engine) as session:
             user = User(
@@ -414,7 +479,7 @@ class TestImportIntegrityGuards:
             )
 
         target_engine = make_engine()
-        Base.metadata.create_all(target_engine)
+        run_migrations_on_sync_engine(target_engine)
 
         with Session(target_engine) as session:
             importing_user = User(
@@ -459,7 +524,7 @@ class TestImportIntegrityGuards:
             return engine
 
         engine = make_engine()
-        Base.metadata.create_all(engine)
+        run_migrations_on_sync_engine(engine)
 
         export_data = {
             "format_version": "1.0.0",
@@ -514,6 +579,60 @@ class TestImportIntegrityGuards:
             assert import_result["warnings"] == []
             imported_application = session.execute(select(Application)).scalar_one()
             assert imported_application.job_description == "Legacy exported description"
+
+    def test_new_format_file_mapping_maps_all_legacy_paths_for_duplicate_content(
+        self, tmp_path: Path
+    ):
+        content = b"duplicate-content"
+        content_hash = hashlib.sha256(content).hexdigest()
+        old_cv_path = f"uploads/{content_hash}.pdf"
+        old_cover_letter_path = f"uploads/legacy-user/{content_hash}.pdf"
+
+        export_data = {
+            "format_version": "1.0.0",
+            "models": {
+                "Application": [
+                    {
+                        "id": "app-1",
+                        "cv_path": old_cv_path,
+                        "cover_letter_path": old_cover_letter_path,
+                    }
+                ],
+                "Round": [],
+                "RoundMedia": [],
+            },
+        }
+
+        manifest = {
+            "files": {
+                "applications/App One/resume.pdf": {
+                    "sha256": content_hash,
+                    "mime_type": "application/pdf",
+                    "field": "cv_path",
+                },
+                "applications/App One/cover_letter.pdf": {
+                    "sha256": content_hash,
+                    "mime_type": "application/pdf",
+                    "field": "cover_letter_path",
+                },
+            }
+        }
+
+        zip_path = tmp_path / "duplicate-export.zip"
+        with zipfile.ZipFile(zip_path, "w") as zipf:
+            zipf.writestr("manifest.json", json.dumps(manifest))
+            zipf.writestr("data.json", json.dumps(export_data))
+            zipf.writestr("applications/App One/resume.pdf", content)
+            zipf.writestr("applications/App One/cover_letter.pdf", content)
+
+        with patch("app.services.import_execution.UPLOAD_DIR", str(tmp_path)):
+            file_mapping = extract_import_file_mapping(
+                str(zip_path), "user-1", export_data
+            )
+
+        assert old_cv_path in file_mapping
+        assert old_cover_letter_path in file_mapping
+        assert file_mapping[old_cv_path] == file_mapping[old_cover_letter_path]
 
 
 class TestFileExtraction:

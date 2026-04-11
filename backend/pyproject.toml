@@ -43,6 +43,9 @@ asyncio_mode = "auto"
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+filterwarnings = [
+    "ignore:Skipped unsupported reflection of expression-based index .*:sqlalchemy.exc.SAWarning",
+]
 
 [dependency-groups]
 dev = [

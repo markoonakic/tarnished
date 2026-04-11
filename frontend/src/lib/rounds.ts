@@ -24,11 +24,20 @@ export async function deleteRound(roundId: string): Promise<void> {
   await api.delete(`/api/rounds/${roundId}`);
 }
 
-export async function uploadMedia(roundId: string, file: File): Promise<Round> {
+export async function uploadMedia(
+  roundId: string,
+  file: File,
+  onProgress?: (loaded: number, total: number) => void
+): Promise<Round> {
   const formData = new FormData();
   formData.append('file', file);
   const response = await api.post(`/api/rounds/${roundId}/media`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (event) => {
+      if (event.total) {
+        onProgress?.(event.loaded, event.total);
+      }
+    },
   });
   return response.data;
 }
@@ -54,7 +63,8 @@ export async function getMediaSignedUrl(
 
 export async function uploadRoundTranscript(
   roundId: string,
-  file: File
+  file: File,
+  onProgress?: (loaded: number, total: number) => void
 ): Promise<Round> {
   const formData = new FormData();
   formData.append('file', file);
@@ -63,6 +73,11 @@ export async function uploadRoundTranscript(
     formData,
     {
       headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (event) => {
+        if (event.total) {
+          onProgress?.(event.loaded, event.total);
+        }
+      },
     }
   );
   return response.data;

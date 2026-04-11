@@ -20,7 +20,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.import_router import ImportProgress
 from app.core.security import create_access_token, get_password_hash
 from app.models import (
     Application,
@@ -279,6 +278,30 @@ def sample_import_zip_with_phone_screen(sample_import_with_phone_screen: dict) -
         return f.name
 
 
+async def wait_for_import_completion(
+    client: AsyncClient,
+    headers: dict[str, str],
+    import_id: str,
+    *,
+    timeout_seconds: float = 5.0,
+) -> dict:
+    deadline = asyncio.get_running_loop().time() + timeout_seconds
+    while True:
+        response = await client.get(
+            f"/api/import/status/{import_id}",
+            headers=headers,
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        if payload["status"] == "complete":
+            return payload
+        if payload["status"] == "failed":
+            raise AssertionError(f"Import failed unexpectedly: {payload}")
+        if asyncio.get_running_loop().time() >= deadline:
+            raise AssertionError(f"Timed out waiting for import {import_id}: {payload}")
+        await asyncio.sleep(0.1)
+
+
 class TestImportValidationAuthentication:
     """Test import validation authentication and authorization."""
 
@@ -310,7 +333,7 @@ class TestImportValidationAuthentication:
 
 
 class TestImportStatusEndpoint:
-    async def test_import_status_returns_unknown_for_missing_id(
+    async def test_import_status_returns_404_for_missing_id(
         self,
         client: AsyncClient,
         auth_headers: dict[str, str],
@@ -319,31 +342,43 @@ class TestImportStatusEndpoint:
             "/api/import/status/missing-import-id",
             headers=auth_headers,
         )
-        assert response.status_code == 200
-        assert response.json()["status"] == "unknown"
+        assert response.status_code == 404
 
     async def test_import_status_returns_current_progress(
         self,
         client: AsyncClient,
         auth_headers: dict[str, str],
+        db: AsyncSession,
+        test_user: User,
     ):
-        import_id = "test-import-status"
-        ImportProgress.create(import_id)
-        ImportProgress.update(
-            import_id,
+        from app.services.transfer_jobs import (
+            create_transfer_job,
+            update_transfer_job_progress,
+        )
+
+        job = await create_transfer_job(
+            db,
+            user_id=str(test_user.id),
+            job_type="import_zip",
+            status="queued",
+        )
+        await update_transfer_job_progress(
+            db,
+            job_id=str(job.id),
+            status="processing",
             stage="importing",
             percent=60,
             message="Importing data...",
         )
 
         response = await client.get(
-            f"/api/import/status/{import_id}",
+            f"/api/import/status/{job.id}",
             headers=auth_headers,
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert data["status"] == "pending"
+        assert data["status"] == "processing"
         assert data["stage"] == "importing"
         assert data["percent"] == 60
 
@@ -353,6 +388,11 @@ class TestImportStatusEndpoint:
         auth_headers: dict[str, str],
         db: AsyncSession,
     ):
+        from app.services.transfer_jobs import (
+            create_transfer_job,
+            update_transfer_job_progress,
+        )
+
         other_user = User(
             email="other-import-status@example.com",
             password_hash=get_password_hash("testpass123"),
@@ -363,17 +403,23 @@ class TestImportStatusEndpoint:
         await db.commit()
         await db.refresh(other_user)
 
-        import_id = "foreign-import-status"
-        ImportProgress.create(import_id, str(other_user.id))
-        ImportProgress.update(
-            import_id,
+        job = await create_transfer_job(
+            db,
+            user_id=str(other_user.id),
+            job_type="import_zip",
+            status="queued",
+        )
+        await update_transfer_job_progress(
+            db,
+            job_id=str(job.id),
+            status="processing",
             stage="importing",
             percent=60,
             message="Importing data...",
         )
 
         response = await client.get(
-            f"/api/import/status/{import_id}",
+            f"/api/import/status/{job.id}",
             headers=auth_headers,
         )
 
@@ -385,6 +431,8 @@ class TestImportStatusEndpoint:
         db: AsyncSession,
         test_user: User,
     ):
+        from app.services.transfer_jobs import create_transfer_job
+
         other_user = User(
             email="other-import-progress@example.com",
             password_hash=get_password_hash("testpass123"),
@@ -395,12 +443,16 @@ class TestImportStatusEndpoint:
         await db.commit()
         await db.refresh(other_user)
 
-        import_id = "foreign-import-progress"
-        ImportProgress.create(import_id, str(other_user.id))
+        job = await create_transfer_job(
+            db,
+            user_id=str(other_user.id),
+            job_type="import_zip",
+            status="queued",
+        )
         token = create_access_token({"sub": test_user.id})
 
         response = await client.get(
-            f"/api/import/progress/{import_id}",
+            f"/api/import/progress/{job.id}",
             params={"token": token},
         )
 
@@ -881,13 +933,13 @@ class TestValidateZIPSafety:
 class TestImportData:
     """Test the actual import functionality."""
 
-    async def test_import_returns_400_for_value_errors(
+    async def test_import_surfaces_value_errors_via_failed_job_status(
         self,
         client: AsyncClient,
         import_user: dict,
         sample_import_zip_with_phone_screen: str,
     ):
-        """Domain validation failures during import should stay client-visible."""
+        """Domain validation failures should be reflected in the queued job status."""
         with patch("app.services.import_execution.import_applications") as mock_import:
             mock_import.side_effect = ValueError("Bad import payload")
 
@@ -899,8 +951,25 @@ class TestImportData:
                     data={"override": "false"},
                 )
 
-        assert response.status_code == 400
-        assert response.json()["detail"] == "Import failed: Bad import payload"
+        assert response.status_code == 202
+        import_id = response.json()["import_id"]
+
+        deadline = asyncio.get_running_loop().time() + 5.0
+        while True:
+            status_response = await client.get(
+                f"/api/import/status/{import_id}",
+                headers=import_user,
+            )
+            assert status_response.status_code == 200
+            payload = status_response.json()
+            if payload["status"] == "failed":
+                assert "Bad import payload" in payload["message"]
+                break
+            if asyncio.get_running_loop().time() >= deadline:
+                raise AssertionError(
+                    f"Timed out waiting for failed import job: {payload}"
+                )
+            await asyncio.sleep(0.1)
 
     async def test_import_creates_missing_status(
         self,
@@ -925,10 +994,11 @@ class TestImportData:
                 data={"override": "false"},
             )
 
-        assert response.status_code == 200
+        assert response.status_code == 202
+        import_id = response.json()["import_id"]
 
-        # Wait for import to complete
-        await asyncio.sleep(2)
+        await wait_for_import_completion(client, import_user, import_id)
+        await db.rollback()
 
         # Check status was created
         result = await db.execute(
@@ -962,11 +1032,11 @@ class TestImportData:
                 data={"override": "false"},
             )
 
-        assert response.status_code == 200
+        assert response.status_code == 202
         import_id = response.json()["import_id"]
 
-        # Wait for import to complete
-        await asyncio.sleep(2)
+        await wait_for_import_completion(client, import_user, import_id)
+        await db.rollback()
 
         # Check application was created
         result = await db.execute(
@@ -1005,8 +1075,11 @@ class TestImportData:
                 data={"override": "false"},
             )
 
-        # Wait for import to complete
-        await asyncio.sleep(2)
+        assert response.status_code == 202
+        import_id = response.json()["import_id"]
+
+        await wait_for_import_completion(client, import_user, import_id)
+        await db.rollback()
 
         # Check application has round
         result = await db.execute(
@@ -1075,10 +1148,11 @@ class TestImportOverride:
                 data={"override": "true"},
             )
 
-        assert response.status_code == 200
+        assert response.status_code == 202
+        import_id = response.json()["import_id"]
 
-        # Wait for import to complete
-        await asyncio.sleep(2)
+        await wait_for_import_completion(client, import_user, import_id)
+        await db.rollback()
 
         # Check old application is gone
         result = await db.execute(
@@ -1091,6 +1165,81 @@ class TestImportOverride:
         # Clean up temp file
         if os.path.exists(sample_import_zip_with_phone_screen):
             os.remove(sample_import_zip_with_phone_screen)
+
+    async def test_override_failure_keeps_existing_data(
+        self,
+        client: AsyncClient,
+        import_user: dict,
+        db: AsyncSession,
+    ):
+        """Override imports should not delete existing data when import fails."""
+        user_id = import_user["user_id"]
+
+        status = ApplicationStatus(
+            name="Existing Status", color="#000000", is_default=True, user_id=user_id
+        )
+        db.add(status)
+        await db.flush()
+
+        existing_app = Application(
+            user_id=user_id,
+            company="Do Not Delete",
+            job_title="Old Job",
+            status_id=status.id,
+            applied_at=date.today(),
+        )
+        db.add(existing_app)
+        await db.commit()
+
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr(
+                "data.json", json.dumps({"format_version": "1.0.0", "models": {}})
+            )
+        zip_buffer.seek(0)
+
+        with patch(
+            "app.api.import_router.import_payload_data",
+            side_effect=ValueError("Import exploded"),
+        ):
+            response = await client.post(
+                "/api/import/import",
+                files={"file": ("import.zip", zip_buffer, "application/zip")},
+                headers=import_user,
+                data={"override": "true"},
+            )
+
+        assert response.status_code == 202
+        import_id = response.json()["import_id"]
+
+        deadline = asyncio.get_running_loop().time() + 5.0
+        while True:
+            status_response = await client.get(
+                f"/api/import/status/{import_id}",
+                headers=import_user,
+            )
+            assert status_response.status_code == 200
+            payload = status_response.json()
+            if payload["status"] == "failed":
+                break
+            if asyncio.get_running_loop().time() >= deadline:
+                raise AssertionError(
+                    f"Timed out waiting for failed import job: {payload}"
+                )
+            await asyncio.sleep(0.1)
+
+        await db.rollback()
+        apps = (
+            (
+                await db.execute(
+                    select(Application).where(Application.user_id == user_id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert len(apps) == 1
+        assert apps[0].company == "Do Not Delete"
 
 
 class TestEndToEnd:
@@ -1151,11 +1300,13 @@ class TestEndToEnd:
                     data={"override": "true"},
                 )
 
-            assert response.status_code == 200
+            assert response.status_code == 202
             import_id = response.json()["import_id"]
 
-            # Wait for import to complete
-            await asyncio.sleep(3)
+            await wait_for_import_completion(
+                client, auth_headers, import_id, timeout_seconds=6.0
+            )
+            await db.rollback()
 
             # Verify the data was imported correctly
             result = await db.execute(
@@ -1246,10 +1397,13 @@ class TestEndToEnd:
                     data={"override": "false"},
                 )
 
-            assert response.status_code == 200
+            assert response.status_code == 202
+            import_id = response.json()["import_id"]
 
-            # Wait for import to complete
-            await asyncio.sleep(3)
+            await wait_for_import_completion(
+                client, auth_headers, import_id, timeout_seconds=6.0
+            )
+            await db.rollback()
 
             # Verify status history was imported
             result = await db.execute(
@@ -1367,10 +1521,13 @@ class TestEndToEnd:
                     data={"override": "false"},
                 )
 
-            assert response.status_code == 200
+            assert response.status_code == 202
+            import_id = response.json()["import_id"]
 
-            # Wait for import to complete
-            await asyncio.sleep(3)
+            await wait_for_import_completion(
+                client, auth_headers, import_id, timeout_seconds=6.0
+            )
+            await db.rollback()
 
             # Verify rounds were imported (media won't be imported since files don't exist)
             result = await db.execute(
@@ -1436,10 +1593,11 @@ class TestImportEdgeCases:
                     data={"override": "false"},
                 )
 
-            assert response.status_code == 200
+            assert response.status_code == 202
+            import_id = response.json()["import_id"]
 
-            # Wait for import to complete
-            await asyncio.sleep(2)
+            await wait_for_import_completion(client, import_user, import_id)
+            await db.rollback()
 
             # Verify application was created with optional fields as None
             result = await db.execute(
@@ -1489,7 +1647,7 @@ class TestImportEdgeCases:
                     data={"override": "false"},
                 )
 
-            assert response.status_code == 200
+            assert response.status_code == 202
 
         finally:
             os.unlink(temp_zip_path)
@@ -1539,10 +1697,11 @@ class TestImportEdgeCases:
                     data={"override": "false"},
                 )
 
-            assert response.status_code == 200
+            assert response.status_code == 202
+            import_id = response.json()["import_id"]
 
-            # Wait for import to complete
-            await asyncio.sleep(2)
+            await wait_for_import_completion(client, import_user, import_id)
+            await db.rollback()
 
             # Verify description was preserved
             result = await db.execute(
@@ -1606,10 +1765,11 @@ class TestImportEdgeCases:
                     data={"override": "false"},
                 )
 
-            assert response.status_code == 200
+            assert response.status_code == 202
+            import_id = response.json()["import_id"]
 
-            # Wait for import to complete
-            await asyncio.sleep(2)
+            await wait_for_import_completion(client, import_user, import_id)
+            await db.rollback()
 
             # Verify special characters were preserved
             result = await db.execute(
@@ -1694,10 +1854,11 @@ class TestImportEdgeCases:
                     data={"override": "false"},
                 )
 
-            assert response.status_code == 200
+            assert response.status_code == 202
+            import_id = response.json()["import_id"]
 
-            # Wait for import to complete
-            await asyncio.sleep(2)
+            await wait_for_import_completion(client, import_user, import_id)
+            await db.rollback()
 
             # Verify null dates were handled
             result = await db.execute(

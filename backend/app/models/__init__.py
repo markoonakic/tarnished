@@ -5,6 +5,7 @@ from app.models.round import MediaType, Round, RoundMedia
 from app.models.round_type import RoundType
 from app.models.status import ApplicationStatus
 from app.models.system_settings import SystemSettings
+from app.models.transfer_job import TransferJob
 from app.models.user import User
 from app.models.user_api_key import UserAPIKey
 from app.models.user_profile import UserProfile
@@ -23,4 +24,5 @@ __all__ = [
     "JobLead",
     "UserProfile",
     "SystemSettings",
+    "TransferJob",
 ]

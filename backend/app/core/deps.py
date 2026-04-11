@@ -45,32 +45,6 @@ async def _get_api_key_and_user(
     return api_key, user
 
 
-async def get_current_api_key_record(
-    x_api_key: Annotated[str | None, Header()] = None,
-    db: AsyncSession = Depends(get_db),
-) -> UserAPIKey:
-    if not x_api_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API token required",
-        )
-
-    hashed_key = hash_api_key(x_api_key)
-    result = await db.execute(
-        select(UserAPIKey).where(
-            UserAPIKey.key_hash == hashed_key,
-            UserAPIKey.revoked_at.is_(None),
-        )
-    )
-    api_key = result.scalar_one_or_none()
-    if api_key is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API token",
-        )
-    return api_key
-
-
 async def get_current_auth_context(
     credentials: HTTPAuthorizationCredentials | None = Depends(
         HTTPBearer(auto_error=False)
@@ -182,25 +156,6 @@ async def get_current_user_jwt(
     return user
 
 
-async def get_current_user_optional(
-    credentials: HTTPAuthorizationCredentials | None = Depends(
-        HTTPBearer(auto_error=False)
-    ),
-    db: AsyncSession = Depends(get_db),
-) -> User | None:  # type: ignore[assignment]
-    """Get current user if authenticated, None otherwise."""
-    if not credentials:
-        return None
-    payload = decode_token(credentials.credentials)
-    if not payload or payload.get("type") != "access":
-        return None
-    user_id = payload.get("sub")
-    if not user_id:
-        return None
-    result = await db.execute(select(User).where(User.id == user_id))
-    return result.scalars().first()
-
-
 async def get_current_user_optional_flexible(
     credentials: HTTPAuthorizationCredentials | None = Depends(
         HTTPBearer(auto_error=False)
@@ -224,48 +179,6 @@ async def get_current_user_optional_flexible(
             return user
 
     return None
-
-
-async def get_current_user_by_api_token(
-    x_api_key: Annotated[str | None, Header()] = None,
-    db: AsyncSession = Depends(get_db),
-) -> User:
-    """Authenticate user via API token from the X-API-Key header.
-
-    This dependency is used for machine-client API requests. API keys are
-    accepted only via the dedicated X-API-Key header.
-
-    Args:
-        x_api_key: Optional X-API-Key header.
-        db: Database session dependency.
-
-    Returns:
-        The authenticated User.
-
-    Raises:
-        HTTPException: 401 if no token provided or token is invalid.
-    """
-    if not x_api_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API token required",
-        )
-
-    _api_key, user = await _get_api_key_and_user(x_api_key, db)
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API token",
-        )
-
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is disabled",
-        )
-
-    return user
 
 
 async def get_current_user_flexible(

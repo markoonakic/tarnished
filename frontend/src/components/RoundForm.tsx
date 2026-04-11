@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createRound, updateRound, uploadRoundTranscript } from '../lib/rounds';
 import { listRoundTypes } from '../lib/settings';
 import type { Round, RoundType, RoundCreate, RoundUpdate } from '../lib/types';
@@ -71,13 +71,6 @@ export default function RoundForm({
   const [transcriptSummary, setTranscriptSummary] = useState(
     round?.transcript_summary || ''
   );
-  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (progressRef.current) clearInterval(progressRef.current);
-    };
-  }, []);
 
   const loadRoundTypes = useCallback(async () => {
     try {
@@ -131,23 +124,20 @@ export default function RoundForm({
       // Upload transcript if file is selected
       if (transcriptFile) {
         setUploadProgress(0);
-        progressRef.current = setInterval(() => {
-          setUploadProgress((prev) => {
-            if (prev >= 90) return prev;
-            return prev + 10;
-          });
-        }, 100);
 
         try {
           savedRound = await uploadRoundTranscript(
             savedRound.id,
-            transcriptFile
+            transcriptFile,
+            (loaded, total) => {
+              setUploadProgress(
+                total > 0 ? Math.round((loaded / total) * 100) : 0
+              );
+            }
           );
-          if (progressRef.current) clearInterval(progressRef.current);
           setUploadProgress(100);
           setTimeout(() => setUploadProgress(0), 500);
         } catch {
-          if (progressRef.current) clearInterval(progressRef.current);
           setUploadProgress(0);
           throw new Error('Failed to upload transcript');
         }

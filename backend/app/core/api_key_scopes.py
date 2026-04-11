@@ -20,6 +20,8 @@ BASE_SCOPES = [
     "round_types:write",
     "dashboard:read",
     "analytics:read",
+    "streak:read",
+    "streak:write",
     "preferences:read",
     "preferences:write",
     "user_settings:read",
@@ -33,7 +35,6 @@ BASE_SCOPES = [
 PRIVILEGED_SCOPES = [
     "admin:read",
     "admin:write",
-    "api_keys:manage",
 ]
 
 ALL_SCOPES = BASE_SCOPES + PRIVILEGED_SCOPES
@@ -55,6 +56,8 @@ CLI_SCOPES = [
     "round_types:write",
     "dashboard:read",
     "analytics:read",
+    "streak:read",
+    "streak:write",
     "preferences:read",
     "preferences:write",
     "user_settings:read",
@@ -84,6 +87,7 @@ READ_ONLY_SCOPES = [
     "round_types:read",
     "dashboard:read",
     "analytics:read",
+    "streak:read",
     "preferences:read",
     "user_settings:read",
     "files:read",
