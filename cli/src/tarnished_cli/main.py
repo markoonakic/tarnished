@@ -40,9 +40,11 @@ ROOT_HELP = dedent(
     them locally with the auth commands.
 
     Examples:
+      tarnished auth status --json
       tarnished auth init --api-key '...'
       tarnished auth doctor
       tarnished applications list --json
+      tarnished <command> --help
     """
 )
 
