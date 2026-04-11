@@ -1,17 +1,23 @@
 import typer
 
-from tarnished_cli.auth_diagnostics import build_auth_diagnostics, parse_live_identity
+from tarnished_cli.auth_diagnostics import (
+    build_auth_diagnostics,
+    build_auth_doctor_report,
+    parse_live_identity,
+)
 from tarnished_cli.client import CLIError, TarnishedClient
 from tarnished_cli.output import emit_result, exit_for_error
 from tarnished_cli.state import get_state
 
-AUTH_HELP = """Authenticate and inspect session state.
+AUTH_HELP = """Authenticate with API keys managed in the Tarnished web app.
+
+The web app is the authority for creating and rotating API keys. Use the CLI to
+validate, store, inspect, and diagnose a locally configured key.
 
 Examples:
-  tarnished auth status
-  tarnished auth whoami
   tarnished auth init --api-key '...'
-  tarnished auth api-key set --value '...'
+  tarnished auth doctor
+  tarnished auth whoami
   tarnished auth api-key clear
 """
 
@@ -54,6 +60,30 @@ def whoami(ctx: typer.Context) -> None:
         emit_result(state, _fetch_live_identity(state))
     except CLIError as exc:
         exit_for_error(state, exc)
+
+
+@app.command("doctor")
+def doctor(ctx: typer.Context) -> None:
+    state = get_state(ctx)
+    live_identity = None
+    live_identity_error = None
+
+    if state.tokens.api_key:
+        try:
+            live_identity = _fetch_live_identity(state)
+        except CLIError as exc:
+            live_identity_error = str(exc)
+
+    report = build_auth_doctor_report(
+        profile=state.profile,
+        base_url=state.base_url,
+        stored_auth=state.tokens,
+        live_identity=live_identity,
+        live_identity_error=live_identity_error,
+    )
+    emit_result(state, report)
+    if not report["healthy"]:
+        raise typer.Exit(code=1)
 
 
 @app.command("init")
