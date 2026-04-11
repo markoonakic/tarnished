@@ -139,7 +139,7 @@ async def get_whoami(
         email=auth.user.email,
         is_admin=auth.user.is_admin,
         is_active=auth.user.is_active,
-        auth_method=auth.auth_method,
+        auth_method="api_key" if auth.auth_method == "api_key" else "jwt",
         api_key=(
             UserAPIKeyResponse.model_validate(auth.api_key)
             if auth.api_key is not None
