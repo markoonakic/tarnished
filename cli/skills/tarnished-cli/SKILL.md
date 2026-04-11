@@ -31,10 +31,10 @@ The CLI covers server-backed data/actions from the product. It does not reproduc
 1. Check the CLI version:
    - `tarnished --version`
 2. Check auth state:
-   - `tarnished auth status --json`
+   - `tarnished --json auth status`
    - if not authenticated, create/rotate a key in the Tarnished web app, then run:
      - `tarnished auth init --api-key '...'`
-     - `tarnished auth doctor --json`
+     - `tarnished --json auth doctor`
 3. If the target environment is ambiguous, prefer explicit targeting:
    - `--profile`
    - `--base-url`
@@ -58,25 +58,25 @@ Use read commands with `--json` whenever the output will be consumed by an agent
 Common starting points:
 
 - Applications:
-  - `tarnished applications list --json`
-  - `tarnished statuses list --json`
-  - use `tarnished statuses list --json` before filtering applications by `status_id`
-  - `tarnished applications get <application-id> --json`
+  - `tarnished --json applications list`
+  - `tarnished --json statuses list`
+  - use `tarnished --json statuses list` before filtering applications by `status_id`
+  - `tarnished --json applications get <application-id>`
 - Job leads:
-  - `tarnished job-leads list --json`
-  - `tarnished job-leads get <job-lead-id> --json`
+  - `tarnished --json job-leads list`
+  - `tarnished --json job-leads get <job-lead-id>`
 - Dashboard and analytics:
-  - `tarnished dashboard summary --json`
-  - `tarnished analytics kpis --period 30d --json`
-  - `tarnished analytics weekly --period 30d --json`
-  - `tarnished analytics sankey --json`
+  - `tarnished --json dashboard summary`
+  - `tarnished --json analytics kpis --period 30d`
+  - `tarnished --json analytics weekly --period 30d`
+  - `tarnished --json analytics sankey`
 - Profile and settings:
-  - `tarnished auth whoami --json`
-  - `tarnished auth doctor --json`
-  - `tarnished profile get --json`
-  - `tarnished dashboard summary --json`
-  - `tarnished user-settings get --json`
-  - `tarnished preferences get --json`
+  - `tarnished --json auth whoami`
+  - `tarnished --json auth doctor`
+  - `tarnished --json profile get`
+  - `tarnished --json dashboard summary`
+  - `tarnished --json user-settings get`
+  - `tarnished --json preferences get`
 
 If you need exact flags for a command group, use:
 
@@ -121,10 +121,10 @@ Use it only when the task genuinely requires administrative access.
 
 Common admin reads:
 
-- `tarnished admin stats --json`
-- `tarnished admin users list --json`
-- `tarnished admin applications list --json`
-- `tarnished admin ai-settings get --json`
+- `tarnished --json admin stats`
+- `tarnished --json admin users list`
+- `tarnished --json admin applications list`
+- `tarnished --json admin ai-settings get`
 
 Common admin writes:
 

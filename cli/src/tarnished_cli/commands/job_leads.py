@@ -11,7 +11,7 @@ from tarnished_cli.state import get_state
 JOB_LEADS_HELP = """Manage job leads.
 
 Examples:
-  tarnished job-leads list --json
+  tarnished --json job-leads list
   tarnished job-leads create --body-file job-lead.json
   tarnished job-leads convert lead-123
 """
