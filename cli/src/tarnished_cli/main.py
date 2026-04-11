@@ -34,11 +34,16 @@ def _cli_version() -> str:
 
 ROOT_HELP = dedent(
     """\
-    Agent-first CLI for Tarnished.
+    API-key auth CLI for Tarnished.
+
+    Create or rotate API keys in the Tarnished web app, then validate and store
+    them locally with the auth commands.
 
     Examples:
-      tarnished auth status --json
-      tarnished applications list --json
+      tarnished --json auth status
+      tarnished auth init --api-key '...'
+      tarnished auth doctor
+      tarnished --json applications list
       tarnished <command> --help
     """
 )

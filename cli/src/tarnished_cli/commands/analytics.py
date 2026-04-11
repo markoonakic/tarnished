@@ -11,8 +11,8 @@ from tarnished_cli.state import get_state
 ANALYTICS_HELP = """Read analytics data.
 
 Examples:
-  tarnished analytics kpis --period 30d --json
-  tarnished analytics heatmap --year 2026 --json
+  tarnished --json analytics kpis --period 30d
+  tarnished --json analytics heatmap --year 2026
   tarnished analytics insights --body-file insights.json
 """
 

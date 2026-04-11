@@ -58,10 +58,10 @@ def test_tarnished_skill_mentions_json_profiles_and_admin_safety():
 def test_tarnished_skill_covers_auth_statuses_dashboard_and_import_safety():
     content = SKILL_MD.read_text()
 
-    assert "tarnished auth status --json" in content
-    assert "tarnished auth api-key show --json" in content
-    assert "tarnished dashboard summary --json" in content
-    assert "tarnished statuses list --json" in content
+    assert "tarnished --json auth status" in content
+    assert "tarnished --json auth doctor" in content
+    assert "tarnished --json dashboard summary" in content
+    assert "tarnished --json statuses list" in content
     assert "tarnished import validate" in content
     assert "tarnished import run" in content
 

@@ -1,4 +1,8 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, EmailStr
+
+from app.schemas.api_keys import UserAPIKeyResponse
 
 
 class UserCreate(BaseModel):
@@ -28,3 +32,8 @@ class UserResponse(BaseModel):
     email: str
     is_admin: bool
     is_active: bool
+
+
+class AuthWhoAmIResponse(UserResponse):
+    auth_method: Literal["jwt", "api_key"]
+    api_key: UserAPIKeyResponse | None
