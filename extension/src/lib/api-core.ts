@@ -53,7 +53,6 @@ export interface ApplicationResponse {
   cv_path: string | null;
   cover_letter_path: string | null;
   job_lead_id: string | null;
-  description: string | null;
   location: string | null;
   salary_min: number | null;
   salary_max: number | null;
