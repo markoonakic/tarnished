@@ -129,6 +129,15 @@ jobs:
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
 
+      - name: Ensure GitHub release exists
+        env:
+          TAG: ${{ needs.release-meta.outputs.release_tag }}
+          REF: ${{ needs.release-meta.outputs.ref }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" --target "$REF" --title "$TAG" --notes ""
+
       - name: Update GitHub release body from changelog
         env:
           TAG: ${{ needs.release-meta.outputs.release_tag }}
