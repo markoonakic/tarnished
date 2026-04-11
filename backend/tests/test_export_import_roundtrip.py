@@ -16,7 +16,8 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from httpx import AsyncClient
-from sqlalchemy import create_engine, event, select, text
+from sqlalchemy import create_engine, event, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
@@ -389,8 +390,25 @@ class TestExportImportRoundTrip:
 
 class TestImportIntegrityGuards:
     async def test_test_db_enforces_sqlite_foreign_keys(self, db: AsyncSession):
-        result = await db.execute(text("PRAGMA foreign_keys"))
-        assert result.scalar_one() == 1
+        user = User(
+            email="fk-harness@example.com", password_hash="hashed", is_active=True
+        )
+        db.add(user)
+        await db.flush()
+
+        db.add(
+            Application(
+                user_id=user.id,
+                company="Acme",
+                job_title="Engineer",
+                status_id="missing-status-id",
+            )
+        )
+
+        with pytest.raises(IntegrityError):
+            await db.flush()
+
+        await db.rollback()
 
     def test_import_service_preserves_converted_job_lead_links_with_fk_enforcement(
         self,
