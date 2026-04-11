@@ -19,3 +19,22 @@ def test_zip_utils_imports_without_libmagic(monkeypatch):
 
     assert module.detect_extension(b"%PDF-1.7") == ".bin"
     assert module.detect_mime_type(b"%PDF-1.7") == "application/octet-stream"
+
+
+def test_detect_mime_type_falls_back_to_magic_from_file_for_audio(monkeypatch):
+    module = importlib.import_module("app.api.utils.zip_utils")
+
+    class FakeMagic:
+        @staticmethod
+        def from_buffer(_content, mime=True):
+            assert mime is True
+            return "application/octet-stream"
+
+        @staticmethod
+        def from_file(_path, mime=True):
+            assert mime is True
+            return "audio/x-wav"
+
+    monkeypatch.setattr(module, "magic", FakeMagic)
+
+    assert module.detect_mime_type(b"RIFF\x00\x00\x00\x00WAVEfmt ") == "audio/x-wav"

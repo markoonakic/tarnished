@@ -277,17 +277,23 @@ def test_extract_files_from_zip_normalizes_legacy_files_into_cas_paths(tmp_path)
         zipf.writestr("files/resume.pdf", first_content)
         zipf.writestr("files/cover-letter/resume.pdf", second_content)
 
-    with patch("app.services.import_execution.UPLOAD_DIR", str(upload_root)):
+    with (
+        patch("app.services.import_execution.UPLOAD_DIR", str(upload_root)),
+        patch(
+            "app.api.utils.zip_utils.detect_mime_type", return_value="application/pdf"
+        ),
+        patch("app.api.utils.zip_utils.detect_extension", return_value=".pdf"),
+    ):
         mapping = extract_files_from_zip(str(zip_path), user_id)
 
-    expected_first = f"uploads/{hashlib.sha256(first_content).hexdigest()}.bin"
-    expected_second = f"uploads/{hashlib.sha256(second_content).hexdigest()}.bin"
+    expected_first = f"uploads/{hashlib.sha256(first_content).hexdigest()}.pdf"
+    expected_second = f"uploads/{hashlib.sha256(second_content).hexdigest()}.pdf"
 
     assert mapping["files/resume.pdf"] == expected_first
     assert mapping["files/cover-letter/resume.pdf"] == expected_second
     assert (
-        upload_root / f"{hashlib.sha256(first_content).hexdigest()}.bin"
+        upload_root / f"{hashlib.sha256(first_content).hexdigest()}.pdf"
     ).read_bytes() == first_content
     assert (
-        upload_root / f"{hashlib.sha256(second_content).hexdigest()}.bin"
+        upload_root / f"{hashlib.sha256(second_content).hexdigest()}.pdf"
     ).read_bytes() == second_content
