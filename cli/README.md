@@ -17,6 +17,35 @@ For local release verification only:
 uv tool install ./dist/tarnished_cli-<version>-py3-none-any.whl
 ```
 
+## Authentication
+
+Tarnished CLI is API-key-first.
+
+1. Create or rotate the API key in the Tarnished web app.
+2. Prefer the **CLI** preset so the key includes the scopes the CLI expects.
+3. Validate and store the key locally:
+
+```bash
+uv run tarnished auth init --api-key '...'
+```
+
+4. Run the auth doctor to confirm the stored key, live auth check, and required
+   CLI scopes all pass:
+
+```bash
+uv run tarnished auth doctor
+uv run tarnished auth whoami
+```
+
+5. Clear the locally stored key when needed:
+
+```bash
+uv run tarnished auth api-key clear
+```
+
+The web app remains the source of truth for API keys. The CLI does **not**
+create, rotate, revoke, or otherwise manage remote API keys.
+
 ## Development
 
 ```bash
