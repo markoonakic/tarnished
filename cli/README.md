@@ -75,11 +75,17 @@ Homebrew tap from the released PyPI sdist.
 
 1. Create a write-enabled deploy key for `markoonakic/homebrew-tap`.
 2. Add the private key to this repository as the `HOMEBREW_TAP_DEPLOY_KEY` secret.
-3. The release workflow will:
+3. The dedicated `homebrew-tap.yml` workflow will:
+   - wait until the target PyPI release is older than Homebrew's 24-hour Python resource cooldown window
    - update `Formula/tarnished-cli.rb` from PyPI metadata
    - refresh Python resource blocks with `brew update-python-resources`
    - build the formula from source and run `brew test tarnished-cli`
    - push the tap update to `markoonakic/homebrew-tap`
+
+Why separate from the main release workflow?
+
+- Homebrew's Python dependency resolver intentionally excludes PyPI uploads from the last 24 hours when refreshing resource blocks.
+- Keeping tap sync separate avoids false-negative release failures while still following Homebrew's documented Python-formula workflow.
 
 ### Release Outputs
 

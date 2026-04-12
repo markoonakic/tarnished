@@ -1,0 +1,159 @@
+name: Homebrew Tap Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Tarnished CLI version without the leading v (leave empty to use latest PyPI release)
+        required: false
+  schedule:
+    - cron: '17 5 * * *'
+
+run-name: >-
+  Homebrew Tap Sync ${{ inputs.version || 'latest' }}
+
+concurrency:
+  group: homebrew-tap-${{ inputs.version || 'latest' }}
+  cancel-in-progress: false
+
+jobs:
+  tap-update:
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify tap deploy key is configured
+        env:
+          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+        run: |
+          if [ -z "$HOMEBREW_TAP_DEPLOY_KEY" ]; then
+            echo "HOMEBREW_TAP_DEPLOY_KEY is required to update markoonakic/homebrew-tap"
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Resolve target CLI release metadata
+        id: release
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+          from datetime import datetime, timezone, timedelta
+
+          def fetch(url: str) -> dict:
+              with urllib.request.urlopen(url) as response:
+                  return json.load(response)
+
+          requested_version = os.getenv("INPUT_VERSION", "").strip()
+          latest_payload = fetch("https://pypi.org/pypi/tarnished-cli/json")
+          version = requested_version or latest_payload["info"]["version"]
+          release_payload = fetch(f"https://pypi.org/pypi/tarnished-cli/{version}/json")
+          urls = release_payload.get("urls", [])
+          sdist = next((item for item in urls if item.get("packagetype") == "sdist"), None)
+          if sdist is None:
+              raise SystemExit(f"No sdist found for tarnished-cli=={version}")
+
+          uploaded_at = sdist["upload_time_iso_8601"]
+          uploaded_dt = datetime.fromisoformat(uploaded_at.replace("Z", "+00:00"))
+          age = datetime.now(timezone.utc) - uploaded_dt
+          should_update = age >= timedelta(hours=24)
+          reason = ""
+          if not should_update:
+              reason = (
+                  f"Release {version} is only {age.total_seconds() / 3600:.1f} hours old; "
+                  "Homebrew's Python resource resolver intentionally excludes PyPI uploads from the last 24 hours."
+              )
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              fh.write(f"version={version}\n")
+              fh.write(f"uploaded_at={uploaded_at}\n")
+              fh.write(f"should_update={'true' if should_update else 'false'}\n")
+              if reason:
+                  fh.write(f"reason={reason}\n")
+          PY
+
+      - name: Skip update because Homebrew cooldown window has not elapsed
+        if: steps.release.outputs.should_update != 'true'
+        run: |
+          echo "Skipping Homebrew tap update for ${{ steps.release.outputs.version }}"
+          echo "${{ steps.release.outputs.reason }}"
+
+      - name: Resolve Homebrew tap path
+        if: steps.release.outputs.should_update == 'true'
+        id: tap-path
+        run: echo "path=$(brew --repository)/Library/Taps/markoonakic/homebrew-tap" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare SSH for Homebrew tap clone
+        if: steps.release.outputs.should_update == 'true'
+        env:
+          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          eval "$(ssh-agent -s)"
+          printf '%s\n' "$HOMEBREW_TAP_DEPLOY_KEY" | tr -d '\r' | ssh-add -
+
+          {
+            echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
+            echo "SSH_AGENT_PID=$SSH_AGENT_PID"
+          } >> "$GITHUB_ENV"
+
+      - name: Clone Homebrew tap
+        if: steps.release.outputs.should_update == 'true'
+        run: |
+          mkdir -p "$(dirname "${{ steps.tap-path.outputs.path }}")"
+          rm -rf "${{ steps.tap-path.outputs.path }}"
+          git clone git@github.com:markoonakic/homebrew-tap.git "${{ steps.tap-path.outputs.path }}"
+
+      - name: Update formula release artifact from PyPI
+        if: steps.release.outputs.should_update == 'true'
+        run: |
+          python3 .github/release-tools/update_homebrew_formula.py \
+            --formula "${{ steps.tap-path.outputs.path }}/Formula/tarnished-cli.rb" \
+            --package tarnished-cli \
+            --version "${{ steps.release.outputs.version }}"
+
+      - name: Refresh Homebrew Python resources
+        if: steps.release.outputs.should_update == 'true'
+        run: |
+          brew update-python-resources markoonakic/tap/tarnished-cli \
+            --version "${{ steps.release.outputs.version }}" \
+            --package-name tarnished-cli \
+            --install-dependencies
+
+      - name: Install and smoke-test formula
+        if: steps.release.outputs.should_update == 'true'
+        working-directory: ${{ steps.tap-path.outputs.path }}
+        run: |
+          brew install --formula --build-from-source ./Formula/tarnished-cli.rb
+          brew test tarnished-cli
+          test "$(tarnished --version | tr -d '\n')" = "${{ steps.release.outputs.version }}"
+
+      - name: Commit and push formula update
+        if: steps.release.outputs.should_update == 'true'
+        working-directory: ${{ steps.tap-path.outputs.path }}
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if git diff --quiet -- Formula/tarnished-cli.rb; then
+            echo "Formula already matches tarnished-cli ${VERSION}"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/tarnished-cli.rb
+          git commit -m "tarnished-cli ${VERSION}"
+          git push origin HEAD:main
