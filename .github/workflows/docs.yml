@@ -28,8 +28,6 @@ jobs:
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
           node-version: '22'
-          cache: yarn
-          cache-dependency-path: documentation/yarn.lock
 
       - name: Enable Corepack
         run: corepack enable
