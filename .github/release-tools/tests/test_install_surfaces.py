@@ -5,8 +5,8 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 README_PATH = ROOT / "README.md"
 DOTENV_PATH = ROOT / ".env.example"
-COMPOSE_SQLITE_PATH = ROOT / "docker-compose.yml"
-COMPOSE_POSTGRES_PATH = ROOT / "docker-compose.postgres.yml"
+COMPOSE_SQLITE_PATH = ROOT / "deploy" / "compose" / "docker-compose.yml"
+COMPOSE_POSTGRES_PATH = ROOT / "deploy" / "compose" / "docker-compose.postgres.yml"
 QUICKSTART_PATH = ROOT / "documentation" / "content" / "getting-started" / "quickstart-docker-compose.md"
 
 
@@ -32,6 +32,8 @@ class InstallSurfaceTests(unittest.TestCase):
         self.assertIn("TARNISHED_IMAGE", dotenv)
         self.assertNotIn("local app build from this repository", quickstart)
         self.assertNotIn("docker compose up -d --build", quickstart)
+        self.assertNotIn("git clone https://github.com/markoonakic/tarnished.git", readme)
+        self.assertNotIn("git clone https://github.com/markoonakic/tarnished.git", quickstart)
 
 
 if __name__ == "__main__":

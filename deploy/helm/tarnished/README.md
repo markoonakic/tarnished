@@ -24,7 +24,7 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished
 ### From Source
 
 ```bash
-helm install tarnished ./chart/
+helm install tarnished ./deploy/helm/tarnished/
 ```
 
 ## Configuration

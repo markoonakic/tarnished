@@ -8,7 +8,7 @@ This tutorial gets Tarnished running locally with the default Docker Compose set
 
 It uses:
 
-- the root `docker-compose.yml` file
+- the install-ready `deploy/compose/docker-compose.yml` file
 - the default SQLite-backed app mode
 - the published Tarnished container image from GitHub Container Registry
 
@@ -17,18 +17,18 @@ It uses:
 You need:
 
 - Docker with the `docker compose` command available
+- `curl` to download the install file
 - a free local port for the app, `5577` by default
-- this repository cloned locally
 
 You do **not** need a `.env` file for the default SQLite quickstart.
 
 ## Step 1: Start Tarnished
 
-From the repository root, run:
+Run this from an empty directory where you want the Tarnished data volume to live:
 
 ```bash
-git clone https://github.com/markoonakic/tarnished.git
-cd tarnished
+mkdir tarnished && cd tarnished
+curl -fsSLO https://raw.githubusercontent.com/markoonakic/tarnished/main/deploy/compose/docker-compose.yml
 docker compose up -d
 ```
 
@@ -92,12 +92,24 @@ APP_PORT=8080 docker compose up -d
 
 Then open Tarnished at `http://localhost:8080`.
 
+If you want to keep the setting for later runs, create a `.env` file:
+
+```bash
+echo 'APP_PORT=8080' >> .env
+```
+
 ### Use a specific Tarnished image version
 
 If you want to pin a specific release instead of using the default `latest` tag:
 
 ```bash
 TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.1.7 docker compose up -d
+```
+
+If you want to keep the pin for future runs:
+
+```bash
+echo 'TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.1.7' >> .env
 ```
 
 ## Troubleshooting

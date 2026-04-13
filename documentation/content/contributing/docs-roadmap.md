@@ -17,9 +17,9 @@ These pages establish the minimum useful documentation set for operators and new
 
 | Page | Type | Primary audience | Verify against |
 |---|---|---|---|
-| Quickstart with Docker Compose | Tutorial | New self-hosters | `README.md`, `docker-compose.yml`, `Dockerfile`, `entrypoint.sh` |
-| Deploy with PostgreSQL Compose | How-to | Self-hosters moving past SQLite | `README.md`, `docker-compose.postgres.yml`, `backend/app/core/config.py` |
-| Deploy with Helm | How-to | Kubernetes operators | `chart/README.md`, `chart/values.yaml`, `chart/templates/*` |
+| Quickstart with Docker Compose | Tutorial | New self-hosters | `README.md`, `deploy/compose/docker-compose.yml`, `Dockerfile`, `entrypoint.sh` |
+| Deploy with PostgreSQL Compose | How-to | Self-hosters moving past SQLite | `README.md`, `deploy/compose/docker-compose.postgres.yml`, `backend/app/core/config.py` |
+| Deploy with Helm | How-to | Kubernetes operators | `deploy/helm/tarnished/README.md`, `deploy/helm/tarnished/values.yaml`, `deploy/helm/tarnished/templates/*` |
 | Configure environment variables | Reference | Operators | `.env.example`, `backend/app/core/config.py`, deployment files |
 | Understand storage and backups | Explanation | Operators | `README.md`, compose files, chart docs, `backend/app/core/config.py` |
 | Troubleshoot deployment and startup failures | Troubleshooting | Operators | Compose files, chart docs, `entrypoint.sh`, `backend/app/main.py` |
@@ -58,7 +58,7 @@ These pages make Tarnished easier to operate and extend with confidence.
 |---|---|---|---|
 | API overview and auth expectations | Reference | Integrators | `backend/app/main.py`, route modules, FastAPI OpenAPI output |
 | CLI command reference | Reference | CLI users | generated Typer help plus command modules |
-| Helm values reference guide | Reference | Kubernetes operators | `chart/values.yaml`, `chart/values.schema.json` |
+| Helm values reference guide | Reference | Kubernetes operators | `deploy/helm/tarnished/values.yaml`, `deploy/helm/tarnished/values.schema.json` |
 | Architecture overview | Explanation | Contributors, advanced operators | `backend/app/main.py`, frontend structure, service layout |
 | Import/export system design | Explanation | Contributors | import/export services, transfer jobs, storage model |
 | Contribution guide for docs authors | How-to | Contributors | docs style guide, templates, MkDocs workflow |
@@ -69,13 +69,14 @@ These pages make Tarnished easier to operate and extend with confidence.
 - `README.md`
 - `Dockerfile`
 - `entrypoint.sh`
-- `docker-compose.yml`
-- `docker-compose.postgres.yml`
+- `deploy/compose/docker-compose.yml`
+- `deploy/compose/docker-compose.postgres.yml`
+- `deploy/compose/.env.example`
 - `.env.example`
-- `chart/README.md`
-- `chart/values.yaml`
-- `chart/values.schema.json`
-- `chart/templates/*`
+- `deploy/helm/tarnished/README.md`
+- `deploy/helm/tarnished/values.yaml`
+- `deploy/helm/tarnished/values.schema.json`
+- `deploy/helm/tarnished/templates/*`
 - `backend/app/core/config.py`
 - `backend/app/main.py`
 

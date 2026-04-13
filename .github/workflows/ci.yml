@@ -148,12 +148,12 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Validate SQLite Compose config
-        run: docker compose -f docker-compose.yml config > /tmp/docker-compose.sqlite.yaml
+        run: docker compose -f deploy/compose/docker-compose.yml config > /tmp/docker-compose.sqlite.yaml
 
       - name: Validate PostgreSQL Compose config
         env:
           POSTGRES_PASSWORD: ci-postgres-password
-        run: docker compose -f docker-compose.postgres.yml config > /tmp/docker-compose.postgres.yaml
+        run: docker compose -f deploy/compose/docker-compose.postgres.yml config > /tmp/docker-compose.postgres.yaml
 
       - name: Build production image
         run: docker build -t tarnished:ci .
@@ -163,20 +163,20 @@ jobs:
 
       - name: Lint and render Helm chart scenarios
         run: |
-          helm lint chart
-          helm template tarnished ./chart > /tmp/helm-default.yaml
-          helm template tarnished ./chart --set cleanup.enabled=true > /tmp/helm-cleanup.yaml
-          helm template tarnished ./chart \
+          helm lint deploy/helm/tarnished
+          helm template tarnished ./deploy/helm/tarnished > /tmp/helm-default.yaml
+          helm template tarnished ./deploy/helm/tarnished --set cleanup.enabled=true > /tmp/helm-cleanup.yaml
+          helm template tarnished ./deploy/helm/tarnished \
             --set postgresql.enabled=true \
             --set postgresql.password=ci-secret \
             > /tmp/helm-postgres.yaml
-          helm template tarnished ./chart \
+          helm template tarnished ./deploy/helm/tarnished \
             --set replicaCount=2 \
             --set postgresql.enabled=true \
             --set postgresql.password=ci-secret \
             --set persistence.accessMode=ReadWriteMany \
             > /tmp/helm-multi-replica-rwx.yaml
-          helm template tarnished ./chart \
+          helm template tarnished ./deploy/helm/tarnished \
             --set replicaCount=2 \
             --set postgresql.enabled=true \
             --set postgresql.password=ci-secret \

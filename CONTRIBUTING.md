@@ -89,17 +89,17 @@ If your change touches deployment surfaces, packaging, or release automation, al
 
 ```bash
 # Validate Docker Compose files
-docker compose -f docker-compose.yml config
-POSTGRES_PASSWORD=test-password docker compose -f docker-compose.postgres.yml config
+docker compose -f deploy/compose/docker-compose.yml config
+POSTGRES_PASSWORD=test-password docker compose -f deploy/compose/docker-compose.postgres.yml config
 
 # Validate the production image build
 docker build -t tarnished:local .
 
 # Validate the Helm chart
-helm lint chart
-helm template tarnished ./chart
-helm template tarnished ./chart --set cleanup.enabled=true
-helm template tarnished ./chart \
+helm lint deploy/helm/tarnished
+helm template tarnished ./deploy/helm/tarnished
+helm template tarnished ./deploy/helm/tarnished --set cleanup.enabled=true
+helm template tarnished ./deploy/helm/tarnished \
   --set replicaCount=2 \
   --set postgresql.enabled=true \
   --set postgresql.password=test-password \
