@@ -1256,21 +1256,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.97.0":
-  version: 5.97.0
-  resolution: "@tanstack/query-core@npm:5.97.0"
-  checksum: 10/5dab196303fb1aea97cb9d6bc8f40b8b54b4fb4d1f3a323242c24f028bb0ffa4428e2f647a6fc091955abf85a309b495b373f80ac7b44c4cd6b4224f39c3da70
+"@tanstack/query-core@npm:5.99.0":
+  version: 5.99.0
+  resolution: "@tanstack/query-core@npm:5.99.0"
+  checksum: 10/752c38122c772a8c511ffd927e003282a23a3ab6979b066d1d8b100a2061a5448096fce4cfc9e2d93a2ef468ffac5440a6181203b1456d12f6e51f69bcdc1a4d
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^5.97.0":
-  version: 5.97.0
-  resolution: "@tanstack/react-query@npm:5.97.0"
+"@tanstack/react-query@npm:^5.99.0":
+  version: 5.99.0
+  resolution: "@tanstack/react-query@npm:5.99.0"
   dependencies:
-    "@tanstack/query-core": "npm:5.97.0"
+    "@tanstack/query-core": "npm:5.99.0"
   peerDependencies:
     react: ^18 || ^19
-  checksum: 10/0c7616ce6fd55f0cef46960324b29aa82943199a60b9fca3f6c798f2bbcbe540b2b57ddb6b2c138680f30ee489c74509f027f005e62956ae8fb032219aac3411
+  checksum: 10/aafbc87fc9c6c01c8ac8229d42ab209273f39f8284a72b8917c5fab39722b949b8dff2cf3b28487b2ebcb286bb08a377a42ed8a56dabe7f1ac4681c5af338401
   languageName: node
   linkType: hard
 
@@ -1421,12 +1421,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^25.5.2":
-  version: 25.5.2
-  resolution: "@types/node@npm:25.5.2"
+"@types/node@npm:^25.6.0":
+  version: 25.6.0
+  resolution: "@types/node@npm:25.6.0"
   dependencies:
-    undici-types: "npm:~7.18.0"
-  checksum: 10/11782030f910ecf600cd537791980bd8b68496570ecd633d512d713b5b8a16ea3740fce85c82d0593305f809a7c205d7e86c07f179063fc98f014a7f9b013166
+    undici-types: "npm:~7.19.0"
+  checksum: 10/99b18690a4be55904cbf8f6a6ac8eed5ec5b8d791fdd8ee2ae598b46c0fa9b83cda7b70dd7f00dbfb18189dcfc67648fdc7fdd3fcced2619a5a6453d9aec107d
   languageName: node
   linkType: hard
 
@@ -2715,11 +2715,11 @@ __metadata:
   dependencies:
     "@eslint/js": "npm:^10.0.1"
     "@tailwindcss/postcss": "npm:^4.2.2"
-    "@tanstack/react-query": "npm:^5.97.0"
+    "@tanstack/react-query": "npm:^5.99.0"
     "@testing-library/dom": "npm:^10.4.1"
     "@testing-library/jest-dom": "npm:^6.9.1"
     "@testing-library/react": "npm:^16.3.0"
-    "@types/node": "npm:^25.5.2"
+    "@types/node": "npm:^25.6.0"
     "@types/react": "npm:^19.2.14"
     "@types/react-dom": "npm:^19.2.3"
     "@vitejs/plugin-react": "npm:^6.0.1"
@@ -2733,13 +2733,13 @@ __metadata:
     eslint-config-prettier: "npm:^10.0.1"
     eslint-plugin-react-hooks: "npm:^7.0.1"
     eslint-plugin-react-refresh: "npm:^0.5.2"
-    globals: "npm:^17.4.0"
+    globals: "npm:^17.5.0"
     husky: "npm:^9.1.7"
     jsdom: "npm:^29.0.2"
     lint-staged: "npm:^16.4.0"
     msw: "npm:^2.13.2"
     postcss: "npm:^8.5.9"
-    prettier: "npm:^3.5.1"
+    prettier: "npm:^3.8.2"
     prettier-plugin-tailwindcss: "npm:^0.7.2"
     react: "npm:^19.2.5"
     react-dom: "npm:^19.2.5"
@@ -2859,10 +2859,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"globals@npm:^17.4.0":
-  version: 17.4.0
-  resolution: "globals@npm:17.4.0"
-  checksum: 10/ffad244617e94efcb3da72b7beefc941167c21316148ce378f322db7af72db06468f370e23224b3c7b17b5173a7c75b134e5e7b0949f2828519054a76892508d
+"globals@npm:^17.5.0":
+  version: 17.5.0
+  resolution: "globals@npm:17.5.0"
+  checksum: 10/c405a95e1ecf14a1a17caaecd4dadbad38166b3c1b514e07924604ee224e922c043fc93ae21164d124dae5536e5a812566355469e34a689601db7d3d424dc8e7
   languageName: node
   linkType: hard
 
@@ -4384,12 +4384,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier@npm:^3.5.1":
-  version: 3.8.1
-  resolution: "prettier@npm:3.8.1"
+"prettier@npm:^3.8.2":
+  version: 3.8.2
+  resolution: "prettier@npm:3.8.2"
   bin:
     prettier: bin/prettier.cjs
-  checksum: 10/3da1cf8c1ef9bea828aa618553696c312e951f810bee368f6887109b203f18ee869fe88f66e65f9cf60b7cb1f2eae859892c860a300c062ff8ec69c381fc8dbd
+  checksum: 10/fd784175bc600c07eb2c44d7ec4ee7133f95f26492adad61b6a15c06f438b858181faf096ab74163d7f49500ad80cff4479c6abb084e161a2e85a9df5974ecd1
   languageName: node
   linkType: hard
 
@@ -5203,10 +5203,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici-types@npm:~7.18.0":
-  version: 7.18.2
-  resolution: "undici-types@npm:7.18.2"
-  checksum: 10/e61a5918f624d68420c3ca9d301e9f15b61cba6e97be39fe2ce266dd6151e4afe424d679372638826cb506be33952774e0424141200111a9857e464216c009af
+"undici-types@npm:~7.19.0":
+  version: 7.19.2
+  resolution: "undici-types@npm:7.19.2"
+  checksum: 10/05c34c63444c8caca7137f122b29ed50c1d7d05d1e0b2337f423575d3264054c4a0139e47e82e65723d09b97fcad6d8b0223b3550430a9006cc00e72a1e035bf
   languageName: node
   linkType: hard
 
