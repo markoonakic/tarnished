@@ -1,10 +1,16 @@
-# Getting started
+---
+title: Getting started
+sidebar_position: 1
+---
 
 Use this section to get Tarnished running and understand the core product surfaces.
 
-Planned content:
+## Available pages
 
-- quickstart with Docker Compose
+- [Quickstart with Docker Compose](./quickstart-docker-compose.md)
+
+## Planned next pages
+
 - quickstart with Helm
 - first login and admin bootstrap
 - basic product orientation
