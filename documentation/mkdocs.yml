@@ -1,0 +1,58 @@
+site_name: Tarnished Documentation
+site_description: Documentation for Tarnished, a self-hosted job application tracker.
+site_url: https://markoonakic.github.io/tarnished/
+docs_dir: src
+site_dir: site
+strict: true
+
+repo_name: markoonakic/tarnished
+repo_url: https://github.com/markoonakic/tarnished
+edit_uri: edit/main/documentation/src/
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - getting-started/index.md
+  - Tutorials:
+      - tutorials/index.md
+  - How-to guides:
+      - how-to/index.md
+  - Reference:
+      - reference/index.md
+  - Explanation:
+      - explanation/index.md
+  - Troubleshooting:
+      - troubleshooting/index.md
+  - Contributing:
+      - contributing/index.md
+      - Docs architecture: contributing/docs-architecture.md
+      - Docs style guide: contributing/docs-style-guide.md
+      - Templates:
+          - Tutorial template: contributing/templates/tutorial-template.md
+          - How-to template: contributing/templates/how-to-template.md
+          - Reference template: contributing/templates/reference-template.md
+          - Explanation template: contributing/templates/explanation-template.md
+          - Troubleshooting template: contributing/templates/troubleshooting-template.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+
+theme:
+  name: material
+  features:
+    - content.action.edit
+    - content.code.copy
+    - navigation.indexes
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.suggest

@@ -9,6 +9,7 @@ uploads/
 .uv/
 dist/
 build/
+site/
 *.egg-info/
 
 

@@ -69,6 +69,18 @@ cd frontend
 yarn lint
 ```
 
+### Documentation Validation
+
+If your change touches the docs site or docs authoring standards, also run:
+
+```bash
+# Install docs dependencies
+uv sync --project documentation --frozen --no-install-project
+
+# Build the docs site
+documentation/.venv/bin/mkdocs build --strict -f documentation/mkdocs.yml
+```
+
 ### Deployment / Packaging Validation
 
 If your change touches deployment surfaces, packaging, or release automation, also run:
