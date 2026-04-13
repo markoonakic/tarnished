@@ -29,7 +29,7 @@ LICENSE
 scripts/
 
 # App surfaces not needed in the production image
-chart/
+deploy/
 cli/
 extension/
 
@@ -71,8 +71,7 @@ extension/node_modules/
 *.swo
 *~
 
-# Docker/Compose files (prevent recursive inclusion)
+# Docker/Compose files and env files (prevent recursive inclusion)
 Dockerfile
-docker-compose*.yml
 .env*
 .dockerignore

@@ -20,8 +20,10 @@ def test_ci_runs_frontend_and_extension_vitest_suites():
 
 
 def test_chart_supports_startup_probe():
-    values = (REPO_ROOT / "chart/values.yaml").read_text()
-    deployment = (REPO_ROOT / "chart/templates/deployment.yaml").read_text()
+    values = (REPO_ROOT / "deploy/helm/tarnished/values.yaml").read_text()
+    deployment = (
+        REPO_ROOT / "deploy/helm/tarnished/templates/deployment.yaml"
+    ).read_text()
 
     assert "startupProbe:" in values
     assert "startupProbe:" in deployment

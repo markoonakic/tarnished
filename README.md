@@ -27,13 +27,12 @@ Think of it as a command center for your job search. Track applications, store y
 ## Quick Start
 
 ```bash
-git clone https://github.com/markoonakic/tarnished.git
-cd tarnished
+mkdir tarnished && cd tarnished
+curl -fsSLO https://raw.githubusercontent.com/markoonakic/tarnished/main/deploy/compose/docker-compose.yml
 docker compose up -d
-
-# Open in browser
-open http://localhost:5577
 ```
+
+Then open `http://localhost:5577` in your browser.
 
 The default Compose quickstart pulls the published Tarnished container image from GitHub Container Registry. If you want to pin a specific release instead of using `latest`, set `TARNISHED_IMAGE` before starting the stack.
 
@@ -56,8 +55,8 @@ Back up both the uploads storage and the database used by your deployment mode.
 Best for personal use, home servers, and trying it out.
 
 ```bash
-git clone https://github.com/markoonakic/tarnished.git
-cd tarnished
+mkdir tarnished && cd tarnished
+curl -fsSLO https://raw.githubusercontent.com/markoonakic/tarnished/main/deploy/compose/docker-compose.yml
 docker compose up -d
 ```
 
@@ -68,8 +67,8 @@ This path uses the published Tarnished container image and stores data locally i
 Best for multi-user deployments or when you need better performance.
 
 ```bash
-git clone https://github.com/markoonakic/tarnished.git
-cd tarnished
+mkdir tarnished && cd tarnished
+curl -fsSLO https://raw.githubusercontent.com/markoonakic/tarnished/main/deploy/compose/docker-compose.postgres.yml
 
 # Create .env with PostgreSQL password
 # docker compose will fail fast if POSTGRES_PASSWORD is missing or blank
@@ -96,7 +95,7 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
   --set postgresql.password=your-password
 ```
 
-See [chart/README.md](chart/README.md) for full configuration options.
+See [deploy/helm/tarnished/README.md](deploy/helm/tarnished/README.md) for full configuration options.
 
 ### CLI
 

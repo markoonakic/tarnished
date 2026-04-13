@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-CHART_DIR = PROJECT_ROOT / "chart"
+CHART_DIR = PROJECT_ROOT / "deploy" / "helm" / "tarnished"
 
 
 def _render_chart(*set_args: str) -> list[dict]:
