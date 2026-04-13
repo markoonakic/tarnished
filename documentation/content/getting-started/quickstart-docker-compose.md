@@ -10,7 +10,7 @@ It uses:
 
 - the root `docker-compose.yml` file
 - the default SQLite-backed app mode
-- the local app build from this repository
+- the published Tarnished container image from GitHub Container Registry
 
 ## Before you begin
 
@@ -32,7 +32,7 @@ cd tarnished
 docker compose up -d
 ```
 
-The default Compose file builds the app image locally, starts the app container, and mounts `./data` into the container for persistent app data.
+The default Compose file pulls the published Tarnished image, starts the app container, and mounts `./data` into the container for persistent app data.
 
 :::tip What happens on first startup?
 On startup, the container entrypoint creates the uploads directory, generates a persistent `SECRET_KEY` if one does not already exist, runs database migrations, and then starts the FastAPI server on port `5577`.
@@ -92,12 +92,12 @@ APP_PORT=8080 docker compose up -d
 
 Then open Tarnished at `http://localhost:8080`.
 
-### Rebuild after local changes
+### Use a specific Tarnished image version
 
-If you change the app code and want to rebuild the image:
+If you want to pin a specific release instead of using the default `latest` tag:
 
 ```bash
-docker compose up -d --build
+TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.1.7 docker compose up -d
 ```
 
 ## Troubleshooting
@@ -120,7 +120,7 @@ docker compose logs -f app
 
 The most common causes are:
 
-- the first image build is still running
+- the image pull or container startup is still in progress
 - a local port conflict
 - a startup failure during migrations
 
