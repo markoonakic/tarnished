@@ -31,7 +31,7 @@ const config: Config = {
           path: 'content',
           routeBasePath: '/',
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/markoonakic/tarnished/edit/main/documentation/content/',
+          editUrl: 'https://github.com/markoonakic/tarnished/edit/main/documentation/',
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
         },
