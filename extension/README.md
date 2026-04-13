@@ -78,6 +78,8 @@ The autofill feature can automatically populate the following form fields:
 
 ### Packaged Release Builds
 
+The current public distribution path is the packaged release ZIPs attached to GitHub Releases. Browser store publication is deferred for now.
+
 ```bash
 yarn build:chrome   # produces tarnished-chrome.zip
 yarn build:firefox  # produces tarnished-firefox.zip

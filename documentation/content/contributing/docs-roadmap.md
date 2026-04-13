@@ -17,9 +17,9 @@ These pages establish the minimum useful documentation set for operators and new
 
 | Page | Type | Primary audience | Verify against |
 |---|---|---|---|
-| Quickstart with Docker Compose | Tutorial | New self-hosters | `README.md`, `deploy/compose/docker-compose.yml`, `Dockerfile`, `entrypoint.sh` |
-| Deploy with PostgreSQL Compose | How-to | Self-hosters moving past SQLite | `README.md`, `deploy/compose/docker-compose.postgres.yml`, `backend/app/core/config.py` |
-| Deploy with Helm | How-to | Kubernetes operators | `deploy/helm/tarnished/README.md`, `deploy/helm/tarnished/values.yaml`, `deploy/helm/tarnished/templates/*` |
+| Install with Docker Compose | Install | New self-hosters | `README.md`, `deploy/compose/docker-compose.yml`, `entrypoint.sh` |
+| Install with PostgreSQL Docker Compose | Install | Self-hosters moving past SQLite | `README.md`, `deploy/compose/docker-compose.postgres.yml`, `backend/app/core/config.py` |
+| Install with Helm | Install | Kubernetes operators | `deploy/helm/tarnished/README.md`, `deploy/helm/tarnished/values.yaml`, `deploy/helm/tarnished/templates/*` |
 | Configure environment variables | Reference | Operators | `.env.example`, `backend/app/core/config.py`, deployment files |
 | Understand storage and backups | Explanation | Operators | `README.md`, compose files, chart docs, `backend/app/core/config.py` |
 | Troubleshoot deployment and startup failures | Troubleshooting | Operators | Compose files, chart docs, `entrypoint.sh`, `backend/app/main.py` |
@@ -30,7 +30,7 @@ These pages explain the main product workflows once the app is running.
 
 | Page | Type | Primary audience | Verify against |
 |---|---|---|---|
-| Create your first application workflow | Tutorial | End users | frontend flows, backend application routes, current UI copy |
+| Create your first application | Get started | End users | frontend flows, backend application routes, current UI copy |
 | Save and convert a job lead | Tutorial | End users | `backend/app/api/job_leads.py`, `backend/app/api/applications.py`, extension README |
 | Manage statuses and round types | How-to | End users/admins | `backend/app/api/settings.py`, settings UI, CLI status/round type commands |
 | Upload documents and media | How-to | End users | `backend/app/api/files.py`, `backend/app/api/rounds.py`, frontend upload flows |
@@ -58,10 +58,10 @@ These pages make Tarnished easier to operate and extend with confidence.
 |---|---|---|---|
 | API overview and auth expectations | Reference | Integrators | `backend/app/main.py`, route modules, FastAPI OpenAPI output |
 | CLI command reference | Reference | CLI users | generated Typer help plus command modules |
-| Helm values reference guide | Reference | Kubernetes operators | `deploy/helm/tarnished/values.yaml`, `deploy/helm/tarnished/values.schema.json` |
+| Helm chart reference | Reference | Kubernetes operators | `deploy/helm/tarnished/Chart.yaml`, `deploy/helm/tarnished/README.md`, `deploy/helm/tarnished/values.yaml`, `deploy/helm/tarnished/values.schema.json` |
 | Architecture overview | Explanation | Contributors, advanced operators | `backend/app/main.py`, frontend structure, service layout |
 | Import/export system design | Explanation | Contributors | import/export services, transfer jobs, storage model |
-| Contribution guide for docs authors | How-to | Contributors | docs style guide, templates, MkDocs workflow |
+| Contribution guide for docs authors | How-to | Contributors | docs style guide, templates, Docusaurus workflow |
 
 ## Candidate source-of-truth map
 
@@ -98,13 +98,13 @@ These pages make Tarnished easier to operate and extend with confidence.
 
 ## Recommended writing order
 
-1. Quickstart with Docker Compose
-2. Deploy with PostgreSQL Compose
-3. Deploy with Helm
+1. Install with Docker Compose
+2. Install with PostgreSQL Docker Compose
+3. Install with Helm
 4. Configure environment variables
 5. Understand storage and backups
 6. Troubleshoot deployment and startup failures
-7. Create your first application workflow
+7. Create your first application
 8. Save and convert a job lead
 9. Import and export your data
 10. Configure API keys

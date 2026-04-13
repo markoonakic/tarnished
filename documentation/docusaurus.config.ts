@@ -1,6 +1,7 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import gruvboxTarnishedDark from './src/prism/gruvboxTarnishedDark';
 
 const config: Config = {
   title: 'Tarnished Documentation',
@@ -43,14 +44,25 @@ const config: Config = {
     ],
   ],
   themeConfig: {
+    colorMode: {
+      defaultMode: 'dark',
+      disableSwitch: true,
+      respectPrefersColorScheme: false,
+    },
+    docs: {
+      sidebar: {
+        hideable: true,
+        autoCollapseCategories: true,
+      },
+    },
     navbar: {
       title: 'Tarnished',
       items: [
         {
-          type: 'docSidebar',
-          sidebarId: 'docsSidebar',
+          type: 'doc',
+          docId: 'install/index',
           position: 'left',
-          label: 'Documentation',
+          label: 'Install',
         },
         {
           href: 'https://github.com/markoonakic/tarnished',
@@ -60,7 +72,6 @@ const config: Config = {
       ],
     },
     footer: {
-      style: 'dark',
       links: [
         {
           title: 'Docs',
@@ -70,8 +81,12 @@ const config: Config = {
               to: '/',
             },
             {
-              label: 'Getting started',
-              to: '/getting-started',
+              label: 'Install Tarnished',
+              to: '/install',
+            },
+            {
+              label: 'Get started in Tarnished',
+              to: '/get-started',
             },
           ],
         },
@@ -92,8 +107,8 @@ const config: Config = {
       copyright: `Copyright © ${new Date().getFullYear()} Tarnished. Built with Docusaurus.`,
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      theme: prismThemes.gruvboxMaterialLight,
+      darkTheme: gruvboxTarnishedDark,
       additionalLanguages: ['bash', 'json', 'yaml'],
     },
   } satisfies Preset.ThemeConfig,

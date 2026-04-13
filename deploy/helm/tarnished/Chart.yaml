@@ -1,13 +1,33 @@
 apiVersion: v2
 name: tarnished
-description: A full-stack job application tracking system
+description: Self-hosted job application tracker for applications, job leads, files, and analytics
 type: application
 version: 0.1.7
 appVersion: "0.1.7"
+kubeVersion: ">=1.23.0-0"
 home: https://github.com/markoonakic/tarnished
+icon: https://raw.githubusercontent.com/markoonakic/tarnished/main/documentation/static/img/favicon.png
 sources:
   - https://github.com/markoonakic/tarnished
 keywords:
   - tarnished
   - applications
   - careers
+  - self-hosted
+  - tracking
+maintainers:
+  - name: Marko Onakic
+    url: https://github.com/markoonakic
+annotations:
+  artifacthub.io/category: skip-prediction
+  artifacthub.io/license: MIT
+  artifacthub.io/links: |
+    - name: documentation
+      url: https://markoonakic.github.io/tarnished/
+    - name: support
+      url: https://github.com/markoonakic/tarnished/issues
+    - name: source
+      url: https://github.com/markoonakic/tarnished
+  artifacthub.io/images: |
+    - name: tarnished
+      image: ghcr.io/markoonakic/tarnished:0.1.7

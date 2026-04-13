@@ -1,0 +1,132 @@
+<!--
+Generated from README.md.gotmpl by helm-docs.
+Do not edit README.md directly.
+-->
+
+# Tarnished Helm Chart
+
+Deploy Tarnished on Kubernetes with the published OCI Helm chart.
+
+This chart is intended for operators who want a chart-facing reference in addition to the public install docs. For the task-focused install guide, see the published documentation site: <https://markoonakic.github.io/tarnished/install/helm>.
+
+## TL;DR
+
+### SQLite evaluation install
+
+```bash
+helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
+  --namespace tarnished \
+  --create-namespace
+```
+
+### PostgreSQL single-replica install
+
+```bash
+kubectl create namespace tarnished
+kubectl create secret generic tarnished-secrets \
+  -n tarnished \
+  --from-literal=secret-key="$(openssl rand -hex 32)"
+kubectl create secret generic tarnished-db \
+  -n tarnished \
+  --from-literal=password='replace-with-a-strong-password'
+cat > values-production.yaml <<'EOF'
+postgresql:
+  enabled: true
+  host: postgres.example.com
+  port: 5432
+  database: tarnished
+  user: tarnished
+  existingSecret: tarnished-db
+  existingSecretPasswordKey: password
+
+secretKey:
+  existingSecret: tarnished-secrets
+  existingSecretKey: secret-key
+EOF
+helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
+  --namespace tarnished \
+  --values values-production.yaml
+```
+
+## Prerequisites
+
+- Kubernetes 1.23+
+- Helm 3.8+
+- A working default `StorageClass`, or an explicit storage class configured in your values
+- PostgreSQL plus shared uploads storage if you plan to run multiple replicas
+
+## Install modes
+
+### SQLite evaluation mode
+
+The default chart configuration uses SQLite with persistent uploads storage and a single Tarnished replica. This is appropriate for evaluation and small single-instance installs.
+
+### PostgreSQL single replica mode
+
+For production-style installs, use external PostgreSQL and a persistent uploads volume even if you only run one Tarnished replica.
+
+### PostgreSQL with multiple replicas
+
+Multiple replicas require more than just PostgreSQL. You also need shared uploads storage, either:
+
+- a chart-managed PVC with `persistence.accessMode=ReadWriteMany`
+- or an existing shared claim plus `persistence.sharedAccess=true`
+
+The chart templates validate these requirements and fail fast on unsupported combinations.
+
+## Secrets
+
+### SECRET_KEY
+
+Use `secretKey.existingSecret` and `secretKey.existingSecretKey` to provide a stable `SECRET_KEY` for Tarnished JWT signing.
+
+### PostgreSQL password
+
+Use `postgresql.existingSecret` and `postgresql.existingSecretPasswordKey` to source the PostgreSQL password from a Secret.
+
+When `existingSecret` is not set, the chart can take the password directly from `postgresql.password`, but a Secret-backed configuration is preferred for real deployments.
+
+## Persistence and data layout
+
+The chart mounts Tarnished data at `/app/data`.
+
+- uploads live under `/app/data/uploads`
+- SQLite, when used, also stores its local database under `/app/data`
+- PostgreSQL-backed installs still use `/app/data` for uploads and local app state, while relational data lives in PostgreSQL
+
+For chart-managed PVCs, the chart applies `helm.sh/resource-policy: keep` to reduce accidental data loss on uninstall.
+
+## Networking and ingress
+
+Use the `service` block to control the Kubernetes Service and the `ingress` block to publish Tarnished behind a hostname.
+
+When ingress is enabled, the chart also sets `APP_URL` from the configured host and TLS settings.
+
+## Health probes
+
+The chart exposes configurable `startupProbe`, `readinessProbe`, and `livenessProbe` values. The defaults all target Tarnished's `/health` endpoint.
+
+## Cleanup CronJob
+
+The optional `cleanup` block enables a Kubernetes CronJob that runs Tarnished's orphaned-upload cleanup command.
+
+Use `cleanup.mode=dry-run` to audit first. Switch to `delete` only after you are comfortable with the results.
+
+## Upgrading
+
+```bash
+helm upgrade tarnished oci://ghcr.io/markoonakic/charts/tarnished \
+  --namespace tarnished \
+  --values values-production.yaml
+```
+
+The chart runs database migrations through an init container before the Tarnished app starts.
+
+## Notes on generated documentation
+
+This README is generated from `README.md.gotmpl` and the comments in `values.yaml`. Keep the `values.yaml` comments accurate because they feed the values table below.
+
+{{ template "chart.maintainersSection" . }}
+{{ template "chart.sourcesSection" . }}
+{{ template "chart.requirementsSection" . }}
+{{ template "chart.valuesSection" . }}
