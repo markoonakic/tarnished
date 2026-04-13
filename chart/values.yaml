@@ -1,5 +1,6 @@
 # -- Number of replicas. Must be 1 when using SQLite (default).
-# Requires postgresql.enabled=true for multiple replicas.
+# Multiple replicas require PostgreSQL plus shared upload storage
+# (ReadWriteMany PVC, or an existing shared claim with persistence.sharedAccess=true).
 replicaCount: 1
 
 image:
@@ -21,8 +22,8 @@ fullnameOverride: ""
 serviceAccount:
   # -- Create a ServiceAccount
   create: true
-  # -- Automount API credentials
-  automount: true
+  # -- Automount API credentials. Leave false unless the app must call the Kubernetes API.
+  automount: false
   # -- ServiceAccount annotations
   annotations: {}
   # -- ServiceAccount name (generated if empty)
@@ -37,6 +38,7 @@ podLabels: {}
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 1000
+  runAsGroup: 1000
   fsGroup: 1000
   seccompProfile:
     type: RuntimeDefault
@@ -81,10 +83,14 @@ persistence:
   storageClass: ""
   # -- PVC size
   size: 1Gi
-  # -- Access mode (must be ReadWriteOnce for SQLite)
+  # -- Access mode for chart-managed PVCs.
+  # SQLite should stay on ReadWriteOnce. Multiple replicas require shared write access.
   accessMode: ReadWriteOnce
   # -- Use an existing PVC instead of creating one
   existingClaim: ""
+  # -- Acknowledge that the chosen existing claim supports shared read-write access
+  # across replicas. Required when replicaCount > 1 and using existingClaim.
+  sharedAccess: false
   annotations:
     # Prevent PVC deletion on helm uninstall
     helm.sh/resource-policy: keep

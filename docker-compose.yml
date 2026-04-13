@@ -7,4 +7,10 @@ services:
       - ./data:/app/data
     environment:
       - APP_URL=${APP_URL:-http://localhost:5577}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5577/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     restart: unless-stopped
