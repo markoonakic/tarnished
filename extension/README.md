@@ -66,7 +66,7 @@ The autofill feature can automatically populate the following form fields:
    yarn install
    ```
 
-3. Build the extension:
+3. Build the unpacked extension bundle:
 
    ```bash
    yarn build
@@ -74,15 +74,22 @@ The autofill feature can automatically populate the following form fields:
 
 4. Load the extension in your browser:
    - **Chrome**: Go to `chrome://extensions/`, enable "Developer mode", click "Load unpacked", and select the `extension/dist` directory
-   - **Firefox**: Go to `about:debugging#/runtime/this-firefox`, click "Load Temporary Add-on", and select any file in the `extension/dist` directory
+   - **Firefox**: Go to `about:debugging#/runtime/this-firefox`, click "Load Temporary Add-on", and select `extension/dist/manifest.json`
 
-### Development Mode
+### Packaged Release Builds
 
-For development with hot-reloading:
+```bash
+yarn build:chrome   # produces tarnished-chrome.zip
+yarn build:firefox  # produces tarnished-firefox.zip
+```
+
+### Development Watch Mode
 
 ```bash
 yarn dev
 ```
+
+`yarn dev` runs Vite in watch mode and rebuilds `dist/` on file changes. It is a rebuild loop for extension development, not full browser-style HMR.
 
 ## Configuration
 
@@ -183,17 +190,23 @@ If you visit a job posting URL that's already saved:
 ```
 extension/
   src/
-    background/     # Service worker for background tasks
-    content/        # Content script for page detection and autofill
-    popup/          # Extension popup UI
-    options/        # Extension settings page
+    background/         # Background entrypoint / browser runtime coordination
+    content/            # Content scripts for job detection and autofill
+    popup/              # Popup UI entrypoint and state
+    options/            # Settings page entrypoint
+    architecture/       # Boundary/contract tests
     lib/
-      api.ts        # Backend API client
-      autofill.ts   # Form autofill logic
-      constants.ts  # Shared constants
-      detection.ts  # Job detection algorithm
-      errors.ts     # Error handling utilities
-      storage.ts    # Chrome storage helpers
+      api-core.ts       # Shared API types, errors, settings, fetch helpers
+      api-job-leads.ts  # Job lead save/check flows
+      api-applications.ts # Application create/convert/check flows
+      api-user.ts       # Profile + connection checks
+      autofill/         # Autofill engine and scoring helpers
+      constants.ts      # Shared constants
+      detection.ts      # Job detection algorithm
+      errors.ts         # Extension-domain error mapping
+      logger.ts         # Logging helpers
+      storage.ts        # Browser storage helpers
+      url.ts            # App URL helpers
 ```
 
 ## Development
@@ -207,17 +220,22 @@ yarn dev          # Development build with watch mode
 
 ### Project Structure
 
-- **Manifest V3**: Uses the latest Chrome extension manifest format
+- **Hybrid browser manifest strategy**: Uses a Manifest V3 service-worker background entrypoint while retaining cross-browser compatibility fields needed by the current Chrome/Firefox build path
 - **TypeScript**: Full type safety throughout
-- **Vite**: Fast bundling and development experience
+- **Vite**: Bundles the extension and produces the unpacked `dist/` output plus packaged ZIPs
 - **webextension-polyfill**: Cross-browser compatibility
 
 ### API Integration
 
-The extension communicates with the Tarnished backend via:
+The extension communicates with the Tarnished backend via scoped API-key requests such as:
 
 - `POST /api/job-leads` - Save a new job lead
 - `GET /api/job-leads` - List/search existing leads
+- `POST /api/job-leads/{id}/convert` - Convert a lead into an application
+- `GET /api/applications` - Check for existing applications by URL
+- `POST /api/applications` - Create an application directly
+- `POST /api/applications/extract` - Extract an application from page content
+- `GET /api/statuses` - Fetch application statuses for create flows
 - `GET /api/profile` - Fetch user profile for autofill
 
 All requests use API key authentication via the `X-API-Key` header.
