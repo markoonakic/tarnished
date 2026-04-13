@@ -4,6 +4,8 @@ Tarnished is a self-hosted job application tracker designed to help you manage e
 
 Think of it as a command center for your job search. Track applications, store your CVs and cover letters, analyze interview videos, and let AI analyze where your pipeline is breaking so you can focus on what actually matters.
 
+**Documentation:** https://markoonakic.github.io/tarnished/
+
 ## Features
 
 - **Track Every Application** - Company, position, salary, status, contacts, links... Never lose track of where you applied, and how you applied.
@@ -177,6 +179,7 @@ See [extension/README.md](extension/README.md) for full documentation.
 
 ## Support
 
+- **Documentation**: https://markoonakic.github.io/tarnished/
 - **Bug Reports**: [GitHub Issues](https://github.com/markoonakic/tarnished/issues)
 - **Feature Requests**: [GitHub Issues](https://github.com/markoonakic/tarnished/issues)
 - **Discussion**: [GitHub Discussions](https://github.com/markoonakic/tarnished/discussions)

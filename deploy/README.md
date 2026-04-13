@@ -2,6 +2,11 @@
 
 This directory contains the user-facing deployment assets for Tarnished.
 
+**Documentation:** https://markoonakic.github.io/tarnished/
+
+For the public install guides, start with:
+- https://markoonakic.github.io/tarnished/install/
+
 ## Structure
 
 - `compose/` — Docker Compose install files for published container images

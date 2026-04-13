@@ -2,6 +2,11 @@
 
 Agent-first command-line interface for Tarnished.
 
+**Documentation:** https://markoonakic.github.io/tarnished/
+
+For the user-facing CLI guide, see:
+- https://markoonakic.github.io/tarnished/how-to/use-the-cli/
+
 ## Install
 
 Recommended install path:

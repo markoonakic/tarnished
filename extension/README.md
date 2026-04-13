@@ -2,6 +2,11 @@
 
 A browser extension for detecting job postings and saving them to your Tarnished application.
 
+**Documentation:** https://markoonakic.github.io/tarnished/
+
+For the current user-facing manual install/configuration guide, see:
+- https://markoonakic.github.io/tarnished/how-to/use-the-browser-extension/
+
 ## Features
 
 - **Job Detection**: Automatically detects job posting pages across major job boards
