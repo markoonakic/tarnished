@@ -23,17 +23,24 @@ The docs site is built in GitHub Actions from the tracked source files and deplo
 
 ## Information architecture
 
-Tarnished documentation follows a Diátaxis-style structure:
+Tarnished documentation separates the public user path from contributor docs.
 
-- **Getting started**
-- **Tutorials**
-- **How-to guides**
+### Public docs
+
+- **Home**
+- **Install Tarnished**
+- **Get started in Tarnished**
+- **How-to**
 - **Reference**
 - **Explanation**
 - **Troubleshooting**
-- **Contributing**
 
-Choose the page type first, then write the page.
+### Contributor docs
+
+- **Contributing**
+- contributor-facing architecture, roadmap, and templates
+
+The public docs still borrow from Diátaxis principles, but install and first-use onboarding are elevated because Tarnished is a self-hosted product and users need a clear path from deployment to first real use.
 
 ## Design constraints
 

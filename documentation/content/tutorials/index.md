@@ -1,12 +1,8 @@
-# Tutorials
+---
+title: Tutorials
+unlisted: true
+---
 
-Tutorials are guided learning experiences.
+Public onboarding for Tarnished now lives under [Get started in Tarnished](../get-started/index.md).
 
-Use this section when you want to learn Tarnished by doing, not just read reference material.
-
-Planned content:
-
-- complete your first application workflow
-- save and convert a job lead
-- run an import and export cycle
-- configure AI features end to end
+This section is reserved for future longer-form guided tutorials.

@@ -1,18 +1,23 @@
 ---
-title: How-to guides
-sidebar_position: 4
-description: Task-focused guides for operating and administering Tarnished.
+title: How-to
+description: Task-focused guides for operating and integrating Tarnished.
 ---
 
-How-to guides help you complete specific real-world tasks in Tarnished.
+Use the how-to guides when Tarnished is already installed and you know the task you want to complete.
 
-## Available pages
+## Access and integrations
 
-- [Deploy with Helm](./deploy-with-helm.md)
+- [Configure API keys](./configure-api-keys.md)
+- [Use the CLI](./use-the-cli.md)
+- [Use the browser extension](./use-the-browser-extension.md)
 
-## Planned next pages
+## Data portability and operations
 
-- configure API keys
-- configure AI settings
-- back up and restore data
-- upgrade safely
+- [Import and export data](./import-and-export-data.md)
+- [Back up and restore Tarnished](./backup-and-restore-tarnished.md)
+- [Upgrade Tarnished](./upgrade-tarnished.md)
+- [Configure AI settings](./configure-ai-settings.md)
+
+## Looking for installation?
+
+Use [Install Tarnished](../install/index.md) for deployment guides.

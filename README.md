@@ -158,6 +158,8 @@ The browser extension lets you save jobs from anywhere and autofill application 
 
 ### Installation
 
+The current public install path is the packaged release ZIPs on GitHub Releases. Browser store publication is deferred for now.
+
 1. Download the latest release from [GitHub Releases](https://github.com/markoonakic/tarnished/releases)
 2. Extract the ZIP file for your browser (Chrome or Firefox)
 3. Load the extension:

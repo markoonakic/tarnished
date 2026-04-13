@@ -35,6 +35,7 @@ podAnnotations: {}
 # -- Pod-level labels
 podLabels: {}
 
+# -- Pod security context applied to Tarnished pods and the migration init container.
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 1000
@@ -43,6 +44,7 @@ podSecurityContext:
   seccompProfile:
     type: RuntimeDefault
 
+# -- Container security context applied to the Tarnished app container and migration init container.
 securityContext:
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: false  # App writes to /app/data
@@ -91,6 +93,7 @@ persistence:
   # -- Acknowledge that the chosen existing claim supports shared read-write access
   # across replicas. Required when replicaCount > 1 and using existingClaim.
   sharedAccess: false
+  # -- Annotations applied to the chart-managed PVC.
   annotations:
     # Prevent PVC deletion on helm uninstall
     helm.sh/resource-policy: keep
@@ -134,57 +137,86 @@ trustedHosts: []
 # -- Additional environment variables from ConfigMaps/Secrets
 envFrom: []
 
+# -- Resource requests and limits for the Tarnished app container.
 resources:
   requests:
+    # -- Memory request for the Tarnished app container.
     memory: "256Mi"
+    # -- CPU request for the Tarnished app container.
     cpu: "100m"
   limits:
+    # -- Memory limit for the Tarnished app container.
     memory: "512Mi"
+    # -- CPU limit for the Tarnished app container.
     cpu: "500m"
 
-# -- Init container (migrations) resources
+# -- Configuration for the migration init container.
 initContainer:
   resources:
     requests:
+      # -- Memory request for the migration init container.
       memory: "128Mi"
+      # -- CPU request for the migration init container.
       cpu: "50m"
     limits:
+      # -- Memory limit for the migration init container.
       memory: "256Mi"
+      # -- CPU limit for the migration init container.
       cpu: "200m"
 
+# -- Liveness probe for the Tarnished app container.
 livenessProbe:
   httpGet:
+    # -- HTTP path used by the liveness probe.
     path: /health
+    # -- Named port used by the liveness probe.
     port: http
     httpHeaders:
       - name: Host
         value: localhost
+  # -- Initial delay before Kubernetes starts running the liveness probe.
   initialDelaySeconds: 30
+  # -- Interval between liveness probe executions.
   periodSeconds: 10
+  # -- Timeout for each liveness probe execution.
   timeoutSeconds: 5
+  # -- Consecutive failures required before the liveness probe fails.
   failureThreshold: 3
 
+# -- Readiness probe for the Tarnished app container.
 readinessProbe:
   httpGet:
+    # -- HTTP path used by the readiness probe.
     path: /health
+    # -- Named port used by the readiness probe.
     port: http
     httpHeaders:
       - name: Host
         value: localhost
+  # -- Initial delay before Kubernetes starts running the readiness probe.
   initialDelaySeconds: 10
+  # -- Interval between readiness probe executions.
   periodSeconds: 5
+  # -- Timeout for each readiness probe execution.
   timeoutSeconds: 3
+  # -- Consecutive failures required before the readiness probe fails.
   failureThreshold: 3
 
+# -- Startup probe for the Tarnished app container.
 startupProbe:
   httpGet:
+    # -- HTTP path used by the startup probe.
     path: /health
+    # -- Named port used by the startup probe.
     port: http
     httpHeaders:
       - name: Host
         value: localhost
+  # -- Interval between startup probe executions.
   periodSeconds: 5
+  # -- Timeout for each startup probe execution.
   timeoutSeconds: 3
+  # -- Consecutive failures required before the startup probe fails.
   failureThreshold: 12
 
 # -- Node selector
@@ -196,6 +228,7 @@ tolerations: []
 # -- Affinity rules
 affinity: {}
 
+# -- Configuration for the optional upload cleanup CronJob.
 cleanup:
   # -- Enable a Kubernetes CronJob that runs upload cleanup.
   # Disabled by default; the cleanup command remains available manually for all deployment modes.
@@ -212,10 +245,15 @@ cleanup:
   failedJobsHistoryLimit: 1
   # -- How long Kubernetes may delay a missed start before skipping it.
   startingDeadlineSeconds: 600
+  # -- Resource requests and limits for the cleanup CronJob container.
   resources:
     requests:
+      # -- CPU request for the cleanup CronJob container.
       cpu: 10m
+      # -- Memory request for the cleanup CronJob container.
       memory: 16Mi
     limits:
+      # -- CPU limit for the cleanup CronJob container.
       cpu: 50m
+      # -- Memory limit for the cleanup CronJob container.
       memory: 32Mi

@@ -1,12 +1,18 @@
-# Troubleshooting
+---
+title: Troubleshooting
+description: Diagnose and fix common Tarnished problems.
+---
 
-Troubleshooting pages help you diagnose and resolve specific problems.
+Use troubleshooting guides when Tarnished is failing to start, failing to become healthy, or otherwise not behaving the way you expect.
 
-Planned content:
+## Start here
 
-- deployment failures
-- database and migration issues
-- import/export issues
-- file upload and MIME issues
-- extension connectivity problems
-- AI configuration problems
+- [Deployment and startup problems](./deployment-and-startup.md)
+
+That guide covers the most common first checks for Docker Compose and Helm installs:
+
+- service state
+- logs
+- health checks
+- init and migration failures
+- database readiness issues

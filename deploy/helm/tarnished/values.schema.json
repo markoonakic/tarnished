@@ -1,73 +1,142 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Tarnished Helm values",
   "type": "object",
   "additionalProperties": true,
   "properties": {
     "replicaCount": {
       "type": "integer",
-      "minimum": 1
+      "minimum": 1,
+      "description": "Number of Tarnished replicas. SQLite deployments must remain single-replica. Multiple replicas require PostgreSQL plus shared uploads storage."
     },
     "image": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Container image settings for the Tarnished application and migration init container.",
       "properties": {
-        "repository": { "type": "string", "minLength": 1 },
-        "tag": { "type": "string" },
+        "repository": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Container image repository to deploy."
+        },
+        "tag": {
+          "type": "string",
+          "description": "Container image tag. If empty, the chart appVersion is used."
+        },
         "pullPolicy": {
           "type": "string",
-          "enum": ["Always", "IfNotPresent", "Never"]
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "description": "Kubernetes image pull policy for the Tarnished image."
         }
       }
     },
     "imagePullSecrets": {
-      "type": "array"
+      "type": "array",
+      "description": "List of image pull secrets to attach to the Tarnished pod."
     },
-    "nameOverride": { "type": "string" },
-    "fullnameOverride": { "type": "string" },
+    "nameOverride": {
+      "type": "string",
+      "description": "Partial override for the generated chart name."
+    },
+    "fullnameOverride": {
+      "type": "string",
+      "description": "Full override for the generated release name."
+    },
     "serviceAccount": {
       "type": "object",
       "additionalProperties": true,
+      "description": "ServiceAccount configuration for the Tarnished workload.",
       "properties": {
-        "create": { "type": "boolean" },
-        "automount": { "type": "boolean" },
-        "annotations": { "type": "object" },
-        "name": { "type": "string" }
+        "create": {
+          "type": "boolean",
+          "description": "Create a dedicated ServiceAccount for Tarnished."
+        },
+        "automount": {
+          "type": "boolean",
+          "description": "Mount Kubernetes API credentials into the pod. Leave false unless Tarnished must call the Kubernetes API."
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Annotations applied to the ServiceAccount."
+        },
+        "name": {
+          "type": "string",
+          "description": "Existing ServiceAccount name to use instead of creating one."
+        }
       }
     },
-    "podAnnotations": { "type": "object" },
-    "podLabels": { "type": "object" },
-    "podSecurityContext": { "type": "object" },
-    "securityContext": { "type": "object" },
+    "podAnnotations": {
+      "type": "object",
+      "description": "Annotations applied to the Tarnished pod template."
+    },
+    "podLabels": {
+      "type": "object",
+      "description": "Additional labels applied to the Tarnished pod template."
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "description": "Pod security context for the Tarnished workload."
+    },
+    "securityContext": {
+      "type": "object",
+      "description": "Container security context for the Tarnished app and migration init container."
+    },
     "service": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Service exposure settings for Tarnished.",
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"]
+          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"],
+          "description": "Kubernetes Service type used to expose Tarnished."
         },
         "port": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 65535
+          "maximum": 65535,
+          "description": "Service port exposed by Tarnished."
         }
       }
     },
     "ingress": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Ingress configuration for exposing Tarnished at a hostname.",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "className": { "type": "string" },
-        "annotations": { "type": "object" },
-        "host": { "type": "string" },
-        "paths": { "type": "array" },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable an Ingress resource for Tarnished."
+        },
+        "className": {
+          "type": "string",
+          "description": "IngressClass name, such as nginx or traefik."
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Annotations added to the Ingress resource."
+        },
+        "host": {
+          "type": "string",
+          "description": "Primary hostname for Tarnished when ingress is enabled."
+        },
+        "paths": {
+          "type": "array",
+          "description": "Ingress path rules to expose Tarnished."
+        },
         "tls": {
           "type": "object",
           "additionalProperties": true,
+          "description": "TLS settings for the Tarnished Ingress.",
           "properties": {
-            "enabled": { "type": "boolean" },
-            "secretName": { "type": "string" }
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable TLS for the Tarnished Ingress."
+            },
+            "secretName": {
+              "type": "string",
+              "description": "TLS secret name used by the Ingress."
+            }
           }
         }
       }
@@ -75,82 +144,191 @@
     "persistence": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Persistent storage for Tarnished uploads and local app data.",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "storageClass": { "type": "string" },
-        "size": { "type": "string", "minLength": 1 },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable persistent storage for Tarnished data."
+        },
+        "storageClass": {
+          "type": "string",
+          "description": "StorageClass used for the chart-managed PVC. Leave empty to use the cluster default."
+        },
+        "size": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Requested size for the chart-managed PVC."
+        },
         "accessMode": {
           "type": "string",
-          "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"]
+          "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"],
+          "description": "Access mode for the chart-managed PVC. Multiple replicas require shared write access."
         },
-        "existingClaim": { "type": "string" },
-        "sharedAccess": { "type": "boolean" },
-        "annotations": { "type": "object" }
+        "existingClaim": {
+          "type": "string",
+          "description": "Existing PVC to use instead of creating a new one."
+        },
+        "sharedAccess": {
+          "type": "boolean",
+          "description": "Acknowledgement flag required when multiple replicas use an existing shared claim."
+        },
+        "annotations": {
+          "type": "object",
+          "description": "Annotations applied to the chart-managed PVC."
+        }
       }
     },
     "postgresql": {
       "type": "object",
       "additionalProperties": true,
+      "description": "External PostgreSQL settings. Enabling this switches Tarnished away from SQLite.",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "host": { "type": "string" },
-        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
-        "database": { "type": "string" },
-        "user": { "type": "string" },
-        "password": { "type": "string" },
-        "existingSecret": { "type": "string" },
-        "existingSecretPasswordKey": { "type": "string" }
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable PostgreSQL mode for Tarnished."
+        },
+        "host": {
+          "type": "string",
+          "description": "Hostname of the PostgreSQL server."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Port of the PostgreSQL server."
+        },
+        "database": {
+          "type": "string",
+          "description": "PostgreSQL database name used by Tarnished."
+        },
+        "user": {
+          "type": "string",
+          "description": "PostgreSQL username used by Tarnished."
+        },
+        "password": {
+          "type": "string",
+          "description": "PostgreSQL password used when existingSecret is not set."
+        },
+        "existingSecret": {
+          "type": "string",
+          "description": "Existing Kubernetes Secret containing the PostgreSQL password."
+        },
+        "existingSecretPasswordKey": {
+          "type": "string",
+          "description": "Secret key name that stores the PostgreSQL password."
+        }
       }
     },
     "secretKey": {
       "type": "object",
       "additionalProperties": true,
+      "description": "SECRET_KEY configuration used for Tarnished JWT signing.",
       "properties": {
-        "existingSecret": { "type": "string" },
-        "existingSecretKey": { "type": "string" }
+        "existingSecret": {
+          "type": "string",
+          "description": "Existing Kubernetes Secret containing the Tarnished SECRET_KEY."
+        },
+        "existingSecretKey": {
+          "type": "string",
+          "description": "Secret key name that stores the Tarnished SECRET_KEY value."
+        }
       }
     },
     "env": {
-      "type": "array"
+      "type": "array",
+      "description": "Additional environment variables added directly to the Tarnished containers."
     },
     "trustedHosts": {
       "type": "array",
-      "items": { "type": "string" }
+      "description": "Extra hostnames appended to Tarnished TrustedHostMiddleware configuration.",
+      "items": {"type": "string"}
     },
     "envFrom": {
-      "type": "array"
+      "type": "array",
+      "description": "Additional environment-variable sources imported from ConfigMaps or Secrets."
     },
     "resources": {
-      "type": "object"
+      "type": "object",
+      "description": "Resource requests and limits for the Tarnished app container."
     },
     "initContainer": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Configuration for the migration init container that runs database migrations before Tarnished starts.",
       "properties": {
-        "resources": { "type": "object" }
+        "resources": {
+          "type": "object",
+          "description": "Resource requests and limits for the migration init container."
+        }
       }
     },
-    "livenessProbe": { "type": "object" },
-    "readinessProbe": { "type": "object" },
-    "startupProbe": { "type": "object" },
-    "nodeSelector": { "type": "object" },
-    "tolerations": { "type": "array" },
-    "affinity": { "type": "object" },
+    "livenessProbe": {
+      "type": "object",
+      "description": "Liveness probe for the Tarnished app container."
+    },
+    "readinessProbe": {
+      "type": "object",
+      "description": "Readiness probe for the Tarnished app container."
+    },
+    "startupProbe": {
+      "type": "object",
+      "description": "Startup probe for the Tarnished app container."
+    },
+    "nodeSelector": {
+      "type": "object",
+      "description": "Node selector for scheduling Tarnished pods."
+    },
+    "tolerations": {
+      "type": "array",
+      "description": "Tolerations applied to Tarnished pods."
+    },
+    "affinity": {
+      "type": "object",
+      "description": "Affinity and anti-affinity rules for Tarnished pods."
+    },
     "cleanup": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Optional CronJob that runs upload cleanup for orphaned CAS blobs.",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "schedule": { "type": "string", "minLength": 1 },
-        "timeZone": { "type": "string", "minLength": 1 },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable the upload cleanup CronJob."
+        },
+        "schedule": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Cron schedule used for the upload cleanup job."
+        },
+        "timeZone": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Time zone used by the cleanup CronJob. Requires Kubernetes support for the CronJob timeZone field."
+        },
         "mode": {
           "type": "string",
-          "enum": ["dry-run", "delete"]
+          "enum": ["dry-run", "delete"],
+          "description": "Cleanup mode. dry-run reports orphaned uploads; delete removes them."
         },
-        "successfulJobsHistoryLimit": { "type": "integer", "minimum": 0 },
-        "failedJobsHistoryLimit": { "type": "integer", "minimum": 0 },
-        "startingDeadlineSeconds": { "type": "integer", "minimum": 0 },
-        "resources": { "type": "object" }
+        "successfulJobsHistoryLimit": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of successful cleanup Jobs to keep in Kubernetes history."
+        },
+        "failedJobsHistoryLimit": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of failed cleanup Jobs to keep in Kubernetes history."
+        },
+        "startingDeadlineSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "How long Kubernetes may delay a missed cleanup Job start before skipping it."
+        },
+        "resources": {
+          "type": "object",
+          "description": "Resource requests and limits for the cleanup CronJob container."
+        }
       }
     }
   }
