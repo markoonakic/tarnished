@@ -75,10 +75,12 @@ If your change touches the docs site or docs authoring standards, also run:
 
 ```bash
 # Install docs dependencies
-uv sync --project documentation --frozen --no-install-project
+cd documentation
+yarn install
 
-# Build the docs site
-documentation/.venv/bin/mkdocs build --strict -f documentation/mkdocs.yml
+# Type-check and build the docs site
+yarn typecheck
+yarn build
 ```
 
 ### Deployment / Packaging Validation

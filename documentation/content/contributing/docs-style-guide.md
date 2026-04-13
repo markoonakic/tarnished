@@ -34,8 +34,9 @@ Apply these default rules:
 - Prefer `docker compose`, not `docker-compose`.
 - Be explicit about deployment mode when it changes behavior, for example SQLite vs PostgreSQL.
 - Distinguish clearly between:
-  - source docs in `documentation/src/`
-  - generated site output in `documentation/site/`
+  - source docs in `documentation/content/`
+  - Docusaurus site files in `documentation/src/`
+  - generated site output in `documentation/build/`
   - runtime app data such as `data/` or database storage
 
 ## Choose the right page type
