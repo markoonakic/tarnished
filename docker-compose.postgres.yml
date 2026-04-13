@@ -1,6 +1,6 @@
 services:
   app:
-    build: .
+    image: ${TARNISHED_IMAGE:-ghcr.io/markoonakic/tarnished:latest}
     ports:
       - "${APP_PORT:-5577}:5577"
     volumes:

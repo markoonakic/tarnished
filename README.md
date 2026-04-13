@@ -35,6 +35,8 @@ docker compose up -d
 open http://localhost:5577
 ```
 
+The default Compose quickstart pulls the published Tarnished container image from GitHub Container Registry. If you want to pin a specific release instead of using `latest`, set `TARNISHED_IMAGE` before starting the stack.
+
 That's it. The first account you create becomes admin automatically.
 
 ### Where is my data?
@@ -59,6 +61,8 @@ cd tarnished
 docker compose up -d
 ```
 
+This path uses the published Tarnished container image and stores data locally in `./data`.
+
 #### PostgreSQL Mode (Recommended for "production")
 
 Best for multi-user deployments or when you need better performance.
@@ -74,6 +78,8 @@ echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)" > .env
 # Start
 docker compose -f docker-compose.postgres.yml up -d
 ```
+
+This path uses the published Tarnished container image and a local PostgreSQL container.
 
 ### Helm Chart
 

@@ -28,7 +28,7 @@ class DocsWorkflowTests(unittest.TestCase):
         self.assertIn("path: 'content'", content)
         self.assertIn("routeBasePath: '/'", content)
         self.assertIn("baseUrl: '/tarnished/'", content)
-        self.assertIn("editUrl: 'https://github.com/markoonakic/tarnished/edit/main/documentation/content/'", content)
+        self.assertIn("editUrl: 'https://github.com/markoonakic/tarnished/edit/main/documentation/'", content)
 
 
 if __name__ == "__main__":
