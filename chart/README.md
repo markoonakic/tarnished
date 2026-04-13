@@ -8,6 +8,11 @@ A Helm chart for deploying Tarnished on Kubernetes.
 - Helm 3.8+
 - PersistentVolume provisioner (if using default SQLite mode)
 
+Notes:
+
+- Enabling the optional cleanup CronJob with `.Values.cleanup.timeZone` relies on the CronJob time-zone field, which is stable in Kubernetes 1.27+.
+- Multiple replicas require PostgreSQL **and** shared uploads storage.
+
 ## Installation
 
 ### From OCI Registry (Recommended)
@@ -32,9 +37,9 @@ The default configuration uses SQLite with persistent storage:
 helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished
 ```
 
-### With PostgreSQL
+### With External PostgreSQL
 
-For production deployments with multiple replicas:
+Recommended for production even with a single replica:
 
 ```bash
 helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
@@ -43,8 +48,31 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
   --set postgresql.port=5432 \
   --set postgresql.database=tarnished \
   --set postgresql.user=tarnished \
+  --set postgresql.password=your-password
+```
+
+### With Multiple Replicas
+
+Multiple replicas require:
+
+- `postgresql.enabled=true`
+- shared uploads storage
+  - either a chart-managed PVC with `persistence.accessMode=ReadWriteMany`
+  - or an existing shared claim plus `persistence.sharedAccess=true`
+
+Example using an existing shared claim:
+
+```bash
+helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
+  --set replicaCount=2 \
+  --set postgresql.enabled=true \
+  --set postgresql.host=postgres.example.com \
+  --set postgresql.port=5432 \
+  --set postgresql.database=tarnished \
+  --set postgresql.user=tarnished \
   --set postgresql.password=your-password \
-  --set replicaCount=2
+  --set persistence.existingClaim=tarnished-uploads \
+  --set persistence.sharedAccess=true
 ```
 
 ### With Ingress and TLS
@@ -70,7 +98,7 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
 | `nameOverride` | string | `""` | Override chart name |
 | `fullnameOverride` | string | `""` | Override full release name |
 | `serviceAccount.create` | bool | `true` | Create a ServiceAccount |
-| `serviceAccount.automount` | bool | `true` | Automount API credentials |
+| `serviceAccount.automount` | bool | `false` | Automount API credentials (leave off unless the workload must call the Kubernetes API) |
 | `serviceAccount.annotations` | object | `{}` | ServiceAccount annotations |
 | `serviceAccount.name` | string | `""` | ServiceAccount name (auto-generated if empty) |
 | `podAnnotations` | object | `{}` | Pod annotations |
@@ -91,6 +119,7 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
 | `persistence.size` | string | `1Gi` | PVC size |
 | `persistence.accessMode` | string | `ReadWriteOnce` | Access mode |
 | `persistence.existingClaim` | string | `""` | Use existing PVC |
+| `persistence.sharedAccess` | bool | `false` | Required acknowledgement when scaling replicas on top of an existing shared claim |
 | `postgresql.enabled` | bool | `false` | Enable PostgreSQL mode |
 | `postgresql.host` | string | `""` | PostgreSQL host |
 | `postgresql.port` | int | `5432` | PostgreSQL port |
@@ -98,6 +127,7 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
 | `postgresql.user` | string | `tarnished` | Database user |
 | `postgresql.password` | string | `""` | Database password |
 | `postgresql.existingSecret` | string | `""` | Existing secret for PostgreSQL credentials |
+| `postgresql.existingSecretPasswordKey` | string | `password` | Key within the existing secret for the PostgreSQL password |
 | `secretKey.existingSecret` | string | `""` | Existing secret for SECRET_KEY |
 | `secretKey.existingSecretKey` | string | `secret-key` | Key within existing secret |
 | `trustedHosts` | list | `[]` | Extra hostnames allowed by TrustedHostMiddleware |
@@ -113,9 +143,18 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
 | `initContainer.resources.limits.cpu` | string | `200m` | Init container CPU limit |
 | `livenessProbe` | object | See values | Liveness probe configuration |
 | `readinessProbe` | object | See values | Readiness probe configuration |
+| `startupProbe` | object | See values | Startup probe configuration |
 | `nodeSelector` | object | `{}` | Node selector |
 | `tolerations` | list | `[]` | Tolerations |
 | `affinity` | object | `{}` | Affinity rules |
+| `cleanup.enabled` | bool | `false` | Enable upload cleanup CronJob |
+| `cleanup.schedule` | string | `0 3 * * *` | Cleanup CronJob schedule |
+| `cleanup.timeZone` | string | `Etc/UTC` | Cleanup CronJob time zone (Kubernetes 1.27+ when used) |
+| `cleanup.mode` | string | `dry-run` | Cleanup mode (`dry-run` or `delete`) |
+| `cleanup.successfulJobsHistoryLimit` | int | `1` | Successful cleanup job history |
+| `cleanup.failedJobsHistoryLimit` | int | `1` | Failed cleanup job history |
+| `cleanup.startingDeadlineSeconds` | int | `600` | Missed-start deadline for cleanup jobs |
+| `cleanup.resources` | object | See values | Cleanup CronJob resources |
 
 ## Upgrading
 
@@ -131,7 +170,13 @@ The chart runs database migrations automatically during pod startup via an init 
 
 ## Persistence
 
-The chart uses a PersistentVolumeClaim with `helm.sh/resource-policy: keep` annotation to prevent accidental data loss during `helm uninstall`. The PVC must be manually deleted if you want to remove all data:
+The chart stores uploaded files on `/app/data`.
+
+- **SQLite mode** should remain single-replica and typically uses `ReadWriteOnce`
+- **PostgreSQL mode with one replica** can use the same single-writer PVC pattern
+- **PostgreSQL mode with multiple replicas** must use shared uploads storage (`ReadWriteMany`, or an existing shared claim with `persistence.sharedAccess=true`)
+
+For chart-managed PVCs, the chart applies `helm.sh/resource-policy: keep` to reduce accidental data loss during `helm uninstall`. The PVC must be deleted manually if you intentionally want to remove all uploads:
 
 ```bash
 kubectl delete pvc <pvc-name>
@@ -141,7 +186,8 @@ kubectl delete pvc <pvc-name>
 
 The chart deploys with secure defaults:
 
-- Non-root user (UID 1000)
+- Non-root user/group (UID/GID 1000)
+- ServiceAccount token automount disabled by default
 - Read-only root filesystem disabled (app writes to `/app/data`)
 - All capabilities dropped
 - Seccomp profile: RuntimeDefault

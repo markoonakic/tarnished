@@ -1,6 +1,15 @@
-{{/* Validate replica count for SQLite mode */}}
+{{/* Validate replica/storage combinations */}}
 {{- if and (gt (int .Values.replicaCount) 1) (not .Values.postgresql.enabled) }}
 {{- fail "Multiple replicas require postgresql.enabled=true (SQLite does not support concurrent writes)" }}
+{{- end }}
+{{- if and (gt (int .Values.replicaCount) 1) (not .Values.persistence.enabled) }}
+{{- fail "Multiple replicas require persistence.enabled=true because uploads must live on shared storage" }}
+{{- end }}
+{{- if and (gt (int .Values.replicaCount) 1) (not .Values.persistence.existingClaim) (ne .Values.persistence.accessMode "ReadWriteMany") }}
+{{- fail "Multiple replicas require shared upload storage. Use persistence.accessMode=ReadWriteMany or provide persistence.existingClaim backed by shared storage." }}
+{{- end }}
+{{- if and (gt (int .Values.replicaCount) 1) .Values.persistence.existingClaim (not .Values.persistence.sharedAccess) }}
+{{- fail "Multiple replicas with persistence.existingClaim require persistence.sharedAccess=true to acknowledge the claim supports shared read-write access." }}
 {{- end }}
 apiVersion: apps/v1
 kind: Deployment
@@ -17,10 +26,10 @@ spec:
     {{- include "tarnished.deploymentStrategy" . | nindent 4 }}
   template:
     metadata:
+      {{- with .Values.podAnnotations }}
       annotations:
-        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-        {{- end }}
+      {{- end }}
       labels:
         {{- include "tarnished.selectorLabels" . | nindent 8 }}
         {{- with .Values.podLabels }}
@@ -137,10 +146,10 @@ spec:
             {{- with .Values.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+          {{- with .Values.envFrom }}
           envFrom:
-            {{- with .Values.envFrom }}
             {{- toYaml . | nindent 12 }}
-            {{- end }}
+          {{- end }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:

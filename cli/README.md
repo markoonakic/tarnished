@@ -4,7 +4,13 @@ Agent-first command-line interface for Tarnished.
 
 ## Install
 
-Supported install path:
+Recommended install path:
+
+```bash
+uv tool install tarnished-cli
+```
+
+Homebrew convenience path:
 
 ```bash
 brew tap markoonakic/tap
@@ -26,21 +32,21 @@ Tarnished CLI is API-key-first.
 3. Validate and store the key locally:
 
 ```bash
-uv run tarnished auth init --api-key '...'
+tarnished auth init --api-key '...'
 ```
 
 4. Run the auth doctor to confirm the stored key, live auth check, and required
    CLI scopes all pass:
 
 ```bash
-uv run tarnished auth doctor
-uv run tarnished auth whoami
+tarnished auth doctor
+tarnished auth whoami
 ```
 
 5. Clear the locally stored key when needed:
 
 ```bash
-uv run tarnished auth api-key clear
+tarnished auth api-key clear
 ```
 
 The web app remains the source of truth for API keys. The CLI does **not**
@@ -57,9 +63,10 @@ uv run pytest -q
 
 ## Release
 
-The repository release workflow builds CLI distributions, publishes them to the
-GitHub release, publishes the CLI to PyPI by default, and then updates the
-Homebrew tap from the released PyPI sdist.
+The repository release workflow builds CLI distributions, uploads them to the
+GitHub release, and publishes the CLI to PyPI by default. Homebrew tap updates
+run in the separate `homebrew-tap.yml` workflow after Homebrew's 24-hour PyPI
+resource-resolution cooldown window has elapsed.
 
 ### One-Time PyPI Trusted Publishing Setup
 
@@ -89,9 +96,12 @@ Why separate from the main release workflow?
 
 ### Release Outputs
 
-The release workflow publishes:
+`release.yml` publishes:
 
 - `cli/dist/*.whl`
 - `cli/dist/*.tar.gz`
 
-to the GitHub release, publishes to PyPI, and updates the Homebrew tap.
+to the GitHub release and publishes the package to PyPI.
+
+`homebrew-tap.yml` then updates the Homebrew tap separately once the published
+sdist is old enough for `brew update-python-resources` to resolve safely.

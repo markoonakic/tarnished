@@ -121,11 +121,11 @@ jobs:
 
   github-release-notes:
     runs-on: ubuntu-latest
-    needs: [release-meta, backend-checks, cli-checks, frontend-checks]
+    needs: [release-meta, backend-checks, cli-checks, frontend-checks, deployment-checks]
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
 
@@ -161,17 +161,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: release-meta
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: '3.12'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9
 
       - name: Install dependencies
         working-directory: backend
@@ -200,17 +200,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: release-meta
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: '3.12'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9
 
       - name: Install dependencies
         working-directory: cli
@@ -236,12 +236,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: release-meta
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
           node-version: '22'
 
@@ -249,7 +249,7 @@ jobs:
         run: corepack enable
 
       - name: Cache yarn dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
         with:
           path: |
             ~/.cache/node
@@ -277,6 +277,51 @@ jobs:
         # Only audit production dependencies - dev-only vulnerabilities don't ship to users
         run: yarn npm audit --all --recursive --environment production --severity high
 
+  deployment-checks:
+    runs-on: ubuntu-latest
+    needs: release-meta
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ needs.release-meta.outputs.ref }}
+
+      - name: Validate SQLite Compose config
+        run: docker compose -f docker-compose.yml config > /tmp/docker-compose.sqlite.yaml
+
+      - name: Validate PostgreSQL Compose config
+        env:
+          POSTGRES_PASSWORD: release-postgres-password
+        run: docker compose -f docker-compose.postgres.yml config > /tmp/docker-compose.postgres.yaml
+
+      - name: Build production image
+        run: docker build -t tarnished:release-check .
+
+      - name: Install Helm
+        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a
+
+      - name: Lint and render Helm chart scenarios
+        run: |
+          helm lint chart
+          helm template tarnished ./chart > /tmp/helm-default.yaml
+          helm template tarnished ./chart --set cleanup.enabled=true > /tmp/helm-cleanup.yaml
+          helm template tarnished ./chart \
+            --set postgresql.enabled=true \
+            --set postgresql.password=release-secret \
+            > /tmp/helm-postgres.yaml
+          helm template tarnished ./chart \
+            --set replicaCount=2 \
+            --set postgresql.enabled=true \
+            --set postgresql.password=release-secret \
+            --set persistence.accessMode=ReadWriteMany \
+            > /tmp/helm-multi-replica-rwx.yaml
+          helm template tarnished ./chart \
+            --set replicaCount=2 \
+            --set postgresql.enabled=true \
+            --set postgresql.password=release-secret \
+            --set persistence.existingClaim=tarnished-uploads \
+            --set persistence.sharedAccess=true \
+            > /tmp/helm-multi-replica-existing-claim.yaml
+
   extension:
     runs-on: ubuntu-latest
     needs: [release-meta, github-release-notes]
@@ -284,12 +329,12 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
           node-version: '22'
 
@@ -297,7 +342,7 @@ jobs:
         run: corepack enable
 
       - name: Cache yarn dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
         with:
           path: |
             ~/.cache/node
@@ -338,17 +383,17 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: '3.12'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9
 
       - name: Install CLI dependencies
         working-directory: cli
@@ -359,7 +404,7 @@ jobs:
         run: uv build
 
       - name: Upload CLI distributions as workflow artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: cli-dist
           path: |
@@ -384,42 +429,42 @@ jobs:
       id-token: write
     steps:
       - name: Download CLI distributions
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: cli-dist
           path: cli/dist
 
       - name: Publish CLI package to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
         with:
           packages-dir: cli/dist
 
   docker:
     runs-on: ubuntu-latest
-    needs: [release-meta, backend-checks, frontend-checks, github-release-notes]
+    needs: [release-meta, backend-checks, frontend-checks, deployment-checks, github-release-notes]
     if: needs.release-meta.outputs.publish_docker == 'true'
     permissions:
       packages: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -429,7 +474,7 @@ jobs:
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/tarnished:buildcache,mode=max
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           image-ref: ghcr.io/${{ github.repository_owner }}/tarnished:${{ needs.release-meta.outputs.version }}
           format: 'table'
@@ -438,17 +483,17 @@ jobs:
 
   helm:
     runs-on: ubuntu-latest
-    needs: [release-meta, backend-checks, frontend-checks, docker, github-release-notes]
+    needs: [release-meta, backend-checks, frontend-checks, deployment-checks, docker, github-release-notes]
     if: needs.release-meta.outputs.publish_helm == 'true' && (needs.release-meta.outputs.publish_docker == 'false' || needs.docker.result == 'success')
     permissions:
       packages: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
 
       - name: Install Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a
 
       - name: Login to GHCR for Helm
         run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin

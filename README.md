@@ -29,7 +29,7 @@ Think of it as a command center for your job search. Track applications, store y
 ```bash
 git clone https://github.com/markoonakic/tarnished.git
 cd tarnished
-docker-compose up -d
+docker compose up -d
 
 # Open in browser
 open http://localhost:5577
@@ -39,7 +39,11 @@ That's it. The first account you create becomes admin automatically.
 
 ### Where is my data?
 
-Your data is stored in the `./data` folder (for SQLite) or your PostgreSQL database. Back up this folder to save your data.
+- **SQLite Compose mode** stores application data in `./data`
+- **PostgreSQL Compose mode** stores uploaded files in `./data` and database files in `./postgres_data`
+- **Helm / external PostgreSQL** stores uploads on your configured persistent volume claim and relational data in PostgreSQL
+
+Back up both the uploads storage and the database used by your deployment mode.
 
 ## Installation
 
@@ -52,7 +56,7 @@ Best for personal use, home servers, and trying it out.
 ```bash
 git clone https://github.com/markoonakic/tarnished.git
 cd tarnished
-docker-compose up -d
+docker compose up -d
 ```
 
 #### PostgreSQL Mode (Recommended for "production")
@@ -64,10 +68,11 @@ git clone https://github.com/markoonakic/tarnished.git
 cd tarnished
 
 # Create .env with PostgreSQL password
+# docker compose will fail fast if POSTGRES_PASSWORD is missing or blank
 echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)" > .env
 
 # Start
-docker-compose -f docker-compose.postgres.yml up -d
+docker compose -f docker-compose.postgres.yml up -d
 ```
 
 ### Helm Chart
@@ -117,7 +122,7 @@ brew install tarnished-cli
 | `POSTGRES_PASSWORD` | _(SQLite)_              | PostgreSQL password                                              |
 | `SECRET_KEY`        | auto-generated          | JWT signing key                                                  |
 
-See `.env.example` for all available options.
+See `.env.example` for common overrides used by the packaged deployment paths.
 
 ## AI Features
 
@@ -142,9 +147,9 @@ Your API key is encrypted and stored in the database.
 
 **Note:** AI features use your own API key. You're responsible for any costs.
 
-## Browser Extention
+## Browser Extension
 
-The browser extention lets you save jobs from anywhere and autofill application forms.
+The browser extension lets you save jobs from anywhere and autofill application forms.
 
 ### Installation
 

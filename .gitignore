@@ -13,6 +13,9 @@ build/
 
 
 .worktrees/
+.pi/
+.opencode/
+.ruff_cache/
 mise.toml
 docs/
 scripts/
