@@ -24,24 +24,32 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
-          python-version: '3.12'
+          node-version: '22'
+          cache: yarn
+          cache-dependency-path: documentation/yarn.lock
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install docs dependencies
-        run: uv sync --project documentation --frozen --no-install-project
+        working-directory: documentation
+        run: yarn install --immutable
+
+      - name: Type-check docs site
+        working-directory: documentation
+        run: yarn typecheck
 
       - name: Build docs site
-        run: documentation/.venv/bin/mkdocs build --strict -f documentation/mkdocs.yml
+        working-directory: documentation
+        run: yarn build
 
       - name: Check links
         uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411
         with:
-          args: --no-progress --verbose documentation/src
+          args: --no-progress --verbose documentation/content
 
       - name: Configure GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -51,7 +59,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b
         with:
-          path: documentation/site
+          path: documentation/build
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

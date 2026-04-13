@@ -1,0 +1,13 @@
+:root {
+  --ifm-color-primary: #83a598;
+  --ifm-color-primary-dark: #729789;
+  --ifm-color-primary-darker: #6a8d80;
+  --ifm-color-primary-darkest: #57766b;
+  --ifm-color-primary-light: #94b3a7;
+  --ifm-color-primary-lighter: #9db9ae;
+  --ifm-color-primary-lightest: #b7cbc3;
+}
+
+.hero--primary {
+  background: inherit;
+}

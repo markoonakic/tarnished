@@ -1,4 +1,4 @@
-# Troubleshooting <problem>
+# Troubleshooting `problem`
 
 State the symptom or failure mode this page addresses.
 

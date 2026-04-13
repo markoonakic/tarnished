@@ -1,4 +1,4 @@
-# How to <task>
+# How to `task`
 
 State the exact task this guide helps the reader complete.
 
