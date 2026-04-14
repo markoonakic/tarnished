@@ -11,6 +11,7 @@ class FakeUserSettingsClient:
                 "show_streak_stats": True,
                 "show_needs_attention": True,
                 "show_heatmap": True,
+                "time_zone": "Europe/Belgrade",
             }
         raise AssertionError(f"Unexpected GET path: {path}")
 
@@ -24,6 +25,7 @@ class FakeUserSettingsClient:
             "show_streak_stats": body.get("show_streak_stats", True),
             "show_needs_attention": body.get("show_needs_attention", True),
             "show_heatmap": body.get("show_heatmap", True),
+            "time_zone": body.get("time_zone"),
         }
 
 
@@ -51,3 +53,23 @@ def test_preferences_get_emits_json(runner, cli_config_dir, monkeypatch):
 
     assert result.exit_code == 0
     assert '"show_streak_stats": true' in result.stdout.lower()
+    assert '"time_zone": "europe/belgrade"' in result.stdout.lower()
+
+
+def test_preferences_update_accepts_time_zone(runner, cli_config_dir, monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        state_module.AppState,
+        "build_client",
+        lambda self, auth_required=True, transport=None: FakeUserSettingsClient(),
+    )
+
+    body_file = tmp_path / "preferences.json"
+    body_file.write_text('{"time_zone": "America/New_York"}')
+
+    result = runner.invoke(
+        app,
+        ["preferences", "update", "--body-file", str(body_file)],
+    )
+
+    assert result.exit_code == 0
+    assert '"time_zone": "America/New_York"'.lower() in result.stdout.lower()

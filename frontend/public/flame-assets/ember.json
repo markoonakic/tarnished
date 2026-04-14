@@ -1,0 +1,775 @@
+{
+  "frameDuration": 33,
+  "width": 40,
+  "height": 24,
+  "state": "ember",
+  "frames": [
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" },
+        "19,19": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,16": { "char": ".", "kind": "ember-smoke" },
+        "19,15": { "char": ".", "kind": "ember-smoke" },
+        "17,15": { "char": ":", "kind": "ember-smoke" },
+        "21,14": { "char": ".", "kind": "ember-smoke" },
+        "20,14": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,16": { "char": ".", "kind": "ember-smoke" },
+        "17,15": { "char": ":", "kind": "ember-smoke" },
+        "21,14": { "char": ".", "kind": "ember-smoke" },
+        "20,14": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,16": { "char": ".", "kind": "ember-smoke" },
+        "17,15": { "char": ":", "kind": "ember-smoke" },
+        "21,14": { "char": ".", "kind": "ember-smoke" },
+        "20,14": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,16": { "char": ".", "kind": "ember-smoke" },
+        "17,15": { "char": ":", "kind": "ember-smoke" },
+        "21,14": { "char": ".", "kind": "ember-smoke" },
+        "20,14": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": { "19,21": { "char": "+", "kind": "ember-core" } }
+    },
+    {
+      "duration": 33,
+      "data": { "19,21": { "char": "+", "kind": "ember-core" } }
+    },
+    {
+      "duration": 33,
+      "data": { "19,21": { "char": "+", "kind": "ember-core" } }
+    },
+    {
+      "duration": 33,
+      "data": { "19,21": { "char": "+", "kind": "ember-core" } }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" },
+        "19,19": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,16": { "char": ".", "kind": "ember-smoke" },
+        "19,15": { "char": ".", "kind": "ember-smoke" },
+        "17,15": { "char": ":", "kind": "ember-smoke" },
+        "21,14": { "char": ".", "kind": "ember-smoke" },
+        "20,14": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,16": { "char": ".", "kind": "ember-smoke" },
+        "17,15": { "char": ":", "kind": "ember-smoke" },
+        "21,14": { "char": ".", "kind": "ember-smoke" },
+        "20,14": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,16": { "char": ".", "kind": "ember-smoke" },
+        "17,15": { "char": ":", "kind": "ember-smoke" },
+        "21,14": { "char": ".", "kind": "ember-smoke" },
+        "20,14": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,16": { "char": ".", "kind": "ember-smoke" },
+        "17,15": { "char": ":", "kind": "ember-smoke" },
+        "21,14": { "char": ".", "kind": "ember-smoke" },
+        "20,14": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": { "19,21": { "char": "+", "kind": "ember-core" } }
+    },
+    {
+      "duration": 33,
+      "data": { "19,21": { "char": "+", "kind": "ember-core" } }
+    },
+    {
+      "duration": 33,
+      "data": { "19,21": { "char": "+", "kind": "ember-core" } }
+    },
+    {
+      "duration": 33,
+      "data": { "19,21": { "char": "+", "kind": "ember-core" } }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" },
+        "19,19": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,20": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,19": { "char": ":", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,18": { "char": ".", "kind": "ember-smoke" },
+        "18,17": { "char": ":", "kind": "ember-smoke" },
+        "20,16": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "*", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,17": { "char": ".", "kind": "ember-smoke" },
+        "17,16": { "char": ".", "kind": "ember-smoke" },
+        "21,15": { "char": ":", "kind": "ember-smoke" },
+        "20,15": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,16": { "char": ".", "kind": "ember-smoke" },
+        "19,15": { "char": ".", "kind": "ember-smoke" },
+        "17,15": { "char": ":", "kind": "ember-smoke" },
+        "21,14": { "char": ".", "kind": "ember-smoke" },
+        "20,14": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,16": { "char": ".", "kind": "ember-smoke" },
+        "17,15": { "char": ":", "kind": "ember-smoke" },
+        "21,14": { "char": ".", "kind": "ember-smoke" },
+        "20,14": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,16": { "char": ".", "kind": "ember-smoke" },
+        "17,15": { "char": ":", "kind": "ember-smoke" },
+        "21,14": { "char": ".", "kind": "ember-smoke" },
+        "20,14": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": {
+        "19,21": { "char": "+", "kind": "ember-core" },
+        "19,16": { "char": ".", "kind": "ember-smoke" },
+        "17,15": { "char": ":", "kind": "ember-smoke" },
+        "21,14": { "char": ".", "kind": "ember-smoke" },
+        "20,14": { "char": ".", "kind": "ember-smoke" }
+      }
+    },
+    {
+      "duration": 33,
+      "data": { "19,21": { "char": "+", "kind": "ember-core" } }
+    },
+    {
+      "duration": 33,
+      "data": { "19,21": { "char": "+", "kind": "ember-core" } }
+    },
+    {
+      "duration": 33,
+      "data": { "19,21": { "char": "+", "kind": "ember-core" } }
+    }
+  ]
+}

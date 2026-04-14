@@ -13,6 +13,7 @@ class PreferencesUpdate(BaseModel):
     show_streak_stats: bool | None = None
     show_needs_attention: bool | None = None
     show_heatmap: bool | None = None
+    time_zone: str | None = None
 
 
 app = typer.Typer(help="Manage dashboard user preferences.")

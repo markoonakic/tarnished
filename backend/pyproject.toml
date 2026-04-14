@@ -28,6 +28,7 @@ dependencies = [
     "markdownify>=1.2.2",
     "python-magic>=0.4.27",
     "psycopg[binary]>=3.3.3",
+    "tzdata>=2025.3",
 ]
 
 [build-system]

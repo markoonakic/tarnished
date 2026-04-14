@@ -14,6 +14,7 @@ import {
   hasSeenImportPrompt,
   markImportPromptSeen,
 } from '../lib/dashboardPrompt';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 export default function Dashboard() {
   useAuth();
@@ -23,6 +24,11 @@ export default function Dashboard() {
   const [showImportPrompt, setShowImportPrompt] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const { data: preferences } = useUserPreferences();
+
+  const showStreakStats = preferences?.show_streak_stats ?? true;
+  const showNeedsAttention = preferences?.show_needs_attention ?? true;
+  const showHeatmap = preferences?.show_heatmap ?? true;
 
   useEffect(() => {
     async function loadTotalApplications() {
@@ -111,7 +117,7 @@ export default function Dashboard() {
           <>
             <h1 className="text-primary mb-6 text-2xl font-bold">Dashboard</h1>
 
-            <FlameEmblem />
+            {showStreakStats && <FlameEmblem />}
 
             <KPICards />
 
@@ -146,16 +152,18 @@ export default function Dashboard() {
               </button>
             </div>
 
-            <NeedsAttention />
+            {showNeedsAttention && <NeedsAttention />}
 
-            <div className="bg-secondary rounded-lg p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-primary text-lg font-semibold">
-                  Activity Overview
-                </h2>
+            {showHeatmap && (
+              <div className="bg-secondary rounded-lg p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-primary text-lg font-semibold">
+                    Activity Overview
+                  </h2>
+                </div>
+                <ActivityHeatmap />
               </div>
-              <ActivityHeatmap />
-            </div>
+            )}
           </>
         )}
       </div>

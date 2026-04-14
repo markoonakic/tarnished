@@ -48,6 +48,7 @@ describe('authenticated api helpers', () => {
     expect(String(url)).toContain('/api/example');
     const headers = options?.headers as Headers;
     expect(headers.get('Authorization')).toBe('Bearer token-1');
+    expect(headers.get('X-Timezone')).toBeTruthy();
   });
 
   it('refreshes tokens and retries once after a 401 response', async () => {
