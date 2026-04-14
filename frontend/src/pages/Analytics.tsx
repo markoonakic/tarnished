@@ -14,6 +14,7 @@ import { OverallGrace } from '@/components/analytics/OverallGrace';
 import { SectionInsight } from '@/components/analytics/SectionInsight';
 import { useGraceInsights } from '@/hooks/useGraceInsights';
 import { useToast } from '@/hooks/useToast';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 export default function Analytics() {
   const [searchParams] = useSearchParams();
@@ -21,7 +22,9 @@ export default function Analytics() {
 
   const { configured, loading, insights, error, seekGrace } =
     useGraceInsights(period);
+  const { data: preferences } = useUserPreferences();
   const toast = useToast();
+  const showHeatmap = preferences?.show_heatmap ?? true;
 
   // Show error toast when error occurs
   useEffect(() => {
@@ -160,9 +163,11 @@ export default function Analytics() {
             </div>
 
             {/* Activity Heatmap */}
-            <div className="bg-bg1 rounded-lg p-6">
-              <ActivityHeatmap />
-            </div>
+            {showHeatmap && (
+              <div className="bg-bg1 rounded-lg p-6">
+                <ActivityHeatmap />
+              </div>
+            )}
           </section>
         </div>
       </div>

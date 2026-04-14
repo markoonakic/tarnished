@@ -1,5 +1,7 @@
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -14,19 +16,35 @@ class UserPreferencesUpdate(BaseModel):
     show_streak_stats: bool | None = None
     show_needs_attention: bool | None = None
     show_heatmap: bool | None = None
+    time_zone: str | None = None
+
+    @field_validator("time_zone")
+    @classmethod
+    def validate_time_zone(cls, value: str | None) -> str | None:
+        if value in (None, ""):
+            return None
+
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError("Invalid IANA time zone") from exc
+
+        return value
 
 
 class UserPreferencesResponse(BaseModel):
     show_streak_stats: bool
     show_needs_attention: bool
     show_heatmap: bool
+    time_zone: str | None = None
 
 
-def get_default_preferences() -> dict:
+def get_default_preferences() -> dict[str, bool | str | None]:
     return {
         "show_streak_stats": True,
         "show_needs_attention": True,
         "show_heatmap": True,
+        "time_zone": None,
     }
 
 
@@ -45,6 +63,7 @@ async def get_preferences(
             "show_needs_attention", defaults["show_needs_attention"]
         ),
         show_heatmap=prefs.get("show_heatmap", defaults["show_heatmap"]),
+        time_zone=prefs.get("time_zone", defaults["time_zone"]),
     )
 
 
@@ -77,4 +96,5 @@ async def update_preferences(
         show_streak_stats=current["show_streak_stats"],
         show_needs_attention=current["show_needs_attention"],
         show_heatmap=current["show_heatmap"],
+        time_zone=current["time_zone"],
     )

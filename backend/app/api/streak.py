@@ -1,67 +1,30 @@
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
+from typing import TypedDict
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_api_key_scope
 from app.models import User
-from app.schemas.streak import StreakResponse
+from app.schemas.streak import StreakResponse, StreakState
 
 router = APIRouter(prefix="/api/streak", tags=["streak"])
 
-
-async def record_streak_activity(
-    user: User,
-    db: AsyncSession,
-) -> dict:
-    """
-    Record activity that counts toward streak.
-
-    This is a helper function that can be called from other endpoints.
-    The POST /record endpoint delegates to this function.
-    """
-    today = date.today()
-
-    # First activity ever
-    if not user.streak_start_date:
-        user.current_streak = 1
-        user.longest_streak = 1
-        user.total_activity_days = 1
-        user.last_activity_date = today
-        user.streak_start_date = today
-        user.ember_active = False
-    else:
-        days_since_last = (today - user.last_activity_date).days
-
-        if days_since_last == 0:
-            # Already recorded today, do nothing
-            pass
-        elif days_since_last == 1:
-            # Continued streak (or recovered from ember)
-            user.current_streak += 1
-            user.total_activity_days += 1
-            user.last_activity_date = today
-            user.ember_active = False
-
-            # Update longest if needed
-            if user.current_streak > user.longest_streak:
-                user.longest_streak = user.current_streak
-        elif days_since_last >= 2:
-            # Streak extinguished, start over
-            user.current_streak = 1
-            user.total_activity_days += 1
-            user.last_activity_date = today
-            user.streak_start_date = today
-            user.ember_active = False
-
-    await db.commit()
-
-    return {"message": "Activity recorded", "current_streak": user.current_streak}
+RECENTLY_EXTINGUISHED_WINDOW_DAYS = 7
 
 
-# 15 flame stages with art, name, min_days, max_days
-FLAME_STAGES = [
+class FlameStage(TypedDict):
+    stage: int
+    name: str
+    min_days: int
+    max_days: int
+    art: str
+
+
+FLAME_STAGES: list[FlameStage] = [
+    {"stage": 0, "name": "Dormant", "min_days": 0, "max_days": 0, "art": ""},
     {"stage": 1, "name": "First Ember", "min_days": 1, "max_days": 1, "art": "░░"},
     {
         "stage": 2,
@@ -140,7 +103,159 @@ FLAME_STAGES = [
 ]
 
 
-def get_flame_stage(streak_days: int) -> dict:
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
+def _validate_time_zone_name(value: str | None) -> str | None:
+    if not value:
+        return None
+
+    try:
+        ZoneInfo(value)
+    except ZoneInfoNotFoundError:
+        return None
+
+    return value
+
+
+def _get_user_time_zone_name(user: User, *, x_timezone: str | None = None) -> str | None:
+    request_zone = _validate_time_zone_name(x_timezone)
+    if request_zone is not None:
+        return request_zone
+
+    prefs = user.settings if isinstance(user.settings, dict) else {}
+    stored_zone = prefs.get("time_zone")
+    if isinstance(stored_zone, str):
+        return _validate_time_zone_name(stored_zone)
+
+    return None
+
+
+def _today(user: User, *, x_timezone: str | None = None) -> date:
+    time_zone_name = _get_user_time_zone_name(user, x_timezone=x_timezone)
+    if time_zone_name is None:
+        return _utc_now().date()
+
+    return _utc_now().astimezone(ZoneInfo(time_zone_name)).date()
+
+
+def _exhausted_date(last_activity_date: date) -> date:
+    return last_activity_date + timedelta(days=2)
+
+
+def _sync_streak_state(user: User, *, today: date) -> tuple[bool, bool]:
+    """Normalize persisted streak state and return (changed, ember_active)."""
+    changed = False
+    ember_active = False
+
+    if user.last_activity_date is None:
+        if user.ember_active:
+            user.ember_active = False
+            changed = True
+        return changed, ember_active
+
+    days_since_last = (today - user.last_activity_date).days
+
+    if user.current_streak > 0 and days_since_last == 1:
+        ember_active = True
+        if not user.ember_active:
+            user.ember_active = True
+            changed = True
+        if user.streak_exhausted_at is not None:
+            user.streak_exhausted_at = None
+            changed = True
+        return changed, ember_active
+
+    if user.ember_active:
+        user.ember_active = False
+        changed = True
+
+    if user.current_streak > 0 and user.streak_exhausted_at is not None:
+        user.streak_exhausted_at = None
+        changed = True
+
+    if days_since_last >= 2:
+        if user.current_streak != 0:
+            user.current_streak = 0
+            changed = True
+        if user.streak_start_date is not None:
+            user.streak_start_date = None
+            changed = True
+
+        exhausted_at = _exhausted_date(user.last_activity_date)
+        if user.longest_streak > 0 and user.streak_exhausted_at != exhausted_at:
+            user.streak_exhausted_at = exhausted_at
+            changed = True
+
+    return changed, ember_active
+
+
+def _derive_streak_state(user: User, *, today: date) -> tuple[StreakState, bool]:
+    if user.current_streak > 0:
+        if user.last_activity_date and (today - user.last_activity_date).days == 1:
+            return StreakState.EMBER, False
+        return StreakState.BURNING, False
+
+    if user.longest_streak > 0:
+        is_recently_extinguished = (
+            user.streak_exhausted_at is not None
+            and (today - user.streak_exhausted_at).days
+            <= RECENTLY_EXTINGUISHED_WINDOW_DAYS
+        )
+        return StreakState.EXTINGUISHED, is_recently_extinguished
+
+    return StreakState.DORMANT, False
+
+
+async def record_streak_activity(
+    user: User,
+    db: AsyncSession,
+    *,
+    x_timezone: str | None = None,
+) -> dict:
+    """Record activity that counts toward the user's streak."""
+    today = _today(user, x_timezone=x_timezone)
+    changed, _ = _sync_streak_state(user, today=today)
+
+    if user.last_activity_date is None:
+        user.current_streak = 1
+        user.longest_streak = 1
+        user.total_activity_days = 1
+        user.last_activity_date = today
+        user.streak_start_date = today
+        user.ember_active = False
+        changed = True
+    else:
+        days_since_last = (today - user.last_activity_date).days
+
+        if days_since_last == 1 and user.current_streak > 0:
+            user.current_streak += 1
+            user.total_activity_days += 1
+            user.last_activity_date = today
+            user.ember_active = False
+            user.streak_exhausted_at = None
+            if user.current_streak > user.longest_streak:
+                user.longest_streak = user.current_streak
+            changed = True
+        elif days_since_last != 0:
+            user.current_streak = 1
+            user.total_activity_days += 1
+            user.last_activity_date = today
+            user.streak_start_date = today
+            user.ember_active = False
+            user.streak_exhausted_at = None
+            if user.longest_streak == 0:
+                user.longest_streak = 1
+            changed = True
+
+    if changed:
+        await db.commit()
+
+    return {"message": "Activity recorded", "current_streak": user.current_streak}
+
+
+def get_flame_stage(streak_days: int) -> FlameStage:
     """Return flame stage data based on streak length."""
     for stage in FLAME_STAGES:
         if stage["min_days"] <= streak_days <= stage["max_days"]:
@@ -153,42 +268,25 @@ async def get_streak(
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("streak:read")),
     db: AsyncSession = Depends(get_db),
+    x_timezone: str | None = Header(default=None),
 ):
     """Get current streak information for Flame of Focus display."""
-    today = date.today()
-    ember_active = False
-
-    if user.last_activity_date:
-        days_since = (today - user.last_activity_date).days
-        if days_since == 1:
-            ember_active = True
-        elif days_since >= 2:
-            # Streak extinguished, reset
-            user.current_streak = 0
-            user.ember_active = False
-            user.streak_start_date = None
-
-            # Set streak_exhausted_at when streak goes to 0 after grace period
-            if user.longest_streak > 0 and user.streak_exhausted_at is None:
-                user.streak_exhausted_at = date.today()
-
-            await db.commit()
-
-    # Clear streak_exhausted_at when streak becomes active again
-    if user.current_streak > 0 and user.streak_exhausted_at is not None:
-        user.streak_exhausted_at = None
+    today = _today(user, x_timezone=x_timezone)
+    changed, ember_active = _sync_streak_state(user, today=today)
+    if changed:
         await db.commit()
 
+    state, is_recently_extinguished = _derive_streak_state(user, today=today)
     flame_stage = get_flame_stage(user.current_streak)
 
     return StreakResponse(
         current_streak=user.current_streak,
         longest_streak=user.longest_streak,
         total_activity_days=user.total_activity_days,
-        last_activity_date=user.last_activity_date.isoformat()
-        if user.last_activity_date
-        else None,
+        last_activity_date=user.last_activity_date,
         ember_active=ember_active,
+        state=state,
+        is_recently_extinguished=is_recently_extinguished,
         flame_stage=flame_stage["stage"],
         flame_name=flame_stage["name"],
         flame_art=flame_stage["art"],
@@ -201,6 +299,7 @@ async def record_activity(
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("streak:write")),
     db: AsyncSession = Depends(get_db),
+    x_timezone: str | None = Header(default=None),
 ):
     """Record activity that counts toward streak."""
-    return await record_streak_activity(user=user, db=db)
+    return await record_streak_activity(user=user, db=db, x_timezone=x_timezone)

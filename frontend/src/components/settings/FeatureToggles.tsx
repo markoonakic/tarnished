@@ -1,12 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  getPreferences,
   updatePreferences,
   type UserPreferences,
 } from '../../lib/userPreferences';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
+
+type BooleanPreferenceKey =
+  | 'show_streak_stats'
+  | 'show_needs_attention'
+  | 'show_heatmap';
 
 interface ToggleConfig {
-  key: keyof UserPreferences;
+  key: BooleanPreferenceKey;
   label: string;
   description: string;
 }
@@ -33,10 +38,7 @@ const toggles: ToggleConfig[] = [
 export default function FeatureToggles() {
   const queryClient = useQueryClient();
 
-  const { data: preferences, isLoading } = useQuery({
-    queryKey: ['user-preferences'],
-    queryFn: getPreferences,
-  });
+  const { data: preferences, isLoading } = useUserPreferences();
 
   const updateMutation = useMutation({
     mutationFn: (updates: Partial<UserPreferences>) =>
@@ -46,7 +48,7 @@ export default function FeatureToggles() {
     },
   });
 
-  function handleToggle(key: keyof UserPreferences) {
+  function handleToggle(key: BooleanPreferenceKey) {
     const currentValue = preferences?.[key] ?? true;
     updateMutation.mutate({ [key]: !currentValue });
   }

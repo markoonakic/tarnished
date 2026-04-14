@@ -1,0 +1,17 @@
+{
+  "frameDuration": 33,
+  "width": 40,
+  "height": 24,
+  "state": "extinguished",
+  "frames": [
+    {
+      "duration": 33,
+      "data": {
+        "17,21": { "char": ".", "kind": "ash" },
+        "18,21": { "char": ":", "kind": "ash" },
+        "19,21": { "char": ":", "kind": "ash" },
+        "20,21": { "char": ".", "kind": "ash" }
+      }
+    }
+  ]
+}

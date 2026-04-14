@@ -13,6 +13,14 @@ function getStorage(): Storage {
   return window.localStorage;
 }
 
+export function getBrowserTimeZone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    return null;
+  }
+}
+
 export function getAccessToken(): string | null {
   return getStorage().getItem(ACCESS_TOKEN_KEY);
 }
@@ -61,6 +69,11 @@ function withAuthorization(
 
   if (token) {
     mergedHeaders.set('Authorization', `Bearer ${token}`);
+  }
+
+  const timeZone = getBrowserTimeZone();
+  if (timeZone) {
+    mergedHeaders.set('X-Timezone', timeZone);
   }
 
   return mergedHeaders;
@@ -142,13 +155,18 @@ export function buildAuthenticatedEventSourceUrl(path: string): string {
 }
 
 api.interceptors.request.use((config) => {
+  const headers = toAxiosHeaders(config.headers);
+
   const token = getAccessToken();
-  if (!token) {
-    return config;
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const headers = toAxiosHeaders(config.headers);
-  headers.set('Authorization', `Bearer ${token}`);
+  const timeZone = getBrowserTimeZone();
+  if (timeZone) {
+    headers.set('X-Timezone', timeZone);
+  }
+
   config.headers = headers;
   return config;
 });
