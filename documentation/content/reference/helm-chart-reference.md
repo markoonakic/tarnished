@@ -176,5 +176,5 @@ That README is the place where the full values table should remain exhaustive.
 
 - [Install with Helm](../install/helm.md)
 - [Environment variables](./environment-variables.md)
-- [Storage and backups](../explanation/storage-and-backups.md)
+- [Architecture overview](../explanation/architecture-overview.md)
 - [Deployment and startup problems](../troubleshooting/deployment-and-startup.md)

@@ -30,6 +30,8 @@ After saving the application, confirm that it appears in the list.
 
 At this point Tarnished has started tracking the application as part of your pipeline.
 
+Your saved application date also feeds dashboard and analytics windows such as "Last 7 Days" and "Last 30 Days", so make sure the applied date reflects the real day you want Tarnished to count.
+
 ## Step 3: Update the status over time
 
 As the application progresses, update the status.
@@ -50,5 +52,6 @@ Typical examples include:
 ## Next steps
 
 - [Create your first API key](./create-your-first-api-key.md)
+- [Configure dashboard features and time zone](../how-to/configure-dashboard-features-and-time-zone.md)
 - [Import and export data](../how-to/import-and-export-data.md)
 - [Use the browser extension](../how-to/use-the-browser-extension.md)

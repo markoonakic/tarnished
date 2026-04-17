@@ -8,6 +8,7 @@ Use the how-to guides when Tarnished is already installed and you know the task 
 ## Access and integrations
 
 - [Configure API keys](./configure-api-keys.md)
+- [Configure dashboard features and time zone](./configure-dashboard-features-and-time-zone.md)
 - [Use the CLI](./use-the-cli.md)
 - [Use the browser extension](./use-the-browser-extension.md)
 

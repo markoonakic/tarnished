@@ -28,6 +28,7 @@ Once the app is running, start with these first-use guides:
 Use these guides once Tarnished is already installed:
 
 - [Configure API keys](./how-to/configure-api-keys.md)
+- [Configure dashboard features and time zone](./how-to/configure-dashboard-features-and-time-zone.md)
 - [Use the CLI](./how-to/use-the-cli.md)
 - [Use the browser extension](./how-to/use-the-browser-extension.md)
 - [Import and export data](./how-to/import-and-export-data.md)
@@ -38,9 +39,5 @@ Use these guides once Tarnished is already installed:
 ## Need deeper detail?
 
 - Use [Reference](./reference/index.md) for exact environment variables and API surfaces.
-- Use [Explanation](./explanation/index.md) for architecture, storage, auth, and transfer-job rationale.
+- Use [Explanation](./explanation/index.md) for architecture and auth rationale.
 - Use [Troubleshooting](./troubleshooting/index.md) when Tarnished does not start or does not behave the way you expect.
-
-## Contributor docs
-
-Contributor-facing docs live separately under [Contributing](./contributing/index.md) so the main user path stays focused on installing, using, and operating Tarnished.

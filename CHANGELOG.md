@@ -6,6 +6,35 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+### Changed
+
+- Dashboard feature toggles now reliably control the Flame of Ambition widget, Needs Attention sections, and activity heatmap visibility from the web UI and shared preference surface.
+- Tarnished now supports a clearer timezone preference model with `device` and `manual` modes, a dedicated Time Zone settings UI, and aligned local-day calculations across streaks, dashboard windows, and analytics windows.
+- Flame of Ambition quotes are now deterministic and stable instead of rotating live while the dashboard is open.
+- Dashboard KPI trend semantics are more honest: zero-baseline periods render as `New`, while flat changes render as neutral `0%` instead of a false positive up-trend.
+- The web app now scopes timezone request context only to date-sensitive routes, and the CLI mirrors that behavior using the local machine timezone only for the same date-sensitive commands when the user is in device mode.
+- The shared selection UI now distinguishes between short-list dropdowns and long-list searchable comboboxes; timezone selection uses the searchable combobox and the short-list dropdown gained better keyboard navigation and option visibility behavior.
+
+### Fixed
+
+- Theme settings and user preferences no longer risk clobbering each other through independent last-write-wins updates to the same settings JSON payload.
+- Dashboard and analytics cards that depend on day windows no longer drift from streak behavior because of inconsistent server-local date handling.
+- Dashboard and analytics server-state widgets now refetch more predictably instead of waiting for full remounts or stale mount-only fetch behavior.
+- Analytics KPI and weekly chart views no longer fall back to fake mock data when live API requests fail.
+
+### Validation
+
+- Backend tests: `391 passed, 2 skipped`
+- Backend Ruff: passed
+- Backend Pyright: `0 errors` (`1` unrelated pre-existing warning in `test_extraction_service.py`)
+- Frontend tests: `26` files / `64` tests passed
+- Frontend ESLint: passed
+- Frontend `tsc --noEmit`: passed
+- Frontend build: passed
+- CLI tests: `76 passed`
+- CLI Ruff: passed
+- CLI Pyright: `0 errors`
+
 ## [0.1.7] - 2026-04-11
 
 ### Fixed

@@ -78,7 +78,5 @@ That means the packaged app can run as a single combined web service in common d
 
 ## Related pages
 
-- [Storage and backups](./storage-and-backups.md)
 - [Auth and API keys](./auth-and-api-keys.md)
-- [Transfer jobs](./transfer-jobs.md)
 - [API overview](../reference/api-overview.md)

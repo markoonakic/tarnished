@@ -29,6 +29,7 @@ const sidebars: SidebarsConfig = {
       link: {type: 'doc', id: 'how-to/index'},
       items: [
         'how-to/configure-api-keys',
+        'how-to/configure-dashboard-features-and-time-zone',
         'how-to/configure-ai-settings',
         'how-to/import-and-export-data',
         'how-to/backup-and-restore-tarnished',
@@ -53,9 +54,7 @@ const sidebars: SidebarsConfig = {
       link: {type: 'doc', id: 'explanation/index'},
       items: [
         'explanation/architecture-overview',
-        'explanation/storage-and-backups',
         'explanation/auth-and-api-keys',
-        'explanation/transfer-jobs',
       ],
     },
     {
@@ -66,23 +65,6 @@ const sidebars: SidebarsConfig = {
     },
   ],
 
-  contributingDocs: [
-    'contributing/index',
-    'contributing/docs-architecture',
-    'contributing/docs-style-guide',
-    'contributing/docs-roadmap',
-    {
-      type: 'category',
-      label: 'Templates',
-      items: [
-        'contributing/templates/tutorial-template',
-        'contributing/templates/how-to-template',
-        'contributing/templates/reference-template',
-        'contributing/templates/explanation-template',
-        'contributing/templates/troubleshooting-template',
-      ],
-    },
-  ],
 };
 
 export default sidebars;

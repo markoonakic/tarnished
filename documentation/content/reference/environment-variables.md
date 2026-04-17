@@ -170,4 +170,4 @@ For PostgreSQL-backed Helm installs, the recommended path is an existing secret 
 - [Install with Docker Compose](../install/docker-compose.md)
 - [Install with PostgreSQL Docker Compose](../install/postgresql-docker-compose.md)
 - [Install with Helm](../install/helm.md)
-- [Storage and backups](../explanation/storage-and-backups.md)
+- [Architecture overview](../explanation/architecture-overview.md)

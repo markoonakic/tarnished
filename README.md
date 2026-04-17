@@ -16,11 +16,13 @@ Think of it as a command center for your job search. Track applications, store y
 
 - **Save Jobs from Anywhere** - The browser extension extracts job details from any page with a job description using AI, no need to manually copy-paste.
 
-- **Visualize Your Pipeline** - Dashboard with response rates, interview conversion funnels, and weekly activity tracking.
+- **Visualize Your Pipeline** - Dashboard with response rates, interview conversion funnels, weekly activity tracking, and configurable visibility for optional dashboard sections.
 
 - **Customizable Pipeline** - Define your own statuses and interview round types to match your unique job search process.
 
 - **Customizable Themes** - Choose from Gruvbox, Catppuccin, Dracula... Pick your accent color to match your style.
+
+- **Local-Day Aware Streaks & Analytics** - Use device time or set a manual timezone so streaks, dashboard windows, and analytics day boundaries match how you actually track your job search.
 
 - **Full Data Portability** - Export all your data (JSON, CSV, or ZIP with media) and import to migrate or backup.
 
