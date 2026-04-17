@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.database import get_db
 from app.core.deps import get_current_user_flexible, require_api_key_scope
@@ -13,6 +12,7 @@ from app.core.themes import (
 )
 from app.models import User
 from app.schemas.settings import UserSettingsResponse, UserSettingsUpdate
+from app.services.user_settings import merge_user_settings, normalize_user_settings
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -23,7 +23,7 @@ async def get_user_settings(
     _: object = Depends(require_api_key_scope("user_settings:read")),
 ):
     """Get user theme settings with resolved colors for extension."""
-    settings = current_user.settings or {}
+    settings = normalize_user_settings(current_user.settings)
     theme = settings.get("theme", DEFAULT_THEME)
     accent = settings.get("accent", DEFAULT_ACCENT)
 
@@ -40,24 +40,25 @@ async def update_user_settings(
     db: AsyncSession = Depends(get_db),
 ):
     """Update user theme settings."""
-    settings = current_user.settings or {}
+    updates: dict[str, str] = {}
 
     if update.theme is not None:
         if update.theme not in THEMES:
             raise HTTPException(
                 status_code=400, detail=f"Invalid theme. Options: {list(THEMES.keys())}"
             )
-        settings["theme"] = update.theme
+        updates["theme"] = update.theme
 
     if update.accent is not None:
         if update.accent not in ACCENT_OPTIONS:
             raise HTTPException(
                 status_code=400, detail=f"Invalid accent. Options: {ACCENT_OPTIONS}"
             )
-        settings["accent"] = update.accent
+        updates["accent"] = update.accent
 
-    current_user.settings = settings
-    flag_modified(current_user, "settings")
-    await db.commit()
+    if not updates:
+        return {"message": "Settings updated", "settings": normalize_user_settings(current_user.settings)}
+
+    settings = await merge_user_settings(db, user_id=current_user.id, updates=updates)
 
     return {"message": "Settings updated", "settings": settings}

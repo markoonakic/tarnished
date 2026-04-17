@@ -1,4 +1,4 @@
-import api from './api';
+import api, { withAxiosTimeZoneHeaders } from './api';
 import type { Application, JobLead } from './types';
 
 interface JobLeadsParams {
@@ -65,6 +65,12 @@ export async function retryJobLead(id: string): Promise<JobLead> {
  * Convert a job lead to an application.
  */
 export async function convertToApplication(id: string): Promise<Application> {
-  const response = await api.post<Application>(`/api/job-leads/${id}/convert`);
+  const response = await api.post<Application>(
+    `/api/job-leads/${id}/convert`,
+    {},
+    {
+      headers: withAxiosTimeZoneHeaders(),
+    }
+  );
   return response.data;
 }

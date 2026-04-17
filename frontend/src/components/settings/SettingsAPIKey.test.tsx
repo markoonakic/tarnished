@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,17 +34,22 @@ vi.mock('@/hooks/useToast', () => ({
   }),
 }));
 
+async function selectDropdownOption(combobox: HTMLElement, optionName: RegExp) {
+  fireEvent.click(combobox);
+  fireEvent.click(await screen.findByRole('option', { name: optionName }));
+}
+
 describe('SettingsAPIKey', () => {
   afterEach(() => {
     cleanup();
   });
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it('renders existing named api keys from the multi-key endpoint', async () => {
-    listAPIKeys.mockResolvedValueOnce([
+    listAPIKeys.mockResolvedValue([
       {
         id: 'key-1',
         label: 'MacBook CLI',
@@ -84,7 +90,7 @@ describe('SettingsAPIKey', () => {
   });
 
   it('creates a custom-scoped key from advanced mode', async () => {
-    listAPIKeys.mockResolvedValueOnce([]);
+    listAPIKeys.mockResolvedValue([]);
     createAPIKey.mockResolvedValueOnce({
       id: 'key-3',
       label: 'Custom CLI',
@@ -108,12 +114,8 @@ describe('SettingsAPIKey', () => {
     fireEvent.change(screen.getByPlaceholderText(/macbook cli/i), {
       target: { value: 'Custom CLI' },
     });
-    fireEvent.change(screen.getAllByRole('combobox')[0], {
-      target: { value: 'custom' },
-    });
-    fireEvent.click(
-      screen.getAllByRole('button', { name: /advanced scopes/i })[0]
-    );
+    await selectDropdownOption(screen.getAllByRole('combobox')[0], /custom/i);
+    fireEvent.click(screen.getByRole('button', { name: /advanced scopes/i }));
     fireEvent.click(screen.getByLabelText(/round_types:read/i));
     fireEvent.click(
       screen.getAllByRole('button', { name: /^create api key$/i })[0]
@@ -129,7 +131,7 @@ describe('SettingsAPIKey', () => {
   });
 
   it('updates an existing key to custom scopes in edit mode', async () => {
-    listAPIKeys.mockResolvedValueOnce([
+    listAPIKeys.mockResolvedValue([
       {
         id: 'key-1',
         label: 'MacBook CLI',
@@ -161,14 +163,23 @@ describe('SettingsAPIKey', () => {
     await waitFor(() => expect(listAPIKeys).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole('button', { name: /rename/i }));
-    fireEvent.change(screen.getAllByRole('combobox')[1], {
-      target: { value: 'custom' },
-    });
+
+    const saveButton = await screen.findByRole('button', { name: /^save$/i });
+    const editPanel = saveButton.closest('.space-y-4') as HTMLElement | null;
+
+    expect(editPanel).toBeTruthy();
+
+    const editQueries = within(editPanel!);
+    const editPresetDropdown = editQueries.getByRole('combobox', {
+      name: /preset/i,
+    }) as HTMLElement;
+
+    await selectDropdownOption(editPresetDropdown, /custom/i);
     fireEvent.click(
-      screen.getAllByRole('button', { name: /advanced scopes/i })[1]
+      editQueries.getByRole('button', { name: /advanced scopes/i })
     );
-    fireEvent.click(screen.getByLabelText(/round_types:read/i));
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    fireEvent.click(editQueries.getByLabelText(/round_types:read/i));
+    fireEvent.click(editQueries.getByRole('button', { name: /^save$/i }));
 
     await waitFor(() =>
       expect(updateAPIKey).toHaveBeenCalledWith('key-1', {

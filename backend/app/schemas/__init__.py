@@ -61,9 +61,9 @@ from app.schemas.user_profile import (
 
 class DashboardKPIsResponse(BaseModel):
     last_7_days: int
-    last_7_days_trend: float
+    last_7_days_trend: float | None
     last_30_days: int
-    last_30_days_trend: float
+    last_30_days_trend: float | None
     active_opportunities: int
 
 

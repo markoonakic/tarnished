@@ -13,6 +13,7 @@ class PreferencesUpdate(BaseModel):
     show_streak_stats: bool | None = None
     show_needs_attention: bool | None = None
     show_heatmap: bool | None = None
+    time_zone_mode: str | None = None
     time_zone: str | None = None
 
 
@@ -37,7 +38,7 @@ def update_preferences(
     state = get_state(ctx)
     body = load_model_body(body_file, PreferencesUpdate)
     try:
-        payload = state.build_client().put_json(
+        payload = state.build_client().patch_json(
             "/api/user-preferences",
             body=body,
         )

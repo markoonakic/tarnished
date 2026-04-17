@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import type {
   CallbackDataParams,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import { getInterviewRoundsData, type TimelineData } from '@/lib/analytics';
+import type { TimelineData } from '@/lib/analytics';
+import { useInterviewRoundsAnalytics } from '@/hooks/useAnalyticsData';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
+
+const EMPTY_TIMELINE_DATA: TimelineData[] = [];
 
 interface InterviewTimelineProps {
   period?: string;
@@ -19,27 +22,13 @@ export default function InterviewTimeline({
   period = 'all',
   roundType,
 }: InterviewTimelineProps) {
-  const [data, setData] = useState<TimelineData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const {
+    data: analytics,
+    isLoading,
+    isError,
+  } = useInterviewRoundsAnalytics(period, roundType);
+  const data: TimelineData[] = analytics?.timeline_data ?? EMPTY_TIMELINE_DATA;
   const colors = useThemeColors();
-
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const result = await getInterviewRoundsData(period, roundType);
-      setData(result.timeline_data);
-      setError('');
-    } catch {
-      setError('Failed to load interview timeline data');
-    } finally {
-      setLoading(false);
-    }
-  }, [period, roundType]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   const getSpeedInfo = useCallback(
     (avgDays: number): { label: string; color: string } => {
@@ -192,12 +181,16 @@ export default function InterviewTimeline({
     };
   }, [data, colors, getSpeedInfo]);
 
-  if (loading) {
+  if (isLoading) {
     return <Loading message="Loading interview timeline..." size="sm" />;
   }
 
-  if (error) {
-    return <div className="text-red-bright py-8 text-center">{error}</div>;
+  if (isError) {
+    return (
+      <div className="text-red-bright py-8 text-center">
+        Failed to load interview timeline data
+      </div>
+    );
   }
 
   if (data.length === 0) {

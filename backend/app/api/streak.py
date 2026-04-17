@@ -1,14 +1,14 @@
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 from typing import TypedDict
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_api_key_scope
+from app.core.deps import get_current_user, get_request_time_zone, require_api_key_scope
 from app.models import User
 from app.schemas.streak import StreakResponse, StreakState
+from app.services.user_time import get_user_local_today
 
 router = APIRouter(prefix="/api/streak", tags=["streak"])
 
@@ -103,43 +103,6 @@ FLAME_STAGES: list[FlameStage] = [
 ]
 
 
-def _utc_now() -> datetime:
-    return datetime.now(UTC)
-
-
-def _validate_time_zone_name(value: str | None) -> str | None:
-    if not value:
-        return None
-
-    try:
-        ZoneInfo(value)
-    except ZoneInfoNotFoundError:
-        return None
-
-    return value
-
-
-def _get_user_time_zone_name(user: User, *, x_timezone: str | None = None) -> str | None:
-    request_zone = _validate_time_zone_name(x_timezone)
-    if request_zone is not None:
-        return request_zone
-
-    prefs = user.settings if isinstance(user.settings, dict) else {}
-    stored_zone = prefs.get("time_zone")
-    if isinstance(stored_zone, str):
-        return _validate_time_zone_name(stored_zone)
-
-    return None
-
-
-def _today(user: User, *, x_timezone: str | None = None) -> date:
-    time_zone_name = _get_user_time_zone_name(user, x_timezone=x_timezone)
-    if time_zone_name is None:
-        return _utc_now().date()
-
-    return _utc_now().astimezone(ZoneInfo(time_zone_name)).date()
-
-
 def _exhausted_date(last_activity_date: date) -> date:
     return last_activity_date + timedelta(days=2)
 
@@ -215,7 +178,7 @@ async def record_streak_activity(
     x_timezone: str | None = None,
 ) -> dict:
     """Record activity that counts toward the user's streak."""
-    today = _today(user, x_timezone=x_timezone)
+    today = get_user_local_today(user, x_timezone=x_timezone)
     changed, _ = _sync_streak_state(user, today=today)
 
     if user.last_activity_date is None:
@@ -268,10 +231,10 @@ async def get_streak(
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("streak:read")),
     db: AsyncSession = Depends(get_db),
-    x_timezone: str | None = Header(default=None),
+    x_timezone: str | None = Depends(get_request_time_zone),
 ):
     """Get current streak information for Flame of Focus display."""
-    today = _today(user, x_timezone=x_timezone)
+    today = get_user_local_today(user, x_timezone=x_timezone)
     changed, ember_active = _sync_streak_state(user, today=today)
     if changed:
         await db.commit()
@@ -299,7 +262,7 @@ async def record_activity(
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("streak:write")),
     db: AsyncSession = Depends(get_db),
-    x_timezone: str | None = Header(default=None),
+    x_timezone: str | None = Depends(get_request_time_zone),
 ):
     """Record activity that counts toward streak."""
     return await record_streak_activity(user=user, db=db, x_timezone=x_timezone)

@@ -74,6 +74,7 @@ describe('Dashboard preferences', () => {
         show_streak_stats: false,
         show_needs_attention: false,
         show_heatmap: false,
+        time_zone_mode: 'device',
         time_zone: 'Europe/Belgrade',
       },
     });
@@ -100,6 +101,7 @@ describe('Dashboard preferences', () => {
         show_streak_stats: true,
         show_needs_attention: true,
         show_heatmap: true,
+        time_zone_mode: 'device',
         time_zone: 'Europe/Belgrade',
       },
     });
@@ -113,10 +115,11 @@ describe('Dashboard preferences', () => {
     );
 
     await waitFor(() => expect(listApplications).toHaveBeenCalled());
-
-    expect(screen.getByText('FlameEmblem')).toBeInTheDocument();
-    expect(screen.getByText('NeedsAttention')).toBeInTheDocument();
-    expect(screen.getByText('ActivityHeatmap')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('FlameEmblem')).toBeInTheDocument();
+      expect(screen.getByText('NeedsAttention')).toBeInTheDocument();
+      expect(screen.getByText('ActivityHeatmap')).toBeInTheDocument();
+    });
   });
 
   it('hides Flame of Focus in the empty dashboard onboarding state', async () => {
@@ -126,6 +129,7 @@ describe('Dashboard preferences', () => {
         show_streak_stats: true,
         show_needs_attention: true,
         show_heatmap: true,
+        time_zone_mode: 'device',
         time_zone: 'Europe/Belgrade',
       },
     });

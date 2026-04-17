@@ -40,13 +40,18 @@ export async function generateInsights(period: string): Promise<GraceInsights> {
     throw new Error('Not authenticated');
   }
 
-  const response = await fetchWithAuth('/api/analytics/insights', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const response = await fetchWithAuth(
+    '/api/analytics/insights',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ period }),
     },
-    body: JSON.stringify({ period }),
-  });
+    true,
+    true
+  );
 
   if (!response.ok) {
     const error = await response

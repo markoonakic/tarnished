@@ -24,7 +24,7 @@ export default function Analytics() {
     useGraceInsights(period);
   const { data: preferences } = useUserPreferences();
   const toast = useToast();
-  const showHeatmap = preferences?.show_heatmap ?? true;
+  const showHeatmap = preferences?.show_heatmap === true;
 
   // Show error toast when error occurs
   useEffect(() => {

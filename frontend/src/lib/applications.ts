@@ -1,4 +1,4 @@
-import api from './api';
+import api, { withAxiosTimeZoneHeaders } from './api';
 import type {
   Application,
   ApplicationCreate,
@@ -42,7 +42,9 @@ export async function getApplicationSources(): Promise<string[]> {
 export async function createApplication(
   data: ApplicationCreate
 ): Promise<Application> {
-  const response = await api.post('/api/applications', data);
+  const response = await api.post('/api/applications', data, {
+    headers: withAxiosTimeZoneHeaders(),
+  });
   return response.data;
 }
 

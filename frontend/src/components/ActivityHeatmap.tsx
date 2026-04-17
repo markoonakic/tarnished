@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
-import { getHeatmapData } from '../lib/analytics';
-import type { HeatmapData } from '../lib/analytics';
+import { useMemo, useState } from 'react';
+import { useHeatmapAnalytics } from '@/hooks/useAnalyticsData';
+import {
+  getDatePartsFromKey,
+  useEffectiveDayKey,
+} from '@/hooks/useEffectiveDayKey';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Dropdown from './Dropdown';
 import Loading from './Loading';
@@ -30,31 +33,20 @@ interface CellData {
 }
 
 export default function ActivityHeatmap() {
-  const [data, setData] = useState<HeatmapData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState<'rolling' | number>('rolling');
   const [hoveredCell, setHoveredCell] = useState<CellData | null>(null);
   const colors = useThemeColors();
+  const dayKey = useEffectiveDayKey();
 
-  const currentYear = new Date().getFullYear();
+  const { data, isLoading, isError } = useHeatmapAnalytics(viewMode);
+
+  const effectiveToday = useMemo(() => {
+    const { year, month, day } = getDatePartsFromKey(dayKey);
+    return new Date(year, month - 1, day);
+  }, [dayKey]);
+
+  const currentYear = effectiveToday.getFullYear();
   const years = [currentYear, currentYear - 1, currentYear - 2];
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await getHeatmapData(viewMode);
-      setData(result);
-    } catch {
-      setError('Failed to load activity data');
-    } finally {
-      setLoading(false);
-    }
-  }, [viewMode]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   function getLevel(count: number, maxCount: number): number {
     if (count === 0) return 0;
@@ -91,7 +83,7 @@ export default function ActivityHeatmap() {
       data.days.forEach((d) => countMap.set(d.date, d.count));
     }
 
-    const today = new Date();
+    const today = new Date(effectiveToday);
     today.setHours(0, 0, 0, 0);
 
     let startDate: Date;
@@ -187,12 +179,16 @@ export default function ActivityHeatmap() {
     return labels;
   }
 
-  if (loading) {
+  if (isLoading) {
     return <Loading message="Loading chart data..." size="sm" />;
   }
 
-  if (error) {
-    return <div className="text-red-bright py-8 text-center">{error}</div>;
+  if (isError) {
+    return (
+      <div className="text-red-bright py-8 text-center">
+        Failed to load activity data
+      </div>
+    );
   }
 
   const grid = buildGrid();

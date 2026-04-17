@@ -1,28 +1,37 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_api_key_scope
+from app.core.deps import get_current_user, get_request_time_zone, require_api_key_scope
 from app.models import Application, ApplicationStatus, User
 from app.schemas import (
     DashboardKPIsResponse,
     NeedsAttentionItem,
     NeedsAttentionResponse,
 )
+from app.services.user_time import get_user_local_today
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 
+def _calculate_period_trend(current: int, previous: int) -> float | None:
+    if previous == 0:
+        return 0.0 if current == 0 else None
+
+    return round(((current - previous) / previous) * 100, 1)
+
+
 @router.get("/kpis", response_model=DashboardKPIsResponse)
 async def get_dashboard_kpis(
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("dashboard:read")),
     db: AsyncSession = Depends(get_db),
 ):
-    today = date.today()
+    today = get_user_local_today(user, x_timezone=x_timezone)
 
     # Calculate date ranges
     last_7_days_start = today - timedelta(days=6)
@@ -53,14 +62,10 @@ async def get_dashboard_kpis(
     )
     previous_7_days_count = result_prev_7.scalar() or 0
 
-    # Calculate 7-day trend
-    if previous_7_days_count > 0:
-        last_7_days_trend = round(
-            ((last_7_days_count - previous_7_days_count) / previous_7_days_count) * 100,
-            1,
-        )
-    else:
-        last_7_days_trend = 100.0 if last_7_days_count > 0 else 0.0
+    last_7_days_trend = _calculate_period_trend(
+        last_7_days_count,
+        previous_7_days_count,
+    )
 
     # Count applications in last 30 days
     result_last_30 = await db.execute(
@@ -82,15 +87,10 @@ async def get_dashboard_kpis(
     )
     previous_30_days_count = result_prev_30.scalar() or 0
 
-    # Calculate 30-day trend
-    if previous_30_days_count > 0:
-        last_30_days_trend = round(
-            ((last_30_days_count - previous_30_days_count) / previous_30_days_count)
-            * 100,
-            1,
-        )
-    else:
-        last_30_days_trend = 100.0 if last_30_days_count > 0 else 0.0
+    last_30_days_trend = _calculate_period_trend(
+        last_30_days_count,
+        previous_30_days_count,
+    )
 
     # Count active opportunities (not Rejected or Withdrawn)
     result_active = await db.execute(
@@ -114,11 +114,12 @@ async def get_dashboard_kpis(
 
 @router.get("/needs-attention", response_model=NeedsAttentionResponse)
 async def get_needs_attention(
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("dashboard:read")),
     db: AsyncSession = Depends(get_db),
 ):
-    today = date.today()
+    today = get_user_local_today(user, x_timezone=x_timezone)
 
     # Calculate date thresholds
     follow_up_start = today - timedelta(days=10)

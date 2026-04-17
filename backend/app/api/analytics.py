@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_api_key_scope
+from app.core.deps import get_current_user, get_request_time_zone, require_api_key_scope
 from app.models import Application, ApplicationStatus, ApplicationStatusHistory, User
 from app.schemas.analytics import (
     AnalyticsKPIsResponse,
@@ -21,6 +21,7 @@ from app.services.analytics_queries import (
     get_interview_rounds_data,
     get_pipeline_overview_data,
 )
+from app.services.user_time import get_user_local_today
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
@@ -213,11 +214,12 @@ async def get_sankey_data(
 async def get_heatmap_data(
     year: int | None = None,
     rolling: bool = False,
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("analytics:read")),
     db: AsyncSession = Depends(get_db),
 ):
-    today = date.today()
+    today = get_user_local_today(user, x_timezone=x_timezone)
 
     if rolling or (year is None):
         # Default: rolling 12 months
@@ -253,6 +255,7 @@ async def get_heatmap_data(
 @router.get("/kpis", response_model=AnalyticsKPIsResponse)
 async def get_analytics_kpis(
     period: str = "30d",
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("analytics:read")),
     db: AsyncSession = Depends(get_db),
@@ -261,7 +264,13 @@ async def get_analytics_kpis(
     Get analytics KPIs filtered by time period.
     Period options: 7d, 30d, 3m, all
     """
-    pipeline_data = await get_pipeline_overview_data(db, str(user.id), period)
+    today = get_user_local_today(user, x_timezone=x_timezone)
+    pipeline_data = await get_pipeline_overview_data(
+        db,
+        str(user.id),
+        period,
+        today=today,
+    )
 
     return AnalyticsKPIsResponse(
         total_applications=pipeline_data["total_applications"],
@@ -276,6 +285,7 @@ async def get_analytics_kpis(
 @router.get("/weekly")
 async def get_weekly_data(
     period: str = "30d",
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("analytics:read")),
     db: AsyncSession = Depends(get_db),
@@ -284,7 +294,13 @@ async def get_weekly_data(
     Get weekly application trends data.
     Groups applications by week for the specified period.
     """
-    activity_tracking = await get_activity_tracking_data(db, str(user.id), period)
+    today = get_user_local_today(user, x_timezone=x_timezone)
+    activity_tracking = await get_activity_tracking_data(
+        db,
+        str(user.id),
+        period,
+        today=today,
+    )
     return activity_tracking["weekly_data"]
 
 
@@ -292,6 +308,7 @@ async def get_weekly_data(
 async def get_interview_rounds_analytics(
     period: str = "all",
     round_type: str | None = None,
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("analytics:read")),
     db: AsyncSession = Depends(get_db),
@@ -305,11 +322,13 @@ async def get_interview_rounds_analytics(
     Period options: 7d, 30d, 3m, all
     round_type: optional filter by round type name
     """
+    today = get_user_local_today(user, x_timezone=x_timezone)
     analytics = await get_interview_rounds_data(
         db,
         str(user.id),
         period,
         round_type,
+        today=today,
     )
 
     return InterviewRoundsResponse(**analytics)

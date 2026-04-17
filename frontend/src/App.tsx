@@ -23,7 +23,6 @@ import SettingsExport from './components/settings/SettingsExport';
 import SettingsImport from './components/settings/SettingsImport';
 import SettingsAPIKey from './components/settings/SettingsAPIKey';
 import SettingsProfile from './components/settings/SettingsProfile';
-import UserTimeZoneSync from './components/UserTimeZoneSync';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -166,7 +165,6 @@ function App() {
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>
-              <UserTimeZoneSync />
               <AppRoutes />
               <ToastContainer />
             </ToastProvider>

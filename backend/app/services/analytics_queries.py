@@ -10,20 +10,24 @@ from app.models import Application, ApplicationStatus, Round, RoundType
 FAR_PAST_DATE = date(2000, 1, 1)
 
 
-def get_period_start_date(period: str, *, default_period: str = "30d") -> date:
-    today = date.today()
+def get_period_start_date(
+    period: str,
+    *,
+    today: date,
+    default_period: str = "30d",
+) -> date:
     normalized_period = period or default_period
 
     if normalized_period == "7d":
-        return today - timedelta(days=7)
+        return today - timedelta(days=6)
     if normalized_period == "30d":
-        return today - timedelta(days=30)
+        return today - timedelta(days=29)
     if normalized_period == "3m":
-        return today - timedelta(days=90)
+        return today - timedelta(days=89)
     if normalized_period == "all":
         return FAR_PAST_DATE
 
-    return get_period_start_date(default_period, default_period=default_period)
+    return get_period_start_date(default_period, today=today, default_period=default_period)
 
 
 def get_weeks_count(period: str, *, default_period: str = "30d") -> int:
@@ -59,8 +63,10 @@ async def get_pipeline_overview_data(
     db: AsyncSession,
     user_id: str,
     period: str,
+    *,
+    today: date,
 ) -> dict[str, Any]:
-    start_date = get_period_start_date(period, default_period="30d")
+    start_date = get_period_start_date(period, today=today, default_period="30d")
 
     result = await db.execute(
         select(func.count(Application.id)).where(
@@ -147,8 +153,10 @@ async def get_interview_rounds_data(
     user_id: str,
     period: str,
     round_type: str | None = None,
+    *,
+    today: date,
 ) -> dict[str, Any]:
-    start_date = get_period_start_date(period, default_period="all")
+    start_date = get_period_start_date(period, today=today, default_period="all")
     base_filters = build_round_filters(user_id, start_date, round_type)
 
     funnel_result = await db.execute(
@@ -291,7 +299,7 @@ async def get_interview_rounds_data(
         .where(
             Application.user_id == user_id,
             Application.applied_at
-            >= get_period_start_date(period, default_period="30d"),
+            >= get_period_start_date(period, today=today, default_period="30d"),
         )
     )
     days_to_first_interview = []
@@ -375,10 +383,11 @@ async def get_activity_tracking_data(
     db: AsyncSession,
     user_id: str,
     period: str,
+    *,
+    today: date,
 ) -> dict[str, Any]:
-    start_date = get_period_start_date(period, default_period="30d")
+    start_date = get_period_start_date(period, today=today, default_period="30d")
     weeks_count = get_weeks_count(period, default_period="30d")
-    today = date.today()
 
     result = await db.execute(
         select(Application.applied_at)

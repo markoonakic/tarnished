@@ -1,14 +1,4 @@
-import { useEffect, useState } from 'react';
-import api from '@/lib/api';
-
-interface AnalyticsKPIs {
-  total_applications: number;
-  interviews: number;
-  offers: number;
-  application_to_interview_rate: number;
-  response_rate: number;
-  active_opportunities: number;
-}
+import { useAnalyticsKPIs } from '@/hooks/useAnalyticsData';
 
 interface KPICardProps {
   title: string;
@@ -34,27 +24,9 @@ interface AnalyticsKPIsProps {
 }
 
 export default function AnalyticsKPIs({ period }: AnalyticsKPIsProps) {
-  const [kpis, setKpis] = useState<AnalyticsKPIs | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error] = useState<string | null>(null);
+  const { data: kpis, isLoading, isError } = useAnalyticsKPIs(period);
 
-  useEffect(() => {
-    async function fetchKPIs() {
-      setLoading(true);
-      try {
-        const response = await api.get(`/api/analytics/kpis?period=${period}`);
-        setKpis(response.data);
-      } catch {
-        setKpis(getMockKPIs());
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchKPIs();
-  }, [period]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
         {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -67,7 +39,7 @@ export default function AnalyticsKPIs({ period }: AnalyticsKPIsProps) {
     );
   }
 
-  if (error || !kpis) {
+  if (isError || !kpis) {
     return (
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
         <div className="bg-secondary col-span-full rounded-lg p-4">
@@ -101,16 +73,4 @@ export default function AnalyticsKPIs({ period }: AnalyticsKPIsProps) {
       />
     </div>
   );
-}
-
-// Mock data function for when backend endpoint doesn't exist
-function getMockKPIs(): AnalyticsKPIs {
-  return {
-    total_applications: 42,
-    interviews: 8,
-    offers: 2,
-    application_to_interview_rate: 19,
-    response_rate: 35,
-    active_opportunities: 15,
-  };
 }

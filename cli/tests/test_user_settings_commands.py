@@ -11,22 +11,26 @@ class FakeUserSettingsClient:
                 "show_streak_stats": True,
                 "show_needs_attention": True,
                 "show_heatmap": True,
+                "time_zone_mode": "manual",
                 "time_zone": "Europe/Belgrade",
             }
         raise AssertionError(f"Unexpected GET path: {path}")
 
     def patch_json(self, path, *, body, auth="api_key"):
-        assert path == "/api/users/settings"
-        return {"message": "Settings updated", "settings": body}
-
-    def put_json(self, path, *, body, auth="api_key"):
-        assert path == "/api/user-preferences"
-        return {
-            "show_streak_stats": body.get("show_streak_stats", True),
-            "show_needs_attention": body.get("show_needs_attention", True),
-            "show_heatmap": body.get("show_heatmap", True),
-            "time_zone": body.get("time_zone"),
-        }
+        if path == "/api/users/settings":
+            return {"message": "Settings updated", "settings": body}
+        if path == "/api/user-preferences":
+            return {
+                "show_streak_stats": body.get("show_streak_stats", True),
+                "show_needs_attention": body.get("show_needs_attention", True),
+                "show_heatmap": body.get("show_heatmap", True),
+                "time_zone_mode": body.get(
+                    "time_zone_mode",
+                    "manual" if body.get("time_zone") is not None else "device",
+                ),
+                "time_zone": body.get("time_zone"),
+            }
+        raise AssertionError(f"Unexpected PATCH path: {path}")
 
 
 def test_user_settings_get_emits_json(runner, cli_config_dir, monkeypatch):
@@ -53,6 +57,7 @@ def test_preferences_get_emits_json(runner, cli_config_dir, monkeypatch):
 
     assert result.exit_code == 0
     assert '"show_streak_stats": true' in result.stdout.lower()
+    assert '"time_zone_mode": "manual"' in result.stdout.lower()
     assert '"time_zone": "europe/belgrade"' in result.stdout.lower()
 
 
@@ -72,4 +77,5 @@ def test_preferences_update_accepts_time_zone(runner, cli_config_dir, monkeypatc
     )
 
     assert result.exit_code == 0
+    assert '"time_zone_mode": "manual"'.lower() in result.stdout.lower()
     assert '"time_zone": "America/New_York"'.lower() in result.stdout.lower()

@@ -4,9 +4,9 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api import streak as streak_api
 from app.core.security import create_access_token, get_password_hash
 from app.models import User
+from app.services import user_time
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def auth_headers(test_user: User) -> dict[str, str]:
 @pytest.fixture
 def set_utc_now(monkeypatch: pytest.MonkeyPatch):
     def _set_utc_now(value: datetime) -> None:
-        monkeypatch.setattr(streak_api, "_utc_now", lambda: value)
+        monkeypatch.setattr(user_time, "_utc_now", lambda: value)
 
     return _set_utc_now
 
@@ -226,3 +226,27 @@ class TestStreakBehavior:
         assert response.status_code == 200
         await db.refresh(test_user)
         assert test_user.last_activity_date == date(2026, 4, 1)
+
+    async def test_streak_uses_manual_timezone_override_before_request_header(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        test_user: User,
+        auth_headers: dict[str, str],
+        set_utc_now,
+    ) -> None:
+        test_user.settings = {
+            "time_zone_mode": "manual",
+            "time_zone": "America/New_York",
+        }
+        await db.commit()
+
+        set_utc_now(datetime(2026, 4, 2, 6, 30, tzinfo=UTC))
+        response = await client.post(
+            "/api/streak/record",
+            headers={**auth_headers, "X-Timezone": "America/Los_Angeles"},
+        )
+
+        assert response.status_code == 200
+        await db.refresh(test_user)
+        assert test_user.last_activity_date == date(2026, 4, 2)

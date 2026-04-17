@@ -1,27 +1,43 @@
-import { useEffect, useState } from 'react';
-import api from '@/lib/api';
-
-interface DashboardKPIs {
-  last_7_days: number;
-  last_7_days_trend: number;
-  last_30_days: number;
-  last_30_days_trend: number;
-  active_opportunities: number;
-}
+import { useDashboardKPIs } from '@/hooks/useDashboardData';
 
 interface KPICardProps {
   title: string;
   value: number;
-  trend?: number;
+  trend?: number | null;
   suffix?: string;
 }
 
+function getTrendDisplay(value: number, trend?: number | null) {
+  if (trend === undefined) {
+    return null;
+  }
+
+  if (trend === null) {
+    return value > 0 ? { text: 'New', className: 'text-green' } : null;
+  }
+
+  if (trend > 0) {
+    return {
+      text: `↑ ${Math.abs(trend)}%`,
+      className: 'text-green',
+    };
+  }
+
+  if (trend < 0) {
+    return {
+      text: `↓ ${Math.abs(trend)}%`,
+      className: 'text-red-bright',
+    };
+  }
+
+  return {
+    text: '0%',
+    className: 'text-fg4',
+  };
+}
+
 function KPICard({ title, value, trend, suffix = '' }: KPICardProps) {
-  const trendColor =
-    trend !== undefined ? (trend >= 0 ? 'text-green' : 'text-red-bright') : '';
-  const trendIcon = trend !== undefined ? (trend >= 0 ? '↑' : '↓') : '';
-  const trendText =
-    trend !== undefined ? `${trendIcon} ${Math.abs(trend)}%` : '';
+  const trendDisplay = getTrendDisplay(value, trend);
 
   return (
     <div className="bg-secondary rounded-lg p-6">
@@ -30,34 +46,19 @@ function KPICard({ title, value, trend, suffix = '' }: KPICardProps) {
         <span className="text-fg1 text-2xl font-bold">{value}</span>
         {suffix && <span className="text-fg4 text-sm">{suffix}</span>}
       </div>
-      {trend !== undefined && (
-        <p className={`mt-2 text-xs ${trendColor}`}>{trendText}</p>
+      {trendDisplay && (
+        <p className={`mt-2 text-xs ${trendDisplay.className}`}>
+          {trendDisplay.text}
+        </p>
       )}
     </div>
   );
 }
 
 export default function KPICards() {
-  const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: kpis, isLoading, isError } = useDashboardKPIs();
 
-  useEffect(() => {
-    async function fetchKPIs() {
-      try {
-        const response = await api.get('/api/dashboard/kpis');
-        setKpis(response.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchKPIs();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {[1, 2, 3].map((i) => (
@@ -70,7 +71,7 @@ export default function KPICards() {
     );
   }
 
-  if (error || !kpis) {
+  if (isError || !kpis) {
     return (
       <div className="bg-secondary rounded-lg p-6">
         <p className="text-red-bright">Failed to load dashboard KPIs</p>

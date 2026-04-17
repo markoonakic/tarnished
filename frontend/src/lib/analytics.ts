@@ -1,4 +1,4 @@
-import api from './api';
+import api, { withAxiosTimeZoneHeaders } from './api';
 
 export interface SankeyNode {
   id: string;
@@ -33,6 +33,15 @@ export async function getSankeyData(): Promise<SankeyData> {
   return response.data;
 }
 
+export interface AnalyticsKPIs {
+  total_applications: number;
+  interviews: number;
+  offers: number;
+  application_to_interview_rate: number;
+  response_rate: number;
+  active_opportunities: number;
+}
+
 export async function getHeatmapData(
   year?: number | 'rolling'
 ): Promise<HeatmapData> {
@@ -42,7 +51,10 @@ export async function getHeatmapData(
   } else if (year) {
     params.year = year;
   }
-  const response = await api.get('/api/analytics/heatmap', { params });
+  const response = await api.get('/api/analytics/heatmap', {
+    params,
+    headers: withAxiosTimeZoneHeaders(),
+  });
   return response.data;
 }
 
@@ -90,12 +102,39 @@ interface InterviewRoundsResponse {
   candidate_progress: CandidateProgress[];
 }
 
+export async function getAnalyticsKPIs(
+  period: string = '30d'
+): Promise<AnalyticsKPIs> {
+  const response = await api.get(`/api/analytics/kpis?period=${period}`, {
+    headers: withAxiosTimeZoneHeaders(),
+  });
+  return response.data;
+}
+
+export interface WeeklyData {
+  week: string;
+  applications: number;
+  interviews: number;
+}
+
+export async function getWeeklyData(
+  period: string = '30d'
+): Promise<WeeklyData[]> {
+  const response = await api.get(`/api/analytics/weekly?period=${period}`, {
+    headers: withAxiosTimeZoneHeaders(),
+  });
+  return response.data;
+}
+
 export async function getInterviewRoundsData(
   period: string = 'all',
   roundType?: string
 ): Promise<InterviewRoundsResponse> {
   const params: Record<string, string> = { period };
   if (roundType) params.round_type = roundType;
-  const response = await api.get('/api/analytics/interview-rounds', { params });
+  const response = await api.get('/api/analytics/interview-rounds', {
+    params,
+    headers: withAxiosTimeZoneHeaders(),
+  });
   return response.data;
 }

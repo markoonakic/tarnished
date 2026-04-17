@@ -1,4 +1,5 @@
 import FeatureToggles from './FeatureToggles';
+import TimeZoneSettings from './TimeZoneSettings';
 import { SettingsBackLink } from './SettingsLayout';
 
 export default function SettingsFeatures() {
@@ -9,6 +10,7 @@ export default function SettingsFeatures() {
       </div>
 
       <FeatureToggles />
+      <TimeZoneSettings />
     </>
   );
 }
