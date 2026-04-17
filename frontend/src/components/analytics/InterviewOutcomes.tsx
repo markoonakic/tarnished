@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
-import { getInterviewRoundsData, type OutcomeData } from '@/lib/analytics';
+import type { OutcomeData } from '@/lib/analytics';
+import { useInterviewRoundsAnalytics } from '@/hooks/useAnalyticsData';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
+
+const EMPTY_OUTCOME_DATA: OutcomeData[] = [];
 
 interface InterviewOutcomesProps {
   period?: string;
@@ -15,27 +18,13 @@ export default function InterviewOutcomes({
   period = 'all',
   roundType,
 }: InterviewOutcomesProps) {
-  const [data, setData] = useState<OutcomeData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const {
+    data: analytics,
+    isLoading,
+    isError,
+  } = useInterviewRoundsAnalytics(period, roundType);
+  const data: OutcomeData[] = analytics?.outcome_data ?? EMPTY_OUTCOME_DATA;
   const colors = useThemeColors();
-
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const result = await getInterviewRoundsData(period, roundType);
-      setData(result.outcome_data);
-      setError('');
-    } catch {
-      setError('Failed to load interview outcomes data');
-    } finally {
-      setLoading(false);
-    }
-  }, [period, roundType]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   const option: EChartsOption = useMemo(() => {
     if (data.length === 0) return {};
@@ -177,12 +166,16 @@ export default function InterviewOutcomes({
     };
   }, [data, colors]);
 
-  if (loading) {
+  if (isLoading) {
     return <Loading message="Loading interview outcomes..." size="sm" />;
   }
 
-  if (error) {
-    return <div className="text-red-bright py-8 text-center">{error}</div>;
+  if (isError) {
+    return (
+      <div className="text-red-bright py-8 text-center">
+        Failed to load interview outcomes data
+      </div>
+    );
   }
 
   if (data.length === 0) {

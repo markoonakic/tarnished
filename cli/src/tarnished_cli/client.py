@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 from dataclasses import dataclass
+from functools import lru_cache
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any, Literal
 
 import httpx
+from tzlocal import get_localzone_name
 
 AuthMode = Literal["none", "api_key"]
 
@@ -19,6 +23,44 @@ def _resolve_cli_version() -> str:
 
 
 CLI_VERSION = _resolve_cli_version()
+
+DATE_SENSITIVE_ROUTE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("GET", re.compile(r"^/api/streak$")),
+    ("GET", re.compile(r"^/api/dashboard/kpis$")),
+    ("GET", re.compile(r"^/api/dashboard/needs-attention$")),
+    ("GET", re.compile(r"^/api/analytics/kpis$")),
+    ("GET", re.compile(r"^/api/analytics/weekly$")),
+    ("GET", re.compile(r"^/api/analytics/heatmap$")),
+    ("GET", re.compile(r"^/api/analytics/interview-rounds$")),
+    ("POST", re.compile(r"^/api/analytics/insights$")),
+    ("POST", re.compile(r"^/api/applications$")),
+    ("POST", re.compile(r"^/api/applications/extract$")),
+    ("PATCH", re.compile(r"^/api/applications/[^/]+$")),
+    ("POST", re.compile(r"^/api/job-leads/[^/]+/convert$")),
+    ("POST", re.compile(r"^/api/applications/[^/]+/rounds$")),
+    ("PATCH", re.compile(r"^/api/rounds/[^/]+$")),
+    ("POST", re.compile(r"^/api/rounds/[^/]+/media$")),
+    ("POST", re.compile(r"^/api/rounds/[^/]+/transcript$")),
+)
+
+
+@lru_cache(maxsize=1)
+def _resolve_local_time_zone() -> str | None:
+    tz_env = os.getenv("TZ")
+    if tz_env:
+        return tz_env
+
+    try:
+        return get_localzone_name()
+    except Exception:
+        return None
+
+
+def _should_include_time_zone(method: str, path: str) -> bool:
+    return any(
+        allowed_method == method and pattern.match(path)
+        for allowed_method, pattern in DATE_SENSITIVE_ROUTE_PATTERNS
+    )
 
 
 @dataclass(slots=True)
@@ -82,7 +124,7 @@ class TarnishedClient:
             params=params,
             json=json_body,
             files=files,
-            headers=self._build_auth_headers(auth),
+            headers=self._build_request_headers(method, path, auth),
         )
 
         if response.is_error:
@@ -161,7 +203,7 @@ class TarnishedClient:
                 path,
                 files={field_name: file_tuple},
                 data=data,
-                headers=self._build_auth_headers(auth),
+                headers=self._build_request_headers("POST", path, auth),
             )
 
         if response.is_error:
@@ -179,14 +221,25 @@ class TarnishedClient:
         response = self.request("GET", path, params=params, auth=auth)
         return response.content, response.headers
 
-    def _build_auth_headers(self, auth: AuthMode) -> dict[str, str]:
-        if auth == "none":
-            return {}
+    def _build_request_headers(
+        self,
+        method: str,
+        path: str,
+        auth: AuthMode,
+    ) -> dict[str, str]:
+        headers: dict[str, str] = {}
 
-        if not self.api_key:
-            raise CLIError("This command requires an API key.")
+        if auth != "none":
+            if not self.api_key:
+                raise CLIError("This command requires an API key.")
+            headers["X-API-Key"] = self.api_key
 
-        return {"X-API-Key": self.api_key}
+        if _should_include_time_zone(method, path):
+            time_zone = _resolve_local_time_zone()
+            if time_zone:
+                headers["Time-Zone"] = time_zone
+
+        return headers
 
     def _decode_response(self, response: httpx.Response) -> Any:
         if response.status_code == 204 or not response.content:

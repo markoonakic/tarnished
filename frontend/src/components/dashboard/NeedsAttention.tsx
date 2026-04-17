@@ -1,18 +1,12 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '@/lib/api';
+
+import { useNeedsAttentionData } from '@/hooks/useDashboardData';
 
 interface NeedsAttentionItem {
   id: string;
   company: string;
   job_title: string;
   days_since: number;
-}
-
-interface NeedsAttentionData {
-  follow_ups: NeedsAttentionItem[];
-  no_responses: NeedsAttentionItem[];
-  interviewing: NeedsAttentionItem[];
 }
 
 interface AttentionSectionProps {
@@ -77,26 +71,9 @@ function AttentionSection({
 }
 
 export default function NeedsAttention() {
-  const [data, setData] = useState<NeedsAttentionData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isLoading, isError } = useNeedsAttentionData();
 
-  useEffect(() => {
-    async function fetchNeedsAttention() {
-      try {
-        const response = await api.get('/api/dashboard/needs-attention');
-        setData(response.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchNeedsAttention();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {[1, 2, 3].map((i) => (
@@ -112,7 +89,7 @@ export default function NeedsAttention() {
     );
   }
 
-  if (error || !data) {
+  if (isError || !data) {
     return (
       <div className="bg-secondary rounded-lg p-6">
         <p className="text-red-bright">

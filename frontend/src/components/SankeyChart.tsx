@@ -1,34 +1,16 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import type { CallbackDataParams } from 'echarts/types/dist/shared';
-import { getSankeyData } from '../lib/analytics';
-import type { SankeyData } from '../lib/analytics';
+import { useSankeyAnalytics } from '@/hooks/useAnalyticsData';
 import { getSankeyNodeColor } from '../lib/statusColors';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from './Loading';
 import EmptyState from './EmptyState';
 
 export default function SankeyChart() {
-  const [data, setData] = useState<SankeyData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { data, isLoading, isError } = useSankeyAnalytics();
   const colors = useThemeColors();
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
-    try {
-      const result = await getSankeyData();
-      setData(result);
-    } catch {
-      setError('Failed to load Sankey data');
-    } finally {
-      setLoading(false);
-    }
-  }
 
   const option: EChartsOption = useMemo((): EChartsOption => {
     if (!data) return {};
@@ -192,12 +174,16 @@ export default function SankeyChart() {
     };
   }, [data, colors]);
 
-  if (loading) {
+  if (isLoading) {
     return <Loading message="Loading chart data..." size="sm" />;
   }
 
-  if (error) {
-    return <div className="text-red-bright py-8 text-center">{error}</div>;
+  if (isError) {
+    return (
+      <div className="text-red-bright py-8 text-center">
+        Failed to load Sankey data
+      </div>
+    );
   }
 
   if (!data || data.nodes.length === 0 || data.links.length === 0) {

@@ -26,9 +26,11 @@ export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { data: preferences } = useUserPreferences();
 
-  const showStreakStats = preferences?.show_streak_stats ?? true;
-  const showNeedsAttention = preferences?.show_needs_attention ?? true;
-  const showHeatmap = preferences?.show_heatmap ?? true;
+  const hasLoadedPreferences = preferences !== undefined;
+  const showStreakStats = hasLoadedPreferences && preferences.show_streak_stats;
+  const showNeedsAttention =
+    hasLoadedPreferences && preferences.show_needs_attention;
+  const showHeatmap = hasLoadedPreferences && preferences.show_heatmap;
 
   useEffect(() => {
     async function loadTotalApplications() {

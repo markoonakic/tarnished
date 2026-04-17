@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import type { CallbackDataParams } from 'echarts/types/dist/shared';
-import { getInterviewRoundsData, type FunnelData } from '@/lib/analytics';
+import type { FunnelData } from '@/lib/analytics';
+import { useInterviewRoundsAnalytics } from '@/hooks/useAnalyticsData';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
+
+const EMPTY_FUNNEL_DATA: FunnelData[] = [];
 
 interface InterviewFunnelProps {
   period?: string;
@@ -16,27 +19,13 @@ export default function InterviewFunnel({
   period = 'all',
   roundType,
 }: InterviewFunnelProps) {
-  const [data, setData] = useState<FunnelData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const {
+    data: analytics,
+    isLoading,
+    isError,
+  } = useInterviewRoundsAnalytics(period, roundType);
+  const data: FunnelData[] = analytics?.funnel_data ?? EMPTY_FUNNEL_DATA;
   const colors = useThemeColors();
-
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const result = await getInterviewRoundsData(period, roundType);
-      setData(result.funnel_data);
-      setError('');
-    } catch {
-      setError('Failed to load interview funnel data');
-    } finally {
-      setLoading(false);
-    }
-  }, [period, roundType]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   const option: EChartsOption = useMemo((): EChartsOption => {
     if (data.length === 0) return {};
@@ -120,12 +109,16 @@ export default function InterviewFunnel({
     };
   }, [data, colors]);
 
-  if (loading) {
+  if (isLoading) {
     return <Loading message="Loading interview funnel..." size="sm" />;
   }
 
-  if (error) {
-    return <div className="text-red-bright py-8 text-center">{error}</div>;
+  if (isError) {
+    return (
+      <div className="text-red-bright py-8 text-center">
+        Failed to load interview funnel data
+      </div>
+    );
   }
 
   if (data.length === 0) {

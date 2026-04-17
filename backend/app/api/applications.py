@@ -18,6 +18,7 @@ from app.core.database import get_db
 from app.core.deps import (
     get_current_user,
     get_current_user_flexible,
+    get_request_time_zone,
     require_api_key_scope,
 )
 from app.models import (
@@ -46,6 +47,7 @@ from app.services.extraction import (
     extract_job_data,
 )
 from app.services.job_fetch import fetch_job_posting_html
+from app.services.user_time import get_user_local_today
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
 
@@ -138,6 +140,7 @@ async def list_application_sources(
 )
 async def create_application(
     data: ApplicationCreate,
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user_flexible),
     _: object = Depends(require_api_key_scope("applications:write")),
     db: AsyncSession = Depends(get_db),
@@ -163,7 +166,8 @@ async def create_application(
         job_description=data.job_description,
         job_url=data.job_url,
         status_id=data.status_id,
-        applied_at=data.applied_at or date.today(),
+        applied_at=data.applied_at
+        or get_user_local_today(user, x_timezone=x_timezone),
         location=data.location,
         salary_min=data.salary_min,
         salary_max=data.salary_max,
@@ -191,7 +195,7 @@ async def create_application(
     db.add(history_entry)
 
     await db.commit()
-    await record_streak_activity(user=user, db=db)
+    await record_streak_activity(user=user, db=db, x_timezone=x_timezone)
 
     result = await db.execute(
         select(Application)
@@ -206,6 +210,7 @@ async def create_application(
 )
 async def create_application_from_url(
     data: ApplicationExtractRequest,
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user_flexible),
     _: object = Depends(require_api_key_scope("applications:write")),
     db: AsyncSession = Depends(get_db),
@@ -295,7 +300,8 @@ async def create_application_from_url(
         job_description=extracted.description,
         job_url=data.url,
         status_id=data.status_id,
-        applied_at=data.applied_at or date.today(),
+        applied_at=data.applied_at
+        or get_user_local_today(user, x_timezone=x_timezone),
         # Location
         location=extracted.location,
         # Salary fields
@@ -335,7 +341,7 @@ async def create_application_from_url(
     await db.refresh(application, ["status"])
 
     # 5. Record streak activity
-    await record_streak_activity(user=user, db=db)
+    await record_streak_activity(user=user, db=db, x_timezone=x_timezone)
 
     return application
 
@@ -370,6 +376,7 @@ async def get_application(
 async def update_application(
     application_id: str,
     data: ApplicationUpdate,
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("applications:write")),
     db: AsyncSession = Depends(get_db),
@@ -422,7 +429,7 @@ async def update_application(
         )
         db.add(history_entry)
         await db.commit()
-        await record_streak_activity(user=user, db=db)
+        await record_streak_activity(user=user, db=db, x_timezone=x_timezone)
 
     result = await db.execute(
         select(Application)

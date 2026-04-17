@@ -337,6 +337,41 @@ class TestUpdateSettings:
         assert data["settings"]["theme"] == "catppuccin"
         assert data["settings"]["accent"] == "orange"
 
+    async def test_update_settings_preserves_feature_preferences(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        test_user: User,
+        db: AsyncSession,
+    ):
+        """Test that theme updates do not clobber feature preferences."""
+        test_user.settings = {
+            "show_streak_stats": False,
+            "show_needs_attention": False,
+            "show_heatmap": True,
+            "time_zone_mode": "manual",
+            "time_zone": "Europe/Belgrade",
+        }
+        await db.commit()
+
+        response = await client.patch(
+            "/api/users/settings",
+            headers=auth_headers,
+            json={"theme": "catppuccin", "accent": "green"},
+        )
+        assert response.status_code == 200
+
+        await db.refresh(test_user)
+        assert test_user.settings == {
+            "show_streak_stats": False,
+            "show_needs_attention": False,
+            "show_heatmap": True,
+            "time_zone_mode": "manual",
+            "time_zone": "Europe/Belgrade",
+            "theme": "catppuccin",
+            "accent": "green",
+        }
+
 
 # ============================================================================
 # Accent Resolution Tests

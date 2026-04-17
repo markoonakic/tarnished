@@ -8,6 +8,7 @@ import {
 } from '../../lib/settings';
 import type { APIKey } from '../../lib/types';
 import { useToast } from '@/hooks/useToast';
+import Dropdown from '../Dropdown';
 import Loading from '../Loading';
 import { SettingsBackLink } from './SettingsLayout';
 
@@ -283,35 +284,54 @@ export default function SettingsAPIKey() {
           <Loading message="Loading API keys..." />
         ) : (
           <div className="space-y-6">
-            <div className="bg-tertiary rounded-lg p-4">
-              <h3 className="text-fg1 mb-3 text-sm font-medium">
+            <div className="bg-bg2 rounded-lg p-4">
+              <h3 className="text-fg1 mb-4 text-base font-medium">
                 Create API Key
               </h3>
-              <div className="flex flex-col gap-3 md:flex-row">
-                <input
-                  value={newLabel}
-                  onChange={(event) => setNewLabel(event.target.value)}
-                  placeholder="MacBook CLI"
-                  className="bg-bg2 text-fg1 border-bg3 focus:border-accent flex-1 rounded border px-3 py-2 text-sm transition-all duration-200 ease-in-out outline-none"
-                />
-                <div className="flex flex-col gap-1">
-                  <label className="text-muted text-xs">Preset</label>
-                  <select
-                    value={newPreset}
-                    onChange={(event) => handlePresetChange(event.target.value)}
-                    className="bg-bg2 text-fg1 border-bg3 focus:border-accent rounded border px-3 py-2 text-sm transition-all duration-200 ease-in-out outline-none"
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="new-api-key-label"
+                    className="text-muted mb-1.5 block text-sm"
                   >
-                    {API_KEY_PRESETS.map((preset) => (
-                      <option key={preset.value} value={preset.value}>
-                        {preset.label}
-                      </option>
-                    ))}
-                  </select>
+                    Label
+                  </label>
+                  <input
+                    id="new-api-key-label"
+                    value={newLabel}
+                    onChange={(event) => setNewLabel(event.target.value)}
+                    placeholder="MacBook CLI"
+                    className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                  />
                 </div>
+
+                <div>
+                  <label
+                    htmlFor="new-api-key-preset"
+                    className="text-muted mb-1.5 block text-sm"
+                  >
+                    Preset
+                  </label>
+                  <Dropdown
+                    id="new-api-key-preset"
+                    options={API_KEY_PRESETS.map((preset) => ({
+                      value: preset.value,
+                      label: preset.label,
+                    }))}
+                    value={newPreset}
+                    onChange={handlePresetChange}
+                    placeholder="Select preset"
+                    containerBackground="bg2"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
                   onClick={() => setAdvancedScopesOpen((current) => !current)}
-                  className="bg-bg3 hover:bg-bg4 text-fg1 flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-sm transition-all duration-200 ease-in-out"
+                  className="text-fg1 hover:bg-bg3 flex cursor-pointer items-center justify-center gap-2 rounded-md bg-transparent px-4 py-2 text-sm transition-all duration-200 ease-in-out"
                 >
                   <i className="bi-sliders icon-sm" />
                   Advanced Scopes
@@ -325,9 +345,10 @@ export default function SettingsAPIKey() {
                   Create API Key
                 </button>
               </div>
+
               {advancedScopesOpen && (
-                <div className="border-bg3 mt-4 rounded border p-3">
-                  <p className="text-muted mb-3 text-xs">
+                <div className="bg-bg3 mt-4 rounded-lg p-4">
+                  <p className="text-muted mb-3 text-sm">
                     Editing scopes directly will turn this key into a custom
                     key.
                   </p>
@@ -335,7 +356,7 @@ export default function SettingsAPIKey() {
                     {ALL_SCOPES.map((scope) => (
                       <label
                         key={scope}
-                        className="text-fg1 flex items-center gap-2 text-sm"
+                        className="text-fg1 flex cursor-pointer items-center gap-2 text-sm"
                       >
                         <input
                           type="checkbox"
@@ -351,7 +372,7 @@ export default function SettingsAPIKey() {
             </div>
 
             {revealedKey && (
-              <div className="bg-tertiary rounded-lg p-4">
+              <div className="bg-bg2 rounded-lg p-4">
                 <h3 className="text-fg1 mb-2 text-sm font-medium">
                   New API Key
                 </h3>
@@ -359,12 +380,12 @@ export default function SettingsAPIKey() {
                   Copy this now. You will not be able to view it again.
                 </p>
                 <div className="flex items-center gap-2">
-                  <div className="text-fg1 bg-bg2 flex-1 overflow-x-auto rounded px-3 py-2 font-mono text-sm break-all">
+                  <div className="text-fg1 bg-bg3 flex-1 overflow-x-auto rounded px-3 py-2 font-mono text-sm break-all">
                     {revealedKey}
                   </div>
                   <button
                     onClick={handleCopyRevealedKey}
-                    className="bg-bg3 hover:bg-bg4 text-fg1 flex cursor-pointer items-center gap-2 rounded px-3 py-2 transition-all duration-200 ease-in-out"
+                    className="text-fg1 hover:bg-bg3 flex cursor-pointer items-center gap-2 rounded px-3 py-2 transition-all duration-200 ease-in-out"
                   >
                     <i className="bi-clipboard icon-sm" />
                     Copy
@@ -374,7 +395,7 @@ export default function SettingsAPIKey() {
             )}
 
             {apiKeys.length === 0 ? (
-              <div className="bg-tertiary rounded-lg p-4">
+              <div className="bg-bg2 rounded-lg p-4">
                 <p className="text-muted text-sm">
                   You do not have any API keys yet.
                 </p>
@@ -382,37 +403,56 @@ export default function SettingsAPIKey() {
             ) : (
               <div className="space-y-3">
                 {apiKeys.map((apiKey) => (
-                  <div key={apiKey.id} className="bg-tertiary rounded-lg p-4">
+                  <div key={apiKey.id} className="bg-bg2 rounded-lg p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div className="space-y-1">
                         {editingId === apiKey.id ? (
-                          <div className="space-y-3">
-                            <div className="flex flex-col gap-2 md:flex-row">
-                              <input
-                                value={editingLabel}
-                                onChange={(event) =>
-                                  setEditingLabel(event.target.value)
-                                }
-                                className="bg-bg2 text-fg1 border-bg3 focus:border-accent rounded border px-3 py-2 text-sm transition-all duration-200 ease-in-out outline-none"
-                              />
-                              <select
-                                value={editingPreset}
-                                onChange={(event) => {
-                                  const value = event.target.value;
-                                  setEditingPreset(value);
-                                  setEditingScopes(PRESET_SCOPES[value] ?? []);
-                                }}
-                                className="bg-bg2 text-fg1 border-bg3 focus:border-accent rounded border px-3 py-2 text-sm transition-all duration-200 ease-in-out outline-none"
-                              >
-                                {API_KEY_PRESETS.map((preset) => (
-                                  <option
-                                    key={preset.value}
-                                    value={preset.value}
-                                  >
-                                    {preset.label}
-                                  </option>
-                                ))}
-                              </select>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                              <div>
+                                <label
+                                  htmlFor={`edit-api-key-label-${apiKey.id}`}
+                                  className="text-muted mb-1.5 block text-sm"
+                                >
+                                  Label
+                                </label>
+                                <input
+                                  id={`edit-api-key-label-${apiKey.id}`}
+                                  value={editingLabel}
+                                  onChange={(event) =>
+                                    setEditingLabel(event.target.value)
+                                  }
+                                  className="bg-bg3 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                                />
+                              </div>
+
+                              <div>
+                                <label
+                                  htmlFor={`edit-api-key-preset-${apiKey.id}`}
+                                  className="text-muted mb-1.5 block text-sm"
+                                >
+                                  Preset
+                                </label>
+                                <Dropdown
+                                  id={`edit-api-key-preset-${apiKey.id}`}
+                                  options={API_KEY_PRESETS.map((preset) => ({
+                                    value: preset.value,
+                                    label: preset.label,
+                                  }))}
+                                  value={editingPreset}
+                                  onChange={(value) => {
+                                    setEditingPreset(value);
+                                    setEditingScopes(
+                                      PRESET_SCOPES[value] ?? []
+                                    );
+                                  }}
+                                  placeholder="Select preset"
+                                  containerBackground="bg2"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col gap-3 sm:flex-row">
                               <button
                                 type="button"
                                 onClick={() =>
@@ -420,19 +460,39 @@ export default function SettingsAPIKey() {
                                     (current) => !current
                                   )
                                 }
-                                className="bg-bg3 hover:bg-bg4 text-fg1 flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-sm transition-all duration-200 ease-in-out"
+                                className="text-fg1 hover:bg-bg3 flex cursor-pointer items-center justify-center gap-2 rounded-md bg-transparent px-4 py-2 text-sm transition-all duration-200 ease-in-out"
                               >
                                 <i className="bi-sliders icon-sm" />
                                 Advanced Scopes
                               </button>
+                              <button
+                                onClick={() => handleRenameKey(apiKey.id)}
+                                disabled={submitting}
+                                className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingId(null);
+                                  setEditingLabel('');
+                                  setEditingPreset('full_access');
+                                  setEditingScopes([]);
+                                  setEditingAdvancedScopesOpen(false);
+                                }}
+                                className="text-fg1 hover:bg-bg3 cursor-pointer rounded-md bg-transparent px-4 py-2 text-sm transition-all duration-200 ease-in-out"
+                              >
+                                Cancel
+                              </button>
                             </div>
+
                             {editingAdvancedScopesOpen && (
-                              <div className="border-bg3 rounded border p-3">
+                              <div className="bg-bg3 rounded-lg p-4">
                                 <div className="grid gap-2 md:grid-cols-2">
                                   {ALL_SCOPES.map((scope) => (
                                     <label
                                       key={`${apiKey.id}-${scope}`}
-                                      className="text-fg1 flex items-center gap-2 text-sm"
+                                      className="text-fg1 flex cursor-pointer items-center gap-2 text-sm"
                                     >
                                       <input
                                         type="checkbox"
@@ -447,27 +507,6 @@ export default function SettingsAPIKey() {
                                 </div>
                               </div>
                             )}
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleRenameKey(apiKey.id)}
-                                disabled={submitting}
-                                className="bg-bg3 hover:bg-bg4 text-fg1 cursor-pointer rounded px-3 py-2 text-sm transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEditingId(null);
-                                  setEditingLabel('');
-                                  setEditingPreset('full_access');
-                                  setEditingScopes([]);
-                                  setEditingAdvancedScopesOpen(false);
-                                }}
-                                className="text-muted hover:text-fg1 cursor-pointer rounded px-3 py-2 text-sm transition-all duration-200 ease-in-out"
-                              >
-                                Cancel
-                              </button>
-                            </div>
                           </div>
                         ) : (
                           <p className="text-fg1 font-medium">{apiKey.label}</p>
@@ -501,14 +540,14 @@ export default function SettingsAPIKey() {
                               setEditingScopes(apiKey.scopes);
                               setEditingAdvancedScopesOpen(false);
                             }}
-                            className="bg-bg3 hover:bg-bg4 text-fg1 cursor-pointer rounded px-3 py-2 text-sm transition-all duration-200 ease-in-out"
+                            className="text-fg1 hover:bg-bg3 cursor-pointer rounded-md bg-transparent px-3 py-2 text-sm transition-all duration-200 ease-in-out"
                           >
                             Rename
                           </button>
                           <button
                             onClick={() => handleDeleteKey(apiKey.id)}
                             disabled={submitting}
-                            className="text-red hover:bg-bg3 hover:text-red-bright cursor-pointer rounded px-3 py-2 text-sm transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
+                            className="text-red hover:bg-bg3 hover:text-red-bright cursor-pointer rounded-md bg-transparent px-3 py-2 text-sm transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Revoke
                           </button>

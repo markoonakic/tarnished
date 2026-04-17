@@ -1,4 +1,4 @@
-import api from './api';
+import api, { withAxiosTimeZoneHeaders } from './api';
 import type { Round, RoundCreate, RoundUpdate } from './types';
 
 export async function createRound(
@@ -7,7 +7,10 @@ export async function createRound(
 ): Promise<Round> {
   const response = await api.post(
     `/api/applications/${applicationId}/rounds`,
-    data
+    data,
+    {
+      headers: withAxiosTimeZoneHeaders(),
+    }
   );
   return response.data;
 }
@@ -16,7 +19,9 @@ export async function updateRound(
   roundId: string,
   data: RoundUpdate
 ): Promise<Round> {
-  const response = await api.patch(`/api/rounds/${roundId}`, data);
+  const response = await api.patch(`/api/rounds/${roundId}`, data, {
+    headers: withAxiosTimeZoneHeaders(),
+  });
   return response.data;
 }
 
@@ -32,7 +37,9 @@ export async function uploadMedia(
   const formData = new FormData();
   formData.append('file', file);
   const response = await api.post(`/api/rounds/${roundId}/media`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: withAxiosTimeZoneHeaders({
+      'Content-Type': 'multipart/form-data',
+    }),
     onUploadProgress: (event) => {
       if (event.total) {
         onProgress?.(event.loaded, event.total);
@@ -72,7 +79,9 @@ export async function uploadRoundTranscript(
     `/api/rounds/${roundId}/transcript`,
     formData,
     {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: withAxiosTimeZoneHeaders({
+        'Content-Type': 'multipart/form-data',
+      }),
       onUploadProgress: (event) => {
         if (event.total) {
           onProgress?.(event.loaded, event.total);

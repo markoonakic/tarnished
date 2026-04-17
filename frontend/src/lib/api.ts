@@ -71,11 +71,6 @@ function withAuthorization(
     mergedHeaders.set('Authorization', `Bearer ${token}`);
   }
 
-  const timeZone = getBrowserTimeZone();
-  if (timeZone) {
-    mergedHeaders.set('X-Timezone', timeZone);
-  }
-
   return mergedHeaders;
 }
 
@@ -117,14 +112,42 @@ export async function refreshAuthTokens(): Promise<string | null> {
   return data.access_token;
 }
 
+export function withTimeZoneHeaders(headers?: HeadersInit): Headers {
+  const mergedHeaders = mergeHeaders(headers);
+  const timeZone = getBrowserTimeZone();
+
+  if (timeZone) {
+    mergedHeaders.set('Time-Zone', timeZone);
+  }
+
+  return mergedHeaders;
+}
+
+export function withAxiosTimeZoneHeaders(
+  headers?: AxiosRequestConfig['headers']
+): AxiosHeaders {
+  const mergedHeaders = toAxiosHeaders(headers);
+  const timeZone = getBrowserTimeZone();
+
+  if (timeZone) {
+    mergedHeaders.set('Time-Zone', timeZone);
+  }
+
+  return mergedHeaders;
+}
+
 export async function fetchWithAuth(
   input: string,
   init: RequestInit = {},
-  retryOnUnauthorized = true
+  retryOnUnauthorized = true,
+  includeTimeZone = false
 ): Promise<Response> {
+  const authorizedHeaders = withAuthorization(init.headers);
   const response = await fetch(toAbsoluteUrl(input), {
     ...init,
-    headers: withAuthorization(init.headers),
+    headers: includeTimeZone
+      ? withTimeZoneHeaders(authorizedHeaders)
+      : authorizedHeaders,
   });
 
   if (response.status !== 401 || !retryOnUnauthorized) {
@@ -137,9 +160,11 @@ export async function fetchWithAuth(
     return response;
   }
 
+  const retryHeaders = withAuthorization(init.headers, refreshedToken);
+
   return fetch(toAbsoluteUrl(input), {
     ...init,
-    headers: withAuthorization(init.headers, refreshedToken),
+    headers: includeTimeZone ? withTimeZoneHeaders(retryHeaders) : retryHeaders,
   });
 }
 
@@ -160,11 +185,6 @@ api.interceptors.request.use((config) => {
   const token = getAccessToken();
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
-  }
-
-  const timeZone = getBrowserTimeZone();
-  if (timeZone) {
-    headers.set('X-Timezone', timeZone);
   }
 
   config.headers = headers;

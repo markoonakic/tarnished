@@ -93,6 +93,7 @@ describe('Analytics preferences', () => {
         show_streak_stats: true,
         show_needs_attention: true,
         show_heatmap: false,
+        time_zone_mode: 'device',
         time_zone: 'Europe/Belgrade',
       },
     });
@@ -115,6 +116,7 @@ describe('Analytics preferences', () => {
         show_streak_stats: true,
         show_needs_attention: true,
         show_heatmap: true,
+        time_zone_mode: 'device',
         time_zone: 'Europe/Belgrade',
       },
     });

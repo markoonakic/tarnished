@@ -83,6 +83,13 @@ async def get_current_auth_context(
     )
 
 
+def get_request_time_zone(
+    time_zone: Annotated[str | None, Header(alias="Time-Zone")] = None,
+    legacy_time_zone: Annotated[str | None, Header(alias="X-Timezone")] = None,
+) -> str | None:
+    return time_zone or legacy_time_zone
+
+
 def require_api_key_scope(scope: str):
     async def dependency(
         auth: AuthContext = Depends(get_current_auth_context),

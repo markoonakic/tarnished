@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
+import api, { withAxiosTimeZoneHeaders } from '@/lib/api';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getStableFlameQuote, type FlameStateKey } from '@/lib/flameQuotes';
 
 type FlameState = 'burning' | 'ember' | 'extinguished' | 'dormant';
 type CellKind = 'ember-core' | 'ember-smoke' | 'ash' | 'ash-smoke';
-type FlameStateKey = 'dormant' | 'ember' | 'extinguished' | `burning-${number}`;
 
 interface StreakData {
   current_streak: number;
@@ -37,54 +37,6 @@ interface FlameAssetPayload {
   height: number;
   state: string;
   frames: FlameFrame[];
-}
-
-interface QuotePools {
-  dormant: string[];
-  ember: string[];
-  extinguished: string[];
-  burning: string[];
-}
-
-const restrainedQuotes: QuotePools = {
-  dormant: [
-    'No flame yet. Begin.',
-    'The first spark changes everything.',
-    'Even silence may precede the blaze.',
-    'The path is dark only for now.',
-  ],
-  ember: [
-    'A spark remains. Guard it.',
-    'What little burns must not be wasted.',
-    'One more day may yet preserve the light.',
-    'Let not the flame be lost today.',
-  ],
-  extinguished: [
-    'Cold ash remembers heat.',
-    'What is lost may still be rekindled.',
-    'The fire is gone. Not the will.',
-    'Ash is not the end of flame.',
-  ],
-  burning: [
-    'What is tended grows.',
-    'Each day feeds the flame.',
-    'Consistency kindles strength.',
-    'The light answers the hand that keeps it.',
-    'Persistence is a patient fire.',
-    'What is kept alive becomes its own guide.',
-  ],
-};
-
-function stateBucket(stateKey: FlameStateKey): keyof QuotePools {
-  if (stateKey.startsWith('burning')) return 'burning';
-  if (stateKey === 'dormant') return 'dormant';
-  if (stateKey === 'ember') return 'ember';
-  return 'extinguished';
-}
-
-function getQuote(stateKey: FlameStateKey, quoteIndex: number) {
-  const options = restrainedQuotes[stateBucket(stateKey)];
-  return options[quoteIndex % options.length] ?? '';
 }
 
 function getStateKey(data: StreakData): FlameStateKey {
@@ -216,12 +168,14 @@ function FlameCanvas({
 
 export default function FlameEmblem() {
   const { currentAccent, accentOptions } = useTheme();
-  const [quoteIndex, setQuoteIndex] = useState(0);
   const [frameIndex, setFrameIndex] = useState(0);
 
   const { data, isLoading } = useQuery<StreakData>({
     queryKey: ['streak'],
-    queryFn: () => api.get('/api/streak').then((r) => r.data),
+    queryFn: () =>
+      api
+        .get('/api/streak', { headers: withAxiosTimeZoneHeaders() })
+        .then((r) => r.data),
   });
 
   const stateKey = useMemo(() => (data ? getStateKey(data) : null), [data]);
@@ -237,14 +191,6 @@ export default function FlameEmblem() {
       return (await response.json()) as FlameAssetPayload;
     },
   });
-
-  useEffect(() => {
-    setQuoteIndex(0);
-    const interval = window.setInterval(() => {
-      setQuoteIndex((index) => index + 1);
-    }, 10000);
-    return () => window.clearInterval(interval);
-  }, [stateKey]);
 
   useEffect(() => {
     setFrameIndex(0);
@@ -285,6 +231,16 @@ export default function FlameEmblem() {
         : '#fabd2f',
     };
   }, [accentOptions, currentAccent]);
+
+  const quote =
+    data && stateKey
+      ? getStableFlameQuote({
+          stateKey,
+          currentStreak: data.current_streak,
+          totalActivityDays: data.total_activity_days,
+          streakExhaustedAt: data.streak_exhausted_at,
+        })
+      : '';
 
   if (isLoading || !data || !stateKey || !asset) {
     return (
@@ -348,7 +304,7 @@ export default function FlameEmblem() {
         </div>
 
         <p className="text-fg1 mt-4 max-w-md text-center text-sm leading-relaxed">
-          {getQuote(stateKey, quoteIndex)}
+          {quote}
         </p>
 
         <div className="text-fg4 mt-4 flex gap-6 text-xs">

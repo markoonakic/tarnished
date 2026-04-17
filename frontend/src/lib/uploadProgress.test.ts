@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { post } = vi.hoisted(() => ({
+const { post, withAxiosTimeZoneHeaders } = vi.hoisted(() => ({
   post: vi.fn(),
+  withAxiosTimeZoneHeaders: vi.fn((headers) => headers ?? {}),
 }));
 
 vi.mock('./api', () => ({
   default: {
     post,
   },
+  withAxiosTimeZoneHeaders,
 }));
 
 describe('upload api helpers', () => {

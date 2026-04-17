@@ -1,4 +1,11 @@
-import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react';
 
 export interface DropdownOption {
   value: string;
@@ -23,54 +30,75 @@ const sizeClasses = {
   lg: 'px-5 py-2.5 text-lg',
 };
 
-// Icon sizing using dedicated icon utilities (see index.css)
-// Bootstrap Icons ::before inherits font-size, enabling consistent sizing
 const iconSizeClasses = {
-  xs: 'icon-xs', // 12px - match xs dropdown
-  sm: 'icon-sm', // 14px - match sm dropdown
-  md: 'icon-md', // 16px - match md dropdown
-  lg: 'icon-lg', // 18px - match lg dropdown
+  xs: 'icon-xs',
+  sm: 'icon-sm',
+  md: 'icon-md',
+  lg: 'icon-lg',
 };
 
-// Background layer mappings for 6-layer rule: bg0 -> bg1 -> bg2 -> bg3 -> bg4 -> bg-h -> (wrap)
-// Per DESIGN_GUIDELINES.md: Trigger = container + 1, Selected = container + 2, Hover = container + 3
+const nonSelectedClasses = {
+  bg0: 'bg-bg1',
+  bg1: 'bg-bg2',
+  bg2: 'bg-bg3',
+  bg3: 'bg-bg4',
+  bg4: 'bg-bg-h',
+} as const;
+
+const hoverClasses = {
+  bg0: 'hover:bg-bg3',
+  bg1: 'hover:bg-bg4',
+  bg2: 'hover:bg-bg-h',
+  bg3: 'hover:bg-bg0',
+  bg4: 'hover:bg-bg1',
+} as const;
+
+const selectedClasses = {
+  bg0: 'bg-bg2',
+  bg1: 'bg-bg3',
+  bg2: 'bg-bg4',
+  bg3: 'bg-bg-h',
+  bg4: 'bg-bg0',
+} as const;
+
+const TYPEAHEAD_RESET_MS = 500;
+const PAGE_JUMP_SIZE = 10;
+
 const getLayerClass = (baseLayer: string, offset: number): string => {
   const layers = ['bg-bg0', 'bg-bg1', 'bg-bg2', 'bg-bg3', 'bg-bg4', 'bg-bg-h'];
   const baseIndex = layers.indexOf(`bg-${baseLayer}`);
-  if (baseIndex === -1) return 'bg-bg1'; // default fallback
+  if (baseIndex === -1) return 'bg-bg1';
 
-  const targetIndex = (baseIndex + offset) % 6;
+  const targetIndex = (baseIndex + offset) % layers.length;
   return layers[targetIndex];
 };
 
-// Static class mappings for Tailwind JIT compatibility
-// These must be complete class strings that Tailwind can detect at build time
-// Per 6-layer rule: non-selected = container + 1 layer (base state)
-const nonSelectedClasses = {
-  bg0: 'bg-bg1', // bg0 + 1
-  bg1: 'bg-bg2', // bg1 + 1
-  bg2: 'bg-bg3', // bg2 + 1
-  bg3: 'bg-bg4', // bg3 + 1
-  bg4: 'bg-bg-h', // bg4 + 1
-} as const;
+function findMatchingOptionIndex(
+  options: DropdownOption[],
+  search: string,
+  startIndex: number
+): number {
+  const normalizedSearch = search.toLowerCase();
+  if (!normalizedSearch) {
+    return -1;
+  }
 
-// Per 6-layer rule: hover = container + 3 layers
-const hoverClasses = {
-  bg0: 'hover:bg-bg3', // bg0 + 3
-  bg1: 'hover:bg-bg4', // bg1 + 3
-  bg2: 'hover:bg-bg-h', // bg2 + 3
-  bg3: 'hover:bg-bg0', // bg3 + 3 (wrap)
-  bg4: 'hover:bg-bg1', // bg4 + 3 (wrap)
-} as const;
+  const orderedIndexes = [
+    ...Array.from(
+      { length: options.length - startIndex },
+      (_, index) => startIndex + index
+    ),
+    ...Array.from({ length: startIndex }, (_, index) => index),
+  ];
 
-// Per 6-layer rule: selected = container + 2 layers
-const selectedClasses = {
-  bg0: 'bg-bg2', // bg0 + 2
-  bg1: 'bg-bg3', // bg1 + 2
-  bg2: 'bg-bg4', // bg2 + 2
-  bg3: 'bg-bg-h', // bg3 + 2
-  bg4: 'bg-bg0', // bg4 + 2 (wrap)
-} as const;
+  for (const index of orderedIndexes) {
+    if (options[index]?.label.toLowerCase().startsWith(normalizedSearch)) {
+      return index;
+    }
+  }
+
+  return -1;
+}
 
 export default function Dropdown({
   options,
@@ -85,10 +113,19 @@ export default function Dropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const typeaheadRef = useRef('');
+  const typeaheadTimeoutRef = useRef<number | null>(null);
+  const listboxId = useId();
+  const selectedOption = useMemo(
+    () => options.find((opt) => opt.value === value),
+    [options, value]
+  );
+  const selectedIndex = useMemo(
+    () => options.findIndex((opt) => opt.value === value),
+    [options, value]
+  );
 
-  const selectedOption = options.find((opt) => opt.value === value);
-
-  // Use static class mappings for Tailwind JIT compatibility
   const triggerBg = getLayerClass(containerBackground, 1);
   const nonSelectedBg =
     nonSelectedClasses[containerBackground as keyof typeof nonSelectedClasses];
@@ -120,6 +157,7 @@ export default function Dropdown({
       'keydown',
       handleEscape as unknown as EventListener
     );
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener(
@@ -129,52 +167,160 @@ export default function Dropdown({
     };
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    setFocusedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+  }, [isOpen, selectedIndex]);
+
+  useEffect(() => {
+    if (!isOpen || focusedIndex < 0) {
+      return;
+    }
+
+    const focusedOption = optionRefs.current[focusedIndex];
+    if (focusedOption && typeof focusedOption.scrollIntoView === 'function') {
+      focusedOption.scrollIntoView({
+        block: 'nearest',
+      });
+    }
+  }, [focusedIndex, isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (typeaheadTimeoutRef.current !== null) {
+        window.clearTimeout(typeaheadTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleSelect = (optionValue: string) => {
     onChange(optionValue);
     setIsOpen(false);
     setFocusedIndex(-1);
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+  const moveFocus = (nextIndex: number) => {
+    if (options.length === 0) {
+      setFocusedIndex(-1);
+      return;
+    }
+
+    const normalizedIndex = Math.max(
+      0,
+      Math.min(options.length - 1, nextIndex)
+    );
+    setFocusedIndex(normalizedIndex);
+  };
+
+  const handleTypeahead = (character: string) => {
+    const nextSearch = `${typeaheadRef.current}${character.toLowerCase()}`;
+    const startIndex = focusedIndex >= 0 ? focusedIndex + 1 : 0;
+    const matchIndex = findMatchingOptionIndex(options, nextSearch, startIndex);
+
+    typeaheadRef.current = nextSearch;
+    if (typeaheadTimeoutRef.current !== null) {
+      window.clearTimeout(typeaheadTimeoutRef.current);
+    }
+    typeaheadTimeoutRef.current = window.setTimeout(() => {
+      typeaheadRef.current = '';
+    }, TYPEAHEAD_RESET_MS);
+
+    if (matchIndex >= 0) {
+      if (!isOpen) {
+        setIsOpen(true);
+      }
+      setFocusedIndex(matchIndex);
+    }
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (disabled) return;
 
-    switch (e.key) {
+    if (
+      event.key.length === 1 &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.nativeEvent.isComposing
+    ) {
+      event.preventDefault();
+      handleTypeahead(event.key);
+      return;
+    }
+
+    switch (event.key) {
       case 'Enter':
-      case ' ':
-        e.preventDefault();
+      case ' ': {
+        event.preventDefault();
         if (isOpen && focusedIndex >= 0) {
           handleSelect(options[focusedIndex].value);
         } else {
-          setIsOpen(!isOpen);
+          setIsOpen((open) => !open);
         }
         break;
-      case 'ArrowDown':
-        e.preventDefault();
+      }
+      case 'ArrowDown': {
+        event.preventDefault();
         if (!isOpen) {
           setIsOpen(true);
-          setFocusedIndex(0);
+          setFocusedIndex(selectedIndex >= 0 ? selectedIndex : 0);
         } else {
-          setFocusedIndex((prev) => (prev + 1) % options.length);
+          moveFocus((focusedIndex + 1 + options.length) % options.length);
         }
         break;
-      case 'ArrowUp':
-        e.preventDefault();
+      }
+      case 'ArrowUp': {
+        event.preventDefault();
         if (!isOpen) {
           setIsOpen(true);
-          setFocusedIndex(options.length - 1);
-        } else {
           setFocusedIndex(
-            (prev) => (prev - 1 + options.length) % options.length
+            selectedIndex >= 0 ? selectedIndex : options.length - 1
           );
+        } else {
+          moveFocus((focusedIndex - 1 + options.length) % options.length);
         }
         break;
-      case 'Home':
-        e.preventDefault();
-        setFocusedIndex(0);
+      }
+      case 'Home': {
+        event.preventDefault();
+        if (!isOpen) {
+          setIsOpen(true);
+        }
+        moveFocus(0);
         break;
-      case 'End':
-        e.preventDefault();
-        setFocusedIndex(options.length - 1);
+      }
+      case 'End': {
+        event.preventDefault();
+        if (!isOpen) {
+          setIsOpen(true);
+        }
+        moveFocus(options.length - 1);
+        break;
+      }
+      case 'PageDown': {
+        event.preventDefault();
+        if (!isOpen) {
+          setIsOpen(true);
+          setFocusedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+        } else {
+          moveFocus(focusedIndex + PAGE_JUMP_SIZE);
+        }
+        break;
+      }
+      case 'PageUp': {
+        event.preventDefault();
+        if (!isOpen) {
+          setIsOpen(true);
+          setFocusedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+        } else {
+          moveFocus(focusedIndex - PAGE_JUMP_SIZE);
+        }
+        break;
+      }
+      default:
         break;
     }
   };
@@ -184,13 +330,18 @@ export default function Dropdown({
       <button
         type="button"
         id={id}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={() => !disabled && setIsOpen((open) => !open)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
         role="combobox"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        aria-controls="dropdown-listbox"
+        aria-controls={listboxId}
+        aria-activedescendant={
+          isOpen && focusedIndex >= 0
+            ? `${listboxId}-option-${focusedIndex}`
+            : undefined
+        }
         aria-selected={!!selectedOption}
         aria-disabled={disabled}
         className={`flex w-full items-center justify-between gap-3 ${triggerBg} text-fg1 hover:border-accent-bright focus:ring-accent-bright rounded border-0 focus:ring-1 focus:outline-none ${isOpen ? 'ring-accent-bright ring-1' : ''} ${sizeClasses[size]} transition-all duration-200 ease-in-out ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} `}
@@ -204,7 +355,7 @@ export default function Dropdown({
       </button>
 
       <div
-        id="dropdown-listbox"
+        id={listboxId}
         className={`bg-bg0 absolute z-10 mt-1 w-full overflow-hidden rounded-lg border-0 transition-all duration-200 ease-in-out ${isOpen ? 'ring-accent-bright ring-1' : ''} `}
         style={{
           display: 'grid',
@@ -213,39 +364,41 @@ export default function Dropdown({
           transform: isOpen ? 'translateY(0)' : 'translateY(-0.5rem)',
         }}
         role="listbox"
-        aria-activedescendant={
-          focusedIndex >= 0 ? `option-${focusedIndex}` : undefined
-        }
+        aria-hidden={!isOpen}
       >
-        <div style={{ overflow: 'hidden' }}>
-          {options.map((option, index) => {
-            const isSelected = option.value === value;
-            const isFocused = focusedIndex === index;
+        <div className="max-h-64 overflow-y-auto overscroll-contain">
+          {isOpen &&
+            options.map((option, index) => {
+              const isSelected = option.value === value;
+              const isFocused = focusedIndex === index;
 
-            return (
-              <button
-                key={option.value}
-                id={`option-${index}`}
-                type="button"
-                onClick={() => handleSelect(option.value)}
-                onMouseEnter={() => setFocusedIndex(index)}
-                role="option"
-                aria-selected={isSelected}
-                className={`flex w-full cursor-pointer items-center justify-between text-left transition-all duration-200 ease-in-out ${sizeClasses[size]} ${
-                  isSelected
-                    ? `${selectedBg} text-fg0`
-                    : `${nonSelectedBg} text-fg1 ${hoverClass}`
-                } ${isFocused ? 'bg-bg4' : ''} `}
-              >
-                {option.label}
-                {isSelected && (
-                  <i
-                    className={`bi-check ${iconSizeClasses[size]} ${isFocused ? 'text-green-bright' : 'text-green'}`}
-                  />
-                )}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={option.value}
+                  id={`${listboxId}-option-${index}`}
+                  ref={(element) => {
+                    optionRefs.current[index] = element;
+                  }}
+                  type="button"
+                  onClick={() => handleSelect(option.value)}
+                  onMouseEnter={() => setFocusedIndex(index)}
+                  role="option"
+                  aria-selected={isSelected}
+                  className={`flex w-full cursor-pointer items-center justify-between text-left transition-all duration-200 ease-in-out ${sizeClasses[size]} ${
+                    isSelected
+                      ? `${selectedBg} text-fg0`
+                      : `${nonSelectedBg} text-fg1 ${hoverClass}`
+                  } ${isFocused ? 'bg-bg4' : ''} `}
+                >
+                  {option.label}
+                  {isSelected && (
+                    <i
+                      className={`bi-check ${iconSizeClasses[size]} ${isFocused ? 'text-green-bright' : 'text-green'}`}
+                    />
+                  )}
+                </button>
+              );
+            })}
         </div>
       </div>
     </div>

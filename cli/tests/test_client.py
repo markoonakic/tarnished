@@ -2,6 +2,7 @@ from pathlib import Path
 
 import httpx
 
+import tarnished_cli.client as client_module
 from tarnished_cli.client import TarnishedClient
 
 
@@ -60,6 +61,44 @@ def test_client_uploads_file_and_decodes_json(tmp_path: Path):
     )
 
     assert payload["id"] == "app-123"
+
+
+def test_client_sends_timezone_only_to_date_sensitive_routes(monkeypatch):
+    monkeypatch.setattr(client_module, '_resolve_local_time_zone', lambda: 'Europe/Belgrade')
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers['X-API-Key'] == 'api-key-123'
+        assert request.headers['Time-Zone'] == 'Europe/Belgrade'
+        return httpx.Response(200, json={'last_7_days': 1})
+
+    client = TarnishedClient(
+        base_url='https://example.test',
+        api_key='api-key-123',
+        transport=httpx.MockTransport(handler),
+    )
+
+    payload = client.get_json('/api/dashboard/kpis')
+
+    assert payload['last_7_days'] == 1
+
+
+def test_client_does_not_send_timezone_to_unrelated_routes(monkeypatch):
+    monkeypatch.setattr(client_module, '_resolve_local_time_zone', lambda: 'Europe/Belgrade')
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers['X-API-Key'] == 'api-key-123'
+        assert 'Time-Zone' not in request.headers
+        return httpx.Response(200, json={'sources': ['LinkedIn']})
+
+    client = TarnishedClient(
+        base_url='https://example.test',
+        api_key='api-key-123',
+        transport=httpx.MockTransport(handler),
+    )
+
+    payload = client.get_json('/api/job-leads/sources')
+
+    assert payload['sources'] == ['LinkedIn']
 
 
 def test_client_downloads_bytes():

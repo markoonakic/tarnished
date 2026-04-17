@@ -23,6 +23,7 @@ from app.core.database import get_db
 from app.core.deps import (
     get_current_user,
     get_current_user_flexible,
+    get_request_time_zone,
     require_api_key_scope,
     require_api_key_scopes,
 )
@@ -47,6 +48,7 @@ from app.services.extraction import (
 )
 from app.services.job_fetch import fetch_job_posting_html
 from app.services.reference_data import get_initial_application_status
+from app.services.user_time import get_user_local_today
 
 logger = logging.getLogger(__name__)
 
@@ -597,6 +599,7 @@ async def delete_job_lead(
 )
 async def convert_job_lead_to_application(
     job_lead_id: str,
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user_flexible),
     _: object = Depends(
         require_api_key_scopes("job_leads:write", "applications:write")
@@ -674,7 +677,7 @@ async def convert_job_lead_to_application(
         job_url=job_lead.url,
         job_lead_id=job_lead.id,
         status_id=default_status.id,
-        applied_at=datetime.now(UTC).date(),
+        applied_at=get_user_local_today(user, x_timezone=x_timezone),
         # Rich extraction fields
         location=job_lead.location,
         salary_min=job_lead.salary_min,

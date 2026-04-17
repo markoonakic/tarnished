@@ -16,7 +16,7 @@ from app.api.utils.zip_utils import (
 )
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_api_key_scope
+from app.core.deps import get_current_user, get_request_time_zone, require_api_key_scope
 from app.models import Application, Round, RoundMedia, RoundType, User
 from app.schemas.round import RoundCreate, RoundResponse, RoundUpdate
 
@@ -46,6 +46,7 @@ async def get_user_application(
 async def create_round(
     application_id: str,
     data: RoundCreate,
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("rounds:write")),
     db: AsyncSession = Depends(get_db),
@@ -69,7 +70,7 @@ async def create_round(
     )
     db.add(round)
     await db.commit()
-    await record_streak_activity(user=user, db=db)
+    await record_streak_activity(user=user, db=db, x_timezone=x_timezone)
 
     result = await db.execute(
         select(Round)
@@ -83,6 +84,7 @@ async def create_round(
 async def update_round(
     round_id: str,
     data: RoundUpdate,
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("rounds:write")),
     db: AsyncSession = Depends(get_db),
@@ -112,7 +114,7 @@ async def update_round(
         setattr(round, key, value)
 
     await db.commit()
-    await record_streak_activity(user=user, db=db)
+    await record_streak_activity(user=user, db=db, x_timezone=x_timezone)
 
     result = await db.execute(
         select(Round)
@@ -150,6 +152,7 @@ async def delete_round(
 async def upload_media(
     round_id: str,
     file: UploadFile,
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
@@ -206,7 +209,7 @@ async def upload_media(
     )
     db.add(media)
     await db.commit()
-    await record_streak_activity(user=user, db=db)
+    await record_streak_activity(user=user, db=db, x_timezone=x_timezone)
 
     result = await db.execute(
         select(Round)
@@ -243,6 +246,7 @@ async def delete_media(
 async def upload_transcript(
     round_id: str,
     file: UploadFile,
+    x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
@@ -293,7 +297,7 @@ async def upload_transcript(
     round.transcript_path = file_path
     round.transcript_original_filename = sanitize_filename(file.filename or "unnamed")
     await db.commit()
-    await record_streak_activity(user=user, db=db)
+    await record_streak_activity(user=user, db=db, x_timezone=x_timezone)
 
     result = await db.execute(
         select(Round)

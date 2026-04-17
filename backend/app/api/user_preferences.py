@@ -1,21 +1,30 @@
+from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_api_key_scope
 from app.models import User
+from app.services.user_settings import (
+    DEFAULT_USER_PREFERENCES,
+    get_user_preferences,
+    merge_user_settings,
+)
 
 router = APIRouter(prefix="/api/user-preferences", tags=["user-preferences"])
+
+
+TimeZoneMode = Literal["device", "manual"]
 
 
 class UserPreferencesUpdate(BaseModel):
     show_streak_stats: bool | None = None
     show_needs_attention: bool | None = None
     show_heatmap: bool | None = None
+    time_zone_mode: TimeZoneMode | None = None
     time_zone: str | None = None
 
     @field_validator("time_zone")
@@ -36,16 +45,8 @@ class UserPreferencesResponse(BaseModel):
     show_streak_stats: bool
     show_needs_attention: bool
     show_heatmap: bool
+    time_zone_mode: TimeZoneMode
     time_zone: str | None = None
-
-
-def get_default_preferences() -> dict[str, bool | str | None]:
-    return {
-        "show_streak_stats": True,
-        "show_needs_attention": True,
-        "show_heatmap": True,
-        "time_zone": None,
-    }
 
 
 @router.get("", response_model=UserPreferencesResponse)
@@ -54,19 +55,12 @@ async def get_preferences(
     _: object = Depends(require_api_key_scope("preferences:read")),
 ):
     """Get user preferences."""
-    prefs = user.settings or {}
-    defaults = get_default_preferences()
+    prefs = get_user_preferences(user.settings)
 
-    return UserPreferencesResponse(
-        show_streak_stats=prefs.get("show_streak_stats", defaults["show_streak_stats"]),
-        show_needs_attention=prefs.get(
-            "show_needs_attention", defaults["show_needs_attention"]
-        ),
-        show_heatmap=prefs.get("show_heatmap", defaults["show_heatmap"]),
-        time_zone=prefs.get("time_zone", defaults["time_zone"]),
-    )
+    return UserPreferencesResponse(**prefs)
 
 
+@router.patch("", response_model=UserPreferencesResponse)
 @router.put("", response_model=UserPreferencesResponse)
 async def update_preferences(
     prefs_update: UserPreferencesUpdate,
@@ -75,26 +69,20 @@ async def update_preferences(
     _: object = Depends(require_api_key_scope("preferences:write")),
 ):
     """Update user preferences."""
-    current = user.settings or {}
-    defaults = get_default_preferences()
-
-    # Merge updates
     updates = prefs_update.model_dump(exclude_unset=True)
-    for key, value in updates.items():
-        current[key] = value
 
-    # Ensure all keys exist
-    for key in defaults:
-        if key not in current:
-            current[key] = defaults[key]
+    if not updates:
+        return UserPreferencesResponse(**get_user_preferences(user.settings))
 
-    user.settings = current
-    flag_modified(user, "settings")
-    await db.commit()
+    if updates.get("time_zone") is not None and "time_zone_mode" not in updates:
+        updates["time_zone_mode"] = "manual"
 
-    return UserPreferencesResponse(
-        show_streak_stats=current["show_streak_stats"],
-        show_needs_attention=current["show_needs_attention"],
-        show_heatmap=current["show_heatmap"],
-        time_zone=current["time_zone"],
+    current = await merge_user_settings(
+        db,
+        user_id=user.id,
+        updates=updates,
+        ensure_keys=DEFAULT_USER_PREFERENCES,
     )
+    preferences = get_user_preferences(current)
+
+    return UserPreferencesResponse(**preferences)

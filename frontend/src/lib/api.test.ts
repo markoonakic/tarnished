@@ -48,7 +48,23 @@ describe('authenticated api helpers', () => {
     expect(String(url)).toContain('/api/example');
     const headers = options?.headers as Headers;
     expect(headers.get('Authorization')).toBe('Bearer token-1');
-    expect(headers.get('X-Timezone')).toBeTruthy();
+    expect(headers.get('Time-Zone')).toBeNull();
+  });
+
+  it('adds a timezone header when the request opts in', async () => {
+    localStorage.setItem('access_token', 'token-1');
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response(JSON.stringify({ ok: true }), { status: 200 })
+      );
+
+    const { fetchWithAuth } = await import('./api');
+    await fetchWithAuth('/api/example', {}, true, true);
+
+    const [, options] = fetchMock.mock.calls[0] ?? [];
+    const headers = options?.headers as Headers;
+    expect(headers.get('Time-Zone')).toBeTruthy();
   });
 
   it('refreshes tokens and retries once after a 401 response', async () => {
