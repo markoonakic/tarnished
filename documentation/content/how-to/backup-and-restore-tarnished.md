@@ -13,7 +13,7 @@ You should know which deployment mode you are running:
 - Docker Compose with PostgreSQL
 - Helm / Kubernetes
 
-If you are not sure where Tarnished stores data in your deployment mode, read [Storage and backups](../explanation/storage-and-backups.md) first.
+If you are not sure where Tarnished stores data in your deployment mode, review the storage notes in [Architecture overview](../explanation/architecture-overview.md) first.
 
 ## Exports are useful, but not your only backup
 
@@ -124,6 +124,6 @@ Then confirm you can:
 
 ## Related pages
 
-- [Storage and backups](../explanation/storage-and-backups.md)
+- [Architecture overview](../explanation/architecture-overview.md)
 - [Import and export data](./import-and-export-data.md)
 - [Upgrade Tarnished](./upgrade-tarnished.md)

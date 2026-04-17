@@ -49,10 +49,9 @@ The durable-job model is designed for:
 
 An export file is useful, but it is not the only backup strategy you should rely on.
 
-You should also back up the underlying application storage described in [Storage and backups](../explanation/storage-and-backups.md).
+You should also back up the underlying application storage described in [Architecture overview](../explanation/architecture-overview.md).
 
 ## Related pages
 
-- [Transfer jobs](../explanation/transfer-jobs.md)
-- [Storage and backups](../explanation/storage-and-backups.md)
+- [Architecture overview](../explanation/architecture-overview.md)
 - [Troubleshooting](../troubleshooting/index.md)

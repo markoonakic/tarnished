@@ -47,6 +47,18 @@ The backend is a FastAPI application, so it exposes:
 
 These built-in docs are the raw API reference source of truth.
 
+## Preferences and day-boundary behavior
+
+The user-preferences surface includes:
+
+- dashboard feature visibility
+- time zone mode (`device` or `manual`)
+- manual time zone override
+
+Day-based surfaces such as streaks, dashboard KPI windows, follow-up buckets, and analytics period windows use the caller's effective local day rather than a hard-coded server-local date.
+
+For callers using `device` mode, date-sensitive routes accept request-time timezone context so the backend can interpret the caller's local day correctly. Manual mode uses the stored timezone override instead.
+
 ## Common route groups
 
 ### Auth
@@ -103,7 +115,7 @@ The extension also uses API-key auth and calls endpoints for:
 ## Related pages
 
 - [Auth and API keys](../explanation/auth-and-api-keys.md)
-- [Transfer jobs](../explanation/transfer-jobs.md)
+- [Import and export data](../how-to/import-and-export-data.md)
 - [Configure API keys](../how-to/configure-api-keys.md)
 - [Use the CLI](../how-to/use-the-cli.md)
 - [Use the browser extension](../how-to/use-the-browser-extension.md)
