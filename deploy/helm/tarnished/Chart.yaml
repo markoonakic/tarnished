@@ -16,7 +16,7 @@ keywords:
   - self-hosted
   - tracking
 maintainers:
-  - name: Marko Onakic
+  - name: Marko Nakic
     url: https://github.com/markoonakic
 annotations:
   artifacthub.io/category: skip-prediction
