@@ -1,0 +1,42 @@
+# Opt-in overlay: see LOCAL-SPEECH.md. Does not download images or models.
+services:
+  app:
+    networks:
+      - default
+      - local-speech
+  speaches:
+    image: ghcr.io/speaches-ai/speaches@sha256:c26e287cbfbd77d7035f80a297f3695f8d33c797c894e4555cc258f5a4a5dd07
+    platform: linux/amd64
+    pull_policy: never
+    profiles: [local-speech]
+    cpus: 4
+    mem_limit: 4g
+    pids_limit: 256
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [local-speech]
+    volumes:
+      - type: bind
+        source: ${LOCAL_SPEECH_CACHE:?Set LOCAL_SPEECH_CACHE to the verified dedicated hub cache}
+        target: /home/ubuntu/.cache/huggingface/hub
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      HF_HUB_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      DO_NOT_TRACK: "1"
+      GRADIO_ANALYTICS_ENABLED: "False"
+      DISABLE_TELEMETRY: "1"
+      ENABLE_UI: "false"
+      LOG_LEVEL: warning
+      WHISPER__INFERENCE_DEVICE: cpu
+      WHISPER__COMPUTE_TYPE: int8
+      WHISPER__CPU_THREADS: "4"
+      WHISPER__NUM_WORKERS: "1"
+      STT_MODEL_TTL: "300"
+      PRELOAD_MODELS: "[]"
+    restart: "no"
+networks:
+  local-speech:
+    internal: true

@@ -1,22 +1,42 @@
 #!/bin/sh
 set -e
 
-# 1. Ensure data directories exist
+# Recovery uses the existing secret without changing the schema.
+if [ "$1" = "manage" ]; then
+    shift
+    if [ -z "$SECRET_KEY" ] && [ -f /app/data/.secret_key ]; then
+        SECRET_KEY=$(cat /app/data/.secret_key)
+        export SECRET_KEY
+    fi
+    if [ -z "$SECRET_KEY" ]; then
+        echo "Configured SECRET_KEY unavailable; restore instance configuration first" >&2
+        exit 1
+    fi
+    exec python -m app.manage "$@"
+fi
+
 mkdir -p /app/data/uploads
 
-# 2. Auto-generate SECRET_KEY if not provided and no file exists
+# Persist the signing secret across restarts.
 if [ -z "$SECRET_KEY" ] && [ ! -f /app/data/.secret_key ]; then
     echo "Generating SECRET_KEY on first run..."
-    python -c "import secrets; print(secrets.token_hex(32))" > /app/data/.secret_key
-    chmod 600 /app/data/.secret_key
+    (umask 077; python -c "import secrets; print(secrets.token_hex(32))" > /app/data/.secret_key)
 fi
 if [ -z "$SECRET_KEY" ] && [ -f /app/data/.secret_key ]; then
-    export SECRET_KEY=$(cat /app/data/.secret_key)
+    SECRET_KEY=$(cat /app/data/.secret_key)
+    export SECRET_KEY
 fi
 
-# 3. Run database migrations
-# (alembic is on PATH via .venv — no uv needed at runtime)
 alembic upgrade head
 
-# 4. Start server (exec for PID 1 signal handling)
-exec uvicorn app.main:app --host 0.0.0.0 --port 5577
+# Init containers migrate without starting the server.
+if [ "$1" = "migrate" ]; then
+    exit 0
+fi
+
+# Background processing requires one application worker.
+if [ "${WEB_CONCURRENCY:-1}" != "1" ] || [ "${UVICORN_WORKERS:-1}" != "1" ]; then
+    echo "Tarnished requires one application worker; multiple workers are unsupported" >&2
+    exit 1
+fi
+exec uvicorn app.main:app --host 0.0.0.0 --port 5577 --workers 1 --limit-concurrency 64 --timeout-graceful-shutdown 200

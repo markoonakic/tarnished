@@ -1,127 +1,70 @@
 ---
 title: Install with Docker Compose
-description: Run Tarnished with the default SQLite-backed Docker Compose install.
+description: Install Tarnished 0.2.0 with SQLite and persistent local storage.
 ---
 
-Use this install method if you want:
+Docker Compose with SQLite is the simplest installation. You need Docker Engine
+or Docker Desktop with Compose v2, `curl` and a free local port `5577`.
 
-- the fastest way to self-host Tarnished
-- a single Docker Compose file
-- the default SQLite-backed app mode
+## Start Tarnished
 
-## Before you begin
-
-You need:
-
-- Docker Engine with the `docker compose` command available
-- a free local port for Tarnished, `5577` by default
-- `curl` or another way to save the compose file locally
-
-## Quick install
-
-Create a directory for Tarnished, download the compose file, and start the stack:
+Run in a new directory:
 
 ```bash
-mkdir tarnished
-cd tarnished
-curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/markoonakic/tarnished/main/deploy/compose/docker-compose.yml
-docker compose up -d
+mkdir tarnished && cd tarnished
+curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/markoonakic/tarnished/v0.2.0/deploy/compose/docker-compose.yml
+docker compose up -d --wait
 ```
 
-## The compose file used in this guide
+The file uses `ghcr.io/markoonakic/tarnished:0.2.0`. Its init service prepares
+`./data` for the non-root application. No separate permission command is needed.
+Open **http://localhost:5577**.
 
-Save this as `docker-compose.yml`:
+Create the first account from the installation host:
 
-```yaml
-services:
-  app:
-    image: ${TARNISHED_IMAGE:-ghcr.io/markoonakic/tarnished:latest}
-    ports:
-      - "${APP_PORT:-5577}:5577"
-    volumes:
-      - ./data:/app/data
-    environment:
-      - APP_URL=${APP_URL:-http://localhost:5577}
-    restart: unless-stopped
+```bash
+docker compose exec app ./entrypoint.sh manage bootstrap-owner --email you@example.com
 ```
 
-## Optional `.env` file
+Enter and confirm the password, then sign in through the browser. See
+[account setup](../get-started/create-admin-account.md) for password rules and
+recovery. Later accounts are created in Admin; public registration is disabled.
+AI is not required to use Tarnished.
 
-You do not need a `.env` file for the default install. If you want to override the default port, public URL, or image tag, create `.env` next to `docker-compose.yml`:
+## Configuration
 
-```env
-# Optional overrides
-# TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.1.7
-APP_PORT=5577
+The default binding is `127.0.0.1:5577`. Create a `.env` file to override it:
+
+```dotenv
+APP_PORT=127.0.0.1:5577
 APP_URL=http://localhost:5577
+TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.2.0
 ```
 
-## Verify the install
+For remote access, set the browser-facing `APP_URL`, configure an HTTPS proxy,
+and change `APP_PORT` only as needed. Compose's `.env` is used for interpolation;
+other backend variables require explicit container environment mappings. See
+[environment variables](../reference/environment-variables.md).
 
-Check that the container is running:
+## Verify and maintain
 
 ```bash
 docker compose ps
+docker compose logs --tail=100 app
+curl -fsS http://localhost:5577/health
 ```
 
-Then confirm the health endpoint responds:
+The health endpoint returns `{"status":"healthy"}`. `./data` contains SQLite,
+uploads and `.secret_key`. Keep it when restarting or upgrading. `docker compose
+down` stops the installation without removing that directory.
 
-```bash
-curl http://localhost:5577/health
-```
+Read [backup and restore](../how-to/backup-and-restore-tarnished.md) before an
+[upgrade](../how-to/upgrade-tarnished.md). For startup errors, use
+[deployment troubleshooting](../troubleshooting/deployment-and-startup.md).
 
-Expected response:
+## Optional services
 
-```json
-{"status":"healthy"}
-```
-
-## Open Tarnished
-
-Open Tarnished in your browser:
-
-```text
-http://localhost:5577
-```
-
-The first account created in a fresh Tarnished instance becomes the administrator.
-
-## Where your data lives
-
-In this install mode:
-
-- SQLite data is stored under `./data`
-- uploaded files are stored under `./data/uploads`
-
-Back up `./data` if you want to preserve the instance.
-
-## Common adjustments
-
-### Change the exposed port
-
-```bash
-APP_PORT=8080 docker compose up -d
-```
-
-Then open `http://localhost:8080`.
-
-### Pin a specific Tarnished version
-
-```bash
-TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.1.7 docker compose up -d
-```
-
-## Troubleshooting
-
-If Tarnished does not start or does not become healthy:
-
-```bash
-docker compose logs app
-docker compose logs -f app
-```
-
-Then continue with [Deployment and startup problems](../troubleshooting/deployment-and-startup.md).
-
-## Next step
-
-Continue with [Create your admin account](../get-started/create-admin-account.md).
+- [Configure AI](../how-to/configure-ai-settings.md) in Admin after signing in.
+- [Use PostgreSQL](./postgresql-docker-compose.md) instead of SQLite.
+- For local English transcription, follow the repository's
+  [local speech guide](https://github.com/markoonakic/tarnished/blob/v0.2.0/deploy/compose/LOCAL-SPEECH.md).

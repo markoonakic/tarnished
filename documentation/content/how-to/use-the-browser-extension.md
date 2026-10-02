@@ -8,13 +8,17 @@ Use this guide to install and configure the Tarnished browser extension.
 
 ## Install the extension
 
-The current public install path is the packaged release ZIPs on GitHub Releases. Browser store publication is deferred for now.
+Use the Chrome or Firefox ZIP from
+[the v0.2.0 release](https://github.com/markoonakic/tarnished/releases/tag/v0.2.0).
+There is no browser-store install path.
 
-1. Download the latest release assets from GitHub Releases.
-2. Extract the ZIP for your browser.
-3. Load it in the browser:
-   - Chrome: load the unpacked extension directory
-   - Firefox: load `manifest.json` from the extracted directory
+1. Download and extract the ZIP for your browser.
+2. Load it manually:
+   - **Chrome:** open `chrome://extensions/`, enable **Developer mode**, select
+     **Load unpacked**, then choose the extracted directory.
+   - **Firefox:** open `about:debugging#/runtime/this-firefox`, select
+     **Load Temporary Add-on**, then choose `manifest.json` in the extracted
+     directory. A temporary add-on is removed when Firefox restarts.
 
 ## Configure the extension
 
@@ -40,9 +44,12 @@ The extension currently focuses on:
 Known limitations include:
 
 - no access to browser-internal pages
-- no autofill for iframe-protected forms
+- iframe autofill depends on frame access and script injection; not every embedded form can be filled
 - no autofill for shadow-DOM or non-standard custom inputs
-- HTML content truncation for very large pages
+- page content truncation for very large pages
+
+The extension scans only direct same-origin child frames, not nested frames.
+Job detection and matching fields depend on site markup; support is not universal.
 
 ## Related pages
 

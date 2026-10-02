@@ -1,7 +1,6 @@
 import pathlib
 import unittest
 
-
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 WORKFLOW_PATH = ROOT / ".github" / "workflows" / "homebrew-tap.yml"
 RELEASE_WORKFLOW_PATH = ROOT / ".github" / "workflows" / "release.yml"

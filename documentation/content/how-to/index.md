@@ -12,6 +12,10 @@ Use the how-to guides when Tarnished is already installed and you know the task 
 - [Use the CLI](./use-the-cli.md)
 - [Use the browser extension](./use-the-browser-extension.md)
 
+## Interview evidence
+
+- [Edit interview transcripts](./edit-interview-transcripts.md)
+
 ## Data portability and operations
 
 - [Import and export data](./import-and-export-data.md)

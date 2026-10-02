@@ -4,6 +4,9 @@ sidebar_position: 3
 description: Understand Tarnished authentication modes and API key scope design.
 ---
 
+This page describes authentication in Tarnished 0.2.0. See
+[account setup](../get-started/create-admin-account.md) for owner setup and recovery.
+
 Tarnished uses two different authentication styles depending on the client.
 
 ## Browser sessions
@@ -12,10 +15,12 @@ The web app uses JWT-backed browser sessions for interactive user authentication
 
 These routes live under `/api/auth` and include:
 
-- registration
 - login
 - refresh
 - current-user identity
+- JWT-only password change and all-session signout
+
+Account creation is administrator-managed after [host-only owner setup](../get-started/create-admin-account.md). That guide documents recovery, legacy-token invalidation and the independent API-key lifecycle. Ordinary browser logout only clears local tokens.
 
 ## API keys for machine clients
 
@@ -77,6 +82,12 @@ The `/api/auth/whoami` endpoint exists so clients can confirm:
 - who the current caller is
 - whether auth is via `jwt` or `api_key`
 - which API key record is currently in use, when applicable
+
+## Structured archive scopes
+
+Structured JSON/ZIP exports can include retained document text, profile evidence and latest interview feedback. API keys need **all three** scopes: `export:read`, `files:read`, and `profile:read`. These checks apply to direct exports and ZIP-job creation, status/results and downloads, including artifacts created before a scope was removed. A missing scope returns an actionable `403`; revoked keys cannot retrieve existing artifacts.
+
+CSV reporting retains its existing `export:read` requirement. JWT web sessions are unchanged. Existing keys and presets are **not** silently expanded: a legacy import/export preset may now receive `403` for structured archives. Use an explicitly configured key with the required scopes.
 
 ## Admin-only AI settings
 

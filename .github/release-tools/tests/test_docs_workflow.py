@@ -1,14 +1,15 @@
 import pathlib
 import unittest
 
-
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 WORKFLOW_PATH = ROOT / ".github" / "workflows" / "docs.yml"
 DOCUSAURUS_CONFIG_PATH = ROOT / "documentation" / "docusaurus.config.ts"
 
 
 class DocsWorkflowTests(unittest.TestCase):
-    def test_docs_workflow_builds_docusaurus_site_from_documentation_directory(self) -> None:
+    def test_docs_workflow_builds_docusaurus_site_from_documentation_directory(
+        self,
+    ) -> None:
         content = WORKFLOW_PATH.read_text()
 
         self.assertIn("yarn install --immutable", content)
@@ -28,7 +29,10 @@ class DocsWorkflowTests(unittest.TestCase):
         self.assertIn("path: 'content'", content)
         self.assertIn("routeBasePath: '/'", content)
         self.assertIn("baseUrl: '/tarnished/'", content)
-        self.assertIn("editUrl: 'https://github.com/markoonakic/tarnished/edit/main/documentation/'", content)
+        self.assertIn(
+            "editUrl: 'https://github.com/markoonakic/tarnished/edit/main/documentation/'",
+            content,
+        )
 
 
 if __name__ == "__main__":

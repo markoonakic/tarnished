@@ -1,8 +1,20 @@
 services:
+  # Prepare the bind mount for the non-root application.
+  init:
+    image: ${TARNISHED_IMAGE:-ghcr.io/markoonakic/tarnished:0.2.0}
+    user: "0:0"
+    entrypoint:
+      - sh
+      - -c
+      - mkdir -p /app/data/uploads && chown -R 1000:1000 /app/data
+    volumes:
+      - ./data:/app/data
+    restart: "no"
+
   app:
-    image: ${TARNISHED_IMAGE:-ghcr.io/markoonakic/tarnished:latest}
+    image: ${TARNISHED_IMAGE:-ghcr.io/markoonakic/tarnished:0.2.0}
     ports:
-      - "${APP_PORT:-5577}:5577"
+      - "${APP_PORT:-127.0.0.1:5577}:5577"
     volumes:
       - ./data:/app/data
     environment:
@@ -13,6 +25,8 @@ services:
       - POSTGRES_DB=tarnished
       - APP_URL=${APP_URL:-http://localhost:5577}
     depends_on:
+      init:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
     restart: unless-stopped

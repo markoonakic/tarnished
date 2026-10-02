@@ -62,16 +62,9 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
-Determine deployment strategy based on database mode.
-Recreate for SQLite (single pod), RollingUpdate for PostgreSQL.
+The supported single-instance baseline uses Recreate for both databases.
+Updates cause downtime; rolling/HA execution is unsupported.
 */}}
 {{- define "tarnished.deploymentStrategy" -}}
-{{- if .Values.postgresql.enabled }}
-type: RollingUpdate
-rollingUpdate:
-  maxSurge: 25%
-  maxUnavailable: 25%
-{{- else }}
 type: Recreate
-{{- end }}
 {{- end }}

@@ -1,195 +1,112 @@
 # Tarnished
 
-Tarnished is a self-hosted job application tracker designed to help you manage every stage of your job search.
+Tarnished is a self-hosted job application tracker. Keep applications, job leads,
+documents and interview records in one place. Use the dashboard and analytics to
+plan your next step.
 
-Think of it as a command center for your job search. Track applications, store your CVs and cover letters, analyze interview videos, and let AI analyze where your pipeline is breaking so you can focus on what actually matters.
+[Documentation](https://markoonakic.github.io/tarnished/) ·
+[Releases](https://github.com/markoonakic/tarnished/releases) ·
+[Report a problem](https://github.com/markoonakic/tarnished/issues)
 
-**Documentation:** https://markoonakic.github.io/tarnished/
+## Quick start
+
+You need Docker with Compose v2 and `curl`. No Python, Node.js or AI key is needed.
+This installs the published Tarnished container image for **v0.2.0** with SQLite.
+The download commands require that release to be published. For an unreleased
+source checkout, use [Run from source](#run-from-source) below.
+
+```bash
+mkdir tarnished && cd tarnished
+curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/markoonakic/tarnished/v0.2.0/deploy/compose/docker-compose.yml
+docker compose up -d --wait
+```
+
+Open **http://localhost:5577**. For the first account, run this command in the
+install directory and enter a password when prompted:
+
+```bash
+docker compose exec app ./entrypoint.sh manage bootstrap-owner --email you@example.com
+```
+
+Sign in, then add your first application. Later accounts are created in
+**Admin → Users**. There is no public registration. See
+[account setup and recovery](documentation/content/get-started/create-admin-account.md).
+
+The default port is local-only. Set `APP_PORT` and `APP_URL` in a `.env` file to
+change the binding and public URL. Use HTTPS for remote access. AI is optional:
+configure text or speech services in **Admin → AI Configuration** only if you
+want to use them. The application does not download speech models at startup.
+
+Check startup with `docker compose ps` and `docker compose logs --tail=100 app`.
+The `/health` endpoint returns `{"status":"healthy"}`.
+
+## Run from source
+
+From the root of a source checkout, build the image and use its Compose file:
+
+```bash
+docker build -t tarnished:local .
+TARNISHED_IMAGE=tarnished:local docker compose -f deploy/compose/docker-compose.yml up -d --wait
+TARNISHED_IMAGE=tarnished:local docker compose -f deploy/compose/docker-compose.yml exec app ./entrypoint.sh manage bootstrap-owner --email you@example.com
+```
+
+Open **http://localhost:5577**. This Compose file stores data in
+`deploy/compose/data`. Keep `TARNISHED_IMAGE=tarnished:local` on later Compose
+commands so they continue to use your local build.
 
 ## Features
 
-- **Track Every Application** - Company, position, salary, status, contacts, links... Never lose track of where you applied, and how you applied.
+- Track application dates, statuses, salary, contacts and interview rounds.
+- Save job leads without AI, edit their fields and convert them to applications.
+- Keep CVs, cover letters, notes, recordings and editable interview transcripts.
+- Review activity, pipeline stages and response statistics in your time zone.
+- Request optional AI extraction and source-linked interview, application or
+  pipeline feedback. Review generated advice before you use it.
+- Configure themes, statuses, round types and optional dashboard sections.
+- Use scoped API keys with the CLI and browser extension.
+- Export JSON, CSV or ZIP archives with media, and import supported archives.
 
-- **Documents & Media** - Upload your CV and cover letter for each application. Upload recorded video or audio of interviews for later review.
+## Other installation options
 
-- **Debug Your Job Search** - AI-powered insights analyze your pipeline to find where you're getting stuck. See conversion rates between stages, identify if you're failing at technical or behavioral interviews, and get actionable recommendations to improve.
+| Method | Guide |
+| --- | --- |
+| Docker Compose with SQLite | [SQLite installation](documentation/content/install/docker-compose.md) |
+| Docker Compose with PostgreSQL | [PostgreSQL installation](documentation/content/install/postgresql-docker-compose.md) |
+| Helm on Kubernetes | [Helm installation](documentation/content/install/helm.md) |
+| Optional local English speech | [Local speech setup](deploy/compose/LOCAL-SPEECH.md) |
 
-- **Save Jobs from Anywhere** - The browser extension extracts job details from any page with a job description using AI, no need to manually copy-paste.
+All installations run one application process. Updates require a short downtime.
 
-- **Visualize Your Pipeline** - Dashboard with response rates, interview conversion funnels, weekly activity tracking, and configurable visibility for optional dashboard sections.
+## CLI and browser extension
 
-- **Customizable Pipeline** - Define your own statuses and interview round types to match your unique job search process.
-
-- **Customizable Themes** - Choose from Gruvbox, Catppuccin, Dracula... Pick your accent color to match your style.
-
-- **Local-Day Aware Streaks & Analytics** - Use device time or set a manual timezone so streaks, dashboard windows, and analytics day boundaries match how you actually track your job search.
-
-- **Full Data Portability** - Export all your data (JSON, CSV, or ZIP with media) and import to migrate or backup.
-
-- **Your Data, Your Server** - 100% self-hosted. No accounts, no tracking, no cloud. Everything stays on your hardware.
-
-## Quick Start
-
-```bash
-mkdir tarnished && cd tarnished
-curl -fsSLO https://raw.githubusercontent.com/markoonakic/tarnished/main/deploy/compose/docker-compose.yml
-docker compose up -d
-```
-
-Then open `http://localhost:5577` in your browser.
-
-The default Compose quickstart pulls the published Tarnished container image from GitHub Container Registry. If you want to pin a specific release instead of using `latest`, set `TARNISHED_IMAGE` before starting the stack.
-
-That's it. The first account you create becomes admin automatically.
-
-### Where is my data?
-
-- **SQLite Compose mode** stores application data in `./data`
-- **PostgreSQL Compose mode** stores uploaded files in `./data` and database files in `./postgres_data`
-- **Helm / external PostgreSQL** stores uploads on your configured persistent volume claim and relational data in PostgreSQL
-
-Back up both the uploads storage and the database used by your deployment mode.
-
-## Installation
-
-### Docker Compose
-
-#### SQLite Mode (Default)
-
-Best for personal use, home servers, and trying it out.
+Install the CLI with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-mkdir tarnished && cd tarnished
-curl -fsSLO https://raw.githubusercontent.com/markoonakic/tarnished/main/deploy/compose/docker-compose.yml
-docker compose up -d
+uv tool install tarnished-cli==0.2.0
 ```
 
-This path uses the published Tarnished container image and stores data locally in `./data`.
+Create a key in **Settings → API Keys**, then follow the [CLI guide](cli/README.md).
+The [browser extension](extension/README.md) detects job pages, saves leads and
+fills matching profile fields. Download Chrome or Firefox ZIPs from the release
+assets. Site markup and iframe permissions can limit detection and autofill.
 
-#### PostgreSQL Mode (Recommended for "production")
+## Data and privacy
 
-Best for multi-user deployments or when you need better performance.
+SQLite stores the database, uploads and signing secret in `./data`. PostgreSQL
+Compose also stores its database in `./postgres_data`. Keep these directories,
+deployment configuration and secrets in a protected backup. A personal export is
+not an instance backup. Read [backup and restore](documentation/content/how-to/backup-and-restore-tarnished.md)
+before an upgrade.
 
-```bash
-mkdir tarnished && cd tarnished
-curl -fsSLO https://raw.githubusercontent.com/markoonakic/tarnished/main/deploy/compose/docker-compose.postgres.yml
+Self-hosting does not hide data from the host operator. Optional AI requests can
+send job details, documents, transcripts or profile data to the configured
+provider and can incur charges. Local speech runs on your server; text analysis
+is configured separately.
 
-# Create .env with PostgreSQL password
-# docker compose will fail fast if POSTGRES_PASSWORD is missing or blank
-echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)" > .env
+## Contributing and license
 
-# Start
-docker compose -f docker-compose.postgres.yml up -d
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development and checks. Report bugs with
+the version, installation method, reproduction steps and redacted logs. Do not
+include passwords or API keys.
 
-This path uses the published Tarnished container image and a local PostgreSQL container.
-
-### Helm Chart
-
-For Kubernetes deployments.
-
-```bash
-# Install with SQLite (default)
-helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished
-
-# Or with PostgreSQL
-helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
-  --set postgresql.enabled=true \
-  --set postgresql.host=postgres.example.com \
-  --set postgresql.password=your-password
-```
-
-See [deploy/helm/tarnished/README.md](deploy/helm/tarnished/README.md) for full configuration options.
-
-### CLI
-
-Tarnished also ships a standalone CLI.
-
-Recommended install path:
-
-```bash
-uv tool install tarnished-cli
-```
-
-Homebrew convenience path:
-
-```bash
-brew tap markoonakic/tap
-brew install tarnished-cli
-```
-
-## Configuration
-
-### Environment Variables
-
-| Variable            | Default                 | Description                                                      |
-| ------------------- | ----------------------- | ---------------------------------------------------------------- |
-| `APP_PORT`          | `5577`                  | Port the app listens on                                          |
-| `APP_URL`           | `http://localhost:5577` | Public URL (for CORS and links)                                  |
-| `TRUSTED_HOSTS`     | _(empty)_               | Extra comma-separated hostnames allowed by TrustedHostMiddleware |
-| `POSTGRES_HOST`     | _(SQLite)_              | PostgreSQL host                                                  |
-| `POSTGRES_PASSWORD` | _(SQLite)_              | PostgreSQL password                                              |
-| `SECRET_KEY`        | auto-generated          | JWT signing key                                                  |
-
-See `.env.example` for common overrides used by the packaged deployment paths.
-
-## AI Features
-
-Tarnished uses AI for job extraction and pipeline insights. You need to bring your own API key.
-
-### Supported Providers
-
-Works with any provider supported by [LiteLLM](https://litellm.ai/), including:
-
-- OpenAI, Anthropic, Google Gemini, Azure OpenAI
-- Self-hosted models (Ollama, llama.cpp, vLLM, etc.)
-
-### Configuration
-
-1. Go to **Settings** → **AI Settings** (admin only)
-2. Enter your model (e.g., `openai/gpt-4o-mini`, `anthropic/claude-3-haiku`, `ollama/llama3`)
-3. Enter your API key
-4. (Optional) Enter a custom base URL
-5. Click Save
-
-Your API key is encrypted and stored in the database.
-
-**Note:** AI features use your own API key. You're responsible for any costs.
-
-## Browser Extension
-
-The browser extension lets you save jobs from anywhere and autofill application forms.
-
-### Installation
-
-The current public install path is the packaged release ZIPs on GitHub Releases. Browser store publication is deferred for now.
-
-1. Download the latest release from [GitHub Releases](https://github.com/markoonakic/tarnished/releases)
-2. Extract the ZIP file for your browser (Chrome or Firefox)
-3. Load the extension:
-   - **Chrome**: Go to `chrome://extensions/`, enable "Developer mode", click "Load unpacked", select the extracted folder
-   - **Firefox**: Go to `about:debugging#/runtime/this-firefox`, click "Load Temporary Add-on", select any file in the extracted folder
-
-### Configuration
-
-1. Click the extension icon in your browser toolbar
-2. Click the **Settings** button (gear icon), then go to settings page
-3. Enter your **App URL** (e.g., `http://localhost:5577` or your public URL)
-4. Enter your **API Key** (generate one in Tarnished under Settings > API Keys)
-
-See [extension/README.md](extension/README.md) for full documentation.
-
-## Support
-
-- **Documentation**: https://markoonakic.github.io/tarnished/
-- **Bug Reports**: [GitHub Issues](https://github.com/markoonakic/tarnished/issues)
-- **Feature Requests**: [GitHub Issues](https://github.com/markoonakic/tarnished/issues)
-- **Discussion**: [GitHub Discussions](https://github.com/markoonakic/tarnished/discussions)
-
-## Contributing
-
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
-## License
-
-MIT License — see [LICENSE](LICENSE)
+[MIT License](LICENSE).

@@ -1,4 +1,10 @@
 {{- if .Values.cleanup.enabled }}
+{{- if not (semverCompare ">=1.27-0" .Capabilities.KubeVersion.Version) }}
+{{- fail "cleanup.enabled=true requires Kubernetes 1.27 or newer for CronJob time zones" }}
+{{- end }}
+{{- if eq .Values.cleanup.mode "delete" }}
+{{- fail "cleanup.mode=delete cannot be scheduled; use manual stopped-writer maintenance with --delete --offline instead" }}
+{{- end }}
 {{- if not .Values.persistence.enabled }}
 {{- fail "cleanup requires persistence.enabled=true because a separate CronJob cannot inspect the app pod's ephemeral storage" }}
 {{- end }}
@@ -54,20 +60,19 @@ spec:
                 {{- toYaml .Values.securityContext | nindent 16 }}
               command:
                 - /bin/sh
-                - -lc
+                - -c
               args:
                 - >-
                   if [ -z "$SECRET_KEY" ] && [ -f /app/data/.secret_key ]; then
-                    export SECRET_KEY="$(cat /app/data/.secret_key)";
+                    SECRET_KEY="$(cat /app/data/.secret_key)";
+                    export SECRET_KEY;
                   fi;
                   if [ -z "$SECRET_KEY" ]; then
                     echo "SECRET_KEY is required for cleanup jobs";
                     exit 1;
                   fi;
-                  exec python -m app.lib.cleanup_orphan_uploads --verbose{{ if eq .Values.cleanup.mode "delete" }} --delete{{ end }}
+                  exec python -m app.lib.cleanup_orphan_uploads --verbose
               env:
-                - name: PATH
-                  value: "/app/.venv/bin:/usr/local/bin:/usr/bin:/bin"
                 {{- if .Values.postgresql.enabled }}
                 - name: POSTGRES_HOST
                   value: {{ .Values.postgresql.host | quote }}
@@ -85,7 +90,10 @@ spec:
                       key: {{ .Values.postgresql.existingSecretPasswordKey }}
                 {{- else if .Values.postgresql.password }}
                 - name: POSTGRES_PASSWORD
-                  value: {{ .Values.postgresql.password | quote }}
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "tarnished.fullname" . }}-postgresql
+                      key: password
                 {{- end }}
                 {{- end }}
                 {{- if .Values.secretKey.existingSecret }}

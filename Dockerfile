@@ -1,89 +1,41 @@
-# Stage 1: Build frontend
-FROM node:22-alpine AS frontend-builder
+FROM node:24-alpine AS frontend-builder
 WORKDIR /app
 COPY frontend/package.json frontend/yarn.lock frontend/.yarnrc.yml ./
-# Note: Not using --immutable due to Corepack cacheKey mismatch between environments
-# CI validates the lockfile separately
-RUN corepack enable && yarn install
+RUN corepack enable && yarn install --immutable
 COPY frontend/ ./
 ENV VITE_API_URL=""
 RUN yarn build
 
-# Stage 2: Build Python dependencies
 FROM python:3.12-alpine AS builder
-
-# Install build dependencies (for packages with C extensions)
-RUN apk add --no-cache \
-    build-base \
-    libffi-dev \
-    postgresql-dev \
-    gcc \
-    musl-dev
-
+RUN apk add --no-cache build-base libffi-dev postgresql-dev
 WORKDIR /app
-
-# Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-
-# uv optimizations for Docker
-ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy
-
-# Copy dependency files
+COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /usr/local/bin/uv
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 COPY backend/pyproject.toml backend/uv.lock ./
+RUN uv sync --locked --no-dev --no-install-project
 
-# Create venv and install dependencies
-RUN uv venv /app/.venv && \
-    uv sync --locked --no-dev --no-install-project
-
-# Stage 3: Production runtime
 FROM python:3.12-alpine
-
-# Upgrade base packages to fix CVEs, then install runtime dependencies
 RUN apk upgrade --no-cache && \
-    apk add --no-cache \
-    libpq \
-    postgresql-libs \
-    libmagic \
-    libffi \
-    curl
-
+    apk add --no-cache libpq libmagic libffi ffmpeg poppler-utils
 WORKDIR /app
-
-# Create non-root user and directories
 RUN addgroup -S -g 1000 appuser && \
     adduser -S -u 1000 -G appuser appuser && \
-    mkdir -p /app/data/uploads && \
-    chown -R appuser:appuser /app
-
-# Copy ENTIRE venv from builder (preserves entry points with correct shebangs)
+    mkdir -p /app/data/uploads && chown -R appuser:appuser /app
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
-
-# Set environment variables
 ENV PYTHONUNBUFFERED=1 \
+    LITELLM_LOCAL_MODEL_COST_MAP=true \
     PATH="/app/.venv/bin:$PATH" \
     UPLOAD_DIR=/app/data/uploads
-
-# Copy application code
 COPY --chown=appuser:appuser backend/app ./app
 COPY --chown=appuser:appuser backend/alembic.ini ./
 COPY --chown=appuser:appuser backend/alembic ./alembic
-
-# Copy built frontend
 COPY --from=frontend-builder --chown=appuser:appuser /app/dist ./static
-
-# Copy entrypoint
-COPY --chown=appuser:appuser entrypoint.sh ./
+COPY --chown=appuser:appuser entrypoint.sh LICENSE ./
 RUN chmod +x entrypoint.sh
-
-# OCI labels
 LABEL org.opencontainers.image.source="https://github.com/markoonakic/tarnished" \
-      org.opencontainers.image.description="A full-stack job application tracking system"
-
+      org.opencontainers.image.description="Self-hosted job application tracker"
 EXPOSE 5577
 USER appuser
-
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5577/health')"
-
 ENTRYPOINT ["./entrypoint.sh"]

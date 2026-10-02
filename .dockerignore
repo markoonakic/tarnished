@@ -1,77 +1,22 @@
-# Version control
-.git
-.gitignore
+*
+!frontend/
+!frontend/**
+!backend/
+!backend/app/
+!backend/app/**
+!backend/alembic/
+!backend/alembic/**
+!backend/alembic.ini
+!backend/pyproject.toml
+!backend/uv.lock
+!entrypoint.sh
+!LICENSE
 
-# Local agent/tooling state
-.claude/
-.devcontainer/
-.firecrawl/
-.opencode/
-.pi/
-.pi-lens/
-.planning/
-.playwright/
-.ruff_cache/
-.serena/
-.worktrees/
-.vscode/
-core
-CLAUDE.md
-mise.toml
-
-# Repository metadata and docs
-.github/
-.husky/
-.prettierignore
-*.md
-docs/
-LICENSE
-scripts/
-
-# App surfaces not needed in the production image
-deploy/
-cli/
-extension/
-
-# Frontend build artifacts and dependencies
 frontend/node_modules/
 frontend/.yarn/
 frontend/dist/
-frontend/.planning/
 frontend/.venv/
-
-# Backend artifacts
-backend/.env*
-backend/.mypy_cache/
-backend/.pytest_cache/
-backend/.ruff_cache/
-backend/.venv/
-backend/*.db
-backend/__pycache__/
+frontend/.env*
+frontend/*.tsbuildinfo
+frontend/**/__pycache__/
 backend/**/__pycache__/
-backend/data/
-backend/docs/
-backend/scripts/
-backend/tests/
-backend/uploads/
-backend/*.log
-
-# CLI / extension local artifacts
-cli/.pytest_cache/
-cli/.ruff_cache/
-cli/.venv/
-cli/**/__pycache__/
-extension/.yarn/
-extension/dist/
-extension/node_modules/
-
-# OS / editor noise
-.DS_Store
-*.swp
-*.swo
-*~
-
-# Docker/Compose files and env files (prevent recursive inclusion)
-Dockerfile
-.env*
-.dockerignore

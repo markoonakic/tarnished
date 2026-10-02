@@ -36,6 +36,7 @@ const sidebars: SidebarsConfig = {
         'how-to/upgrade-tarnished',
         'how-to/use-the-cli',
         'how-to/use-the-browser-extension',
+        'how-to/edit-interview-transcripts',
       ],
     },
     {
