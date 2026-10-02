@@ -261,4 +261,4 @@ def test_revision_is_required_before_transport(runner, mock_server, command):
     mock_server(lambda request: pytest.fail("No request allowed without revision"))
     result = runner.invoke(app, ["job-leads", command, "saved-id"])
     assert result.exit_code != 0
-    assert "expected-revision" in result.output
+    assert "expected-revision" in re.sub(r"\x1b\[[0-9;]*m", "", result.output)
