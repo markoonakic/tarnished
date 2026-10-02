@@ -21,7 +21,7 @@ def wav_bytes(seconds=1, rate=8000):
         audio.setnchannels(1)
         audio.setsampwidth(2)
         audio.setframerate(rate)
-        audio.writeframes(b"\0\0" * rate * seconds)
+        audio.writeframes(b"\0\0" * int(rate * seconds))
     return output.getvalue()
 
 
@@ -94,15 +94,24 @@ async def test_spool_recording_rejects_bounded_negative_streams(
     assert not path.exists()
 
 
-async def test_validate_recording_actual_wav(tmp_path):
+@pytest.mark.parametrize("seconds", [0.001, 0.1, 1])
+async def test_validate_recording_actual_wav(tmp_path, seconds):
     path = tmp_path / "recording.part"
-    path.write_bytes(wav_bytes())
+    path.write_bytes(wav_bytes(seconds))
     result = await intake.validate_recording(path)
     assert (
-        result.duration == 1
+        result.duration == seconds
         and result.media_type == "audio"
         and result.extension == ".wav"
     )
+
+
+async def test_recording_decoder_rejects_empty_output(tmp_path):
+    path = tmp_path / "recording.part"
+    path.write_bytes(wav_bytes(0))
+    with pytest.raises(HTTPException) as caught:
+        await intake.run_media_process("decode", path)
+    assert caught.value.status_code == 422
 
 
 @pytest.mark.parametrize(

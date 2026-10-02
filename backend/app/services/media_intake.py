@@ -393,10 +393,11 @@ async def validate_recording(path: Path) -> ProbedMedia:
         if line.startswith("out_time_us=")
         and line.removeprefix("out_time_us=").lstrip("-").isdigit()
     ]
+    # A single decoded packet can have a zero progress timestamp.
     if (
         "progress=end" not in progress
         or not times
-        or max(times) <= 0
+        or max(times) < 0
         or max(times) > MAX_MEDIA_SECONDS * 1_000_000
     ):
         raise HTTPException(

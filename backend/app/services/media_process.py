@@ -118,6 +118,8 @@ if __name__ == "__main__":
         args = [
             "ffmpeg",
             "-nostdin",
+            "-abort_on",
+            "empty_output_stream",
             "-xerror",
             "-err_detect",
             "explode",
