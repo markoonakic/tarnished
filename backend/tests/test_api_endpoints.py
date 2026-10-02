@@ -12,13 +12,13 @@ All tests verify authentication requirements and success/error cases.
 # pyright: reportCallIssue=warning
 # Pydantic v2 optional fields cause false positives with pyright
 
+from datetime import UTC, date, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import (
@@ -27,7 +27,6 @@ from app.core.security import (
     get_password_hash,
     hash_api_key,
 )
-from app.main import app
 from app.models import (
     Application,
     ApplicationStatus,
@@ -105,14 +104,18 @@ async def user_with_api_token(db: AsyncSession) -> User:
 @pytest.fixture
 def auth_headers(test_user: User) -> dict[str, str]:
     """Create Bearer token auth headers for a regular user."""
-    token = create_access_token({"sub": test_user.id})
+    token = create_access_token(
+        {"sub": test_user.id, "session_version": test_user.session_version}
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
 def admin_auth_headers(admin_user: User) -> dict[str, str]:
     """Create Bearer token auth headers for an admin user."""
-    token = create_access_token({"sub": admin_user.id})
+    token = create_access_token(
+        {"sub": admin_user.id, "session_version": admin_user.session_version}
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -383,6 +386,86 @@ class TestJobLeadSources:
 
 class TestApplicationsList:
     """Tests for GET /api/applications endpoint."""
+
+    async def test_round_counts_include_unfinished_rounds_without_changing_pages(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        db: AsyncSession,
+        test_user: User,
+        admin_user: User,
+    ):
+        status = ApplicationStatus(name="Counted status", user_id=None)
+        round_type = RoundType(name="Counted interview", user_id=None)
+        db.add_all([status, round_type])
+        await db.flush()
+        with_rounds = Application(
+            user_id=test_user.id,
+            company="Owned with rounds",
+            job_title="Engineer",
+            status_id=status.id,
+            source="LinkedIn",
+            applied_at=date(2026, 1, 3),
+            created_at=datetime(2026, 1, 3, tzinfo=UTC),
+        )
+        without_rounds = Application(
+            user_id=test_user.id,
+            company="Owned without rounds",
+            job_title="Engineer",
+            status_id=status.id,
+            source="Indeed",
+            applied_at=date(2026, 1, 3),
+            created_at=datetime(2026, 1, 2, tzinfo=UTC),
+        )
+        foreign = Application(
+            user_id=admin_user.id,
+            company="Foreign with rounds",
+            job_title="Engineer",
+            status_id=status.id,
+            source="LinkedIn",
+            applied_at=date(2026, 1, 4),
+        )
+        db.add_all([with_rounds, without_rounds, foreign])
+        await db.flush()
+        db.add_all(
+            [
+                Round(
+                    application_id=with_rounds.id,
+                    round_type_id=round_type.id,
+                    scheduled_at=datetime(2026, 2, 1, tzinfo=UTC),
+                ),
+                Round(
+                    application_id=with_rounds.id,
+                    round_type_id=round_type.id,
+                    completed_at=datetime(2026, 1, 5, tzinfo=UTC),
+                    outcome="Passed",
+                ),
+                *[
+                    Round(application_id=foreign.id, round_type_id=round_type.id)
+                    for _ in range(3)
+                ],
+            ]
+        )
+        await db.commit()
+
+        for params, expected, total in [
+            ({"page": 1, "per_page": 1}, [(with_rounds.id, 2)], 2),
+            ({"page": 2, "per_page": 1}, [(without_rounds.id, 0)], 2),
+            ({"page": 3, "per_page": 1}, [], 2),
+            ({"source": "LinkedIn", "per_page": 1}, [(with_rounds.id, 2)], 1),
+        ]:
+            response = await client.get(
+                "/api/applications", params=params, headers=auth_headers
+            )
+            assert response.status_code == 200, response.text
+            data = response.json()
+            assert data["total"] == total
+            assert data["page"] == params.get("page", 1)
+            assert data["per_page"] == 1
+            assert [
+                (item["id"], item["round_count"]) for item in data["items"]
+            ] == expected
+            assert all("rounds" not in item for item in data["items"])
 
     async def test_list_applications_source_filter(
         self,
@@ -714,6 +797,9 @@ class TestJobLeadConversion:
 
         result = await db.execute(select(JobLead).where(JobLead.id == test_job_lead.id))
         refreshed_lead = result.scalar_one()
+        await db.refresh(
+            refreshed_lead
+        )  # CAS writes bypass ORM identity-map synchronization.
         assert refreshed_lead.converted_to_application_id == application["id"]
         assert refreshed_lead.status == "converted"
 
@@ -860,7 +946,9 @@ class TestReferenceDataValidation:
         await db.refresh(other_user)
 
         # Create auth headers for other user
-        token = create_access_token({"sub": other_user.id})
+        token = create_access_token(
+            {"sub": other_user.id, "session_version": other_user.session_version}
+        )
         headers = {"Authorization": f"Bearer {token}"}
 
         # Try to access the first user's job lead
@@ -955,8 +1043,9 @@ class TestJobLeadsCreate:
 
         assert response.status_code == 201
         data = response.json()
-        assert data["title"] == "JWT Job"
-        assert data["company"] == "JWT Company"
+        assert data["title"] is None and data["company"] is None
+        assert data["source_text"] == "JWT-authenticated extraction source text"
+        mock_extract.assert_not_awaited()
 
     async def test_create_job_lead_with_x_api_key(
         self,
@@ -1003,7 +1092,9 @@ class TestJobLeadsCreate:
 
         assert response.status_code == 201
         data = response.json()
-        assert data["title"] == "API Key Job"
+        assert data["title"] is None
+        assert "Job" in data["source_text"]
+        mock_extract.assert_not_awaited()
 
     async def test_create_job_lead_duplicate_url(
         self,
@@ -1033,73 +1124,6 @@ class TestJobLeadsCreate:
         error = response.json()["detail"]
         assert error["code"] == "DUPLICATE_RESOURCE"
         assert "already" in error["message"].lower()
-
-    async def test_create_job_lead_duplicate_url_commit_race_returns_409(
-        self,
-        client: AsyncClient,
-        user_with_api_token: User,
-        monkeypatch: pytest.MonkeyPatch,
-    ):
-        """Test that commit-time duplicate races still return 409."""
-        headers = {"X-API-Key": user_with_api_token.api_token}
-
-        integrity_error = IntegrityError(
-            statement="INSERT INTO job_leads ...",
-            params={},
-            orig=Exception(
-                'duplicate key value violates unique constraint "uq_job_leads_user_url"'
-            ),
-        )
-
-        async def fail_commit():
-            raise integrity_error
-
-        async def noop_rollback():
-            return None
-
-        from app.core.database import get_db
-
-        override = app.dependency_overrides[get_db]
-        async for session in override():
-            monkeypatch.setattr(session, "commit", fail_commit)
-            monkeypatch.setattr(session, "rollback", noop_rollback)
-            break
-
-        with patch("app.api.job_leads.extract_job_data") as mock_extract:
-            from app.schemas.job_lead import JobLeadExtractionInput
-
-            mock_extract.return_value = JobLeadExtractionInput(
-                title="Race Job",
-                company="Race Co",
-                description=None,
-                location=None,
-                salary_min=None,
-                salary_max=None,
-                salary_currency=None,
-                recruiter_name=None,
-                recruiter_title=None,
-                recruiter_linkedin_url=None,
-                years_experience_min=None,
-                years_experience_max=None,
-                source=None,
-                posted_date=None,
-                requirements_must_have=[],
-                requirements_nice_to_have=[],
-                skills=[],
-            )
-
-            response = await client.post(
-                "/api/job-leads",
-                headers=headers,
-                json={
-                    "url": "https://example.com/job/race-check",
-                    "html": "<html><body><h1>Job</h1></body></html>",
-                },
-            )
-
-        assert response.status_code == 409
-        error = response.json()["detail"]
-        assert error["code"] == "DUPLICATE_RESOURCE"
 
     async def test_create_job_lead_with_html_content(
         self,
@@ -1142,10 +1166,8 @@ class TestJobLeadsCreate:
             )
 
         assert response.status_code == 201
-        # Verify extract_job_data was called with the HTML content
-        mock_extract.assert_called_once()
-        call_kwargs = mock_extract.call_args.kwargs
-        assert "Job Title" in call_kwargs["html"]  # HTML is passed as keyword arg
+        mock_extract.assert_not_called()
+        assert "Job Title" in response.json()["source_text"]
 
 
 class TestJobLeadsDelete:
@@ -1225,6 +1247,14 @@ class TestJobLeadsRetry:
     ):
         """Test successfully retrying a failed job lead."""
         with (
+            patch(
+                "app.api.job_leads.get_ai_settings",
+                AsyncMock(
+                    return_value=AISettingsState(
+                        model="synthetic", api_key="synthetic-key", base_url=None
+                    )
+                ),
+            ),
             patch("app.api.job_leads.fetch_job_posting_html") as mock_fetch,
             patch("app.api.job_leads.extract_job_data") as mock_extract,
         ):
@@ -1266,7 +1296,8 @@ class TestJobLeadsRetry:
         await_args = mock_extract.await_args
         assert await_args is not None
         assert await_args.args == ()
-        assert await_args.kwargs["html"] == "<html><body>Job content</body></html>"
+        assert await_args.kwargs["text"] == "Job content"
+        assert await_args.kwargs["retry_invalid_response"] is False
         assert await_args.kwargs["url"] == failed_job_lead.url
 
     async def test_retry_job_lead_returns_400_for_value_errors(
@@ -1277,6 +1308,14 @@ class TestJobLeadsRetry:
         db: AsyncSession,
     ):
         with (
+            patch(
+                "app.api.job_leads.get_ai_settings",
+                AsyncMock(
+                    return_value=AISettingsState(
+                        model="synthetic", api_key="synthetic-key", base_url=None
+                    )
+                ),
+            ),
             patch("app.api.job_leads.fetch_job_posting_html") as mock_fetch,
             patch("app.api.job_leads.extract_job_data") as mock_extract,
         ):
@@ -1289,12 +1328,13 @@ class TestJobLeadsRetry:
             )
 
         assert response.status_code == 400
-        assert response.json()["detail"] == "Invalid extracted payload"
+        assert response.json()["detail"]["id"] == failed_job_lead.id
 
         await db.refresh(failed_job_lead)
         assert failed_job_lead.status == "failed"
         assert (
-            failed_job_lead.error_message == "Retry failed: Invalid extracted payload"
+            "saved source and manual edits are retained"
+            in failed_job_lead.error_message
         )
 
 
@@ -1617,11 +1657,11 @@ class TestAdminAISettingsGet:
         data = response.json()
         # Key should be masked, showing only last 4 chars
         assert data["litellm_api_key_masked"] is not None
-        assert data["litellm_api_key_masked"].endswith("1234")
+        assert data["litellm_api_key_masked"] == "****"
         # The full key should NOT be visible
         assert test_api_key not in data["litellm_api_key_masked"]
         # Check the masking format (...last4)
-        assert "..." in data["litellm_api_key_masked"]
+        assert "1234" not in data["litellm_api_key_masked"]
 
 
 class TestAdminAISettingsUpdate:
@@ -1667,7 +1707,7 @@ class TestAdminAISettingsUpdate:
 
         data = response.json()
         assert data["litellm_model"] == "gpt-4o"
-        assert data["litellm_base_url"] == "https://api.openai.com/v1"
+        assert data["litellm_base_url"] is None
         # API key should be masked in response
         assert data["litellm_api_key_masked"] is not None
         assert "sk-test-api-key" not in data["litellm_api_key_masked"]
@@ -1699,7 +1739,7 @@ class TestAdminAISettingsUpdate:
 
         data = response.json()
         assert data["litellm_model"] == "claude-3-sonnet"
-        assert data["litellm_api_key_masked"] == "...1234"
+        assert data["litellm_api_key_masked"] == "****"
         assert data["is_configured"] is True
 
     async def test_update_ai_settings_empty_model_validation(
@@ -1730,7 +1770,9 @@ class TestAuthenticationMethods:
         test_user: User,
     ):
         """Test authentication with JWT Bearer token."""
-        token = create_access_token({"sub": test_user.id})
+        token = create_access_token(
+            {"sub": test_user.id, "session_version": test_user.session_version}
+        )
         headers = {"Authorization": f"Bearer {token}"}
 
         response = await client.get("/api/profile", headers=headers)
@@ -1835,7 +1877,9 @@ class TestAuthenticationMethods:
         await db.commit()
         await db.refresh(disabled_user)
 
-        token = create_access_token({"sub": disabled_user.id})
+        token = create_access_token(
+            {"sub": disabled_user.id, "session_version": disabled_user.session_version}
+        )
         headers = {"Authorization": f"Bearer {token}"}
 
         response = await client.get("/api/profile", headers=headers)
@@ -1964,3 +2008,124 @@ class TestCorsPolicy:
             response.headers.get("access-control-allow-origin")
             == "chrome-extension://abcdefghijklmnop"
         )
+
+
+@pytest.fixture
+async def denied_job_network(monkeypatch):
+    """All caller checks use fake DNS; any attempted socket transport fails the test."""
+    import asyncio
+
+    import httpx
+
+    dns = AsyncMock(side_effect=AssertionError("Unexpected job DNS lookup"))
+    transport = AsyncMock(side_effect=AssertionError("Unexpected job network request"))
+    monkeypatch.setattr(asyncio.get_running_loop(), "getaddrinfo", dns)
+    monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", transport)
+    return dns, transport
+
+
+@pytest.mark.parametrize("caller", ["application", "lead", "retry"])
+async def test_job_fetch_callers_enforce_resolved_destination(
+    client, db, auth_headers, test_user, failed_job_lead, denied_job_network, caller
+):
+    import socket
+
+    dns, transport = denied_job_network
+    dns.side_effect = None
+    dns.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443))]
+    status = ApplicationStatus(
+        name="Applied", color="#83a598", user_id=test_user.id, order=1
+    )
+    db.add(status)
+    await db.commit()
+    if caller == "application":
+        path = "/api/applications/extract"
+        data = {"url": "https://jobs.example/open", "status_id": status.id}
+    elif caller == "lead":
+        saved = await client.post(
+            "/api/job-leads",
+            headers=auth_headers,
+            json={"url": "https://jobs.example/open"},
+        )
+        assert saved.status_code == 201
+        path = f"/api/job-leads/{saved.json()['id']}/extract"
+        data = {"expected_revision": 0}
+    else:
+        path = f"/api/job-leads/{failed_job_lead.id}/retry"
+        data = None
+    with (
+        patch(
+            "app.api.applications.extract_job_data", new_callable=AsyncMock
+        ) as application_extract,
+        patch(
+            "app.api.job_leads.extract_job_data", new_callable=AsyncMock
+        ) as lead_extract,
+    ):
+        response = await client.post(path, headers=auth_headers, json=data)
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert "public" in (detail if caller == "application" else detail["detail"])
+    dns.assert_awaited_once()
+    transport.assert_not_awaited()
+    application_extract.assert_not_awaited()
+    lead_extract.assert_not_awaited()
+    await db.refresh(failed_job_lead)
+    assert failed_job_lead.status == "failed"
+    if caller == "retry":
+        assert (
+            "saved source and manual edits are retained"
+            in failed_job_lead.error_message
+        )
+    else:
+        assert failed_job_lead.error_message == "Extraction failed"
+
+
+@pytest.mark.parametrize(
+    ("caller", "content_field"),
+    [("application", "text"), ("lead", "text"), ("lead", "html")],
+)
+async def test_supplied_job_content_does_not_fetch(
+    client, db, auth_headers, test_user, denied_job_network, caller, content_field
+):
+    from app.schemas.job_lead import JobLeadExtractionInput
+
+    dns, transport = denied_job_network
+    status = ApplicationStatus(
+        name="Applied", color="#83a598", user_id=test_user.id, order=1
+    )
+    db.add(status)
+    await db.commit()
+    module = "app.api.applications" if caller == "application" else "app.api.job_leads"
+    path = "/api/applications/extract" if caller == "application" else "/api/job-leads"
+    data = {"url": "https://jobs.example/open", content_field: "Supplied job content"}
+    if caller == "application":
+        data["status_id"] = status.id
+    with (
+        patch(
+            f"{module}.get_ai_settings",
+            AsyncMock(
+                return_value=AISettingsState(
+                    model="synthetic", api_key="synthetic-key", base_url=None
+                )
+            ),
+        ),
+        patch(
+            f"{module}.extract_job_data",
+            AsyncMock(
+                return_value=JobLeadExtractionInput.model_validate(
+                    {"title": "Job", "company": "Company"}
+                )
+            ),
+        ) as extract,
+    ):
+        response = await client.post(path, headers=auth_headers, json=data)
+    assert response.status_code == 201
+    dns.assert_not_awaited()
+    transport.assert_not_awaited()
+    if caller == "application":
+        extract.assert_awaited_once()
+        assert extract.await_args is not None
+        assert extract.await_args.kwargs[content_field] == "Supplied job content"
+    else:
+        extract.assert_not_awaited()
+        assert response.json()["source_text"] == "Supplied job content"

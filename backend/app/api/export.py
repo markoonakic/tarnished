@@ -14,7 +14,11 @@ from starlette.background import BackgroundTask
 from app.api.utils.zip_utils import create_zip_export_file
 from app.core.config import get_settings
 from app.core.database import async_session_maker, get_db
-from app.core.deps import get_current_user, require_api_key_scope
+from app.core.deps import (
+    get_current_user,
+    require_api_key_scope,
+    require_api_key_scopes,
+)
 from app.models import Application, ApplicationStatusHistory, Round, User
 from app.services.export_registry import default_registry
 from app.services.export_service import ExportService
@@ -49,9 +53,7 @@ def _sanitize_csv_value(value: str | None) -> str:
 def _run_export_user_data(sync_session: Session, user_id: str) -> dict:
     """Synchronous helper to run the export service."""
     export_service = ExportService(registry=default_registry)
-    return export_service.export_user_data(
-        user_id=user_id, session=sync_session, include_media_paths=True
-    )
+    return export_service.export_user_data(user_id=user_id, session=sync_session)
 
 
 async def process_export_zip_job(*, job_id: str, user_id: str, user_email: str) -> None:
@@ -111,7 +113,9 @@ async def process_export_zip_job(*, job_id: str, user_id: str, user_email: str) 
 async def start_export_zip_job(
     background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
-    _: object = Depends(require_api_key_scope("export:read")),
+    _: object = Depends(
+        require_api_key_scopes("export:read", "files:read", "profile:read")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     job = await create_transfer_job(
@@ -136,7 +140,9 @@ async def start_export_zip_job(
 async def get_export_zip_job(
     job_id: str,
     user: User = Depends(get_current_user),
-    _: object = Depends(require_api_key_scope("export:read")),
+    _: object = Depends(
+        require_api_key_scopes("export:read", "files:read", "profile:read")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     job = await get_transfer_job_for_user(db, job_id=job_id, user_id=str(user.id))
@@ -149,7 +155,9 @@ async def get_export_zip_job(
 async def download_export_zip_job(
     job_id: str,
     user: User = Depends(get_current_user),
-    _: object = Depends(require_api_key_scope("export:read")),
+    _: object = Depends(
+        require_api_key_scopes("export:read", "files:read", "profile:read")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     job = await get_transfer_job_for_user(db, job_id=job_id, user_id=str(user.id))
@@ -173,7 +181,9 @@ async def download_export_zip_job(
 @router.get("/json")
 async def export_json(
     user: User = Depends(get_current_user),
-    _: object = Depends(require_api_key_scope("export:read")),
+    _: object = Depends(
+        require_api_key_scopes("export:read", "files:read", "profile:read")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     """Export all user data as JSON using the introspective export service."""
@@ -236,158 +246,47 @@ async def export_csv(
     )
 
     for app in applications:
-        # Determine if we have rounds and/or status history
-        has_rounds = bool(app.rounds)
-        has_status_history = bool(app.status_history)
-
-        # Prepare status history data for this application
-        status_history_entries = []
-        for h in app.status_history:
-            from_status = h.from_status.name if h.from_status else "None"
-            to_status = h.to_status.name if h.to_status else "Unknown"
-            status_history_entries.append(
-                {
-                    "from_to": f"{from_status} -> {to_status}",
-                    "changed_at": str(h.changed_at),
-                    "note": h.note or "",
-                }
-            )
-
-        if not has_rounds and not has_status_history:
-            # Write a row for the application with no rounds and no status history
-            writer.writerow(
+        base = [
+            app.company,
+            app.job_title,
+            app.status.name,
+            str(app.applied_at),
+            app.job_url,
+            app.cv_path,
+        ]
+        history_rows = []
+        for entry in app.status_history:
+            from_status = entry.from_status.name if entry.from_status else "None"
+            to_status = entry.to_status.name if entry.to_status else "Unknown"
+            history_rows.append(
                 [
-                    _sanitize_csv_value(app.company),
-                    _sanitize_csv_value(app.job_title),
-                    _sanitize_csv_value(app.status.name),
-                    str(app.applied_at),
-                    _sanitize_csv_value(app.job_url),
-                    _sanitize_csv_value(app.cv_path),
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
+                    "Evidence gap" if entry.is_gap else f"{from_status} -> {to_status}",
+                    str(entry.changed_at),
+                    entry.note,
                 ]
             )
-        elif not has_rounds and has_status_history:
-            # Write rows for status history entries without rounds
-            for entry in status_history_entries:
-                writer.writerow(
-                    [
-                        _sanitize_csv_value(app.company),
-                        _sanitize_csv_value(app.job_title),
-                        _sanitize_csv_value(app.status.name),
-                        str(app.applied_at),
-                        _sanitize_csv_value(app.job_url),
-                        _sanitize_csv_value(app.cv_path),
-                        _sanitize_csv_value(entry["from_to"]),
-                        entry["changed_at"],
-                        _sanitize_csv_value(entry["note"]),
-                        "",
-                        "",
-                        "",
-                        "",
-                    ]
-                )
-        else:
-            # We have rounds - write a row for each round
-            for round in app.rounds:
-                # Build media info string
-                media_info = (
-                    "; ".join([f"{m.media_type}:{m.file_path}" for m in round.media])
-                    if round.media
-                    else ""
-                )
-
-                # Determine round status
-                round_status = (
-                    "Completed"
-                    if round.completed_at
-                    else "Scheduled"
-                    if round.scheduled_at
-                    else "Pending"
-                )
-
-                # Include status history info on first round row only
-                if has_status_history and round == app.rounds[0]:
-                    # Write a row for each status history entry with the first round
-                    for i, entry in enumerate(status_history_entries):
-                        is_first_status_entry = i == 0
-                        writer.writerow(
-                            [
-                                _sanitize_csv_value(app.company),
-                                _sanitize_csv_value(app.job_title),
-                                _sanitize_csv_value(app.status.name),
-                                str(app.applied_at),
-                                _sanitize_csv_value(app.job_url),
-                                _sanitize_csv_value(app.cv_path),
-                                _sanitize_csv_value(entry["from_to"]),
-                                entry["changed_at"],
-                                _sanitize_csv_value(entry["note"]),
-                                _sanitize_csv_value(
-                                    round.round_type.name if round.round_type else None
-                                )
-                                if is_first_status_entry
-                                else "",
-                                round_status if is_first_status_entry else "",
-                                _sanitize_csv_value(round.outcome)
-                                if is_first_status_entry
-                                else "",
-                                _sanitize_csv_value(round.notes_summary)
-                                if is_first_status_entry
-                                else "",
-                                _sanitize_csv_value(media_info)
-                                if is_first_status_entry
-                                else "",
-                            ]
-                        )
-                elif not has_status_history:
-                    # No status history, just write round row
-                    writer.writerow(
-                        [
-                            _sanitize_csv_value(app.company),
-                            _sanitize_csv_value(app.job_title),
-                            _sanitize_csv_value(app.status.name),
-                            str(app.applied_at),
-                            _sanitize_csv_value(app.job_url),
-                            _sanitize_csv_value(app.cv_path),
-                            "",
-                            "",
-                            "",
-                            _sanitize_csv_value(
-                                round.round_type.name if round.round_type else None
-                            ),
-                            round_status,
-                            _sanitize_csv_value(round.outcome),
-                            _sanitize_csv_value(round.notes_summary),
-                            _sanitize_csv_value(media_info),
-                        ]
-                    )
-                else:
-                    # Additional rounds without status history (already written above)
-                    writer.writerow(
-                        [
-                            _sanitize_csv_value(app.company),
-                            _sanitize_csv_value(app.job_title),
-                            _sanitize_csv_value(app.status.name),
-                            str(app.applied_at),
-                            _sanitize_csv_value(app.job_url),
-                            _sanitize_csv_value(app.cv_path),
-                            "",
-                            "",
-                            "",
-                            _sanitize_csv_value(
-                                round.round_type.name if round.round_type else None
-                            ),
-                            round_status,
-                            _sanitize_csv_value(round.outcome),
-                            _sanitize_csv_value(round.notes_summary),
-                            _sanitize_csv_value(media_info),
-                        ]
-                    )
+        round_rows = [
+            [
+                round.round_type.name if round.round_type else None,
+                "Completed"
+                if round.completed_at
+                else "Scheduled"
+                if round.scheduled_at
+                else "Pending",
+                round.outcome,
+                round.notes_summary,
+                "; ".join(
+                    f"{media.media_type}:{media.file_path}" for media in round.media
+                ),
+            ]
+            for round in app.rounds
+        ]
+        # Show each history entry and each round once, sharing the first row.
+        for index, history in enumerate(history_rows or [[""] * 3]):
+            round_values = round_rows[0] if index == 0 and round_rows else [""] * 5
+            writer.writerow(map(_sanitize_csv_value, base + history + round_values))
+        for round_values in round_rows[1:]:
+            writer.writerow(map(_sanitize_csv_value, base + [""] * 3 + round_values))
 
     output.seek(0)
     return StreamingResponse(
@@ -400,7 +299,9 @@ async def export_csv(
 @router.get("/zip")
 async def export_zip(
     user: User = Depends(get_current_user),
-    _: object = Depends(require_api_key_scope("export:read")),
+    _: object = Depends(
+        require_api_key_scopes("export:read", "files:read", "profile:read")
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     """Export all data as a ZIP file containing JSON and media files."""
@@ -416,9 +317,15 @@ async def export_zip(
     settings = get_settings()
 
     # Create ZIP with all media files on disk so FileResponse can stream it.
-    zip_path = await create_zip_export_file(
-        json_data, str(user.id), settings.upload_dir, user_email=user.email
-    )
+    try:
+        zip_path = await create_zip_export_file(
+            json_data, str(user.id), settings.upload_dir, user_email=user.email
+        )
+    except (OSError, ValueError):
+        raise HTTPException(
+            409,
+            "Archive could not be completed because an attached file is missing, changed or storage is unavailable. Restore or explicitly remove the unavailable attachment and retry",
+        ) from None
 
     filename = f"tarnished-export-{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip"
     return FileResponse(

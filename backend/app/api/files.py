@@ -10,8 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import resolve_upload_path
 from app.core.database import get_db
 from app.core.deps import (
-    get_current_user,
-    get_current_user_optional_flexible,
+    AuthContext,
+    check_api_key_scope,
+    get_current_auth_context_optional,
     require_api_key_scope,
 )
 from app.core.security import (
@@ -22,7 +23,7 @@ from app.core.security import (
     decode_media_token,
     decode_round_transcript_token,
 )
-from app.models import Application, Round, RoundMedia, User
+from app.models import Application, Round, RoundMedia, User, UserAPIKey
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 
@@ -32,13 +33,52 @@ class SignedUrlResponse(BaseModel):
     expires_in: int
 
 
+def _get_file_header_user_id(auth: AuthContext | None) -> str | None:
+    if auth is None:
+        return None
+    check_api_key_scope(auth, "files:read")
+    return str(auth.user.id)
+
+
+async def _get_grant_user_id(db: AsyncSession, payload: dict) -> str | None:
+    user_id = payload.get("user_id")
+    version = payload.get("session_version")
+    if (
+        type(user_id) is not str
+        or type(version) is not int
+        or type(payload.get("exp")) is not int
+    ):
+        return None
+    user = await db.scalar(
+        select(User).where(User.id == user_id).execution_options(populate_existing=True)
+    )
+    if user is None or not user.is_active or user.session_version != version:
+        return None
+    key_id = payload.get("api_key_id")
+    if key_id is not None:
+        if type(key_id) is not str:
+            return None
+        key = await db.scalar(
+            select(UserAPIKey)
+            .where(UserAPIKey.id == key_id)
+            .execution_options(populate_existing=True)
+        )
+        if (
+            key is None
+            or key.user_id != user_id
+            or key.revoked_at is not None
+            or "files:read" not in key.scopes
+        ):
+            return None
+    return user_id
+
+
 # Media endpoints (must be before generic {application_id}/{doc_type} routes)
 @router.get("/media/{media_id}/signed", response_model=SignedUrlResponse)
 async def get_media_signed_url(
     media_id: str,
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
-    user: User = Depends(get_current_user),
-    _: object = Depends(require_api_key_scope("files:read")),
+    auth: AuthContext = Depends(require_api_key_scope("files:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a signed URL for media file access."""
@@ -46,14 +86,19 @@ async def get_media_signed_url(
         select(RoundMedia)
         .join(Round)
         .join(Application)
-        .where(RoundMedia.id == media_id, Application.user_id == user.id)
+        .where(RoundMedia.id == media_id, Application.user_id == auth.user.id)
     )
     media = result.scalars().first()
 
     if not media:
         raise HTTPException(status_code=404, detail="Media not found")
 
-    token = create_media_token(media_id, str(user.id))
+    token = create_media_token(
+        media_id,
+        auth.user.id,
+        auth.user.session_version,
+        auth.api_key.id if auth.api_key else None,
+    )
     url = f"/api/files/media/{media_id}?token={token}&disposition={disposition}"
 
     return SignedUrlResponse(url=url, expires_in=300)
@@ -64,7 +109,7 @@ async def get_media_file(
     media_id: str,
     token: str | None = Query(None),
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
-    user: User | None = Depends(get_current_user_optional_flexible),  # type: ignore[assignment]
+    auth: AuthContext | None = Depends(get_current_auth_context_optional),
     db: AsyncSession = Depends(get_db),
 ):
     """Serve a media file. Accepts either auth header or signed token."""
@@ -76,11 +121,11 @@ async def get_media_file(
         if payload:
             if payload.get("media_id") != media_id:
                 raise HTTPException(status_code=403, detail="Token mismatch")
-            user_id = payload.get("user_id")
+            user_id = await _get_grant_user_id(db, payload)
 
     # Fall back to header-based auth
-    if not user_id and user:
-        user_id = str(user.id)
+    if not user_id:
+        user_id = _get_file_header_user_id(auth)
 
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -118,19 +163,17 @@ async def get_media_file(
     # Use original filename if available, otherwise fall back to hash-based name
     filename = media.original_filename or os.path.basename(file_path)
 
-    if disposition == "attachment":
-        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
-        # Force octet-stream for PDF attachments to prevent Firefox from opening in tab
-        # This works around Firefox Bug 453455 where user PDF preferences override Content-Disposition
-        if media_type == "application/pdf":
-            media_type = "application/octet-stream"
-    else:
-        headers = {"Content-Disposition": f'inline; filename="{filename}"'}
-
+    if media.validation != "audio_decode_check":
+        # Archive/legacy labels are not a local decoder result. Falsely labelled
+        # HTML must never gain same-origin inline rendering.
+        disposition = "attachment"
+        media_type = "application/octet-stream"
     return FileResponse(
         file_path,
         media_type=media_type,
-        headers=headers,
+        filename=filename,
+        content_disposition_type=disposition,
+        headers={"X-Content-Type-Options": "nosniff"},
     )
 
 
@@ -139,22 +182,26 @@ async def get_media_file(
 async def get_round_transcript_signed_url(
     round_id: str,
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
-    user: User = Depends(get_current_user),
-    _: object = Depends(require_api_key_scope("files:read")),
+    auth: AuthContext = Depends(require_api_key_scope("files:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a signed URL for round transcript access."""
     result = await db.execute(
         select(Round)
         .join(Application)
-        .where(Round.id == round_id, Application.user_id == user.id)
+        .where(Round.id == round_id, Application.user_id == auth.user.id)
     )
     round_obj = result.scalars().first()
 
     if not round_obj or not round_obj.transcript_path:
         raise HTTPException(status_code=404, detail="Transcript not found")
 
-    token = create_round_transcript_token(round_id, str(user.id))
+    token = create_round_transcript_token(
+        round_id,
+        auth.user.id,
+        auth.user.session_version,
+        auth.api_key.id if auth.api_key else None,
+    )
     url = f"/api/files/rounds/{round_id}/transcript?token={token}&disposition={disposition}"
 
     return SignedUrlResponse(url=url, expires_in=300)
@@ -165,7 +212,7 @@ async def get_round_transcript_file(
     round_id: str,
     token: str | None = Query(None),
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
-    user: User | None = Depends(get_current_user_optional_flexible),  # type: ignore[assignment]
+    auth: AuthContext | None = Depends(get_current_auth_context_optional),
     db: AsyncSession = Depends(get_db),
 ):
     """Serve a round transcript file. Accepts either auth header or signed token."""
@@ -177,11 +224,11 @@ async def get_round_transcript_file(
         if payload:
             if payload.get("round_id") != round_id:
                 raise HTTPException(status_code=403, detail="Token mismatch")
-            user_id = payload.get("user_id")
+            user_id = await _get_grant_user_id(db, payload)
 
     # Fall back to header-based auth
-    if not user_id and user:
-        user_id = str(user.id)
+    if not user_id:
+        user_id = _get_file_header_user_id(auth)
 
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -209,19 +256,20 @@ async def get_round_transcript_file(
     if not media_type:
         media_type = "application/octet-stream"
 
+    if round_obj.current_transcript is not None:
+        media_type = "text/plain; charset=utf-8"
+
     filename = os.path.basename(file_path)
 
-    if disposition == "attachment":
-        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
-        if media_type == "application/pdf":
-            media_type = "application/octet-stream"
-    else:
-        headers = {"Content-Disposition": f'inline; filename="{filename}"'}
+    if disposition == "attachment" and media_type == "application/pdf":
+        media_type = "application/octet-stream"
 
     return FileResponse(
         file_path,
         media_type=media_type,
-        headers=headers,
+        filename=filename,
+        content_disposition_type=disposition,
+        headers={"X-Content-Type-Options": "nosniff"},
     )
 
 
@@ -231,8 +279,7 @@ async def get_signed_url(
     application_id: str,
     doc_type: str,
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
-    user: User = Depends(get_current_user),
-    _: object = Depends(require_api_key_scope("files:read")),
+    auth: AuthContext = Depends(require_api_key_scope("files:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a signed URL for file access."""
@@ -241,7 +288,7 @@ async def get_signed_url(
 
     result = await db.execute(
         select(Application).where(
-            Application.id == application_id, Application.user_id == user.id
+            Application.id == application_id, Application.user_id == auth.user.id
         )
     )
     application = result.scalars().first()
@@ -257,7 +304,13 @@ async def get_signed_url(
     if not path_map.get(doc_type):
         raise HTTPException(status_code=404, detail="File not found")
 
-    token = create_file_token(application_id, doc_type, str(user.id))
+    token = create_file_token(
+        application_id,
+        doc_type,
+        auth.user.id,
+        auth.user.session_version,
+        auth.api_key.id if auth.api_key else None,
+    )
     url = f"/api/files/{application_id}/{doc_type}?token={token}&disposition={disposition}"
 
     return SignedUrlResponse(url=url, expires_in=300)
@@ -269,7 +322,7 @@ async def get_file(
     doc_type: str,
     token: str | None = Query(None),
     disposition: str = Query("inline", pattern="^(inline|attachment)$"),
-    user: User | None = Depends(get_current_user_optional_flexible),  # type: ignore[assignment]
+    auth: AuthContext | None = Depends(get_current_auth_context_optional),
     db: AsyncSession = Depends(get_db),
 ):
     """Serve a file. Accepts either auth header or signed token."""
@@ -283,11 +336,11 @@ async def get_file(
                 raise HTTPException(status_code=403, detail="Token mismatch")
             if payload.get("doc_type") != doc_type:
                 raise HTTPException(status_code=403, detail="Token mismatch")
-            user_id = payload.get("user_id")
+            user_id = await _get_grant_user_id(db, payload)
 
     # Fall back to header-based auth
-    if not user_id and user:
-        user_id = str(user.id)
+    if not user_id:
+        user_id = _get_file_header_user_id(auth)
 
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -331,18 +384,14 @@ async def get_file(
     # Use original filename if available, otherwise fall back to hash-based name
     filename = original_filename_map.get(doc_type) or os.path.basename(file_path)
 
-    # Set content disposition
-    if disposition == "attachment":
-        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
-        # Force octet-stream for PDF attachments to prevent Firefox from opening in tab
-        # This works around Firefox Bug 453455 where user PDF preferences override Content-Disposition
-        if media_type == "application/pdf":
-            media_type = "application/octet-stream"
-    else:
-        headers = {"Content-Disposition": f'inline; filename="{filename}"'}
+    # Prevent browser PDF preferences from overriding attachment disposition.
+    if disposition == "attachment" and media_type == "application/pdf":
+        media_type = "application/octet-stream"
 
     return FileResponse(
         file_path,
         media_type=media_type,
-        headers=headers,
+        filename=filename,
+        content_disposition_type=disposition,
+        headers={"X-Content-Type-Options": "nosniff"},
     )

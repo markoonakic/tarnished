@@ -45,7 +45,9 @@ async def admin_user(db: AsyncSession) -> User:
 
 @pytest.fixture
 def auth_headers(test_user: User) -> dict[str, str]:
-    token = create_access_token({"sub": test_user.id})
+    token = create_access_token(
+        {"sub": test_user.id, "session_version": test_user.session_version}
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -503,3 +505,45 @@ class TestLegacyAPIKeyEndpoints:
         )
 
         assert response.status_code == 200
+
+
+async def test_admin_enrollment_requires_live_role_and_write_scope(
+    client, db, admin_user, test_user
+):
+    from app.services.accounts import update_account
+
+    raw = "synthetic-admin-enrollment-key"
+    key = UserAPIKey(
+        user_id=admin_user.id,
+        label="Admin writer",
+        key_prefix="synthetic",
+        key_hash=hash_api_key(raw),
+        scopes=["admin:read"],
+    )
+    db.add(key)
+    await db.commit()
+    headers = {"X-API-Key": raw}
+    body = {"email": "managed@example.com", "password": "managed synthetic password"}
+    assert (
+        await client.post("/api/admin/users", headers=headers, json=body)
+    ).status_code == 403
+    key.scopes = ["admin:write"]
+    await db.commit()
+    assert (
+        await client.post("/api/admin/users", headers=headers, json=body)
+    ).status_code == 201
+    # Session changes leave keys live, but cannot preserve old administrator role.
+    await update_account(db, admin_user.id, is_admin=False)
+    await db.commit()
+    assert (
+        await client.post(
+            "/api/admin/users",
+            headers=headers,
+            json={**body, "email": "denied@example.com"},
+        )
+    ).status_code == 403
+    key.user_id = test_user.id
+    await db.commit()
+    assert (
+        await client.post("/api/admin/users", headers=headers, json=body)
+    ).status_code == 403

@@ -1,33 +1,9 @@
-"""Job data extraction service.
-
-This service handles the extraction of structured job posting data from HTML content
-using the following pipeline:
-
-    HTML Input
-        |
-        v
-    Readability (extract main content)
-        |
-        v
-    Markdownify (convert to markdown)
-        |
-        v
-    LiteLLM (structured extraction with schema)
-        |
-        v
-    Pydantic validation
-        |
-        v
-    JobLeadExtractionInput
-
-The service supports multiple LLM providers through LiteLLM and handles
-various error conditions including timeouts, invalid responses, and
-cases where no job data can be found.
-"""
+"""Extract validated job data from page text or Readability-cleaned HTML."""
 
 import json
 import logging
 from typing import Any
+from uuid import uuid4
 
 import openai
 from litellm import completion
@@ -159,8 +135,8 @@ class NoJobFoundError(ExtractionError):
 
 
 # Size limits for HTML preprocessing
-MAX_HTML_SIZE = 100_000  # 100KB max input HTML size
-MAX_MARKDOWN_SIZE = 50_000  # 50KB max output markdown size
+MAX_HTML_SIZE = 100_000  # characters max input HTML size
+MAX_MARKDOWN_SIZE = 50_000  # characters max output markdown size
 
 
 def preprocess_html(html: str) -> str:
@@ -290,17 +266,17 @@ def _truncate_markdown(markdown: str, max_length: int) -> str:
 
     # Try to find a good break point (paragraph boundary)
     # Look for double newline before the max length
-    truncate_point = max_length
-    paragraph_break = markdown.rfind("\n\n", 0, max_length)
+    truncation_notice = "\n\n... [Content truncated due to size limit] ..."
+    budget = max(0, max_length - len(truncation_notice))
+    truncate_point = budget
+    paragraph_break = markdown.rfind("\n\n", 0, budget)
 
     if paragraph_break > max_length // 2:
         # Use paragraph break if it's in the latter half
         truncate_point = paragraph_break
 
     truncated = markdown[:truncate_point].rstrip()
-    truncation_notice = "\n\n... [Content truncated due to size limit] ..."
-
-    return truncated + truncation_notice
+    return (truncated + truncation_notice)[:max_length]
 
 
 def extract_with_llm(
@@ -310,6 +286,7 @@ def extract_with_llm(
     api_key: str | None = None,
     api_base: str | None = None,
     timeout: int = 60,
+    retry_invalid_response: bool = True,
 ) -> JobLeadExtractionInput:
     """Extract structured job data using LiteLLM.
 
@@ -348,8 +325,6 @@ def extract_with_llm(
 Job Posting Content:
 {content}"""
 
-    # Track retry state
-    is_retry = False
     messages = [
         {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
         {"role": "user", "content": user_message},
@@ -363,6 +338,8 @@ Job Posting Content:
         "messages": messages,
         "response_format": {"type": "json_object"},
         "timeout": timeout,
+        # One opaque context per extraction, also retained during JSON repair.
+        "extra_headers": {"x-opencode-session": str(uuid4())},
     }
 
     # Add API key and base URL if provided
@@ -380,8 +357,11 @@ Job Posting Content:
         )
 
     # Allow one retry for invalid JSON responses
-    max_attempts = 2
-    _last_parse_error: tuple[str, str] | None = None  # (error_message, raw_response)
+    max_attempts = 2 if retry_invalid_response else 1
+    if not retry_invalid_response:
+        # Disable LiteLLM/provider-adapter retries as well as our JSON repair.
+        completion_kwargs["num_retries"] = 0
+        completion_kwargs["max_retries"] = 0
 
     for attempt in range(max_attempts):
         try:
@@ -397,16 +377,10 @@ Job Posting Content:
                     details={"model": extraction_model, "url": url},
                 )
 
-            logger.debug(
-                f"Raw LLM response (attempt {attempt + 1}): {raw_content[:500]}..."
-            )
-
             # Parse the JSON response
             try:
                 parsed_data = json.loads(raw_content)
             except json.JSONDecodeError as e:
-                # Store error for potential retry
-                _last_parse_error = (str(e), raw_content)
                 if attempt < max_attempts - 1:
                     # Retry with correction prompt
                     logger.warning(
@@ -423,26 +397,16 @@ Job Posting Content:
                         {"role": "user", "content": correction_prompt},
                     ]
                     completion_kwargs["messages"] = messages
-                    is_retry = True
                     continue
-                else:
-                    # Final attempt failed
-                    raise ExtractionInvalidResponseError(
-                        f"Failed to parse LLM response as JSON after {max_attempts} attempts: {e}",
-                        details={
-                            "model": extraction_model,
-                            "url": url,
-                            "raw_response": raw_content[:1000],
-                            "attempts": max_attempts,
-                        },
-                    ) from e
+                raise ExtractionInvalidResponseError(
+                    f"Failed to parse LLM response as JSON after {max_attempts} attempts",
+                    details={"attempts": max_attempts},
+                ) from None
 
             # Validate and create the Pydantic model
             try:
                 job_data = JobLeadExtractionInput(**parsed_data)
             except Exception as e:
-                # Store error for potential retry
-                _last_parse_error = (str(e), raw_content)
                 if attempt < max_attempts - 1:
                     # Retry with correction prompt for schema validation errors
                     logger.warning(
@@ -459,77 +423,57 @@ Job Posting Content:
                         {"role": "user", "content": correction_prompt},
                     ]
                     completion_kwargs["messages"] = messages
-                    is_retry = True
                     continue
-                else:
-                    # Final attempt failed
-                    raise ExtractionInvalidResponseError(
-                        f"LLM response failed schema validation after {max_attempts} attempts: {e}",
-                        details={
-                            "model": extraction_model,
-                            "url": url,
-                            "parsed_data": parsed_data,
-                            "validation_error": str(e),
-                            "attempts": max_attempts,
-                        },
-                    ) from e
+                raise ExtractionInvalidResponseError(
+                    f"LLM response failed schema validation after {max_attempts} attempts",
+                    details={"attempts": max_attempts},
+                ) from None
 
             # Check if this appears to be an actual job posting
             # If both title and company are None, likely not a job posting
             if job_data.title is None and job_data.company is None:
                 raise NoJobFoundError(
                     "No job posting data could be extracted from the content",
-                    details={
-                        "url": url,
-                        "content_preview": content[:500],
-                    },
                 )
 
             # Override source with URL-derived source if not extracted
             if job_data.source is None:
                 job_data.source = _extract_source_from_url(url)
 
-            if is_retry:
-                logger.info(
-                    f"Successfully extracted job after retry: {job_data.title} at {job_data.company}"
-                )
-            else:
-                logger.info(
-                    f"Successfully extracted job: {job_data.title} at {job_data.company}"
-                )
+            logger.info("Job extraction completed after %s attempt(s)", attempt + 1)
             return job_data
 
-        except openai.APITimeoutError as e:
-            logger.error(f"LLM request timed out: {e}")
+        except openai.APITimeoutError:
+            logger.error("LLM request timed out")
             raise ExtractionTimeoutError(
                 f"LLM request timed out after {timeout} seconds",
                 details={"model": extraction_model, "url": url, "timeout": timeout},
-            ) from e
+            ) from None
 
-        except openai.AuthenticationError as e:
-            logger.error(f"LLM authentication error: {e}")
+        except openai.AuthenticationError:
+            logger.error("LLM authentication error")
             raise ExtractionAuthError(
                 "AI API key is invalid or expired. Please check your API key in Settings.",
                 details={"model": extraction_model, "url": url},
-            ) from e
+            ) from None
 
-        except openai.RateLimitError as e:
-            logger.error(f"LLM rate limit error: {e}")
+        except openai.RateLimitError:
+            logger.error("LLM rate limit error")
             raise ExtractionTimeoutError(
                 "AI service is rate limited. Please wait a moment and try again.",
                 details={"model": extraction_model, "url": url},
-            ) from e
+            ) from None
 
         except openai.APIError as e:
-            logger.error(f"LLM API error: {e}")
+            logger.error("LLM API error")
             raise ExtractionInvalidResponseError(
-                f"LLM API error: {e}",
+                "LLM API error. Ask an administrator to check the text configuration.",
                 details={
                     "model": extraction_model,
                     "url": url,
                     "error_type": type(e).__name__,
                 },
-            ) from e
+            ) from None
 
         except (
             ExtractionTimeoutError,
@@ -541,15 +485,15 @@ Job Posting Content:
             raise
 
         except Exception as e:
-            logger.error(f"Unexpected error during LLM extraction: {e}")
+            logger.error("Unexpected error during LLM extraction")
             raise ExtractionInvalidResponseError(
-                f"Unexpected error during extraction: {e}",
+                "Unexpected text service error. Ask an administrator to check the configuration.",
                 details={
                     "model": extraction_model,
                     "url": url,
                     "error_type": type(e).__name__,
                 },
-            ) from e
+            ) from None
 
     # This should never be reached, but satisfy the type checker
     raise ExtractionInvalidResponseError(
@@ -565,6 +509,7 @@ async def extract_with_llm_async(
     api_key: str | None = None,
     api_base: str | None = None,
     timeout: int = 60,
+    retry_invalid_response: bool = True,
 ) -> JobLeadExtractionInput:
     """Run blocking LLM extraction off the event loop."""
     return await run_in_threadpool(
@@ -575,6 +520,7 @@ async def extract_with_llm_async(
         api_key,
         api_base,
         timeout,
+        retry_invalid_response,
     )
 
 
@@ -586,6 +532,7 @@ async def extract_job_data(
     api_key: str | None = None,
     api_base: str | None = None,
     timeout: int = 60,
+    retry_invalid_response: bool = True,
 ) -> JobLeadExtractionInput:
     """Main entry point for job data extraction.
 
@@ -622,7 +569,7 @@ async def extract_job_data(
         job_data = await extract_job_data(html=html, url=url)
         ```
     """
-    logger.info(f"Starting extraction for URL: {url}")
+    logger.info("Starting requested job extraction")
 
     # Determine content to use
     content: str
@@ -652,7 +599,8 @@ async def extract_job_data(
         api_key=api_key,
         api_base=api_base,
         timeout=timeout,
+        retry_invalid_response=retry_invalid_response,
     )
 
-    logger.info(f"Successfully extracted job: {job_data.title} at {job_data.company}")
+    logger.info("Job extraction completed")
     return job_data

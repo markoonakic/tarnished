@@ -2,8 +2,8 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.deps import get_current_admin, require_api_key_scope
@@ -18,7 +18,8 @@ from app.schemas.admin import (
     AdminUserResponse,
     AdminUserUpdate,
 )
-from app.schemas.application import ApplicationListResponse
+from app.services.accounts import update_account
+from app.services.import_execution import clear_existing_import_data
 from app.services.reference_data import (
     find_global_round_type_by_name,
     find_global_status_by_name,
@@ -111,16 +112,10 @@ async def update_user(
 
     update_data = data.model_dump(exclude_unset=True)
 
-    # Handle password separately (needs hashing)
-    if "password" in update_data and update_data["password"]:
-        user.password_hash = get_password_hash(update_data["password"])
-        del update_data["password"]  # Remove so setattr doesn't try to set it
-
-    # Update other fields normally
-    for key, value in update_data.items():
-        setattr(user, key, value)
-
+    if update_data and not await update_account(db, user_id, **update_data):
+        raise HTTPException(status_code=404, detail="User not found")
     await db.commit()
+    await db.refresh(user)
 
     count_result = await db.execute(
         select(func.count(Application.id)).where(Application.user_id == user_id)
@@ -196,8 +191,17 @@ async def delete_user(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-    await db.delete(user)
-    await db.commit()
+    try:
+        # Reuse the owner-scoped workspace clearing order, including converted leads.
+        # CAS blobs remain for reference-aware maintenance, never unlinked here.
+        await clear_existing_import_data(db, user_id)
+        await db.delete(user)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=409, detail="User workspace has dependent records"
+        ) from None
 
 
 @router.get("/stats", response_model=AdminStatsResponse)
@@ -227,33 +231,6 @@ async def get_stats(
     )
 
 
-@router.get("/applications", response_model=ApplicationListResponse)
-async def list_all_applications(
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
-    _: User = Depends(get_current_admin),
-    __: object = Depends(require_api_key_scope("admin:read")),
-    db: AsyncSession = Depends(get_db),
-):
-    query = select(Application).options(selectinload(Application.status))
-
-    count_result = await db.execute(select(func.count(Application.id)))
-    total = count_result.scalar() or 0
-
-    query = query.order_by(Application.applied_at.desc())
-    query = query.offset((page - 1) * per_page).limit(per_page)
-
-    result = await db.execute(query)
-    applications = result.scalars().all()
-
-    return ApplicationListResponse(
-        items=applications,  # type: ignore[arg-type]
-        total=total,
-        page=page,
-        per_page=per_page,
-    )
-
-
 @router.patch("/statuses/{status_id}")
 async def update_default_status(
     status_id: str,
@@ -264,7 +241,9 @@ async def update_default_status(
 ):
     result = await db.execute(
         select(ApplicationStatus).where(
-            ApplicationStatus.id == status_id, ApplicationStatus.is_default == True
+            ApplicationStatus.id == status_id,
+            ApplicationStatus.is_default == True,
+            ApplicationStatus.user_id.is_(None),
         )
     )
     status_obj = result.scalars().first()

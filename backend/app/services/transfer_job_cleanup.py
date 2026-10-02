@@ -39,13 +39,12 @@ async def build_transfer_job_cleanup_report(
     expired_job_ids: list[str] = []
 
     for job in jobs:
-        if (
-            job.artifact_path
-            and job.completed_at
-            and job.completed_at <= artifact_cutoff
-        ):
-            expired_artifact_paths.append(Path(job.artifact_path).resolve())
-        if job.completed_at and job.completed_at <= job_cutoff:
+        completed_at = job.completed_at
+        if completed_at is not None and completed_at.tzinfo is None:
+            completed_at = completed_at.replace(tzinfo=UTC)
+        if job.artifact_path and completed_at and completed_at <= artifact_cutoff:
+            expired_artifact_paths.append(Path(job.artifact_path).absolute())
+        if completed_at and completed_at <= job_cutoff:
             expired_job_ids.append(str(job.id))
 
     return TransferJobCleanupReport(

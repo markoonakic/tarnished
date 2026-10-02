@@ -10,6 +10,7 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.utils.zip_utils import read_bounded_zip_member, store_file
 from app.core.config import get_settings
 from app.models import (
     Application,
@@ -20,6 +21,7 @@ from app.models import (
     RoundMedia,
     RoundType,
 )
+from app.schemas.transcript import CurrentTranscript
 from app.services.export_registry import default_registry
 from app.services.import_id_mapper import IDMapper
 from app.services.import_service import ImportService
@@ -30,6 +32,8 @@ from app.services.reference_data import (
     find_visible_round_type_by_name,
     find_visible_status_by_name,
 )
+from app.services.transcripts import parse_transcript
+from app.services.upload_storage import publish_file
 
 import_schemas = importlib.import_module("app.schemas.import")
 ImportDataSchema = import_schemas.ImportDataSchema
@@ -41,7 +45,6 @@ def extract_files_from_zip(zip_path: str, user_id: str) -> dict[str, str]:
     from app.api.utils.zip_utils import (
         ALLOWED_DOCUMENT_TYPES,
         ALLOWED_MEDIA_TYPES,
-        detect_extension,
         detect_mime_type,
     )
 
@@ -53,7 +56,11 @@ def extract_files_from_zip(zip_path: str, user_id: str) -> dict[str, str]:
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
         for file_info in zip_ref.filelist:
             if file_info.filename.startswith("files/") and not file_info.is_dir():
-                content = zip_ref.read(file_info.filename)
+                if file_info.file_size > 100 * 1024 * 1024:
+                    raise ValueError(
+                        "Legacy import member exceeds 100 MiB; use a current archive for large recordings"
+                    )
+                content = read_bounded_zip_member(zip_ref, file_info.filename)
                 detected_mime = detect_mime_type(content)
                 if (
                     detected_mime != "application/octet-stream"
@@ -62,24 +69,15 @@ def extract_files_from_zip(zip_path: str, user_id: str) -> dict[str, str]:
                     raise ValueError(
                         f"Invalid MIME type for legacy import file {file_info.filename}: {detected_mime}"
                     )
-                file_hash = hashlib.sha256(content).hexdigest()
-                ext = detect_extension(content)
-                cas_filename = f"{file_hash}{ext}"
-                dest_path = upload_root / cas_filename
-                if not dest_path.exists():
-                    dest_path.write_bytes(content)
-                file_mapping[file_info.filename] = f"uploads/{cas_filename}"
+                file_mapping[file_info.filename] = store_file(content, upload_root)
 
     return file_mapping
 
 
 def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]:
-    import hashlib as _hashlib
-
     from app.api.utils.zip_utils import (
         ALLOWED_DOCUMENT_TYPES,
         ALLOWED_MEDIA_TYPES,
-        detect_extension,
         detect_mime_type,
     )
 
@@ -89,14 +87,14 @@ def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]
 
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
         try:
-            manifest_json = zip_ref.read("manifest.json")
+            manifest_json = read_bounded_zip_member(zip_ref, "manifest.json")
             manifest = json.loads(manifest_json)
             files_registry = manifest.get("files", {})
         except KeyError:
             files_registry = None
 
         try:
-            data_json = zip_ref.read("data.json")
+            data_json = read_bounded_zip_member(zip_ref, "data.json")
             export_data = json.loads(data_json)
         except KeyError:
             export_data = {}
@@ -119,8 +117,77 @@ def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]
             for zip_path_str, file_info in files_registry.items():
                 if zip_path_str in ("manifest.json", "data.json"):
                     continue
-                content = zip_ref.read(zip_path_str)
-                file_hash = _hashlib.sha256(content).hexdigest()
+                if (
+                    file_info.get("entity_type") == "RoundMedia"
+                    and file_info.get("field") == "file_path"
+                ):
+                    # No memory-sized ZIP member read. Imported media is not locally
+                    # validated and is served attachment-only until explicit validation.
+                    from app.services.media_intake import (
+                        MAX_MEDIA_BYTES,
+                        intake_slot,
+                    )
+
+                    records = [
+                        r
+                        for r in models.get("RoundMedia", [])
+                        if r.get("id") == file_info.get("entity_id")
+                    ]
+                    if len(records) != 1 or not records[0].get("file_path"):
+                        raise ValueError("Recording archive reference is invalid")
+                    record = records[0]
+                    digest = hashlib.sha256()
+                    size = 0
+                    with (
+                        intake_slot(upload_root) as temporary,
+                        temporary.open("xb") as target,
+                    ):
+                        with zip_ref.open(zip_path_str) as source:
+                            while chunk := source.read(65536):
+                                size += len(chunk)
+                                if size > MAX_MEDIA_BYTES:
+                                    raise ValueError(
+                                        "Recording archive member exceeds 1,000,000,000 bytes"
+                                    )
+                                digest.update(chunk)
+                                target.write(chunk)
+                        target.flush()
+                        file_hash = digest.hexdigest()
+                        if size != file_info.get(
+                            "size_bytes"
+                        ) or file_hash != file_info.get("sha256"):
+                            raise ValueError(
+                                "Recording archive checksum or byte count mismatch"
+                            )
+                        if (
+                            record.get("sha256") is not None
+                            and record["sha256"] != file_hash
+                        ) or (
+                            record.get("byte_count") is not None
+                            and record["byte_count"] != size
+                        ):
+                            raise ValueError(
+                                "Recording metadata does not match archive bytes"
+                            )
+                        # Retain the original safe media suffix for lossless
+                        # future processing; MIME/extension grants no inline trust.
+                        suffix = Path(record["file_path"]).suffix.lower()
+                        if suffix not in (
+                            ".mp4",
+                            ".m4a",
+                            ".mov",
+                            ".mp3",
+                            ".wav",
+                            ".webm",
+                            ".ogg",
+                        ):
+                            suffix = ".bin"
+                        file_mapping[record["file_path"]] = publish_file(
+                            temporary, upload_root, file_hash, suffix
+                        )
+                    continue
+                content = read_bounded_zip_member(zip_ref, zip_path_str)
+                file_hash = hashlib.sha256(content).hexdigest()
                 expected_hash = file_info.get("sha256", "")
                 if expected_hash and file_hash != expected_hash:
                     raise ValueError(
@@ -136,17 +203,44 @@ def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]
                     if file_field in ("cv_path", "cover_letter_path", "transcript_path")
                     else ALLOWED_DOCUMENT_TYPES | ALLOWED_MEDIA_TYPES
                 )
-                if detected_mime not in allowed_types:
+                # A normalized transcript may contain literal markup or VTT that
+                # libmagic classifies outside ordinary document types. Validate
+                # its actual bytes using the same bounded parser, never a MIME hint.
+                normalized_source = False
+                if (
+                    file_info.get("entity_type") == "Round"
+                    and file_field == "transcript_path"
+                ):
+                    for record in models.get("Round", []):
+                        if (
+                            record.get("id") == file_info.get("entity_id")
+                            and record.get("current_transcript") is not None
+                        ):
+                            transcript = CurrentTranscript.model_validate(
+                                record["current_transcript"]
+                            )
+                            if transcript.provenance == "upload":
+                                parse_transcript(content, transcript.format, "upload")
+                                normalized_source = True
+                if detected_mime not in allowed_types and not normalized_source:
                     raise ValueError(
                         f"Invalid MIME type for {zip_path_str}: {detected_mime}"
                     )
 
-                ext = detect_extension(content)
-                cas_filename = f"{file_hash}{ext}"
-                cas_path = upload_root / cas_filename
-                if not cas_path.exists():
-                    cas_path.write_bytes(content)
-                new_cas_path = f"uploads/{cas_filename}"
+                new_cas_path = store_file(
+                    content, upload_root, ".txt" if normalized_source else None
+                )
+                entity_type = file_info.get("entity_type")
+                entity_id = file_info.get("entity_id")
+                allowed_fields = {
+                    "Application": {"cv_path", "cover_letter_path"},
+                    "Round": {"transcript_path"},
+                    "RoundMedia": {"file_path"},
+                }
+                if file_field in allowed_fields.get(entity_type, set()):
+                    for record in models.get(entity_type, []):
+                        if record.get("id") == entity_id and record.get(file_field):
+                            file_mapping[record[file_field]] = new_cas_path
                 for old_path in old_paths_in_data:
                     if file_hash in old_path:
                         file_mapping[old_path] = new_cas_path
@@ -167,13 +261,18 @@ def _run_import_user_data(
 ) -> dict:
     id_mapper = IDMapper()
     import_service = ImportService(registry=default_registry, id_mapper=id_mapper)
-    return import_service.import_user_data(
+    result = import_service.import_user_data(
         export_data=export_data,
         user_id=user_id,
         session=sync_session,
         override=False,
         file_mapping=file_mapping,
     )
+    # The identity map is needed by the caller to re-derive and verify report
+    # evidence against the imported rows before the import is committed.
+    result["id_mappings"] = id_mapper.mappings
+    result["segment_ids"] = import_service._interview_segment_ids
+    return result
 
 
 async def ensure_status_exists(
@@ -233,6 +332,9 @@ async def import_applications(
             job_description=app_data.job_description,
             job_url=app_data.job_url,
             status_id=status.id,
+            status_meaning="unknown",
+            status_meaning_provenance="legacy_unknown",
+            response_state="legacy_unknown",
             cv_path=file_mapping.get(f"files/applications/cv_{app_data.id}.pdf")
             if app_data.cv_path
             else None,
@@ -258,6 +360,9 @@ async def import_applications(
                     to_status_id=to_status.id,
                     changed_at=changed_at,
                     note=hist_data.note,
+                    from_meaning_provenance="legacy_unknown",
+                    to_meaning_provenance="legacy_unknown",
+                    time_provenance="legacy_unknown",
                 )
             )
             imported_history += 1
@@ -302,6 +407,9 @@ async def import_applications(
 
 
 async def clear_existing_import_data(db: AsyncSession, user_id: str) -> None:
+    from app.services.ai_settings import lock_ai_settings
+
+    await lock_ai_settings(db)
     for model in (Application,):
         result = await db.execute(select(model).where(model.user_id == user_id))
         for row in result.scalars().all():
@@ -324,7 +432,20 @@ async def import_payload_data(
     db: AsyncSession, user_id: str, data: dict, file_mapping: dict, progress_callback
 ) -> dict:
     if is_new_export_format(data):
+        from app.services.ai_settings import lock_ai_settings
+
+        await lock_ai_settings(db)
         result = await db.run_sync(_run_import_user_data, data, user_id, file_mapping)
+        # Verify cited evidence before committing the import.
+        from app.services.interview_archive import verify_restored_report_text
+
+        mapper = IDMapper()
+        for key, new_id in (result.get("id_mappings") or {}).items():
+            model_name, _, old_id = key.partition(":")
+            mapper.add(model_name, old_id, new_id)
+        await verify_restored_report_text(
+            db, user_id, data, mapper, result.get("segment_ids") or {}
+        )
         counts = result.get("counts", {})
         return {
             "applications": counts.get("Application", 0),
@@ -345,7 +466,7 @@ async def import_payload_data(
                     user_id=user_id,
                     name=status_data.name,
                     color=status_data.color or "#6B7280",
-                    is_default=status_data.is_default,
+                    is_default=False,
                     order=status_data.order or 999,
                 )
             )
@@ -372,7 +493,7 @@ def verify_new_format_manifest_checksum(
     if not is_new_export_format(data):
         return
     try:
-        manifest_json = zip_ref.read("manifest.json")
+        manifest_json = read_bounded_zip_member(zip_ref, "manifest.json")
         manifest = json.loads(manifest_json)
         expected_checksum = manifest.get("checksums", {}).get("data.json", "")
         if expected_checksum:

@@ -6,7 +6,9 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-engine = create_async_engine(settings.get_database_url(), echo=False)
+engine = create_async_engine(
+    settings.get_database_url(), echo=False, hide_parameters=True
+)
 
 # Enable SQLite FK enforcement - PostgreSQL enforces FK at DB level, SQLite needs this
 if "sqlite" in settings.get_database_url():

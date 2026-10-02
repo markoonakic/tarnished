@@ -1,4 +1,4 @@
-"""Export service using introspective serialization."""
+"""Owner-scoped export service using explicit personal-data fields."""
 
 from datetime import UTC, datetime
 from typing import Any
@@ -11,27 +11,21 @@ from app.services.export_serializer import serialize_model_instance
 
 class ExportService:
     """
-    Service for exporting user data using model introspection.
-
-    Automatically serializes all fields and relationships for
-    registered models.
+    Export registered owner collections without traversing ORM back-references.
     """
 
-    EXPORT_VERSION = "1.0.0"
+    EXPORT_VERSION = "2.0.0"
 
     def __init__(self, registry: ExportRegistry):
         self.registry = registry
 
-    def export_user_data(
-        self, user_id: str, session: Session, include_media_paths: bool = True
-    ) -> dict[str, Any]:
+    def export_user_data(self, user_id: str, session: Session) -> dict[str, Any]:
         """
         Export all user data to a dictionary.
 
         Args:
             user_id: ID of the user whose data to export
             session: SQLAlchemy session
-            include_media_paths: Whether to include file paths
 
         Returns:
             Dictionary with all user data ready for JSON serialization
@@ -50,12 +44,17 @@ class ExportService:
 
             records = self._get_user_records(model_class, user_id, session)
 
-            serialized = [
-                self._serialize_record(record, include_media_paths)
-                for record in records
-            ]
+            serialized = [self._serialize_record(record) for record in records]
 
             result["models"][model_name] = serialized
+
+        # ZIP path builders use this harmless label. Resolve it from the scoped
+        # definitions, not a relationship that can lead back to foreign rounds.
+        round_types = {
+            item["id"]: item for item in result["models"].get("RoundType", [])
+        }
+        for round_data in result["models"].get("Round", []):
+            round_data["round_type"] = round_types.get(round_data["round_type_id"])
 
         return result
 
@@ -65,20 +64,8 @@ class ExportService:
         """Get all records for a model belonging to a user."""
         from app.models import Application
 
-        # Special handling for ApplicationStatus: include global statuses too
-        # since applications can reference global (user_id=None) statuses
-        if model_class.__name__ == "ApplicationStatus":
-            return (
-                session.query(model_class)
-                .filter(
-                    (model_class.user_id == user_id) | (model_class.user_id.is_(None))
-                )
-                .all()
-            )
-
-        # Special handling for RoundType: include global round types too
-        # since rounds can reference global (user_id=None) round types
-        if model_class.__name__ == "RoundType":
+        # Applications and rounds can reference global definitions.
+        if model_class.__name__ in ("ApplicationStatus", "RoundType"):
             return (
                 session.query(model_class)
                 .filter(
@@ -129,23 +116,9 @@ class ExportService:
 
         return []
 
-    def _serialize_record(
-        self, record: Any, include_media_paths: bool
-    ) -> dict[str, Any]:
-        """
-        Serialize a single record with all its relationships.
-
-        Args:
-            record: SQLAlchemy model instance
-            include_media_paths: Whether to include file paths
-
-        Returns:
-            Serialized dictionary
-        """
-        # Get base serialization with relationships
-        data = serialize_model_instance(
-            record, include_relationships=True, relationship_prefix=""
-        )
+    def _serialize_record(self, record: Any) -> dict[str, Any]:
+        """Serialize permitted fields and retain the original ID for remapping."""
+        data = serialize_model_instance(record)
 
         # Handle None case (shouldn't happen for valid records)
         if data is None:

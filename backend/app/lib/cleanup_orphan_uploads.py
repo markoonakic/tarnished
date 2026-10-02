@@ -18,11 +18,21 @@ def parse_args() -> argparse.Namespace:
         help="Delete orphaned CAS blobs. Without this flag, the command is dry-run only.",
     )
     parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="Confirm all API, import and other storage writers have been stopped. Required with --delete; online deletion is unsafe.",
+    )
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Print individual orphan, missing-reference, and suspicious file paths.",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.delete and not args.offline:
+        parser.error(
+            "--delete requires --offline: stop all application/storage writers first"
+        )
+    return args
 
 
 def _print_paths(header: str, paths: list[Path]) -> None:

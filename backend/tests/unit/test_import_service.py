@@ -40,7 +40,7 @@ class TestImportService:
     def test_supported_version_constant(self, import_service):
         """ImportService should have SUPPORTED_VERSION class attribute."""
         assert hasattr(ImportService, "SUPPORTED_VERSION")
-        assert ImportService.SUPPORTED_VERSION == "1.0.0"
+        assert ImportService.SUPPORTED_VERSION == "2.0.0"
 
     # === validate_export_data tests ===
 
@@ -53,7 +53,7 @@ class TestImportService:
 
     def test_validate_rejects_invalid_version(self, import_service):
         """Should reject exports with wrong version."""
-        invalid_data = {"format_version": "2.0.0", "models": {}}
+        invalid_data = {"format_version": "9.0.0", "models": {}}
         is_valid, error = import_service.validate_export_data(invalid_data)
         assert is_valid is False
         assert "version" in error.lower()
@@ -153,7 +153,7 @@ class TestImportService:
                     export_data=export_data, user_id="user-1", session=mock_session
                 )
 
-        assert import_service.id_mapper.has_mapping("Application", "old-app-1")
+        assert import_service.id_mapper.get("Application", "old-app-1") is not None
         assert result["counts"]["Application"] == 1
 
     def test_import_returns_counts_dict(self, import_service):
@@ -236,8 +236,8 @@ class TestImportService:
                 )
 
         # Verify parents were processed first
-        assert import_service.id_mapper.has_mapping("Parent", "p1")
-        assert import_service.id_mapper.has_mapping("Child", "c1")
+        assert import_service.id_mapper.get("Parent", "p1") is not None
+        assert import_service.id_mapper.get("Child", "c1") is not None
 
     def test_import_skips_models_not_in_export(self, import_service):
         """Should skip models that are not in the export data."""
@@ -356,8 +356,8 @@ class TestImportService:
         call_kwargs = mock_model_class.call_args[1]
         assert call_kwargs["application_id"] == "new-app-id"
 
-    def test_import_record_keeps_unmapped_fk_if_no_mapping(self, import_service):
-        """_import_record should keep original FK value if no mapping exists."""
+    def test_import_record_rejects_unmapped_parent_fk(self, import_service):
+        """A database parent ID is not authority to import into another record."""
         mock_session = Mock()
 
         mock_model_class = Mock()
@@ -379,19 +379,18 @@ class TestImportService:
             "user_id": make_mock_column("user_id"),
         }
 
-        with patch.object(
-            import_service, "_get_column_info", return_value=mock_columns
+        with (
+            patch.object(import_service, "_get_column_info", return_value=mock_columns),
+            pytest.raises(ValueError, match="this archive"),
         ):
-            result = import_service._import_record(
+            import_service._import_record(
                 model_class=mock_model_class,
                 record_data=record_data,
                 user_id="user-1",
                 session=mock_session,
             )
 
-        # FK should be kept as-is
-        call_kwargs = mock_model_class.call_args[1]
-        assert call_kwargs["application_id"] == "unknown-app-id"
+        mock_model_class.assert_not_called()
 
     def test_import_record_generates_new_id(self, import_service):
         """_import_record should generate a new UUID for the record."""
@@ -455,7 +454,7 @@ class TestImportService:
             )
 
         # Mapping should be stored
-        assert import_service.id_mapper.has_mapping("Application", "old-id")
+        assert import_service.id_mapper.get("Application", "old-id") is not None
 
     def test_import_record_handles_missing_original_id(self, import_service):
         """_import_record should handle records without __original_id__."""
@@ -527,3 +526,44 @@ class TestImportService:
         mock_session.add.assert_called_once()
         call_kwargs = mock_model_class.call_args[1]
         assert "user_id" not in call_kwargs
+
+
+@pytest.mark.parametrize(
+    "mapping", [None, {}, {"uploads/other.txt": "uploads/imported.txt"}]
+)
+@pytest.mark.parametrize(
+    "model_name,field",
+    [
+        ("Application", "cv_path"),
+        ("Application", "cover_letter_path"),
+        ("Round", "transcript_path"),
+        ("RoundMedia", "file_path"),
+    ],
+)
+def test_import_record_rejects_unmapped_attachments(model_name, field, mapping):
+    import app.models as models
+
+    service = ImportService(ExportRegistry(), IDMapper())
+    with pytest.raises(ValueError, match="Expected file not found in export"):
+        service._import_record(
+            getattr(models, model_name),
+            {field: "uploads/foreign.txt"},
+            "owner",
+            Mock(),
+            mapping,
+        )
+
+
+@pytest.mark.parametrize("original", ["file.txt", "uploads/file.txt"])
+def test_import_record_accepts_explicit_attachment_mapping(original):
+    from app.models import Application
+
+    service = ImportService(ExportRegistry(), IDMapper())
+    record = service._import_record(
+        Application,
+        {"cv_path": original},
+        "owner",
+        Mock(),
+        {"file.txt": "uploads/imported.txt"},
+    )
+    assert record.cv_path == "uploads/imported.txt"

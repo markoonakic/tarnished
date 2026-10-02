@@ -1,18 +1,16 @@
-import logging
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlparse
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
 
-logger = logging.getLogger(__name__)
-
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # Legacy: Full database URL (takes precedence if set)
+    # Explicit URL takes precedence over the discrete settings.
     database_url: str | None = None
 
     # Discrete PostgreSQL settings (used if database_url not set)
@@ -25,14 +23,12 @@ class Settings(BaseSettings):
     # SQLite fallback path
     sqlite_path: str = "./data/app.db"
 
-    secret_key: str  # Required: must be set via SECRET_KEY env var
+    secret_key: str = Field(min_length=1)
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
     upload_dir: str = "./uploads"
-    admin_email: str | None = None
     max_document_size_mb: int = 10
-    max_media_size_mb: int = 500
     cors_origins: str = "http://localhost:5173,http://localhost:5174"
     app_url: str = "http://localhost:5577"
     trusted_hosts: str = ""
@@ -43,12 +39,42 @@ class Settings(BaseSettings):
         Priority:
         1. Explicit database_url (e.g., from Helm secret)
         2. PostgreSQL from discrete parts (URL.create handles encoding)
-        3. SQLite fallback
+        3. SQLite fallback, only when no PostgreSQL setting is present
+
+        A partially configured PostgreSQL install must fail loudly. Silently
+        selecting SQLite would let an operator believe their PostgreSQL data was
+        in use while writes went to an unrelated local file.
         """
         if self.database_url:
             return self.database_url
 
-        if all([self.postgres_host, self.postgres_user, self.postgres_password]):
+        configured = [
+            name
+            for name, value in (
+                ("POSTGRES_HOST", self.postgres_host),
+                ("POSTGRES_USER", self.postgres_user),
+                ("POSTGRES_PASSWORD", self.postgres_password),
+            )
+            if value
+        ]
+        if configured:
+            missing = [
+                name
+                for name, value in (
+                    ("POSTGRES_HOST", self.postgres_host),
+                    ("POSTGRES_USER", self.postgres_user),
+                    ("POSTGRES_PASSWORD", self.postgres_password),
+                )
+                if not value
+            ]
+            if missing:
+                raise ValueError(
+                    "Incomplete PostgreSQL configuration: "
+                    + ", ".join(configured)
+                    + " set but "
+                    + ", ".join(missing)
+                    + " missing. Set every required PostgreSQL setting, or remove them all to use SQLite."
+                )
             # SQLAlchemy URL.create handles URL encoding automatically
             return URL.create(
                 drivername="postgresql+asyncpg",

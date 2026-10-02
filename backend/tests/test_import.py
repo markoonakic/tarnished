@@ -12,6 +12,7 @@ import os
 import tempfile
 import zipfile
 from datetime import date, datetime
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -122,7 +123,9 @@ async def test_applications(
 @pytest.fixture
 def auth_headers(test_user: User) -> dict[str, str]:
     """Create authentication headers for test user."""
-    token = create_access_token({"sub": test_user.id})
+    token = create_access_token(
+        {"sub": test_user.id, "session_version": test_user.session_version}
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -139,7 +142,9 @@ async def import_user(db: AsyncSession) -> dict:
     await db.commit()
     await db.refresh(user)
 
-    token = create_access_token({"sub": user.id})
+    token = create_access_token(
+        {"sub": user.id, "session_version": user.session_version}
+    )
     return {
         "Authorization": f"Bearer {token}",
         "user_id": user.id,
@@ -210,6 +215,58 @@ def sample_import_zip(sample_import_data: dict) -> bytes:
         zipf.writestr("data.json", json.dumps(sample_import_data))
     zip_buffer.seek(0)
     return zip_buffer.read()
+
+
+async def test_override_import_rolls_back_if_job_finalization_fails(
+    client,
+    db,
+    test_user,
+    test_applications,
+    auth_headers,
+    sample_import_zip,
+    monkeypatch,
+):
+    from app.api import import_router
+    from app.models import AuditLog
+
+    original_ids = set(
+        await db.scalars(
+            select(Application.id).where(Application.user_id == test_user.id)
+        )
+    )
+
+    async def fail_completion(*args, **kwargs):
+        raise RuntimeError("Finalization failed")
+
+    monkeypatch.setattr(import_router, "complete_transfer_job", fail_completion)
+    response = await client.post(
+        "/api/import/import",
+        headers=auth_headers,
+        files={"file": ("archive.zip", sample_import_zip, "application/zip")},
+        data={"override": "true"},
+    )
+    assert response.status_code == 202
+    status = await client.get(
+        f"/api/import/status/{response.json()['job_id']}", headers=auth_headers
+    )
+    assert status.json()["status"] == "failed"
+    assert (
+        set(
+            await db.scalars(
+                select(Application.id).where(Application.user_id == test_user.id)
+            )
+        )
+        == original_ids
+    )
+    assert (
+        await db.scalar(
+            select(AuditLog.id).where(
+                AuditLog.user_id == test_user.id,
+                AuditLog.event_type == "import_success",
+            )
+        )
+        is None
+    )
 
 
 @pytest.fixture
@@ -449,7 +506,9 @@ class TestImportStatusEndpoint:
             job_type="import_zip",
             status="queued",
         )
-        token = create_access_token({"sub": test_user.id})
+        token = create_access_token(
+            {"sub": test_user.id, "session_version": test_user.session_version}
+        )
 
         response = await client.get(
             f"/api/import/progress/{job.id}",
@@ -1427,8 +1486,20 @@ class TestEndToEnd:
         db: AsyncSession,
         test_user: User,
         test_round_types: list[RoundType],
+        tmp_path,
+        monkeypatch,
     ):
-        """Test that rounds are preserved through export/import cycle (media files not included if they don't exist)."""
+        """Round metadata and supplied media bytes survive the owner-data transfer."""
+        import wave
+
+        from app.core.config import get_settings, resolve_upload_path
+
+        monkeypatch.setattr(get_settings(), "upload_dir", str(tmp_path))
+        monkeypatch.setattr("app.services.import_execution.UPLOAD_DIR", str(tmp_path))
+        source = tmp_path / "interview.wav"
+        with wave.open(str(source), "wb") as audio:
+            audio.setparams((1, 2, 8000, 0, "NONE", "not compressed"))
+            audio.writeframes(b"\x00\x00" * 80)
         user_id = test_user.id
 
         # Create application with rounds
@@ -1466,8 +1537,8 @@ class TestEndToEnd:
 
         media1 = RoundMedia(
             round_id=round1.id,
-            file_path="/media/interview.mp4",
-            media_type=MediaType.VIDEO,
+            file_path="uploads/interview.wav",
+            media_type=MediaType.AUDIO,
         )
         db.add(media1)
 
@@ -1490,13 +1561,9 @@ class TestEndToEnd:
             assert "Application" in data["models"]
             assert len(data["models"]["Application"]) > 0
             app_data = data["models"]["Application"][0]
-            # Relationships are included directly (not with __rel__ prefix since prefix is empty)
-            assert "rounds" in app_data
-            assert len(app_data["rounds"]) > 0
-            round_data = app_data["rounds"][0]
-            # Note: media is NOT nested in round_data since nested relationships
-            # are not serialized (only first level). RoundMedia is exported
-            # separately in models["RoundMedia"].
+            rounds = data["models"]["Round"]
+            assert len(rounds) == 1
+            assert rounds[0]["application_id"] == app_data["id"]
             assert "RoundMedia" in data["models"]
             assert len(data["models"]["RoundMedia"]) > 0
 
@@ -1529,7 +1596,7 @@ class TestEndToEnd:
             )
             await db.rollback()
 
-            # Verify rounds were imported (media won't be imported since files don't exist)
+            # Verify both the parent relationships and actual attachment content.
             result = await db.execute(
                 select(Application)
                 .options(selectinload(Application.rounds).selectinload(Round.media))
@@ -1541,8 +1608,12 @@ class TestEndToEnd:
             assert imported_app is not None
             assert len(imported_app.rounds) == 1
             assert imported_app.rounds[0].outcome == "Passed"
-            # Media files won't be imported since they don't exist in the ZIP
-            # (ZIP export only includes files that actually exist on disk)
+            assert len(imported_app.rounds[0].media) == 1
+            restored = imported_app.rounds[0].media[0]
+            assert (
+                Path(resolve_upload_path(restored.file_path)).read_bytes()
+                == source.read_bytes()
+            )
 
         finally:
             os.unlink(temp_zip_path)

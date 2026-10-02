@@ -12,7 +12,33 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-from app.core.api_key_scopes import FULL_ACCESS_PRESET, resolve_scopes_for_preset
+# Historical defaults must not gain new provider permissions from live presets.
+ORIGINAL_FULL_ACCESS_SCOPES = [
+    "applications:read",
+    "applications:write",
+    "job_leads:read",
+    "job_leads:write",
+    "profile:read",
+    "profile:write",
+    "rounds:read",
+    "rounds:write",
+    "statuses:read",
+    "statuses:write",
+    "round_types:read",
+    "round_types:write",
+    "dashboard:read",
+    "analytics:read",
+    "streak:read",
+    "streak:write",
+    "preferences:read",
+    "preferences:write",
+    "user_settings:read",
+    "user_settings:write",
+    "files:read",
+    "files:write",
+    "export:read",
+    "import:write",
+]
 
 # revision identifiers, used by Alembic.
 revision: str = "20260409_api_key_scopes"
@@ -23,7 +49,7 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    default_scopes = json.dumps(resolve_scopes_for_preset(FULL_ACCESS_PRESET))
+    default_scopes = json.dumps(ORIGINAL_FULL_ACCESS_SCOPES)
 
     with op.batch_alter_table("user_api_keys", schema=None) as batch_op:
         batch_op.add_column(
@@ -31,7 +57,7 @@ def upgrade() -> None:
                 "preset",
                 sa.String(length=50),
                 nullable=False,
-                server_default=FULL_ACCESS_PRESET,
+                server_default="full_access",
             )
         )
         batch_op.add_column(

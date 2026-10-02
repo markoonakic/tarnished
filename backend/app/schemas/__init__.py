@@ -1,65 +1,16 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
-from app.schemas.admin import (
-    AdminRoundTypeUpdate,
-    AdminStatsResponse,
-    AdminStatusUpdate,
-    AdminUserResponse,
-    AdminUserUpdate,
-)
-from app.schemas.ai_settings import (
-    AISettingsResponse,
-    AISettingsUpdate,
-)
-from app.schemas.analytics import (
-    HeatmapData,
-    HeatmapDay,
-    SankeyData,
-    SankeyLink,
-    SankeyNode,
-)
-from app.schemas.application import (
-    ApplicationCreate,
-    ApplicationListResponse,
-    ApplicationResponse,
-    ApplicationUpdate,
-    StatusResponse,
-)
-from app.schemas.auth import Token, TokenRefresh, UserCreate, UserLogin, UserResponse
-from app.schemas.job_lead import (
-    JobLeadCreate,
-    JobLeadExtractionInput,
-    JobLeadListItem,
-    JobLeadListResponse,
-    JobLeadResponse,
-    JobLeadStatus,
-)
-from app.schemas.round import (
-    RoundCreate,
-    RoundMediaResponse,
-    RoundResponse,
-    RoundTypeResponse,
-    RoundUpdate,
-)
-from app.schemas.settings import (
-    RoundTypeCreate,
-    RoundTypeFullResponse,
-    StatusCreate,
-    StatusFullResponse,
-)
-from app.schemas.streak import StreakResponse
-from app.schemas.user_profile import (
-    EducationItem,
-    UserProfileCreate,
-    UserProfileResponse,
-    UserProfileUpdate,
-    WorkHistoryItem,
-)
+from app.schemas.analytics import CalculationScope, CurrentRecordBasis
+from app.schemas.application import StatusResponse
+from app.schemas.evidence import HistoryEvidence
 
 
 class DashboardKPIsResponse(BaseModel):
+    scope: CalculationScope
+    current_record_basis: CurrentRecordBasis
+    unknown_opportunities: int
     last_7_days: int
     last_7_days_trend: float | None
     last_30_days: int
@@ -72,73 +23,28 @@ class NeedsAttentionItem(BaseModel):
     company: str
     job_title: str
     days_since: int
+    reason: str
+    current_stage_age_hours: float | None
 
 
 class NeedsAttentionResponse(BaseModel):
+    scope: CalculationScope
+    current_record_basis: CurrentRecordBasis
     follow_ups: list[NeedsAttentionItem]
     no_responses: list[NeedsAttentionItem]
     interviewing: list[NeedsAttentionItem]
 
 
-class ApplicationStatusHistoryResponse(BaseModel):
+class ApplicationStatusHistoryResponse(HistoryEvidence):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
     from_status: StatusResponse | None
-    to_status: StatusResponse
+    to_status: StatusResponse | None
     changed_at: datetime
     note: str | None
 
-
-__all__ = [
-    "StreakResponse",
-    "Token",
-    "TokenRefresh",
-    "UserCreate",
-    "UserLogin",
-    "UserResponse",
-    "ApplicationCreate",
-    "ApplicationUpdate",
-    "ApplicationResponse",
-    "ApplicationListResponse",
-    "StatusResponse",
-    "RoundCreate",
-    "RoundUpdate",
-    "RoundResponse",
-    "RoundTypeResponse",
-    "RoundMediaResponse",
-    "StatusCreate",
-    "StatusFullResponse",
-    "RoundTypeCreate",
-    "RoundTypeFullResponse",
-    "SankeyData",
-    "SankeyNode",
-    "SankeyLink",
-    "HeatmapData",
-    "HeatmapDay",
-    "AdminUserResponse",
-    "AdminUserUpdate",
-    "AdminStatsResponse",
-    "AdminStatusUpdate",
-    "AdminRoundTypeUpdate",
-    "DashboardKPIsResponse",
-    "ApplicationStatusHistoryResponse",
-    "NeedsAttentionItem",
-    "NeedsAttentionResponse",
-    # Job Lead schemas
-    "JobLeadCreate",
-    "JobLeadResponse",
-    "JobLeadListItem",
-    "JobLeadListResponse",
-    "JobLeadExtractionInput",
-    "JobLeadStatus",
-    # User Profile schemas
-    "UserProfileCreate",
-    "UserProfileUpdate",
-    "UserProfileResponse",
-    "WorkHistoryItem",
-    "EducationItem",
-    # AI Settings schemas
-    "AISettingsUpdate",
-    "AISettingsResponse",
-]
+    @field_validator("changed_at")
+    @classmethod
+    def history_time_is_utc(cls, value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value

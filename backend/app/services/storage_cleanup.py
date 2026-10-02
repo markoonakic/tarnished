@@ -97,10 +97,13 @@ def _scan_upload_root(upload_root: Path) -> tuple[set[Path], set[Path]]:
         return cas_files, suspicious_files
 
     for file_path in upload_root.rglob("*"):
+        if file_path.is_symlink():
+            suspicious_files.add(file_path)
+            continue
         if not file_path.is_file():
             continue
         resolved = file_path.resolve()
-        if _is_cas_blob_file(file_path):
+        if _is_cas_blob_file(file_path) and _is_within_root(resolved, upload_root):
             cas_files.add(resolved)
         else:
             suspicious_files.add(resolved)
@@ -117,7 +120,9 @@ async def build_cleanup_report(
 
     missing_referenced_paths = sorted(referenced_paths - cas_files - suspicious_files)
     orphan_paths = sorted(cas_files - referenced_paths)
-    reclaimable_bytes = sum(path.stat().st_size for path in orphan_paths if path.exists())
+    reclaimable_bytes = sum(
+        path.stat().st_size for path in orphan_paths if path.exists()
+    )
 
     return StorageCleanupReport(
         upload_root=root,
@@ -140,6 +145,10 @@ def apply_cleanup(
     candidate_dirs: set[Path] = set()
 
     for orphan_path in report.orphan_paths:
+        if orphan_path.is_symlink() or not _is_within_root(
+            orphan_path.resolve(), report.upload_root
+        ):
+            continue
         if not orphan_path.exists():
             continue
         size = orphan_path.stat().st_size
@@ -148,9 +157,13 @@ def apply_cleanup(
         deleted_bytes += size
         candidate_dirs.add(orphan_path.parent)
 
-    for directory in sorted(candidate_dirs, key=lambda path: len(path.parts), reverse=True):
+    for directory in sorted(
+        candidate_dirs, key=lambda path: len(path.parts), reverse=True
+    ):
         current = directory
-        while current != report.upload_root and _is_within_root(current, report.upload_root):
+        while current != report.upload_root and _is_within_root(
+            current, report.upload_root
+        ):
             try:
                 current.rmdir()
             except OSError:

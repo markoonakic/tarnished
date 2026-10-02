@@ -1,16 +1,196 @@
-"""Introspective serializer for SQLAlchemy models.
+"""Explicit fields for the version 2 personal-data export (never ORM backrefs)."""
 
-This module provides functions to serialize SQLAlchemy model instances
-to dictionaries using introspection, avoiding hardcoded field lists.
-"""
-
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import inspect
-from sqlalchemy.orm import Mapper
+# New model fields are private until deliberately added to this transfer format.
+EXPORT_FIELDS: dict[str, tuple[str, ...]] = {
+    "User": (
+        "id",
+        "email",
+        "is_admin",
+        "is_active",
+        "created_at",
+        "settings",
+        "current_streak",
+        "longest_streak",
+        "total_activity_days",
+        "last_activity_date",
+        "ember_active",
+        "streak_start_date",
+        "streak_exhausted_at",
+        "city",
+        "country",
+        # Latest pipeline-scope report and its freshness provenance. Not a
+        # historical snapshot and never an execution authority. The generation
+        # counter stays internal and is never exported or imported.
+        "pipeline_report",
+        "pipeline_report_reason",
+    ),
+    "UserProfile": (
+        "id",
+        "user_id",
+        "first_name",
+        "last_name",
+        "email",
+        "phone",
+        "location",
+        "linkedin_url",
+        "authorized_to_work",
+        "requires_sponsorship",
+        "work_history",
+        "education",
+        "skills",
+    ),
+    "ApplicationStatus": (
+        "id",
+        "name",
+        "normalized_name",
+        "meaning",
+        "color",
+        "is_default",
+        "user_id",
+        "order",
+    ),
+    "RoundType": (
+        "id",
+        "name",
+        "normalized_name",
+        "is_default",
+        "user_id",
+    ),
+    "ApplicationStatusHistory": (
+        "id",
+        "application_id",
+        "from_status_id",
+        "to_status_id",
+        "changed_at",
+        "note",
+        "from_meaning",
+        "to_meaning",
+        "from_meaning_provenance",
+        "to_meaning_provenance",
+        "time_provenance",
+        "is_gap",
+        "corrected_at",
+        "correction_note",
+    ),
+    "Application": (
+        "id",
+        "user_id",
+        "company",
+        "job_title",
+        "job_description",
+        "job_url",
+        "status_id",
+        "status_meaning",
+        "status_meaning_provenance",
+        "evidence_revision",
+        "report",
+        "report_reason",
+        "response_state",
+        "response_occurred_on",
+        "response_recorded_at",
+        "response_reference",
+        "cv_text",
+        "cover_letter_text",
+        "cv_path",
+        "cv_original_filename",
+        "cover_letter_path",
+        "cover_letter_original_filename",
+        "applied_at",
+        "created_at",
+        "updated_at",
+        "job_lead_id",
+        "location",
+        "salary_min",
+        "salary_max",
+        "salary_currency",
+        "recruiter_name",
+        "recruiter_title",
+        "recruiter_linkedin_url",
+        "requirements_must_have",
+        "requirements_nice_to_have",
+        "skills",
+        "years_experience_min",
+        "years_experience_max",
+        "source",
+    ),
+    "Round": (
+        "id",
+        "application_id",
+        "round_type_id",
+        "scheduled_at",
+        "completed_at",
+        "outcome",
+        "notes_summary",
+        "transcript_path",
+        "transcript_original_filename",
+        "transcript_summary",
+        "transcript_generation",
+        "media_generation",
+        "current_transcript",
+        "interview_report",
+        "interview_report_reason",
+        "created_at",
+    ),
+    "RoundMedia": (
+        "id",
+        "round_id",
+        "file_path",
+        "original_filename",
+        "media_type",
+        "sha256",
+        "byte_count",
+        "probed_duration_seconds",
+        "validation",
+        "uploaded_at",
+    ),
+    "JobLead": (
+        "source_text",
+        "source_truncated",
+        "content_warning",
+        "revision",
+        "manual_fields",
+        "id",
+        "user_id",
+        "status",
+        "title",
+        "company",
+        "url",
+        "description",
+        "location",
+        "salary_min",
+        "salary_max",
+        "salary_currency",
+        "recruiter_name",
+        "recruiter_title",
+        "recruiter_linkedin_url",
+        "requirements_must_have",
+        "requirements_nice_to_have",
+        "skills",
+        "years_experience_min",
+        "years_experience_max",
+        "source",
+        "posted_date",
+        "scraped_at",
+        "converted_to_application_id",
+        "error_message",
+    ),
+}
+
+# User.settings may retain legacy credentials and unknown internal state.
+EXPORT_SETTINGS_FIELDS = (
+    "theme",
+    "accent",
+    "show_streak_stats",
+    "show_needs_attention",
+    "show_heatmap",
+    "time_zone_mode",
+    "time_zone",
+)
 
 
 def serialize_value(value: Any) -> Any:
@@ -46,54 +226,31 @@ def serialize_value(value: Any) -> Any:
     return str(value)
 
 
-def serialize_model_instance(
-    instance: Any,
-    include_relationships: bool = False,
-    relationship_prefix: str = "__rel__",
-) -> dict[str, Any] | None:
-    """
-    Serialize a SQLAlchemy model instance to a dictionary.
-
-    Uses introspection to automatically include all column fields.
-    Optionally includes relationships with a prefix to distinguish them.
-
-    Args:
-        instance: SQLAlchemy model instance (or None)
-        include_relationships: Whether to include relationship data
-        relationship_prefix: Prefix for relationship keys in output
-
-    Returns:
-        Dictionary with all field values serialized to JSON-compatible types.
-        Returns None if instance is None.
-    """
+def serialize_model_instance(instance: Any) -> dict[str, Any] | None:
+    """Serialize permitted columns only; collections are scoped by ExportService."""
     if instance is None:
         return None
-
-    mapper: Mapper = inspect(instance.__class__)
-    result = {}
-
-    # Serialize all column attributes
-    for column in mapper.columns:
-        value = getattr(instance, column.key)
-        result[column.key] = serialize_value(value)
-
-    # Optionally serialize relationships
-    if include_relationships:
-        for rel_property in mapper.relationships:
-            rel_value = getattr(instance, rel_property.key)
-
-            if rel_value is None:
-                result[f"{relationship_prefix}{rel_property.key}"] = None
-            elif rel_property.uselist:
-                # One-to-many or many-to-many (collection)
-                result[f"{relationship_prefix}{rel_property.key}"] = [
-                    serialize_model_instance(item, include_relationships=False)
-                    for item in rel_value
-                ]
-            else:
-                # Many-to-one or one-to-one (single object)
-                result[f"{relationship_prefix}{rel_property.key}"] = (
-                    serialize_model_instance(rel_value, include_relationships=False)
-                )
-
+    model_name = instance.__class__.__name__
+    if model_name not in EXPORT_FIELDS:
+        raise ValueError(f"Model is not permitted in personal exports: {model_name}")
+    result = {
+        field: serialize_value(getattr(instance, field))
+        for field in EXPORT_FIELDS[model_name]
+    }
+    for field in ("response_recorded_at", "corrected_at", "changed_at"):
+        if field in result and (value := getattr(instance, field)) is not None:
+            # SQLite drops the timezone of our UTC-normalized evidence writes.
+            result[field] = (
+                value.replace(tzinfo=UTC)
+                if value.tzinfo is None
+                else value.astimezone(UTC)
+            ).isoformat()
+    if model_name == "User" and instance.settings is not None:
+        settings = instance.settings if isinstance(instance.settings, dict) else {}
+        result["settings"] = {
+            key: value
+            for key in EXPORT_SETTINGS_FIELDS
+            if key in settings
+            and isinstance(value := settings[key], (str, bool, type(None)))
+        }
     return result

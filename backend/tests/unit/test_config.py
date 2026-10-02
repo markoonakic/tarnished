@@ -6,6 +6,8 @@ Tests for:
 - Password encoding in constructed URLs
 """
 
+import pytest
+
 from app.core.config import Settings
 
 
@@ -73,8 +75,8 @@ class TestGetDatabaseUrl:
         url = settings.get_database_url()
         assert "sqlite+aiosqlite" in url
 
-    def test_partial_postgres_settings_falls_back_to_sqlite(self):
-        """Test that partial PostgreSQL settings (missing password) falls back to SQLite."""
+    def test_partial_postgres_settings_fail_loudly_instead_of_sqlite(self):
+        """Reject partial PostgreSQL settings instead of writing to another database."""
         settings = create_test_settings(
             database_url=None,
             postgres_host="postgres.example.com",
@@ -82,8 +84,20 @@ class TestGetDatabaseUrl:
             # Missing POSTGRES_PASSWORD
         )
 
-        url = settings.get_database_url()
-        assert "sqlite+aiosqlite" in url
+        with pytest.raises(ValueError, match="Incomplete PostgreSQL configuration"):
+            settings.get_database_url()
+
+    def test_postgres_password_alone_also_fails_loudly(self):
+        """Any single stray PostgreSQL setting must not silently become SQLite."""
+        settings = create_test_settings(database_url=None, postgres_password="only")
+
+        with pytest.raises(ValueError, match="Incomplete PostgreSQL configuration"):
+            settings.get_database_url()
+
+
+def test_empty_signing_key_is_rejected():
+    with pytest.raises(ValueError):
+        create_test_settings(secret_key="")
 
 
 class TestTrustedHosts:

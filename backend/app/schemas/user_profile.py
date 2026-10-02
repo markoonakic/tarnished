@@ -8,42 +8,8 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
-class WorkHistoryItem(BaseModel):
-    """Schema for a single work history entry.
-
-    This is a flexible schema that allows various work history formats.
-    """
-
-    company: str | None = Field(None, description="Company name")
-    title: str | None = Field(None, description="Job title")
-    start_date: str | None = Field(None, description="Start date of employment")
-    end_date: str | None = Field(
-        None, description="End date of employment (or 'Present')"
-    )
-    description: str | None = Field(
-        None, description="Job description or accomplishments"
-    )
-    location: str | None = Field(None, description="Work location")
-
-
-class EducationItem(BaseModel):
-    """Schema for a single education entry.
-
-    This is a flexible schema that allows various education formats.
-    """
-
-    institution: str | None = Field(None, description="School or institution name")
-    degree: str | None = Field(
-        None, description="Degree type (e.g., 'Bachelor of Science')"
-    )
-    field_of_study: str | None = Field(None, description="Field of study or major")
-    start_date: str | None = Field(None, description="Start date")
-    end_date: str | None = Field(None, description="End date or expected graduation")
-    gpa: str | None = Field(None, description="GPA if applicable")
-
-
-class UserProfileBase(BaseModel):
-    """Base schema with shared UserProfile fields."""
+class UserProfileUpdate(BaseModel):
+    """Update supplied profile fields; ownership comes from authentication."""
 
     # Personal info
     first_name: str | None = Field(None, max_length=100, description="First name")
@@ -140,26 +106,6 @@ class UserProfileBase(BaseModel):
             else:
                 raise ValueError("All skills must be strings")
         return validated if validated else None
-
-
-class UserProfileUpdate(UserProfileBase):
-    """Schema for updating a user profile via PUT /api/profile.
-
-    All fields are optional to support partial updates.
-    The user_id is inferred from the authenticated user.
-    """
-
-    pass
-
-
-class UserProfileCreate(UserProfileBase):
-    """Schema for creating a new user profile.
-
-    This is typically used internally when creating a profile for a new user.
-    The user_id must be provided explicitly.
-    """
-
-    user_id: str = Field(..., description="ID of the user this profile belongs to")
 
 
 class UserProfileResponse(BaseModel):

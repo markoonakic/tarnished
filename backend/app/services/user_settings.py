@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from typing import Any, Literal, TypedDict
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -45,9 +45,7 @@ def get_user_preferences(
         "show_needs_attention",
         DEFAULT_USER_PREFERENCES["show_needs_attention"],
     )
-    show_heatmap = current.get(
-        "show_heatmap", DEFAULT_USER_PREFERENCES["show_heatmap"]
-    )
+    show_heatmap = current.get("show_heatmap", DEFAULT_USER_PREFERENCES["show_heatmap"])
     time_zone_mode = current.get(
         "time_zone_mode",
         DEFAULT_USER_PREFERENCES["time_zone_mode"],
@@ -64,9 +62,7 @@ def get_user_preferences(
             else DEFAULT_USER_PREFERENCES["time_zone_mode"]
         ),
         "time_zone": (
-            time_zone
-            if isinstance(time_zone, str) or time_zone is None
-            else None
+            time_zone if isinstance(time_zone, str) or time_zone is None else None
         ),
     }
 
@@ -78,11 +74,12 @@ async def merge_user_settings(
     updates: Mapping[str, Any],
     ensure_keys: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    # SQLite ignores FOR UPDATE, so acquire the write lock before reading JSON.
+    await db.execute(
+        update(User).where(User.id == user_id).values(settings=User.settings)
+    )
     stmt = (
-        select(User)
-        .where(User.id == user_id)
-        .with_for_update()
-        .execution_options(populate_existing=True)
+        select(User).where(User.id == user_id).execution_options(populate_existing=True)
     )
     result = await db.execute(stmt)
     user = result.scalar_one()

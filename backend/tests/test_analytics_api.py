@@ -25,7 +25,9 @@ async def test_user(db: AsyncSession) -> User:
 
 @pytest.fixture
 def auth_headers(test_user: User) -> dict[str, str]:
-    token = create_access_token({"sub": test_user.id})
+    token = create_access_token(
+        {"sub": test_user.id, "session_version": test_user.session_version}
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -71,6 +73,40 @@ async def round_types(db: AsyncSession) -> dict[str, RoundType]:
 
 
 class TestInterviewRoundsAnalytics:
+    @pytest.mark.parametrize("minutes", [25, 50])
+    async def test_short_interview_duration_keeps_precise_hours(
+        self, client, db, test_user, auth_headers, statuses, round_types, minutes
+    ):
+        app = Application(
+            user_id=test_user.id,
+            company="Short Interview",
+            job_title="Engineer",
+            status_id=statuses["interviewing"].id,
+            applied_at=date.today() - timedelta(days=2),
+        )
+        db.add(app)
+        await db.flush()
+        start = datetime.now(UTC) - timedelta(days=1)
+        db.add(
+            Round(
+                application_id=app.id,
+                round_type_id=round_types["phone"].id,
+                scheduled_at=start,
+                completed_at=start + timedelta(minutes=minutes),
+                outcome="passed",
+            )
+        )
+        await db.commit()
+        response = await client.get(
+            "/api/analytics/interview-rounds",
+            params={"period": "all"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        row = response.json()["timeline_data"][0]
+        assert row["avg_days"] == 0  # Existing rounded field remains compatible.
+        assert row["avg_hours"] == pytest.approx(minutes / 60)
+
     @pytest.mark.asyncio
     async def test_round_type_filter_limits_candidate_progress_to_matching_rounds(
         self,
@@ -142,11 +178,14 @@ class TestInterviewRoundsAnalytics:
         assert payload["candidate_progress"][0]["rounds_completed"] == [
             {
                 "round_type": "Phone Screen",
+                "scheduled_at": payload["candidate_progress"][0]["rounds_completed"][0][
+                    "scheduled_at"
+                ],
                 "outcome": "Passed",
                 "completed_at": payload["candidate_progress"][0]["rounds_completed"][0][
                     "completed_at"
                 ],
-                "days_in_round": 1,
+                "days_in_round": pytest.approx(1),
             }
         ]
 
@@ -174,6 +213,26 @@ class TestHeatmapAnalytics:
         payload = response.json()
         assert payload["days"] == []
         assert payload["max_count"] == 0
+
+    async def test_calendar_heatmap_excludes_future_applied_dates(
+        self, client, db, test_user, auth_headers, statuses
+    ):
+        future = date.today() + timedelta(days=1)
+        db.add(
+            Application(
+                user_id=test_user.id,
+                company="Future synthetic",
+                job_title="Role",
+                status_id=statuses["applied"].id,
+                applied_at=future,
+            )
+        )
+        await db.commit()
+        response = await client.get(
+            "/api/analytics/heatmap", params={"year": future.year}, headers=auth_headers
+        )
+        assert response.status_code == 200
+        assert response.json() == {"days": [], "max_count": 0}
 
 
 class TestWeeklyAnalytics:
@@ -216,4 +275,6 @@ class TestWeeklyAnalytics:
         payload = response.json()
         assert payload
         assert sum(item["applications"] for item in payload) == 2
-        assert sum(item["interviews"] for item in payload) == 1
+        assert (
+            sum(item["interviews"] for item in payload) == 0
+        )  # current label is not dated activity

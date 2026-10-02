@@ -1,100 +1,94 @@
-import subprocess
-from pathlib import Path
-
-import yaml
-
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-CHART_DIR = PROJECT_ROOT / "deploy" / "helm" / "tarnished"
+import pytest
+from _helm_render import find_kind, render_chart, run_helm
 
 
-def _render_chart(*set_args: str) -> list[dict]:
-    cmd = ["helm", "template", "tarnished", str(CHART_DIR)]
-    for arg in set_args:
-        cmd.extend(["--set", arg])
-
-    rendered = subprocess.run(
-        cmd,
-        check=True,
-        capture_output=True,
-        text=True,
+@pytest.mark.parametrize(
+    ("set_args", "period", "timeout", "failures"),
+    [
+        ((), 5, 3, 12),
+        (
+            (
+                "startupProbe.periodSeconds=7",
+                "startupProbe.timeoutSeconds=4",
+                "startupProbe.failureThreshold=19",
+            ),
+            7,
+            4,
+            19,
+        ),
+    ],
+    ids=["defaults", "configured-budget"],
+)
+def test_startup_probe_targets_health_and_honours_budget(
+    set_args, period, timeout, failures
+):
+    deployment = find_kind(render_chart(*set_args), "Deployment")[0]
+    container = next(
+        container
+        for container in deployment["spec"]["template"]["spec"]["containers"]
+        if container["name"] == "tarnished"
     )
-    return [doc for doc in yaml.safe_load_all(rendered.stdout) if doc]
+    probe = container["startupProbe"]
 
-
-def _render_chart_failure(*set_args: str) -> subprocess.CompletedProcess[str]:
-    cmd = ["helm", "template", "tarnished", str(CHART_DIR)]
-    for arg in set_args:
-        cmd.extend(["--set", arg])
-
-    return subprocess.run(
-        cmd,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
-
-def _find_kind(docs: list[dict], kind: str) -> list[dict]:
-    return [doc for doc in docs if doc.get("kind") == kind]
+    assert probe["httpGet"] == {
+        "path": "/health",
+        "port": "http",
+        "httpHeaders": [{"name": "Host", "value": "localhost"}],
+    }
+    assert probe["periodSeconds"] == period
+    assert probe["timeoutSeconds"] == timeout
+    assert probe["failureThreshold"] == failures
 
 
 def test_service_account_token_automount_is_disabled_by_default():
-    docs = _render_chart()
+    docs = render_chart()
 
-    deployment = _find_kind(docs, "Deployment")[0]
-    service_account = _find_kind(docs, "ServiceAccount")[0]
+    deployment = find_kind(docs, "Deployment")[0]
+    service_account = find_kind(docs, "ServiceAccount")[0]
 
-    assert deployment["spec"]["template"]["spec"]["automountServiceAccountToken"] is False
+    assert (
+        deployment["spec"]["template"]["spec"]["automountServiceAccountToken"] is False
+    )
     assert service_account["automountServiceAccountToken"] is False
 
 
-def test_multiple_replicas_require_postgresql():
-    result = _render_chart_failure("replicaCount=2")
+def test_replicas_above_one_are_refused_for_both_databases():
+    """E01 supports exactly one replica; bounded intake cannot share a database.
 
-    assert result.returncode != 0
-    assert "Multiple replicas require postgresql.enabled=true" in result.stderr
+    The earlier per-condition messages were superseded by this explicit guard,
+    which refuses HA up front instead of allowing a partially shared setup.
+    """
+    for database_args in (
+        [],
+        ["postgresql.enabled=true", "postgresql.password=secret"],
+    ):
+        result = run_helm("replicaCount=2", *database_args)
 
-
-def test_multiple_replicas_require_shared_upload_storage_for_chart_managed_pvc():
-    result = _render_chart_failure(
-        "replicaCount=2",
-        "postgresql.enabled=true",
-        "postgresql.password=secret",
-    )
-
-    assert result.returncode != 0
-    assert "Multiple replicas require shared upload storage" in result.stderr
-
-
-def test_multiple_replicas_require_shared_access_ack_for_existing_claim():
-    result = _render_chart_failure(
-        "replicaCount=2",
-        "postgresql.enabled=true",
-        "postgresql.password=secret",
-        "persistence.existingClaim=tarnished-uploads",
-    )
-
-    assert result.returncode != 0
-    assert "persistence.sharedAccess=true" in result.stderr
+        assert result.returncode != 0
+        assert (
+            "Tarnished requires replicaCount=1 for SQLite and PostgreSQL; HA is unsupported"
+            in result.stderr
+        )
 
 
-def test_multiple_replicas_render_with_read_write_many_chart_managed_storage():
-    docs = _render_chart(
+def test_replicas_above_one_is_refused_before_storage_choices():
+    """Storage-sharing options cannot make an unsupported HA topology valid."""
+    result = run_helm(
         "replicaCount=2",
         "postgresql.enabled=true",
         "postgresql.password=secret",
         "persistence.accessMode=ReadWriteMany",
     )
 
-    deployment = _find_kind(docs, "Deployment")[0]
-    pvc = _find_kind(docs, "PersistentVolumeClaim")[0]
+    assert result.returncode != 0
+    assert (
+        "Tarnished requires replicaCount=1 for SQLite and PostgreSQL; HA is unsupported"
+        in result.stderr
+    )
 
-    assert deployment["spec"]["replicas"] == 2
-    assert pvc["spec"]["accessModes"] == ["ReadWriteMany"]
 
-
-def test_multiple_replicas_render_with_existing_shared_claim():
-    docs = _render_chart(
+def test_replicas_above_one_is_refused_with_existing_shared_claim():
+    result = run_helm(
         "replicaCount=2",
         "postgresql.enabled=true",
         "postgresql.password=secret",
@@ -102,8 +96,37 @@ def test_multiple_replicas_render_with_existing_shared_claim():
         "persistence.sharedAccess=true",
     )
 
-    deployment = _find_kind(docs, "Deployment")[0]
+    assert result.returncode != 0
+    assert (
+        "Tarnished requires replicaCount=1 for SQLite and PostgreSQL; HA is unsupported"
+        in result.stderr
+    )
+
+
+def test_single_replica_renders_with_existing_claim():
+    """The supported single-replica baseline still honours an existing claim."""
+    docs = render_chart(
+        "postgresql.enabled=true",
+        "postgresql.password=secret",
+        "persistence.existingClaim=tarnished-uploads",
+    )
+
+    deployment = find_kind(docs, "Deployment")[0]
     volumes = deployment["spec"]["template"]["spec"]["volumes"]
 
-    assert deployment["spec"]["replicas"] == 2
+    assert deployment["spec"]["replicas"] == 1
     assert volumes[0]["persistentVolumeClaim"]["claimName"] == "tarnished-uploads"
+
+
+def test_migration_init_uses_the_shared_entrypoint():
+    """Alembic must run through entrypoint.sh so the persisted signing secret loads.
+
+    Running `alembic upgrade head` directly failed on a fresh install with
+    "secret_key Field required" because it never generated or read the secret.
+    """
+    docs = render_chart()
+    deployment = find_kind(docs, "Deployment")[0]
+    init = deployment["spec"]["template"]["spec"]["initContainers"]
+    migrate = next(container for container in init if container["name"] == "migrate")
+
+    assert migrate["command"] == ["./entrypoint.sh", "migrate"]

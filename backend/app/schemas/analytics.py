@@ -1,13 +1,95 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel
+
+
+class CalculationScope(BaseModel):
+    period: str
+    cohort_start: date | None
+    cohort_end: date
+    as_of: datetime
+    time_zone: str
+    denominator: int
+    basis: str
+
+
+class CurrentRecordBasis(BaseModel):
+    observed_at: datetime
+    basis: str
+
+
+class StageVisit(BaseModel):
+    application_id: str
+    entry_id: str
+    exit_id: str | None
+    meaning: str
+    entered_at: datetime
+    ended_at: datetime | None
+    kind: str
+    hours: float | None
+    reason: str | None
+
+
+class StageTotal(BaseModel):
+    application_id: str
+    meaning: str
+    hours: float
+
+
+class ApplicationEvidenceMetrics(BaseModel):
+    application_id: str
+    company: str
+    job_title: str
+    source: str | None = None
+    applied_at: date
+    evidence_revision: int
+    current_meaning: str
+    as_of_meaning: str
+    response_recorded: bool
+    response_state: str
+    response_occurred_on: date | None
+    response_recorded_at: datetime | None
+    current_stage_age_hours: (
+        float | None
+    )  # Active visit at scope.as_of, not live-record age.
+    missing_prefix: bool
+    gap_ids: list[str]
+    unknown_history_ids: list[str]
+    ambiguous_time_ids: list[str]
+
+
+class PipelineMetrics(BaseModel):
+    scope: CalculationScope
+    current_record_basis: CurrentRecordBasis
+    total_applications: int
+    responded: int
+    response_rate: float | None
+    response_unknown: int
+    response_undated: int
+    response_not_recorded_as_of: int
+    interviews: int
+    offers: int
+    interview_rate: float | None
+    offer_rate: float | None
+    active_applications: int
+    closed_applications: int
+    unknown_applications: int
+    current_stage_breakdown: dict[str, int]
+    stage_breakdown: dict[str, int]
+    applications: list[ApplicationEvidenceMetrics]
+    visits: list[StageVisit]
+    stage_totals: list[StageTotal]
+    coverage: dict[str, int]
 
 
 class SankeyNode(BaseModel):
     id: str
     name: str
+    meaning: str
+    application_id: str
+    entered_at: datetime
     color: str | None = None
-    value: int | None = None  # Explicit value for nodes without incoming links
+    value: int | None = None
 
 
 class SankeyLink(BaseModel):
@@ -19,6 +101,8 @@ class SankeyLink(BaseModel):
 class SankeyData(BaseModel):
     nodes: list[SankeyNode]
     links: list[SankeyLink]
+    scope: CalculationScope
+    coverage: dict[str, int]
 
 
 class HeatmapDay(BaseModel):
@@ -31,16 +115,9 @@ class HeatmapData(BaseModel):
     max_count: int
 
 
-class AnalyticsKPIsResponse(BaseModel):
-    total_applications: int
-    interviews: int
-    offers: int
-    application_to_interview_rate: float
-    response_rate: float
+class AnalyticsKPIsResponse(PipelineMetrics):
+    application_to_interview_rate: float | None
     active_opportunities: int
-
-
-# Interview Rounds Analytics Schemas
 
 
 class FunnelData(BaseModel):
@@ -61,13 +138,15 @@ class OutcomeData(BaseModel):
 class TimelineData(BaseModel):
     round: str
     avg_days: float
+    avg_hours: float | None = None
 
 
 class RoundProgress(BaseModel):
     round_type: str
     outcome: str | None
+    scheduled_at: datetime | None
     completed_at: datetime | None
-    days_in_round: int | None
+    days_in_round: float | None
 
 
 class CandidateProgress(BaseModel):
@@ -79,6 +158,8 @@ class CandidateProgress(BaseModel):
 
 
 class InterviewRoundsResponse(BaseModel):
+    scope: CalculationScope
+    duration_basis: str
     funnel_data: list[FunnelData]
     outcome_data: list[OutcomeData]
     timeline_data: list[TimelineData]

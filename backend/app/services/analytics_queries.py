@@ -1,62 +1,421 @@
-from collections import defaultdict
-from datetime import date, timedelta
+"""Owner-scoped, applied-date cohorts and observed evidence (not reconstructed history)."""
+
+from collections import Counter, defaultdict
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
-from sqlalchemy import case, extract, func, or_, select
+from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.models import Application, ApplicationStatus, Round, RoundType
+from app.models import Application, ApplicationStatusHistory, Round, User
+from app.services import user_time
 
-FAR_PAST_DATE = date(2000, 1, 1)
+ACTIVE_MEANINGS = {"applied", "screening", "interviewing", "offer"}
+CLOSED_MEANINGS = {"accepted", "rejected", "withdrawn", "no_reply"}
+
+
+def utc(value: datetime) -> datetime:
+    # SQLite returns naive values for the UTC DateTime columns.
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+
+def analytics_clock(
+    user: User, x_timezone: str | None, as_of: datetime | None = None
+) -> tuple[datetime, str]:
+    now = user_time._utc_now()
+    if as_of is not None and (as_of.tzinfo is None or as_of > now):
+        raise HTTPException(
+            422, "as_of must be an offset-aware instant, not in the future"
+        )
+    return utc(as_of or now), user_time.get_effective_time_zone_name(
+        user, x_timezone=x_timezone
+    ) or "UTC"
 
 
 def get_period_start_date(
+    period: str, *, today: date, default_period: str = "30d"
+) -> date | None:
+    period = period if period in {"7d", "30d", "3m", "all"} else default_period
+    days = {"7d": 7, "30d": 30, "3m": 90}.get(period)
+    return today - timedelta(days=days - 1) if days else None
+
+
+def _recorded_entry(entry: ApplicationStatusHistory) -> bool:
+    return (
+        not entry.is_gap
+        and entry.time_provenance == "recorded"
+        and entry.to_meaning_provenance == "recorded"
+    )
+
+
+def _known_entry(entry: ApplicationStatusHistory) -> bool:
+    return (
+        _recorded_entry(entry) and entry.to_meaning in ACTIVE_MEANINGS | CLOSED_MEANINGS
+    )
+
+
+def _continuous(
+    left: ApplicationStatusHistory, right: ApplicationStatusHistory
+) -> bool:
+    return (
+        _known_entry(left)
+        and not right.is_gap
+        and right.time_provenance == "recorded"
+        and right.from_meaning_provenance == "recorded"
+        and left.to_status_id == right.from_status_id
+        and left.to_meaning == right.from_meaning
+        and utc(left.changed_at) < utc(right.changed_at)
+    )
+
+
+async def get_calculation_data(
+    db: AsyncSession,
+    user_id: str,
     period: str,
     *,
-    today: date,
-    default_period: str = "30d",
-) -> date:
-    normalized_period = period or default_period
+    today: date | None = None,
+    as_of: datetime | None = None,
+    time_zone: str = "UTC",
+) -> dict[str, Any]:
+    """One ordered calculation shared by API and insight readers.
 
-    if normalized_period == "7d":
-        return today - timedelta(days=6)
-    if normalized_period == "30d":
-        return today - timedelta(days=29)
-    if normalized_period == "3m":
-        return today - timedelta(days=89)
-    if normalized_period == "all":
-        return FAR_PAST_DATE
+    Period selects applied dates only. History is never clipped to that period.
+    Current records are labelled separately; they are not historical snapshots.
+    """
+    observed_at = user_time._utc_now()
+    zone = ZoneInfo(time_zone)
+    if as_of is None:
+        as_of = observed_at
+        if today is not None:
+            as_of = min(as_of, datetime.combine(today, time.max, zone).astimezone(UTC))
+    as_of = utc(as_of)
+    today = as_of.astimezone(zone).date()
+    period = period if period in {"7d", "30d", "3m", "all"} else "30d"
+    start = get_period_start_date(period, today=today)
+    filters = [Application.user_id == user_id, Application.applied_at <= today]
+    if start is not None:
+        filters.append(Application.applied_at >= start)
+    apps = (
+        await db.scalars(
+            select(Application)
+            .where(*filters)
+            .options(
+                selectinload(Application.status),
+                selectinload(Application.status_history).selectinload(
+                    ApplicationStatusHistory.to_status
+                ),
+                selectinload(Application.rounds).selectinload(Round.round_type),
+            )
+            .order_by(Application.applied_at, Application.id)
+        )
+    ).all()
+    visits: list[dict[str, Any]] = []
+    records: list[dict[str, Any]] = []
+    activity: list[dict[str, Any]] = []
+    nodes: list[dict[str, Any]] = []
+    links: list[dict[str, Any]] = []
+    rounds: list[dict[str, Any]] = []
+    stage_counts: Counter[str] = Counter()
+    stage_labels: Counter[str] = Counter()
+    totals: dict[tuple[str, str], float] = defaultdict(float)
+    coverage = Counter(
+        applications_with_history=0,
+        applications_with_measured_residence=0,
+        applications_with_missing_prefix=0,
+        applications_with_gaps=0,
+        applications_with_unknown_history=0,
+        active_age_measured=0,
+        active_age_unavailable=0,
+        completed_visits_measured=0,
+        visits_unavailable=0,
+    )
+    responded = undated = unknown_response = interviewed = offered = 0
+    for app in apps:
+        current = (
+            app.status_meaning
+            if app.status_meaning_provenance == "recorded"
+            else "unknown"
+        )
+        stage_counts[current] += 1
+        stage_labels[app.status.name] += 1
+        response_available = (
+            app.response_state == "recorded"
+            and app.response_recorded_at is not None
+            and utc(app.response_recorded_at) <= as_of
+            and (app.response_occurred_on is None or app.response_occurred_on <= today)
+        )
+        responded += response_available
+        undated += response_available and app.response_occurred_on is None
+        unknown_response += app.response_state == "legacy_unknown"
+        history = sorted(
+            (row for row in app.status_history if utc(row.changed_at) <= as_of),
+            key=lambda row: (utc(row.changed_at), row.id),
+        )
+        future_history = sorted(
+            (row for row in app.status_history if utc(row.changed_at) > as_of),
+            key=lambda row: (utc(row.changed_at), row.id),
+        )
+        # Include future boundaries: they may be used to prove an as-of wait.
+        times = Counter(utc(row.changed_at) for row in app.status_history)
+        tied_ids = {row.id for row in history if times[utc(row.changed_at)] > 1}
+        known = [row for row in history if _known_entry(row)]
+        meanings = {row.to_meaning for row in known}
+        interviewed += "interviewing" in meanings
+        offered += "offer" in meanings
+        missing_prefix = not history or not (
+            _known_entry(history[0])
+            and history[0].from_status_id is None
+            and history[0].from_meaning_provenance == "recorded"
+            and utc(history[0].changed_at).astimezone(zone).date() <= app.applied_at
+        )
+        gaps = [row.id for row in history if row.is_gap]
+        unknown = [
+            row.id for row in history if not row.is_gap and not _known_entry(row)
+        ]
+        coverage["applications_with_history"] += bool(history)
+        coverage["applications_with_missing_prefix"] += missing_prefix
+        coverage["applications_with_gaps"] += bool(gaps)
+        coverage["applications_with_unknown_history"] += bool(unknown)
+        app_visits = []
+        for index, entry in enumerate(history):
+            if not _recorded_entry(entry):
+                continue
+            # A recorded unknown classification is still a dated observation,
+            # but cannot establish classified residence or milestones.
+            nodes.append(
+                {
+                    "id": entry.id,
+                    "name": entry.to_status.name,
+                    "meaning": entry.to_meaning,
+                    "application_id": app.id,
+                    "entered_at": utc(entry.changed_at),
+                    "value": 1,
+                }
+            )
+            activity.append(
+                {
+                    "application_id": app.id,
+                    "event_id": entry.id,
+                    "kind": "status_transition",
+                    "meaning": entry.to_meaning,
+                    "occurred_at": utc(entry.changed_at),
+                }
+            )
+            if not _known_entry(entry):
+                continue
+            following = history[index + 1] if index + 1 < len(history) else None
+            completed = (
+                following is not None
+                and _continuous(entry, following)
+                and entry.id not in tied_ids
+                and following.id not in tied_ids
+            )
+            latest = following is None
+            matches_current = (
+                app.status_id == entry.to_status_id and current == entry.to_meaning
+            )
+            # A later recorded transition must not erase the earlier as-of wait.
+            current_known = (
+                latest
+                and (
+                    _continuous(entry, future_history[0])
+                    and times[utc(future_history[0].changed_at)] == 1
+                    if future_history
+                    else matches_current
+                )
+                and entry.id not in tied_ids
+            )
+            duration = None
+            reason = "missing_or_conflicting_exit"
+            kind = "unavailable"
+            end = None
+            if entry.to_meaning in CLOSED_MEANINGS:
+                kind, reason = "closed", "closed_outcome_not_waiting"
+            elif completed and following is not None:
+                end = utc(following.changed_at)
+                duration = (end - utc(entry.changed_at)).total_seconds() / 3600
+                kind, reason = "completed", None
+                coverage["completed_visits_measured"] += 1
+            elif current_known:
+                end = as_of
+                duration = (as_of - utc(entry.changed_at)).total_seconds() / 3600
+                kind, reason = "current", None
+            if duration is None and kind != "closed":
+                coverage["visits_unavailable"] += 1
+            if duration is not None:
+                totals[(app.id, entry.to_meaning)] += duration
+            visit = {
+                "application_id": app.id,
+                "entry_id": entry.id,
+                "exit_id": following.id
+                if completed and following is not None
+                else None,
+                "meaning": entry.to_meaning,
+                "entered_at": utc(entry.changed_at),
+                "ended_at": end,
+                "kind": kind,
+                "hours": duration,
+                "reason": reason,
+            }
+            app_visits.append(visit)
+            if (
+                index > 0
+                and _continuous(history[index - 1], entry)
+                and entry.id not in tied_ids
+                and history[index - 1].id not in tied_ids
+            ):
+                links.append(
+                    {"source": history[index - 1].id, "target": entry.id, "value": 1}
+                )
+        visits.extend(app_visits)
+        measured = any(v["hours"] is not None for v in app_visits)
+        coverage["applications_with_measured_residence"] += measured
+        age_visit = next((v for v in app_visits if v["kind"] == "current"), None)
+        historical_meaning = (
+            known[-1].to_meaning
+            if history and known and history[-1] == known[-1]
+            else "unknown"
+        )
+        if history and history[-1].id in tied_ids:
+            historical_meaning = "unknown"
+        if not future_history and historical_meaning != current:
+            historical_meaning = "unknown"
+        if historical_meaning in ACTIVE_MEANINGS:
+            coverage[
+                "active_age_measured" if age_visit else "active_age_unavailable"
+            ] += 1
+        elif current in ACTIVE_MEANINGS and not future_history:
+            coverage["active_age_unavailable"] += 1
+        records.append(
+            {
+                "application_id": app.id,
+                "company": app.company,
+                "job_title": app.job_title,
+                "source": app.source,
+                "applied_at": app.applied_at,
+                "evidence_revision": app.evidence_revision,
+                "current_meaning": current,
+                "as_of_meaning": historical_meaning,
+                "response_recorded": bool(response_available),
+                "response_state": app.response_state,
+                "response_occurred_on": app.response_occurred_on
+                if response_available
+                else None,
+                "response_recorded_at": utc(app.response_recorded_at)
+                if response_available and app.response_recorded_at is not None
+                else None,
+                "current_stage_age_hours": age_visit["hours"] if age_visit else None,
+                "missing_prefix": missing_prefix,
+                "gap_ids": gaps,
+                "unknown_history_ids": unknown,
+                "ambiguous_time_ids": sorted(tied_ids),
+            }
+        )
+        # Candidate chronology is scheduled UTC ascending, undated last;
+        # IDs break ties independently of insertion order or database dialect.
+        for rnd in sorted(
+            app.rounds,
+            key=lambda rnd: (
+                rnd.scheduled_at is None,
+                utc(rnd.scheduled_at)
+                if rnd.scheduled_at
+                else datetime.max.replace(tzinfo=UTC),
+                rnd.id,
+            ),
+        ):
+            scheduled = (
+                utc(rnd.scheduled_at)
+                if rnd.scheduled_at and utc(rnd.scheduled_at) <= as_of
+                else None
+            )
+            completed_at = (
+                utc(rnd.completed_at)
+                if rnd.completed_at and utc(rnd.completed_at) <= as_of
+                else None
+            )
+            for kind, instant in (
+                ("round_scheduled", scheduled),
+                ("round_completed", completed_at),
+            ):
+                if instant is not None:
+                    activity.append(
+                        {
+                            "application_id": app.id,
+                            "event_id": rnd.id,
+                            "kind": kind,
+                            "meaning": None,
+                            "occurred_at": instant,
+                        }
+                    )
+            if (
+                scheduled is not None
+                or completed_at is not None
+                or (rnd.scheduled_at is None and rnd.completed_at is None)
+            ):
+                rounds.append(
+                    {
+                        "application_id": app.id,
+                        "company": app.company,
+                        "job_title": app.job_title,
+                        "current_status": app.status.name,
+                        "round_type": rnd.round_type.name,
+                        "scheduled_at": scheduled,
+                        "completed_at": completed_at,
+                        "outcome": rnd.outcome if completed_at else None,
+                    }
+                )
+    n = len(apps)
 
-    return get_period_start_date(default_period, today=today, default_period=default_period)
+    def rate(value: int) -> float | None:
+        return round(value / n * 100, 1) if n else None
 
-
-def get_weeks_count(period: str, *, default_period: str = "30d") -> int:
-    normalized_period = period or default_period
-
-    if normalized_period == "7d":
-        return 1
-    if normalized_period == "30d":
-        return 4
-    if normalized_period == "3m":
-        return 12
-    if normalized_period == "all":
-        return 52
-
-    return get_weeks_count(default_period, default_period=default_period)
-
-
-def build_round_filters(
-    user_id: str,
-    start_date: date,
-    round_type: str | None = None,
-) -> list[Any]:
-    filters = [
-        Application.user_id == user_id,
-        or_(Round.completed_at >= start_date, Round.completed_at.is_(None)),
-    ]
-    if round_type:
-        filters.append(RoundType.name == round_type)
-    return filters
+    return {
+        "scope": {
+            "period": period,
+            "cohort_start": start,
+            "cohort_end": today,
+            "as_of": as_of,
+            "time_zone": time_zone,
+            "denominator": n,
+            "basis": "applied_date_cohort",
+        },
+        "current_record_basis": {
+            "observed_at": observed_at,
+            "basis": "live_current_records_not_historical_as_of",
+        },
+        "total_applications": n,
+        "responded": responded,
+        "response_rate": rate(responded),
+        "response_unknown": unknown_response,
+        "response_undated": undated,
+        "response_not_recorded_as_of": n - responded - unknown_response,
+        "interviews": interviewed,
+        "offers": offered,
+        "interview_rate": rate(interviewed),
+        "offer_rate": rate(offered),
+        "active_applications": sum(stage_counts[m] for m in ACTIVE_MEANINGS),
+        "closed_applications": sum(stage_counts[m] for m in CLOSED_MEANINGS),
+        "unknown_applications": stage_counts["unknown"],
+        "current_stage_breakdown": dict(stage_counts),
+        "stage_breakdown": dict(stage_labels),
+        "applications": records,
+        "visits": visits,
+        "coverage": dict(coverage),
+        "stage_totals": [
+            {"application_id": app_id, "meaning": meaning, "hours": hours}
+            for (app_id, meaning), hours in sorted(totals.items())
+        ],
+        "activity": sorted(
+            activity,
+            key=lambda event: (event["occurred_at"], event["event_id"], event["kind"]),
+        ),
+        "nodes": nodes,
+        "links": links,
+        "rounds": rounds,
+    }
 
 
 async def get_pipeline_overview_data(
@@ -64,88 +423,13 @@ async def get_pipeline_overview_data(
     user_id: str,
     period: str,
     *,
-    today: date,
+    today: date | None = None,
+    as_of: datetime | None = None,
+    time_zone: str = "UTC",
 ) -> dict[str, Any]:
-    start_date = get_period_start_date(period, today=today, default_period="30d")
-
-    result = await db.execute(
-        select(func.count(Application.id)).where(
-            Application.user_id == user_id,
-            Application.applied_at >= start_date,
-        )
+    return await get_calculation_data(
+        db, user_id, period, today=today, as_of=as_of, time_zone=time_zone
     )
-    total_applications = result.scalar() or 0
-
-    result = await db.execute(
-        select(func.count(Application.id))
-        .join(ApplicationStatus)
-        .where(
-            Application.user_id == user_id,
-            Application.applied_at >= start_date,
-            ApplicationStatus.name == "Interviewing",
-        )
-    )
-    interviews = result.scalar() or 0
-
-    result = await db.execute(
-        select(func.count(Application.id))
-        .join(ApplicationStatus)
-        .where(
-            Application.user_id == user_id,
-            Application.applied_at >= start_date,
-            ApplicationStatus.name == "Offer",
-        )
-    )
-    offers = result.scalar() or 0
-
-    result = await db.execute(
-        select(func.count(Application.id))
-        .join(ApplicationStatus)
-        .where(
-            Application.user_id == user_id,
-            Application.applied_at >= start_date,
-            ApplicationStatus.name != "No Reply",
-        )
-    )
-    responded = result.scalar() or 0
-    response_rate = (
-        (responded / total_applications * 100) if total_applications > 0 else 0
-    )
-    interview_rate = (
-        (interviews / total_applications * 100) if total_applications > 0 else 0
-    )
-
-    result = await db.execute(
-        select(func.count(Application.id))
-        .join(ApplicationStatus)
-        .where(
-            Application.user_id == user_id,
-            Application.applied_at >= start_date,
-            ApplicationStatus.name.not_in(["Rejected", "Withdrawn"]),
-        )
-    )
-    active_applications = result.scalar() or 0
-
-    result = await db.execute(
-        select(ApplicationStatus.name, func.count(Application.id).label("count"))
-        .join(Application, Application.status_id == ApplicationStatus.id)
-        .where(
-            Application.user_id == user_id,
-            Application.applied_at >= start_date,
-        )
-        .group_by(ApplicationStatus.name)
-    )
-    stage_breakdown = {row.name: row.count for row in result.all()}
-
-    return {
-        "total_applications": total_applications,
-        "interviews": interviews,
-        "offers": offers,
-        "response_rate": round(response_rate, 1),
-        "interview_rate": round(interview_rate, 1),
-        "active_applications": active_applications,
-        "stage_breakdown": stage_breakdown,
-    }
 
 
 async def get_interview_rounds_data(
@@ -154,228 +438,96 @@ async def get_interview_rounds_data(
     period: str,
     round_type: str | None = None,
     *,
-    today: date,
+    today: date | None = None,
+    as_of: datetime | None = None,
+    time_zone: str = "UTC",
+    calculation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    start_date = get_period_start_date(period, today=today, default_period="all")
-    base_filters = build_round_filters(user_id, start_date, round_type)
-
-    funnel_result = await db.execute(
-        select(
-            RoundType.name.label("round_type"),
-            func.count(Round.id).label("total"),
-            func.sum(case((Round.outcome == "Passed", 1), else_=0)).label("passed"),
+    data = (
+        calculation
+        if calculation is not None
+        else await get_calculation_data(
+            db, user_id, period, today=today, as_of=as_of, time_zone=time_zone
         )
-        .select_from(Round)
-        .join(RoundType, Round.round_type_id == RoundType.id)
-        .join(Application, Round.application_id == Application.id)
-        .where(*base_filters)
-        .group_by(RoundType.name)
-        .order_by(RoundType.name)
     )
-    funnel_rows = funnel_result.all()
-    funnel_data = [
-        {
-            "round": row.round_type,
-            "count": row.total,
-            "passed": row.passed or 0,
-            "conversion_rate": round(
-                (row.passed / row.total * 100) if row.total > 0 else 0, 1
-            ),
-        }
-        for row in funnel_rows
+    rounds = [
+        row
+        for row in data["rounds"]
+        if round_type is None or row["round_type"] == round_type
     ]
-    conversion_rates = {
-        item["round"]: {
-            "total": item["count"],
-            "passed": item["passed"],
-            "rate": item["conversion_rate"],
-        }
-        for item in funnel_data
-    }
-
-    outcome_result = await db.execute(
-        select(
-            RoundType.name.label("round_type"),
-            Round.outcome,
-            func.count(Round.id).label("count"),
-        )
-        .select_from(Round)
-        .join(RoundType, Round.round_type_id == RoundType.id)
-        .join(Application, Round.application_id == Application.id)
-        .where(*base_filters)
-        .group_by(RoundType.name, Round.outcome)
-        .order_by(RoundType.name)
+    outcomes: dict[str, Counter] = defaultdict(
+        lambda: Counter(passed=0, failed=0, pending=0, withdrew=0)
     )
-    outcome_map: dict[str, dict[str, int]] = {}
-    for row in outcome_result.all():
-        round_name = row.round_type
-        outcome_value = (row.outcome or "pending").lower()
-        count = int(row._mapping["count"] or 0)
-        if round_name not in outcome_map:
-            outcome_map[round_name] = {
-                "passed": 0,
-                "failed": 0,
-                "pending": 0,
-                "withdrew": 0,
-            }
-        if outcome_value == "passed":
-            outcome_map[round_name]["passed"] = count
-        elif outcome_value == "failed":
-            outcome_map[round_name]["failed"] = count
-        elif outcome_value == "withdrew":
-            outcome_map[round_name]["withdrew"] = count
-        else:
-            outcome_map[round_name]["pending"] = count
-
-    outcome_data = [
-        {
-            "round": round_name,
-            "passed": counts["passed"],
-            "failed": counts["failed"],
-            "pending": counts["pending"],
-            "withdrew": counts["withdrew"],
-        }
-        for round_name, counts in sorted(outcome_map.items())
-    ]
-
-    timeline_result = await db.execute(
-        select(
-            RoundType.name.label("round_type"),
-            Round.scheduled_at,
-            Round.completed_at,
-        )
-        .select_from(Round)
-        .join(RoundType, Round.round_type_id == RoundType.id)
-        .join(Application, Round.application_id == Application.id)
-        .where(
-            *base_filters,
-            Round.completed_at >= start_date,
-            Round.completed_at.isnot(None),
-            Round.scheduled_at.isnot(None),
-        )
-        .order_by(RoundType.name)
-    )
-    timeline_map: dict[str, list[float]] = defaultdict(list)
-    for row in timeline_result.all():
-        timeline_map[row.round_type].append((row.completed_at - row.scheduled_at).days)
-
-    timeline_data = [
-        {
-            "round": round_name,
-            "avg_days": round(sum(days) / len(days), 1) if days else 0.0,
-        }
-        for round_name, days in sorted(timeline_map.items())
-    ]
-    avg_days_between_rounds = {
-        item["round"]: item["avg_days"] for item in timeline_data
-    }
-
-    earliest_round_subq = (
-        select(
-            Round.application_id,
-            func.min(Round.scheduled_at).label("first_scheduled"),
-        )
-        .select_from(Round)
-        .join(RoundType, Round.round_type_id == RoundType.id)
-        .join(Application, Round.application_id == Application.id)
-        .where(
-            *base_filters,
-            Round.scheduled_at.isnot(None),
-        )
-        .group_by(Round.application_id)
-        .subquery()
-    )
-
-    first_interview_result = await db.execute(
-        select(
-            Application.id,
-            Application.applied_at,
-            earliest_round_subq.c.first_scheduled,
-        )
-        .join(
-            earliest_round_subq,
-            Application.id == earliest_round_subq.c.application_id,
-        )
-        .where(
-            Application.user_id == user_id,
-            Application.applied_at
-            >= get_period_start_date(period, today=today, default_period="30d"),
-        )
-    )
-    days_to_first_interview = []
-    for row in first_interview_result.all():
-        if row.first_scheduled:
-            days = (row.first_scheduled.date() - row.applied_at).days
+    durations: dict[str, list[float]] = defaultdict(list)
+    candidates: dict[str, dict[str, Any]] = {}
+    for row in rounds:
+        name = row["round_type"]
+        outcome = (row["outcome"] or "pending").lower()
+        outcomes[name][outcome if outcome in outcomes[name] else "pending"] += 1
+        days = None
+        if row["scheduled_at"] and row["completed_at"]:
+            days = (row["completed_at"] - row["scheduled_at"]).total_seconds() / 86400
             if days >= 0:
-                days_to_first_interview.append(days)
-
-    speed_indicators = {
-        "avg_days_to_first_interview": round(
-            sum(days_to_first_interview) / len(days_to_first_interview), 1
-        )
-        if days_to_first_interview
-        else 0,
-        "fastest_response_days": min(days_to_first_interview)
-        if days_to_first_interview
-        else 0,
-        "slowest_response_days": max(days_to_first_interview)
-        if days_to_first_interview
-        else 0,
-    }
-
-    candidate_progress_result = await db.execute(
-        select(
-            Application.id.label("application_id"),
-            Application.company,
-            Application.job_title,
-            ApplicationStatus.name.label("status_name"),
-            RoundType.name.label("round_type"),
-            Round.outcome,
-            Round.completed_at,
-            Round.scheduled_at,
-        )
-        .select_from(Round)
-        .join(Application, Round.application_id == Application.id)
-        .join(ApplicationStatus, Application.status_id == ApplicationStatus.id)
-        .join(RoundType, Round.round_type_id == RoundType.id)
-        .where(*base_filters)
-        .order_by(Application.id, Round.scheduled_at)
-    )
-    candidate_progress_map: dict[str, dict[str, Any]] = {}
-    for row in candidate_progress_result.all():
-        candidate = candidate_progress_map.setdefault(
-            row.application_id,
+                durations[name].append(days)
+            else:
+                days = None
+        candidate = candidates.setdefault(
+            row["application_id"],
             {
-                "application_id": row.application_id,
-                "candidate_name": row.company,
-                "role": row.job_title,
-                "current_status": row.status_name,
+                "application_id": row["application_id"],
+                "candidate_name": row["company"],
+                "role": row["job_title"],
+                "current_status": row["current_status"],
                 "rounds_completed": [],
             },
         )
-        days_in_round = None
-        if row.completed_at and row.scheduled_at:
-            days_in_round = (row.completed_at.date() - row.scheduled_at.date()).days
         candidate["rounds_completed"].append(
             {
-                "round_type": row.round_type,
-                "outcome": row.outcome,
-                "completed_at": row.completed_at,
-                "days_in_round": days_in_round,
+                "round_type": name,
+                "outcome": row["outcome"],
+                "scheduled_at": row["scheduled_at"],
+                "completed_at": row["completed_at"],
+                "days_in_round": days,
             }
         )
-
-    candidate_progress = list(candidate_progress_map.values())
-
+    funnel = [
+        {
+            "round": name,
+            "count": sum(counts.values()),
+            "passed": counts["passed"],
+            "conversion_rate": round(counts["passed"] / sum(counts.values()) * 100, 1),
+        }
+        for name, counts in sorted(outcomes.items())
+    ]
+    timeline = [
+        {
+            "round": name,
+            "avg_days": round(sum(values) / len(values), 1),
+            "avg_hours": sum(values) / len(values) * 24,
+        }
+        for name, values in sorted(durations.items())
+    ]
     return {
-        "funnel_data": funnel_data,
-        "outcome_data": outcome_data,
-        "timeline_data": timeline_data,
-        "candidate_progress": candidate_progress,
-        "conversion_rates": conversion_rates,
-        "outcomes": outcome_map,
-        "avg_days_between_rounds": avg_days_between_rounds,
-        "speed_indicators": speed_indicators,
+        "scope": data["scope"],
+        "funnel_data": funnel,
+        "outcome_data": [
+            {"round": name, **counts} for name, counts in sorted(outcomes.items())
+        ],
+        "timeline_data": timeline,
+        "candidate_progress": list(candidates.values()),
+        "conversion_rates": {
+            row["round"]: {
+                "total": row["count"],
+                "passed": row["passed"],
+                "rate": row["conversion_rate"],
+            }
+            for row in funnel
+        },
+        "outcomes": dict(outcomes),
+        "avg_scheduled_to_completed_days": {
+            row["round"]: row["avg_days"] for row in timeline
+        },
+        "duration_basis": "elapsed_scheduled_to_completed_not_stage_residence_or_response_speed",
     }
 
 
@@ -384,123 +536,85 @@ async def get_activity_tracking_data(
     user_id: str,
     period: str,
     *,
-    today: date,
+    today: date | None = None,
+    as_of: datetime | None = None,
+    time_zone: str = "UTC",
+    calculation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    start_date = get_period_start_date(period, today=today, default_period="30d")
-    weeks_count = get_weeks_count(period, default_period="30d")
-
-    result = await db.execute(
-        select(Application.applied_at)
-        .where(
-            Application.user_id == user_id,
-            Application.applied_at >= start_date,
+    data = (
+        calculation
+        if calculation is not None
+        else await get_calculation_data(
+            db, user_id, period, today=today, as_of=as_of, time_zone=time_zone
         )
-        .order_by(Application.applied_at)
     )
-    application_dates = result.scalars().all()
-
-    weekly_data: dict[int, dict[str, int]] = defaultdict(
-        lambda: {"applications": 0, "interviews": 0}
-    )
-    for applied_at in application_dates:
-        week_num = min((today - applied_at).days // 7, weeks_count - 1)
-        weekly_data[week_num]["applications"] += 1
-
-    result = await db.execute(
-        select(Application.applied_at)
-        .join(ApplicationStatus)
-        .where(
-            Application.user_id == user_id,
-            Application.applied_at >= start_date,
-            ApplicationStatus.name == "Interviewing",
+    scope = data["scope"]
+    end_day: date = scope["cohort_end"]
+    start: date | None = scope["cohort_start"]
+    zone = ZoneInfo(scope["time_zone"])
+    weekly: dict[int, Counter] = defaultdict(
+        lambda: Counter(
+            applications=0, interviews=0, rounds_scheduled=0, rounds_completed=0
         )
-        .order_by(Application.applied_at)
     )
-    interviewing_dates = result.scalars().all()
-    for applied_at in interviewing_dates:
-        week_num = min((today - applied_at).days // 7, weeks_count - 1)
-        weekly_data[week_num]["interviews"] += 1
-
-    weekly_applications = [
-        {
-            "week": f"Week {week_num + 1}",
-            "applications": stats["applications"],
-        }
-        for week_num, stats in sorted(weekly_data.items())
-    ]
-    weekly_interviews = [
-        {
-            "week": f"Week {week_num + 1}",
-            "interviews": stats["interviews"],
-        }
-        for week_num, stats in sorted(weekly_data.items())
-    ]
-
-    result = await db.execute(
-        select(
-            extract("dow", Application.applied_at).label("weekday"),
-            func.count(Application.id).label("count"),
-        )
-        .where(
-            Application.user_id == user_id,
-            Application.applied_at >= start_date,
-        )
-        .group_by(extract("dow", Application.applied_at))
-    )
-    weekday_names = [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-    ]
-    weekday_counts: dict[str, int] = {}
-    for row in result.all():
-        if row.weekday is None:
+    weekdays: Counter[str] = Counter()
+    active_days = set()
+    for app in data["applications"]:
+        applied = app["applied_at"]
+        weekly[(end_day - applied).days // 7]["applications"] += 1
+        weekdays[applied.strftime("%A")] += 1
+        active_days.add(str(applied))
+    dated_activity = []
+    for event in data["activity"]:
+        day = event["occurred_at"].astimezone(zone).date()
+        if start is not None and day < start:
             continue
-        try:
-            idx = int(row.weekday)
-        except (TypeError, ValueError):
-            continue
-        if 0 <= idx < len(weekday_names):
-            weekday_counts[weekday_names[idx]] = int(row._mapping["count"] or 0)
-
-    result = await db.execute(
-        select(Application.applied_at)
-        .where(
-            Application.user_id == user_id,
-            Application.applied_at >= start_date,
+        dated_activity.append(event)
+        key = {
+            "round_scheduled": "rounds_scheduled",
+            "round_completed": "rounds_completed",
+        }.get(event["kind"])
+        if event["kind"] == "status_transition" and event["meaning"] == "interviewing":
+            key = "interviews"
+        if key:
+            weekly[(end_day - day).days // 7][key] += 1
+    weeks = max(
+        1,
+        (
+            (
+                end_day
+                - (
+                    start
+                    or min(
+                        (a["applied_at"] for a in data["applications"]), default=end_day
+                    )
+                )
+            ).days
+            + 7
         )
-        .distinct()
+        // 7,
     )
-    active_days = [str(applied_at) for applied_at in result.scalars().all()]
-
-    total_applications = len(application_dates)
-    patterns = {
-        "most_active_day": max(weekday_counts, key=lambda day: weekday_counts[day])
-        if weekday_counts
-        else None,
-        "weekday_distribution": weekday_counts,
-        "avg_applications_per_week": round(total_applications / weeks_count, 1)
-        if weeks_count > 0
-        else 0,
-    }
-
-    weekly_data_points = [
-        {
-            "week": f"Week {week_num + 1}",
-            "applications": stats["applications"],
-            "interviews": stats["interviews"],
-        }
-        for week_num, stats in sorted(weekly_data.items())
+    points = [
+        {"week": f"Week {week + 1}", **counts}
+        for week, counts in sorted(weekly.items())
     ]
-
     return {
-        "weekly_data": weekly_data_points,
-        "weekly_applications": weekly_applications,
-        "weekly_interviews": weekly_interviews,
-        "patterns": patterns,
-        "active_days": active_days,
+        "scope": scope,
+        "activity_basis": "cohort_events_on_their_own_dates_within_period",
+        "events": dated_activity,
+        "weekly_data": points,
+        "weekly_applications": [
+            {"week": p["week"], "applications": p["applications"]} for p in points
+        ],
+        "weekly_interviews": [
+            {"week": p["week"], "interviews": p["interviews"]} for p in points
+        ],
+        "patterns": {
+            "most_active_day": max(weekdays, key=lambda d: weekdays[d])
+            if weekdays
+            else None,
+            "weekday_distribution": dict(weekdays),
+            "avg_applications_per_week": round(len(data["applications"]) / weeks, 1),
+        },
+        "active_days": sorted(active_days),
     }

@@ -20,6 +20,10 @@ class User(Base):
         String(255), unique=True, index=True, nullable=False
     )
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Authentication state, deliberately excluded from portable exports.
+    session_version: Mapped[int] = mapped_column(
+        default=0, server_default="0", nullable=False
+    )
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -35,6 +39,15 @@ class User(Base):
     streak_exhausted_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     city: Mapped[str | None] = mapped_column(String(100))
     country: Mapped[str | None] = mapped_column(String(100))
+    # Latest pipeline-scope grounded report for this account. Not a historical
+    # snapshot; the source fingerprint marks it stale when evidence changes.
+    pipeline_generation: Mapped[int] = mapped_column(
+        default=0, server_default="0", nullable=False
+    )
+    pipeline_report: Mapped[dict | None] = mapped_column(
+        JSON(none_as_null=True), nullable=True
+    )
+    pipeline_report_reason: Mapped[str | None] = mapped_column(String(100))
 
     applications = relationship(
         "Application", back_populates="user", cascade="all, delete-orphan"

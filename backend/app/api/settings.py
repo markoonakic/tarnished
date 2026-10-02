@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api_key_scopes import (
@@ -190,6 +191,7 @@ async def create_status(
     status_obj = ApplicationStatus(
         name=data.name,
         color=data.color,
+        meaning=data.meaning,
         is_default=False,
         user_id=user.id,
         order=max_order + 1,
@@ -218,6 +220,10 @@ async def update_status(
 
     # If editing a default status, create user override instead
     if status_obj.user_id is None:
+        if data.meaning is not None:
+            raise HTTPException(
+                403, "Cannot change default status meaning; create a custom status"
+            )
         existing_override = await find_user_status_by_name(db, user.id, status_obj.name)
         if existing_override is not None:
             if data.color is not None:
@@ -229,6 +235,7 @@ async def update_status(
         # Create user's personal copy with custom values
         new_status = ApplicationStatus(
             name=status_obj.name,
+            meaning=status_obj.meaning,
             color=data.color if data.color is not None else status_obj.color,
             is_default=False,
             user_id=user.id,
@@ -254,6 +261,8 @@ async def update_status(
         status_obj.name = data.name
     if data.color is not None:
         status_obj.color = data.color
+    if data.meaning is not None:
+        status_obj.meaning = data.meaning
 
     await db.commit()
     await db.refresh(status_obj)
@@ -284,8 +293,12 @@ async def delete_status(
             status_code=403, detail="Not authorized to delete this status"
         )
 
-    await db.delete(status_obj)
-    await db.commit()
+    try:
+        await db.delete(status_obj)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Status is in use") from None
 
 
 @router.get("/round-types", response_model=list[RoundTypeFullResponse])
@@ -383,5 +396,9 @@ async def delete_round_type(
             status_code=403, detail="Not authorized to delete this round type"
         )
 
-    await db.delete(round_type)
-    await db.commit()
+    try:
+        await db.delete(round_type)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Round type is in use") from None

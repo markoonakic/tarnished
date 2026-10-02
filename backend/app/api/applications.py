@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import date
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.streak import record_streak_activity
+from app.api.utils.upload_route import UploadLimitRoute
 from app.api.utils.zip_utils import (
     ALLOWED_DOCUMENT_TYPES,
     sanitize_filename,
@@ -34,10 +35,17 @@ from app.schemas.application import (
     ApplicationListItem,
     ApplicationListResponse,
     ApplicationResponse,
+    ApplicationSummary,
     ApplicationUpdate,
 )
 from app.schemas.errors import ErrorCode, make_error_response
-from app.services.ai_settings import get_ai_settings
+from app.services.ai_settings import get_ai_settings, lock_ai_settings
+from app.services.application_evidence import (
+    compare_and_set_application,
+    initial_evidence,
+    response_values,
+    validate_response_date,
+)
 from app.services.extraction import (
     ExtractionAuthError,
     ExtractionError,
@@ -46,10 +54,13 @@ from app.services.extraction import (
     NoJobFoundError,
     extract_job_data,
 )
+from app.services.interview_jobs import invalidate_interviews
 from app.services.job_fetch import fetch_job_posting_html
 from app.services.user_time import get_user_local_today
 
-router = APIRouter(prefix="/api/applications", tags=["applications"])
+router = APIRouter(
+    prefix="/api/applications", tags=["applications"], route_class=UploadLimitRoute
+)
 
 
 @router.get("", response_model=ApplicationListResponse)
@@ -108,11 +119,22 @@ async def list_applications(
     query = query.order_by(Application.applied_at.desc(), Application.created_at.desc())
     query = query.offset((page - 1) * per_page).limit(per_page)
 
-    result = await db.execute(query)
-    applications = result.scalars().all()
+    round_count = (
+        select(func.count(Round.id))
+        .where(Round.application_id == Application.id)
+        .correlate(Application)
+        .scalar_subquery()
+    )
+    result = await db.execute(query.add_columns(round_count))
 
     return ApplicationListResponse(
-        items=applications,  # type: ignore[arg-type]
+        items=[
+            ApplicationSummary(
+                **ApplicationListItem.model_validate(application).model_dump(),
+                round_count=count,
+            )
+            for application, count in result
+        ],
         total=total,
         page=page,
         per_page=per_page,
@@ -154,7 +176,8 @@ async def create_application(
             ),
         )
     )
-    if not result.scalars().first():
+    selected_status = result.scalars().first()
+    if not selected_status:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status"
         )
@@ -166,8 +189,7 @@ async def create_application(
         job_description=data.job_description,
         job_url=data.job_url,
         status_id=data.status_id,
-        applied_at=data.applied_at
-        or get_user_local_today(user, x_timezone=x_timezone),
+        applied_at=data.applied_at or get_user_local_today(user, x_timezone=x_timezone),
         location=data.location,
         salary_min=data.salary_min,
         salary_max=data.salary_max,
@@ -182,19 +204,20 @@ async def create_application(
         years_experience_max=data.years_experience_max,
         source=data.source,
     )
-    db.add(application)
-    await db.flush()  # Get the generated ID
+    try:
+        db.add(application)
+        await db.flush()  # Get the generated ID
 
-    # Seed initial status history for Sankey chart
-    history_entry = ApplicationStatusHistory(
-        application_id=application.id,
-        from_status_id=None,
-        to_status_id=data.status_id,
-        changed_at=datetime.now(UTC),
-    )
-    db.add(history_entry)
+        db.add(initial_evidence(application, selected_status))
+        for key, value in response_values(
+            data.response_evidence, get_user_local_today(user, x_timezone=x_timezone)
+        ).items():
+            setattr(application, key, value)
 
-    await db.commit()
+        await db.commit()
+    except BaseException:
+        await db.rollback()
+        raise
     await record_streak_activity(user=user, db=db, x_timezone=x_timezone)
 
     result = await db.execute(
@@ -230,19 +253,18 @@ async def create_application_from_url(
             ),
         )
     )
-    if not result.scalars().first():
+    selected_status = result.scalars().first()
+    if not selected_status:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status"
         )
 
-    # 2. Get content for extraction - prefer text from extension, fall back to fetching HTML
-    import logging
-
-    logger = logging.getLogger(__name__)
-    logger.info(
-        f"Extract request - URL: {data.url}, has_text: {bool(data.text)}, text_length: {len(data.text) if data.text else 0}"
+    # Reject invalid evidence before network/provider work; record it at creation.
+    validate_response_date(
+        data.response_evidence, get_user_local_today(user, x_timezone=x_timezone)
     )
 
+    # 2. Get content for extraction - prefer text from extension, fall back to fetching HTML
     if data.text:
         html_content = None
         text_content = data.text
@@ -253,13 +275,16 @@ async def create_application_from_url(
     # 3. Get AI settings and extract job data
     ai_settings = await get_ai_settings(db)
 
+    if not ai_settings.is_configured:
+        raise HTTPException(400, ai_settings.disclosure().message)
+
     try:
         extracted = await extract_job_data(
             html=html_content,
             text=text_content,
             url=data.url,
-            model=ai_settings.model,
-            api_key=ai_settings.api_key,
+            model=ai_settings.effective_model,
+            api_key=ai_settings.dispatch_api_key,
             api_base=ai_settings.base_url,
         )
     except ExtractionAuthError as e:
@@ -300,8 +325,7 @@ async def create_application_from_url(
         job_description=extracted.description,
         job_url=data.url,
         status_id=data.status_id,
-        applied_at=data.applied_at
-        or get_user_local_today(user, x_timezone=x_timezone),
+        applied_at=data.applied_at or get_user_local_today(user, x_timezone=x_timezone),
         # Location
         location=extracted.location,
         # Salary fields
@@ -324,19 +348,20 @@ async def create_application_from_url(
         source=extracted.source,
     )
 
-    db.add(application)
-    await db.flush()  # Get the generated ID
+    try:
+        db.add(application)
+        await db.flush()  # Get the generated ID
 
-    # Seed initial status history for Sankey chart
-    history_entry = ApplicationStatusHistory(
-        application_id=application.id,
-        from_status_id=None,
-        to_status_id=data.status_id,
-        changed_at=datetime.now(UTC),
-    )
-    db.add(history_entry)
+        db.add(initial_evidence(application, selected_status))
+        for key, value in response_values(
+            data.response_evidence, get_user_local_today(user, x_timezone=x_timezone)
+        ).items():
+            setattr(application, key, value)
 
-    await db.commit()
+        await db.commit()
+    except BaseException:
+        await db.rollback()
+        raise
     await db.refresh(application)
     await db.refresh(application, ["status"])
 
@@ -393,6 +418,7 @@ async def update_application(
             status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
         )
 
+    selected_status = None
     if data.status_id:
         result = await db.execute(
             select(ApplicationStatus).where(
@@ -403,38 +429,64 @@ async def update_application(
                 ),
             )
         )
-        if not result.scalars().first():
+        selected_status = result.scalars().first()
+        if not selected_status:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status"
             )
 
-    # Track status change if status_id is being updated
     old_status_id = application.status_id
-    status_changed = False
+    update_data = data.model_dump(
+        exclude_unset=True, exclude={"response_evidence", "expected_revision"}
+    )
+    status_changed = "status_id" in update_data and data.status_id != old_status_id
 
-    update_data = data.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        if key == "status_id" and value != old_status_id:
-            status_changed = True
-        setattr(application, key, value)
-
-    await db.commit()
-
-    # Create status history entry if status changed
-    if status_changed:
-        history_entry = ApplicationStatusHistory(
-            application_id=application.id,
-            from_status_id=old_status_id,
-            to_status_id=data.status_id,
+    if "response_evidence" in data.model_fields_set:
+        update_data.update(
+            response_values(
+                data.response_evidence,
+                get_user_local_today(user, x_timezone=x_timezone),
+                application,
+            )
         )
-        db.add(history_entry)
+    if status_changed and selected_status is not None:
+        update_data.update(
+            status_meaning=selected_status.meaning, status_meaning_provenance="recorded"
+        )
+
+    try:
+        if update_data:
+            await compare_and_set_application(
+                db, application, update_data, data.expected_revision
+            )
+        if status_changed:
+            db.add(
+                ApplicationStatusHistory(
+                    application_id=application_id,
+                    from_status_id=old_status_id,
+                    to_status_id=data.status_id,
+                    from_meaning=application.status_meaning,
+                    from_meaning_provenance=application.status_meaning_provenance,
+                    to_meaning=selected_status.meaning
+                    if selected_status
+                    else "unknown",
+                    to_meaning_provenance="recorded",
+                    time_provenance="recorded",
+                )
+            )
         await db.commit()
+    except BaseException:
+        await db.rollback()
+        raise
+
+    if status_changed:
         await record_streak_activity(user=user, db=db, x_timezone=x_timezone)
 
     result = await db.execute(
         select(Application)
         .where(Application.id == application_id)
         .options(selectinload(Application.status))
+        .execution_options(populate_existing=True)
     )
     return result.scalars().first()
 
@@ -446,6 +498,7 @@ async def delete_application(
     _: object = Depends(require_api_key_scope("applications:write")),
     db: AsyncSession = Depends(get_db),
 ):
+    await lock_ai_settings(db)
     result = await db.execute(
         select(Application).where(
             Application.id == application_id, Application.user_id == user.id
@@ -487,8 +540,8 @@ async def upload_cv(
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     # Read file content
-    content = await file.read()
     max_size = settings.max_document_size_mb * 1024 * 1024
+    content = await file.read(max_size + 1)
     if len(content) > max_size:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -512,10 +565,19 @@ async def upload_cv(
             )
 
         # Store file using CAS
-        file_path = await store_file(content, upload_dir)
+        file_path = store_file(content, upload_dir)
     finally:
         tmp_path.unlink(missing_ok=True)
 
+    await lock_ai_settings(db)
+    await db.refresh(application)
+    await invalidate_interviews(
+        db,
+        application_id=application_id,
+        removed=bool(application.cv_path or application.cv_text),
+    )
+    application.evidence_revision += 1
+    application.cv_text = None
     application.cv_path = file_path
     application.cv_original_filename = sanitize_filename(file.filename or "unnamed")
     await db.commit()
@@ -548,6 +610,11 @@ async def delete_cv(
         )
 
     # Note: We don't delete CAS files as they may be shared/deduplicated
+    await lock_ai_settings(db)
+    await db.refresh(application)
+    await invalidate_interviews(db, application_id=application_id, removed=True)
+    application.evidence_revision += 1
+    application.cv_text = None
     application.cv_path = None
     application.cv_original_filename = None
     await db.commit()
@@ -585,8 +652,8 @@ async def upload_cover_letter(
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     # Read file content
-    content = await file.read()
     max_size = settings.max_document_size_mb * 1024 * 1024
+    content = await file.read(max_size + 1)
     if len(content) > max_size:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -610,10 +677,19 @@ async def upload_cover_letter(
             )
 
         # Store file using CAS
-        file_path = await store_file(content, upload_dir)
+        file_path = store_file(content, upload_dir)
     finally:
         tmp_path.unlink(missing_ok=True)
 
+    await lock_ai_settings(db)
+    await db.refresh(application)
+    await invalidate_interviews(
+        db,
+        application_id=application_id,
+        removed=bool(application.cover_letter_path or application.cover_letter_text),
+    )
+    application.evidence_revision += 1
+    application.cover_letter_text = None
     application.cover_letter_path = file_path
     application.cover_letter_original_filename = sanitize_filename(
         file.filename or "unnamed"
@@ -648,6 +724,11 @@ async def delete_cover_letter(
         )
 
     # Note: We don't delete CAS files as they may be shared/deduplicated
+    await lock_ai_settings(db)
+    await db.refresh(application)
+    await invalidate_interviews(db, application_id=application_id, removed=True)
+    application.evidence_revision += 1
+    application.cover_letter_text = None
     application.cover_letter_path = None
     application.cover_letter_original_filename = None
     await db.commit()

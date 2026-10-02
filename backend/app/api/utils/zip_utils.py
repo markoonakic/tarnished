@@ -8,6 +8,8 @@ import zipfile
 from contextlib import suppress
 from pathlib import Path
 
+from app.services.upload_storage import publish_file
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -141,11 +143,10 @@ def sanitize_filename(filename: str) -> str:
     # Remove leading dots (hidden files)
     name = name.lstrip(".")
 
-    # Limit length
+    # Reserve space for a short extension within the total length limit.
     if len(name) > 200:
-        stem = Path(name).stem[:190]
-        suffix = Path(name).suffix
-        name = f"{stem}{suffix}"
+        suffix = Path(name).suffix[:20]
+        name = name[: 200 - len(suffix)] + suffix
 
     # Ensure not empty
     if not name:
@@ -154,27 +155,15 @@ def sanitize_filename(filename: str) -> str:
     return name
 
 
-async def store_file(content: bytes, upload_dir: Path) -> str:
-    """Store file with CAS naming, return relative path.
-
-    Uses SHA-256 hash for filename to prevent collisions and enable deduplication.
-
-    Args:
-        content: Raw file bytes
-        upload_dir: Directory to store the file in
-
-    Returns:
-        Relative path from project root (e.g., 'uploads/abc123...pdf')
-    """
-    file_hash = hashlib.sha256(content).hexdigest()
-    ext = detect_extension(content)
-    filename = f"{file_hash}{ext}"
-    file_path = upload_dir / filename
-
-    if not file_path.exists():
-        file_path.write_bytes(content)
-
-    return f"{upload_dir.name}/{filename}"
+def store_file(content: bytes, upload_dir: Path, extension: str | None = None) -> str:
+    """Store complete bytes atomically and return a canonical upload reference."""
+    digest = hashlib.sha256(content).hexdigest()
+    extension = extension or detect_extension(content)
+    with tempfile.NamedTemporaryFile(dir=upload_dir) as temporary:
+        temporary.write(content)
+        temporary.flush()
+        os.fsync(temporary.fileno())
+        return publish_file(Path(temporary.name), upload_dir, digest, extension)
 
 
 def validate_file(file_path: Path, allowed_types: set) -> tuple[bool, str]:
@@ -188,10 +177,8 @@ def validate_file(file_path: Path, allowed_types: set) -> tuple[bool, str]:
         Tuple of (is_valid, detected_mime_type)
     """
     if magic is None:
-        logger.warning(
-            "libmagic unavailable, skipping MIME validation for %s", file_path
-        )
-        return True, "application/octet-stream"
+        logger.error("libmagic is unavailable; document validation failed")
+        return False, "application/octet-stream"
 
     detected = magic.from_file(str(file_path), mime=True)
     return detected in allowed_types, detected
@@ -214,9 +201,8 @@ def build_application_path(application: dict, filename: str) -> str:
     title = sanitize_filename(application.get("job_title", "Position"))
     short_id = str(application.get("id", "unknown"))[:8]
 
-    return (
-        f"applications/{company} - {title} ({short_id})/{sanitize_filename(filename)}"
-    )
+    directory = f"applications/{company} - {title} ({short_id})"
+    return f"{directory}/{sanitize_filename(filename)}" if filename else directory
 
 
 def build_round_media_path(
@@ -319,6 +305,24 @@ def is_path_safe(base_path: str, file_path: str) -> bool:
         return False
 
 
+MAX_BUFFERED_MEMBER_BYTES = 100 * 1024 * 1024
+
+# Explicit, configurable archive expansion limits. One maximum-supported
+# recording (1,000,000,000 bytes) plus metadata and other records must still
+# fit, so the aggregate ceiling holds two maximum recordings plus envelope.
+MAX_ARCHIVE_MEMBER_BYTES = 1_000_000_000
+MAX_ARCHIVE_FILES = 1000
+MAX_ARCHIVE_EXPANDED_BYTES = 2_100_000_000
+MAX_ARCHIVE_COMPRESSION_RATIO = 100
+
+
+def read_bounded_zip_member(zip_ref: zipfile.ZipFile, name: str) -> bytes:
+    """Only verified recording extraction may stream above the old buffer ceiling."""
+    if zip_ref.getinfo(name).file_size > MAX_BUFFERED_MEMBER_BYTES:
+        raise ValueError(f"Non-recording archive member exceeds 100 MiB: {name}")
+    return zip_ref.read(name)
+
+
 async def validate_zip_safety(zip_path: str) -> dict:
     """Validate ZIP file safety and return information about its contents.
 
@@ -331,8 +335,8 @@ async def validate_zip_safety(zip_path: str) -> dict:
     Raises:
         ValueError: If ZIP file is unsafe (path traversal, oversized, etc.)
     """
-    MAX_FILE_COUNT = 1000
-    MAX_UNCOMPRESSED_SIZE = 1024 * 1024 * 1024  # 1GB
+    MAX_FILE_COUNT = MAX_ARCHIVE_FILES
+    MAX_UNCOMPRESSED_SIZE = MAX_ARCHIVE_EXPANDED_BYTES
 
     file_count = 0
     total_uncompressed_size = 0
@@ -368,21 +372,36 @@ async def validate_zip_safety(zip_path: str) -> dict:
                         f"ZIP contains path traversal attempt: {file_info.filename}"
                     )
 
+                # Metadata is decoded wholesale on both validation and execution.
+                if (
+                    file_info.filename in ("data.json", "manifest.json")
+                    and file_info.file_size > MAX_BUFFERED_MEMBER_BYTES
+                ):
+                    raise ValueError(
+                        f"Archive metadata exceeds 100 MiB: {file_info.filename}"
+                    )
                 # Check uncompressed size
                 total_uncompressed_size += file_info.file_size
-                if file_info.file_size > 100 * 1024 * 1024:  # 100MB per file limit
+                if file_info.file_size > MAX_ARCHIVE_MEMBER_BYTES:
                     raise ValueError(
-                        f"ZIP contains file larger than 100MB: {file_info.filename}"
+                        f"ZIP member exceeds {MAX_ARCHIVE_MEMBER_BYTES} bytes: {file_info.filename}"
                     )
 
                 # Check total size
                 if total_uncompressed_size > MAX_UNCOMPRESSED_SIZE:
-                    raise ValueError("ZIP total uncompressed size exceeds 1GB")
+                    raise ValueError(
+                        "ZIP total uncompressed size exceeds "
+                        f"{MAX_UNCOMPRESSED_SIZE} bytes"
+                    )
 
             # Check for ZIP bomb (compression ratio)
             if file_count > 0:
                 zip_size = os.path.getsize(zip_path)
-                if zip_size > 0 and total_uncompressed_size / zip_size > 100:
+                if (
+                    zip_size > 0
+                    and total_uncompressed_size / zip_size
+                    > MAX_ARCHIVE_COMPRESSION_RATIO
+                ):
                     raise ValueError(
                         "ZIP has suspicious compression ratio (possible ZIP bomb)"
                     )
@@ -434,6 +453,24 @@ async def create_zip_export_file(
     applications = models.get("Application", [])
     rounds = models.get("Round", [])
     round_media = models.get("RoundMedia", [])
+
+    # Missing/outside-root attachments must never become a silently partial archive.
+    for rows, fields in (
+        (applications, ("cv_path", "cover_letter_path")),
+        (rounds, ("transcript_path",)),
+        (round_media, ("file_path",)),
+    ):
+        for row in rows:
+            for field in fields:
+                if row.get(field):
+                    source = resolve_export_file_path(row[field], base_upload_path)
+                    if (
+                        not is_path_safe(str(base_path), str(source))
+                        or not source.is_file()
+                    ):
+                        raise ValueError(
+                            "An attached file is missing or unavailable; export was not completed"
+                        )
 
     # Build lookup for rounds by application_id
     rounds_by_app: dict[str, list[dict]] = {}
@@ -545,9 +582,25 @@ async def create_zip_export_file(
                         zip_path = build_round_media_path(
                             app, round_data, round_index, media
                         )
+                        if zip_path in file_registry:
+                            member = Path(zip_path)
+                            zip_path = str(
+                                member.with_name(str(media["id"]) + "-" + member.name)
+                            )
                         file_mappings.append((media_path, zip_path))
 
-                        content = media_path.read_bytes()
+                        with media_path.open("rb") as source:
+                            content = source.read(65536)
+                            source.seek(0)
+                            digest = hashlib.file_digest(source, "sha256").hexdigest()
+                        byte_count = media_path.stat().st_size
+                        if (media.get("sha256") and media["sha256"] != digest) or (
+                            media.get("byte_count") is not None
+                            and media["byte_count"] != byte_count
+                        ):
+                            raise ValueError(
+                                "Recording integrity mismatch; export was not completed"
+                            )
                         original_name = (
                             media.get("original_filename")
                             or Path(media["file_path"]).name
@@ -555,8 +608,8 @@ async def create_zip_export_file(
                         file_registry[zip_path] = {
                             "original_name": original_name,
                             "mime_type": detect_mime_type(content),
-                            "size_bytes": len(content),
-                            "sha256": hashlib.sha256(content).hexdigest(),
+                            "size_bytes": byte_count,
+                            "sha256": digest,
                             "entity_type": "RoundMedia",
                             "entity_id": media.get("id"),
                             "field": "file_path",
@@ -565,7 +618,7 @@ async def create_zip_export_file(
     # Build manifest
     export_timestamp = datetime.now(UTC).isoformat()
     manifest = {
-        "format_version": "1.0.0",
+        "format_version": data["format_version"],
         "source_system": "Tarnished",
         "export_timestamp": export_timestamp,
         "user_email": user_email,
@@ -589,16 +642,14 @@ async def create_zip_export_file(
     with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
         tmp_path = tmp.name
 
-    with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-        # Write manifest
-        zipf.writestr("manifest.json", json.dumps(manifest, indent=2))
-
-        # Write data
-        zipf.writestr("data.json", json_data)
-
-        # Write files with human-readable paths
-        for source_path, zip_path in file_mappings:
-            if source_path.exists():
+    try:
+        with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            zipf.writestr("manifest.json", json.dumps(manifest, indent=2))
+            zipf.writestr("data.json", json_data)
+            for source_path, zip_path in file_mappings:
+                # A disappearing file fails the archive, never a partial success.
                 zipf.write(source_path, zip_path)
-
+    except BaseException:
+        Path(tmp_path).unlink(missing_ok=True)
+        raise
     return tmp_path

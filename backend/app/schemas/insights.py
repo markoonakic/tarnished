@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import AwareDatetime, BaseModel
 
 
 class SectionInsight(BaseModel):
@@ -23,3 +23,4 @@ class InsightsRequest(BaseModel):
     """Request body for generating insights."""
 
     period: str  # "7d", "30d", "3m", "all"
+    as_of: AwareDatetime | None = None

@@ -38,12 +38,3 @@ class SystemSettings(Base):
     KEY_LITELLM_MODEL = "litellm_model"
     KEY_LITELLM_API_KEY = "litellm_api_key"
     KEY_LITELLM_BASE_URL = "litellm_base_url"
-
-    @classmethod
-    def get_known_keys(cls) -> list[str]:
-        """Return list of known setting keys."""
-        return [
-            cls.KEY_LITELLM_MODEL,
-            cls.KEY_LITELLM_API_KEY,
-            cls.KEY_LITELLM_BASE_URL,
-        ]

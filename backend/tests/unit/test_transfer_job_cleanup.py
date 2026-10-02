@@ -68,6 +68,7 @@ async def test_cleanup_report_identifies_expired_export_artifacts_and_jobs(
     )
     db.add_all([stale_job, fresh_job, failed_job])
     await db.commit()
+    db.expunge_all()
 
     report = await build_transfer_job_cleanup_report(db, now=now)
 

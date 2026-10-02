@@ -29,8 +29,15 @@ def column_exists(table_name: str, column_name: str) -> bool:
 
 def upgrade() -> None:
     """Upgrade schema."""
-    # Add missing columns that exist in model but were never migrated
-    # These columns may already exist in some databases (manually added)
+    connection = op.get_bind()
+    for name in ("requirements_must_have", "requirements_nice_to_have"):
+        applications = sa.table("applications", sa.column(name, sa.JSON()))
+        connection.execute(
+            applications.update()
+            .where(applications.c[name].is_(None))
+            .values({name: []})
+        )
+    # Some installations added these columns manually.
     with op.batch_alter_table("applications", schema=None) as batch_op:
         if not column_exists("applications", "location"):
             batch_op.add_column(sa.Column("location", sa.String(255), nullable=True))

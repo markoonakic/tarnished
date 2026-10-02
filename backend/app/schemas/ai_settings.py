@@ -1,67 +1,96 @@
-"""AI Settings schemas for LiteLLM configuration."""
+"""Installation capabilities; credentials and endpoints are write-only."""
+
+import re
+from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+IDENTIFIER = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,199}$")
+
 
 class AISettingsUpdate(BaseModel):
-    """Schema for updating AI settings (PUT /api/admin/ai-settings)."""
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
 
-    litellm_model: str | None = Field(
-        default=None,
-        description="LiteLLM model identifier (e.g., 'gpt-4o', 'claude-3-sonnet')",
-    )
-    litellm_api_key: str | None = Field(
-        default=None,
-        description="API key for the LiteLLM provider (will be encrypted)",
-    )
-    litellm_base_url: str | None = Field(
-        default=None,
-        description="Base URL for self-hosted LiteLLM instances",
-    )
+    litellm_model: str | None = None
+    litellm_api_key: str | None = Field(default=None, max_length=8192, repr=False)
+    litellm_base_url: str | None = Field(default=None, max_length=2048, repr=False)
+    text_protocol: Literal["chat_completions", "responses"] | None = None
+    text_enabled: bool = True
+    text_keyless: bool = False
+    speech_enabled: bool = False
+    speech_provider: str | None = None
+    speech_model: str | None = None
+    speech_endpoint: str | None = Field(default=None, max_length=2048, repr=False)
+    speech_api_key: str | None = Field(default=None, max_length=8192, repr=False)
+    speech_keyless: bool = False
 
-    @field_validator("litellm_model")
+    @field_validator("litellm_model", "speech_model", "speech_provider")
     @classmethod
-    def validate_model(cls, v: str | None) -> str | None:
-        """Ensure model name is not empty if provided."""
-        if v is not None and not v.strip():
-            raise ValueError("Model name cannot be empty")
-        return v
+    def validate_identifier(cls, value: str | None) -> str | None:
+        if value is not None and (not IDENTIFIER.fullmatch(value) or "://" in value):
+            raise ValueError("Use a provider/model identifier, not a URL or credential")
+        return value
 
-    @field_validator("litellm_api_key")
+    @field_validator("litellm_api_key", "speech_api_key")
     @classmethod
-    def validate_api_key(cls, v: str | None) -> str | None:
-        """Ensure API key is not empty if provided."""
-        if v is not None and not v.strip():
-            raise ValueError("API key cannot be empty")
-        return v
+    def validate_secret(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("Credential cannot be empty; use null to clear")
+        return value
 
-    @field_validator("litellm_base_url")
+    @field_validator("litellm_base_url", "speech_endpoint")
     @classmethod
-    def validate_base_url(cls, v: str | None) -> str | None:
-        """Ensure base URL is not empty if provided."""
-        if v is not None and not v.strip():
-            raise ValueError("Base URL cannot be empty")
-        return v
+    def validate_endpoint(cls, value: str | None) -> str | None:
+        if value is not None:
+            try:
+                parsed = urlsplit(value)
+                valid = parsed.scheme in {"http", "https"} and parsed.hostname
+                valid = valid and not any(c.isspace() for c in value)
+                _ = parsed.port
+            except ValueError:
+                valid = False
+            if not valid:
+                raise ValueError("Endpoint must be an absolute HTTP(S) URL")
+        return value
+
+
+class CapabilityResponse(BaseModel):
+    enabled: bool
+    provider: str | None
+    model: str | None
+    configuration_status: Literal["disabled", "incomplete", "unsupported", "configured"]
+    configuration_revision: str
+    verified: Literal[False] = False
+    dispatch_supported: bool
+    available: bool = Field(
+        description="Whether the installed dispatch path accepts requests; not a live service guarantee"
+    )
+    external_processing: str
+    input_disclosure: str
+    message: str
 
 
 class AISettingsResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    litellm_model: str | None
+    # Compatibility names retained, but no secret suffix or stored endpoint is echoed.
+    litellm_api_key_masked: str | None
+    litellm_base_url: None = None
+    litellm_endpoint_configured: bool
+    is_configured: bool
+    text_protocol: Literal["chat_completions", "responses"]
+    text_enabled: bool
+    text_keyless: bool
+    speech_enabled: bool
+    speech_keyless: bool
+    speech_provider: str | None
+    speech_model: str | None
+    speech_endpoint_configured: bool
+    speech_api_key_configured: bool
+    text: CapabilityResponse
+    speech: CapabilityResponse
 
-    """Schema for AI settings response (GET /api/admin/ai-settings).
 
-    The API key is masked for security - only showing last 4 characters
-    if an API key is configured.
-    """
-
-    litellm_model: str | None = Field(
-        description="Configured LiteLLM model identifier",
-    )
-    litellm_api_key_masked: str | None = Field(
-        description="Masked API key showing only last 4 characters (e.g., '...abcd')",
-    )
-    litellm_base_url: str | None = Field(
-        description="Configured base URL for self-hosted LiteLLM",
-    )
-    is_configured: bool = Field(
-        description="Whether AI settings have been configured with valid credentials",
-    )
+class CapabilitiesResponse(BaseModel):
+    text: CapabilityResponse
+    speech: CapabilityResponse

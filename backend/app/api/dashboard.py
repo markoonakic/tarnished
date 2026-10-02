@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
@@ -6,13 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, get_request_time_zone, require_api_key_scope
-from app.models import Application, ApplicationStatus, User
+from app.models import Application, User
 from app.schemas import (
     DashboardKPIsResponse,
     NeedsAttentionItem,
     NeedsAttentionResponse,
 )
-from app.services.user_time import get_user_local_today
+from app.services.analytics_queries import analytics_clock, get_pipeline_overview_data
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -26,12 +26,18 @@ def _calculate_period_trend(current: int, previous: int) -> float | None:
 
 @router.get("/kpis", response_model=DashboardKPIsResponse)
 async def get_dashboard_kpis(
+    period: str = "all",
+    as_of: datetime | None = None,
     x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("dashboard:read")),
     db: AsyncSession = Depends(get_db),
 ):
-    today = get_user_local_today(user, x_timezone=x_timezone)
+    instant, zone = analytics_clock(user, x_timezone, as_of)
+    pipeline = await get_pipeline_overview_data(
+        db, user.id, period, as_of=instant, time_zone=zone
+    )
+    today = pipeline["scope"]["cohort_end"]
 
     # Calculate date ranges
     last_7_days_start = today - timedelta(days=6)
@@ -92,111 +98,73 @@ async def get_dashboard_kpis(
         previous_30_days_count,
     )
 
-    # Count active opportunities (not Rejected or Withdrawn)
-    result_active = await db.execute(
-        select(func.count(Application.id))
-        .join(ApplicationStatus)
-        .where(
-            Application.user_id == user.id,
-            ApplicationStatus.name.not_in(["Rejected", "Withdrawn"]),
-        )
-    )
-    active_opportunities = result_active.scalar() or 0
-
     return DashboardKPIsResponse(
         last_7_days=last_7_days_count,
         last_7_days_trend=last_7_days_trend,
         last_30_days=last_30_days_count,
         last_30_days_trend=last_30_days_trend,
-        active_opportunities=active_opportunities,
+        active_opportunities=pipeline["active_applications"],
+        scope=pipeline["scope"],
+        current_record_basis=pipeline["current_record_basis"],
+        unknown_opportunities=pipeline["unknown_applications"],
     )
 
 
 @router.get("/needs-attention", response_model=NeedsAttentionResponse)
 async def get_needs_attention(
+    period: str = "all",
+    as_of: datetime | None = None,
     x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("dashboard:read")),
     db: AsyncSession = Depends(get_db),
 ):
-    today = get_user_local_today(user, x_timezone=x_timezone)
-
-    # Calculate date thresholds
-    follow_up_start = today - timedelta(days=10)
-    follow_up_end = today - timedelta(days=7)
-    no_response_threshold = today - timedelta(days=7)
-
-    # Follow-ups: Applications 7-10 days ago in "Applied" status
-    result_follow_ups = await db.execute(
-        select(Application, ApplicationStatus)
-        .join(ApplicationStatus)
-        .where(
-            Application.user_id == user.id,
-            ApplicationStatus.name == "Applied",
-            Application.applied_at >= follow_up_start,
-            Application.applied_at <= follow_up_end,
-        )
-        .order_by(Application.applied_at.desc())
-        .limit(5)
+    instant, zone = analytics_clock(user, x_timezone, as_of)
+    pipeline = await get_pipeline_overview_data(
+        db, user.id, period, as_of=instant, time_zone=zone
     )
-    follow_ups_rows = result_follow_ups.all()
+    today = pipeline["scope"]["cohort_end"]
+
+    def item(record, reason):
+        return NeedsAttentionItem(
+            id=record["application_id"],
+            company=record["company"],
+            job_title=record["job_title"],
+            days_since=(today - record["applied_at"]).days,
+            reason=reason,
+            current_stage_age_hours=record["current_stage_age_hours"],
+        )
+
+    records = pipeline["applications"]
+    unanswered = [
+        row
+        for row in records
+        if not row["response_recorded"]
+        and row["current_meaning"] in {"applied", "screening"}
+    ]
     follow_ups = [
-        NeedsAttentionItem(
-            id=str(app.id),
-            company=app.company,
-            job_title=app.job_title,
-            days_since=(today - app.applied_at).days,
-        )
-        for app, _ in follow_ups_rows
-    ]
-
-    # No responses: Applications 7+ days ago in "Applied" or "Screening"
-    result_no_responses = await db.execute(
-        select(Application, ApplicationStatus)
-        .join(ApplicationStatus)
-        .where(
-            Application.user_id == user.id,
-            ApplicationStatus.name.in_(["Applied", "Screening"]),
-            Application.applied_at < no_response_threshold,
-        )
-        .order_by(Application.applied_at.asc())
-        .limit(5)
-    )
-    no_responses_rows = result_no_responses.all()
+        item(row, "Applied 7–10 calendar days ago; no recorded substantive response")
+        for row in reversed(unanswered)
+        if row["current_meaning"] == "applied"
+        and 7 <= (today - row["applied_at"]).days <= 10
+    ][:5]
     no_responses = [
-        NeedsAttentionItem(
-            id=str(app.id),
-            company=app.company,
-            job_title=app.job_title,
-            days_since=(today - app.applied_at).days,
+        item(
+            row,
+            "Applied more than 7 calendar days ago; no recorded substantive response (not proof of silence)",
         )
-        for app, _ in no_responses_rows
-    ]
-
-    # Interviewing: Applications in "Interviewing" status
-    result_interviewing = await db.execute(
-        select(Application, ApplicationStatus)
-        .join(ApplicationStatus)
-        .where(
-            Application.user_id == user.id,
-            ApplicationStatus.name == "Interviewing",
-        )
-        .order_by(Application.applied_at.desc())
-        .limit(5)
-    )
-    interviewing_rows = result_interviewing.all()
+        for row in unanswered
+        if (today - row["applied_at"]).days > 7
+    ][:5]
     interviewing = [
-        NeedsAttentionItem(
-            id=str(app.id),
-            company=app.company,
-            job_title=app.job_title,
-            days_since=(today - app.applied_at).days,
-        )
-        for app, _ in interviewing_rows
-    ]
-
+        item(row, "Currently classified interviewing; no speed target implied")
+        for row in reversed(records)
+        if row["current_meaning"] == "interviewing"
+    ][:5]
     return NeedsAttentionResponse(
         follow_ups=follow_ups,
         no_responses=no_responses,
         interviewing=interviewing,
+        scope=pipeline["scope"],
+        current_record_basis=pipeline["current_record_basis"],
     )

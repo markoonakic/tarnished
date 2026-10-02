@@ -1,6 +1,7 @@
 from app.models.application import Application, ApplicationStatusHistory
 from app.models.audit_log import AuditLog
 from app.models.job_lead import JobLead
+from app.models.processing_job import ProcessingJob
 from app.models.round import MediaType, Round, RoundMedia
 from app.models.round_type import RoundType
 from app.models.status import ApplicationStatus
@@ -25,4 +26,7 @@ __all__ = [
     "UserProfile",
     "SystemSettings",
     "TransferJob",
+    "ProcessingJob",
 ]
+
+from app.models.interview_job import InterviewJob as InterviewJob

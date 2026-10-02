@@ -4,20 +4,25 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_admin, require_api_key_scope
+from app.core.deps import get_current_admin, get_current_user, require_api_key_scope
 from app.models import User
-from app.schemas.ai_settings import AISettingsResponse, AISettingsUpdate
+from app.schemas.ai_settings import (
+    AISettingsResponse,
+    AISettingsUpdate,
+    CapabilitiesResponse,
+)
 from app.services.ai_settings import (
     get_ai_settings as get_ai_settings_state,
 )
 from app.services.ai_settings import (
     update_ai_settings as update_ai_settings_state,
 )
+from app.services.local_speech import inspect_local_speech
 
-router = APIRouter(prefix="/api/admin/ai-settings", tags=["ai-settings"])
+router = APIRouter(tags=["ai-settings"])
 
 
-@router.get("", response_model=AISettingsResponse)
+@router.get("/api/admin/ai-settings", response_model=AISettingsResponse)
 async def get_ai_settings(
     _: User = Depends(get_current_admin),
     __: object = Depends(require_api_key_scope("admin:read")),
@@ -29,15 +34,27 @@ async def get_ai_settings(
     """
     settings = await get_ai_settings_state(db)
 
-    return AISettingsResponse(
-        litellm_model=settings.model,
-        litellm_api_key_masked=settings.masked_api_key,
-        litellm_base_url=settings.base_url,
-        is_configured=settings.is_configured,
-    )
+    return settings.admin_response()
 
 
-@router.put("", response_model=AISettingsResponse)
+@router.get("/api/admin/ai-settings/local-speech-status")
+async def local_speech_status(
+    _: User = Depends(get_current_admin),
+    __: object = Depends(require_api_key_scope("admin:read")),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Explicit cache inspection only; never dispatch inference/download/registry."""
+    speech = (await get_ai_settings_state(db)).speech
+    if speech.provider != "local" or not speech.is_configured:
+        return {
+            "status": "not_configured",
+            "message": "Save an enabled local configuration first. No service check was made.",
+            "installed": [],
+        }
+    return await inspect_local_speech(speech.base_url or "")
+
+
+@router.put("/api/admin/ai-settings", response_model=AISettingsResponse)
 async def update_ai_settings(
     data: AISettingsUpdate,
     _: User = Depends(get_current_admin),
@@ -51,9 +68,16 @@ async def update_ai_settings(
     """
     settings = await update_ai_settings_state(db, data)
 
-    return AISettingsResponse(
-        litellm_model=settings.model,
-        litellm_api_key_masked=settings.masked_api_key,
-        litellm_base_url=settings.base_url,
-        is_configured=settings.is_configured,
+    return settings.admin_response()
+
+
+@router.get("/api/ai-capabilities", response_model=CapabilitiesResponse)
+async def get_capabilities(
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> CapabilitiesResponse:
+    """Safe installation disclosure for any authenticated user; never dispatches."""
+    settings = await get_ai_settings_state(db)
+    return CapabilitiesResponse(
+        text=settings.disclosure(), speech=settings.speech.disclosure()
     )

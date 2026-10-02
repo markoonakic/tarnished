@@ -11,12 +11,12 @@ from app.models import User
 from app.schemas.insights import GraceInsights, InsightsRequest
 from app.services.ai_settings import get_ai_settings
 from app.services.analytics_queries import (
+    analytics_clock,
     get_activity_tracking_data,
     get_interview_rounds_data,
     get_pipeline_overview_data,
 )
 from app.services.insights import generate_insights_async
-from app.services.user_time import get_user_local_today
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +39,8 @@ async def is_ai_configured(
     try:
         settings = await get_ai_settings(db)
         return {"configured": settings.is_configured}
-    except Exception as e:
-        logger.exception("Failed to check AI configuration: %s", e)
+    except Exception:
+        logger.warning("Failed to check AI configuration")
         return {"configured": False}
 
 
@@ -51,16 +51,18 @@ async def get_insights(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("analytics:read")),
+    __: object = Depends(require_api_key_scope("analytics:generate")),
 ):
-    """Generate AI-powered insights for analytics data."""
+    """Generate only on an explicit authorized request; reads never generate."""
     try:
         period = _normalize_period(request.period)
-        today = get_user_local_today(current_user, x_timezone=x_timezone)
+        instant, zone = analytics_clock(current_user, x_timezone, request.as_of)
         analytics = await _get_analytics_for_insights(
             db,
             current_user.id,
             period,
-            today=today,
+            as_of=instant,
+            time_zone=zone,
         )
         settings = await get_ai_settings(db)
 
@@ -78,8 +80,10 @@ async def get_insights(
         raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate insights: {e}")
+    except Exception:
+        raise HTTPException(
+            status_code=500, detail="Failed to generate insights"
+        ) from None
 
 
 async def _get_analytics_for_insights(
@@ -87,7 +91,9 @@ async def _get_analytics_for_insights(
     user_id: str,
     period: str,
     *,
-    today,
+    today=None,
+    as_of=None,
+    time_zone="UTC",
 ) -> dict:
     """Get analytics data formatted for insights generation."""
     pipeline_overview = await get_pipeline_overview_data(
@@ -95,32 +101,30 @@ async def _get_analytics_for_insights(
         user_id,
         period,
         today=today,
+        as_of=as_of,
+        time_zone=time_zone,
     )
     interview_analytics = await get_interview_rounds_data(
         db,
         user_id,
         period,
         today=today,
+        as_of=as_of,
+        time_zone=time_zone,
+        calculation=pipeline_overview,
     )
     activity_tracking = await get_activity_tracking_data(
         db,
         user_id,
         period,
         today=today,
+        as_of=as_of,
+        time_zone=time_zone,
+        calculation=pipeline_overview,
     )
 
     return {
         "pipeline_overview": pipeline_overview,
-        "interview_analytics": {
-            "conversion_rates": interview_analytics["conversion_rates"],
-            "outcomes": interview_analytics["outcomes"],
-            "avg_days_between_rounds": interview_analytics["avg_days_between_rounds"],
-            "speed_indicators": interview_analytics["speed_indicators"],
-        },
-        "activity_tracking": {
-            "weekly_applications": activity_tracking["weekly_applications"],
-            "weekly_interviews": activity_tracking["weekly_interviews"],
-            "patterns": activity_tracking["patterns"],
-            "active_days": activity_tracking["active_days"],
-        },
+        "interview_analytics": interview_analytics,
+        "activity_tracking": activity_tracking,
     }

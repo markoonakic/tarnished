@@ -66,7 +66,10 @@ async def wait_for_import_completion(
 def run_migrations_on_sync_engine(engine) -> None:
     with engine.begin() as connection:
         cfg = Config(str(ALEMBIC_INI_PATH))
-        cfg.set_main_option("sqlalchemy.url", str(engine.url))
+        cfg.set_main_option(
+            "sqlalchemy.url",
+            engine.url.render_as_string(hide_password=False).replace("%", "%%"),
+        )
         cfg.attributes["connection"] = connection
         command.upgrade(cfg, "head")
 
@@ -141,14 +144,21 @@ async def test_round_types(db: AsyncSession) -> list[RoundType]:
 @pytest.fixture
 def auth_headers(test_user: User) -> dict:
     """Create authentication headers for the test user."""
-    token = create_access_token(data={"sub": str(test_user.id)})
+    token = create_access_token(
+        data={"sub": str(test_user.id), "session_version": test_user.session_version}
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
 def importing_auth_headers(importing_user: User) -> dict:
     """Create authentication headers for the importing user."""
-    token = create_access_token(data={"sub": str(importing_user.id)})
+    token = create_access_token(
+        data={
+            "sub": str(importing_user.id),
+            "session_version": importing_user.session_version,
+        }
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -194,14 +204,14 @@ class TestExportImportRoundTrip:
 
             # Verify manifest format
             manifest = json.loads(zf.read("manifest.json"))
-            assert manifest["format_version"] == "1.0.0"
+            assert manifest["format_version"] == "2.0.0"
             assert "export_timestamp" in manifest
             assert manifest["user_id"] == str(test_user.id)
             assert "counts" in manifest
 
             # Verify data.json format
             data = json.loads(zf.read("data.json"))
-            assert data["format_version"] == "1.0.0"
+            assert data["format_version"] == "2.0.0"
             assert "models" in data
             assert "Application" in data["models"]
             assert len(data["models"]["Application"]) == 1
@@ -754,3 +764,392 @@ class TestFileExtraction:
                 extract_files_from_new_format(str(zip_path), "test-user")
 
         assert "checksum mismatch" in str(exc_info.value).lower()
+
+
+@pytest.mark.parametrize("export_format", ["json", "zip"])
+async def test_export_excludes_foreign_records_and_secrets_throughout_tree(
+    client,
+    db,
+    test_user,
+    importing_user,
+    test_statuses,
+    test_round_types,
+    auth_headers,
+    export_format,
+    tmp_path,
+    monkeypatch,
+):
+    from app.core.config import get_settings
+    from app.models import ApplicationStatusHistory, RoundMedia, UserProfile
+    from app.models.system_settings import SystemSettings
+    from app.models.user_api_key import UserAPIKey
+
+    uploads = tmp_path / "uploads"
+    uploads.mkdir()
+    monkeypatch.setattr(get_settings(), "upload_dir", str(uploads))
+    # ZIP exports fail on missing attachments instead of silently omitting them.
+    (uploads / "owned-media.mp3").write_bytes(b"owned synthetic archive bytes")
+    (uploads / "foreign-media.mp3").write_bytes(b"foreign synthetic archive bytes")
+    test_user.settings = {
+        "theme": "dracula",
+        "show_heatmap": False,
+        "litellm_api_key": "legacy-ai-secret",
+        "unknown": {"api_key": "nested-secret"},
+    }
+    forbidden_values = {
+        importing_user.id,
+        importing_user.email,
+        test_user.password_hash,
+        importing_user.password_hash,
+        "legacy-ai-secret",
+        "nested-secret",
+        "shared-ai-secret",
+    }
+    for user in [test_user, importing_user]:
+        marker = "owned" if user == test_user else "foreign"
+        custom_status = ApplicationStatus(user_id=user.id, name=f"{marker} status")
+        custom_type = RoundType(user_id=user.id, name=f"{marker} type")
+        profile = UserProfile(
+            user_id=user.id, first_name=f"{marker} profile", skills=["Python"]
+        )
+        api_key = UserAPIKey(
+            user_id=user.id,
+            label=marker,
+            key_prefix=f"{marker}-prefix",
+            key_hash=f"{marker}-api-hash",
+        )
+        lead = JobLead(
+            user_id=user.id, url=f"https://example.com/{marker}", title=f"{marker} lead"
+        )
+        db.add_all([custom_status, custom_type, profile, api_key, lead])
+        application = Application(
+            user_id=user.id,
+            company=f"{marker} company",
+            job_title="Engineer",
+            status_id=test_statuses[0].id,
+        )
+        db.add(application)
+        await db.flush()
+        round_obj = Round(
+            application_id=application.id,
+            round_type_id=test_round_types[0].id,
+            notes_summary=f"{marker} interview",
+        )
+        history = ApplicationStatusHistory(
+            application_id=application.id,
+            to_status_id=test_statuses[0].id,
+            note=f"{marker} history",
+        )
+        db.add_all([round_obj, history])
+        await db.flush()
+        media = RoundMedia(
+            round_id=round_obj.id,
+            file_path=f"uploads/{marker}-media.mp3",
+            media_type="audio",
+        )
+        db.add(media)
+        await db.flush()
+        forbidden_values.update([api_key.key_hash, api_key.key_prefix])
+        if user == importing_user:
+            forbidden_values.update(
+                obj.id
+                for obj in [
+                    custom_status,
+                    custom_type,
+                    profile,
+                    api_key,
+                    lead,
+                    application,
+                    round_obj,
+                    history,
+                    media,
+                ]
+            )
+            forbidden_values.update(
+                [
+                    "foreign company",
+                    "foreign interview",
+                    "foreign history",
+                    "foreign profile",
+                    "foreign lead",
+                    "foreign status",
+                    "foreign type",
+                    "uploads/foreign-media.mp3",
+                ]
+            )
+    db.add(
+        SystemSettings(key=SystemSettings.KEY_LITELLM_API_KEY, value="shared-ai-secret")
+    )
+    await db.commit()
+
+    response = await client.get(f"/api/export/{export_format}", headers=auth_headers)
+    assert response.status_code == 200
+    if export_format == "zip":
+        with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+            tree = {
+                name: json.loads(archive.read(name))
+                for name in archive.namelist()
+                if name.endswith(".json")
+            }
+        data = tree["data.json"]
+    else:
+        tree = data = response.json()
+    serialized = json.dumps(tree)
+    leaks = [value for value in forbidden_values if value in serialized]
+    forbidden_keys = [
+        "password_hash",
+        "session_version",
+        "owner_bootstrapped",
+        "key_hash",
+        "key_prefix",
+        "api_keys",
+        "litellm_api_key",
+        "api_key",
+    ]
+    leaks.extend(key for key in forbidden_keys if f'"{key}"' in serialized)
+    assert leaks == []
+    assert data["models"]["User"][0]["settings"]["theme"] == "dracula"
+    assert data["models"]["User"][0]["settings"]["show_heatmap"] is False
+    assert data["models"]["UserProfile"][0]["skills"] == ["Python"]
+    for model in [
+        "Application",
+        "Round",
+        "RoundMedia",
+        "ApplicationStatusHistory",
+        "JobLead",
+    ]:
+        assert len(data["models"][model]) == 1
+    assert {s["name"] for s in data["models"]["ApplicationStatus"]} == {
+        "Applied",
+        "Interview",
+        "Rejected",
+        "owned status",
+    }
+
+
+@pytest.mark.parametrize(
+    "field", ["cv_path", "cover_letter_path", "transcript_path", "file_path"]
+)
+async def test_import_rejects_known_foreign_attachment_path(
+    client,
+    db,
+    test_user,
+    importing_user,
+    test_statuses,
+    test_round_types,
+    importing_auth_headers,
+    tmp_path,
+    monkeypatch,
+    field,
+):
+    from app.core.config import get_settings
+    from app.models import RoundMedia
+
+    monkeypatch.setattr(get_settings(), "upload_dir", str(tmp_path))
+    foreign_path = "uploads/foreign-known-blob.txt"
+    (tmp_path / "foreign-known-blob.txt").write_bytes(b"foreign confidential document")
+    foreign = Application(
+        user_id=test_user.id,
+        company="Foreign",
+        job_title="Engineer",
+        status_id=test_statuses[0].id,
+        cv_path=foreign_path,
+    )
+    db.add(foreign)
+    await db.commit()
+    owner_id = importing_user.id
+    models = {
+        "Application": [
+            {
+                "id": "app",
+                "__original_id__": "app",
+                "company": "Forged",
+                "job_title": "Engineer",
+                "status_id": test_statuses[0].id,
+            }
+        ],
+        "Round": [
+            {
+                "id": "round",
+                "__original_id__": "round",
+                "application_id": "app",
+                "round_type_id": test_round_types[0].id,
+            }
+        ],
+    }
+    if field == "file_path":
+        models["RoundMedia"] = [
+            {"round_id": "round", "media_type": "audio", field: foreign_path}
+        ]
+    else:
+        models["Round" if field == "transcript_path" else "Application"][0][field] = (
+            foreign_path
+        )
+    payload = {"format_version": "1.0.0", "models": models}
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("data.json", json.dumps(payload))
+        zf.writestr("manifest.json", json.dumps({"files": {}}))
+    response = await client.post(
+        "/api/import/import",
+        headers=importing_auth_headers,
+        files={"file": ("forged.zip", archive.getvalue(), "application/zip")},
+    )
+    assert response.status_code == 202
+    result = await client.get(
+        f"/api/import/status/{response.json()['import_id']}",
+        headers=importing_auth_headers,
+    )
+    assert result.json()["status"] == "failed"
+    assert "Expected file not found in export" in result.json()["message"]
+    await db.rollback()
+    assert (
+        not (
+            await db.execute(select(Application).where(Application.user_id == owner_id))
+        )
+        .scalars()
+        .all()
+    )
+    assert not (await db.execute(select(RoundMedia))).scalars().all()
+
+
+async def test_archive_roundtrip_remaps_all_attachment_kinds(
+    client,
+    db,
+    test_user,
+    importing_user,
+    test_statuses,
+    test_round_types,
+    auth_headers,
+    importing_auth_headers,
+    tmp_path,
+    monkeypatch,
+):
+    from app.core.config import get_settings, resolve_upload_path
+    from app.models import RoundMedia
+
+    monkeypatch.setattr(get_settings(), "upload_dir", str(tmp_path))
+    monkeypatch.setattr("app.services.import_execution.UPLOAD_DIR", str(tmp_path))
+    contents = {
+        "resume.txt": b"Personal CV",
+        "letter.txt": b"Cover letter",
+        "transcript.txt": b"Interview transcript",
+        "recording.wav": b"RIFF"
+        + (36).to_bytes(4, "little")
+        + b"WAVEfmt "
+        + (16).to_bytes(4, "little")
+        + b"\x01\x00\x01\x00\x40\x1f\x00\x00\x80\x3e\x00\x00\x02\x00\x10\x00data\x00\x00\x00\x00",
+    }
+    for filename, content in contents.items():
+        (tmp_path / filename).write_bytes(content)
+    application = Application(
+        user_id=test_user.id,
+        company="Portable",
+        job_title="Engineer",
+        status_id=test_statuses[0].id,
+        cv_path="uploads/resume.txt",
+        cover_letter_path="uploads/letter.txt",
+        salary_min=85500,
+        job_description="Keep this description",
+    )
+    db.add(application)
+    await db.flush()
+    round_obj = Round(
+        application_id=application.id,
+        round_type_id=test_round_types[0].id,
+        transcript_path="uploads/transcript.txt",
+        transcript_summary="Keep this summary",
+    )
+    db.add(round_obj)
+    await db.flush()
+    media = RoundMedia(
+        round_id=round_obj.id,
+        file_path="uploads/recording.wav",
+        media_type="audio",
+        original_filename="conversation.wav",
+    )
+    db.add(media)
+    await db.commit()
+    owner_id = importing_user.id
+    original_credentials = (
+        importing_user.password_hash,
+        importing_user.session_version,
+        importing_user.is_admin,
+    )
+    original_ids = {application.id, round_obj.id, media.id}
+    exported = await client.get("/api/export/zip", headers=auth_headers)
+    assert exported.status_code == 200
+    with zipfile.ZipFile(io.BytesIO(exported.content)) as zf:
+        assert any("01 - Phone Screen/" in name for name in zf.namelist())
+        assert len(json.loads(zf.read("manifest.json"))["files"]) == 4
+    # Submitted authentication metadata is not a credential-recovery/import path.
+    altered = io.BytesIO()
+    with (
+        zipfile.ZipFile(io.BytesIO(exported.content)) as source,
+        zipfile.ZipFile(altered, "w") as target,
+    ):
+        payload = json.loads(source.read("data.json"))
+        assert "session_version" not in payload["models"]["User"][0]
+        payload["models"]["User"][0].update(
+            session_version=999, password_hash="injected-hash", is_admin=True
+        )
+        content = json.dumps(payload).encode()
+        manifest = json.loads(source.read("manifest.json"))
+        manifest["checksums"]["data.json"] = (
+            "sha256:" + hashlib.sha256(content).hexdigest()
+        )
+        for name in source.namelist():
+            if name not in ("data.json", "manifest.json"):
+                target.writestr(name, source.read(name))
+        target.writestr("data.json", content)
+        target.writestr("manifest.json", json.dumps(manifest))
+    imported = await client.post(
+        "/api/import/import",
+        headers=importing_auth_headers,
+        files={"file": ("archive.zip", altered.getvalue(), "application/zip")},
+    )
+    assert imported.status_code == 202
+    await wait_for_import_completion(
+        client, importing_auth_headers, imported.json()["import_id"]
+    )
+    await db.rollback()
+    imported_owner = await db.get(User, owner_id)
+    assert imported_owner is not None
+    assert (
+        imported_owner.password_hash,
+        imported_owner.session_version,
+        imported_owner.is_admin,
+    ) == original_credentials
+    new_app = (
+        await db.execute(select(Application).where(Application.user_id == owner_id))
+    ).scalar_one()
+    new_round = (
+        await db.execute(select(Round).where(Round.application_id == new_app.id))
+    ).scalar_one()
+    new_media = (
+        await db.execute(select(RoundMedia).where(RoundMedia.round_id == new_round.id))
+    ).scalar_one()
+    assert not original_ids.intersection({new_app.id, new_round.id, new_media.id})
+    assert new_app.salary_min == 85500
+    assert new_app.job_description == "Keep this description"
+    assert new_round.transcript_summary == "Keep this summary"
+    for stored_path, filename, path in [
+        (new_app.cv_path, "resume.txt", f"/api/files/{new_app.id}/cv"),
+        (
+            new_app.cover_letter_path,
+            "letter.txt",
+            f"/api/files/{new_app.id}/cover-letter",
+        ),
+        (
+            new_round.transcript_path,
+            "transcript.txt",
+            f"/api/files/rounds/{new_round.id}/transcript",
+        ),
+        (new_media.file_path, "recording.wav", f"/api/files/media/{new_media.id}"),
+    ]:
+        assert stored_path != f"uploads/{filename}"
+        assert hashlib.sha256(contents[filename]).hexdigest() in stored_path
+        assert Path(resolve_upload_path(stored_path)).read_bytes() == contents[filename]
+        response = await client.get(path, headers=importing_auth_headers)
+        assert response.status_code == 200
+        assert response.content == contents[filename]

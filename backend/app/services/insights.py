@@ -3,11 +3,10 @@ import logging
 from typing import Any
 
 from litellm import completion
-from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from app.schemas.insights import GraceInsights, SectionInsight
-from app.services.ai_settings import AISettingsState, get_ai_settings_sync
+from app.services.ai_settings import AISettingsState
 
 logger = logging.getLogger(__name__)
 
@@ -42,31 +41,52 @@ def build_analytics_prompt_data(
     activity_data: dict[str, Any],
     period: str,
 ) -> str:
-    """Build the user prompt with analytics data."""
-    return f"""Here is the user's job search analytics for the past {period}:
-
-PIPELINE OVERVIEW:
-- Total applications: {pipeline_data.get("total_applications", 0)}
-- Interviews: {pipeline_data.get("interviews", 0)}
-- Offers: {pipeline_data.get("offers", 0)}
-- Response rate: {pipeline_data.get("response_rate", 0):.1f}%
-- Interview rate: {pipeline_data.get("interview_rate", 0):.1f}%
-- Active applications: {pipeline_data.get("active_applications", 0)}
-- Stage breakdown: {pipeline_data.get("stage_breakdown", {})}
-
-INTERVIEW ANALYTICS:
-- Conversion rates by round: {interview_data.get("conversion_rates", {})}
-- Interview outcomes: {interview_data.get("outcomes", {})}
-- Average days between rounds: {interview_data.get("avg_days_between_rounds", {})}
-- Process speed indicators: {interview_data.get("speed_indicators", {})}
-
-ACTIVITY TRACKING:
-- Weekly application counts: {activity_data.get("weekly_applications", [])}
-- Weekly interview counts: {activity_data.get("weekly_interviews", [])}
-- Activity patterns: {activity_data.get("patterns", {})}
-- Most active days: {activity_data.get("active_days", [])}
-
-Generate insights that help diagnose where to focus improvement efforts."""
+    """Use deterministic denominators/coverage; null is unavailable, not zero."""
+    pipeline_keys = (
+        "scope",
+        "current_record_basis",
+        "total_applications",
+        "responded",
+        "response_rate",
+        "response_unknown",
+        "response_undated",
+        "interviews",
+        "offers",
+        "interview_rate",
+        "offer_rate",
+        "active_applications",
+        "current_stage_breakdown",
+        "unknown_applications",
+        "coverage",
+        "stage_totals",
+    )
+    data = {
+        "pipeline": {key: pipeline_data.get(key) for key in pipeline_keys},
+        "stage_visits": pipeline_data.get("visits", []),
+        "rounds": {
+            key: interview_data.get(key)
+            for key in (
+                "scope",
+                "conversion_rates",
+                "outcomes",
+                "avg_scheduled_to_completed_days",
+                "duration_basis",
+            )
+        },
+        "activity": activity_data,
+    }
+    return (
+        "Diagnose the recorded applied-date cohort, not employer motives. "
+        "Interviews/offers mean distinct ever-reached evidence, not current stage. "
+        "Response means recorded substantive evidence, not automatic receipts; "
+        "undated recording time is availability, not occurrence. Null percentages "
+        "and missing intervals are unavailable, never zero. Cite sample sizes, "
+        "as-of and duration coverage; do not invent benchmarks or speed targets. "
+        "Separate current-record classification from historical as-of residence. "
+        "Repeated visits are separate; stage totals sum only observed hours. "
+        "Round scheduling/completion are not response time or stage residence.\n"
+        + json.dumps(data, default=str)
+    )
 
 
 def _validate_section(data: dict, name: str) -> dict:
@@ -84,21 +104,16 @@ def generate_insights_from_settings(
     period: str,
 ) -> GraceInsights:
     """Generate AI insights from analytics data using preloaded settings."""
-    model = settings.model or "openai/gpt-4o-mini"
-    api_key = settings.api_key
+    model = settings.effective_model or "openai/gpt-4o-mini"
+    api_key = settings.dispatch_api_key
     base_url = settings.base_url
-
-    if not api_key:
-        raise ValueError(
-            "AI not configured. Please configure AI settings in admin panel."
-        )
 
     user_prompt = build_analytics_prompt_data(
         pipeline_data, interview_data, activity_data, period
     )
 
     try:
-        logger.info(f"Generating insights with model: {model}")
+        logger.info("Generating requested text insights")
         response = completion(
             model=model,
             messages=[
@@ -136,12 +151,11 @@ def generate_insights_from_settings(
             ),
         )
 
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse AI response: {e}")
-        raise ValueError(f"Failed to parse AI response: {e}")
-    except Exception as e:
-        logger.error(f"AI service error: {e}")
-        raise ValueError(f"AI service error: {e}")
+    except Exception:
+        logger.warning("Text insights generation failed")
+        raise ValueError(
+            "Text service failed. Ask an administrator to check the unverified configuration or retry explicitly."
+        ) from None
 
 
 async def generate_insights_async(
@@ -154,24 +168,6 @@ async def generate_insights_async(
     """Run blocking insights generation off the event loop."""
     return await run_in_threadpool(
         generate_insights_from_settings,
-        settings,
-        pipeline_data,
-        interview_data,
-        activity_data,
-        period,
-    )
-
-
-def generate_insights(
-    db: Session,
-    pipeline_data: dict[str, Any],
-    interview_data: dict[str, Any],
-    activity_data: dict[str, Any],
-    period: str,
-) -> GraceInsights:
-    """Backward-compatible sync entrypoint for callers with a sync Session."""
-    settings = get_ai_settings_sync(db)
-    return generate_insights_from_settings(
         settings,
         pipeline_data,
         interview_data,

@@ -48,7 +48,7 @@ class TestExportService:
                 user_id="user-123", session=mock_session
             )
 
-        assert result["format_version"] == "1.0.0"
+        assert result["format_version"] == "2.0.0"
 
     def test_export_includes_user_id(self, export_service):
         """Export should include user ID."""
@@ -82,7 +82,7 @@ class TestExportService:
     def test_export_version_constant(self, export_service):
         """ExportService should have EXPORT_VERSION class attribute."""
         assert hasattr(ExportService, "EXPORT_VERSION")
-        assert ExportService.EXPORT_VERSION == "1.0.0"
+        assert ExportService.EXPORT_VERSION == "2.0.0"
 
     def test_export_iterates_registered_models(self, registry):
         """Export should iterate over all registered models in order."""
@@ -241,31 +241,14 @@ class TestExportService:
         ) as mock_serialize:
             mock_serialize.return_value = {"id": "test-123", "name": "Test"}
 
-            result = export_service._serialize_record(
-                record=mock_record, include_media_paths=True
-            )
+            result = export_service._serialize_record(record=mock_record)
 
-        mock_serialize.assert_called_once_with(
-            mock_record, include_relationships=True, relationship_prefix=""
-        )
-        assert result["id"] == "test-123"
-        assert result["name"] == "Test"
-
-    def test_serialize_record_adds_original_id(self, export_service):
-        """_serialize_record should add __original_id__ for import remapping."""
-        mock_record = Mock()
-
-        with patch(
-            "app.services.export_service.serialize_model_instance"
-        ) as mock_serialize:
-            mock_serialize.return_value = {"id": "test-123", "name": "Test"}
-
-            result = export_service._serialize_record(
-                record=mock_record, include_media_paths=True
-            )
-
-        assert "__original_id__" in result
-        assert result["__original_id__"] == "test-123"
+        mock_serialize.assert_called_once_with(mock_record)
+        assert result == {
+            "id": "test-123",
+            "name": "Test",
+            "__original_id__": "test-123",
+        }
 
     def test_serialize_record_handles_missing_id(self, export_service):
         """_serialize_record should handle records without id field."""
@@ -276,9 +259,7 @@ class TestExportService:
         ) as mock_serialize:
             mock_serialize.return_value = {"name": "Test", "value": 42}
 
-            result = export_service._serialize_record(
-                record=mock_record, include_media_paths=True
-            )
+            result = export_service._serialize_record(record=mock_record)
 
         # Should not add __original_id__ if id is not present
         assert "__original_id__" not in result
@@ -293,6 +274,6 @@ class TestExportService:
             user_id="user-123", session=mock_session
         )
 
-        assert result["format_version"] == "1.0.0"
+        assert result["format_version"] == "2.0.0"
         assert result["user"]["id"] == "user-123"
         assert result["models"] == {}

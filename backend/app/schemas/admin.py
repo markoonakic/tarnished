@@ -1,8 +1,10 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, StrictBool, field_validator
 
 from app.core.reference_names import normalize_reference_name
+from app.schemas.auth import NewPassword
+from app.schemas.evidence import Meaning
 
 
 class AdminUserResponse(BaseModel):
@@ -17,16 +19,23 @@ class AdminUserResponse(BaseModel):
 
 
 class AdminUserUpdate(BaseModel):
-    is_active: bool | None = None
-    is_admin: bool | None = None
-    password: str | None = None  # NEW: Optional password reset
+    is_active: StrictBool | None = None
+    is_admin: StrictBool | None = None
+    password: NewPassword | None = None
+
+    @field_validator("password", "is_active", "is_admin")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged fields; null is not allowed")
+        return value
 
 
 class AdminUserCreate(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8)
-    is_admin: bool = False
-    is_active: bool = True
+    password: NewPassword
+    is_admin: StrictBool = False
+    is_active: StrictBool = True
 
 
 class AdminStatsResponse(BaseModel):
@@ -37,6 +46,7 @@ class AdminStatsResponse(BaseModel):
 
 
 class AdminStatusUpdate(BaseModel):
+    meaning: Meaning | None = None
     name: str | None = None
     color: str | None = None
     order: int | None = None
@@ -45,11 +55,18 @@ class AdminStatusUpdate(BaseModel):
     @classmethod
     def normalize_name(cls, value: str | None) -> str | None:
         if value is None:
-            return None
+            raise ValueError("Omit unchanged fields; null is not allowed")
         normalized = normalize_reference_name(value)
         if not normalized:
             raise ValueError("Name cannot be empty")
         return normalized
+
+    @field_validator("color", "order", "meaning")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged fields; null is not allowed")
+        return value
 
 
 class AdminRoundTypeUpdate(BaseModel):
@@ -59,7 +76,7 @@ class AdminRoundTypeUpdate(BaseModel):
     @classmethod
     def normalize_name(cls, value: str | None) -> str | None:
         if value is None:
-            return None
+            raise ValueError("Omit unchanged fields; null is not allowed")
         normalized = normalize_reference_name(value)
         if not normalized:
             raise ValueError("Name cannot be empty")
