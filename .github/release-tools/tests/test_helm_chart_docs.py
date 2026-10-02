@@ -2,13 +2,14 @@ import json
 import pathlib
 import unittest
 
-
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 CHART_PATH = ROOT / "deploy" / "helm" / "tarnished" / "Chart.yaml"
 README_PATH = ROOT / "deploy" / "helm" / "tarnished" / "README.md"
 README_TEMPLATE_PATH = ROOT / "deploy" / "helm" / "tarnished" / "README.md.gotmpl"
 VALUES_SCHEMA_PATH = ROOT / "deploy" / "helm" / "tarnished" / "values.schema.json"
-HELM_REFERENCE_PATH = ROOT / "documentation" / "content" / "reference" / "helm-chart-reference.md"
+HELM_REFERENCE_PATH = (
+    ROOT / "documentation" / "content" / "reference" / "helm-chart-reference.md"
+)
 
 
 class HelmChartDocsTests(unittest.TestCase):
@@ -28,7 +29,7 @@ class HelmChartDocsTests(unittest.TestCase):
         readme = README_PATH.read_text()
 
         self.assertTrue(README_TEMPLATE_PATH.exists())
-        self.assertIn("Generated from README.md.gotmpl by helm-docs.", readme)
+        self.assertIn("Edit README.md.gotmpl, then run helm-docs", readme)
         self.assertIn("## TL;DR", readme)
         self.assertIn("## Install modes", readme)
         self.assertIn("## Secrets", readme)

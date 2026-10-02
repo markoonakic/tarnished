@@ -98,7 +98,9 @@ def auth_headers_with_settings(test_user_with_settings: User) -> dict[str, str]:
 @pytest.fixture
 def bearer_auth_headers(test_user: User) -> dict[str, str]:
     """Create JWT auth headers for a regular user."""
-    token = create_access_token({"sub": test_user.id})
+    token = create_access_token(
+        {"sub": test_user.id, "session_version": test_user.session_version}
+    )
     return {"Authorization": f"Bearer {token}"}
 
 

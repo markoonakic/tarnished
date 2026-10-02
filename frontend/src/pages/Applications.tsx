@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { getApplicationSources, listApplications } from '../lib/applications';
 import type { ListParams } from '../lib/applications';
 import { parsePositivePageParam } from '../lib/paginationParams';
 import { listStatuses } from '../lib/settings';
-import type { Application, Status } from '../lib/types';
+import type { ApplicationSummary, Status } from '../lib/types';
 import { getStatusColor } from '../lib/statusColors';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { useToastContext } from '../contexts/ToastContext';
@@ -19,8 +19,10 @@ export default function Applications() {
   const navigate = useNavigate();
   const colors = useThemeColors();
   const toast = useToastContext();
+  const { error: showError } = toast;
   const [searchParams, setSearchParams] = useSearchParams();
-  const [applications, setApplications] = useState<Application[]>([]);
+  const requestId = useRef(0);
+  const [applications, setApplications] = useState<ApplicationSummary[]>([]);
   const [sources, setSources] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [total, setTotal] = useState(0);
@@ -45,6 +47,7 @@ export default function Applications() {
   }, []);
 
   const loadApplications = useCallback(async () => {
+    const ownedRequest = ++requestId.current;
     setLoading(true);
     setError('');
     try {
@@ -54,16 +57,18 @@ export default function Applications() {
       if (search) params.search = search;
 
       const data = await listApplications(params);
+      if (ownedRequest !== requestId.current) return;
       setApplications(data.items);
       setTotal(data.total);
     } catch {
+      if (ownedRequest !== requestId.current) return;
       const errorMsg = 'Failed to load applications';
       setError(errorMsg);
-      toast.error(errorMsg);
+      showError(errorMsg);
     } finally {
-      setLoading(false);
+      if (ownedRequest === requestId.current) setLoading(false);
     }
-  }, [page, perPage, statusFilter, sourceFilter, search, toast]);
+  }, [page, perPage, statusFilter, sourceFilter, search, showError]);
 
   const loadSources = useCallback(async () => {
     try {
@@ -79,6 +84,11 @@ export default function Applications() {
 
   useEffect(() => {
     loadApplications();
+    return () => {
+      // Invalidate the current generation, including retries started after this effect.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      ++requestId.current;
+    };
   }, [loadApplications]);
 
   useEffect(() => {
@@ -107,7 +117,8 @@ export default function Applications() {
   const totalPages = Math.ceil(total / perPage);
 
   function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString();
+    // Applied dates are calendar dates, not instants in the device zone.
+    return new Date(dateStr).toLocaleDateString(undefined, { timeZone: 'UTC' });
   }
 
   return (
@@ -131,6 +142,7 @@ export default function Applications() {
               <input
                 type="text"
                 placeholder="Search company or job title..."
+                aria-label="Search applications"
                 value={search}
                 onChange={(e) => updateParams({ search: e.target.value })}
                 className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
@@ -198,14 +210,24 @@ export default function Applications() {
         </div>
 
         {error && (
-          <div className="bg-red-bright/20 border-red-bright text-red-bright mb-6 rounded border px-4 py-3">
+          <div
+            role="alert"
+            className="bg-red-bright/20 border-red-bright text-red-bright mb-6 rounded border px-4 py-3"
+          >
             {error}
+            <button
+              type="button"
+              onClick={loadApplications}
+              className="ml-3 underline"
+            >
+              Retry
+            </button>
           </div>
         )}
 
         {loading ? (
           <Loading message="Loading applications..." />
-        ) : applications.length === 0 ? (
+        ) : error ? null : applications.length === 0 ? (
           isFiltered ? (
             <EmptyState
               message="No applications match your search or filters."
@@ -292,7 +314,7 @@ export default function Applications() {
                         {formatDate(app.applied_at)}
                       </td>
                       <td className="text-secondary px-4 py-3 text-sm">
-                        {app.rounds?.length || 0}
+                        {app.round_count}
                       </td>
                     </tr>
                   ))}
@@ -340,8 +362,8 @@ export default function Applications() {
                     {app.job_title}
                   </div>
                   <div className="text-secondary text-xs">
-                    {formatDate(app.applied_at)} · {app.rounds?.length || 0}{' '}
-                    rounds
+                    {formatDate(app.applied_at)} · {app.round_count}{' '}
+                    {app.round_count === 1 ? 'round' : 'rounds'}
                   </div>
                 </Link>
               ))}

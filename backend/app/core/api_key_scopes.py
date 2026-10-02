@@ -20,6 +20,7 @@ BASE_SCOPES = [
     "round_types:write",
     "dashboard:read",
     "analytics:read",
+    "analytics:generate",
     "streak:read",
     "streak:write",
     "preferences:read",
@@ -41,32 +42,7 @@ ALL_SCOPES = BASE_SCOPES + PRIVILEGED_SCOPES
 
 FULL_ACCESS_SCOPES = list(BASE_SCOPES)
 
-CLI_SCOPES = [
-    "applications:read",
-    "applications:write",
-    "job_leads:read",
-    "job_leads:write",
-    "profile:read",
-    "profile:write",
-    "rounds:read",
-    "rounds:write",
-    "statuses:read",
-    "statuses:write",
-    "round_types:read",
-    "round_types:write",
-    "dashboard:read",
-    "analytics:read",
-    "streak:read",
-    "streak:write",
-    "preferences:read",
-    "preferences:write",
-    "user_settings:read",
-    "user_settings:write",
-    "files:read",
-    "files:write",
-    "export:read",
-    "import:write",
-]
+CLI_SCOPES = list(BASE_SCOPES)
 
 EXTENSION_SCOPES = [
     "applications:read",
@@ -99,6 +75,8 @@ IMPORT_EXPORT_SCOPES = [
     "job_leads:read",
     "export:read",
     "import:write",
+    "files:read",
+    "profile:read",
 ]
 
 PRESET_SCOPES = {

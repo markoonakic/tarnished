@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getBrowserTimeZone } from '@/lib/api';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 
-export function getDateKeyForTimeZone(
+function getDateKeyForTimeZone(
   timeZone: string | null,
   currentDate = new Date()
 ): string {
@@ -20,7 +20,7 @@ export function getDateKeyForTimeZone(
   }
 }
 
-export function useEffectiveTimeZone(): string | null {
+function useEffectiveTimeZone(): string | null {
   const { data: preferences } = useUserPreferences();
   const browserTimeZone = getBrowserTimeZone();
 

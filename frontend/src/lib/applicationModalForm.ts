@@ -52,7 +52,27 @@ export function splitRequirementLines(value: string): string[] | null {
 }
 
 function parseSalary(value: string): number | null {
-  return value ? parseInt(value, 10) * 1000 : null;
+  if (!value) return null;
+  const decimal = value
+    .trim()
+    .match(/^[+-]?(\d*)(?:\.(\d*))?(?:e([+-]?\d+))?$/i);
+  const digits = decimal ? decimal[1] + (decimal[2] || '') : '';
+  // Check decimal integrality before binary64 can round or underflow the input.
+  const significantDigits = digits.replace(/0+$/, '');
+  const decimalPoint = decimal
+    ? decimal[1].length + Number(decimal[3] || 0)
+    : 0;
+  if (
+    !digits ||
+    (significantDigits && significantDigits.length > decimalPoint)
+  ) {
+    throw new Error('Salary must be a whole amount in the selected currency.');
+  }
+  const salary = Number(value);
+  if (!Number.isSafeInteger(salary)) {
+    throw new Error('Salary must be a whole amount in the selected currency.');
+  }
+  return salary;
 }
 
 export function buildCreateApplicationPayload(
@@ -74,7 +94,7 @@ export function buildCreateApplicationPayload(
     job_description: values.jobDescription || undefined,
     job_url: normalizedUrl || undefined,
     status_id: values.statusId,
-    applied_at: values.appliedAt,
+    applied_at: values.appliedAt || undefined,
     salary_min: salaryMin ?? undefined,
     salary_max: salaryMax ?? undefined,
     salary_currency: values.salaryCurrency,
@@ -98,7 +118,7 @@ export function buildUpdateApplicationPayload(
     job_description: values.jobDescription || null,
     job_url: normalizedUrl || null,
     status_id: values.statusId,
-    applied_at: values.appliedAt,
+    applied_at: values.appliedAt || undefined,
     salary_min: parseSalary(values.salaryMin),
     salary_max: parseSalary(values.salaryMax),
     salary_currency: values.salaryCurrency || null,
@@ -125,7 +145,7 @@ export function getApplicationModalDefaults(
     jobDescription: '',
     jobUrl: '',
     statusId: defaultStatus?.id || '',
-    appliedAt: new Date().toISOString().split('T')[0],
+    appliedAt: '',
     salaryMin: '',
     salaryMax: '',
     salaryCurrency: 'USD',
@@ -149,14 +169,10 @@ export function getApplicationModalValues(
     statusId: application.status.id,
     appliedAt: application.applied_at.split('T')[0],
     salaryMin:
-      application.salary_min !== null
-        ? String(application.salary_min / 1000)
-        : '',
+      application.salary_min !== null ? String(application.salary_min) : '',
     salaryMax:
-      application.salary_max !== null
-        ? String(application.salary_max / 1000)
-        : '',
-    salaryCurrency: application.salary_currency || 'USD',
+      application.salary_max !== null ? String(application.salary_max) : '',
+    salaryCurrency: application.salary_currency ?? '',
     recruiterName: application.recruiter_name || '',
     recruiterTitle: application.recruiter_title || '',
     recruiterLinkedinUrl: application.recruiter_linkedin_url || '',

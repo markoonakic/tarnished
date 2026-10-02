@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from enum import Enum
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -39,10 +39,32 @@ class Round(Base):
     transcript_original_filename: Mapped[str | None] = mapped_column(
         String(255), nullable=True
     )
+    media_generation: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    transcript_generation: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    current_transcript: Mapped[dict | None] = mapped_column(
+        JSON(none_as_null=True), nullable=True
+    )
+    interview_generation: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    interview_report: Mapped[dict | None] = mapped_column(
+        JSON(none_as_null=True), nullable=True
+    )
+    interview_report_reason: Mapped[str | None] = mapped_column(
+        String(100), nullable=True
+    )
     transcript_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
+
+    @property
+    def has_current_transcript(self) -> bool:
+        return self.current_transcript is not None
 
     application = relationship("Application", back_populates="rounds")
     round_type = relationship("RoundType", back_populates="rounds")
@@ -64,6 +86,12 @@ class RoundMedia(Base):
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     media_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    # ID identifies immutable bytes; replacement creates a new row/ID. Null
+    # metadata means legacy/unvalidated, never fabricated decoder coverage.
+    sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    byte_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    probed_duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    validation: Mapped[str | None] = mapped_column(String(32), nullable=True)
     uploaded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

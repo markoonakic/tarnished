@@ -17,7 +17,26 @@ logger = logging.getLogger(__name__)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a bcrypt hash."""
-    return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+    try:
+        encoded = plain_password.encode("utf-8")
+        return len(encoded) <= 72 and bcrypt.checkpw(
+            encoded, hashed_password.encode("ascii")
+        )
+    except (ValueError, TypeError, UnicodeError):
+        return False
+
+
+def validate_new_password(password: str) -> str:
+    """Do not trim, normalize, truncate or echo passwords in validation errors."""
+    try:
+        valid = len(password) >= 12 and len(password.encode("utf-8")) <= 72
+    except UnicodeError:
+        valid = False
+    if not valid:
+        raise ValueError(
+            "Password must have at least 12 characters and at most 72 UTF-8 bytes"
+        )
+    return password
 
 
 def get_password_hash(password: str) -> str:
@@ -47,18 +66,35 @@ def decode_token(token: str) -> dict | None:
         payload = jwt.decode(
             token, settings.secret_key, algorithms=[settings.algorithm]
         )
+        if (
+            type(payload.get("sub")) is not str
+            or not payload["sub"]
+            or type(payload.get("session_version")) is not int
+            or payload["session_version"] < 0
+            or type(payload.get("exp")) is not int
+            or payload.get("type") not in ("access", "refresh")
+        ):
+            return None
         return payload
-    except JWTError:
+    except (JWTError, ValueError, TypeError):
         return None
 
 
-def create_file_token(application_id: str, doc_type: str, user_id: str) -> str:
+def create_file_token(
+    application_id: str,
+    doc_type: str,
+    user_id: str,
+    session_version: int,
+    api_key_id: str | None = None,
+) -> str:
     """Create a short-lived token for file access."""
     to_encode = {
         "application_id": application_id,
         "doc_type": doc_type,
         "user_id": user_id,
         "type": "file",
+        "session_version": session_version,
+        "api_key_id": api_key_id,
     }
     expire = datetime.now(UTC) + timedelta(minutes=5)
     to_encode["exp"] = expire  # type: ignore[assignment]
@@ -74,16 +110,20 @@ def decode_file_token(token: str) -> dict | None:
         if payload.get("type") != "file":
             return None
         return payload
-    except JWTError:
+    except (JWTError, ValueError, TypeError):
         return None
 
 
-def create_media_token(media_id: str, user_id: str) -> str:
+def create_media_token(
+    media_id: str, user_id: str, session_version: int, api_key_id: str | None = None
+) -> str:
     """Create a short-lived token for media file access."""
     to_encode = {
         "media_id": media_id,
         "user_id": user_id,
         "type": "media",
+        "session_version": session_version,
+        "api_key_id": api_key_id,
     }
     expire = datetime.now(UTC) + timedelta(minutes=5)
     to_encode["exp"] = expire  # type: ignore[assignment]
@@ -99,16 +139,20 @@ def decode_media_token(token: str) -> dict | None:
         if payload.get("type") != "media":
             return None
         return payload
-    except JWTError:
+    except (JWTError, ValueError, TypeError):
         return None
 
 
-def create_round_transcript_token(round_id: str, user_id: str) -> str:
+def create_round_transcript_token(
+    round_id: str, user_id: str, session_version: int, api_key_id: str | None = None
+) -> str:
     """Create a short-lived token for round transcript access."""
     to_encode = {
         "round_id": round_id,
         "user_id": user_id,
         "type": "round_transcript",
+        "session_version": session_version,
+        "api_key_id": api_key_id,
     }
     expire = datetime.now(UTC) + timedelta(minutes=5)
     to_encode["exp"] = expire  # type: ignore[assignment]
@@ -124,7 +168,7 @@ def decode_round_transcript_token(token: str) -> dict | None:
         if payload.get("type") != "round_transcript":
             return None
         return payload
-    except JWTError:
+    except (JWTError, ValueError, TypeError):
         return None
 
 

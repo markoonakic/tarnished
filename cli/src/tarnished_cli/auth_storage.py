@@ -9,7 +9,9 @@ import keyring
 from keyring.errors import KeyringError, PasswordDeleteError
 from pydantic import BaseModel
 
+from tarnished_cli.client import CLIError
 from tarnished_cli.config import resolve_config_dir
+from tarnished_cli.files import write_private_file
 
 API_KEY_ENV = "TARNISHED_API_KEY"
 KEYRING_SERVICE = "tarnished-cli"
@@ -41,21 +43,29 @@ def _env_auth() -> StoredAuth | None:
 def _read_auth_file(path: Path) -> StoredAuth:
     if not path.exists():
         return StoredAuth()
-    return StoredAuth.model_validate(json.loads(path.read_text()))
+    return StoredAuth.model_validate(json.loads(path.read_text(encoding="utf-8")))
 
 
 def _write_auth_file(path: Path, auth: StoredAuth) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with contextlib.suppress(OSError):
-        path.parent.chmod(0o700)
-    path.write_text(json.dumps(auth.model_dump(mode="json"), sort_keys=True) + "\n")
-    with contextlib.suppress(OSError):
-        path.chmod(0o600)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with contextlib.suppress(OSError):
+            path.parent.chmod(0o700)
+        content = json.dumps(auth.model_dump(mode="json"), sort_keys=True) + "\n"
+        write_private_file(path, content.encode("utf-8"))
+    except OSError:
+        raise CLIError(
+            "Could not save API key. Check config directory permissions and disk space."
+        ) from None
 
 
 def _remove_auth_file(path: Path) -> None:
-    if path.exists():
-        path.unlink()
+    try:
+        path.unlink(missing_ok=True)
+    except OSError:
+        raise CLIError(
+            "Could not remove stored API key. Check config directory permissions."
+        ) from None
 
 
 def load_auth(

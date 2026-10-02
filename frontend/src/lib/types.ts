@@ -1,3 +1,28 @@
+export const statusMeanings = [
+  'unknown',
+  'applied',
+  'screening',
+  'interviewing',
+  'offer',
+  'accepted',
+  'rejected',
+  'withdrawn',
+  'no_reply',
+] as const;
+export type StatusMeaning = (typeof statusMeanings)[number];
+type EvidenceProvenance = 'recorded' | 'legacy_unknown';
+interface ResponseEvidenceInput {
+  occurred_on?: string | null;
+  reference?: string | null;
+}
+export interface HistoryCorrection {
+  expected_revision: number;
+  from_meaning?: StatusMeaning;
+  to_meaning?: StatusMeaning;
+  changed_at?: string;
+  correction_note?: string | null;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -7,6 +32,7 @@ export interface User {
 }
 
 export interface Status {
+  meaning: StatusMeaning;
   id: string;
   name: string;
   color: string;
@@ -22,6 +48,11 @@ export interface RoundType {
 
 export interface RoundMedia {
   id: string;
+  original_filename?: string | null;
+  sha256?: string | null;
+  byte_count?: number | null;
+  probed_duration_seconds?: number | null;
+  validation?: 'audio_decode_check' | 'imported_unverified' | null;
   file_path: string;
   media_type: string;
   uploaded_at: string;
@@ -34,6 +65,9 @@ export interface Round {
   completed_at: string | null;
   outcome: string | null;
   notes_summary: string | null;
+  media_generation?: number;
+  transcript_generation?: number;
+  has_current_transcript?: boolean;
   transcript_path: string | null;
   transcript_original_filename: string | null;
   transcript_summary: string | null;
@@ -42,6 +76,13 @@ export interface Round {
 }
 
 export interface Application {
+  status_meaning: StatusMeaning;
+  status_meaning_provenance: EvidenceProvenance;
+  evidence_revision: number;
+  response_state: 'recorded' | 'not_recorded' | 'legacy_unknown';
+  response_occurred_on: string | null;
+  response_recorded_at: string | null;
+  response_reference: string | null;
   id: string;
   company: string;
   job_title: string;
@@ -54,7 +95,6 @@ export interface Application {
   created_at: string;
   updated_at: string;
   rounds?: Round[];
-  // New fields from job lead conversion
   job_lead_id: string | null;
   location: string | null;
   salary_min: number | null;
@@ -71,14 +111,19 @@ export interface Application {
   source: string | null;
 }
 
+export interface ApplicationSummary extends Omit<Application, 'rounds'> {
+  round_count: number;
+}
+
 export interface ApplicationListResponse {
-  items: Application[];
+  items: ApplicationSummary[];
   total: number;
   page: number;
   per_page: number;
 }
 
 export interface ApplicationCreate {
+  response_evidence?: ResponseEvidenceInput | null;
   company: string;
   job_title: string;
   job_description?: string;
@@ -101,6 +146,8 @@ export interface ApplicationCreate {
 }
 
 export interface ApplicationUpdate {
+  expected_revision?: number;
+  response_evidence?: ResponseEvidenceInput | null;
   company?: string;
   job_title?: string;
   job_description?: string | null;
@@ -131,25 +178,40 @@ export interface RoundCreate {
 
 export interface RoundUpdate {
   round_type_id?: string;
-  scheduled_at?: string;
-  completed_at?: string;
-  outcome?: string;
-  notes_summary?: string;
-  transcript_summary?: string;
+  scheduled_at?: string | null;
+  completed_at?: string | null;
+  outcome?: string | null;
+  notes_summary?: string | null;
+  transcript_summary?: string | null;
 }
 
 export interface ApplicationStatusHistory {
+  from_meaning: StatusMeaning | null;
+  to_meaning: StatusMeaning | null;
+  from_meaning_provenance: EvidenceProvenance;
+  to_meaning_provenance: EvidenceProvenance;
+  time_provenance: EvidenceProvenance;
+  corrected_at: string | null;
+  correction_note: string | null;
   id: string;
   from_status: Status | null;
-  to_status: Status;
+  to_status: Status | null;
+  is_gap: boolean;
   changed_at: string;
   note: string | null;
 }
 
-export type JobLeadStatus = 'pending' | 'extracted' | 'failed' | 'converted';
+type JobLeadStatus =
+  'pending' | 'processing' | 'extracted' | 'failed' | 'converted';
 
 export interface JobLead {
   id: string;
+  source_text: string | null;
+  source_truncated: boolean;
+  content_warning: string | null;
+  revision: number;
+  processing_started_at: string | null;
+  manual_fields: string[];
   title: string | null;
   company: string | null;
   url: string;

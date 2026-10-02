@@ -57,7 +57,10 @@ async def update_user_settings(
         updates["accent"] = update.accent
 
     if not updates:
-        return {"message": "Settings updated", "settings": normalize_user_settings(current_user.settings)}
+        return {
+            "message": "Settings updated",
+            "settings": normalize_user_settings(current_user.settings),
+        }
 
     settings = await merge_user_settings(db, user_id=current_user.id, updates=updates)
 

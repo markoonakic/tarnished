@@ -3,12 +3,17 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.responses import Response
+from starlette.types import Scope
 
 from app.api.admin import router as admin_router
 from app.api.ai_settings import router as ai_settings_router
@@ -21,11 +26,13 @@ from app.api.export import router as export_router
 from app.api.files import router as files_router
 from app.api.import_router import router as import_router
 from app.api.insights import router as insights_router
+from app.api.interview_feedback import router as interview_feedback_router
 from app.api.job_leads import router as job_leads_router
 from app.api.profile import router as profile_router
 from app.api.rounds import router as rounds_router
 from app.api.settings import router as settings_router
 from app.api.streak import router as streak_router
+from app.api.transcriptions import router as transcriptions_router
 from app.api.user_preferences import router as user_preferences_router
 from app.api.users import router as users_router
 from app.core.config import get_settings
@@ -33,6 +40,7 @@ from app.core.database import async_session_maker
 from app.core.logging_config import setup_logging
 from app.core.rate_limit import limiter
 from app.core.seed import seed_defaults
+from app.services.transcription_executor import TranscriptionExecutor
 
 # Initialize structured logging
 setup_logging()
@@ -44,10 +52,37 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     async with async_session_maker() as db:
         await seed_defaults(db)
-    yield
+    executor = TranscriptionExecutor()
+    app.state.transcription_executor = executor
+    async with executor.lifespan():
+        yield
 
 
-app = FastAPI(title="Tarnished API", version="0.1.7", lifespan=lifespan)
+app = FastAPI(title="Tarnished API", version="0.2.0", lifespan=lifespan)
+
+
+@app.exception_handler(RequestValidationError)
+async def safe_account_validation(request: Request, exc: RequestValidationError):
+    if request.url.path == "/api/admin/ai-settings":
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": "Invalid capability settings. Check field types, provider/model identifiers and absolute HTTP(S) endpoints."
+            },
+        )
+    # Pydantic includes raw input (possibly passwords) in its default API errors.
+    if request.url.path.startswith(("/api/auth/", "/api/admin/users")):
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": [
+                    {"loc": error["loc"], "msg": error["msg"], "type": error["type"]}
+                    for error in exc.errors()
+                ]
+            },
+        )
+    return await request_validation_exception_handler(request, exc)
+
 
 # Register rate limiter
 app.state.limiter = limiter
@@ -115,6 +150,8 @@ app.include_router(applications_router)
 app.include_router(application_history_router)
 app.include_router(profile_router)
 app.include_router(rounds_router)
+app.include_router(transcriptions_router)
+app.include_router(interview_feedback_router)
 app.include_router(settings_router)
 app.include_router(analytics_router)
 app.include_router(admin_router)
@@ -135,17 +172,22 @@ async def health_check():
     return {"status": "healthy"}
 
 
-# Serve static frontend files (production mode only)
-# Only mount if the static directory exists (built frontend)
+class SPAStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if (
+                exc.status_code != 404
+                or path in {"assets", "api"}
+                or path.startswith(("assets/", "api/"))
+            ):
+                raise
+            # The fallback must pass the same realpath containment as every file.
+            return await super().get_response("index.html", scope)
+
+
+# One static root also prevents an assets-directory symlink escaping the build.
 static_dir = Path("static")
 if static_dir.exists():
-    # Serve Vite assets (JS, CSS, images)
-    app.mount("/assets", StaticFiles(directory="static/assets"), name="static-assets")
-
-    # SPA catch-all: serve index.html for all non-API, non-static routes
-    @app.get("/{path:path}")
-    async def serve_spa(path: str):
-        file_path = static_dir / path
-        if file_path.is_file():
-            return FileResponse(file_path)
-        return FileResponse("static/index.html")
+    app.mount("/", SPAStaticFiles(directory=static_dir), name="static-frontend")

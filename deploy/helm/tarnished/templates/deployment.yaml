@@ -1,15 +1,6 @@
-{{/* Validate replica/storage combinations */}}
-{{- if and (gt (int .Values.replicaCount) 1) (not .Values.postgresql.enabled) }}
-{{- fail "Multiple replicas require postgresql.enabled=true (SQLite does not support concurrent writes)" }}
-{{- end }}
-{{- if and (gt (int .Values.replicaCount) 1) (not .Values.persistence.enabled) }}
-{{- fail "Multiple replicas require persistence.enabled=true because uploads must live on shared storage" }}
-{{- end }}
-{{- if and (gt (int .Values.replicaCount) 1) (not .Values.persistence.existingClaim) (ne .Values.persistence.accessMode "ReadWriteMany") }}
-{{- fail "Multiple replicas require shared upload storage. Use persistence.accessMode=ReadWriteMany or provide persistence.existingClaim backed by shared storage." }}
-{{- end }}
-{{- if and (gt (int .Values.replicaCount) 1) .Values.persistence.existingClaim (not .Values.persistence.sharedAccess) }}
-{{- fail "Multiple replicas with persistence.existingClaim require persistence.sharedAccess=true to acknowledge the claim supports shared read-write access." }}
+{{/* Bounded media intake supports exactly one process/replica on both DBs. */}}
+{{- if ne (int .Values.replicaCount) 1 }}
+{{- fail "Tarnished requires replicaCount=1 for SQLite and PostgreSQL; HA is unsupported" }}
 {{- end }}
 apiVersion: apps/v1
 kind: Deployment
@@ -48,11 +39,9 @@ spec:
         - name: migrate
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["alembic", "upgrade", "head"]
+          # Load the signing secret and migrate before starting the app.
+          command: ["./entrypoint.sh", "migrate"]
           env:
-            # PATH is required for venv binaries (Kubernetes doesn't inherit Docker ENV)
-            - name: PATH
-              value: "/app/.venv/bin:/usr/local/bin:/usr/bin:/bin"
             {{- if .Values.postgresql.enabled }}
             # Discrete PostgreSQL settings - app constructs URL with proper encoding
             - name: POSTGRES_HOST
@@ -71,7 +60,10 @@ spec:
                   key: {{ .Values.postgresql.existingSecretPasswordKey }}
             {{- else if .Values.postgresql.password }}
             - name: POSTGRES_PASSWORD
-              value: {{ .Values.postgresql.password | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tarnished.fullname" . }}-postgresql
+                  key: password
             {{- end }}
             {{- end }}
             {{- if .Values.secretKey.existingSecret }}
@@ -86,6 +78,10 @@ spec:
             {{- end }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           resources:
             {{- toYaml .Values.initContainer.resources | nindent 12 }}
           volumeMounts:
@@ -102,9 +98,6 @@ spec:
               containerPort: 5577
               protocol: TCP
           env:
-            # PATH is required for venv binaries (Kubernetes doesn't inherit Docker ENV)
-            - name: PATH
-              value: "/app/.venv/bin:/usr/local/bin:/usr/bin:/bin"
             {{- if .Values.postgresql.enabled }}
             # Discrete PostgreSQL settings - app constructs URL with proper encoding
             - name: POSTGRES_HOST
@@ -123,7 +116,10 @@ spec:
                   key: {{ .Values.postgresql.existingSecretPasswordKey }}
             {{- else if .Values.postgresql.password }}
             - name: POSTGRES_PASSWORD
-              value: {{ .Values.postgresql.password | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tarnished.fullname" . }}-postgresql
+                  key: password
             {{- end }}
             {{- end }}
             {{- if .Values.secretKey.existingSecret }}

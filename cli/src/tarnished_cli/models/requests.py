@@ -2,13 +2,42 @@ from __future__ import annotations
 
 import ipaddress
 from datetime import date, datetime
-from typing import Any
+from typing import Annotated, Any, Literal
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import (
+    AfterValidator,
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
+
+Meaning = Literal[
+    "unknown",
+    "applied",
+    "screening",
+    "interviewing",
+    "offer",
+    "accepted",
+    "rejected",
+    "withdrawn",
+    "no_reply",
+]
+
+
+class ResponseEvidenceInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    occurred_on: date | None = None
+    reference: str | None = Field(None, max_length=2000)
 
 
 class ApplicationExtractRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    response_evidence: ResponseEvidenceInput | None = None
     url: str
     status_id: str
     applied_at: date | None = None
@@ -16,6 +45,8 @@ class ApplicationExtractRequest(BaseModel):
 
 
 class ApplicationCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    response_evidence: ResponseEvidenceInput | None = None
     company: str
     job_title: str
     job_description: str | None = None
@@ -40,6 +71,9 @@ class ApplicationCreate(BaseModel):
 
 
 class ApplicationUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_revision: int | None = Field(None, ge=0)
+    response_evidence: ResponseEvidenceInput | None = None
     company: str | None = None
     job_title: str | None = None
     job_description: str | None = None
@@ -63,6 +97,9 @@ class ApplicationUpdate(BaseModel):
 
 
 class JobLeadCreate(BaseModel):
+    """Save only: text/HTML limits are characters; retained source is at most 50,000."""
+
+    model_config = ConfigDict(extra="forbid")
     url: str = Field(..., min_length=1, max_length=2048)
     text: str | None = Field(None, max_length=100_000)
     html: str | None = Field(None, max_length=500_000)
@@ -100,12 +137,81 @@ class JobLeadCreate(BaseModel):
         return value
 
 
+class JobLeadUpdate(BaseModel):
+    """Omit unchanged fields; null clears scalars and [] clears lists.
+
+    The server validates merged ranges and protects supplied fields from AI.
+    URL, source snapshot, conversion links and internal state are not editable.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    expected_revision: int = Field(ge=0)
+    title: str | None = None
+    company: str | None = None
+    description: str | None = None
+    location: str | None = None
+    salary_min: int | None = None
+    salary_max: int | None = None
+    salary_currency: str | None = None
+    recruiter_name: str | None = None
+    recruiter_title: str | None = None
+    recruiter_linkedin_url: str | None = None
+    requirements_must_have: list[str] = Field(default_factory=list)
+    requirements_nice_to_have: list[str] = Field(default_factory=list)
+    skills: list[str] = Field(default_factory=list)
+    years_experience_min: int | None = None
+    years_experience_max: int | None = None
+    source: str | None = None
+    posted_date: date | None = None
+
+    @model_validator(mode="after")
+    def validate_edit(self):
+        if not self.model_fields_set - {"expected_revision"}:
+            raise ValueError("Supply at least one editable field")
+        limits = {
+            "description": 50_000,
+            "salary_currency": 10,
+            "recruiter_linkedin_url": 512,
+            "source": 100,
+        }
+        for name, value in self.model_dump(exclude={"expected_revision"}).items():
+            if isinstance(value, str) and (
+                "\x00" in value or len(value) > limits.get(name, 255)
+            ):
+                raise ValueError(
+                    f"{name} must not contain NUL and allows up to {limits.get(name, 255)} characters"
+                )
+            if isinstance(value, list) and (
+                len(value) > 200 or any(len(item) > 2000 for item in value)
+            ):
+                raise ValueError(f"{name} allows up to 200 entries of 2,000 characters")
+            if isinstance(value, int) and not 0 <= value <= 2_147_483_647:
+                raise ValueError(f"{name} must be a nonnegative 32-bit integer")
+        for lower, upper in [
+            (self.salary_min, self.salary_max),
+            (self.years_experience_min, self.years_experience_max),
+        ]:
+            if lower is not None and upper is not None and lower > upper:
+                raise ValueError("Maximum must be greater than or equal to minimum")
+        return self
+
+
+class JobLeadExtractRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_revision: int = Field(ge=0)
+    restart_processing: bool = False
+
+
 class StatusCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    meaning: Meaning = "unknown"
     name: str
     color: str = "#83a598"
 
 
 class StatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    meaning: Meaning | None = None
     name: str | None = None
     color: str | None = None
 
@@ -135,20 +241,71 @@ class RoundUpdate(BaseModel):
     transcript_summary: str | None = None
 
 
+class TranscriptSegmentInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: str = Field(min_length=1, max_length=36)
+    text: str = Field(max_length=64000)
+    speaker: str | None = Field(default=None, max_length=64)
+    start: float | None = Field(default=None, ge=0, le=7200)
+    end: float | None = Field(default=None, ge=0, le=7200)
+    audio_channel: str | None = Field(default=None, max_length=120)
+
+
+class TranscriptPaste(BaseModel):
+    """Replace the round transcript from pasted TXT/SRT/VTT text."""
+
+    model_config = ConfigDict(extra="forbid")
+    text: str = Field(min_length=1)
+    format: Literal["txt", "srt", "vtt"] = "txt"
+
+
+class TranscriptEdit(BaseModel):
+    """Correct existing segments; IDs, order and source timestamps must be kept."""
+
+    model_config = ConfigDict(extra="forbid")
+    segments: list[TranscriptSegmentInput]
+
+
+def validate_new_password(password: str) -> str:
+    try:
+        valid = len(password) >= 12 and len(password.encode("utf-8")) <= 72
+    except UnicodeError:
+        valid = False
+    if not valid:
+        raise ValueError(
+            "Password must have at least 12 characters and at most 72 UTF-8 bytes"
+        )
+    return password
+
+
+NewPassword = Annotated[str, AfterValidator(validate_new_password)]
+
+
 class AdminUserUpdate(BaseModel):
+    model_config = ConfigDict(hide_input_in_errors=True)
     is_active: bool | None = None
     is_admin: bool | None = None
-    password: str | None = None
+    password: NewPassword | None = None
+
+    @field_validator("password", "is_active", "is_admin")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged fields; null is not allowed")
+        return value
 
 
 class AdminUserCreate(BaseModel):
+    model_config = ConfigDict(hide_input_in_errors=True)
     email: EmailStr
-    password: str = Field(min_length=8)
+    password: NewPassword
     is_admin: bool = False
     is_active: bool = True
 
 
 class AdminStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    meaning: Meaning | None = None
     name: str | None = None
     color: str | None = None
     order: int | None = None
@@ -162,6 +319,7 @@ class AISettingsUpdate(BaseModel):
     litellm_model: str | None = None
     litellm_api_key: str | None = None
     litellm_base_url: str | None = None
+    text_protocol: Literal["chat_completions", "responses"] | None = None
 
     @field_validator("litellm_model")
     @classmethod
@@ -251,4 +409,55 @@ class UserProfileUpdate(BaseModel):
 
 
 class InsightsRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     period: str
+    as_of: AwareDatetime | None = None
+
+
+class ScopedReportRequest(BaseModel):
+    """Request interview or application feedback at a known generation."""
+
+    model_config = ConfigDict(extra="forbid")
+    intent_id: str
+    generation: int = Field(ge=0)
+    config_revision: str = Field(min_length=1, max_length=36)
+
+
+class PipelineReportRequest(BaseModel):
+    """Request the latest pipeline-scope grounded feedback."""
+
+    model_config = ConfigDict(extra="forbid")
+    intent_id: str
+    config_revision: str = Field(min_length=1, max_length=36)
+    period: Literal["7d", "30d", "3m", "all"] = "30d"
+    as_of: AwareDatetime | None = None
+
+
+class DocumentTextPaste(BaseModel):
+    """Replace the current pasted CV/cover-letter text for analysis."""
+
+    model_config = ConfigDict(extra="forbid")
+    text: str = Field(max_length=32000)
+    expected_revision: int = Field(ge=0)
+
+
+class CurrentMeaningCorrection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    meaning: Meaning
+    expected_revision: int = Field(ge=0)
+
+
+class HistoryCorrection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_revision: int = Field(ge=0)
+    from_meaning: Meaning | None = None
+    to_meaning: Meaning | None = None
+    changed_at: AwareDatetime | None = None
+    correction_note: str | None = Field(None, max_length=2000)
+
+    @field_validator("from_meaning", "to_meaning", "changed_at")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged fields; null is not allowed")
+        return value

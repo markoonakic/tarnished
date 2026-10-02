@@ -1,275 +1,153 @@
 # Tarnished Browser Extension
 
-A browser extension for detecting job postings and saving them to your Tarnished application.
+Detect job postings, save job leads, and fill application forms with your Tarnished profile.
+
+This guide describes version **0.2.0**. Use the extension with a matching Tarnished backend.
 
 **Documentation:** https://markoonakic.github.io/tarnished/
 
-For the current user-facing manual install/configuration guide, see:
-- https://markoonakic.github.io/tarnished/how-to/use-the-browser-extension/
+See the [extension guide](../documentation/content/how-to/use-the-browser-extension.md) for installation and configuration.
 
 ## Features
 
-- **Job Detection**: Automatically detects job posting pages across major job boards
-- **One-Click Save**: Save job listings directly to your Tarnished application
-- **Autofill**: Automatically fill job application forms with your profile data
-- **Duplicate Detection**: Prevents saving the same job twice
-- **User-Friendly Errors**: Clear error messages with recovery suggestions
+- Detect job pages from structured data, known job sites, headings, and apply buttons.
+- Save a job URL and available page text without AI.
+- Request AI extraction and conversion as a separate, explicit action.
+- Open existing leads and applications instead of saving duplicates.
+- Fill empty, visible application fields from your profile.
 
-## Supported Job Sites
+## Build and Install
 
-The extension uses a weighted scoring system to detect job postings on the following platforms:
-
-| Platform              | Detection Method |
-| --------------------- | ---------------- |
-| LinkedIn Jobs         | Domain matching  |
-| Indeed                | Domain matching  |
-| Greenhouse            | Domain matching  |
-| Lever                 | Domain matching  |
-| Workday               | Domain matching  |
-| Glassdoor             | Domain matching  |
-| Any site with JSON-LD | Schema detection |
-
-### Detection Signals
-
-The extension uses multiple signals to identify job postings:
-
-1. **JSON-LD JobPosting Schema** (weight: 50) - Standard structured data for job postings
-2. **Known Job Domains** (weight: 30) - Recognized job board URLs
-3. **Job-Related Headings** (weight: 10 each, max 20) - Sections like "Requirements", "Responsibilities", "Qualifications"
-4. **Apply Button** (weight: 10) - Presence of an apply button
-
-A score of 30 or higher triggers job detection.
-
-## Autofill Supported Fields
-
-The autofill feature can automatically populate the following form fields:
-
-| Field        | Matching Patterns                       |
-| ------------ | --------------------------------------- |
-| First Name   | `first`, `fname`                        |
-| Last Name    | `last`, `surname`, `lname`              |
-| Email        | `type="email"`, `email`                 |
-| Phone        | `type="tel"`, `phone`, `mobile`, `cell` |
-| Location     | `location`, `city`, `address`           |
-| LinkedIn URL | `linkedin`, `linkedin_url`              |
-
-**Note**: Autofill only fills empty, visible text fields. Already-filled fields are skipped.
-
-## Installation
-
-### Development Build
-
-1. Clone the repository and navigate to the extension directory:
-
-   ```bash
-   cd extension
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   yarn install
-   ```
-
-3. Build the unpacked extension bundle:
-
-   ```bash
-   yarn build
-   ```
-
-4. Load the extension in your browser:
-   - **Chrome**: Go to `chrome://extensions/`, enable "Developer mode", click "Load unpacked", and select the `extension/dist` directory
-   - **Firefox**: Go to `about:debugging#/runtime/this-firefox`, click "Load Temporary Add-on", and select `extension/dist/manifest.json`
-
-### Packaged Release Builds
-
-The current public distribution path is the packaged release ZIPs attached to GitHub Releases. Browser store publication is deferred for now.
+Use Yarn 4.12.0 and Python 3. Yarn can be run through Corepack with `corepack yarn`.
 
 ```bash
-yarn build:chrome   # produces tarnished-chrome.zip
-yarn build:firefox  # produces tarnished-firefox.zip
+cd extension
+yarn install
+yarn build:all
 ```
 
-### Development Watch Mode
+The build produces `tarnished-chrome.zip` and `tarnished-firefox.zip`.
+
+For Chrome:
 
 ```bash
-yarn dev
+python3 -m zipfile -e tarnished-chrome.zip /tmp/tarnished-chrome
 ```
 
-`yarn dev` runs Vite in watch mode and rebuilds `dist/` on file changes. It is a rebuild loop for extension development, not full browser-style HMR.
+Open `chrome://extensions/`, enable **Developer mode**, select **Load unpacked**, and choose the extracted directory.
 
-## Configuration
-
-### Setting Up the Extension
-
-1. Click the extension icon in your browser toolbar
-2. Click the **Settings** button (gear icon)
-3. Enter your configuration:
-   - **App URL**: The URL of your Tarnished application (e.g., `https://your-app.com`)
-   - **API Key**: Your API key from the Tarnished application
-
-### Getting Your API Key
-
-1. Log in to your Tarnished web application
-2. Navigate to **Settings** (usually in the user menu or profile section)
-3. Find the **API Keys** section
-4. Generate or copy your API key
-
-### Setting Up Your Profile for Autofill
-
-For autofill to work, you need to have your profile data saved in the Tarnished application:
-
-1. Log in to your Tarnished web application
-2. Navigate to your **Profile** settings
-3. Fill in your personal information:
-   - First name
-   - Last name
-   - Email address
-   - Phone number
-   - Location
-   - LinkedIn URL
-
-## Usage
-
-### Saving a Job Posting
-
-1. Navigate to a job posting on a supported job site
-2. Click the Tarnished extension icon
-3. If a job is detected, you'll see the job details with a **Save** button
-4. Click **Save** to add the job to your leads
-
-### Using Autofill
-
-1. Navigate to a job application form
-2. Click the Tarnished extension icon
-3. Click the **Autofill** button
-4. Your profile data will be automatically filled into matching form fields
-
-### Updating an Existing Lead
-
-If you visit a job posting URL that's already saved:
-
-1. The extension will show "Already Saved" status
-2. If the page content may have changed, you'll see an **Update** button
-3. Click **Update** to refresh the job data
-
-## Known Limitations
-
-### Detection Limitations
-
-- **Dynamic Content**: Pages that load job content via JavaScript may not be detected immediately. Refreshing the page usually helps.
-- **Non-Standard Pages**: Custom job posting pages without structured data may not be detected.
-- **Threshold**: Some legitimate job pages may score below 30 and not be detected.
-
-### Autofill Limitations
-
-- **Iframes**: Forms embedded in iframes cannot be autofilled (browser security restriction).
-- **Shadow DOM**: Forms using Shadow DOM encapsulation cannot be autofilled.
-- **Custom Inputs**: Non-standard input types (e.g., rich text editors, custom dropdowns) cannot be autofilled.
-- **Already Filled**: Fields with existing content are skipped to prevent overwriting.
-- **Hidden Fields**: Hidden or invisible fields are skipped.
-- **Disabled Fields**: Disabled or readonly fields cannot be filled.
-- **Character Limits**: Values are truncated to fit maxlength constraints.
-- **Single-Page Apps**: Some React/Vue apps may need manual validation triggering.
-
-### General Limitations
-
-- **Restricted URLs**: The extension cannot run on browser internal pages (`chrome://`, `about:`, etc.)
-- **Authentication**: Requires valid API key from the Tarnished backend
-- **Network**: Requires network connectivity to the backend server
-- **Content Size**: HTML content larger than 100KB is truncated
-
-## Error Messages
-
-| Error                                     | Meaning                         | Solution                                       |
-| ----------------------------------------- | ------------------------------- | ---------------------------------------------- |
-| Configure the extension in settings first | Missing app URL or API key      | Open settings and configure both fields        |
-| Invalid app URL                           | URL format is incorrect         | Ensure URL starts with `http://` or `https://` |
-| Invalid API key                           | API key is invalid or expired   | Generate a new API key in Tarnished settings   |
-| Could not connect to server               | Network or server issue         | Check network connection and server status     |
-| Request timed out                         | Server took too long to respond | Try again or check server load                 |
-| No job posting found on this page         | Detection score below threshold | Page may not be a job posting                  |
-| Could not extract job data                | Extraction failed               | Try refreshing the page                        |
-| This job is already in your leads         | Duplicate URL detected          | No action needed                               |
-
-## Architecture
-
-```
-extension/
-  src/
-    background/         # Background entrypoint / browser runtime coordination
-    content/            # Content scripts for job detection and autofill
-    popup/              # Popup UI entrypoint and state
-    options/            # Settings page entrypoint
-    architecture/       # Boundary/contract tests
-    lib/
-      api-core.ts       # Shared API types, errors, settings, fetch helpers
-      api-job-leads.ts  # Job lead save/check flows
-      api-applications.ts # Application create/convert/check flows
-      api-user.ts       # Profile + connection checks
-      autofill/         # Autofill engine and scoring helpers
-      constants.ts      # Shared constants
-      detection.ts      # Job detection algorithm
-      errors.ts         # Extension-domain error mapping
-      logger.ts         # Logging helpers
-      storage.ts        # Browser storage helpers
-      url.ts            # App URL helpers
-```
-
-## Development
-
-### Building
+For Firefox:
 
 ```bash
-yarn build        # Production build
-yarn dev          # Development build with watch mode
+python3 -m zipfile -e tarnished-firefox.zip /tmp/tarnished-firefox
 ```
 
-### Project Structure
+Open `about:debugging#/runtime/this-firefox`, select **Load Temporary Add-on**, and choose `manifest.json` from the extracted directory. Temporary add-ons are removed when Firefox closes.
 
-- **Hybrid browser manifest strategy**: Uses a Manifest V3 service-worker background entrypoint while retaining cross-browser compatibility fields needed by the current Chrome/Firefox build path
-- **TypeScript**: Full type safety throughout
-- **Vite**: Bundles the extension and produces the unpacked `dist/` output plus packaged ZIPs
-- **webextension-polyfill**: Cross-browser compatibility
+Each package has a browser-specific Manifest V3 background declaration:
 
-### API Integration
+- Chrome uses a module service worker.
+- Firefox uses a module event page and Gecko settings.
 
-The extension communicates with the Tarnished backend via scoped API-key requests such as:
+`src/manifest.json` and `dist/manifest.json` contain both declarations. Use the browser-specific packages for installation.
 
-- `POST /api/job-leads` - Save a new job lead
-- `GET /api/job-leads` - List/search existing leads
-- `POST /api/job-leads/{id}/convert` - Convert a lead into an application
-- `GET /api/applications` - Check for existing applications by URL
-- `POST /api/applications` - Create an application directly
-- `POST /api/applications/extract` - Extract an application from page content
-- `GET /api/statuses` - Fetch application statuses for create flows
-- `GET /api/profile` - Fetch user profile for autofill
+## Configure
 
-All requests use API key authentication via the `X-API-Key` header.
+1. Open the extension popup and select **Settings**.
+2. Enter the URL of your Tarnished instance. Use an HTTP or HTTPS URL without credentials, a query string, or a fragment.
+3. In Tarnished, open **Settings → API Keys** and create a key with the **Extension** preset.
+4. Copy the key into the extension and select **Save**.
+
+If the app URL redirects, use its final URL. API requests do not follow redirects because they carry your API key.
+
+For autofill, complete your first name, last name, email, phone, city, country, and LinkedIn URL in your Tarnished profile.
+
+## Use
+
+### Save a Job
+
+1. Open a job posting and select the Tarnished extension.
+2. Select **Save without AI** to save its URL and available page text. This does not start extraction or contact a model provider. A URL-only save is allowed when page text is unavailable.
+3. Select **View in App** to review or edit the lead. Complete the company and title to convert it without AI, or request extraction in the app.
+
+**Save + AI + Convert** saves the lead, requests AI extraction, and converts it when its fields are ready. Extraction can incur provider charges. If extraction or conversion fails, the lead stays saved and can be opened in the app. No automatic AI retry is made.
+
+If a save times out, check Job Leads before saving again. The server may have completed the request.
+
+An exact-URL duplicate opens the existing lead. It does not replace source text or start extraction. **Convert to Application** refreshes the saved fields first and uses the server's initial status and the browser's time zone.
+
+### Autofill
+
+Open an application form and select **Autofill** in the popup. The settings dropdown also lets you enable autofill on page load.
+
+Supported fields include first name, last name, full name, email, phone, city, country, and LinkedIn URL. Matching uses autocomplete attributes, labels, placeholders, names, and IDs. Existing values, hidden fields, and disabled or readonly fields are left unchanged. Values respect each field's maximum length.
+
+Review the form before submitting it. Custom form controls and some React/Vue validation flows can need manual input.
+
+## Job Detection
+
+The extension combines these signals:
+
+| Signal                         |            Points |
+| ------------------------------ | ----------------: |
+| JSON-LD JobPosting data        |                50 |
+| Known job site or job URL path |                30 |
+| Job-related headings           | 10 each, up to 20 |
+| Apply button                   |                10 |
+
+A score of 30 or more marks the page as a job page. Known sites include LinkedIn Jobs, Indeed, Greenhouse, Lever, Workday, and Glassdoor. JobPosting data can be detected on any site.
+
+## Limitations
+
+- Detection can miss dynamic or non-standard pages and can match some job search or company career pages.
+- Browser internal pages such as `chrome://` and `about:` cannot be scanned.
+- Autofill supports direct same-origin child frames, not cross-origin or nested frames. A per-page token identifies injected scanners. It is not secret from the host page or its same-origin scripts.
+- Shadow DOM fields and custom controls are not supported.
+- The popup reports main-frame fills and frame contact attempts separately; it cannot confirm asynchronous frame fills.
+- Page text is limited to 100,000 JavaScript characters for transport. The server retains at most 50,000 useful characters and reports truncation or content warnings.
+- Firefox packages have packaging tests but are not covered by automated browser tests.
 
 ## Troubleshooting
 
-### Extension Not Detecting Jobs
+| Problem                | Action                                                                   |
+| ---------------------- | ------------------------------------------------------------------------ |
+| Missing settings       | Set the app URL and API key in extension settings.                       |
+| Invalid app URL        | Use the final HTTP or HTTPS URL without credentials, query, or fragment. |
+| Invalid or revoked key | Create a new Extension preset key in Tarnished settings.                 |
+| Missing API scope      | Use the Extension preset or add the scope named in the error.            |
+| Connection failure     | Check the network, server, TLS configuration, and app URL.               |
+| Save timeout           | Check Job Leads before saving again.                                     |
+| Extraction failure     | Open the saved lead and review its state before retrying AI work.        |
+| Job not detected       | Refresh the page or open the posting's direct URL.                       |
+| Autofill does not work | Check your profile and the field/frame limitations above.                |
 
-1. Refresh the page
-2. Check if the site is in the supported list
-3. Open browser console and look for detection messages
-4. Ensure content script is loaded (check `chrome://extensions/` for errors)
+Warnings and errors appear in the extension console. Debug logging can be enabled there with:
 
-### Autofill Not Working
+```javascript
+(globalThis.browser ?? globalThis.chrome).storage.local.set({
+  tarnished_debug: true,
+});
+```
 
-1. Ensure your profile is filled in the Tarnished app
-2. Check if the form fields match the supported patterns
-3. Verify the form is not in an iframe or shadow DOM
-4. Try refreshing the page before using autofill
+Reload the extension after changing the debug setting.
 
-### Connection Errors
+## Development
 
-1. Verify the app URL is correct and accessible
-2. Check if the API key is valid
-3. Ensure the application is running
-4. Check for CORS issues in the browser console
+```bash
+yarn build             # Build dist/
+yarn dev               # Rebuild dist/ when files change
+yarn build:chrome      # Build and package Chrome
+yarn build:firefox     # Build and package Firefox
+yarn typecheck
+yarn test:run
+yarn test:packaging
+yarn format:check
+```
+
+Watch mode rebuilds the bundle. Reload the extension or reinstall its temporary add-on after a change. Repackage it if you use a browser-specific extracted build.
+
+The source is split into `background/`, `content/`, `popup/`, `options/`, and shared `lib/` modules. API calls use a shared transport and the `X-API-Key` header. Top-level pages and iframe scanners use the same autofill code. Vite makes content scripts self-contained; the packaging script writes each browser's manifest without changing the build.
 
 ## License
 
-MIT License - See the main project repository for details.
+MIT. Each packaged ZIP includes the LICENSE file.

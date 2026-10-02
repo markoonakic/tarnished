@@ -5,14 +5,14 @@ from app.core.reference_names import normalized_reference_name
 from app.models import ApplicationStatus, RoundType
 
 DEFAULT_STATUSES = [
-    {"name": "Applied", "color": "#83a598", "order": 0},
-    {"name": "Screening", "color": "#fabd2f", "order": 1},
-    {"name": "Interviewing", "color": "#fe8019", "order": 2},
-    {"name": "Offer", "color": "#b8bb26", "order": 3},
-    {"name": "Accepted", "color": "#8ec07c", "order": 4},
-    {"name": "Rejected", "color": "#fb4934", "order": 5},
-    {"name": "Withdrawn", "color": "#d3869b", "order": 6},
-    {"name": "No Reply", "color": "#a89984", "order": 7},
+    {"name": "Applied", "meaning": "applied", "color": "#83a598", "order": 0},
+    {"name": "Screening", "meaning": "screening", "color": "#fabd2f", "order": 1},
+    {"name": "Interviewing", "meaning": "interviewing", "color": "#fe8019", "order": 2},
+    {"name": "Offer", "meaning": "offer", "color": "#b8bb26", "order": 3},
+    {"name": "Accepted", "meaning": "accepted", "color": "#8ec07c", "order": 4},
+    {"name": "Rejected", "meaning": "rejected", "color": "#fb4934", "order": 5},
+    {"name": "Withdrawn", "meaning": "withdrawn", "color": "#d3869b", "order": 6},
+    {"name": "No Reply", "meaning": "no_reply", "color": "#a89984", "order": 7},
 ]
 
 DEFAULT_ROUND_TYPES = [
@@ -45,6 +45,7 @@ async def seed_defaults(db: AsyncSession) -> None:
 
         status = ApplicationStatus(
             name=status_data["name"],
+            meaning=status_data["meaning"],
             color=status_data["color"],
             order=status_data["order"],
             is_default=True,

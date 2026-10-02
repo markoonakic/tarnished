@@ -49,4 +49,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade schema."""
     op.drop_index("uq_job_leads_user_url", table_name="job_leads")
-    op.create_index("ix_job_leads_user_url", "job_leads", ["user_id", "url"], unique=False)
+    op.create_index(
+        "ix_job_leads_user_url", "job_leads", ["user_id", "url"], unique=False
+    )

@@ -65,7 +65,7 @@ export default function Layout({ children }: Props) {
               Tarnished
             </Link>
             {/* Desktop nav links */}
-            <div className="hidden items-center gap-6 md:flex">
+            <div className="hidden items-center gap-6 whitespace-nowrap xl:flex">
               <Link to="/job-leads" className={linkClass('/job-leads')}>
                 Job Leads
               </Link>
@@ -86,8 +86,10 @@ export default function Layout({ children }: Props) {
             </div>
           </div>
           {/* Desktop user area */}
-          <div className="hidden items-center gap-4 md:flex">
-            <span className="text-muted">{user?.email}</span>
+          <div className="hidden min-w-0 items-center gap-4 xl:flex">
+            <span className="text-muted max-w-48 truncate" title={user?.email}>
+              {user?.email}
+            </span>
             <button
               onClick={signOut}
               className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out"
@@ -98,7 +100,7 @@ export default function Layout({ children }: Props) {
           {/* Mobile hamburger button */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded bg-transparent p-2 transition-all duration-200 ease-in-out md:hidden"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded bg-transparent p-2 transition-all duration-200 ease-in-out xl:hidden"
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
           >
@@ -107,7 +109,9 @@ export default function Layout({ children }: Props) {
         </div>
         {/* Mobile menu panel */}
         <div
-          className="border-tertiary border-t transition-all duration-200 ease-in-out md:hidden"
+          inert={!menuOpen}
+          aria-hidden={!menuOpen}
+          className="border-tertiary border-t transition-all duration-200 ease-in-out xl:hidden"
           style={{
             display: 'grid',
             gridTemplateRows: menuOpen ? '1fr' : '0fr',

@@ -25,12 +25,10 @@ Examples:
 
 app = typer.Typer(help=ADMIN_HELP)
 users_app = typer.Typer(help="Manage users.")
-applications_app = typer.Typer(help="Inspect all applications.")
 statuses_app = typer.Typer(help="Manage default statuses.")
 round_types_app = typer.Typer(help="Manage default round types.")
 ai_settings_app = typer.Typer(help="Manage AI settings.")
 app.add_typer(users_app, name="users")
-app.add_typer(applications_app, name="applications")
 app.add_typer(statuses_app, name="statuses")
 app.add_typer(round_types_app, name="round-types")
 app.add_typer(ai_settings_app, name="ai-settings")
@@ -110,23 +108,6 @@ def delete_user(
             {"deleted": True, "id": user_id},
             text=f"Deleted user {user_id}",
         )
-    except CLIError as exc:
-        exit_for_error(state, exc)
-
-
-@applications_app.command("list")
-def list_admin_applications(
-    ctx: typer.Context,
-    page: int = typer.Option(1),
-    per_page: int = typer.Option(20),
-) -> None:
-    state = get_state(ctx)
-    try:
-        payload = state.build_client().get_json(
-            "/api/admin/applications",
-            params={"page": page, "per_page": per_page},
-        )
-        emit_result(state, payload)
     except CLIError as exc:
         exit_for_error(state, exc)
 

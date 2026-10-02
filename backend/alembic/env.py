@@ -13,11 +13,11 @@ from app.core.database import Base
 
 config = context.config
 
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+if config.config_file_name is not None and config.attributes.get("connection") is None:
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.get_database_url())
+config.set_main_option("sqlalchemy.url", settings.get_database_url().replace("%", "%%"))
 
 target_metadata = Base.metadata
 

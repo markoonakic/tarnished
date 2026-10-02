@@ -47,6 +47,22 @@ describe('theme preference helpers', () => {
     expect(getAccentOverrides()).toEqual({});
   });
 
+  it.each(['null', '[]', 'true', '42', '"green"'])(
+    'ignores an invalid stored accent map: %s',
+    (value) => {
+      localStorage.setItem(STORAGE_KEY_ACCENTS, value);
+      expect(getAccentOverrides()).toEqual({});
+    }
+  );
+
+  it('ignores non-text accent values', () => {
+    localStorage.setItem(
+      STORAGE_KEY_ACCENTS,
+      JSON.stringify({ dracula: 'green', catppuccin: null })
+    );
+    expect(getAccentOverrides()).toEqual({ dracula: 'green' });
+  });
+
   it('persists theme and accent overrides', () => {
     persistThemeSelection('dracula');
     persistAccentOverrides({ dracula: 'green' });

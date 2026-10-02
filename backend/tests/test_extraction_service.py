@@ -158,9 +158,10 @@ class TestTruncateMarkdown:
 
     def test_long_markdown_truncated_at_paragraph(self):
         """Test that long markdown is truncated at paragraph boundary."""
-        markdown = "First paragraph.\n\nSecond paragraph.\n\nThird paragraph."
-        # Truncate to include first paragraph but not third
-        result = _truncate_markdown(markdown, 40)
+        markdown = "First paragraph.\n\nSecond paragraph.\n\n" + "Third paragraph." * 10
+        # The notice is included in the bound, not appended beyond it.
+        result = _truncate_markdown(markdown, 80)
+        assert len(result) <= 80
 
         assert "First paragraph" in result
         assert "[Content truncated" in result
@@ -539,12 +540,8 @@ class TestExtractJobData:
     @pytest.mark.asyncio
     async def test_extract_job_data_uses_async_llm_boundary(self):
         """The async entrypoint should delegate blocking LLM work through an async boundary."""
-        expected = JobLeadExtractionInput(
-            title="Async Boundary Engineer",
-            company="Threadpool Corp",
-            requirements_must_have=[],
-            requirements_nice_to_have=[],
-            skills=[],
+        expected = JobLeadExtractionInput.model_validate(
+            {"title": "Async Boundary Engineer", "company": "Threadpool Corp"}
         )
 
         with patch(

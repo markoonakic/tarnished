@@ -1,11 +1,16 @@
 import axios, { AxiosHeaders, type AxiosRequestConfig } from 'axios';
 
+// Validation objects can contain submitted secrets.
+export function safeErrorMessage(detail: unknown, fallback: string): string {
+  return typeof detail === 'string' && detail.trim() ? detail : fallback;
+}
+
 export const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 
-export const api = axios.create({
+const api = axios.create({
   baseURL: API_BASE,
 });
 
@@ -25,7 +30,7 @@ export function getAccessToken(): string | null {
   return getStorage().getItem(ACCESS_TOKEN_KEY);
 }
 
-export function getRefreshToken(): string | null {
+function getRefreshToken(): string | null {
   return getStorage().getItem(REFRESH_TOKEN_KEY);
 }
 
@@ -41,7 +46,7 @@ export function clearAuthTokens(): void {
   storage.removeItem(REFRESH_TOKEN_KEY);
 }
 
-export function redirectToLogin(): void {
+function redirectToLogin(): void {
   window.location.href = '/login';
 }
 
@@ -83,13 +88,30 @@ function toAbsoluteUrl(path: string): string {
   return new URL(path, baseUrl).toString();
 }
 
-export async function refreshAuthTokens(): Promise<string | null> {
-  const refreshToken = getRefreshToken();
+let pendingRefresh: {
+  token: string;
+  promise: Promise<string | null>;
+} | null = null;
 
-  if (!refreshToken) {
-    return null;
+export function refreshAuthTokens(): Promise<string | null> {
+  const token = getRefreshToken();
+  if (!token) {
+    clearAuthTokens();
+    return Promise.resolve(null);
   }
+  if (pendingRefresh?.token === token) return pendingRefresh.promise;
 
+  const request = {
+    token,
+    promise: refreshTokens(token).finally(() => {
+      if (pendingRefresh === request) pendingRefresh = null;
+    }),
+  };
+  pendingRefresh = request;
+  return request.promise;
+}
+
+async function refreshTokens(refreshToken: string): Promise<string | null> {
   const response = await fetch(toAbsoluteUrl('/api/auth/refresh'), {
     method: 'POST',
     headers: {
@@ -98,21 +120,24 @@ export async function refreshAuthTokens(): Promise<string | null> {
     body: JSON.stringify({ refresh_token: refreshToken }),
   });
 
-  if (!response.ok) {
+  if (getRefreshToken() !== refreshToken) return null;
+  if (response.status === 401 || response.status === 403) {
     clearAuthTokens();
     return null;
   }
+  if (!response.ok) throw new Error('Could not refresh the session');
 
   const data = (await response.json()) as {
     access_token: string;
     refresh_token: string;
   };
 
+  if (getRefreshToken() !== refreshToken) return null;
   setAuthTokens(data.access_token, data.refresh_token);
   return data.access_token;
 }
 
-export function withTimeZoneHeaders(headers?: HeadersInit): Headers {
+function withTimeZoneHeaders(headers?: HeadersInit): Headers {
   const mergedHeaders = mergeHeaders(headers);
   const timeZone = getBrowserTimeZone();
 
@@ -201,6 +226,14 @@ api.interceptors.response.use(
     const originalRequest = error.config as AxiosRequestConfig & {
       _retry?: boolean;
     };
+
+    if (
+      ['/api/auth/login', '/api/auth/refresh'].includes(
+        originalRequest.url ?? ''
+      )
+    ) {
+      return Promise.reject(error);
+    }
 
     if (originalRequest._retry) {
       clearAuthTokens();

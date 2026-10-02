@@ -1,14 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const storageGet = vi.fn();
-const storageSet = vi.fn();
 
 vi.mock('webextension-polyfill', () => ({
   default: {
     storage: {
       local: {
         get: storageGet,
-        set: storageSet,
       },
     },
   },
@@ -19,6 +17,16 @@ describe('logger', () => {
     vi.resetModules();
     vi.clearAllMocks();
     storageGet.mockResolvedValue({ tarnished_debug: false });
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('logs debug messages when the stored setting is enabled', async () => {
+    storageGet.mockResolvedValue({ tarnished_debug: true });
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const { debug } = await import('./logger');
+    debug('Popup', 'visible message');
+    expect(logSpy).toHaveBeenCalledWith('[Popup]', 'visible message');
   });
 
   it('suppresses debug logs by default', async () => {

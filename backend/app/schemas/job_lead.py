@@ -6,21 +6,17 @@ and structured extraction with LiteLLM.
 
 import ipaddress
 from datetime import date, datetime
-from typing import Annotated
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-# Job Lead Status Enum (as Literal for type safety)
-JobLeadStatus = Annotated[str, Field(pattern="^(pending|extracted|failed)$")]
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class JobLeadCreate(BaseModel):
     """Request schema for creating a new job lead.
 
-    Users submit a URL and optional content for extraction.
-    Prefer 'text' (plain text from page) for simpler, more reliable extraction.
-    'html' is kept for backward compatibility but not recommended.
+    Save never fetches or calls AI. Optional text/HTML becomes a bounded
+    untrusted source snapshot; enrichment is a separate explicit request.
+    Prefer plain page text; HTML is preprocessed locally, not sanitized.
     """
 
     url: str = Field(
@@ -32,12 +28,12 @@ class JobLeadCreate(BaseModel):
     text: str | None = Field(
         None,
         max_length=100_000,
-        description="Plain text content from the job posting page (preferred, max 100KB)",
+        description="Plain text content from the job posting page (preferred, max 100,000 characters)",
     )
     html: str | None = Field(
         None,
         max_length=500_000,
-        description="Optional pre-fetched HTML content (legacy, max 500KB)",
+        description="Optional pre-fetched HTML content (legacy, max 500,000 characters)",
     )
 
     @field_validator("url")
@@ -91,6 +87,20 @@ class JobLeadResponse(BaseModel):
     id: str
     user_id: str
     status: str
+
+    source_text: str | None
+    source_truncated: bool
+    content_warning: str | None
+    revision: int
+    processing_started_at: datetime | None
+    manual_fields: list[str]
+
+    @field_validator("processing_started_at")
+    @classmethod
+    def utc_processing_time(cls, value):
+        from datetime import UTC
+
+        return value.replace(tzinfo=UTC) if value and value.tzinfo is None else value
 
     # Core job info
     title: str | None
@@ -253,3 +263,66 @@ class JobLeadExtractionInput(BaseModel):
                 "years_experience_max must be greater than or equal to years_experience_min"
             )
         return v
+
+
+class JobLeadEditable(JobLeadExtractionInput):
+    """Business-field allowlist; null clears scalar fields, [] clears lists."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="after")
+    def bounded_fields(self):
+        limits = {
+            "description": 50_000,
+            "salary_currency": 10,
+            "recruiter_linkedin_url": 512,
+            "source": 100,
+        }
+        for name, value in self.model_dump().items():
+            if isinstance(value, str) and "\x00" in value:
+                raise ValueError(f"{name} must not contain NUL characters")
+            if isinstance(value, str) and len(value) > limits.get(name, 255):
+                raise ValueError(f"{name} exceeds {limits.get(name, 255)} characters")
+            if isinstance(value, list) and (
+                len(value) > 200 or any(len(item) > 2000 for item in value)
+            ):
+                raise ValueError(
+                    f"{name} exceeds 200 entries or 2000 characters per entry"
+                )
+            if isinstance(value, int) and not 0 <= value <= 2_147_483_647:
+                raise ValueError(f"{name} must be a nonnegative 32-bit integer")
+        return self
+
+
+class JobLeadUpdate(JobLeadEditable):
+    expected_revision: int = Field(ge=0)
+
+
+class JobLeadExtractRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_revision: int = Field(ge=0)
+    restart_processing: bool = Field(
+        False,
+        description=(
+            "Explicitly replace an interrupted/uncertain request. The previous provider "
+            "call may still finish or have been billed; restarting may repeat paid work. "
+            "Execution is request-bound, not a durable background job."
+        ),
+    )
+
+
+class JobLeadCaptureArchive(BaseModel):
+    """Optional additions to existing archives; no executable processing claim."""
+
+    source_text: str | None = Field(None, max_length=50_000)
+    source_truncated: bool = False
+    content_warning: str | None = Field(None, max_length=2000)
+    revision: int = Field(0, ge=0)
+    manual_fields: list[str] = Field(default_factory=list)
+
+    @field_validator("manual_fields")
+    @classmethod
+    def editable_only(cls, value):
+        if not set(value) <= JobLeadEditable.model_fields.keys():
+            raise ValueError("manual_fields contains a non-editable field")
+        return sorted(set(value))

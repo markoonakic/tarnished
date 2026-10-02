@@ -1,25 +1,16 @@
-/**
- * Heuristic scoring for field detection.
- *
- * Scores inputs based on multiple signals:
- * - autocomplete attribute (highest confidence)
- * - aria-label
- * - associated label text
- * - placeholder text
- * - name/id attributes (lowest - often obfuscated)
- */
+// Prefer autocomplete and labels over often-obfuscated name/id attributes.
 
 import type { FieldType, FieldPattern, ScoredField } from './types';
 
 /**
  * Score thresholds.
  */
-export const SCORE_THRESHOLD = 30;
+const SCORE_THRESHOLD = 30;
 
 /**
  * Score weights for each signal type.
  */
-export const SCORE_WEIGHTS = {
+const SCORE_WEIGHTS = {
   autocomplete: 100,
   ariaLabel: 50,
   labelText: 60,
@@ -129,7 +120,7 @@ export const FIELD_PATTERNS: Record<FieldType, FieldPattern> = {
     idPatterns: [/country/i, /nation/i],
   },
   linkedin_url: {
-    autocomplete: ['url', 'linkedin'],
+    autocomplete: ['linkedin'],
     labelPatterns: [
       /\blinkedin\b/i,
       /\blinked\s*in\b/i,
@@ -155,25 +146,18 @@ function matchesPatterns(value: string | null, patterns: RegExp[]): boolean {
 function getAssociatedLabelText(
   element: HTMLInputElement | HTMLTextAreaElement
 ): string | null {
-  // Check for explicit label association via for attribute
-  if (element.id) {
-    const label = document.querySelector(`label[for="${element.id}"]`);
-    if (label) return label.textContent?.trim() || null;
-  }
-
-  // Check for implicit label (input inside label)
-  const parentLabel = element.closest('label');
-  if (parentLabel) {
-    // Get label text excluding the input's value
-    const text = parentLabel.textContent?.replace(element.value, '').trim();
-    if (text) return text;
-  }
+  const labelText = element.labels?.[0]?.textContent?.trim();
+  if (labelText) return labelText;
 
   // Check for aria-labelledby
   const labelledBy = element.getAttribute('aria-labelledby');
   if (labelledBy) {
-    const labelElement = document.getElementById(labelledBy);
-    if (labelElement) return labelElement.textContent?.trim() || null;
+    const text = labelledBy
+      .split(/\s+/)
+      .map((id) => document.getElementById(id)?.textContent || '')
+      .join(' ')
+      .trim();
+    if (text) return text;
   }
 
   // Check for adjacent label (sibling)
@@ -189,7 +173,7 @@ function getAssociatedLabelText(
 /**
  * Calculate score for a single field type.
  */
-export function calculateFieldTypeScore(
+function calculateFieldTypeScore(
   element: HTMLInputElement | HTMLTextAreaElement,
   fieldType: FieldType
 ): number {
@@ -239,7 +223,7 @@ export function scoreField(
   element: HTMLInputElement | HTMLTextAreaElement
 ): ScoredField | null {
   // Skip non-text inputs (except email and tel)
-  const validTypes = ['text', 'email', 'tel', 'url', ''];
+  const validTypes = ['text', 'email', 'tel', 'url', 'textarea', ''];
   const inputType = (element as HTMLInputElement).type?.toLowerCase();
   if (inputType && !validTypes.includes(inputType)) {
     return null;
@@ -247,11 +231,6 @@ export function scoreField(
 
   // Skip disabled or readonly
   if (element.disabled || element.readOnly) {
-    return null;
-  }
-
-  // Skip hidden
-  if (element.type === 'hidden') {
     return null;
   }
 

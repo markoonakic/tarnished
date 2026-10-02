@@ -2,39 +2,38 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       version:
         description: Release version without the leading v
         required: true
       ref:
-        description: Git ref or exact commit SHA to publish from
+        description: Git ref or commit SHA to publish
         required: true
       publish_extension_assets:
-        description: Upload extension ZIPs to the GitHub release
+        description: Upload Chrome and Firefox ZIPs
         type: boolean
-        default: false
+        default: true
       publish_docker:
-        description: Publish Docker images to GHCR
+        description: Publish container images
         type: boolean
         default: true
       publish_helm:
-        description: Publish Helm chart to GHCR
+        description: Publish the Helm chart
         type: boolean
         default: true
       publish_cli_package:
-        description: Publish the CLI package to PyPI
+        description: Publish the CLI to PyPI
         type: boolean
         default: true
       publish_rolling_tags:
-        description: Also publish rolling image tags (major.minor and latest)
+        description: Publish major.minor and latest container tags
         type: boolean
         default: false
 
-run-name: >-
-  Release ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+permissions:
+  contents: read
 
 concurrency:
   group: release-${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
@@ -47,11 +46,6 @@ jobs:
       version: ${{ steps.resolve.outputs.version }}
       ref: ${{ steps.resolve.outputs.ref }}
       release_tag: ${{ steps.resolve.outputs.release_tag }}
-      publish_extension_assets: ${{ steps.resolve.outputs.publish_extension_assets }}
-      publish_docker: ${{ steps.resolve.outputs.publish_docker }}
-      publish_helm: ${{ steps.resolve.outputs.publish_helm }}
-      publish_cli_package: ${{ steps.resolve.outputs.publish_cli_package }}
-      cli_pypi_already_published: ${{ steps.resolve.outputs.cli_pypi_already_published }}
       docker_tags: ${{ steps.resolve.outputs.docker_tags }}
     steps:
       - name: Resolve release metadata
@@ -60,446 +54,201 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_REF: ${{ inputs.ref }}
-          INPUT_PUBLISH_EXTENSION_ASSETS: ${{ inputs.publish_extension_assets }}
-          INPUT_PUBLISH_DOCKER: ${{ inputs.publish_docker }}
-          INPUT_PUBLISH_HELM: ${{ inputs.publish_helm }}
-          INPUT_PUBLISH_CLI_PACKAGE: ${{ inputs.publish_cli_package }}
-          INPUT_PUBLISH_ROLLING_TAGS: ${{ inputs.publish_rolling_tags }}
-          GITHUB_REF_NAME: ${{ github.ref_name }}
-          GITHUB_SHA: ${{ github.sha }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          ROLLING: ${{ inputs.publish_rolling_tags }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
             VERSION="$INPUT_VERSION"
             REF="$INPUT_REF"
-            PUBLISH_EXTENSION_ASSETS="$INPUT_PUBLISH_EXTENSION_ASSETS"
-            PUBLISH_DOCKER="$INPUT_PUBLISH_DOCKER"
-            PUBLISH_HELM="$INPUT_PUBLISH_HELM"
-            PUBLISH_CLI_PACKAGE="$INPUT_PUBLISH_CLI_PACKAGE"
-            PUBLISH_ROLLING_TAGS="$INPUT_PUBLISH_ROLLING_TAGS"
-
-            if printf '%s' "$REF" | grep -Eq '^[0-9a-f]{7,40}$'; then
-              REF="$(gh api "repos/$GITHUB_REPOSITORY/commits/$REF" --jq '.sha')"
-            fi
           else
             VERSION="${GITHUB_REF_NAME#v}"
             REF="$GITHUB_SHA"
-            PUBLISH_EXTENSION_ASSETS="true"
-            PUBLISH_DOCKER="true"
-            PUBLISH_HELM="true"
-            PUBLISH_CLI_PACKAGE="true"
-            PUBLISH_ROLLING_TAGS="true"
+            ROLLING=true
           fi
-
-          MINOR_TAG="$(printf '%s' "$VERSION" | awk -F. '{print $1 "." $2}')"
-          IMAGE="ghcr.io/${REPOSITORY_OWNER}/tarnished"
-          if curl --fail --silent --show-error "https://pypi.org/pypi/tarnished-cli/$VERSION/json" >/dev/null; then
-            CLI_PYPI_ALREADY_PUBLISHED="true"
-          else
-            CLI_PYPI_ALREADY_PUBLISHED="false"
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo 'Invalid release version' >&2
+            exit 1
           fi
-
+          REF="$(gh api "repos/$GITHUB_REPOSITORY/commits/$REF" --jq '.sha')"
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/tarnished"
           {
             echo "version=$VERSION"
             echo "ref=$REF"
             echo "release_tag=v$VERSION"
-            echo "publish_extension_assets=$PUBLISH_EXTENSION_ASSETS"
-            echo "publish_docker=$PUBLISH_DOCKER"
-            echo "publish_helm=$PUBLISH_HELM"
-            echo "publish_cli_package=$PUBLISH_CLI_PACKAGE"
-            echo "cli_pypi_already_published=$CLI_PYPI_ALREADY_PUBLISHED"
-            echo "docker_tags<<EOF"
+            echo 'docker_tags<<EOF'
             echo "$IMAGE:$VERSION"
-            if [ "$PUBLISH_ROLLING_TAGS" = "true" ]; then
-              echo "$IMAGE:$MINOR_TAG"
+            if [ "$ROLLING" = true ] && [[ "$VERSION" != *-* ]]; then
+              echo "$IMAGE:${VERSION%.*}"
               echo "$IMAGE:latest"
             fi
-            echo "EOF"
+            echo EOF
           } >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ steps.resolve.outputs.ref }}
+      - name: Verify release versions
+        env:
+          VERSION: ${{ steps.resolve.outputs.version }}
+        run: python .github/release-tools/check_versions.py "$VERSION"
+
+  checks:
+    needs: release-meta
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.release-meta.outputs.ref }}
 
   github-release-notes:
     runs-on: ubuntu-latest
-    needs: [release-meta, backend-checks, cli-checks, frontend-checks, deployment-checks]
+    needs: [release-meta, checks]
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
-
-      - name: Ensure GitHub release exists
+      - name: Create release and update notes
         env:
           TAG: ${{ needs.release-meta.outputs.release_tag }}
           REF: ${{ needs.release-meta.outputs.ref }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release view "$TAG" >/dev/null 2>&1 || \
-            gh release create "$TAG" --target "$REF" --title "$TAG" --notes ""
-
-      - name: Update GitHub release body from changelog
-        env:
-          TAG: ${{ needs.release-meta.outputs.release_tag }}
           VERSION: ${{ needs.release-meta.outputs.version }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           awk -v version="$VERSION" '
-            $0 ~ "^## \\[" version "\\]" { printing=1; print; next }
+            index($0, "## [" version "]") == 1 { printing=1; print; next }
             printing && /^## \[/ { exit }
             printing { print }
           ' CHANGELOG.md > /tmp/release-notes.md
-
-          if [ ! -s /tmp/release-notes.md ]; then
-            echo "Failed to extract changelog entry for $VERSION"
-            exit 1
-          fi
-
+          test -s /tmp/release-notes.md
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" --target "$REF" --title "$TAG" --notes-file /tmp/release-notes.md
           gh release edit "$TAG" --notes-file /tmp/release-notes.md
-  # All check jobs run in parallel
-  backend-checks:
-    runs-on: ubuntu-latest
-    needs: release-meta
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          ref: ${{ needs.release-meta.outputs.ref }}
-
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-        with:
-          python-version: '3.12'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9
-
-      - name: Install dependencies
-        working-directory: backend
-        run: uv sync
-
-      - name: Configure environment
-        run: echo "SECRET_KEY=$(openssl rand -hex 32)" >> $GITHUB_ENV
-
-      - name: Check for schema drift
-        working-directory: backend
-        run: |
-          mkdir -p data
-          uv run alembic upgrade head
-          uv run alembic check || (echo "Schema drift detected! Run 'alembic revision --autogenerate' to create missing migrations." && exit 1)
-
-      - name: Security audit
-        working-directory: backend
-        run: |
-          uv export --no-dev --no-hashes -o requirements.txt
-          # Ignore CVE-2024-23342 (ecdsa): App uses HS256 for JWTs, not ECDSA
-          # Ignore CVE-2026-4539 (pygments): transitive dependency used for formatting / rich output,
-          # no patched release is currently available in our dependency graph
-          uv tool run pip-audit -r requirements.txt --no-deps --disable-pip --ignore-vuln CVE-2024-23342 --ignore-vuln CVE-2026-4539
-
-  cli-checks:
-    runs-on: ubuntu-latest
-    needs: release-meta
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          ref: ${{ needs.release-meta.outputs.ref }}
-
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-        with:
-          python-version: '3.12'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9
-
-      - name: Install dependencies
-        working-directory: cli
-        run: uv sync
-
-      - name: Ruff check
-        working-directory: cli
-        run: uv run ruff check src tests
-
-      - name: Ruff format check
-        working-directory: cli
-        run: uv run ruff format --check src tests
-
-      - name: Pyright
-        working-directory: cli
-        run: uv run pyright src tests
-
-      - name: Run tests
-        working-directory: cli
-        run: uv run pytest -q
-
-  frontend-checks:
-    runs-on: ubuntu-latest
-    needs: release-meta
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          ref: ${{ needs.release-meta.outputs.ref }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version: '22'
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Cache yarn dependencies
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
-        with:
-          path: |
-            ~/.cache/node
-            frontend/node_modules
-          key: ${{ runner.os }}-yarn-${{ hashFiles('frontend/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: yarn install --immutable
-
-      - name: Build frontend
-        working-directory: frontend
-        run: yarn build
-
-      - name: Verify build output
-        run: |
-          test -n "$(ls frontend/dist/assets/bootstrap-icons*.woff2 2>/dev/null)" || (echo "ERROR: Missing bootstrap-icons.woff2" && exit 1)
-          test -n "$(ls frontend/dist/assets/bootstrap-icons*.woff 2>/dev/null)" || (echo "ERROR: Missing bootstrap-icons.woff" && exit 1)
-          echo "Build verification passed"
-
-      - name: Security audit
-        working-directory: frontend
-        # Only audit production dependencies - dev-only vulnerabilities don't ship to users
-        run: yarn npm audit --all --recursive --environment production --severity high
-
-  deployment-checks:
-    runs-on: ubuntu-latest
-    needs: release-meta
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          ref: ${{ needs.release-meta.outputs.ref }}
-
-      - name: Validate SQLite Compose config
-        run: docker compose -f deploy/compose/docker-compose.yml config > /tmp/docker-compose.sqlite.yaml
-
-      - name: Validate PostgreSQL Compose config
-        env:
-          POSTGRES_PASSWORD: release-postgres-password
-        run: docker compose -f deploy/compose/docker-compose.postgres.yml config > /tmp/docker-compose.postgres.yaml
-
-      - name: Build production image
-        run: docker build -t tarnished:release-check .
-
-      - name: Install Helm
-        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a
-
-      - name: Lint and render Helm chart scenarios
-        run: |
-          helm lint deploy/helm/tarnished
-          helm template tarnished ./deploy/helm/tarnished > /tmp/helm-default.yaml
-          helm template tarnished ./deploy/helm/tarnished --set cleanup.enabled=true > /tmp/helm-cleanup.yaml
-          helm template tarnished ./deploy/helm/tarnished \
-            --set postgresql.enabled=true \
-            --set postgresql.password=release-secret \
-            > /tmp/helm-postgres.yaml
-          helm template tarnished ./deploy/helm/tarnished \
-            --set replicaCount=2 \
-            --set postgresql.enabled=true \
-            --set postgresql.password=release-secret \
-            --set persistence.accessMode=ReadWriteMany \
-            > /tmp/helm-multi-replica-rwx.yaml
-          helm template tarnished ./deploy/helm/tarnished \
-            --set replicaCount=2 \
-            --set postgresql.enabled=true \
-            --set postgresql.password=release-secret \
-            --set persistence.existingClaim=tarnished-uploads \
-            --set persistence.sharedAccess=true \
-            > /tmp/helm-multi-replica-existing-claim.yaml
 
   extension:
     runs-on: ubuntu-latest
     needs: [release-meta, github-release-notes]
-    if: needs.release-meta.outputs.publish_extension_assets == 'true'
+    if: github.event_name == 'push' || inputs.publish_extension_assets
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
-          node-version: '22'
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Cache yarn dependencies
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
-        with:
-          path: |
-            ~/.cache/node
-            extension/node_modules
-          key: ${{ runner.os }}-yarn-ext-${{ hashFiles('extension/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-ext-
-
-      - name: Install dependencies
+          node-version: '24'
+      - run: corepack enable
+      - name: Package extensions
         working-directory: extension
-        run: yarn install --immutable
-
-      - name: Build extension
-        working-directory: extension
-        run: yarn build
-
-      - name: Create Chrome extension ZIP
-        working-directory: extension
-        run: yarn build:chrome
-
-      - name: Create Firefox extension ZIP
-        working-directory: extension
-        run: yarn build:firefox
-
-      - name: Upload extension to release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: v${{ needs.release-meta.outputs.version }}
         run: |
-          gh release upload "$TAG" \
-            extension/tarnished-chrome.zip \
-            extension/tarnished-firefox.zip \
-            --clobber
+          yarn install --immutable
+          yarn build:all
+      - name: Upload extension assets
+        env:
+          TAG: ${{ needs.release-meta.outputs.release_tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" extension/tarnished-chrome.zip extension/tarnished-firefox.zip --clobber
 
   cli-package:
     runs-on: ubuntu-latest
-    needs: [release-meta, cli-checks, github-release-notes]
+    needs: [release-meta, github-release-notes]
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
-
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9
-
-      - name: Install CLI dependencies
-        working-directory: cli
-        run: uv sync
-
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
+        with:
+          enable-cache: true
+          cache-dependency-glob: cli/uv.lock
       - name: Build CLI distributions
         working-directory: cli
         run: uv build
-
-      - name: Upload CLI distributions as workflow artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: cli-dist
-          path: |
-            cli/dist/*.whl
-            cli/dist/*.tar.gz
-
-      - name: Upload CLI artifacts to release
+          path: cli/dist/*
+      - name: Upload CLI distributions
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: v${{ needs.release-meta.outputs.version }}
-        run: |
-          gh release upload "$TAG" cli/dist/* --clobber
+          TAG: ${{ needs.release-meta.outputs.release_tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" cli/dist/* --clobber
 
   cli-pypi-publish:
     runs-on: ubuntu-latest
-    needs: [release-meta, cli-package]
-    if: needs.release-meta.outputs.publish_cli_package == 'true' && needs.release-meta.outputs.cli_pypi_already_published != 'true'
+    needs: cli-package
+    if: github.event_name == 'push' || inputs.publish_cli_package
     environment:
       name: pypi
       url: https://pypi.org/project/tarnished-cli/
     permissions:
       id-token: write
     steps:
-      - name: Download CLI distributions
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: cli-dist
           path: cli/dist
-
-      - name: Publish CLI package to PyPI
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
+      - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
         with:
           packages-dir: cli/dist
+          skip-existing: true
 
   docker:
     runs-on: ubuntu-latest
-    needs: [release-meta, backend-checks, frontend-checks, deployment-checks, github-release-notes]
-    if: needs.release-meta.outputs.publish_docker == 'true'
+    needs: [release-meta, github-release-notes]
+    if: github.event_name == 'push' || inputs.publish_docker
     permissions:
       packages: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+      - uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
+      - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+          password: ${{ github.token }}
+      - uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ needs.release-meta.outputs.docker_tags }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/tarnished:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/tarnished:buildcache,mode=max
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: ghcr.io/${{ github.repository_owner }}/tarnished:${{ needs.release-meta.outputs.version }}
-          format: 'table'
+          format: table
           exit-code: '1'
-          severity: 'CRITICAL'
+          severity: CRITICAL
 
   helm:
     runs-on: ubuntu-latest
-    needs: [release-meta, backend-checks, frontend-checks, deployment-checks, docker, github-release-notes]
-    if: needs.release-meta.outputs.publish_helm == 'true' && (needs.release-meta.outputs.publish_docker == 'false' || needs.docker.result == 'success')
+    needs: [release-meta, github-release-notes, docker]
+    if: >-
+      always() && !cancelled() &&
+      needs.release-meta.result == 'success' &&
+      needs.github-release-notes.result == 'success' &&
+      (needs.docker.result == 'success' || needs.docker.result == 'skipped') &&
+      (github.event_name == 'push' || inputs.publish_helm)
     permissions:
       packages: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           ref: ${{ needs.release-meta.outputs.ref }}
-
-      - name: Install Helm
-        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a
-
-      - name: Login to GHCR for Helm
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Package and push Helm chart
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4
+      - name: Publish Helm chart
+        env:
+          VERSION: ${{ needs.release-meta.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION=${{ needs.release-meta.outputs.version }}
-          helm package deploy/helm/tarnished/ --version $VERSION --app-version $VERSION
-          helm push tarnished-$VERSION.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
+          echo "$GH_TOKEN" | helm registry login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          helm package deploy/helm/tarnished --version "$VERSION" --app-version "$VERSION"
+          helm push "tarnished-$VERSION.tgz" "oci://ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/charts"

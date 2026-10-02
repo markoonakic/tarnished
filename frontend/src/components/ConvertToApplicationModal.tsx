@@ -1,6 +1,7 @@
+import Modal from './Modal';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { convertToApplication } from '@/lib/jobLeads';
+import { convertToApplication, jobLeadError } from '@/lib/jobLeads';
 import { useToast } from '@/hooks/useToast';
 import type { JobLead } from '@/lib/types';
 
@@ -20,57 +21,36 @@ export default function ConvertToApplicationModal({
   const navigate = useNavigate();
   const toast = useToast();
   const [isConverting, setIsConverting] = useState(false);
+  const [error, setError] = useState('');
 
-  // Reset state when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
       setIsConverting(false);
+      setError('');
     }
   }, [isOpen]);
 
-  // Escape key handler
-  useEffect(() => {
-    if (isOpen) {
-      const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape' && !isConverting) {
-          onClose();
-        }
-      };
-      window.addEventListener('keydown', handleEscape);
-      return () => window.removeEventListener('keydown', handleEscape);
-    }
-  }, [isOpen, isConverting, onClose]);
-
   if (!isOpen || !lead) return null;
-
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && !isConverting) {
-      onClose();
-    }
-  };
 
   const handleConvert = async () => {
     setIsConverting(true);
+    setError('');
 
     try {
       const application = await convertToApplication(lead.id);
 
-      // Close modal
       onClose();
 
-      // Call callback if provided (parent handles toast and navigation)
       if (onConverted) {
         onConverted(application.id);
       } else {
-        // If no callback, navigate directly
         navigate(`/applications/${application.id}`);
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to convert job lead';
-
+      const failure = jobLeadError(err);
+      const errorMessage = `Your job lead is still saved. ${failure.message} Reload the lead before trying again.`;
+      setError(errorMessage);
       toast.error(errorMessage);
-      // Keep modal open on error
     } finally {
       setIsConverting(false);
     }
@@ -80,24 +60,15 @@ export default function ConvertToApplicationModal({
   const company = lead.company || 'Unknown Company';
 
   return (
-    <div
-      className="bg-bg0/80 fixed inset-0 z-50 flex items-center justify-center"
-      onClick={handleOverlayClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          handleOverlayClick(e as unknown as React.MouseEvent);
-        }
-      }}
-      tabIndex={-1}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="convert-modal-title"
+    <Modal
+      onClose={onClose}
+      labelledBy="convert-modal-title"
+      busy={isConverting}
     >
       <div
         className="bg-bg1 mx-4 w-full max-w-md rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="border-tertiary flex items-center justify-between border-b p-4">
           <h3
             id="convert-modal-title"
@@ -116,8 +87,12 @@ export default function ConvertToApplicationModal({
           </button>
         </div>
 
-        {/* Body */}
         <div className="p-6">
+          {error && (
+            <p role="alert" className="text-red-bright mb-4">
+              {error}
+            </p>
+          )}
           <p className="text-fg1 mb-2">
             Are you sure you want to convert this job lead to an application?
           </p>
@@ -126,12 +101,10 @@ export default function ConvertToApplicationModal({
             <p className="text-fg1 text-sm">{company}</p>
           </div>
           <p className="text-muted mt-4 text-sm">
-            This will create a new application and mark this lead as converted
-            so you can still trace it later.
+            Your saved job details will be copied into the application.
           </p>
         </div>
 
-        {/* Footer */}
         <div className="border-tertiary flex justify-end gap-3 border-t p-4">
           <button
             onClick={onClose}
@@ -142,7 +115,12 @@ export default function ConvertToApplicationModal({
           </button>
           <button
             onClick={handleConvert}
-            disabled={isConverting}
+            disabled={
+              isConverting ||
+              !!error ||
+              (!lead.converted_to_application_id &&
+                (!lead.company?.trim() || !lead.title?.trim()))
+            }
             className="bg-aqua text-bg0 hover:bg-aqua-bright flex cursor-pointer items-center gap-2 rounded px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             {isConverting ? (
@@ -159,6 +137,6 @@ export default function ConvertToApplicationModal({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

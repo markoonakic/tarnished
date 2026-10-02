@@ -61,7 +61,9 @@ def test_preferences_get_emits_json(runner, cli_config_dir, monkeypatch):
     assert '"time_zone": "europe/belgrade"' in result.stdout.lower()
 
 
-def test_preferences_update_accepts_time_zone(runner, cli_config_dir, monkeypatch, tmp_path):
+def test_preferences_update_accepts_time_zone(
+    runner, cli_config_dir, monkeypatch, tmp_path
+):
     monkeypatch.setattr(
         state_module.AppState,
         "build_client",

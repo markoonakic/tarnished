@@ -2,7 +2,6 @@ type SettingsState = {
   settingsOpen: boolean;
   autoFillOnLoad: boolean;
   existingLead: { id: string } | null;
-  existingApplication: { id: string } | null;
 };
 
 type SettingsDeps = {

@@ -1,6 +1,4 @@
-# -- Number of replicas. Must be 1 when using SQLite (default).
-# Multiple replicas require PostgreSQL plus shared upload storage
-# (ReadWriteMany PVC, or an existing shared claim with persistence.sharedAccess=true).
+# -- Exactly one replica for SQLite and PostgreSQL. Recreate updates cause downtime.
 replicaCount: 1
 
 image:
@@ -63,7 +61,13 @@ ingress:
   # -- Ingress class name (e.g. "nginx", "traefik")
   className: ""
   # -- Ingress annotations (e.g. cert-manager, nginx config)
-  annotations: {}
+  # -- These limits apply to ingress-nginx. Other controllers require equivalent
+  # body/timeout/no-buffering configuration before large intake is supported.
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "1000016384"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3900"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3900"
     # cert-manager.io/cluster-issuer: letsencrypt-prod
     # nginx.ingress.kubernetes.io/ssl-redirect: "true"
   # -- Hostname
@@ -84,15 +88,12 @@ persistence:
   # -- Storage class (empty = cluster default)
   storageClass: ""
   # -- PVC size
-  size: 1Gi
+  size: 8Gi
   # -- Access mode for chart-managed PVCs.
-  # SQLite should stay on ReadWriteOnce. Multiple replicas require shared write access.
+  # SQLite should stay on ReadWriteOnce. Storage mode does not change the single-replica limit.
   accessMode: ReadWriteOnce
   # -- Use an existing PVC instead of creating one
   existingClaim: ""
-  # -- Acknowledge that the chosen existing claim supports shared read-write access
-  # across replicas. Required when replicaCount > 1 and using existingClaim.
-  sharedAccess: false
   # -- Annotations applied to the chart-managed PVC.
   annotations:
     # Prevent PVC deletion on helm uninstall
@@ -146,9 +147,9 @@ resources:
     cpu: "100m"
   limits:
     # -- Memory limit for the Tarnished app container.
-    memory: "512Mi"
+    memory: "1Gi"
     # -- CPU limit for the Tarnished app container.
-    cpu: "500m"
+    cpu: "1000m"
 
 # -- Configuration for the migration init container.
 initContainer:
@@ -230,14 +231,14 @@ affinity: {}
 
 # -- Configuration for the optional upload cleanup CronJob.
 cleanup:
-  # -- Enable a Kubernetes CronJob that runs upload cleanup.
+  # -- Enable a Kubernetes CronJob that audits orphaned uploads (dry-run only).
   # Disabled by default; the cleanup command remains available manually for all deployment modes.
   enabled: false
   # -- Cron schedule for the cleanup job.
   schedule: "0 3 * * *"
   # -- CronJob time zone.
   timeZone: "Etc/UTC"
-  # -- Cleanup mode: "dry-run" reports only, "delete" removes orphaned CAS blobs.
+  # -- Scheduled cleanup supports dry-run only. Destructive cleanup requires manual stopped-writer maintenance.
   mode: dry-run
   # -- Keep recent successful jobs.
   successfulJobsHistoryLimit: 1

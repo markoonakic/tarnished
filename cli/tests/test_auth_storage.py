@@ -1,4 +1,16 @@
-from tarnished_cli.auth_storage import StoredAuth, load_auth, save_auth
+import os
+import stat
+from pathlib import Path
+
+import pytest
+
+from tarnished_cli.auth_storage import (
+    StoredAuth,
+    load_auth,
+    resolve_auth_path,
+    save_auth,
+)
+from tarnished_cli.client import CLIError
 
 
 def test_save_and_load_file_fallback_api_key(cli_config_dir):
@@ -8,6 +20,58 @@ def test_save_and_load_file_fallback_api_key(cli_config_dir):
     loaded = load_auth(config_dir=cli_config_dir, prefer_keyring=False)
 
     assert loaded.api_key == "api-key-123"
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX file permissions")
+def test_file_fallback_sets_private_permissions(cli_config_dir):
+    path = save_auth(
+        StoredAuth(api_key="private-key"),
+        config_dir=cli_config_dir,
+        prefer_keyring=False,
+    )
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+def test_file_fallback_keeps_old_key_when_replacement_fails(
+    monkeypatch, cli_config_dir
+):
+    save_auth(
+        StoredAuth(api_key="old-key"), config_dir=cli_config_dir, prefer_keyring=False
+    )
+
+    def fail_replace(self, target):
+        raise OSError("disk failure")
+
+    monkeypatch.setattr(Path, "replace", fail_replace)
+    with pytest.raises(CLIError, match="Could not save API key"):
+        save_auth(
+            StoredAuth(api_key="new-key"),
+            config_dir=cli_config_dir,
+            prefer_keyring=False,
+        )
+    assert (
+        load_auth(config_dir=cli_config_dir, prefer_keyring=False).api_key == "old-key"
+    )
+    assert not list(cli_config_dir.glob(".tarnished-*"))
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX directory permissions")
+def test_credentials_are_written_in_a_private_temporary_directory(
+    monkeypatch, cli_config_dir
+):
+    original = Path.write_bytes
+
+    def check_write(path, content):
+        assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
+        assert path != resolve_auth_path(config_dir=cli_config_dir)
+        return original(path, content)
+
+    monkeypatch.setattr(Path, "write_bytes", check_write)
+    save_auth(
+        StoredAuth(api_key="private-key"),
+        config_dir=cli_config_dir,
+        prefer_keyring=False,
+    )
 
 
 def test_env_auth_overrides_stored_api_key(monkeypatch, cli_config_dir):

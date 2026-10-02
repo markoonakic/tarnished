@@ -1,7 +1,4 @@
-<!--
-Generated from README.md.gotmpl by helm-docs.
-Do not edit README.md directly.
--->
+<!-- Edit README.md.gotmpl, then run helm-docs to update README.md. -->
 
 # Tarnished Helm Chart
 
@@ -11,7 +8,7 @@ This chart is intended for operators who want a chart-facing reference in additi
 
 ## TL;DR
 
-### SQLite evaluation install
+### SQLite install
 
 ```bash
 helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
@@ -53,32 +50,33 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
 - Kubernetes 1.23+
 - Helm 3.8+
 - A working default `StorageClass`, or an explicit storage class configured in your values
-- PostgreSQL plus shared uploads storage if you plan to run multiple replicas
+- Exactly one Tarnished replica, with SQLite or external PostgreSQL
 
 ## Install modes
 
-### SQLite evaluation mode
+### SQLite mode
 
-The default chart configuration uses SQLite with persistent uploads storage and a single Tarnished replica. This is appropriate for evaluation and small single-instance installs.
+The default configuration uses SQLite and persistent storage with one replica.
 
 ### PostgreSQL single replica mode
 
-For production-style installs, use external PostgreSQL and a persistent uploads volume even if you only run one Tarnished replica.
+For production-style installs, use external PostgreSQL and a persistent uploads volume. Keep `replicaCount=1`.
 
-### PostgreSQL with multiple replicas
+### Replica and update limits
 
-Multiple replicas require more than just PostgreSQL. You also need shared uploads storage, either:
+Exactly one Tarnished replica is supported for both databases. The chart rejects any other `replicaCount`, including PostgreSQL with `ReadWriteMany` storage or an existing shared claim. Shared storage does not make concurrent application workers safe.
 
-- a chart-managed PVC with `persistence.accessMode=ReadWriteMany`
-- or an existing shared claim plus `persistence.sharedAccess=true`
+Both database modes use `Recreate` updates, so upgrades cause downtime. Do not add autoscaling or rolling-update overrides.
 
-The chart templates validate these requirements and fail fast on unsupported combinations.
+A chart-managed `ReadWriteMany` volume or `persistence.existingClaim` can still be used with one PostgreSQL-backed replica.
 
 ## Secrets
 
 ### SECRET_KEY
 
-Use `secretKey.existingSecret` and `secretKey.existingSecretKey` to provide a stable `SECRET_KEY` for Tarnished JWT signing.
+By default, the migration entrypoint creates a signing secret in `/app/data/.secret_key`.
+Preserve it with the data volume. Alternatively, use `secretKey.existingSecret`
+and `secretKey.existingSecretKey` to provide the key from a Kubernetes Secret.
 
 ### PostgreSQL password
 
@@ -108,9 +106,9 @@ The chart exposes configurable `startupProbe`, `readinessProbe`, and `livenessPr
 
 ## Cleanup CronJob
 
-The optional `cleanup` block enables a Kubernetes CronJob that runs Tarnished's orphaned-upload cleanup command.
+The optional `cleanup` block enables a Kubernetes CronJob that runs Tarnished's orphaned-upload cleanup command. It requires Kubernetes 1.27 or newer for time zone support.
 
-Use `cleanup.mode=dry-run` to audit first. Switch to `delete` only after you are comfortable with the results.
+Scheduled cleanup supports `cleanup.mode=dry-run` only; enabled `delete` mode fails rendering. For destructive cleanup, manually stop all API/import/storage writers before running `python -m app.lib.cleanup_orphan_uploads --delete --offline` against the intended database and uploads. Never acknowledge offline maintenance in an online CronJob.
 
 ## Upgrading
 
@@ -122,9 +120,17 @@ helm upgrade tarnished oci://ghcr.io/markoonakic/charts/tarnished \
 
 The chart runs database migrations through an init container before the Tarnished app starts.
 
-## Notes on generated documentation
+## Account setup
 
-This README is generated from `README.md.gotmpl` and the comments in `values.yaml`. Keep the `values.yaml` comments accurate because they feed the values table below.
+Create the first account after startup:
+
+```bash
+kubectl exec -it -n tarnished deploy/tarnished -c tarnished -- \
+  ./entrypoint.sh manage bootstrap-owner --email you@example.com
+```
+
+Enter the password at the prompt, then sign in through the browser. Later accounts
+are managed in Admin. See the [account guide](https://markoonakic.github.io/tarnished/get-started/create-admin-account).
 
 {{ template "chart.maintainersSection" . }}
 {{ template "chart.sourcesSection" . }}

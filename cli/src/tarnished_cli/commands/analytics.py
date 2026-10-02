@@ -24,12 +24,13 @@ app = typer.Typer(help=ANALYTICS_HELP)
 def get_analytics_kpis(
     ctx: typer.Context,
     period: str = typer.Option("30d"),
+    as_of: str | None = typer.Option(None, help="ISO timestamp with timezone offset"),
 ) -> None:
     state = get_state(ctx)
     try:
         payload = state.build_client().get_json(
             "/api/analytics/kpis",
-            params={"period": period},
+            params={"period": period, **({"as_of": as_of} if as_of else {})},
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -57,12 +58,13 @@ def get_heatmap(
 def get_weekly(
     ctx: typer.Context,
     period: str = typer.Option("30d"),
+    as_of: str | None = typer.Option(None, help="ISO timestamp with timezone offset"),
 ) -> None:
     state = get_state(ctx)
     try:
         payload = state.build_client().get_json(
             "/api/analytics/weekly",
-            params={"period": period},
+            params={"period": period, **({"as_of": as_of} if as_of else {})},
         )
         emit_result(state, payload)
     except CLIError as exc:
@@ -70,10 +72,17 @@ def get_weekly(
 
 
 @app.command("sankey")
-def get_sankey(ctx: typer.Context) -> None:
+def get_sankey(
+    ctx: typer.Context,
+    period: str = typer.Option("all"),
+    as_of: str | None = typer.Option(None),
+) -> None:
     state = get_state(ctx)
     try:
-        payload = state.build_client().get_json("/api/analytics/sankey")
+        payload = state.build_client().get_json(
+            "/api/analytics/sankey",
+            params={"period": period, **({"as_of": as_of} if as_of else {})},
+        )
         emit_result(state, payload)
     except CLIError as exc:
         exit_for_error(state, exc)
@@ -84,9 +93,10 @@ def get_interview_rounds(
     ctx: typer.Context,
     period: str = typer.Option("all"),
     round_type: str | None = typer.Option(None),
+    as_of: str | None = typer.Option(None),
 ) -> None:
     state = get_state(ctx)
-    params = {"period": period}
+    params = {"period": period, **({"as_of": as_of} if as_of else {})}
     if round_type is not None:
         params["round_type"] = round_type
     try:
@@ -120,6 +130,40 @@ def get_insights(
         payload = state.build_client().post_json(
             "/api/analytics/insights",
             body=body,
+        )
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+@app.command("pipeline")
+def get_pipeline(
+    ctx: typer.Context,
+    period: str = typer.Option("30d"),
+    as_of: str | None = typer.Option(None, help="ISO timestamp with timezone offset"),
+) -> None:
+    state = get_state(ctx)
+    try:
+        payload = state.build_client().get_json(
+            "/api/analytics/pipeline",
+            params={"period": period, **({"as_of": as_of} if as_of else {})},
+        )
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+@app.command("activity")
+def get_activity(
+    ctx: typer.Context,
+    period: str = typer.Option("30d"),
+    as_of: str | None = typer.Option(None, help="ISO timestamp with timezone offset"),
+) -> None:
+    state = get_state(ctx)
+    try:
+        payload = state.build_client().get_json(
+            "/api/analytics/activity",
+            params={"period": period, **({"as_of": as_of} if as_of else {})},
         )
         emit_result(state, payload)
     except CLIError as exc:

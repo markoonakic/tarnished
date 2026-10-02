@@ -9,30 +9,31 @@ import {
 } from '@/lib/analytics';
 import { useEffectiveDayKey } from '@/hooks/useEffectiveDayKey';
 
-export function useAnalyticsKPIs(period: string) {
+export function useAnalyticsKPIs(period: string, asOf?: string) {
   const dayKey = useEffectiveDayKey();
 
   return useQuery({
-    queryKey: ['analytics-kpis', period, dayKey],
-    queryFn: () => getAnalyticsKPIs(period),
+    queryKey: ['analytics-kpis', period, dayKey, asOf],
+    queryFn: () => getAnalyticsKPIs(period, asOf),
     staleTime: 0,
   });
 }
 
-export function useWeeklyActivityData(period: string) {
+export function useWeeklyActivityData(period: string, asOf?: string) {
   const dayKey = useEffectiveDayKey();
 
   return useQuery({
-    queryKey: ['analytics-weekly', period, dayKey],
-    queryFn: () => getWeeklyData(period),
+    queryKey: ['analytics-weekly', period, dayKey, asOf],
+    queryFn: () => getWeeklyData(period, asOf),
     staleTime: 0,
   });
 }
 
-export function useSankeyAnalytics() {
+export function useSankeyAnalytics(period = 'all', asOf?: string) {
+  const dayKey = useEffectiveDayKey();
   return useQuery({
-    queryKey: ['analytics-sankey'],
-    queryFn: getSankeyData,
+    queryKey: ['analytics-sankey', period, dayKey, asOf],
+    queryFn: () => getSankeyData(period, asOf),
     staleTime: 0,
   });
 }
@@ -49,7 +50,8 @@ export function useHeatmapAnalytics(year?: number | 'rolling') {
 
 export function useInterviewRoundsAnalytics(
   period: string,
-  roundType?: string
+  roundType?: string,
+  asOf?: string
 ) {
   const dayKey = useEffectiveDayKey();
 
@@ -59,8 +61,9 @@ export function useInterviewRoundsAnalytics(
       period,
       roundType ?? 'all',
       dayKey,
+      asOf,
     ],
-    queryFn: () => getInterviewRoundsData(period, roundType),
+    queryFn: () => getInterviewRoundsData(period, roundType, asOf),
     staleTime: 0,
   });
 }

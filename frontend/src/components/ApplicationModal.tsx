@@ -1,3 +1,4 @@
+import Modal from './Modal';
 import { useEffect, useRef, useState } from 'react';
 import { createApplication, updateApplication } from '../lib/applications';
 import {
@@ -16,12 +17,13 @@ import type {
   ApplicationUpdate,
 } from '../lib/types';
 import Dropdown from './Dropdown';
+import { statusOptionsWithCurrent } from '../lib/statusMeaning';
 
 interface ApplicationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (applicationId: string) => void;
-  application?: Application; // undefined = create, defined = edit
+  application?: Application;
 }
 
 export default function ApplicationModal({
@@ -32,6 +34,7 @@ export default function ApplicationModal({
 }: ApplicationModalProps) {
   const isEditing = Boolean(application);
   const initializedFormKeyRef = useRef<string | null>(null);
+  const [formApplication, setFormApplication] = useState(application);
 
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,6 +56,9 @@ export default function ApplicationModal({
   const [requirementsMustHave, setRequirementsMustHave] = useState('');
   const [requirementsNiceToHave, setRequirementsNiceToHave] = useState('');
   const [source, setSource] = useState('');
+  const [responseAction, setResponseAction] = useState('unchanged');
+  const [responseDate, setResponseDate] = useState('');
+  const [responseNote, setResponseNote] = useState('');
 
   function applyFormValues(
     values: ReturnType<typeof getApplicationModalValues>
@@ -86,7 +92,6 @@ export default function ApplicationModal({
     }
   }
 
-  // Load statuses on mount
   useEffect(() => {
     async function loadStatuses() {
       try {
@@ -99,7 +104,6 @@ export default function ApplicationModal({
     loadStatuses();
   }, []);
 
-  // Reset/populate form when modal opens
   useEffect(() => {
     if (!isOpen) {
       initializedFormKeyRef.current = null;
@@ -111,8 +115,12 @@ export default function ApplicationModal({
       return;
     }
 
+    setFormApplication(application);
     setError('');
     setJobUrlError('');
+    setResponseAction('unchanged');
+    setResponseDate(application?.response_occurred_on ?? '');
+    setResponseNote(application?.response_reference ?? '');
 
     if (isEditing && application) {
       applyFormValues(getApplicationModalValues(application));
@@ -131,22 +139,12 @@ export default function ApplicationModal({
     setStatusId(getApplicationModalDefaults(statuses).statusId);
   }, [isOpen, isEditing, statusId, statuses]);
 
-  // Escape key handler
-  useEffect(() => {
-    if (isOpen) {
-      const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') onClose();
-      };
-      window.addEventListener('keydown', handleEscape);
-      return () => window.removeEventListener('keydown', handleEscape);
-    }
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!company || !jobTitle || !statusId) {
+    if (loading) return;
+    if (!company.trim() || !jobTitle.trim() || !statusId) {
       setError('Please fill in required fields');
       return;
     }
@@ -179,38 +177,40 @@ export default function ApplicationModal({
         source,
       };
 
-      if (isEditing && application) {
+      if (isEditing && formApplication) {
         const data: ApplicationUpdate = buildUpdateApplicationPayload(values);
-        await updateApplication(application.id, data);
-        onSuccess(application.id);
+        data.expected_revision = formApplication.evidence_revision;
+        if (responseAction === 'record')
+          data.response_evidence = {
+            occurred_on: responseDate || null,
+            reference: responseNote || null,
+          };
+        if (responseAction === 'clear') data.response_evidence = null;
+        await updateApplication(formApplication.id, data);
+        onSuccess(formApplication.id);
         onClose();
       } else {
         const data: ApplicationCreate = buildCreateApplicationPayload(values);
+        if (responseAction === 'record')
+          data.response_evidence = {
+            occurred_on: responseDate || null,
+            reference: responseNote || null,
+          };
         const created = await createApplication(data);
         onSuccess(created.id);
         onClose();
       }
-    } catch {
-      setError('Failed to save application');
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : 'Failed to save application'
+      );
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div
-      className="bg-bg0/80 fixed inset-0 z-50 flex items-center justify-center"
-      onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          onClose();
-        }
-      }}
-      tabIndex={-1}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-    >
+    <Modal onClose={onClose} labelledBy="modal-title" busy={loading}>
       <div
         className="bg-bg1 mx-4 flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg"
         onClick={(e) => e.stopPropagation()}
@@ -221,6 +221,7 @@ export default function ApplicationModal({
           </h3>
           <button
             onClick={onClose}
+            disabled={loading}
             aria-label="Close modal"
             className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
           >
@@ -228,328 +229,401 @@ export default function ApplicationModal({
           </button>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="flex-1 space-y-4 overflow-y-auto p-6"
-        >
-          {error && (
-            <div className="bg-red-bright/20 border-red-bright text-red-bright rounded border px-4 py-3">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
+          <fieldset disabled={loading} className="space-y-4">
+            {error && (
+              <div className="bg-red-bright/20 border-red-bright text-red-bright rounded border px-4 py-3">
+                {error}
+              </div>
+            )}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label
-                htmlFor="company"
-                className="text-muted mb-1 block text-sm font-semibold"
-              >
-                Company <span className="text-red-bright">*</span>
-              </label>
-              <input
-                id="company"
-                type="text"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-                required
-                autoFocus
-              />
-            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="company"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  Company <span className="text-red-bright">*</span>
+                </label>
+                <input
+                  id="company"
+                  type="text"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                  required
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="job-title"
-                className="text-muted mb-1 block text-sm font-semibold"
-              >
-                Job Title <span className="text-red-bright">*</span>
-              </label>
-              <input
-                id="job-title"
-                type="text"
-                value={jobTitle}
-                onChange={(e) => setJobTitle(e.target.value)}
-                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-                required
-              />
-            </div>
+              <div>
+                <label
+                  htmlFor="job-title"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  Job Title <span className="text-red-bright">*</span>
+                </label>
+                <input
+                  id="job-title"
+                  type="text"
+                  value={jobTitle}
+                  onChange={(e) => setJobTitle(e.target.value)}
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                  required
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="application-status"
-                className="text-muted mb-1 block text-sm font-semibold"
-              >
-                Status <span className="text-red-bright">*</span>
-              </label>
-              <Dropdown
-                id="application-status"
-                options={[
-                  { value: '', label: 'Select status' },
-                  ...statuses.map((status) => ({
-                    value: status.id,
-                    label: status.name,
-                  })),
-                ]}
-                value={statusId}
-                onChange={(value) => setStatusId(value)}
-                placeholder="Select status"
-                containerBackground="bg1"
-              />
-            </div>
+              <div>
+                <label
+                  htmlFor="application-status"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  Status <span className="text-red-bright">*</span>
+                </label>
+                <Dropdown
+                  id="application-status"
+                  options={[
+                    { value: '', label: 'Select status' },
+                    ...statusOptionsWithCurrent(
+                      statuses,
+                      formApplication?.status
+                    ).map((status) => ({
+                      value: status.id,
+                      label: !statuses.some((option) => option.id === status.id)
+                        ? `${status.name} (current)`
+                        : status.name,
+                    })),
+                  ]}
+                  value={statusId}
+                  onChange={(value) => setStatusId(value)}
+                  placeholder="Select status"
+                  containerBackground="bg1"
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="applied-date"
-                className="text-muted mb-1 block text-sm font-semibold"
-              >
-                Applied Date
-              </label>
-              <input
-                id="applied-date"
-                type="date"
-                value={appliedAt}
-                onChange={(e) => setAppliedAt(e.target.value)}
-                className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-              />
-            </div>
+              <fieldset className="space-y-2 sm:col-span-2">
+                <label className="text-fg1 flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={
+                      responseAction === 'record' ||
+                      (responseAction === 'unchanged' &&
+                        formApplication?.response_state === 'recorded')
+                    }
+                    onChange={(e) =>
+                      setResponseAction(
+                        e.target.checked
+                          ? 'record'
+                          : isEditing
+                            ? 'clear'
+                            : 'unchanged'
+                      )
+                    }
+                  />
+                  Employer replied
+                </label>
+                <p className="text-muted text-xs">
+                  Include rejections, but not automatic receipts.
+                </p>
+                {(responseAction === 'record' ||
+                  (responseAction === 'unchanged' &&
+                    formApplication?.response_state === 'recorded')) && (
+                  <>
+                    <label className="block">
+                      Response date (optional)
+                      <input
+                        aria-label="Response date"
+                        type="date"
+                        value={responseDate}
+                        onChange={(e) => {
+                          setResponseDate(e.target.value);
+                          setResponseAction('record');
+                        }}
+                        className="bg-bg2 text-fg1 ml-2 rounded p-2"
+                      />
+                    </label>
+                    <label className="block">
+                      Response note (optional)
+                      <input
+                        aria-label="Response note"
+                        maxLength={2000}
+                        value={responseNote}
+                        onChange={(e) => {
+                          setResponseNote(e.target.value);
+                          setResponseAction('record');
+                        }}
+                        className="bg-bg2 text-fg1 ml-2 rounded p-2"
+                      />
+                    </label>
+                  </>
+                )}
+              </fieldset>
 
-            <div className="sm:col-span-2">
-              <label
-                htmlFor="job-url"
-                className="text-muted mb-1 block text-sm font-semibold"
-              >
-                Job URL
-              </label>
-              <input
-                id="job-url"
-                type="text"
-                value={jobUrl}
-                onChange={(e) => {
-                  setJobUrl(e.target.value);
-                  setJobUrlError('');
-                }}
-                onBlur={handleJobUrlBlur}
-                placeholder="example.com or https://..."
-                className={`bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none ${
-                  jobUrlError ? 'border-red-bright border' : ''
-                }`}
-              />
-              {jobUrlError && (
-                <p className="text-red-bright mt-1 text-sm">{jobUrlError}</p>
+              <div>
+                <label
+                  htmlFor="applied-date"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  Applied Date
+                </label>
+                <input
+                  aria-describedby="applied-date-help"
+                  id="applied-date"
+                  type="date"
+                  required={isEditing}
+                  value={appliedAt}
+                  onChange={(e) => setAppliedAt(e.target.value)}
+                  className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                />
+              </div>
+
+              {!isEditing && (
+                <p
+                  id="applied-date-help"
+                  className="text-muted text-sm sm:col-span-2"
+                >
+                  Leave the date blank to use today in your effective time zone.
+                </p>
               )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="salary-min"
-                className="text-muted mb-1 block text-sm font-semibold"
-              >
-                Min Salary (k)
-              </label>
-              <input
-                id="salary-min"
-                type="number"
-                value={salaryMin}
-                onChange={(e) => setSalaryMin(e.target.value)}
-                placeholder="e.g. 100"
-                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="salary-max"
-                className="text-muted mb-1 block text-sm font-semibold"
-              >
-                Max Salary (k)
-              </label>
-              <input
-                id="salary-max"
-                type="number"
-                value={salaryMax}
-                onChange={(e) => setSalaryMax(e.target.value)}
-                placeholder="e.g. 150"
-                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="salary-currency"
-                className="text-muted mb-1 block text-sm font-semibold"
-              >
-                Currency
-              </label>
-              <Dropdown
-                id="salary-currency"
-                options={[
-                  { value: 'USD', label: 'USD' },
-                  { value: 'EUR', label: 'EUR' },
-                  { value: 'GBP', label: 'GBP' },
-                  { value: 'CAD', label: 'CAD' },
-                  { value: 'AUD', label: 'AUD' },
-                ]}
-                value={salaryCurrency}
-                onChange={(value) => setSalaryCurrency(value)}
-                placeholder="Currency"
-                containerBackground="bg1"
-                size="xs"
-              />
-            </div>
-          </div>
-
-          <div className="border-tertiary border-t pt-4">
-            <h4 className="text-muted mb-3 text-sm font-semibold">
-              Recruiter (Optional)
-            </h4>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="recruiter-name"
-                  className="text-muted mb-1 block text-sm font-semibold"
-                >
-                  Recruiter Name
-                </label>
-                <input
-                  id="recruiter-name"
-                  type="text"
-                  value={recruiterName}
-                  onChange={(e) => setRecruiterName(e.target.value)}
-                  placeholder="e.g. John Smith"
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="recruiter-title"
-                  className="text-muted mb-1 block text-sm font-semibold"
-                >
-                  Recruiter Title
-                </label>
-                <input
-                  id="recruiter-title"
-                  type="text"
-                  value={recruiterTitle}
-                  onChange={(e) => setRecruiterTitle(e.target.value)}
-                  placeholder="e.g. Senior Recruiter"
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-                />
-              </div>
-
               <div className="sm:col-span-2">
                 <label
-                  htmlFor="recruiter-linkedin"
+                  htmlFor="job-url"
                   className="text-muted mb-1 block text-sm font-semibold"
                 >
-                  LinkedIn URL
+                  Job URL
                 </label>
                 <input
-                  id="recruiter-linkedin"
+                  id="job-url"
                   type="text"
-                  value={recruiterLinkedinUrl}
-                  onChange={(e) => setRecruiterLinkedinUrl(e.target.value)}
-                  placeholder="https://linkedin.com/in/..."
+                  value={jobUrl}
+                  onChange={(e) => {
+                    setJobUrl(e.target.value);
+                    setJobUrlError('');
+                  }}
+                  onBlur={handleJobUrlBlur}
+                  placeholder="example.com or https://..."
+                  className={`bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none ${
+                    jobUrlError ? 'border-red-bright border' : ''
+                  }`}
+                />
+                {jobUrlError && (
+                  <p className="text-red-bright mt-1 text-sm">{jobUrlError}</p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="salary-min"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  Min Salary
+                </label>
+                <input
+                  id="salary-min"
+                  type="number"
+                  value={salaryMin}
+                  onChange={(e) => setSalaryMin(e.target.value)}
+                  placeholder="e.g. 100000"
+                  step="1"
                   className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
               </div>
-            </div>
-          </div>
 
-          <div className="border-tertiary border-t pt-4">
-            <h4 className="text-muted mb-3 text-sm font-semibold">
-              Requirements (Optional)
-            </h4>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label
-                  htmlFor="requirements-must"
+                  htmlFor="salary-max"
                   className="text-muted mb-1 block text-sm font-semibold"
                 >
-                  Must Have
+                  Max Salary
+                </label>
+                <input
+                  id="salary-max"
+                  type="number"
+                  value={salaryMax}
+                  onChange={(e) => setSalaryMax(e.target.value)}
+                  placeholder="e.g. 150000"
+                  step="1"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="salary-currency"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  Currency
+                </label>
+                <Dropdown
+                  id="salary-currency"
+                  options={[
+                    { value: 'USD', label: 'USD' },
+                    { value: 'EUR', label: 'EUR' },
+                    { value: 'GBP', label: 'GBP' },
+                    { value: 'CAD', label: 'CAD' },
+                    { value: 'AUD', label: 'AUD' },
+                  ]}
+                  value={salaryCurrency}
+                  onChange={(value) => setSalaryCurrency(value)}
+                  placeholder="Currency"
+                  containerBackground="bg1"
+                  size="xs"
+                />
+              </div>
+            </div>
+
+            <div className="border-tertiary border-t pt-4">
+              <h4 className="text-muted mb-3 text-sm font-semibold">
+                Recruiter (Optional)
+              </h4>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="recruiter-name"
+                    className="text-muted mb-1 block text-sm font-semibold"
+                  >
+                    Recruiter Name
+                  </label>
+                  <input
+                    id="recruiter-name"
+                    type="text"
+                    value={recruiterName}
+                    onChange={(e) => setRecruiterName(e.target.value)}
+                    placeholder="e.g. John Smith"
+                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="recruiter-title"
+                    className="text-muted mb-1 block text-sm font-semibold"
+                  >
+                    Recruiter Title
+                  </label>
+                  <input
+                    id="recruiter-title"
+                    type="text"
+                    value={recruiterTitle}
+                    onChange={(e) => setRecruiterTitle(e.target.value)}
+                    placeholder="e.g. Senior Recruiter"
+                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label
+                    htmlFor="recruiter-linkedin"
+                    className="text-muted mb-1 block text-sm font-semibold"
+                  >
+                    LinkedIn URL
+                  </label>
+                  <input
+                    id="recruiter-linkedin"
+                    type="text"
+                    value={recruiterLinkedinUrl}
+                    onChange={(e) => setRecruiterLinkedinUrl(e.target.value)}
+                    placeholder="https://linkedin.com/in/..."
+                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-tertiary border-t pt-4">
+              <h4 className="text-muted mb-3 text-sm font-semibold">
+                Requirements (Optional)
+              </h4>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="requirements-must"
+                    className="text-muted mb-1 block text-sm font-semibold"
+                  >
+                    Must Have
+                  </label>
+                  <textarea
+                    id="requirements-must"
+                    value={requirementsMustHave}
+                    onChange={(e) => setRequirementsMustHave(e.target.value)}
+                    rows={3}
+                    placeholder="One requirement per line&#10;e.g. React experience&#10;5+ years TypeScript"
+                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="requirements-nice"
+                    className="text-muted mb-1 block text-sm font-semibold"
+                  >
+                    Nice to Have
+                  </label>
+                  <textarea
+                    id="requirements-nice"
+                    value={requirementsNiceToHave}
+                    onChange={(e) => setRequirementsNiceToHave(e.target.value)}
+                    rows={3}
+                    placeholder="One requirement per line&#10;e.g. Docker experience&#10;AWS certification"
+                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label
+                    htmlFor="source"
+                    className="text-muted mb-1 block text-sm font-semibold"
+                  >
+                    Source
+                  </label>
+                  <input
+                    id="source"
+                    type="text"
+                    value={source}
+                    onChange={(e) => setSource(e.target.value)}
+                    placeholder="e.g. LinkedIn, Indeed, Referral"
+                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label
+                  htmlFor="job-description"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  Job Description
                 </label>
                 <textarea
-                  id="requirements-must"
-                  value={requirementsMustHave}
-                  onChange={(e) => setRequirementsMustHave(e.target.value)}
-                  rows={3}
-                  placeholder="One requirement per line&#10;e.g. React experience&#10;5+ years TypeScript"
+                  id="job-description"
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  rows={4}
                   className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
               </div>
-
-              <div>
-                <label
-                  htmlFor="requirements-nice"
-                  className="text-muted mb-1 block text-sm font-semibold"
-                >
-                  Nice to Have
-                </label>
-                <textarea
-                  id="requirements-nice"
-                  value={requirementsNiceToHave}
-                  onChange={(e) => setRequirementsNiceToHave(e.target.value)}
-                  rows={3}
-                  placeholder="One requirement per line&#10;e.g. Docker experience&#10;AWS certification"
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label
-                  htmlFor="source"
-                  className="text-muted mb-1 block text-sm font-semibold"
-                >
-                  Source
-                </label>
-                <input
-                  id="source"
-                  type="text"
-                  value={source}
-                  onChange={(e) => setSource(e.target.value)}
-                  placeholder="e.g. LinkedIn, Indeed, Referral"
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-                />
-              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label
-                htmlFor="job-description"
-                className="text-muted mb-1 block text-sm font-semibold"
+            <div className="border-tertiary flex justify-end gap-3 border-t pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
               >
-                Job Description
-              </label>
-              <textarea
-                id="job-description"
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                rows={4}
-                className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-              />
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
+              >
+                {loading ? 'Saving...' : isEditing ? 'Save' : 'Add Application'}
+              </button>
             </div>
-          </div>
-
-          <div className="border-tertiary flex justify-end gap-3 border-t pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
-            >
-              {loading ? 'Saving...' : isEditing ? 'Save' : 'Add Application'}
-            </button>
-          </div>
+          </fieldset>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 }

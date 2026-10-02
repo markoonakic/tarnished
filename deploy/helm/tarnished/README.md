@@ -1,7 +1,4 @@
-<!--
-Generated from README.md.gotmpl by helm-docs.
-Do not edit README.md directly.
--->
+<!-- Edit README.md.gotmpl, then run helm-docs to update README.md. -->
 
 # Tarnished Helm Chart
 
@@ -11,7 +8,7 @@ This chart is intended for operators who want a chart-facing reference in additi
 
 ## TL;DR
 
-### SQLite evaluation install
+### SQLite install
 
 ```bash
 helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
@@ -53,32 +50,33 @@ helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
 - Kubernetes 1.23+
 - Helm 3.8+
 - A working default `StorageClass`, or an explicit storage class configured in your values
-- PostgreSQL plus shared uploads storage if you plan to run multiple replicas
+- Exactly one Tarnished replica, with SQLite or external PostgreSQL
 
 ## Install modes
 
-### SQLite evaluation mode
+### SQLite mode
 
-The default chart configuration uses SQLite with persistent uploads storage and a single Tarnished replica. This is appropriate for evaluation and small single-instance installs.
+The default configuration uses SQLite and persistent storage with one replica.
 
 ### PostgreSQL single replica mode
 
-For production-style installs, use external PostgreSQL and a persistent uploads volume even if you only run one Tarnished replica.
+For production-style installs, use external PostgreSQL and a persistent uploads volume. Keep `replicaCount=1`.
 
-### PostgreSQL with multiple replicas
+### Replica and update limits
 
-Multiple replicas require more than just PostgreSQL. You also need shared uploads storage, either:
+Exactly one Tarnished replica is supported for both databases. The chart rejects any other `replicaCount`, including PostgreSQL with `ReadWriteMany` storage or an existing shared claim. Shared storage does not make concurrent application workers safe.
 
-- a chart-managed PVC with `persistence.accessMode=ReadWriteMany`
-- or an existing shared claim plus `persistence.sharedAccess=true`
+Both database modes use `Recreate` updates, so upgrades cause downtime. Do not add autoscaling or rolling-update overrides.
 
-The chart templates validate these requirements and fail fast on unsupported combinations.
+A chart-managed `ReadWriteMany` volume or `persistence.existingClaim` can still be used with one PostgreSQL-backed replica.
 
 ## Secrets
 
 ### SECRET_KEY
 
-Use `secretKey.existingSecret` and `secretKey.existingSecretKey` to provide a stable `SECRET_KEY` for Tarnished JWT signing.
+By default, the migration entrypoint creates a signing secret in `/app/data/.secret_key`.
+Preserve it with the data volume. Alternatively, use `secretKey.existingSecret`
+and `secretKey.existingSecretKey` to provide the key from a Kubernetes Secret.
 
 ### PostgreSQL password
 
@@ -108,9 +106,9 @@ The chart exposes configurable `startupProbe`, `readinessProbe`, and `livenessPr
 
 ## Cleanup CronJob
 
-The optional `cleanup` block enables a Kubernetes CronJob that runs Tarnished's orphaned-upload cleanup command.
+The optional `cleanup` block enables a Kubernetes CronJob that runs Tarnished's orphaned-upload cleanup command. It requires Kubernetes 1.27 or newer for time zone support.
 
-Use `cleanup.mode=dry-run` to audit first. Switch to `delete` only after you are comfortable with the results.
+Scheduled cleanup supports `cleanup.mode=dry-run` only; enabled `delete` mode fails rendering. For destructive cleanup, manually stop all API/import/storage writers before running `python -m app.lib.cleanup_orphan_uploads --delete --offline` against the intended database and uploads. Never acknowledge offline maintenance in an online CronJob.
 
 ## Upgrading
 
@@ -122,15 +120,23 @@ helm upgrade tarnished oci://ghcr.io/markoonakic/charts/tarnished \
 
 The chart runs database migrations through an init container before the Tarnished app starts.
 
-## Notes on generated documentation
+## Account setup
 
-This README is generated from `README.md.gotmpl` and the comments in `values.yaml`. Keep the `values.yaml` comments accurate because they feed the values table below.
+Create the first account after startup:
+
+```bash
+kubectl exec -it -n tarnished deploy/tarnished -c tarnished -- \
+  ./entrypoint.sh manage bootstrap-owner --email you@example.com
+```
+
+Enter the password at the prompt, then sign in through the browser. Later accounts
+are managed in Admin. See the [account guide](https://markoonakic.github.io/tarnished/get-started/create-admin-account).
 
 ## Maintainers
 
 | Name | Email | Url |
 | ---- | ------ | --- |
-| Marko Onakic |  | <https://github.com/markoonakic> |
+| Marko Nakic |  | <https://github.com/markoonakic> |
 ## Source Code
 
 * <https://github.com/markoonakic/tarnished>
@@ -144,9 +150,9 @@ Kubernetes: `>=1.23.0-0`
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity rules |
 | cleanup | object | `{"enabled":false,"failedJobsHistoryLimit":1,"mode":"dry-run","resources":{"limits":{"cpu":"50m","memory":"32Mi"},"requests":{"cpu":"10m","memory":"16Mi"}},"schedule":"0 3 * * *","startingDeadlineSeconds":600,"successfulJobsHistoryLimit":1,"timeZone":"Etc/UTC"}` | Configuration for the optional upload cleanup CronJob. |
-| cleanup.enabled | bool | `false` | Enable a Kubernetes CronJob that runs upload cleanup. Disabled by default; the cleanup command remains available manually for all deployment modes. |
+| cleanup.enabled | bool | `false` | Enable a Kubernetes CronJob that audits orphaned uploads (dry-run only). Disabled by default; the cleanup command remains available manually for all deployment modes. |
 | cleanup.failedJobsHistoryLimit | int | `1` | Keep recent failed jobs. |
-| cleanup.mode | string | `"dry-run"` | Cleanup mode: "dry-run" reports only, "delete" removes orphaned CAS blobs. |
+| cleanup.mode | string | `"dry-run"` | Scheduled cleanup supports dry-run only. Destructive cleanup requires manual stopped-writer maintenance. |
 | cleanup.resources | object | `{"limits":{"cpu":"50m","memory":"32Mi"},"requests":{"cpu":"10m","memory":"16Mi"}}` | Resource requests and limits for the cleanup CronJob container. |
 | cleanup.resources.limits.cpu | string | `"50m"` | CPU limit for the cleanup CronJob container. |
 | cleanup.resources.limits.memory | string | `"32Mi"` | Memory limit for the cleanup CronJob container. |
@@ -163,7 +169,7 @@ Kubernetes: `>=1.23.0-0`
 | image.repository | string | `"ghcr.io/markoonakic/tarnished"` | Container image repository |
 | image.tag | string | `""` | Container image tag (defaults to .Chart.AppVersion if empty) |
 | imagePullSecrets | list | `[]` | Image pull secrets for private registries |
-| ingress.annotations | object | `{}` | Ingress annotations (e.g. cert-manager, nginx config) |
+| ingress.annotations | object | `{"nginx.ingress.kubernetes.io/proxy-body-size":"1000016384","nginx.ingress.kubernetes.io/proxy-read-timeout":"3900","nginx.ingress.kubernetes.io/proxy-request-buffering":"off","nginx.ingress.kubernetes.io/proxy-send-timeout":"3900"}` | These limits apply to ingress-nginx. Other controllers require equivalent body/timeout/no-buffering configuration before large intake is supported. |
 | ingress.className | string | `""` | Ingress class name (e.g. "nginx", "traefik") |
 | ingress.enabled | bool | `false` | Enable ingress |
 | ingress.host | string | `"tarnished.local"` | Hostname |
@@ -184,12 +190,11 @@ Kubernetes: `>=1.23.0-0`
 | livenessProbe.timeoutSeconds | int | `5` | Timeout for each liveness probe execution. |
 | nameOverride | string | `""` | Override the chart name |
 | nodeSelector | object | `{}` | Node selector |
-| persistence.accessMode | string | `"ReadWriteOnce"` | Access mode for chart-managed PVCs. SQLite should stay on ReadWriteOnce. Multiple replicas require shared write access. |
+| persistence.accessMode | string | `"ReadWriteOnce"` | Access mode for chart-managed PVCs. SQLite should stay on ReadWriteOnce. Storage mode does not change the single-replica limit. |
 | persistence.annotations | object | `{"helm.sh/resource-policy":"keep"}` | Annotations applied to the chart-managed PVC. |
 | persistence.enabled | bool | `true` | Enable persistent storage |
 | persistence.existingClaim | string | `""` | Use an existing PVC instead of creating one |
-| persistence.sharedAccess | bool | `false` | Acknowledge that the chosen existing claim supports shared read-write access across replicas. Required when replicaCount > 1 and using existingClaim. |
-| persistence.size | string | `"1Gi"` | PVC size |
+| persistence.size | string | `"8Gi"` | PVC size |
 | persistence.storageClass | string | `""` | Storage class (empty = cluster default) |
 | podAnnotations | object | `{}` | Pod-level annotations (e.g. prometheus.io/scrape) |
 | podLabels | object | `{}` | Pod-level labels |
@@ -209,10 +214,10 @@ Kubernetes: `>=1.23.0-0`
 | readinessProbe.initialDelaySeconds | int | `10` | Initial delay before Kubernetes starts running the readiness probe. |
 | readinessProbe.periodSeconds | int | `5` | Interval between readiness probe executions. |
 | readinessProbe.timeoutSeconds | int | `3` | Timeout for each readiness probe execution. |
-| replicaCount | int | `1` | Number of replicas. Must be 1 when using SQLite (default). Multiple replicas require PostgreSQL plus shared upload storage (ReadWriteMany PVC, or an existing shared claim with persistence.sharedAccess=true). |
-| resources | object | `{"limits":{"cpu":"500m","memory":"512Mi"},"requests":{"cpu":"100m","memory":"256Mi"}}` | Resource requests and limits for the Tarnished app container. |
-| resources.limits.cpu | string | `"500m"` | CPU limit for the Tarnished app container. |
-| resources.limits.memory | string | `"512Mi"` | Memory limit for the Tarnished app container. |
+| replicaCount | int | `1` | Exactly one replica for SQLite and PostgreSQL. Recreate updates cause downtime. |
+| resources | object | `{"limits":{"cpu":"1000m","memory":"1Gi"},"requests":{"cpu":"100m","memory":"256Mi"}}` | Resource requests and limits for the Tarnished app container. |
+| resources.limits.cpu | string | `"1000m"` | CPU limit for the Tarnished app container. |
+| resources.limits.memory | string | `"1Gi"` | Memory limit for the Tarnished app container. |
 | resources.requests.cpu | string | `"100m"` | CPU request for the Tarnished app container. |
 | resources.requests.memory | string | `"256Mi"` | Memory request for the Tarnished app container. |
 | secretKey.existingSecret | string | `""` | Use an existing Kubernetes Secret for SECRET_KEY If empty, the app auto-generates a key on first run |

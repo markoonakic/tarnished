@@ -1,13 +1,14 @@
 import pathlib
 import unittest
 
-
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 WORKFLOW_PATH = ROOT / ".github" / "workflows" / "release.yml"
 
 
 class ReleaseWorkflowTests(unittest.TestCase):
-    def test_release_workflow_ensures_github_release_exists_before_edit_and_upload(self) -> None:
+    def test_release_workflow_ensures_github_release_exists_before_edit_and_upload(
+        self,
+    ) -> None:
         content = WORKFLOW_PATH.read_text()
 
         self.assertIn('gh release edit "$TAG"', content)

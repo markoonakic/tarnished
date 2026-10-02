@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from importlib.metadata import PackageNotFoundError, version
+import os
 from pathlib import Path
 from textwrap import dedent
+from types import SimpleNamespace
 
 import typer
 
+from tarnished_cli.client import CLI_VERSION, CLIError
 from tarnished_cli.commands import (
     admin,
     analytics,
@@ -17,24 +19,20 @@ from tarnished_cli.commands import (
     job_leads,
     preferences,
     profile,
+    reports,
     round_types,
     rounds,
     statuses,
+    transcriptions,
     user_settings,
 )
+from tarnished_cli.config import OUTPUT_ENV
+from tarnished_cli.output import exit_for_error
 from tarnished_cli.state import AppState
-
-
-def _cli_version() -> str:
-    try:
-        return version("tarnished-cli")
-    except PackageNotFoundError:
-        return "0.0.0"
-
 
 ROOT_HELP = dedent(
     """\
-    Agent-first CLI for Tarnished.
+    Command-line interface for Tarnished.
 
     This CLI is API-key auth first.
     Create or rotate API keys in the Tarnished web app, then validate and store
@@ -65,12 +63,16 @@ app.add_typer(exports.app, name="export")
 app.add_typer(imports.app, name="import")
 app.add_typer(dashboard.app, name="dashboard")
 app.add_typer(analytics.app, name="analytics")
+app.add_typer(reports.app, name="reports")
+app.add_typer(transcriptions.app, name="transcriptions")
 
 
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
-    profile: str = typer.Option("default", "--profile", help="Named CLI profile."),
+    profile: str | None = typer.Option(
+        None, "--profile", help="Named CLI profile (otherwise config default_profile)."
+    ),
     base_url: str | None = typer.Option(
         None, "--base-url", help="Override the profile base URL for this command."
     ),
@@ -80,19 +82,28 @@ def main(
     json_output: bool = typer.Option(
         False, "--json", help="Emit machine-readable JSON output."
     ),
-    verbose: bool = typer.Option(False, "--verbose", help="Enable verbose output."),
     show_version: bool = typer.Option(
         False, "--version", help="Show CLI version and exit."
     ),
 ) -> None:
     if show_version:
-        typer.echo(_cli_version())
+        typer.echo(CLI_VERSION)
         raise typer.Exit(code=0)
 
-    ctx.obj = AppState.load(
-        profile=profile,
-        base_url=base_url,
-        json_output=json_output,
-        verbose=verbose,
-        config_dir=config_dir,
-    )
+    try:
+        ctx.obj = AppState.load(
+            profile=profile,
+            base_url=base_url,
+            json_output=json_output,
+            config_dir=config_dir,
+        )
+    except (OSError, ValueError):
+        exit_for_error(
+            SimpleNamespace(
+                json_output=json_output or os.getenv(OUTPUT_ENV, "json") != "text"
+            ),
+            CLIError(
+                "Could not load CLI configuration or stored API key. "
+                "Check the files in your CLI config directory."
+            ),
+        )

@@ -1,184 +1,66 @@
-__pycache__/
-*.pyc
+# Dependencies and build output
 .venv/
 node_modules/
-.env
-data/
-uploads/
-*.db
+.yarn/
+.pnp.*
 .uv/
 dist/
 build/
 *.egg-info/
-
-
-.worktrees/
-.pi/
-.opencode/
-.ruff_cache/
-mise.toml
-docs/
-scripts/
-.claude/
-.devcontainer/
-.planning/
-.serena/
-CLAUDE.md
-
-.firecrawl/
-
-# Ralph Loop (autonomous implementation)
-ralph.yml
-ralph-loop.sh
-PROMPT.md
-specs/
-.ralph/
-.claude/handoff*.md
-
-# Design guidelines - development notes, not source code
-frontend/DESIGN_GUIDELINES.md
-backend/DESIGN_GUIDELINES.md
-
-# Seed scripts - development only
-backend/seed_*.py
-
-# Generated requirements.txt
-backend/requirements.txt
-
-# Pre-commit framework (using Husky instead)
-.pre-commit-config.yaml
-
-# Playwright MCP screenshots and snapshots
-.playwright-mcp/
-.pi-lens/
-
-# macOS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Temporary directories and files
-temp/
-temp2/
-tmp/
-*.tmp
-*~
-
-# Core dumps
-/core
-core.*
-
-# Editor swap files
-*.swp
-*.swo
-*.swn
-
-# Session backup files
-*session-is-being-continued*.txt
-*.bak
-
-# ============================================================================
-# Frontend (Node.js/Yarn/Vite)
-# ============================================================================
-
-# Yarn
-.yarn/
-.pnp.*
-
-# Vite
-.vite/
-
-# Environment variants
-.env.local
-.env.*.local
-
-# Backend environment files
-backend/.env.postgresql
-backend/.env.*
-
-# TypeScript
+*.egg
 *.tsbuildinfo
 
-# ESLint
-.eslintcache
-
-# Test coverage
-coverage/
-*.lcov
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# ============================================================================
-# Backend (Python/Testing)
-# ============================================================================
-
-# Python artifacts
-*.pyo
-*.so
-*.py[cod]
-*.egg
-
-# Database files
+# Local configuration and data
+.env
+.env.*
+!.env.example
+.envrc.local
+.direnv/
+data/
+uploads/
+postgres_data/
+*.db
 *.sqlite
 *.sqlite3
-
-# IDE configs
-.vscode/
-.idea/
-
-# Test coverage
-.coverage
-htmlcov/
-*.cover
-.pytest_cache/
-.hypothesis/
-.tox/
-
-# MyPy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Alembic cache (not migration files)
-alembic/versions/__pycache__/
-
-# ============================================================================
-# Project Level (Docker/Cache)
-# ============================================================================
-
-# Docker overrides
 docker-compose.override.yml
 docker-compose.override.yaml
+backend/requirements.txt
 
-# Docker build artifacts
-.docker/
-
-# CI/CD local files
-.github/workflows/*.local.yml
-.github/workflows/*.local.yaml
-
-# Cache directories
+# Caches and test output
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+.tox/
+.vite/
+.eslintcache
 .cache/
 .npm/
+.coverage
+coverage/
+htmlcov/
+*.cover
+*.lcov
+*.log
 
-# ============================================================================
-# Browser Extension
-# ============================================================================
+# Editor and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+*.tmp
+*.bak
+/core
+core.*
+tmp/
 
-# Extension build artifacts
+# Browser packages
 *.xpi
-
-# Extension test/dev files
-extension/test-form.html
-
-# Don't mix npm and yarn in extension
+extension/tarnished-chrome.zip
+extension/tarnished-firefox.zip
 extension/package-lock.json
-.playwright/

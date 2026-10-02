@@ -1,4 +1,4 @@
-import type { AISettingsResponse } from './aiSettings';
+import type { AISettingsResponse, AISettingsUpdate } from './aiSettings';
 export type AISettingsFormValues = {
   model: string;
   apiKey: string;
@@ -13,32 +13,40 @@ export function normalizeAdminUserSearchQuery(
 }
 
 export function getAISettingsFormValues(
-  settings: AISettingsResponse | null
+  settings: Pick<AISettingsResponse, 'litellm_model'> | null
 ): AISettingsFormValues {
   return {
     model: settings?.litellm_model || '',
     apiKey: '',
-    baseUrl: settings?.litellm_base_url || '',
+    baseUrl: '',
   };
 }
 
-export function buildAISettingsUpdatePayload(values: AISettingsFormValues): {
-  litellm_model?: string | null;
-  litellm_api_key?: string | null;
-  litellm_base_url?: string | null;
-} {
-  const payload: {
-    litellm_model?: string | null;
-    litellm_api_key?: string | null;
-    litellm_base_url?: string | null;
-  } = {
-    litellm_model: values.model || null,
-    litellm_base_url: values.baseUrl || null,
-  };
+const nonsecretFields = [
+  'litellm_model',
+  'text_protocol',
+  'text_enabled',
+  'text_keyless',
+  'speech_enabled',
+  'speech_keyless',
+  'speech_provider',
+  'speech_model',
+] as const;
 
-  if (values.apiKey) {
-    payload.litellm_api_key = values.apiKey;
+export type AISettingsBaseline = Pick<
+  AISettingsResponse,
+  (typeof nonsecretFields)[number]
+>;
+
+export function buildAISettingsUpdatePayload(
+  values: AISettingsUpdate,
+  baseline: AISettingsBaseline
+): AISettingsUpdate {
+  const payload = { ...values };
+  // Compare against this form's hydration, never a later account-list refresh.
+  // Write-only fields retain explicit replacement/clear intent.
+  for (const key of nonsecretFields) {
+    if (payload[key] === baseline[key]) delete payload[key];
   }
-
   return payload;
 }

@@ -183,3 +183,28 @@ async def test_delete_orphans_removes_only_cas_files_and_empty_dirs(
     assert not orphan_only_dir.exists()
     assert deleted_report.deleted_paths == [orphan_path.resolve()]
     assert deleted_report.deleted_bytes == len(b"orphan")
+
+
+async def test_cleanup_does_not_follow_upload_symlinks(db, tmp_path):
+    from app.services.storage_cleanup import apply_cleanup, build_cleanup_report
+
+    root = tmp_path / "uploads"
+    root.mkdir()
+    external = tmp_path / "outside.txt"
+    external.write_bytes(b"keep")
+    link = root / ("a" * 64 + ".pdf")
+    link.symlink_to(external)
+    report = await build_cleanup_report(db, root)
+    assert link in report.suspicious_paths
+    assert report.orphan_paths == []
+    apply_cleanup(report, delete=True)
+    assert external.read_bytes() == b"keep"
+
+    candidate = root / ("b" * 64 + ".pdf")
+    candidate.write_bytes(b"orphan")
+    report = await build_cleanup_report(db, root)
+    candidate.unlink()
+    candidate.symlink_to(external)
+    apply_cleanup(report, delete=True)
+    assert report.deleted_paths == []
+    assert external.read_bytes() == b"keep"

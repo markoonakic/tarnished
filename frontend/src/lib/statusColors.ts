@@ -1,9 +1,6 @@
 import type { ThemeColors } from '@/hooks/useThemeColors';
 
-/**
- * Maps status names to theme color keys.
- * Default statuses use theme colors; custom user statuses keep their stored hex.
- */
+// Default statuses follow the theme; custom statuses keep their saved color.
 const STATUS_COLOR_MAP: Record<string, keyof ThemeColors> = {
   Applied: 'blueBright',
   Screening: 'yellowBright',
@@ -15,10 +12,6 @@ const STATUS_COLOR_MAP: Record<string, keyof ThemeColors> = {
   'No Reply': 'gray',
 };
 
-/**
- * Get a theme-aware color for a status.
- * Returns the mapped theme color for default statuses, or the provided fallback for custom statuses.
- */
 export function getStatusColor(
   statusName: string,
   colors: ThemeColors,
@@ -39,11 +32,6 @@ export function getDefaultNewStatusColor(colors: ThemeColors): string {
   return colors.aquaBright;
 }
 
-/**
- * Get theme-aware color for a Sankey chart node.
- * Maps node IDs like "status_applied", "terminal_rejected_applied" to theme colors.
- * Returns fallback color for unknown/custom statuses.
- */
 export function getSankeyNodeColor(
   nodeId: string,
   colors: ThemeColors,

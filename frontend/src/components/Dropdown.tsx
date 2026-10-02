@@ -64,15 +64,6 @@ const selectedClasses = {
 const TYPEAHEAD_RESET_MS = 500;
 const PAGE_JUMP_SIZE = 10;
 
-const getLayerClass = (baseLayer: string, offset: number): string => {
-  const layers = ['bg-bg0', 'bg-bg1', 'bg-bg2', 'bg-bg3', 'bg-bg4', 'bg-bg-h'];
-  const baseIndex = layers.indexOf(`bg-${baseLayer}`);
-  if (baseIndex === -1) return 'bg-bg1';
-
-  const targetIndex = (baseIndex + offset) % layers.length;
-  return layers[targetIndex];
-};
-
 function findMatchingOptionIndex(
   options: DropdownOption[],
   search: string,
@@ -112,6 +103,7 @@ export default function Dropdown({
 }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const typeaheadRef = useRef('');
@@ -126,13 +118,9 @@ export default function Dropdown({
     [options, value]
   );
 
-  const triggerBg = getLayerClass(containerBackground, 1);
-  const nonSelectedBg =
-    nonSelectedClasses[containerBackground as keyof typeof nonSelectedClasses];
-  const selectedBg =
-    selectedClasses[containerBackground as keyof typeof selectedClasses];
-  const hoverClass =
-    hoverClasses[containerBackground as keyof typeof hoverClasses];
+  const nonSelectedBg = nonSelectedClasses[containerBackground];
+  const selectedBg = selectedClasses[containerBackground];
+  const hoverClass = hoverClasses[containerBackground];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -145,35 +133,12 @@ export default function Dropdown({
       }
     }
 
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-        setFocusedIndex(-1);
-      }
-    }
-
     document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener(
-      'keydown',
-      handleEscape as unknown as EventListener
-    );
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener(
-        'keydown',
-        handleEscape as unknown as EventListener
-      );
     };
   }, []);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    setFocusedIndex(selectedIndex >= 0 ? selectedIndex : 0);
-  }, [isOpen, selectedIndex]);
 
   useEffect(() => {
     if (!isOpen || focusedIndex < 0) {
@@ -197,7 +162,9 @@ export default function Dropdown({
   }, []);
 
   const handleSelect = (optionValue: string) => {
+    if (disabled) return;
     onChange(optionValue);
+    triggerRef.current?.focus();
     setIsOpen(false);
     setFocusedIndex(-1);
   };
@@ -241,6 +208,7 @@ export default function Dropdown({
 
     if (
       event.key.length === 1 &&
+      event.key !== ' ' &&
       !event.altKey &&
       !event.ctrlKey &&
       !event.metaKey &&
@@ -252,13 +220,28 @@ export default function Dropdown({
     }
 
     switch (event.key) {
+      case 'Escape': {
+        if (isOpen) {
+          event.preventDefault();
+          event.stopPropagation();
+          setIsOpen(false);
+          setFocusedIndex(-1);
+        }
+        break;
+      }
+      case 'Tab': {
+        setIsOpen(false);
+        break;
+      }
       case 'Enter':
       case ' ': {
         event.preventDefault();
-        if (isOpen && focusedIndex >= 0) {
-          handleSelect(options[focusedIndex].value);
+        if (isOpen) {
+          const option = options[focusedIndex];
+          if (option) handleSelect(option.value);
         } else {
-          setIsOpen((open) => !open);
+          setFocusedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+          setIsOpen(true);
         }
         break;
       }
@@ -328,23 +311,27 @@ export default function Dropdown({
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        ref={triggerRef}
         type="button"
         id={id}
-        onClick={() => !disabled && setIsOpen((open) => !open)}
+        onClick={() => {
+          setFocusedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+          setIsOpen((open) => !open);
+        }}
         onKeyDown={handleKeyDown}
         disabled={disabled}
         role="combobox"
+        aria-label={id ? undefined : placeholder}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-controls={listboxId}
         aria-activedescendant={
-          isOpen && focusedIndex >= 0
+          isOpen && options[focusedIndex]
             ? `${listboxId}-option-${focusedIndex}`
             : undefined
         }
-        aria-selected={!!selectedOption}
         aria-disabled={disabled}
-        className={`flex w-full items-center justify-between gap-3 ${triggerBg} text-fg1 hover:border-accent-bright focus:ring-accent-bright rounded border-0 focus:ring-1 focus:outline-none ${isOpen ? 'ring-accent-bright ring-1' : ''} ${sizeClasses[size]} transition-all duration-200 ease-in-out ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} `}
+        className={`flex w-full items-center justify-between gap-3 ${nonSelectedBg} text-fg1 hover:border-accent-bright focus:ring-accent-bright rounded border-0 focus:ring-1 focus:outline-none ${isOpen ? 'ring-accent-bright ring-1' : ''} ${sizeClasses[size]} transition-all duration-200 ease-in-out ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} `}
       >
         <span className={selectedOption ? 'text-fg1' : 'text-fg4'}>
           {selectedOption ? selectedOption.label : placeholder}
@@ -382,6 +369,7 @@ export default function Dropdown({
                   type="button"
                   onClick={() => handleSelect(option.value)}
                   onMouseEnter={() => setFocusedIndex(index)}
+                  tabIndex={-1}
                   role="option"
                   aria-selected={isSelected}
                   className={`flex w-full cursor-pointer items-center justify-between text-left transition-all duration-200 ease-in-out ${sizeClasses[size]} ${

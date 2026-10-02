@@ -1,72 +1,69 @@
 version: 2
 
 updates:
-  # Backend Python dependencies (uv ecosystem)
-  - package-ecosystem: "uv"
-    directory: "/backend"
+  - package-ecosystem: uv
+    directory: /backend
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: weekly
     groups:
       backend-deps:
-        patterns: ["*"]
-    # Major versions will create PRs but require manual review
-    # (auto-merge workflow only auto-approves patches/minors)
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "backend"
+        patterns: ['*']
     commit-message:
-      prefix: "deps"
+      prefix: deps
 
-  # Frontend JavaScript dependencies
-  - package-ecosystem: "npm"
-    directory: "/frontend"
+  - package-ecosystem: uv
+    directory: /cli
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: weekly
+    groups:
+      cli-deps:
+        patterns: ['*']
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
     groups:
       frontend-deps:
-        patterns: ["*"]
-    # Major versions will create PRs but require manual review
-    # (auto-merge workflow only auto-approves patches/minors)
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "frontend"
+        patterns: ['*']
     commit-message:
-      prefix: "deps"
+      prefix: deps
 
-  # Extension JavaScript dependencies
-  - package-ecosystem: "npm"
-    directory: "/extension"
+  - package-ecosystem: npm
+    directory: /extension
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: weekly
     groups:
       extension-deps:
-        patterns: ["*"]
-    # Major versions will create PRs but require manual review
-    # (auto-merge workflow only auto-approves patches/minors)
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "extension"
+        patterns: ['*']
     commit-message:
-      prefix: "deps"
+      prefix: deps
 
-  # GitHub Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: npm
+    directory: /documentation
     schedule:
-      interval: "monthly"
+      interval: weekly
+    groups:
+      docs-deps:
+        patterns: ['*']
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
     groups:
       github-actions:
-        patterns: ["*"]
-    # Major versions will create PRs but require manual review
-    # (auto-merge workflow only auto-approves patches/minors)
-    labels:
-      - "dependencies"
-      - "ci"
+        patterns: ['*']
     commit-message:
-      prefix: "ci"
+      prefix: ci
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: deps

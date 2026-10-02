@@ -1,4 +1,4 @@
-export type TransferPhase =
+type TransferPhase =
   | 'idle'
   | 'uploading'
   | 'processing'
@@ -6,7 +6,8 @@ export type TransferPhase =
   | 'downloading'
   | 'complete'
   | 'failed'
-  | 'cancelled';
+  | 'cancelled'
+  | 'unknown';
 
 export interface TransferState {
   phase: TransferPhase;
@@ -58,6 +59,18 @@ export function createTransferStateFromJob(job: JobInput): TransferState {
       progress,
       message: job.message ?? 'Ready',
       result: job.result ?? undefined,
+    };
+  }
+
+  if (job.status === 'cancelled' || job.status === 'unknown') {
+    return {
+      phase: job.status,
+      progress,
+      message:
+        job.message ??
+        (job.status === 'cancelled'
+          ? 'Transfer cancelled'
+          : 'Transfer status unknown'),
     };
   }
 

@@ -4,8 +4,13 @@ import typer
 
 from tarnished_cli.client import CLIError
 from tarnished_cli.input import load_model_body, require_yes
-from tarnished_cli.models import RoundCreate, RoundUpdate
-from tarnished_cli.output import emit_result, exit_for_error
+from tarnished_cli.models import (
+    RoundCreate,
+    RoundUpdate,
+    TranscriptEdit,
+    TranscriptPaste,
+)
+from tarnished_cli.output import emit_result, exit_for_error, write_download
 from tarnished_cli.state import get_state
 
 app = typer.Typer(help="Manage interview rounds.")
@@ -135,19 +140,77 @@ def download_media(
     disposition: str = typer.Option("attachment"),
 ) -> None:
     state = get_state(ctx)
-    output.parent.mkdir(parents=True, exist_ok=True)
     try:
         content, _headers = state.build_client().get_bytes(
             f"/api/files/media/{media_id}",
             params={"disposition": disposition},
             auth="api_key",
         )
-        output.write_bytes(content)
+        write_download(output, content)
         emit_result(
             state,
             {"output_path": str(output), "bytes": len(content)},
             text=f"Downloaded media to {output}",
         )
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+@transcript_app.command("get")
+def read_transcript(ctx: typer.Context, round_id: str) -> None:
+    state = get_state(ctx)
+    try:
+        payload = state.build_client().get_json(
+            f"/api/rounds/{round_id}/transcript",
+            auth="api_key",
+        )
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+@transcript_app.command("paste")
+def paste_transcript(
+    ctx: typer.Context,
+    round_id: str,
+    body_file: Path = typer.Option(..., "--body-file", exists=True),
+    expected_generation: int = typer.Option(
+        ..., "--expected-generation", min=0, help="Transcript generation to replace"
+    ),
+) -> None:
+    state = get_state(ctx)
+    body = load_model_body(body_file, TranscriptPaste)
+    try:
+        payload = state.build_client().put_json(
+            f"/api/rounds/{round_id}/transcript",
+            body=body,
+            auth="api_key",
+            headers={"expected-transcript-generation": str(expected_generation)},
+        )
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+@transcript_app.command("edit")
+def edit_transcript(
+    ctx: typer.Context,
+    round_id: str,
+    body_file: Path = typer.Option(..., "--body-file", exists=True),
+    expected_generation: int = typer.Option(
+        ..., "--expected-generation", min=0, help="Transcript generation to correct"
+    ),
+) -> None:
+    state = get_state(ctx)
+    body = load_model_body(body_file, TranscriptEdit)
+    try:
+        payload = state.build_client().patch_json(
+            f"/api/rounds/{round_id}/transcript",
+            body=body,
+            auth="api_key",
+            headers={"expected-transcript-generation": str(expected_generation)},
+        )
+        emit_result(state, payload)
     except CLIError as exc:
         exit_for_error(state, exc)
 
@@ -217,14 +280,13 @@ def download_transcript(
     disposition: str = typer.Option("attachment"),
 ) -> None:
     state = get_state(ctx)
-    output.parent.mkdir(parents=True, exist_ok=True)
     try:
         content, _headers = state.build_client().get_bytes(
             f"/api/files/rounds/{round_id}/transcript",
             params={"disposition": disposition},
             auth="api_key",
         )
-        output.write_bytes(content)
+        write_download(output, content)
         emit_result(
             state,
             {"output_path": str(output), "bytes": len(content)},

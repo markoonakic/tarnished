@@ -6,6 +6,9 @@ class FakeImportClient:
     def __init__(self):
         self.status_calls = 0
 
+    def close(self):
+        pass
+
     def post_file_json(
         self,
         path,
@@ -25,7 +28,7 @@ class FakeImportClient:
             return {"import_id": "import-123", "status": "processing"}
         raise AssertionError(f"Unexpected import POST path: {path}")
 
-    def get_json(self, path, *, params=None, auth="api_key"):
+    def get_json(self, path, *, params=None, auth="api_key", timeout=30.0):
         assert auth == "api_key"
         if path == "/api/import/status/import-123":
             self.status_calls += 1
@@ -75,7 +78,7 @@ def test_import_run_wait_polls_until_complete(
             str(archive),
             "--wait",
             "--poll-interval",
-            "0.0",
+            "0.01",
             "--timeout-seconds",
             "1.0",
         ],

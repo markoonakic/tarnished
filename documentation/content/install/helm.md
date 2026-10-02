@@ -1,53 +1,42 @@
 ---
 title: Install with Helm
-description: Deploy Tarnished on Kubernetes with the published OCI Helm chart.
+description: Install Tarnished 0.2.0 on Kubernetes with persistent storage.
 ---
 
-Use this install method if you already run Kubernetes and want:
+You need Kubernetes 1.23 or newer, Helm 3.8 or newer, `kubectl` and a working
+StorageClass. The chart uses one replica with `Recreate` updates. Shared storage
+does not enable multiple replicas. PostgreSQL is optional and is provisioned
+separately.
 
-- the published Tarnished OCI chart
-- namespace and secret based configuration
-- a production-style path that can grow past a single local container host
-
-## Before you begin
-
-You need:
-
-- Kubernetes 1.23 or newer
-- Helm 3.8 or newer
-- `kubectl` access to the target cluster
-- a working default `StorageClass`, or an explicit storage class you plan to use
-
-## Quick evaluation install
-
-If you want to evaluate Tarnished quickly with the chart defaults:
+## Install with SQLite
 
 ```bash
 helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
-  --namespace tarnished \
-  --create-namespace
+  --version 0.2.0 --namespace tarnished --create-namespace
+kubectl rollout status -n tarnished deploy/tarnished
 kubectl port-forward -n tarnished svc/tarnished 5577:5577
 ```
 
-Then open `http://localhost:5577`.
+The migration container prepares storage, generates or loads the signing secret,
+and applies migrations. Preserve the PVC, including its `.secret_key` file.
+Alternatively, supply an existing Kubernetes Secret with
+`secretKey.existingSecret` and `secretKey.existingSecretKey`.
 
-## The values file used in the production-style example
-
-For a PostgreSQL-backed install, the file you edit is a values file rather than the chart itself.
-
-Create the required secrets first:
+In another terminal, create the first account:
 
 ```bash
-kubectl create namespace tarnished
-kubectl create secret generic tarnished-secrets \
-  -n tarnished \
-  --from-literal=secret-key="$(openssl rand -hex 32)"
-kubectl create secret generic tarnished-db \
-  -n tarnished \
-  --from-literal=password='replace-with-a-strong-password'
+kubectl exec -it -n tarnished deploy/tarnished -c tarnished -- \
+  ./entrypoint.sh manage bootstrap-owner --email you@example.com
 ```
 
-Save this as `values-production.yaml`:
+Open **http://localhost:5577** and sign in. See
+[account setup and recovery](../get-started/create-admin-account.md).
+
+## External PostgreSQL
+
+Create the database and user first. Provision a Secret named `tarnished-db` in the
+`tarnished` namespace with its password under the key `password`. Save these
+settings as `values-production.yaml`:
 
 ```yaml
 postgresql:
@@ -58,90 +47,31 @@ postgresql:
   user: tarnished
   existingSecret: tarnished-db
   existingSecretPasswordKey: password
-
-secretKey:
-  existingSecret: tarnished-secrets
-  existingSecretKey: secret-key
 ```
 
-If you already know the public hostname, extend the same file with ingress settings:
-
-```yaml
-ingress:
-  enabled: true
-  className: nginx
-  host: jobs.example.com
-  tls:
-    enabled: true
-```
-
-## Install Tarnished with the values file
+Use this install command instead of the SQLite command:
 
 ```bash
 helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
-  --namespace tarnished \
+  --version 0.2.0 --namespace tarnished --create-namespace \
   --values values-production.yaml
 ```
 
-If ingress is not enabled yet, access Tarnished locally:
+Keep a persistent volume for uploads and the signing secret even with PostgreSQL.
+Do not commit database passwords in values files.
 
-```bash
-kubectl port-forward -n tarnished svc/tarnished 5577:5577
-```
+## Ingress and troubleshooting
 
-## Verify the install
-
-Check the Helm release:
+Configure the ingress host, TLS certificate and trusted hosts before exposing the
+service. See the [chart reference](../reference/helm-chart-reference.md) for values.
 
 ```bash
 helm status -n tarnished tarnished
-```
-
-Watch the pods:
-
-```bash
-kubectl get pods -n tarnished -w
-```
-
-Inspect the app logs if needed:
-
-```bash
-kubectl logs -n tarnished deploy/tarnished
-```
-
-## Where your data lives
-
-In Helm installs:
-
-- Tarnished uploads are stored on the PVC mounted at `/app/data`
-- relational data lives in PostgreSQL when `postgresql.enabled=true`
-
-For a real production deployment, you need backups for both the uploads volume and the PostgreSQL database.
-
-## Important scaling note
-
-Multiple replicas require more than just PostgreSQL.
-
-You also need shared uploads storage, either:
-
-- a chart-managed PVC with `persistence.accessMode=ReadWriteMany`
-- or an existing shared claim with `persistence.sharedAccess=true`
-
-## Troubleshooting
-
-If the deployment does not become ready:
-
-```bash
+kubectl get pods -n tarnished
 kubectl logs -n tarnished deploy/tarnished -c migrate
-kubectl logs -n tarnished deploy/tarnished
+kubectl logs -n tarnished deploy/tarnished -c tarnished
 ```
 
-Then continue with [Deployment and startup problems](../troubleshooting/deployment-and-startup.md).
-
-## Related reference
-
-For a chart-facing reference to the Tarnished values, metadata, and scaling rules, see [Helm chart reference](../reference/helm-chart-reference.md).
-
-## Next step
-
-Continue with [Create your admin account](../get-started/create-admin-account.md).
+With port forwarding active, `/health` returns `{"status":"healthy"}`. Read
+[backup and restore](../how-to/backup-and-restore-tarnished.md) before an
+[upgrade](../how-to/upgrade-tarnished.md).

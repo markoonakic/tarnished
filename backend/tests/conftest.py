@@ -1,6 +1,6 @@
 """Pytest configuration and fixtures for testing."""
 
-# IMPORTANT: Set environment variables BEFORE any imports
+# Configure the database and authentication before importing the application.
 import os
 import tempfile
 from pathlib import Path
@@ -41,6 +41,14 @@ warnings.filterwarnings(
 )
 
 
+@pytest.fixture
+def media_fixtures() -> Path:
+    directory = os.environ.get("S08_MEDIA_FIXTURES")
+    if not directory:
+        pytest.skip("Set S08_MEDIA_FIXTURES to run external media fixture tests")
+    return Path(directory)
+
+
 @pytest.fixture(scope="session")
 def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     """Create an instance of the event loop for the test session."""
@@ -57,16 +65,16 @@ def _build_database_url() -> tuple[str, Path | None]:
     return f"sqlite+aiosqlite:///{sqlite_path}", sqlite_path
 
 
-def _run_alembic_upgrade(connection, database_url: str) -> None:
+def _run_alembic_upgrade(connection, database_url: str, revision: str = "head") -> None:
     cfg = Config(str(ALEMBIC_INI_PATH))
-    cfg.set_main_option("sqlalchemy.url", database_url)
+    cfg.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
     cfg.attributes["connection"] = connection
-    command.upgrade(cfg, "head")
+    command.upgrade(cfg, revision)
 
 
 @pytest.fixture(scope="function")
-async def db_engine():
-    """Create a test database engine using Alembic migrations."""
+async def db_engine(request):
+    """Migrate a disposable database to head, or an indirect historical revision."""
     database_url, sqlite_path = _build_database_url()
     engine = create_async_engine(database_url, echo=False)
     is_sqlite = "sqlite" in database_url
@@ -87,7 +95,9 @@ async def db_engine():
             await conn.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
             if is_sqlite:
                 await conn.exec_driver_sql("PRAGMA foreign_keys=ON")
-        await conn.run_sync(_run_alembic_upgrade, database_url)
+        await conn.run_sync(
+            _run_alembic_upgrade, database_url, getattr(request, "param", "head")
+        )
 
     yield engine
 

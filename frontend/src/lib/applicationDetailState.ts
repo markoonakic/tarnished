@@ -4,7 +4,9 @@ export function preserveApplicationRounds(
   previous: Application | null,
   updated: Application
 ): Application {
-  return previous ? { ...updated, rounds: previous.rounds } : updated;
+  if (!previous || previous.id !== updated.id) return updated;
+  if (previous.evidence_revision > updated.evidence_revision) return previous;
+  return { ...updated, rounds: previous.rounds };
 }
 
 export function upsertApplicationRound(

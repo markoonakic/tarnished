@@ -25,7 +25,9 @@ async def test_user(db: AsyncSession) -> User:
 
 @pytest.fixture
 def auth_headers(test_user: User) -> dict[str, str]:
-    token = create_access_token({"sub": test_user.id})
+    token = create_access_token(
+        {"sub": test_user.id, "session_version": test_user.session_version}
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -73,6 +75,8 @@ class TestDashboardKPIs:
                 company="A",
                 job_title="Current 1",
                 status_id=applied_status.id,
+                status_meaning="applied",
+                status_meaning_provenance="recorded",
                 applied_at=today,
             ),
             Application(
@@ -80,6 +84,8 @@ class TestDashboardKPIs:
                 company="B",
                 job_title="Current 2",
                 status_id=applied_status.id,
+                status_meaning="applied",
+                status_meaning_provenance="recorded",
                 applied_at=today - timedelta(days=1),
             ),
             Application(
@@ -87,6 +93,8 @@ class TestDashboardKPIs:
                 company="C",
                 job_title="Current 3",
                 status_id=interviewing_status.id,
+                status_meaning="interviewing",
+                status_meaning_provenance="recorded",
                 applied_at=today - timedelta(days=6),
             ),
             Application(
@@ -94,6 +102,8 @@ class TestDashboardKPIs:
                 company="D",
                 job_title="Previous 1",
                 status_id=applied_status.id,
+                status_meaning="applied",
+                status_meaning_provenance="recorded",
                 applied_at=today - timedelta(days=7),
             ),
             Application(
@@ -101,6 +111,8 @@ class TestDashboardKPIs:
                 company="E",
                 job_title="Previous 2",
                 status_id=applied_status.id,
+                status_meaning="applied",
+                status_meaning_provenance="recorded",
                 applied_at=today - timedelta(days=10),
             ),
             Application(
@@ -108,6 +120,8 @@ class TestDashboardKPIs:
                 company="F",
                 job_title="Current 30",
                 status_id=rejected_status.id,
+                status_meaning="rejected",
+                status_meaning_provenance="recorded",
                 applied_at=today - timedelta(days=20),
             ),
         ]
@@ -117,7 +131,14 @@ class TestDashboardKPIs:
         response = await client.get("/api/dashboard/kpis", headers=auth_headers)
 
         assert response.status_code == 200
-        assert response.json() == {
+        payload = response.json()
+        assert payload.pop("scope")["basis"] == "applied_date_cohort"
+        assert (
+            payload.pop("current_record_basis")["basis"]
+            == "live_current_records_not_historical_as_of"
+        )
+        assert payload.pop("unknown_opportunities") == 0
+        assert payload == {
             "last_7_days": 3,
             "last_7_days_trend": 50.0,
             "last_30_days": 6,
@@ -133,7 +154,14 @@ class TestDashboardKPIs:
         response = await client.get("/api/dashboard/kpis", headers=auth_headers)
 
         assert response.status_code == 200
-        assert response.json() == {
+        payload = response.json()
+        assert payload.pop("scope")["basis"] == "applied_date_cohort"
+        assert (
+            payload.pop("current_record_basis")["basis"]
+            == "live_current_records_not_historical_as_of"
+        )
+        assert payload.pop("unknown_opportunities") == 0
+        assert payload == {
             "last_7_days": 0,
             "last_7_days_trend": 0.0,
             "last_30_days": 0,
@@ -170,6 +198,8 @@ class TestDashboardKPIs:
                 company="Late Night Co",
                 job_title="QA Role",
                 status_id=applied_status.id,
+                status_meaning="applied",
+                status_meaning_provenance="recorded",
                 applied_at=date(2026, 4, 8),
             )
         )

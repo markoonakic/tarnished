@@ -1,9 +1,11 @@
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.core.reference_names import normalize_reference_name
+from app.schemas.evidence import Meaning
 
 
 class StatusCreate(BaseModel):
+    meaning: Meaning = "unknown"
     name: str
     color: str = "#83a598"
 
@@ -17,6 +19,7 @@ class StatusCreate(BaseModel):
 
 
 class StatusUpdate(BaseModel):
+    meaning: Meaning | None = None
     name: str | None = None
     color: str | None = None
 
@@ -24,14 +27,22 @@ class StatusUpdate(BaseModel):
     @classmethod
     def normalize_name(cls, value: str | None) -> str | None:
         if value is None:
-            return None
+            raise ValueError("Omit unchanged fields; null is not allowed")
         normalized = normalize_reference_name(value)
         if not normalized:
             raise ValueError("Name cannot be empty")
         return normalized
 
+    @field_validator("color", "meaning")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Omit unchanged fields; null is not allowed")
+        return value
+
 
 class StatusFullResponse(BaseModel):
+    meaning: Meaning
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -78,13 +89,6 @@ class ThemeColors(BaseModel):
     accent_bright: str
     red: str
     green: str
-
-
-class UserSettings(BaseModel):
-    """User theme and accent preferences."""
-
-    theme: str | None = None
-    accent: str | None = None
 
 
 class UserSettingsResponse(BaseModel):

@@ -6,15 +6,18 @@ import { useWeeklyActivityData } from '@/hooks/useAnalyticsData';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
+import HelpTip from '@/components/HelpTip';
 
 interface WeeklyActivityChartProps {
   period: string;
+  asOf?: string;
 }
 
 export default function WeeklyActivityChart({
   period,
+  asOf,
 }: WeeklyActivityChartProps) {
-  const { data = [], isLoading, isError } = useWeeklyActivityData(period);
+  const { data = [], isLoading, isError } = useWeeklyActivityData(period, asOf);
   const colors = useThemeColors();
 
   const option: EChartsOption = useMemo(() => {
@@ -43,7 +46,7 @@ export default function WeeklyActivityChart({
         left: '3%',
         right: '4%',
         bottom: '3%',
-        top: '10%',
+        top: '20%',
         containLabel: true,
       },
       xAxis: {
@@ -62,7 +65,20 @@ export default function WeeklyActivityChart({
         axisTick: { lineStyle: { color: colors.bg2 } },
         splitLine: { lineStyle: { color: colors.bg2, type: 'dashed' } },
       },
+      legend: { type: 'scroll', top: 0, textStyle: { color: colors.fg4 } },
       series: [
+        {
+          name: 'Rounds scheduled',
+          type: 'bar',
+          data: sortedData.map((d) => d.rounds_scheduled),
+          itemStyle: { color: colors.aqua },
+        },
+        {
+          name: 'Rounds completed',
+          type: 'bar',
+          data: sortedData.map((d) => d.rounds_completed),
+          itemStyle: { color: colors.green },
+        },
         {
           name: 'Applications',
           type: 'bar',
@@ -74,7 +90,7 @@ export default function WeeklyActivityChart({
           },
         },
         {
-          name: 'Interviews',
+          name: 'Interviewing transitions',
           type: 'bar',
           data: sortedData.map((d) => d.interviews),
           itemStyle: { color: colors.orange },
@@ -105,6 +121,15 @@ export default function WeeklyActivityChart({
 
   return (
     <div className="w-full">
+      <p className="text-muted mb-3 flex items-center gap-2 text-sm">
+        Weekly activity
+        <HelpTip label="About weekly activity">
+          <p>
+            Applications and interview activity by week. Week 1 is the most
+            recent week.
+          </p>
+        </HelpTip>
+      </p>
       <ReactECharts
         option={option}
         style={{ width: '100%', height: '16rem' }}

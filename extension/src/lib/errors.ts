@@ -1,447 +1,179 @@
-/**
- * Typed error system for the Tarnished extension.
- *
- * This module provides:
- * - Standardized error codes for all extension errors
- * - User-friendly error messages
- * - ExtensionError class for consistent error handling
- * - Helper functions for error classification
- */
+import {
+  extractDuplicateResourceId,
+  mapApiErrorNameToCode,
+} from './error-mapping';
 
-// ============================================================================
-// Error Codes
-// ============================================================================
-
-/**
- * Standard error codes for the extension.
- * These codes map to specific user-friendly messages.
- */
-export const ERROR_CODES = {
-  NO_SETTINGS: 'ERR_NO_SETTINGS',
-  INVALID_URL: 'ERR_INVALID_URL',
-  AUTH_FAILED: 'ERR_AUTH_FAILED',
-  NETWORK: 'ERR_NETWORK',
-  TIMEOUT: 'ERR_TIMEOUT',
-  NO_JOB: 'ERR_NO_JOB',
-  EXTRACTION_FAILED: 'ERR_EXTRACTION_FAILED',
-  ALREADY_SAVED: 'ERR_ALREADY_SAVED',
-  // AI-specific errors from backend
-  AI_KEY_NOT_CONFIGURED: 'AI_KEY_NOT_CONFIGURED',
-  AI_KEY_INVALID: 'AI_KEY_INVALID',
-  AI_RATE_LIMITED: 'AI_RATE_LIMITED',
-  AI_TIMEOUT: 'AI_TIMEOUT',
-  AI_SERVICE_ERROR: 'AI_SERVICE_ERROR',
-  AI_EXTRACTION_FAILED: 'AI_EXTRACTION_FAILED',
-  // Auth errors from backend
-  AUTH_INVALID_API_KEY: 'AUTH_INVALID_API_KEY',
-  // Resource errors from backend
-  DUPLICATE_RESOURCE: 'DUPLICATE_RESOURCE',
+const ERROR_MESSAGES = {
+  ERR_NO_SETTINGS: 'Configure the extension in settings first',
+  ERR_INVALID_URL:
+    'Invalid app URL. Use an HTTP or HTTPS URL without credentials.',
+  ERR_AUTH_FAILED: 'Invalid API key. Get a new one from Tarnished settings.',
+  ERR_NETWORK: 'Could not connect to server. Check your network and app URL.',
+  ERR_TIMEOUT: 'Request timed out. Try again.',
+  ERR_EXTRACTION_FAILED: 'Could not extract job data. Try again.',
+  ERR_ALREADY_SAVED: 'This job is already in your leads',
+  AI_KEY_NOT_CONFIGURED: 'AI extraction requires an API key',
+  AI_KEY_INVALID: 'AI API key is invalid',
+  AI_RATE_LIMITED: 'AI service is rate limited',
+  AI_TIMEOUT: 'AI request timed out',
+  AI_SERVICE_ERROR: 'AI service error',
+  AI_EXTRACTION_FAILED: 'Could not extract job data from this page',
 } as const;
 
-export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
+type ErrorCode = keyof typeof ERROR_MESSAGES;
 
-// ============================================================================
-// Error Messages
-// ============================================================================
-
-/**
- * User-friendly error messages mapped to error codes.
- */
-export const ERROR_MESSAGES: Record<ErrorCode, string> = {
-  [ERROR_CODES.NO_SETTINGS]: 'Configure the extension in settings first',
-  [ERROR_CODES.INVALID_URL]: 'Invalid app URL. Check your settings.',
-  [ERROR_CODES.AUTH_FAILED]:
-    'Invalid API key. Get a new one from Tarnished settings.',
-  [ERROR_CODES.NETWORK]: 'Could not connect to server. Check your network.',
-  [ERROR_CODES.TIMEOUT]: 'Request timed out. Try again.',
-  [ERROR_CODES.NO_JOB]: 'No job posting found on this page',
-  [ERROR_CODES.EXTRACTION_FAILED]: 'Could not extract job data. Try again.',
-  [ERROR_CODES.ALREADY_SAVED]: 'This job is already in your leads',
-  // AI-specific errors
-  [ERROR_CODES.AI_KEY_NOT_CONFIGURED]: 'AI extraction requires an API key',
-  [ERROR_CODES.AI_KEY_INVALID]: 'AI API key is invalid',
-  [ERROR_CODES.AI_RATE_LIMITED]: 'AI service is rate limited',
-  [ERROR_CODES.AI_TIMEOUT]: 'AI request timed out',
-  [ERROR_CODES.AI_SERVICE_ERROR]: 'AI service error',
-  [ERROR_CODES.AI_EXTRACTION_FAILED]:
-    'Could not extract job data from this page',
-  // Auth errors from backend
-  [ERROR_CODES.AUTH_INVALID_API_KEY]: 'Invalid API key',
-  // Resource errors from backend
-  [ERROR_CODES.DUPLICATE_RESOURCE]: 'This resource already exists',
+const ERROR_ACTIONS: Partial<Record<ErrorCode, string>> = {
+  AI_KEY_NOT_CONFIGURED: 'Add your API key in Settings → AI Configuration',
+  AI_KEY_INVALID: 'Check your API key in Settings → AI Configuration',
+  AI_RATE_LIMITED: 'Wait a moment and try again',
+  AI_TIMEOUT: 'Try again - the service may be slow',
+  AI_SERVICE_ERROR: 'Try again later',
+  AI_EXTRACTION_FAILED: 'Make sure the page is a valid job posting',
+  ERR_AUTH_FAILED: 'Get a new API key from Settings → API Key',
 };
 
-/**
- * Suggested actions for error codes.
- * Used to show actionable guidance to users.
- */
-export const ERROR_ACTIONS: Partial<Record<ErrorCode, string>> = {
-  [ERROR_CODES.AI_KEY_NOT_CONFIGURED]:
-    'Add your API key in Settings → AI Configuration',
-  [ERROR_CODES.AI_KEY_INVALID]:
-    'Check your API key in Settings → AI Configuration',
-  [ERROR_CODES.AI_RATE_LIMITED]: 'Wait a moment and try again',
-  [ERROR_CODES.AI_TIMEOUT]: 'Try again - the service may be slow',
-  [ERROR_CODES.AI_SERVICE_ERROR]: 'Try again later',
-  [ERROR_CODES.AI_EXTRACTION_FAILED]:
-    'Make sure the page is a valid job posting',
-  [ERROR_CODES.AUTH_FAILED]: 'Get a new API key from Settings → API Key',
+type ErrorOptions = {
+  cause?: Error;
+  recoverable?: boolean;
+  action?: string;
+  message?: string;
 };
 
-// ============================================================================
-// Extension Error Class
-// ============================================================================
-
-/**
- * Base error class for extension errors.
- * Provides error codes and user-friendly messages.
- */
 export class ExtensionError extends Error {
   public readonly code: ErrorCode;
   public readonly recoverable: boolean;
   public readonly action: string | undefined;
+  public readonly cause?: Error;
 
-  constructor(
-    code: ErrorCode,
-    options?: { cause?: Error; recoverable?: boolean; action?: string }
-  ) {
-    super(ERROR_MESSAGES[code]);
+  constructor(code: ErrorCode, options?: ErrorOptions) {
+    super(options?.message ?? ERROR_MESSAGES[code]);
+    this.cause = options?.cause;
     this.name = 'ExtensionError';
     this.code = code;
     this.recoverable = options?.recoverable ?? false;
     this.action = options?.action ?? ERROR_ACTIONS[code];
-
-    // Set cause if provided (ES2022 feature, but we handle it manually for compatibility)
-    if (options?.cause) {
-      (this as { cause?: Error }).cause = options.cause;
-    }
-
-    // Maintains proper stack trace for where error was thrown (only available on V8)
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, ExtensionError);
-    }
-  }
-
-  /**
-   * Gets the user-friendly message for this error.
-   */
-  get userMessage(): string {
-    return this.message;
-  }
-
-  /**
-   * Gets the suggested action for this error.
-   */
-  get userAction(): string | undefined {
-    return this.action;
   }
 }
 
-// ============================================================================
-// Specific Error Classes
-// ============================================================================
-
-/**
- * Error thrown when settings are not configured.
- */
 export class NoSettingsError extends ExtensionError {
-  constructor(options?: { cause?: Error }) {
-    super(ERROR_CODES.NO_SETTINGS, { ...options, recoverable: true });
+  constructor() {
+    super('ERR_NO_SETTINGS', { recoverable: true });
     this.name = 'NoSettingsError';
   }
 }
 
-/**
- * Error thrown when the app URL is invalid.
- */
 export class InvalidUrlError extends ExtensionError {
-  constructor(options?: { cause?: Error }) {
-    super(ERROR_CODES.INVALID_URL, { ...options, recoverable: true });
+  constructor() {
+    super('ERR_INVALID_URL', { recoverable: true });
     this.name = 'InvalidUrlError';
   }
 }
 
-/**
- * Error thrown when authentication fails.
- */
-export class AuthFailedError extends ExtensionError {
-  constructor(options?: { cause?: Error }) {
-    super(ERROR_CODES.AUTH_FAILED, { ...options, recoverable: true });
+class AuthFailedError extends ExtensionError {
+  constructor(options?: ErrorOptions) {
+    super('ERR_AUTH_FAILED', { ...options, recoverable: true });
     this.name = 'AuthFailedError';
   }
 }
 
-/**
- * Error thrown when there's a network error.
- */
-export class NetworkErrorCode extends ExtensionError {
-  constructor(options?: { cause?: Error }) {
-    super(ERROR_CODES.NETWORK, { ...options, recoverable: true });
+class NetworkErrorCode extends ExtensionError {
+  constructor(options?: ErrorOptions) {
+    super('ERR_NETWORK', { ...options, recoverable: true });
     this.name = 'NetworkErrorCode';
   }
 }
 
-/**
- * Error thrown when a request times out.
- */
-export class TimeoutErrorCode extends ExtensionError {
-  constructor(options?: { cause?: Error }) {
-    super(ERROR_CODES.TIMEOUT, { ...options, recoverable: true });
+class TimeoutErrorCode extends ExtensionError {
+  constructor(options?: ErrorOptions) {
+    super('ERR_TIMEOUT', { ...options, recoverable: true });
     this.name = 'TimeoutErrorCode';
   }
 }
 
-/**
- * Error thrown when no job posting is detected.
- */
-export class NoJobError extends ExtensionError {
-  constructor(options?: { cause?: Error }) {
-    super(ERROR_CODES.NO_JOB, { ...options, recoverable: false });
-    this.name = 'NoJobError';
-  }
-}
-
-/**
- * Error thrown when job data extraction fails.
- */
-export class ExtractionFailedError extends ExtensionError {
-  constructor(options?: { cause?: Error }) {
-    super(ERROR_CODES.EXTRACTION_FAILED, { ...options, recoverable: true });
-    this.name = 'ExtractionFailedError';
-  }
-}
-
-/**
- * Error thrown when a job lead already exists.
- */
 export class AlreadySavedError extends ExtensionError {
   public readonly existingId?: string;
 
-  constructor(existingId?: string, options?: { cause?: Error }) {
-    super(ERROR_CODES.ALREADY_SAVED, { ...options, recoverable: false });
+  constructor(existingId?: string, options?: ErrorOptions) {
+    super('ERR_ALREADY_SAVED', { ...options, recoverable: false });
     this.name = 'AlreadySavedError';
     this.existingId = existingId;
   }
 }
 
-// ============================================================================
-// AI-Specific Errors
-// ============================================================================
-
-/**
- * Error thrown when AI API key is not configured.
- */
-export class AIKeyNotConfiguredError extends ExtensionError {
-  constructor(options?: { cause?: Error }) {
-    super(ERROR_CODES.AI_KEY_NOT_CONFIGURED, { ...options, recoverable: true });
-    this.name = 'AIKeyNotConfiguredError';
-  }
-}
-
-/**
- * Error thrown when AI API key is invalid.
- */
-export class AIKeyInvalidError extends ExtensionError {
-  constructor(options?: { cause?: Error }) {
-    super(ERROR_CODES.AI_KEY_INVALID, { ...options, recoverable: true });
-    this.name = 'AIKeyInvalidError';
-  }
-}
-
-/**
- * Error thrown when AI service is rate limited.
- */
-export class AIRateLimitedError extends ExtensionError {
-  constructor(options?: { cause?: Error }) {
-    super(ERROR_CODES.AI_RATE_LIMITED, { ...options, recoverable: true });
-    this.name = 'AIRateLimitedError';
-  }
-}
-
-/**
- * Error thrown when AI request times out.
- */
-export class AITimeoutError extends ExtensionError {
-  constructor(options?: { cause?: Error }) {
-    super(ERROR_CODES.AI_TIMEOUT, { ...options, recoverable: true });
-    this.name = 'AITimeoutError';
-  }
-}
-
-/**
- * Error thrown when AI service has an error.
- */
-export class AIServiceError extends ExtensionError {
-  constructor(options?: { cause?: Error }) {
-    super(ERROR_CODES.AI_SERVICE_ERROR, { ...options, recoverable: true });
-    this.name = 'AIServiceError';
-  }
-}
-
-/**
- * Error thrown when AI extraction fails.
- */
-export class AIExtractionFailedError extends ExtensionError {
-  constructor(options?: { cause?: Error }) {
-    super(ERROR_CODES.AI_EXTRACTION_FAILED, { ...options, recoverable: true });
-    this.name = 'AIExtractionFailedError';
-  }
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Maps an unknown error to a user-friendly message.
- * @param error - The error to map
- * @returns User-friendly error message
- */
 export function getErrorMessage(error: unknown): string {
-  // If it's already an ExtensionError, use its message
-  if (error instanceof ExtensionError) {
-    return error.userMessage;
+  if (error instanceof ExtensionError && error.action) {
+    return `${error.message} ${error.action}`;
   }
-
-  // If it's an Error with a message, return that
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  // Fallback for unknown error types
-  return 'An unexpected error occurred';
+  return error instanceof Error
+    ? error.message
+    : 'An unexpected error occurred';
 }
 
-/**
- * Checks if an error is recoverable (user can retry).
- * @param error - The error to check
- * @returns True if the error is recoverable
- */
 export function isRecoverable(error: unknown): boolean {
-  if (error instanceof ExtensionError) {
-    return error.recoverable;
-  }
-  // Default to recoverable for unknown errors
-  return true;
+  return error instanceof ExtensionError ? error.recoverable : true;
 }
 
-/**
- * Maps API errors to ExtensionErrors.
- * @param error - The error from the API client
- * @returns An appropriate ExtensionError
- */
 export function mapApiError(error: unknown): ExtensionError {
-  // Import types dynamically to avoid circular dependencies
-  // The actual classes are checked at runtime via instanceof
+  if (error instanceof ExtensionError) return error;
+  if (!(error instanceof Error)) return new NetworkErrorCode();
 
-  // Already an ExtensionError
-  if (error instanceof ExtensionError) {
-    return error;
-  }
-
-  // Map specific error names to ExtensionErrors
-  if (error instanceof Error) {
-    const errorCode = mapApiErrorNameToCode(error.constructor.name);
-
-    switch (errorCode) {
-      case ERROR_CODES.AUTH_FAILED:
-        return new AuthFailedError({ cause: error });
-      case ERROR_CODES.ALREADY_SAVED:
-        return new AlreadySavedError(
-          extractDuplicateResourceId(error.message) ?? undefined,
-          {
-            cause: error,
-          }
-        );
-      case ERROR_CODES.TIMEOUT:
-        return new TimeoutErrorCode({ cause: error });
-      case ERROR_CODES.NETWORK:
-        return new NetworkErrorCode({ cause: error });
-      case ERROR_CODES.EXTRACTION_FAILED:
-        return new ExtractionFailedError({ cause: error });
-      default:
-        return new NetworkErrorCode({ cause: error });
-    }
-  }
-
-  // Unknown error type
-  return new NetworkErrorCode();
-}
-
-/**
- * Parses a backend error response and returns the appropriate ExtensionError.
- *
- * Backend responses have the format:
- * {
- *   "code": "AI_KEY_NOT_CONFIGURED",
- *   "message": "AI extraction requires an API key",
- *   "detail": "...",
- *   "action": "Add your API key in Settings → AI Configuration"
- * }
- *
- * @param response - The parsed JSON response from the backend
- * @returns An appropriate ExtensionError
- */
-export function parseBackendError(response: {
-  code?: string;
-  message?: string;
-  detail?: string;
-  action?: string;
-}): ExtensionError {
-  const code = response.code as ErrorCode | undefined;
-
-  // Map backend error codes to specific error classes
-  switch (code) {
-    case ERROR_CODES.AI_KEY_NOT_CONFIGURED:
-      return new AIKeyNotConfiguredError({
-        cause: new Error(response.detail || response.message),
-      });
-    case ERROR_CODES.AI_KEY_INVALID:
-      return new AIKeyInvalidError({
-        cause: new Error(response.detail || response.message),
-      });
-    case ERROR_CODES.AI_RATE_LIMITED:
-      return new AIRateLimitedError({
-        cause: new Error(response.detail || response.message),
-      });
-    case ERROR_CODES.AI_TIMEOUT:
-      return new AITimeoutError({
-        cause: new Error(response.detail || response.message),
-      });
-    case ERROR_CODES.AI_SERVICE_ERROR:
-      return new AIServiceError({
-        cause: new Error(response.detail || response.message),
-      });
-    case ERROR_CODES.AI_EXTRACTION_FAILED:
-      return new AIExtractionFailedError({
-        cause: new Error(response.detail || response.message),
-      });
-    case ERROR_CODES.AUTH_INVALID_API_KEY:
-    case ERROR_CODES.AUTH_FAILED:
-      return new AuthFailedError({
-        cause: new Error(response.detail || response.message),
-      });
-    case ERROR_CODES.DUPLICATE_RESOURCE:
+  switch (mapApiErrorNameToCode(error.name)) {
+    case 'ERR_AUTH_FAILED':
+      return new AuthFailedError({ cause: error });
+    case 'ERR_ALREADY_SAVED':
       return new AlreadySavedError(
-        extractDuplicateResourceId(response.detail || response.message || '') ??
+        (error as Error & { existingId?: string }).existingId ??
+          extractDuplicateResourceId(error.message) ??
           undefined,
-        {
-          cause: new Error(response.message),
-        }
+        { cause: error }
       );
-    case ERROR_CODES.NETWORK:
-    case ERROR_CODES.TIMEOUT:
-      return new TimeoutErrorCode({
-        cause: new Error(response.detail || response.message),
+    case 'ERR_TIMEOUT':
+      return new TimeoutErrorCode({ cause: error });
+    case 'ERR_EXTRACTION_FAILED':
+      // Validation and scope errors already carry the server's useful message.
+      return new ExtensionError('ERR_EXTRACTION_FAILED', {
+        cause: error,
+        recoverable: true,
+        message: error.message,
       });
     default:
-      // Unknown or missing error code - use network error with the message
-      return new NetworkErrorCode({
-        cause: new Error(response.message || 'Unknown error'),
-      });
+      return new NetworkErrorCode({ cause: error });
   }
 }
-import {
-  extractDuplicateResourceId,
-  mapApiErrorNameToCode,
-} from './error-mapping';
+
+export function parseBackendError(response: {
+  code: string;
+  message: string;
+  detail?: string;
+  action?: string;
+}): ExtensionError | null {
+  const options = {
+    cause: new Error(response.detail || response.message),
+    recoverable: true,
+    action: response.action,
+  };
+  switch (response.code) {
+    case 'AUTH_INVALID_API_KEY':
+    case 'ERR_AUTH_FAILED':
+      return new AuthFailedError(options);
+    case 'DUPLICATE_RESOURCE':
+      return new AlreadySavedError(
+        extractDuplicateResourceId(response.detail || response.message) ??
+          undefined,
+        options
+      );
+    case 'ERR_NETWORK':
+      return new NetworkErrorCode(options);
+    case 'ERR_TIMEOUT':
+      return new TimeoutErrorCode(options);
+    case 'AI_KEY_NOT_CONFIGURED':
+    case 'AI_KEY_INVALID':
+    case 'AI_RATE_LIMITED':
+    case 'AI_TIMEOUT':
+    case 'AI_SERVICE_ERROR':
+    case 'AI_EXTRACTION_FAILED':
+      return new ExtensionError(response.code, options);
+    default:
+      return null;
+  }
+}

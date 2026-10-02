@@ -1,10 +1,3 @@
-/**
- * Form detection utilities.
- *
- * Scans the page for fillable form fields and detects
- * when the user is on an application form.
- */
-
 import type { FormScanResult, ScoredField, FieldType } from './types';
 import { scoreField, FIELD_PATTERNS } from './scoring';
 
@@ -101,19 +94,4 @@ export function scanForFillableFields(): FormScanResult {
     fillableFields: dedupedFields,
     totalRelevantFields,
   };
-}
-
-/**
- * Detect if the current page contains an application form.
- */
-export function detectApplicationForm(): boolean {
-  const result = scanForFillableFields();
-  return result.hasApplicationForm;
-}
-
-/**
- * Re-scan for fields (useful after DOM changes).
- */
-export function rescanForFields(): FormScanResult {
-  return scanForFillableFields();
 }

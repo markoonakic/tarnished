@@ -3,6 +3,8 @@ from datetime import UTC, date, datetime
 
 from sqlalchemy import (
     JSON,
+    Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
@@ -10,6 +12,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    false,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -32,13 +35,70 @@ class ApplicationStatusHistory(Base):
     from_status_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("application_statuses.id"), nullable=True
     )
-    to_status_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("application_statuses.id"), nullable=False
+    to_status_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("application_statuses.id"), nullable=True
     )
     changed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    from_meaning: Mapped[str | None] = mapped_column(String(20))
+    to_meaning: Mapped[str | None] = mapped_column(String(20))
+    from_meaning_provenance: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="legacy_unknown",
+        server_default="legacy_unknown",
+    )
+    to_meaning_provenance: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="legacy_unknown",
+        server_default="legacy_unknown",
+    )
+    time_provenance: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="legacy_unknown",
+        server_default="legacy_unknown",
+    )
+    is_gap: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
+    corrected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    correction_note: Mapped[str | None] = mapped_column(Text)
+
+    __table_args__ = (
+        CheckConstraint(
+            "(to_meaning_provenance != 'recorded' OR to_meaning IS NOT NULL) AND (from_meaning_provenance != 'recorded' OR from_status_id IS NULL OR from_meaning IS NOT NULL)",
+            name="ck_history_recorded_meaning",
+        ),
+        CheckConstraint(
+            "from_meaning IS NULL OR from_meaning IN ('unknown','applied','screening','interviewing','offer','accepted','rejected','withdrawn','no_reply')",
+            name="ck_history_from_meaning",
+        ),
+        CheckConstraint(
+            "to_meaning IS NULL OR to_meaning IN ('unknown','applied','screening','interviewing','offer','accepted','rejected','withdrawn','no_reply')",
+            name="ck_history_to_meaning",
+        ),
+        CheckConstraint(
+            "from_meaning_provenance IN ('recorded','legacy_unknown')",
+            name="ck_history_from_meaning_provenance",
+        ),
+        CheckConstraint(
+            "to_meaning_provenance IN ('recorded','legacy_unknown')",
+            name="ck_history_to_meaning_provenance",
+        ),
+        CheckConstraint(
+            "time_provenance IN ('recorded','legacy_unknown')",
+            name="ck_history_time_provenance",
+        ),
+        CheckConstraint(
+            "(is_gap AND from_status_id IS NULL AND to_status_id IS NULL AND from_meaning IS NULL AND to_meaning IS NULL AND note IS NULL AND corrected_at IS NULL AND correction_note IS NULL) OR (NOT is_gap AND to_status_id IS NOT NULL)",
+            name="ck_history_gap",
+        ),
+    )
 
     application = relationship("Application", back_populates="status_history")
     from_status = relationship("ApplicationStatus", foreign_keys=[from_status_id])
@@ -65,6 +125,57 @@ class Application(Base):
     status_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("application_statuses.id"), nullable=False
     )
+    status_meaning: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="unknown", server_default="unknown"
+    )
+    status_meaning_provenance: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="legacy_unknown",
+        server_default="legacy_unknown",
+    )
+    evidence_revision: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    response_state: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="legacy_unknown",
+        server_default="legacy_unknown",
+    )
+    response_occurred_on: Mapped[date | None] = mapped_column(Date)
+    response_recorded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    response_reference: Mapped[str | None] = mapped_column(Text)
+
+    __table_args__ = (
+        CheckConstraint(
+            "status_meaning IN ('unknown','applied','screening','interviewing','offer','accepted','rejected','withdrawn','no_reply')",
+            name="ck_application_status_meaning",
+        ),
+        CheckConstraint(
+            "status_meaning_provenance IN ('recorded','legacy_unknown')",
+            name="ck_application_status_meaning_provenance",
+        ),
+        CheckConstraint(
+            "evidence_revision >= 0", name="ck_application_evidence_revision"
+        ),
+        CheckConstraint(
+            "(response_state = 'recorded' AND response_recorded_at IS NOT NULL) OR (response_state IN ('not_recorded','legacy_unknown') AND response_occurred_on IS NULL AND response_recorded_at IS NULL AND response_reference IS NULL)",
+            name="ck_application_response",
+        ),
+    )
+
+    cv_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cover_letter_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Latest application-scope grounded report. Not a historical snapshot; the
+    # source fingerprint marks it stale when relevant evidence changes.
+    report_generation: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    report: Mapped[dict | None] = mapped_column(JSON(none_as_null=True), nullable=True)
+    report_reason: Mapped[str | None] = mapped_column(String(100), nullable=True)
     cv_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     cv_original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     cover_letter_path: Mapped[str | None] = mapped_column(String(500), nullable=True)

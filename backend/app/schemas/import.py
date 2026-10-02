@@ -1,8 +1,9 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.round import MediaType
+from app.schemas.evidence import ApplicationEvidence, HistoryEvidence
 
 
 class CustomStatusSchema(BaseModel):
@@ -108,6 +109,25 @@ class UserSchema(BaseModel):
 
 
 class ImportDataSchema(BaseModel):
+    @model_validator(mode="before")
+    @classmethod
+    def reject_unversioned_evidence(cls, data):
+        for model, records in (
+            ({"meaning"}, data.get("custom_statuses", [])),
+            (set(ApplicationEvidence.model_fields), data.get("applications", [])),
+            (
+                set(HistoryEvidence.model_fields),
+                [
+                    h
+                    for a in data.get("applications", [])
+                    for h in a.get("status_history", [])
+                ],
+            ),
+        ):
+            if any(model.intersection(row) for row in records):
+                raise ValueError("Evidence fields require format_version 2.0.0")
+        return data
+
     user: UserSchema
     custom_statuses: list[CustomStatusSchema] = []
     custom_round_types: list[CustomRoundTypeSchema] = []

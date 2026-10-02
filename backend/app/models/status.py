@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Boolean, ForeignKey, Index, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.core.database import Base
@@ -15,6 +15,17 @@ class ApplicationStatus(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
+    meaning: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="unknown", server_default="unknown"
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "meaning IN ('unknown','applied','screening','interviewing','offer','accepted','rejected','withdrawn','no_reply')",
+            name="ck_status_meaning",
+        ),
+    )
+
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     normalized_name: Mapped[str] = mapped_column(String(100), nullable=False)
     color: Mapped[str] = mapped_column(String(7), default="#83a598")

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import type {
@@ -10,45 +10,49 @@ import { useInterviewRoundsAnalytics } from '@/hooks/useAnalyticsData';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
+import HelpTip from '@/components/HelpTip';
 
 const EMPTY_TIMELINE_DATA: TimelineData[] = [];
+
+function formatDuration(days: number) {
+  if (days > 0 && days < 1 / 24) {
+    const minutes = days * 1440;
+    return minutes < 1 ? '<1 min' : `${Math.round(minutes)} min`;
+  }
+  return days > 0 && days < 1
+    ? `${(days * 24).toFixed(1)} h`
+    : `${days.toFixed(1)} d`;
+}
 
 interface InterviewTimelineProps {
   period?: string;
   roundType?: string;
+  asOf?: string;
 }
 
 export default function InterviewTimeline({
   period = 'all',
   roundType,
+  asOf,
 }: InterviewTimelineProps) {
   const {
     data: analytics,
     isLoading,
     isError,
-  } = useInterviewRoundsAnalytics(period, roundType);
+  } = useInterviewRoundsAnalytics(period, roundType, asOf);
   const data: TimelineData[] = analytics?.timeline_data ?? EMPTY_TIMELINE_DATA;
   const colors = useThemeColors();
-
-  const getSpeedInfo = useCallback(
-    (avgDays: number): { label: string; color: string } => {
-      if (avgDays <= 3) {
-        return { label: 'Fast', color: colors.green };
-      } else if (avgDays <= 7) {
-        return { label: 'Normal', color: colors.aqua };
-      } else {
-        return { label: 'Slow', color: colors.orange };
-      }
-    },
-    [colors.aqua, colors.green, colors.orange]
-  );
 
   const option: EChartsOption = useMemo(() => {
     if (data.length === 0) return {};
 
     // Calculate max value for proper scaling
-    const maxValue = Math.max(...data.map((d) => d.avg_days));
-    const xAxisMax = Math.max(maxValue * 1.2, 10); // Ensure at least 10 days range
+    const days = data.map((d) =>
+      d.avg_hours != null ? d.avg_hours / 24 : d.avg_days
+    );
+    const maxValue = Math.max(...days);
+    // Round the axis end up to a half day so labels stay readable.
+    const xAxisMax = maxValue > 0 ? Math.ceil(maxValue * 1.2 * 2) / 2 : 1;
 
     return {
       tooltip: {
@@ -59,40 +63,34 @@ export default function InterviewTimeline({
         borderWidth: 1,
         borderRadius: 4,
         textStyle: { color: colors.fg0 },
+        renderMode: 'richText',
         formatter: (params: TopLevelFormatterParams) => {
           const param = (params as CallbackDataParams[])[0];
-          const value = param.value as number;
-          const speedInfo = getSpeedInfo(value);
-          return `
-            <div style="padding: 0.25rem 0;">
-              <div style="font-weight: 600; margin-bottom: 4px;">${param.name}</div>
-              <div>Average: <span style="color: ${colors.aquaBright}; font-weight: 600;">${value.toFixed(1)}</span> days</div>
-              <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid ${colors.bg2};">
-                <span style="color: ${speedInfo.color};">●</span> ${speedInfo.label} process
-                ${value > 7 ? `<br/><span style="color: ${colors.orange}; font-size: 0.6875rem;">⚠ Exceeds 7-day target</span>` : ''}
-              </div>
-            </div>
-          `;
+          return `${param.name}: ${formatDuration(param.value as number)} elapsed scheduled-to-completed`;
         },
       },
       grid: {
         left: '3%',
         right: '8%',
-        bottom: '10%',
+        bottom: 65,
         top: '5%',
         containLabel: true,
       },
       xAxis: {
         type: 'value',
-        name: 'Days Between Rounds',
+        name: 'Scheduled-to-completed days',
+        nameLocation: 'middle',
         nameTextStyle: {
           color: colors.fg4,
           fontSize: 12,
           padding: [0, 0, 0, 0],
         },
-        nameGap: 5,
+        nameGap: 35,
         max: xAxisMax,
-        axisLabel: { color: colors.fg4 },
+        axisLabel: {
+          color: colors.fg4,
+          formatter: (value: number) => String(Number(value.toFixed(2))),
+        },
         axisLine: { lineStyle: { color: colors.bg2 } },
         splitLine: {
           lineStyle: {
@@ -113,12 +111,9 @@ export default function InterviewTimeline({
       series: [
         {
           type: 'bar',
-          data: data.map((d) => d.avg_days),
+          data: days,
           itemStyle: {
-            color: (params: CallbackDataParams) => {
-              const value = params.value as number;
-              return getSpeedInfo(value).color;
-            },
+            color: colors.aqua,
             borderRadius: [0, 4, 4, 0],
           },
           label: {
@@ -126,22 +121,9 @@ export default function InterviewTimeline({
             position: 'right',
             formatter: (params: CallbackDataParams) => {
               const value = params.value as number;
-              const speedInfo = getSpeedInfo(value);
-              return `{value|${value.toFixed(1)}d} {speed|${speedInfo.label}}`;
+              return formatDuration(value);
             },
             color: colors.fg1,
-            rich: {
-              value: {
-                fontSize: 14,
-                fontWeight: 600,
-                color: colors.fg0,
-              },
-              speed: {
-                fontSize: 11,
-                fontWeight: 500,
-                padding: [0, 0, 0, 8],
-              },
-            },
           },
           barWidth: '60%',
           emphasis: {
@@ -151,35 +133,9 @@ export default function InterviewTimeline({
             },
           },
         },
-        // Benchmark line at 7 days
-        {
-          type: 'line',
-          markLine: {
-            silent: true,
-            symbol: 'none',
-            data: [
-              {
-                xAxis: 7,
-                lineStyle: {
-                  color: colors.orange,
-                  type: 'solid',
-                  width: 2,
-                },
-                label: {
-                  show: true,
-                  position: 'end',
-                  formatter: '7d Target',
-                  color: colors.orange,
-                  fontSize: 11,
-                  fontWeight: 500,
-                },
-              },
-            ],
-          },
-        },
       ],
     };
-  }, [data, colors, getSpeedInfo]);
+  }, [data, colors]);
 
   if (isLoading) {
     return <Loading message="Loading interview timeline..." size="sm" />;
@@ -193,35 +149,35 @@ export default function InterviewTimeline({
     );
   }
 
-  if (data.length === 0) {
-    return (
-      <EmptyState
-        message="No interview timeline data available"
-        subMessage="Completed interview rounds with dates will appear here"
-        icon="bi-clock-history"
-      />
-    );
-  }
-
   return (
     <div className="w-full">
       {/* Description */}
-      <p className="text-fg4 mb-4 text-sm">
-        Average number of days between interview rounds. Color indicates process
-        speed:
-        <span className="text-green ml-1">● Fast (≤3 days)</span>,
-        <span className="text-aqua mx-1">● Normal (4-7 days)</span>,
-        <span className="text-orange mx-1">● Slow (8+ days)</span>
+      <p className="text-fg4 mb-4 flex items-center gap-2 text-sm">
+        Interview duration
+        <HelpTip label="About interview duration">
+          <p>
+            Average days from the scheduled interview to its recorded
+            completion.
+          </p>
+        </HelpTip>
       </p>
 
       {/* Chart */}
-      <div className="w-full overflow-x-auto">
-        <ReactECharts
-          option={option}
-          style={{ width: '100%', height: '31.25rem' }}
-          opts={{ renderer: 'svg' }}
+      {data.length === 0 ? (
+        <EmptyState
+          message="No measured interview durations available"
+          subMessage="Completed interview rounds with dates will appear here"
+          icon="bi-clock-history"
         />
-      </div>
+      ) : (
+        <div className="w-full overflow-x-auto">
+          <ReactECharts
+            option={option}
+            style={{ width: '100%', height: '31.25rem' }}
+            opts={{ renderer: 'svg' }}
+          />
+        </div>
+      )}
     </div>
   );
 }

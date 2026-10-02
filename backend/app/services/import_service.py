@@ -1,32 +1,35 @@
 """Import service using introspective deserialization."""
 
-from datetime import date, datetime
+import math
+import re
+from datetime import UTC, date, datetime
 from typing import Any
 from uuid import uuid4
 
+from pydantic import TypeAdapter, ValidationError
 from sqlalchemy import Date, DateTime, inspect, select
 from sqlalchemy.orm import Mapper, Session
 
 from app.core.reference_names import normalize_reference_name, normalized_reference_name
 from app.models.round_type import RoundType
 from app.models.status import ApplicationStatus
+from app.models.user import User
+from app.schemas.evidence import (
+    ApplicationEvidence,
+    HistoryArchiveEvidence,
+    HistoryEvidence,
+    Meaning,
+)
+from app.schemas.job_lead import JobLeadCaptureArchive
+from app.schemas.transcript import CurrentTranscript
 from app.services.export_registry import ExportRegistry
 from app.services.import_id_mapper import IDMapper
 
 # User-facing error messages
 ERROR_MESSAGES = {
-    "invalid_zip": "The file is not a valid ZIP archive.",
-    "missing_manifest": "Export file is missing manifest.json. Please use a valid Tarnished export.",
-    "missing_data": "Export file is missing data.json. Please use a valid Tarnished export.",
     "version_mismatch": "This export is from version {export_version}, which is not compatible with your current version ({current_version}).",
-    "checksum_mismatch": "File integrity check failed. The export may be corrupted.",
-    "path_traversal": "Security error: Invalid file path detected in export.",
-    "zip_bomb": "Security error: Suspicious compression ratio detected.",
-    "file_too_large": "A file in the export exceeds the maximum allowed size.",
     "missing_file": "Expected file not found in export: {filename}",
-    "invalid_mime": "File type not allowed: {detected_type}",
     "fk_integrity": "Data integrity error: A reference could not be resolved.",
-    "import_partial": "Import was partially completed but encountered errors. Please try again.",
     "invalid_format": "Invalid export format: {detail}",
 }
 
@@ -38,7 +41,9 @@ class ImportService:
     Handles ID remapping for foreign key relationships.
     """
 
-    SUPPORTED_VERSION = "1.0.0"
+    SUPPORTED_VERSION = "2.0.0"
+    # Imported reports are restored as evidence, never as fresh verified output.
+    IMPORTED_REPORT_REASON = "Imported report is unverified and stale; explicitly rerun against restored sources"
     RELATIONSHIP_PREFIX = "__rel__"
     DEFERRED_FOREIGN_KEY_FIELDS = {
         "Application": {"job_lead_id"},
@@ -49,6 +54,22 @@ class ImportService:
             "description": "job_description",
         }
     }
+
+    # Fields of the owner's own profile that this archive restores. Account and
+    # credential state (id/user_id/password/session) is never transferable.
+    PROFILE_RESTORE_FIELDS = (
+        "first_name",
+        "last_name",
+        "email",
+        "phone",
+        "location",
+        "linkedin_url",
+        "authorized_to_work",
+        "requires_sponsorship",
+        "work_history",
+        "education",
+        "skills",
+    )
 
     def __init__(self, registry: ExportRegistry, id_mapper: IDMapper):
         """
@@ -77,7 +98,7 @@ class ImportService:
                 detail="missing format_version field"
             )
 
-        if data["format_version"] != self.SUPPORTED_VERSION:
+        if data["format_version"] not in ("1.0.0", self.SUPPORTED_VERSION):
             return False, ERROR_MESSAGES["version_mismatch"].format(
                 export_version=data["format_version"],
                 current_version=self.SUPPORTED_VERSION,
@@ -93,7 +114,71 @@ class ImportService:
                 detail="models field must be a dictionary"
             )
 
+        try:
+            from app.services.interview_archive import validate_interview_archive
+
+            validate_interview_archive(data["models"])
+            for row in data["models"].get("Round", []):
+                if row.get("current_transcript") is not None:
+                    try:
+                        CurrentTranscript.model_validate(row["current_transcript"])
+                    except ValidationError:
+                        raise ValueError(
+                            "Invalid normalized transcript metadata"
+                        ) from None
+                generation = row.get("transcript_generation", 0)
+                if type(generation) is not int or generation < 0:
+                    raise ValueError("Invalid transcript generation")
+            for media in data["models"].get("RoundMedia", []):
+                digest, size, duration = (
+                    media.get(k)
+                    for k in ("sha256", "byte_count", "probed_duration_seconds")
+                )
+                if any(v is not None for v in (digest, size, duration)) and (
+                    not isinstance(digest, str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", digest)
+                    or type(size) is not int
+                    or not 0 < size <= 1_000_000_000
+                    or type(duration) not in (int, float)
+                    or not math.isfinite(duration)
+                    or not 0 < duration <= 7200
+                ):
+                    raise ValueError("Invalid recording archive metadata")
+                if media.get("validation") not in (
+                    None,
+                    "audio_decode_check",
+                    "imported_unverified",
+                ):
+                    raise ValueError("Invalid recording archive validation state")
+            for lead in data["models"].get("JobLead", []):
+                JobLeadCaptureArchive.model_validate(lead)
+            for name, fields in self.EVIDENCE_FIELDS.items():
+                records = data["models"].get(name, [])
+                if not isinstance(records, list) or any(
+                    not isinstance(row, dict) for row in records
+                ):
+                    raise ValueError(f"{name} must contain record objects")
+                for row in records:
+                    if data["format_version"] == "1.0.0":
+                        if fields.intersection(row):
+                            raise ValueError(
+                                "Evidence fields require format_version 2.0.0"
+                            )
+                    elif name == "Application":
+                        ApplicationEvidence.model_validate(row)
+                    elif name == "ApplicationStatusHistory":
+                        HistoryArchiveEvidence.model_validate(row)
+                    else:
+                        TypeAdapter(Meaning).validate_python(row["meaning"])
+        except (ValueError, KeyError, ValidationError) as exc:
+            return False, ERROR_MESSAGES["invalid_format"].format(detail=str(exc))
         return True, None
+
+    EVIDENCE_FIELDS = {
+        "ApplicationStatus": {"meaning"},
+        "Application": set(ApplicationEvidence.model_fields),
+        "ApplicationStatusHistory": set(HistoryEvidence.model_fields),
+    }
 
     def import_user_data(
         self,
@@ -125,6 +210,7 @@ class ImportService:
             raise ValueError(f"Invalid export data: {error}")
 
         self._deferred_foreign_keys = []
+        self._interview_segment_ids = {}
         counts: dict[str, int] = {}
         # Process models in order (parents before children)
         for exportable_model in self.registry.get_models():
@@ -135,8 +221,15 @@ class ImportService:
             if model_name == "User":
                 continue
 
-            # Skip UserProfile - personal settings are not transferable
+            # The owner's profile is personal data and restores with an explicit
+            # allowlist; account/credential state is never transferable.
             if model_name == "UserProfile":
+                imported = 0
+                for record_data in export_data["models"].get(model_name, []):
+                    if self._import_profile(record_data, user_id, session):
+                        imported += 1
+                if imported:
+                    counts[model_name] = imported
                 continue
 
             if model_name not in export_data["models"]:
@@ -167,6 +260,70 @@ class ImportService:
             counts[model_name] = imported
 
         self._resolve_deferred_foreign_keys(session)
+        # JSON provenance is not a SQL FK: remap only to this archive's imported
+        # media in the same round. Archives never restore jobs or actor authority.
+        from app.models import Application, Round, RoundMedia
+
+        for record in export_data["models"].get("Round", []):
+            transcript = record.get("current_transcript")
+            if not transcript or transcript.get("provenance") != "media":
+                continue
+            round = session.get(Round, self.id_mapper.get("Round", record["id"]))
+            media_id = self.id_mapper.get("RoundMedia", transcript["source_media_id"])
+            media = session.get(RoundMedia, media_id) if media_id else None
+            if (
+                round is None
+                or media is None
+                or media.round_id != round.id
+                or media.sha256 != transcript["source_hash"]
+            ):
+                raise ValueError(
+                    "Recording transcript source is missing or inconsistent"
+                )
+            round.current_transcript = {
+                **round.current_transcript,
+                "source_media_id": media.id,
+                "coverage": "imported_audio",
+            }
+        from app.services.interview_archive import remap_report
+
+        # Latest reports for every scope restore as unverified, stale evidence
+        # (never authority). Report content is remapped to imported identities.
+        for record in export_data["models"].get("Round", []):
+            if record.get("interview_report") is not None:
+                restored = session.get(Round, self.id_mapper.get("Round", record["id"]))
+                if restored is None:
+                    raise ValueError(ERROR_MESSAGES["fk_integrity"])
+                restored.interview_report = remap_report(
+                    record["interview_report"],
+                    self.id_mapper,
+                    self._interview_segment_ids,
+                    original_round_id=record["id"],
+                )
+                restored.interview_report_reason = self.IMPORTED_REPORT_REASON
+        for record in export_data["models"].get("Application", []):
+            if record.get("report") is not None:
+                restored_app = session.get(
+                    Application, self.id_mapper.get("Application", record["id"])
+                )
+                if restored_app is None:
+                    raise ValueError(ERROR_MESSAGES["fk_integrity"])
+                restored_app.report = remap_report(
+                    record["report"], self.id_mapper, self._interview_segment_ids
+                )
+                restored_app.report_reason = self.IMPORTED_REPORT_REASON
+        for record in export_data["models"].get("User", []):
+            if record.get("pipeline_report") is not None:
+                restored_user = session.get(User, user_id)
+                if restored_user is None:
+                    raise ValueError(ERROR_MESSAGES["fk_integrity"])
+                restored_user.pipeline_report = remap_report(
+                    record["pipeline_report"],
+                    self.id_mapper,
+                    self._interview_segment_ids,
+                )
+                restored_user.pipeline_report_reason = self.IMPORTED_REPORT_REASON
+        session.flush()
 
         fk_errors = self.validate_fk_integrity(export_data, user_id, session)
         if fk_errors:
@@ -178,6 +335,40 @@ class ImportService:
             )
 
         return {"counts": counts, "warnings": []}
+
+    def _import_profile(
+        self,
+        record_data: dict[str, Any],
+        user_id: str,
+        session: Session,
+    ) -> Any:
+        """Restore the owner's own profile from the explicit allowlist only.
+
+        The imported archive is evidence, not authority: the importing owner's
+        identity is used, never the archived id/user_id.
+        """
+        from app.models.user_profile import UserProfile
+
+        profile = session.execute(
+            select(UserProfile).where(UserProfile.user_id == user_id)
+        ).scalar_one_or_none()
+        if profile is None:
+            profile = UserProfile(user_id=user_id)
+            session.add(profile)
+        for field in self.PROFILE_RESTORE_FIELDS:
+            if field not in record_data:
+                continue
+            column = self._get_column_info(UserProfile).get(field)
+            if column is None:
+                continue
+            profile.__setattr__(
+                field, self._deserialize_value(record_data[field], column)
+            )
+        session.flush()
+        original_id = record_data.get("__original_id__")
+        if original_id:
+            self.id_mapper.add("UserProfile", original_id, profile.id)
+        return profile
 
     def _get_column_info(self, model_class: type) -> dict[str, Any]:
         """
@@ -334,6 +525,27 @@ class ImportService:
             if key.startswith(self.RELATIONSHIP_PREFIX):
                 continue
 
+            # Private new columns never become import authority through introspection.
+            from app.services.export_serializer import EXPORT_FIELDS
+
+            if (
+                model_class.__name__ in EXPORT_FIELDS
+                and key not in EXPORT_FIELDS[model_class.__name__]
+                and key not in self.LEGACY_COLUMN_ALIASES.get(model_class.__name__, {})
+            ):
+                continue
+            if model_class.__name__ == "Round" and key.startswith("interview_"):
+                continue
+            # Latest reports are restored only through the explicit remap path
+            # below, never as raw archived JSON with un-remapped identities.
+            if key in (
+                "report",
+                "report_reason",
+                "pipeline_report",
+                "pipeline_report_reason",
+            ):
+                continue
+
             # Only include fields that are actual columns on the model
             target_key = key
             alias_target = self.LEGACY_COLUMN_ALIASES.get(model_class.__name__, {}).get(
@@ -362,16 +574,15 @@ class ImportService:
                 )
                 continue
 
-            # Remap file paths using file_mapping
-            if target_key in self.FILE_PATH_FIELDS and value and file_mapping:
-                # Try to find a matching path in the file mapping
-                # The export stores paths like "uploads/abc123.pdf" in data.json
-                # but file_mapping keys are ZIP paths like "applications/.../resume.pdf"
-                # We need to find the mapping by checking if the value matches
-                # what's in the export (which has the original CAS path)
-                remapped = self._remap_file_path(value, file_mapping)
-                if remapped:
-                    value = remapped
+            # Only files supplied by this import establish an attachment reference.
+            # A path inside the shared upload root is not proof of ownership.
+            if target_key in self.FILE_PATH_FIELDS and value:
+                remapped = self._remap_file_path(value, file_mapping or {})
+                if not remapped:
+                    raise ValueError(
+                        ERROR_MESSAGES["missing_file"].format(filename=value)
+                    )
+                value = remapped
 
             # Remap foreign keys if this looks like an FK field
             if target_key.endswith("_id") and target_key != "id":
@@ -381,9 +592,35 @@ class ImportService:
                     new_value = self.id_mapper.get(ref_model, value)
                     if new_value:
                         value = new_value
+                    elif ref_model in ("ApplicationStatus", "RoundType"):
+                        reference_class = (
+                            ApplicationStatus
+                            if ref_model == "ApplicationStatus"
+                            else RoundType
+                        )
+                        reference = session.get(reference_class, value)
+                        if reference is None or reference.user_id not in (
+                            None,
+                            user_id,
+                        ):
+                            raise ValueError(
+                                "Reference is not visible to importing owner"
+                            )
+                    elif target_key != "user_id":
+                        raise ValueError("Reference must belong to this archive")
 
             # Deserialize value based on column type
             value = self._deserialize_value(value, columns[target_key])
+            if target_key in {
+                "changed_at",
+                "corrected_at",
+                "response_recorded_at",
+            } and isinstance(value, datetime):
+                value = (
+                    value.replace(tzinfo=UTC)
+                    if value.tzinfo is None
+                    else value.astimezone(UTC)
+                )
 
             new_data[target_key] = value
 
@@ -393,6 +630,41 @@ class ImportService:
         # Set user_id if model has it
         if "user_id" in columns:
             new_data["user_id"] = user_id
+
+        if model_class.__name__ == "JobLead":
+            new_data.update(JobLeadCaptureArchive.model_validate(new_data).model_dump())
+            # Imported state is evidence, never authority to run/publish work.
+            new_data["processing_started_at"] = None
+            if new_data.get("status") == "processing":
+                new_data["status"] = "pending"
+                new_data["error_message"] = (
+                    "Imported interrupted processing. No work is running; explicit retry may repeat billed work."
+                )
+
+        if model_class.__name__ == "Round":
+            transcript = new_data.get("current_transcript")
+            if transcript is not None:
+                transcript = CurrentTranscript.model_validate(transcript).model_dump()
+                transcript["id"] = str(uuid4())
+                transcript["revision"] = 1
+                for segment in transcript["segments"]:
+                    old_segment_id = segment["id"]
+                    segment["id"] = str(uuid4())
+                    if not hasattr(self, "_interview_segment_ids"):
+                        self._interview_segment_ids = {}
+                    self._interview_segment_ids[(original_id, old_segment_id)] = (
+                        segment["id"]
+                    )
+                new_data["current_transcript"] = transcript
+            new_data["transcript_generation"] = 1 if transcript else 0
+            new_data["interview_generation"] = 0
+            new_data["interview_report"] = None
+            new_data["interview_report_reason"] = None
+
+        if model_class.__name__ == "RoundMedia":
+            # Archive claims are not a local decoder result. A later explicit
+            # processing request must validate these bytes before dispatch.
+            new_data["validation"] = "imported_unverified"
 
         # Create instance
         instance = model_class(**new_data)
@@ -472,6 +744,7 @@ class ImportService:
         """
         Import an ApplicationStatus with merging by name.
 
+        Reject owned-definition meaning conflicts before matching globals.
         Lookup order:
         1. Global status (user_id=None) - system defaults
         2. User's existing custom status
@@ -494,18 +767,29 @@ class ImportService:
             ApplicationStatus.normalized_name == normalized_reference_name(status_name),
         )
         global_status = session.execute(stmt).scalar_one_or_none()
-        if global_status:
-            # Map original ID to global status ID
-            if original_id:
-                self.id_mapper.add("ApplicationStatus", original_id, global_status.id)
-            return global_status
+        global_matches = global_status is not None and (
+            "meaning" not in status_data
+            or global_status.meaning == status_data["meaning"]
+        )
 
-        # 2. Check for user's existing custom status (SQLAlchemy 2.0 style)
+        # 2. Check owned conflicts even when a same-name global matches.
         stmt = select(ApplicationStatus).where(
             ApplicationStatus.user_id == user_id,
             ApplicationStatus.normalized_name == normalized_reference_name(status_name),
         )
         existing_status = session.execute(stmt).scalar_one_or_none()
+        if (
+            existing_status is not None
+            and "meaning" in status_data
+            and existing_status.meaning != status_data["meaning"]
+            and (status_data.get("user_id") is not None or not global_matches)
+        ):
+            raise ValueError(f"Status meaning conflict: {status_name}")
+        # Archived global references may still map to their matching global.
+        if global_matches and global_status is not None:
+            if original_id:
+                self.id_mapper.add("ApplicationStatus", original_id, global_status.id)
+            return global_status
         if existing_status:
             if original_id:
                 self.id_mapper.add("ApplicationStatus", original_id, existing_status.id)
@@ -527,6 +811,7 @@ class ImportService:
 
         # Set user_id AFTER the loop (consistent with _import_record)
         new_data["user_id"] = user_id
+        new_data["is_default"] = False
         new_data["id"] = str(uuid4())
         instance = ApplicationStatus(**new_data)
         session.add(instance)
@@ -627,11 +912,7 @@ class ImportService:
         errors: list[str] = []
         models = export_data.get("models", {})
 
-        # NOTE: We skip FK validation for ApplicationStatus and RoundType because
-        # these are merged by name during import. If an export doesn't include global
-        # statuses, the status_id won't be mapped, but _import_record will try to
-        # remap it. If it still fails, the database FK constraint will catch it.
-        # This allows old exports (without global statuses) to work.
+        # Statuses and round types are merged by name before database FK checks.
 
         # Check Rounds for valid application_id (critical - must be mapped)
         for rnd in models.get("Round", []):

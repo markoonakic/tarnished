@@ -1,23 +1,20 @@
-import { getSettings } from './storage';
+import { getSettings, type Settings } from './storage';
 import { buildUrl } from './url';
-import { debug, warn } from './logger';
-import {
-  AuthFailedError,
-  AlreadySavedError,
-  TimeoutErrorCode,
-  NetworkErrorCode,
-  parseBackendError,
-  ExtensionError,
-} from './errors';
-
-export { ExtensionError };
+import { warn } from './logger';
+import { extractDuplicateResourceId } from './error-mapping';
+import { NoSettingsError, parseBackendError, ExtensionError } from './errors';
 
 export interface JobLeadResponse {
   id: string;
   title: string | null;
   company: string | null;
   url: string;
-  status: 'pending' | 'extracted' | 'failed';
+  status: 'pending' | 'processing' | 'extracted' | 'failed' | 'converted';
+  revision: number;
+  source_text: string | null;
+  source_truncated: boolean;
+  content_warning: string | null;
+  converted_to_application_id: string | null;
   location?: string | null;
   salary_min?: number | null;
   salary_max?: number | null;
@@ -27,14 +24,19 @@ export interface JobLeadResponse {
   error_message?: string | null;
 }
 
+export type JobLeadListItem = Omit<
+  JobLeadResponse,
+  'revision' | 'source_text' | 'source_truncated' | 'content_warning'
+>;
+
 export interface JobLeadListResponse {
-  items: JobLeadResponse[];
+  items: JobLeadListItem[];
   total: number;
   page: number;
   per_page: number;
 }
 
-export interface StatusResponse {
+interface StatusResponse {
   id: string;
   name: string;
   color: string;
@@ -71,17 +73,13 @@ export interface ApplicationListResponse {
   per_page: number;
 }
 
-export interface ApiError {
+interface ApiError {
+  id?: string;
   message: string;
   status: number;
   detail?: string;
   code?: string;
   action?: string;
-}
-
-export interface Settings {
-  appUrl: string;
-  apiKey: string;
 }
 
 export interface UserProfileResponse {
@@ -94,20 +92,13 @@ export interface UserProfileResponse {
   linkedin_url: string | null;
 }
 
-export interface ApplicationExtractRequest {
-  url: string;
-  status_id: string;
-  applied_at?: string;
-  text?: string;
-}
-
-export const MAX_TEXT_SIZE = 100_000;
-export const REQUEST_TIMEOUT_MS = 30_000;
+const MAX_TEXT_SIZE = 100_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 export const API_ENDPOINTS = {
   JOB_LEADS: '/api/job-leads',
   PROFILE: '/api/profile',
   APPLICATIONS: '/api/applications',
-  STATUSES: '/api/statuses',
+  USER_SETTINGS: '/api/users/settings',
 } as const;
 
 export class ApiClientError extends Error {
@@ -126,9 +117,6 @@ export class AuthenticationError extends ApiClientError {
     super(message, 401);
     this.name = 'AuthenticationError';
   }
-  toExtensionError(): AuthFailedError {
-    return new AuthFailedError({ cause: this });
-  }
 }
 
 export class DuplicateLeadError extends ApiClientError {
@@ -138,9 +126,6 @@ export class DuplicateLeadError extends ApiClientError {
     this.name = 'DuplicateLeadError';
     this.existingId = existingId;
   }
-  toExtensionError(): AlreadySavedError {
-    return new AlreadySavedError(this.existingId, { cause: this });
-  }
 }
 
 export class TimeoutError extends ApiClientError {
@@ -148,40 +133,29 @@ export class TimeoutError extends ApiClientError {
     super(message, 408);
     this.name = 'TimeoutError';
   }
-  toExtensionError(): TimeoutErrorCode {
-    return new TimeoutErrorCode({ cause: this });
-  }
 }
 
-export class NetworkError extends ApiClientError {
+class NetworkError extends ApiClientError {
   constructor(
     message: string = 'Network error. Please check your connection.'
   ) {
     super(message, 0);
     this.name = 'NetworkError';
   }
-  toExtensionError(): NetworkErrorCode {
-    return new NetworkErrorCode({ cause: this });
-  }
 }
 
-export class ServerError extends ApiClientError {
+class ServerError extends ApiClientError {
   constructor(message: string, status: number) {
     super(message, status);
     this.name = 'ServerError';
   }
-  toExtensionError(): NetworkErrorCode {
-    return new NetworkErrorCode({ cause: this });
-  }
 }
 
-export async function getConfiguredSettings(): Promise<Settings> {
-  const settings = (await getSettings()) as Settings;
+async function getConfiguredSettings(): Promise<Settings> {
+  const settings = await getSettings();
   const { appUrl, apiKey } = settings;
   if (!appUrl || !apiKey) {
-    throw new AuthenticationError(
-      'App URL or API key not configured. Please check your extension settings.'
-    );
+    throw new NoSettingsError();
   }
   return settings;
 }
@@ -197,7 +171,7 @@ export function truncateText(text: string): string {
   return text;
 }
 
-export function createTimeoutController(): {
+function createTimeoutController(): {
   controller: AbortController;
   timeoutId: number;
 } {
@@ -209,65 +183,51 @@ export function createTimeoutController(): {
   return { controller, timeoutId };
 }
 
-export async function parseErrorResponse(
-  response: Response
-): Promise<ApiError> {
-  let detail: string | undefined;
-  let message = `Request failed with status ${response.status}`;
-  let code: string | undefined;
-  let action: string | undefined;
-
+async function parseErrorResponse(response: Response): Promise<ApiError> {
+  const fallback = `Request failed with status ${response.status}`;
   try {
     const body = await response.json();
-    debug('API', 'Raw error body:', JSON.stringify(body, null, 2));
-    if (body.detail && typeof body.detail === 'object') {
-      code = body.detail.code;
-      message = body.detail.message || message;
-      detail = body.detail.detail;
-      action = body.detail.action;
-      debug(
-        'API',
-        'Parsed structured error - code:',
-        code,
-        'message:',
-        message
-      );
-    } else {
-      message = body.message || body.detail || message;
-      detail = typeof body.detail === 'string' ? body.detail : undefined;
-      debug('API', 'Parsed legacy error - message:', message);
+    const detail = body?.detail;
+    if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+      return {
+        status: response.status,
+        message: typeof detail.message === 'string' ? detail.message : fallback,
+        id: typeof detail.id === 'string' ? detail.id : undefined,
+        code: typeof detail.code === 'string' ? detail.code : undefined,
+        detail: typeof detail.detail === 'string' ? detail.detail : undefined,
+        action: typeof detail.action === 'string' ? detail.action : undefined,
+      };
     }
-  } catch (e) {
-    debug('API', 'Failed to parse error body:', e);
+    return {
+      status: response.status,
+      message:
+        typeof body?.message === 'string'
+          ? body.message
+          : typeof detail === 'string'
+            ? detail
+            : fallback,
+    };
+  } catch {
+    return { status: response.status, message: fallback };
   }
-
-  return { message, status: response.status, detail, code, action };
 }
 
-export function handleFetchError(error: unknown): never {
+function handleFetchError(error: unknown): never {
   if (error instanceof ExtensionError) throw error;
   if (error instanceof ApiClientError) throw error;
-  if (error instanceof Error) {
+  if (error instanceof Error || error instanceof DOMException) {
     if (error.name === 'AbortError') throw new TimeoutError();
-    throw new NetworkError(error.message);
+    throw new NetworkError();
   }
   throw new NetworkError('An unexpected error occurred');
-}
-
-export function extractExistingId(message: string): string | undefined {
-  const match = message.match(/ID:\s*([a-f0-9-]+)/i);
-  return match ? match[1] : undefined;
 }
 
 export async function fetchJson<T>(
   path: string,
   init: RequestInit,
-  opts: { allowStructuredErrors?: boolean; requireAuth?: boolean } = {}
+  opts: { allowStructuredErrors?: boolean } = {}
 ): Promise<T> {
-  const settings =
-    opts.requireAuth === false
-      ? ((await getSettings()) as Settings)
-      : await getConfiguredSettings();
+  const settings = await getConfiguredSettings();
   const { appUrl, apiKey } = settings;
   const { controller, timeoutId } = createTimeoutController();
 
@@ -275,27 +235,37 @@ export async function fetchJson<T>(
     const response = await fetch(buildUrl(appUrl, path), {
       ...init,
       headers: {
-        ...(init.headers ?? {}),
-        ...(apiKey ? { 'X-API-Key': apiKey } : {}),
+        ...Object.fromEntries(new Headers(init.headers).entries()),
+        'x-api-key': apiKey,
       },
       signal: controller.signal,
+      redirect: 'error',
     });
 
     if (!response.ok) {
       const error = await parseErrorResponse(response);
+      if (response.status === 409 && error.code === 'DUPLICATE_RESOURCE') {
+        throw new DuplicateLeadError(
+          error.message,
+          error.id ??
+            extractDuplicateResourceId(error.detail ?? error.message) ??
+            undefined
+        );
+      }
       if (opts.allowStructuredErrors && error.code) {
-        throw parseBackendError({
+        const structured = parseBackendError({
           code: error.code,
           message: error.message,
           detail: error.detail,
           action: error.action,
         });
+        if (structured) throw structured;
       }
       switch (response.status) {
         case 401:
-          throw new AuthenticationError(error.detail);
+          throw new AuthenticationError(error.message);
         case 408:
-          throw new TimeoutError(error.detail);
+          throw new TimeoutError(error.message);
         default:
           if (response.status >= 500)
             throw new ServerError(error.message, response.status);
@@ -303,7 +273,17 @@ export async function fetchJson<T>(
       }
     }
 
-    return response.json() as Promise<T>;
+    try {
+      return (await response.json()) as T;
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        throw new ApiClientError(
+          'Server returned an invalid JSON response.',
+          response.status
+        );
+      }
+      throw error;
+    }
   } catch (error) {
     handleFetchError(error);
   } finally {

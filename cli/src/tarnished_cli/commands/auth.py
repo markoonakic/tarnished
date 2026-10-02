@@ -5,7 +5,7 @@ from tarnished_cli.auth_diagnostics import (
     build_auth_doctor_report,
     parse_live_identity,
 )
-from tarnished_cli.client import CLIError, TarnishedClient
+from tarnished_cli.client import CLIError, TarnishedClient, redact_credentials
 from tarnished_cli.output import emit_result, exit_for_error
 from tarnished_cli.state import get_state
 
@@ -49,7 +49,7 @@ def status(ctx: typer.Context) -> None:
         {
             "authenticated": bool(state.tokens.api_key),
             "has_api_key": bool(state.tokens.api_key),
-            "base_url": state.base_url,
+            "base_url": redact_credentials(state.base_url, state.tokens.api_key),
             "profile": state.profile,
         },
     )
@@ -123,20 +123,26 @@ def set_api_key(
     value: str = typer.Option(..., "--value", help="API key value to store locally."),
 ) -> None:
     state = get_state(ctx)
-    state.save_api_key(value)
-    emit_result(
-        state,
-        {"authenticated": True, "has_api_key": True, "profile": state.profile},
-        text="Stored API key",
-    )
+    try:
+        state.save_api_key(value)
+        emit_result(
+            state,
+            {"authenticated": True, "has_api_key": True, "profile": state.profile},
+            text="Stored API key",
+        )
+    except CLIError as exc:
+        exit_for_error(state, exc)
 
 
 @api_key_app.command("clear")
 def clear_api_key(ctx: typer.Context) -> None:
     state = get_state(ctx)
-    state.save_api_key(None)
-    emit_result(
-        state,
-        {"authenticated": False, "has_api_key": False, "profile": state.profile},
-        text="Cleared stored API key",
-    )
+    try:
+        state.clear_api_key()
+        emit_result(
+            state,
+            {"authenticated": False, "has_api_key": False, "profile": state.profile},
+            text="Cleared stored API key",
+        )
+    except CLIError as exc:
+        exit_for_error(state, exc)

@@ -1,4 +1,5 @@
 import api from './api';
+import { downloadFile } from './downloadFile';
 
 export interface ExportJobStatus {
   job_id: string;
@@ -43,31 +44,7 @@ export async function exportCSV(): Promise<void> {
   downloadBlob(response.data, 'applications.csv', 'text/csv');
 }
 
-export async function exportZIP(): Promise<void> {
-  const { job_id } = await startZIPExportJob();
-
-  while (true) {
-    const status = await getZIPExportJobStatus(job_id);
-    if (status.status === 'complete') {
-      await downloadZIPExportJob(job_id);
-      return;
-    }
-    if (status.status === 'failed') {
-      throw new Error(
-        status.message || status.error?.error || 'Failed to export data'
-      );
-    }
-    await new Promise((resolve) => window.setTimeout(resolve, 1000));
-  }
-}
-
 function downloadBlob(blob: Blob, filename: string, mimeType: string) {
   const url = window.URL.createObjectURL(new Blob([blob], { type: mimeType }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.setAttribute('download', filename);
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.URL.revokeObjectURL(url);
+  downloadFile(url, filename);
 }

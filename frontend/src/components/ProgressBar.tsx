@@ -9,7 +9,8 @@ export default function ProgressBar({
   fileName,
   showPercentage = true,
 }: Props) {
-  const isComplete = progress >= 100;
+  const percent = Math.max(0, Math.min(progress, 100));
+  const isComplete = percent === 100;
 
   return (
     <div>
@@ -21,16 +22,19 @@ export default function ProgressBar({
           className={`h-full transition-all duration-300 ${
             isComplete ? 'bg-green' : 'bg-accent'
           }`}
-          style={{ width: `${Math.min(progress, 100)}%` }}
+          style={{ width: `${percent}%` }}
           role="progressbar"
-          aria-valuenow={progress}
+          aria-label={
+            fileName ? `Progress for ${fileName}` : 'Transfer progress'
+          }
+          aria-valuenow={percent}
           aria-valuemin={0}
           aria-valuemax={100}
         />
       </div>
       {showPercentage && (
         <div className="text-muted mt-1 text-right text-xs">
-          {isComplete ? 'Upload complete' : `${Math.round(progress)}%`}
+          {Math.round(percent)}%
         </div>
       )}
     </div>

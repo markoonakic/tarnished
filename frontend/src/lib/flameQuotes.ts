@@ -1,8 +1,5 @@
 export type FlameStateKey =
-  | 'dormant'
-  | 'ember'
-  | 'extinguished'
-  | `burning-${number}`;
+  'dormant' | 'ember' | 'extinguished' | `burning-${number}`;
 
 interface QuotePools {
   dormant: string[];

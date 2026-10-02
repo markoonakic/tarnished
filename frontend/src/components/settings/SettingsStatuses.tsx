@@ -5,16 +5,34 @@ import {
   updateStatus,
   deleteStatus,
 } from '../../lib/settings';
-import type { Status } from '../../lib/types';
+import {
+  statusMeanings,
+  type Status,
+  type StatusMeaning,
+} from '../../lib/types';
 import { getDefaultNewStatusColor } from '../../lib/statusColors';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import Loading from '../Loading';
+import Dropdown from '../Dropdown';
 import { SettingsBackLink } from './SettingsLayout';
+
+const stageLabel = (meaning: StatusMeaning) =>
+  meaning === 'unknown'
+    ? 'Unclassified'
+    : meaning
+        .replaceAll('_', ' ')
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+const stageOptions = statusMeanings.map((meaning) => ({
+  value: meaning,
+  label: stageLabel(meaning),
+}));
 
 export default function SettingsStatuses() {
   const colors = useThemeColors();
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [newStatusName, setNewStatusName] = useState('');
+  const [newMeaning, setNewMeaning] = useState<StatusMeaning>('unknown');
+  const [editMeaning, setEditMeaning] = useState<StatusMeaning>('unknown');
   const [newStatusColor, setNewStatusColor] = useState(() =>
     getDefaultNewStatusColor(colors)
   );
@@ -39,7 +57,7 @@ export default function SettingsStatuses() {
     loadData();
   }, [loadData]);
 
-  // Update default new status color when theme changes (only if user hasn't started entering a name)
+  // Use the new theme color until the user starts a draft.
   useEffect(() => {
     if (!newStatusName) {
       setNewStatusColor(getDefaultNewStatusColor(colors));
@@ -51,7 +69,11 @@ export default function SettingsStatuses() {
     if (!newStatusName.trim()) return;
 
     try {
-      await createStatus({ name: newStatusName.trim(), color: newStatusColor });
+      await createStatus({
+        name: newStatusName.trim(),
+        color: newStatusColor,
+        meaning: newMeaning,
+      });
       setNewStatusName('');
       loadData();
     } catch {
@@ -63,6 +85,7 @@ export default function SettingsStatuses() {
     setEditingStatus(status);
     setEditStatusName(status.name);
     setEditStatusColor(status.color);
+    setEditMeaning(status.meaning);
   }
 
   async function handleUpdateStatus(e: React.FormEvent) {
@@ -73,6 +96,7 @@ export default function SettingsStatuses() {
       await updateStatus(editingStatus.id, {
         name: editStatusName.trim(),
         color: editStatusColor,
+        meaning: editMeaning,
       });
       setEditingStatus(null);
       loadData();
@@ -135,7 +159,14 @@ export default function SettingsStatuses() {
                       className="h-4 w-4 rounded"
                       style={{ backgroundColor: status.color }}
                     />
-                    <span className="text-fg1">{status.name}</span>
+                    <div className="min-w-0">
+                      <span className="text-fg1">{status.name}</span>
+                      {!status.is_default && (
+                        <p className="text-muted text-xs">
+                          Stage: {stageLabel(status.meaning)}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {status.is_default && (
@@ -170,53 +201,92 @@ export default function SettingsStatuses() {
                 className="bg-secondary mb-4 rounded p-3"
               >
                 <div className="text-muted mb-2 text-sm">Edit Status</div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="w-full sm:w-44">
+                    <label
+                      htmlFor="edit-status-stage"
+                      className="text-muted mb-1 block text-sm"
+                    >
+                      Stage
+                    </label>
+                    <Dropdown
+                      id="edit-status-stage"
+                      options={stageOptions}
+                      value={editMeaning}
+                      onChange={(value) =>
+                        setEditMeaning(value as StatusMeaning)
+                      }
+                      containerBackground="bg1"
+                    />
+                  </div>
                   <input
                     type="text"
                     value={editStatusName}
                     onChange={(e) => setEditStatusName(e.target.value)}
                     placeholder="Status name"
-                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                    aria-label="Status name"
+                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright h-10 min-w-0 flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
                   <input
                     type="color"
+                    aria-label="Status color"
                     value={editStatusColor}
                     onChange={(e) => setEditStatusColor(e.target.value)}
                     className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"
                   />
                   <button
                     type="submit"
-                    className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
+                    className="bg-accent text-bg0 hover:bg-accent-bright h-10 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                   >
                     Save
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingStatus(null)}
-                    className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out"
+                    className="text-fg1 hover:bg-bg2 hover:text-fg0 h-10 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out"
                   >
                     Cancel
                   </button>
                 </div>
               </form>
             ) : (
-              <form onSubmit={handleAddStatus} className="flex gap-2">
+              <form
+                onSubmit={handleAddStatus}
+                className="flex flex-wrap items-end gap-2"
+              >
+                <div className="w-full sm:w-44">
+                  <label
+                    htmlFor="new-status-stage"
+                    className="text-muted mb-1 block text-sm"
+                  >
+                    Stage
+                  </label>
+                  <Dropdown
+                    id="new-status-stage"
+                    options={stageOptions}
+                    value={newMeaning}
+                    onChange={(value) => setNewMeaning(value as StatusMeaning)}
+                    containerBackground="bg1"
+                  />
+                </div>
                 <input
                   type="text"
                   value={newStatusName}
                   onChange={(e) => setNewStatusName(e.target.value)}
                   placeholder="New status name"
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                  aria-label="New status name"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright h-10 min-w-0 flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
                 <input
                   type="color"
+                  aria-label="New status color"
                   value={newStatusColor}
                   onChange={(e) => setNewStatusColor(e.target.value)}
                   className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"
                 />
                 <button
                   type="submit"
-                  className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
+                  className="bg-accent text-bg0 hover:bg-accent-bright h-10 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                 >
                   Add
                 </button>
@@ -224,7 +294,9 @@ export default function SettingsStatuses() {
             )}
 
             <p className="text-muted mt-3 text-xs">
-              Editing default statuses creates your personal override.
+              Choose the stage used in reports; the status name can be your own.
+              Changes apply the next time a status is selected, not to existing
+              history.
             </p>
           </>
         )}

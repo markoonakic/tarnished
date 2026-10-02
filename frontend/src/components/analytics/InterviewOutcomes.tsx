@@ -1,35 +1,42 @@
 import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
-import type { EChartsOption } from 'echarts';
+import type { EChartsOption, LabelLayoutOptionCallback } from 'echarts';
 import type { OutcomeData } from '@/lib/analytics';
 import { useInterviewRoundsAnalytics } from '@/hooks/useAnalyticsData';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
+import HelpTip from '@/components/HelpTip';
 
 const EMPTY_OUTCOME_DATA: OutcomeData[] = [];
+
+const labelLayout: LabelLayoutOptionCallback = ({ rect, labelRect }) => ({
+  hideOverlap: true,
+  width: labelRect.width + 8 > rect.width ? 0 : undefined,
+});
 
 interface InterviewOutcomesProps {
   period?: string;
   roundType?: string;
+  asOf?: string;
 }
 
 export default function InterviewOutcomes({
   period = 'all',
   roundType,
+  asOf,
 }: InterviewOutcomesProps) {
   const {
     data: analytics,
     isLoading,
     isError,
-  } = useInterviewRoundsAnalytics(period, roundType);
+  } = useInterviewRoundsAnalytics(period, roundType, asOf);
   const data: OutcomeData[] = analytics?.outcome_data ?? EMPTY_OUTCOME_DATA;
   const colors = useThemeColors();
 
   const option: EChartsOption = useMemo(() => {
     if (data.length === 0) return {};
 
-    // Calculate total for each round type to get percentages
     const totals = data.map(
       (d) => d.passed + d.failed + d.pending + d.withdrew
     );
@@ -38,6 +45,22 @@ export default function InterviewOutcomes({
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
+        renderMode: 'richText',
+        formatter: (params) => {
+          const entries = Array.isArray(params) ? params : [params];
+          const total = entries.reduce(
+            (sum, entry) => sum + Number(entry.value),
+            0
+          );
+          return [
+            entries[0]?.name,
+            ...entries.map((entry) => {
+              const count = Number(entry.value);
+              const percent = total ? Math.round((count / total) * 100) : 0;
+              return `${entry.seriesName}: ${count} (${percent}%)`;
+            }),
+          ].join('\n');
+        },
         backgroundColor: colors.bg3,
         borderColor: colors.aquaBright,
         borderWidth: 1,
@@ -45,7 +68,8 @@ export default function InterviewOutcomes({
         textStyle: { color: colors.fg0 },
       },
       legend: {
-        data: ['Passed', 'Failed', 'Pending', 'Withdrew'],
+        type: 'scroll',
+        data: ['Passed', 'Failed', 'Pending', 'Withdrawn'],
         top: 0,
         right: 0,
         textStyle: { color: colors.fg1 },
@@ -73,96 +97,36 @@ export default function InterviewOutcomes({
         },
         axisLine: { lineStyle: { color: colors.bg2 } },
       },
-      series: [
-        {
-          name: 'Passed',
-          type: 'bar',
-          stack: 'outcomes',
-          data: data.map((d, i) => ({
-            value: d.passed,
-            label: {
-              show: d.passed > 0,
-              position: 'inside',
-              color: colors.fg0,
-              fontSize: 12,
-              formatter: () => {
-                const pct =
-                  totals[i] > 0 ? Math.round((d.passed / totals[i]) * 100) : 0;
-                return `${d.passed} (${pct}%)`;
-              },
-            },
-          })),
-          itemStyle: { color: colors.green },
+      series: (
+        [
+          ['passed', 'Passed', colors.green],
+          ['failed', 'Failed', colors.red],
+          ['pending', 'Pending', colors.orange],
+          ['withdrew', 'Withdrawn', colors.yellow],
+        ] as const
+      ).map(([key, name, color]) => ({
+        name,
+        type: 'bar' as const,
+        labelLayout,
+        stack: 'outcomes',
+        itemStyle: { color },
+        data: data.map((round, i) => ({
+          value: round[key],
           label: {
-            show: true,
-            position: 'inside',
+            show: round[key] > 0,
+            overflow: 'truncate' as const,
+            ellipsis: '',
+            position: 'inside' as const,
             color: colors.fg0,
             fontSize: 12,
+            formatter: () => {
+              const percent =
+                totals[i] > 0 ? Math.round((round[key] / totals[i]) * 100) : 0;
+              return `${round[key]} (${percent}%)`;
+            },
           },
-        },
-        {
-          name: 'Failed',
-          type: 'bar',
-          stack: 'outcomes',
-          data: data.map((d, i) => ({
-            value: d.failed,
-            label: {
-              show: d.failed > 0,
-              position: 'inside',
-              color: colors.fg0,
-              fontSize: 12,
-              formatter: () => {
-                const pct =
-                  totals[i] > 0 ? Math.round((d.failed / totals[i]) * 100) : 0;
-                return `${d.failed} (${pct}%)`;
-              },
-            },
-          })),
-          itemStyle: { color: colors.red },
-        },
-        {
-          name: 'Pending',
-          type: 'bar',
-          stack: 'outcomes',
-          data: data.map((d, i) => ({
-            value: d.pending,
-            label: {
-              show: d.pending > 0,
-              position: 'inside',
-              color: colors.fg0,
-              fontSize: 12,
-              formatter: () => {
-                const pct =
-                  totals[i] > 0 ? Math.round((d.pending / totals[i]) * 100) : 0;
-                return `${d.pending} (${pct}%)`;
-              },
-            },
-          })),
-          itemStyle: { color: colors.orange },
-        },
-        {
-          name: 'Withdrew',
-          type: 'bar',
-          stack: 'outcomes',
-          data: data.map((d, i) => ({
-            value: d.withdrew,
-            label: {
-              show: d.withdrew > 0,
-              position: 'inside',
-              color: colors.fg0,
-              fontSize: 12,
-              formatter: () => {
-                const pct =
-                  totals[i] > 0
-                    ? Math.round((d.withdrew / totals[i]) * 100)
-                    : 0;
-                return `${d.withdrew} (${pct}%)`;
-              },
-            },
-          })),
-          itemStyle: { color: colors.yellow },
-        },
-      ],
+        })),
+      })),
     };
   }, [data, colors]);
 
@@ -190,9 +154,14 @@ export default function InterviewOutcomes({
 
   return (
     <div className="w-full">
-      <p className="text-fg4 mb-4 text-sm">
-        Breakdown of interview outcomes by round type, showing the number and
-        percentage of passed, failed, pending, and withdrawn rounds.
+      <p className="text-fg4 mb-4 flex items-center gap-2 text-sm">
+        Interview outcomes by round type
+        <HelpTip label="About interview outcomes">
+          <p>
+            Each round type shows the number and percentage of passed, failed,
+            pending and withdrawn rounds.
+          </p>
+        </HelpTip>
       </p>
       <div className="overflow-x-auto">
         <ReactECharts

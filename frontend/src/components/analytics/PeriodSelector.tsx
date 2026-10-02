@@ -20,7 +20,9 @@ export default function PeriodSelector({
   const currentPeriod = (searchParams.get('period') as Period) || '7d';
 
   const handlePeriodChange = (period: Period) => {
-    setSearchParams({ period });
+    const next = new URLSearchParams(searchParams);
+    next.set('period', period);
+    setSearchParams(next);
     onPeriodChange?.(period);
   };
 

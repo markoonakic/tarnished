@@ -9,7 +9,7 @@ import importlib
 import json
 import logging
 import os
-import uuid
+import tempfile
 import zipfile
 from collections.abc import Callable
 from pathlib import Path
@@ -29,9 +29,10 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.utils.zip_utils import validate_zip_safety
+from app.api.utils.upload_route import UploadLimitRoute
+from app.api.utils.zip_utils import read_bounded_zip_member, validate_zip_safety
 from app.core.database import async_session_maker, get_db
-from app.core.deps import get_current_user, require_api_key_scope
+from app.core.deps import get_current_user, get_session_user, require_api_key_scope
 from app.core.rate_limit import limiter
 from app.core.security import decode_token
 from app.models import AuditLog, User
@@ -56,7 +57,7 @@ ImportValidationResponse = import_schemas.ImportValidationResponse
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/import", tags=["import"])
+router = APIRouter(prefix="/api/import", tags=["import"], route_class=UploadLimitRoute)
 
 UPLOAD_CHUNK_SIZE = 1024 * 1024  # 1MB
 SSE_POLL_MAX_SECONDS = 3600  # 1 hour
@@ -82,8 +83,9 @@ async def log_import_event(
     details: dict,
     request: Request | None = None,
     ip_address: str | None = None,
+    commit: bool = True,
 ) -> None:
-    """Log import events for security audit."""
+    """Record an import event, optionally in the caller's transaction."""
     resolved_ip = ip_address or (
         request.client.host if request and request.client else None
     )
@@ -94,7 +96,8 @@ async def log_import_event(
         ip_address=resolved_ip,
     )
     db.add(log)
-    await db.commit()
+    if commit:
+        await db.commit()
 
 
 async def _update_job(
@@ -145,26 +148,18 @@ async def _get_job_payload(job_id: str, user_id: str) -> dict | None:
         return serialize_transfer_job(job)
 
 
-def create_secure_temp_file(original_filename: str) -> str:
-    """Create secure temp file with proper permissions."""
-    safe_filename = f"{uuid.uuid4()}_{Path(original_filename).name}"
-    temp_path = os.path.join(SECURE_TEMP_DIR, safe_filename)
-    fd = os.open(temp_path, os.O_WRONLY | os.O_CREAT, 0o600)
+def create_import_temp_file() -> str:
+    """Create an exclusive, owner-readable temporary archive."""
+    fd, temp_path = tempfile.mkstemp(suffix=".zip", dir=SECURE_TEMP_DIR)
     os.close(fd)
     return temp_path
 
 
-def secure_delete(file_path: str) -> None:
-    """Securely delete file by overwriting with random data."""
+def delete_temp_file(file_path: str) -> None:
     try:
-        with open(file_path, "wb") as f:
-            f.write(os.urandom(os.path.getsize(file_path)))
-        os.remove(file_path)
-    except Exception:
-        try:
-            os.remove(file_path)
-        except Exception:
-            logger.warning("Failed to delete temporary file: %s", file_path)
+        Path(file_path).unlink(missing_ok=True)
+    except OSError:
+        logger.warning("Failed to delete temporary file: %s", file_path)
 
 
 async def process_import_job(
@@ -189,12 +184,17 @@ async def process_import_job(
 
         with zipfile.ZipFile(temp_path, "r") as zip_ref:
             try:
-                data_json = zip_ref.read("data.json")
+                data_json = read_bounded_zip_member(zip_ref, "data.json")
             except KeyError as exc:
                 raise ValueError("ZIP must contain data.json") from exc
 
             data = json.loads(data_json)
             verify_new_format_manifest_checksum(data, data_json, zip_ref)
+
+        if is_new_export_format(data):
+            from app.services.interview_archive import validate_interview_archive
+
+            validate_interview_archive(data["models"])
 
         stage = "extracting"
         await _update_job(
@@ -242,13 +242,6 @@ async def process_import_job(
             }
 
             stage = "finalizing"
-            await update_transfer_job_progress(
-                db,
-                job_id=job_id,
-                stage=stage,
-                percent=95,
-                message="Finalizing...",
-            )
             await log_import_event(
                 db,
                 user_id,
@@ -265,6 +258,7 @@ async def process_import_job(
                     "zip_file_count": zip_info.get("file_count", 0),
                 },
                 ip_address=ip_address,
+                commit=False,
             )
             await complete_transfer_job(
                 db,
@@ -295,8 +289,7 @@ async def process_import_job(
         )
         logger.exception("Import job %s failed", job_id)
     finally:
-        if os.path.exists(temp_path):
-            secure_delete(temp_path)
+        delete_temp_file(temp_path)
 
 
 async def schedule_import_processing(
@@ -333,7 +326,7 @@ async def validate_import(
     temp_path = None
     user_id = str(user.id)
     try:
-        temp_path = create_secure_temp_file(file.filename or "import.zip")
+        temp_path = create_import_temp_file()
 
         async with aiofiles.open(temp_path, "wb") as f:
             while chunk := await file.read(UPLOAD_CHUNK_SIZE):
@@ -343,7 +336,7 @@ async def validate_import(
 
         with zipfile.ZipFile(temp_path, "r") as zip_ref:
             try:
-                data_json = zip_ref.read("data.json")
+                data_json = read_bounded_zip_member(zip_ref, "data.json")
             except KeyError:
                 raise HTTPException(
                     status_code=400, detail="ZIP must contain data.json"
@@ -386,19 +379,21 @@ async def validate_import(
         )
         return ImportValidationResponse(valid=False, summary={}, errors=[str(exc)])
     finally:
-        if temp_path and os.path.exists(temp_path):
-            secure_delete(temp_path)
+        if temp_path:
+            delete_temp_file(temp_path)
 
 
 @router.get("/progress/{import_id}")
 async def import_progress(import_id: str, token: str | None = Query(None)):
     """Server-Sent Events endpoint for import progress."""
-    payload = decode_token(token) if token else None
-    if not payload or payload.get("type") != "access":
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-    requester_id = payload.get("sub")
-    if not requester_id:
+    async def authorized_user_id():
+        async with async_session_maker() as db:
+            user = await get_session_user(db, decode_token(token) if token else None)
+            return user.id if user is not None and user.is_active else None
+
+    requester_id = await authorized_user_id()
+    if requester_id is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     initial_payload = await _get_job_payload(import_id, requester_id)
@@ -408,6 +403,8 @@ async def import_progress(import_id: str, token: str | None = Query(None)):
     async def event_stream():
         last_serialized = ""
         for tick in range(SSE_POLL_MAX_SECONDS):
+            if await authorized_user_id() is None:
+                return
             current_payload = await _get_job_payload(import_id, requester_id)
             if current_payload is None:
                 return
@@ -421,6 +418,8 @@ async def import_progress(import_id: str, token: str | None = Query(None)):
                 yield ": keepalive\n\n"
             await asyncio.sleep(1)
 
+        if await authorized_user_id() is None:
+            return
         timeout_payload = await _get_job_payload(import_id, requester_id)
         if timeout_payload is not None and timeout_payload.get("status") not in {
             "complete",
@@ -466,7 +465,7 @@ async def import_data(
     job_id: str | None = None
     user_id = str(user.id)
     try:
-        temp_path = create_secure_temp_file(file.filename or "import.zip")
+        temp_path = create_import_temp_file()
         async with aiofiles.open(temp_path, "wb") as f:
             while chunk := await file.read(UPLOAD_CHUNK_SIZE):
                 await f.write(chunk)
@@ -512,8 +511,8 @@ async def import_data(
         }
     except Exception as exc:
         logger.exception("Failed to queue import for user %s", user_id)
-        if temp_path and os.path.exists(temp_path):
-            secure_delete(temp_path)
+        if temp_path:
+            delete_temp_file(temp_path)
         if job_id is not None:
             try:
                 await _fail_job(

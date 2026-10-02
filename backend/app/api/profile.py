@@ -25,6 +25,8 @@ from app.schemas.user_profile import (
     UserProfileResponse,
     UserProfileUpdate,
 )
+from app.services.ai_settings import lock_ai_settings
+from app.services.interview_jobs import invalidate_interviews
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
@@ -123,6 +125,7 @@ async def update_profile(
     Returns:
         The updated user profile
     """
+    await lock_ai_settings(db)
     # Check if profile exists
     result = await db.execute(select(UserProfile).where(UserProfile.user_id == user.id))
     profile = result.scalar_one_or_none()
@@ -147,6 +150,13 @@ async def update_profile(
     # Extract only the fields that were provided in the request
     update_data = profile_update.model_dump(exclude_unset=True)
 
+    relevant = {
+        k: v
+        for k, v in update_data.items()
+        if k in ("work_history", "skills") and v != getattr(profile, k)
+    }
+    if relevant:
+        await invalidate_interviews(db, user_id=user.id, removed=True)
     # Handle city and country separately (they're on the User model)
     if "city" in update_data:
         user.city = update_data.pop("city")

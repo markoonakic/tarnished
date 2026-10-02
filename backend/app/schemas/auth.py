@@ -1,13 +1,16 @@
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr
 
+from app.core.security import validate_new_password
 from app.schemas.api_keys import UserAPIKeyResponse
 
+NewPassword = Annotated[str, AfterValidator(validate_new_password)]
 
-class UserCreate(BaseModel):
-    email: EmailStr
-    password: str
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: NewPassword
 
 
 class UserLogin(BaseModel):

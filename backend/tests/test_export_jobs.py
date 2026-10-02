@@ -28,7 +28,9 @@ async def test_user(db: AsyncSession) -> User:
 
 @pytest.fixture
 def auth_headers(test_user: User) -> dict[str, str]:
-    token = create_access_token({"sub": test_user.id})
+    token = create_access_token(
+        {"sub": test_user.id, "session_version": test_user.session_version}
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -180,3 +182,90 @@ async def test_failed_export_job_sets_completed_at_for_cleanup(
     persisted_job = result.scalar_one()
     assert persisted_job.status == "failed"
     assert persisted_job.completed_at is not None
+
+
+async def test_structured_exports_require_sensitive_scopes_after_artifact_creation(
+    client, db, test_user, status
+):
+    import json
+
+    from sqlalchemy import func
+
+    from app.core.security import hash_api_key
+    from app.models import UserAPIKey
+    from app.models.user_profile import UserProfile
+
+    raw = "synthetic-structured-archive-key"
+    key = UserAPIKey(
+        user_id=test_user.id,
+        label="custom",
+        key_prefix="synthetic",
+        key_hash=hash_api_key(raw),
+        scopes=["export:read", "files:read", "profile:read"],
+    )
+    db.add_all(
+        [
+            key,
+            UserProfile(user_id=test_user.id, skills=["PRIVATE PROFILE"]),
+            Application(
+                user_id=test_user.id,
+                company="Synthetic",
+                job_title="Engineer",
+                status_id=status.id,
+                cv_text="PRIVATE FALLBACK",
+            ),
+        ]
+    )
+    await db.commit()
+    headers = {"X-API-Key": raw}
+    response = await client.get("/api/export/json", headers=headers)
+    assert response.status_code == 200 and "PRIVATE FALLBACK" in response.text
+    response = await client.get("/api/export/zip", headers=headers)
+    assert response.status_code == 200
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        assert "PRIVATE PROFILE" in archive.read("data.json").decode()
+    response = await client.post("/api/export/zip-jobs", headers=headers)
+    assert response.status_code == 202, response.text
+    jid = response.json()["job_id"]
+    completed = await wait_for_export_completion(client, headers, jid)
+    assert completed["result"]["filename"]
+    assert (
+        await client.get(f"/api/export/zip-jobs/{jid}/download", headers=headers)
+    ).status_code == 200
+    count = await db.scalar(select(func.count()).select_from(TransferJob))
+    for scopes in (
+        ["export:read"],
+        ["export:read", "files:read"],
+        ["export:read", "profile:read"],
+    ):
+        key.scopes = scopes
+        await db.commit()
+        for method, path in [
+            ("GET", "/api/export/json"),
+            ("GET", "/api/export/zip"),
+            ("POST", "/api/export/zip-jobs"),
+            ("GET", f"/api/export/zip-jobs/{jid}"),
+            ("GET", f"/api/export/zip-jobs/{jid}/download"),
+        ]:
+            denied = await client.request(method, path, headers=headers)
+            assert denied.status_code == 403, (path, denied.text)
+            assert "required scopes" in denied.text
+            assert not any(
+                value in denied.text
+                for value in ("PRIVATE", "artifact_path", "filename", "result")
+            )
+            assert not denied.content.startswith(b"PK")
+        csv = await client.get("/api/export/csv", headers=headers)
+        assert csv.status_code == 200 and "PRIVATE" not in csv.text
+        assert await db.scalar(select(func.count()).select_from(TransferJob)) == count
+    key.revoked_at = datetime.now(UTC)
+    await db.commit()
+    for path in (
+        "/api/export/json",
+        "/api/export/zip",
+        f"/api/export/zip-jobs/{jid}",
+        f"/api/export/zip-jobs/{jid}/download",
+    ):
+        denied = await client.get(path, headers=headers)
+        assert denied.status_code == 401 and "PRIVATE" not in denied.text
+    assert "PRIVATE" not in json.dumps(completed)

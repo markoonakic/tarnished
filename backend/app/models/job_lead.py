@@ -1,7 +1,18 @@
 import uuid
 from datetime import UTC, date, datetime
 
-from sqlalchemy import JSON, Date, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -19,6 +30,27 @@ class JobLead(Base):
         String(36), ForeignKey("users.id"), nullable=False
     )
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
+
+    # Request-bound enrichment: revision identifies each claim, never a clock value.
+    source_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_truncated: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    content_warning: Mapped[str | None] = mapped_column(Text, nullable=True)
+    revision: Mapped[int] = mapped_column(
+        Integer,
+        CheckConstraint("revision >= 0", name="ck_job_lead_revision"),
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+    processing_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Explicit corrections (including nulls) are excluded from later AI publication.
+    manual_fields: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default=list, server_default="[]"
+    )
 
     # Core job info
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)

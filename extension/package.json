@@ -1,16 +1,19 @@
 {
   "name": "tarnished-extension",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "Browser extension for detecting and saving job listings to Tarnished",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "packageManager": "yarn@4.12.0",
   "scripts": {
     "dev": "vite build --watch --mode development",
     "build": "vite build",
-    "build:chrome": "vite build && cd dist && zip -r ../tarnished-chrome.zip .",
-    "build:firefox": "vite build && cd dist && zip -r ../tarnished-firefox.zip .",
-    "build:all": "yarn build:chrome && yarn build:firefox",
+    "build:chrome": "vite build && python3 scripts/package-browser.py chrome",
+    "build:firefox": "vite build && python3 scripts/package-browser.py firefox",
+    "build:all": "vite build && python3 scripts/package-browser.py chrome && python3 scripts/package-browser.py firefox",
+    "typecheck": "tsc --noEmit",
+    "test:packaging": "python3 -m unittest discover -s scripts -p 'test_*.py'",
     "test": "vitest",
     "test:run": "vitest run",
     "format": "prettier --write .",
@@ -20,14 +23,12 @@
     "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {
-    "@types/chrome": "^0.1.38",
-    "@types/node": "^25.3.3",
+    "@types/node": "^26.0.1",
     "@types/webextension-polyfill": "^0.12.5",
-    "jsdom": "^29.0.1",
-    "prettier": "^3.5.1",
-    "sharp": "^0.34.5",
-    "typescript": "^6.0.2",
-    "vite": "^8.0.3",
-    "vitest": "^4.1.2"
+    "jsdom": "^29.1.1",
+    "prettier": "^3.9.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.0",
+    "vitest": "^4.1.9"
   }
 }

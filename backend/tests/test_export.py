@@ -280,7 +280,9 @@ async def test_applications(
 @pytest.fixture
 def auth_headers(test_user: User) -> dict[str, str]:
     """Create authentication headers for test user."""
-    token = create_access_token({"sub": test_user.id})
+    token = create_access_token(
+        {"sub": test_user.id, "session_version": test_user.session_version}
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -487,8 +489,14 @@ class TestCSVExport:
         assert "Round Notes" in lines[0]
         assert "Round Media" in lines[0]
 
-        # Verify data rows have round data
-        assert len(lines) > 1  # Has data rows
+        rows = list(csv.reader(io.StringIO(content)))
+        assert len(rows) > 1
+        assert all(len(row) == len(rows[0]) == 14 for row in rows)
+        assert all(
+            value is not None
+            for row in csv.DictReader(io.StringIO(content))
+            for value in row.values()
+        )
 
     async def test_csv_export_simple_application(
         self,
@@ -1035,5 +1043,7 @@ class TestZIPExport:
             exported_files = [name for name in zf.namelist() if name.endswith(".pdf")]
 
             assert any("resume.pdf" in name for name in exported_files)
-            resume_path = next(name for name in exported_files if name.endswith("resume.pdf"))
+            resume_path = next(
+                name for name in exported_files if name.endswith("resume.pdf")
+            )
             assert zf.read(resume_path) == b"pdf-content"

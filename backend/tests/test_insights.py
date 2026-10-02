@@ -40,7 +40,9 @@ async def test_user(db: AsyncSession) -> User:
 @pytest.fixture
 def auth_headers(test_user: User) -> dict[str, str]:
     """Create Bearer token auth headers for a regular user."""
-    token = create_access_token({"sub": test_user.id})
+    token = create_access_token(
+        {"sub": test_user.id, "session_version": test_user.session_version}
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -103,7 +105,9 @@ class TestInsightsGenerationEndpoint:
             "/api/analytics/insights", json={"period": "30d"}, headers=auth_headers
         )
         assert response.status_code == 400
-        assert "AI not configured" in response.json()["detail"]
+        detail = response.json()["detail"]
+        assert "Configuration is incomplete" in detail
+        assert "keyless" in detail
 
     @pytest.mark.asyncio
     async def test_insights_generates_successfully_with_ai_configured(

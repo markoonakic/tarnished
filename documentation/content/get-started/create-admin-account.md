@@ -1,42 +1,74 @@
 ---
-title: Create your admin account
-description: Create the first Tarnished account and understand what it controls.
+title: Account setup and recovery
+description: Create the first owner, manage accounts and recover access.
 ---
 
-Use this guide after Tarnished is installed and responding in your browser.
-
-## What this page does
-
-In a fresh Tarnished instance, the first registered user becomes the administrator automatically.
-
-## Before you begin
-
-You need:
-
-- a working Tarnished install
-- the Tarnished URL in your browser
-
-If Tarnished is not installed yet, start with [Install Tarnished](../install/index.md).
+Tarnished 0.2.0 has no public registration. The installation operator creates the
+first account from the host; administrators create later accounts in the web app.
+Each user's application records are private from other users, but the host
+operator can access the database and files.
 
 ## Create the first account
 
-1. Open Tarnished in your browser.
-2. Choose the registration flow.
-3. Create the first user account with your email and password.
-4. Sign in if Tarnished does not sign you in automatically.
+Start Tarnished and let startup migrations finish. In the installation directory:
 
-## What the first admin account controls
+```bash
+docker compose exec app ./entrypoint.sh manage bootstrap-owner --email you@example.com
+```
 
-The first administrator account is the account you use to:
+For Helm:
 
-- manage the instance through the web app
-- create API keys for machine clients
-- configure AI settings
-- access other admin-only settings
+```bash
+kubectl exec -it -n tarnished deploy/tarnished -c tarnished -- \
+  ./entrypoint.sh manage bootstrap-owner --email you@example.com
+```
 
-## If someone already created the first account
+Enter and confirm the hidden password. Use at least 12 Unicode characters and no
+more than 72 UTF-8 bytes. Spaces are allowed. The command requires a terminal;
+password arguments and piped passwords are not supported.
 
-If the instance is not fresh anymore, the first-account bootstrap is already complete. In that case, use an existing admin account or ask the current admin for access.
+Open the browser and sign in with the account you created. Setup runs only once;
+deleting accounts does not reopen it. Upgraded installations with existing
+accounts do not need setup again.
+
+## Manage accounts
+
+Use **Admin → Users → Create User**. **Edit User** can reset another user's
+password, disable/reactivate an account or change its role. Leave the password
+field blank to keep it. Administrators cannot delete or demote themselves through
+these controls. Change your own password in **Settings → Security**.
+
+Changing a password or account authority invalidates its browser sessions and
+signed download links. **Sign out all sessions** invalidates sessions without
+changing the password. Ordinary **Sign Out** only clears the current browser's
+tokens. API keys remain independent: revoke a compromised key in **Settings →
+API Keys**. Disabled accounts cannot use their keys.
+
+## Recover access
+
+Ask another administrator to reset your account, or run this on the installation
+host using the same database, storage and signing secret:
+
+```bash
+docker compose exec app ./entrypoint.sh manage reset-password --email you@example.com
+```
+
+If you also need to reactivate the account, recover administrator access and
+revoke its keys, add these explicit options:
+
+```bash
+docker compose exec app ./entrypoint.sh manage reset-password --email you@example.com \
+  --reactivate --recover-admin --revoke-all-keys
+```
+
+The operator command loads the existing signing secret. It does not generate a
+new secret or run migrations. Restore missing configuration before recovery.
+Personal exports do not restore accounts, passwords, sessions or API keys. See
+[backup and restore](../how-to/backup-and-restore-tarnished.md).
+
+For a source installation, use `uv run python -m app.manage` in the configured
+backend environment instead of `docker compose exec app ./entrypoint.sh manage`.
+See `CONTRIBUTING.md` for a separate development database.
 
 ## Next steps
 

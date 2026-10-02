@@ -1,129 +1,122 @@
 ---
 title: Back up and restore Tarnished
-description: Protect Tarnished data for Docker Compose and Helm-based deployments.
+description: Preserve application data, uploads, secrets and configuration as one recovery set.
 ---
 
-Use this guide when Tarnished has become important enough that you need a real recovery path, not just an export file.
+A personal export helps you move records. It is not a full instance backup:
+credentials, installation secrets and deployment settings need separate protection.
+These storage rules apply to both Compose database modes.
 
-## Before you begin
+## What to preserve
 
-You should know which deployment mode you are running:
+| Installation            | Required recovery data                                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| Compose with SQLite     | Complete `./data`, `docker-compose.yml`, `.env` and any overrides                        |
+| Compose with PostgreSQL | Complete `./data`, the PostgreSQL database, Compose files and `.env`                     |
+| Helm                    | The `/app/data` PVC, database if external, Helm values and configured Kubernetes Secrets |
 
-- Docker Compose with SQLite
-- Docker Compose with PostgreSQL
-- Helm / Kubernetes
+Include hidden files. In the default Compose setup, `data/.secret_key` contains
+the generated signing and encryption secret. If you pass `SECRET_KEY` explicitly,
+back up that value through your secret-management system instead. Helm installs
+can use `secretKey.existingSecret`; preserve that Secret.
 
-If you are not sure where Tarnished stores data in your deployment mode, review the storage notes in [Architecture overview](../explanation/architecture-overview.md) first.
+Losing the secret invalidates sessions and signed download links, affects API-key
+authentication, and prevents decryption of stored AI credentials. User passwords
+are stored as bcrypt hashes and do not depend on that secret. A new secret is not
+a substitute for the original during recovery.
 
-## Exports are useful, but not your only backup
+Keep backups outside the live data directory, restrict access and encrypt them
+where appropriate. Record the Tarnished image/chart version and PostgreSQL major
+version with each backup. Test recovery in an isolated instance before relying on
+it.
 
-Tarnished export files are useful for portability and migration workflows, but they are not the only backup strategy you should rely on.
+## Back up Docker Compose
 
-A real backup plan should also include the underlying storage used by your deployment:
+Run commands from the install directory. If you use a different Compose filename,
+add `-f <filename>` to each command.
 
-- Tarnished uploads and local app data
-- PostgreSQL, when used
+1. Wait for active imports, exports and other work to finish.
+2. Stop the services:
 
-## Back up a Docker Compose install (SQLite)
+   ```bash
+   docker compose stop
+   ```
 
-If you used the default Docker Compose install, Tarnished stores its local state under `./data`.
+3. Copy the complete recovery set to a **new** protected backup destination with
+   your backup tool. For SQLite, copy all of `data`, not just `app.db`. For the
+   packaged PostgreSQL setup, copy both `data` and `postgres_data` while **both
+   services remain stopped**. Include the deployment files and secrets above.
+4. Preserve file ownership and permissions. The PostgreSQL directory normally
+   belongs to the container's database user and needs elevated host/daemon access
+   to copy. Do not loosen its permissions to make a copy work.
+5. Check that the backup completed, then restart:
 
-### Safer backup flow
+   ```bash
+   docker compose start
+   ```
 
-1. Stop the stack so Tarnished is not writing while you copy the files.
-2. Copy the `./data` directory to your backup destination.
-3. Start Tarnished again.
+Do not make an ordinary filesystem copy of a running database. If downtime is not
+acceptable, use SQLite-aware backup tooling or PostgreSQL's supported logical or
+physical backup tools, and coordinate the uploads snapshot with the database.
+For external PostgreSQL, stopping the app does not stop the database server.
 
-```bash
-docker compose down
-cp -R ./data /path/to/your/backup/location/data-backup
-docker compose up -d
-```
+## Back up Helm
 
-## Back up a Docker Compose install (PostgreSQL)
+Use your cluster and storage platform's backup tools. Coordinate the app/PVC
+snapshot with the database backup, and include the signing secret and database
+credentials. PVC access-mode labels alone do not make a live filesystem snapshot
+consistent.
 
-If you used the PostgreSQL Docker Compose install, back up both:
+Stop all application work before offline storage
+maintenance. Do not delete lock files or run cleanup against a live instance.
 
-- `./data`
-- `./postgres_data`
+## Restore Docker Compose
 
-### Safer backup flow
+A restore replaces instance state. Keep a copy of the current installation until
+the recovered instance is verified.
 
-1. Stop the stack.
-2. Copy both directories.
-3. Start Tarnished again.
+1. Select a complete backup and its matching image/configuration. Do not start
+   with a newer image that can migrate the restored database unexpectedly.
+2. Stop the services with `docker compose stop`.
+3. Move the existing data directories to a separate recovery location. Do not
+   delete them or overwrite them in place.
+4. Restore `data`, the database and the matching secrets/configuration. For a
+   physical PostgreSQL directory backup, use the same PostgreSQL major version
+   and compatible storage environment. Use PostgreSQL restore tools for a logical
+   dump instead of copying it into `postgres_data`.
+5. Restore the original ownership and permissions. Do not run a blanket recursive
+   `chown` across PostgreSQL storage using the app's UID.
+6. Start the restored configuration:
 
-```bash
-docker compose down
-cp -R ./data /path/to/your/backup/location/data-backup
-cp -R ./postgres_data /path/to/your/backup/location/postgres-backup
-docker compose up -d
-```
+   ```bash
+   docker compose up -d
+   ```
 
-## Back up a Helm / Kubernetes install
+Changing the password in `.env` does not change an existing PostgreSQL user's
+password. Restore the matching password; do not generate a new one as a repair.
 
-For Helm-based installs, Tarnished data is split across:
+## Restore Helm
 
-- the PVC mounted at `/app/data`
-- PostgreSQL, when PostgreSQL mode is enabled
-
-The exact backup method depends on your cluster and storage platform, but the important rule is the same: you need backups for both the uploads volume and the PostgreSQL database.
-
-## Restore a Docker Compose install (SQLite)
-
-To restore a SQLite-backed Compose install:
-
-1. Stop Tarnished.
-2. Replace the current `./data` directory with the backed-up copy.
-3. Start Tarnished again.
-
-```bash
-docker compose down
-rm -rf ./data
-cp -R /path/to/your/backup/location/data-backup ./data
-docker compose up -d
-```
-
-## Restore a Docker Compose install (PostgreSQL)
-
-To restore a PostgreSQL-backed Compose install:
-
-1. Stop Tarnished.
-2. Replace both `./data` and `./postgres_data` with the backed-up copies.
-3. Start Tarnished again.
-
-```bash
-docker compose down
-rm -rf ./data ./postgres_data
-cp -R /path/to/your/backup/location/data-backup ./data
-cp -R /path/to/your/backup/location/postgres-backup ./postgres_data
-docker compose up -d
-```
-
-## Restore a Helm / Kubernetes install
-
-For Helm-based installs, restoration happens through your platform backup tools:
-
-- restore the Tarnished PVC contents
-- restore the PostgreSQL database
-- then bring the Tarnished workload back up
+Stop the workload before restoring. Restore the PVC contents, database,
+configuration and Secrets as one recovery set. Use the matching chart and image
+versions, then start the workload through your normal cluster process. Retain the
+previous recovery set until verification succeeds.
 
 ## Verify after restore
 
-After a restore, verify Tarnished responds:
+Check the health endpoint at your configured URL:
 
 ```bash
-curl http://localhost:5577/health
+curl -fsS http://localhost:5577/health
 ```
 
-Then confirm you can:
-
-- sign in
-- see application data
-- access expected uploaded files
+Then confirm that you can sign in, see the expected application records and open
+uploaded files. Check startup logs for migration or decryption errors. Verify a
+stored API key only against the intended restored instance. Do not trigger paid
+AI work simply to test a restore.
 
 ## Related pages
 
-- [Architecture overview](../explanation/architecture-overview.md)
 - [Import and export data](./import-and-export-data.md)
 - [Upgrade Tarnished](./upgrade-tarnished.md)
+- [Environment variables](../reference/environment-variables.md)

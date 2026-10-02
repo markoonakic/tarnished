@@ -15,7 +15,9 @@ interface JobLeadsFiltersProps {
 
 const statusOptions: DropdownOption[] = [
   { value: '', label: 'All Statuses' },
-  { value: 'pending', label: 'Pending' },
+  { value: 'pending', label: 'Saved / not extracted' },
+  { value: 'processing', label: 'Processing / possibly interrupted' },
+  { value: 'converted', label: 'Converted' },
   { value: 'extracted', label: 'Extracted' },
   { value: 'failed', label: 'Failed' },
 ];

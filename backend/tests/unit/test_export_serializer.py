@@ -1,41 +1,18 @@
-"""Unit tests for the export serializer module."""
+"""Unit tests for the explicit personal-data serializer."""
 
-# pyright: reportOptionalSubscript=warning, reportOperatorIssue=warning
-# Test fixtures use optional dicts that trigger false positives
-
-from datetime import UTC, datetime
+from datetime import datetime
 from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import JSON, DateTime, ForeignKey, String, create_engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
 
-from app.services.export_serializer import serialize_model_instance, serialize_value
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-class User(Base):
-    __tablename__ = "users"
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    email: Mapped[str] = mapped_column(String(255))
-
-
-class Post(Base):
-    __tablename__ = "posts"
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    title: Mapped[str] = mapped_column(String(255))
-    content: Mapped[str | None] = mapped_column(String(1000), nullable=True)
-    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(UTC)
-    )
-    tags: Mapped[list] = mapped_column(JSON, default=list)
-
-    user = relationship("User")
+from app.models import Application, User
+from app.models.user_api_key import UserAPIKey
+from app.services.export_serializer import (
+    EXPORT_FIELDS,
+    serialize_model_instance,
+    serialize_value,
+)
 
 
 class TestSerializeValue:
@@ -106,183 +83,66 @@ class TestSerializeValue:
         assert serialize_value(obj) == "custom_value"
 
 
-class TestSerializeModelInstance:
-    """Tests for the serialize_model_instance function."""
-
-    @pytest.fixture
-    def engine(self):
-        engine = create_engine("sqlite:///:memory:")
-        Base.metadata.create_all(engine)
-        return engine
-
-    @pytest.fixture
-    def session(self, engine):
-        return Session(engine)
-
-    def test_serialize_simple_fields(self, session):
-        """Should serialize all column fields."""
-        user = User(id="user-1", email="test@example.com")
-        session.add(user)
-        session.commit()
-
-        result = serialize_model_instance(user)
-
-        assert result is not None
-        assert result["id"] == "user-1"
-        assert result["email"] == "test@example.com"
-
-    def test_serialize_datetime_as_iso_string(self, session):
-        """DateTime fields should be serialized as ISO strings."""
-        post = Post(
-            id="post-1",
-            title="Test",
-            content="Content",
-            user_id="user-1",
-            created_at=datetime(2026, 2, 16, 12, 0, 0),
-            tags=["tag1", "tag2"],
-        )
-        session.add(post)
-        session.commit()
-
-        result = serialize_model_instance(post)
-
-        assert result is not None
-        assert result["created_at"] == "2026-02-16T12:00:00"
-
-    def test_serialize_json_field(self, session):
-        """JSON fields should be serialized as-is."""
-        post = Post(
-            id="post-1",
-            title="Test",
-            content=None,
-            user_id="user-1",
-            tags=["python", "sqlalchemy"],
-        )
-        session.add(post)
-        session.commit()
-
-        result = serialize_model_instance(post)
-
-        assert result is not None
-        assert result["tags"] == ["python", "sqlalchemy"]
-
-    def test_serialize_none_as_null(self, session):
-        """None values should be serialized as null."""
-        post = Post(id="post-1", title="Test", content=None, user_id="user-1", tags=[])
-        session.add(post)
-        session.commit()
-
-        result = serialize_model_instance(post)
-
-        assert result is not None
-        assert result["content"] is None
-
-    def test_exclude_relationships_by_default(self, session):
-        """Relationships should not be included by default."""
-        user = User(id="user-1", email="test@example.com")
-        post = Post(id="post-1", title="Test", user_id="user-1", user=user, tags=[])
-        session.add_all([user, post])
-        session.commit()
-
-        result = serialize_model_instance(post, include_relationships=False)
-
-        assert result is not None
-        assert "user" not in result
-        assert "user_id" in result  # FK column should still be there
-
-    def test_include_single_relationship(self, session):
-        """Single relationships should be serialized when enabled."""
-        user = User(id="user-1", email="test@example.com")
-        post = Post(id="post-1", title="Test", user_id="user-1", user=user, tags=[])
-        session.add_all([user, post])
-        session.commit()
-
-        result = serialize_model_instance(post, include_relationships=True)
-
-        assert result is not None
-        assert "__rel__user" in result
-        assert result["__rel__user"]["id"] == "user-1"
-        assert result["__rel__user"]["email"] == "test@example.com"
-
-    def test_custom_relationship_prefix(self, session):
-        """Custom relationship prefix should be respected."""
-        user = User(id="user-1", email="test@example.com")
-        post = Post(id="post-1", title="Test", user_id="user-1", user=user, tags=[])
-        session.add_all([user, post])
-        session.commit()
-
-        result = serialize_model_instance(
-            post, include_relationships=True, relationship_prefix="related_"
-        )
-
-        assert result is not None
-        assert "related_user" in result
-        assert result["related_user"]["id"] == "user-1"
+def test_serialize_permitted_fields_without_relationships():
+    user = User(id="owner", email="owner@example.com", password_hash="secret")
+    application = Application(
+        id="application",
+        user_id=user.id,
+        user=user,
+        company="Acme",
+        job_title="Engineer",
+        job_description=None,
+        skills=["Python"],
+        created_at=datetime(2026, 2, 16, 12, 0, 0),
+    )
+    result = serialize_model_instance(application)
+    assert result is not None
+    assert set(result) == set(EXPORT_FIELDS["Application"])
+    assert result["created_at"] == "2026-02-16T12:00:00"
+    assert result["skills"] == ["Python"]
+    assert result["job_description"] is None
+    assert result["user_id"] == "owner"
+    assert "user" not in result
+    assert "rounds" not in result
 
 
-class Author(Base):
-    """Model with many-to-many relationship for testing collection serialization."""
+def test_serialize_user_excludes_credentials_and_unknown_settings():
+    user = User(
+        id="owner",
+        email="owner@example.com",
+        password_hash="secret",
+        session_version=42,
+        settings={
+            "theme": "dracula",
+            "show_heatmap": False,
+            "time_zone": "Europe/Paris",
+            "litellm_api_key": "legacy-secret",
+            "accent": {"api_key": "nested-secret"},
+        },
+    )
+    result = serialize_model_instance(user)
+    assert result is not None
+    assert "session_version" not in result
+    assert "password_hash" not in result
+    assert "api_keys" not in result
+    assert result["settings"] == {
+        "theme": "dracula",
+        "show_heatmap": False,
+        "time_zone": "Europe/Paris",
+    }
 
-    __tablename__ = "authors"
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    name: Mapped[str] = mapped_column(String(255))
+
+def test_serialize_unlisted_model_fails_closed():
+    with pytest.raises(ValueError, match="not permitted"):
+        serialize_model_instance(UserAPIKey(key_hash="secret"))
 
 
-class Book(Base):
-    """Model with collection relationship."""
-
-    __tablename__ = "books"
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    title: Mapped[str] = mapped_column(String(255))
-    author_id: Mapped[str] = mapped_column(String(36), ForeignKey("authors.id"))
-    author = relationship("Author", back_populates="books")
+def test_serialize_none_model():
+    assert serialize_model_instance(None) is None
 
 
-# Add books relationship to Author
-Author.books = relationship("Book", back_populates="author")
-
-
-class TestSerializeCollectionRelationships:
-    """Tests for serializing collection relationships (uselist=True)."""
-
-    @pytest.fixture
-    def engine(self):
-        engine = create_engine("sqlite:///:memory:")
-        Base.metadata.create_all(engine)
-        return engine
-
-    @pytest.fixture
-    def session(self, engine):
-        return Session(engine)
-
-    def test_serialize_collection_relationship(self, session):
-        """Collection relationships should be serialized as lists."""
-        author = Author(id="author-1", name="Jane Doe")
-        book1 = Book(id="book-1", title="Book One", author_id="author-1", author=author)
-        book2 = Book(id="book-2", title="Book Two", author_id="author-1", author=author)
-        session.add_all([author, book1, book2])
-        session.commit()
-
-        result = serialize_model_instance(author, include_relationships=True)
-
-        assert result is not None
-        assert "__rel__books" in result
-        assert isinstance(result["__rel__books"], list)
-        assert len(result["__rel__books"]) == 2
-
-        # Check that each book is serialized correctly
-        book_titles = {b["title"] for b in result["__rel__books"]}
-        assert "Book One" in book_titles
-        assert "Book Two" in book_titles
-
-    def test_serialize_empty_collection(self, session):
-        """Empty collection relationships should be serialized as empty list."""
-        author = Author(id="author-1", name="Jane Doe")
-        session.add(author)
-        session.commit()
-
-        result = serialize_model_instance(author, include_relationships=True)
-
-        assert result is not None
-        assert "__rel__books" in result
-        assert result["__rel__books"] == []
+@pytest.mark.parametrize("settings", [None, ["legacy-secret"], "legacy-secret"])
+def test_serialize_user_settings_never_exports_unstructured_legacy_state(settings):
+    result = serialize_model_instance(User(settings=settings))
+    assert result is not None
+    assert result["settings"] == (None if settings is None else {})

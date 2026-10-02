@@ -4,9 +4,7 @@ import {
 } from '@/hooks/useUserPreferences';
 
 type BooleanPreferenceKey =
-  | 'show_streak_stats'
-  | 'show_needs_attention'
-  | 'show_heatmap';
+  'show_streak_stats' | 'show_needs_attention' | 'show_heatmap';
 
 interface ToggleConfig {
   key: BooleanPreferenceKey;

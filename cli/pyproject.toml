@@ -1,8 +1,10 @@
 [project]
 name = "tarnished-cli"
-version = "0.1.7"
-description = "Agent-first CLI for Tarnished"
+version = "0.2.0"
+description = "Command-line interface for Tarnished"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
     "httpx>=0.28.1",
@@ -13,11 +15,16 @@ dependencies = [
     "tzlocal>=5.3.1",
 ]
 
+[project.urls]
+Homepage = "https://markoonakic.github.io/tarnished/"
+Repository = "https://github.com/markoonakic/tarnished"
+Documentation = "https://markoonakic.github.io/tarnished/how-to/use-the-cli/"
+
 [project.scripts]
 tarnished = "tarnished_cli.main:app"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]

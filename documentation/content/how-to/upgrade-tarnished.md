@@ -1,87 +1,57 @@
 ---
 title: Upgrade Tarnished
-description: Upgrade Tarnished safely for Docker Compose and Helm deployments.
+description: Back up your installation and upgrade to a selected release.
 ---
 
-Use this guide when you want to move a running Tarnished deployment to a newer version.
+## Before upgrading
 
-## Before you begin
+Read the [release notes](https://github.com/markoonakic/tarnished/releases) and
+make a [complete backup](./backup-and-restore-tarnished.md) of the database,
+uploads, signing secret and deployment configuration. Plan for a short downtime.
 
-Before upgrading:
+For 0.2.0, existing accounts remain usable. The session upgrade invalidates old
+browser tokens, so users must sign in again. Public registration is disabled;
+use Admin to create accounts. Existing accounts do not need owner setup again.
 
-1. Read the target release notes.
-2. Take a backup first.
-3. Make sure you know which deployment mode you are running.
+## Docker Compose
 
-Start with [Back up and restore Tarnished](./backup-and-restore-tarnished.md).
+Update your Compose file to the target version if its configuration has changed.
+Preserve local overrides, the database password, URL and port binding. Set the
+image in `.env`:
 
-## Upgrade a Docker Compose install
+```dotenv
+TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.2.0
+```
 
-### If you follow the default `latest` tag flow
-
-Pull the newest image and recreate the stack:
+A shell `TARNISHED_IMAGE` overrides `.env`. From the install directory:
 
 ```bash
+docker compose stop app
 docker compose pull
 docker compose up -d
+docker compose ps
+docker compose logs --tail=100 app
 ```
 
-### If you pin a specific Tarnished image tag
+## Helm
 
-Update `TARNISHED_IMAGE` in your `.env` file or shell environment, then pull and recreate the stack.
-
-Example:
-
-```env
-TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.1.7
-```
-
-Then run:
-
-```bash
-docker compose pull
-docker compose up -d
-```
-
-## Upgrade a Helm install
-
-If you manage Tarnished with Helm, run:
+Keep your existing values, PVC and Secrets:
 
 ```bash
 helm upgrade tarnished oci://ghcr.io/markoonakic/charts/tarnished \
-  --namespace tarnished \
-  --values values-production.yaml
+  --version 0.2.0 --namespace tarnished --values values-production.yaml
+kubectl rollout status -n tarnished deploy/tarnished
 ```
 
-If you pin chart versions explicitly, include `--version` with the target chart version.
+Check any `image.tag` override so the application matches the chart version.
 
-## What Tarnished does during upgrade
+## Verify or recover
 
-For Helm installs, the chart runs database migrations through an init container before the Tarnished app starts.
+Startup applies migrations. Check `/health`, sign in, read existing applications
+and open uploaded files. Inspect logs if a migration fails; do not remove
+migration records or generate a new signing secret to force startup.
 
-For Compose-based installs, Tarnished still applies its normal startup flow after the new container comes up.
-
-## Verify after upgrade
-
-Check that Tarnished is healthy:
-
-```bash
-curl http://localhost:5577/health
-```
-
-Then confirm:
-
-- the app loads in the browser
-- you can sign in
-- existing applications and files are still present
-
-## If the upgrade goes badly
-
-Use the backup you took before upgrading and restore Tarnished to the previous known-good state.
-
-## Related pages
-
-- [Back up and restore Tarnished](./backup-and-restore-tarnished.md)
-- [Install with Docker Compose](../install/docker-compose.md)
-- [Install with PostgreSQL Docker Compose](../install/postgresql-docker-compose.md)
-- [Install with Helm](../install/helm.md)
+For rollback, restore the matching previous database, uploads, secrets and
+configuration with the previous image/chart. Reverting only the image can leave
+an older application against a newer schema. Keep the failed state separately
+until recovery is verified.

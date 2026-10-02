@@ -18,7 +18,7 @@ The main source-of-truth files are:
 
 ## Install modes
 
-### SQLite evaluation mode
+### SQLite mode
 
 Default values install Tarnished with:
 
@@ -26,7 +26,7 @@ Default values install Tarnished with:
 - SQLite-backed local state
 - persistent uploads storage on the chart PVC
 
-This mode is appropriate for evaluation and simple single-instance installs.
+This mode is appropriate for small single-instance installs.
 
 ### PostgreSQL single replica mode
 
@@ -37,20 +37,14 @@ For production-style installs, prefer:
 - a stable `SECRET_KEY`
 - persistent uploads storage
 
-### PostgreSQL multi-replica mode
+### Replica and update limits
 
-Multiple replicas require:
+Both SQLite and PostgreSQL require `replicaCount=1`. The chart rejects all other
+counts. PostgreSQL, `ReadWriteMany` volumes and existing shared claims do not remove
+this limit: concurrent application workers are not supported.
 
-- `replicaCount > 1`
-- `postgresql.enabled=true`
-- shared uploads storage
-
-Shared uploads storage means either:
-
-- a chart-managed PVC with `persistence.accessMode=ReadWriteMany`
-- or an existing shared claim with `persistence.existingClaim` and `persistence.sharedAccess=true`
-
-The chart templates fail fast on unsupported combinations.
+Both database modes use `Recreate` updates, with downtime during upgrades. Do not
+add autoscaling or rolling-update overrides.
 
 ## Key value groups
 
@@ -104,10 +98,12 @@ These values control Tarnished uploads and local app data storage:
 - `persistence.size`
 - `persistence.accessMode`
 - `persistence.existingClaim`
-- `persistence.sharedAccess`
 - `persistence.annotations`
 
 The chart-managed PVC includes `helm.sh/resource-policy: keep` to reduce accidental data loss during uninstall.
+
+A PostgreSQL-backed single replica can use a chart-managed `ReadWriteMany` volume
+or `persistence.existingClaim`; neither enables additional replicas.
 
 ### PostgreSQL
 
@@ -150,7 +146,7 @@ All default probes target Tarnished's `/health` endpoint.
 
 ### Cleanup CronJob
 
-The optional upload cleanup job is controlled by:
+The optional upload cleanup job requires Kubernetes 1.27 or newer. It is controlled by:
 
 - `cleanup.enabled`
 - `cleanup.schedule`
@@ -161,7 +157,9 @@ The optional upload cleanup job is controlled by:
 - `cleanup.startingDeadlineSeconds`
 - `cleanup.resources`
 
-Start with `cleanup.mode=dry-run` before using `delete`.
+Scheduled cleanup supports `cleanup.mode=dry-run` only. Enabled `delete` mode is
+rejected. Destructive cleanup requires manual stopped-writer maintenance with
+`--delete --offline`; do not configure it in an online CronJob.
 
 ## Generated chart README
 

@@ -152,6 +152,7 @@ export default function SettingsRoundTypes() {
                     value={editRoundTypeName}
                     onChange={(e) => setEditRoundTypeName(e.target.value)}
                     placeholder="Round type name"
+                    aria-label="Round type name"
                     className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
                   <button
@@ -176,6 +177,7 @@ export default function SettingsRoundTypes() {
                   value={newRoundTypeName}
                   onChange={(e) => setNewRoundTypeName(e.target.value)}
                   placeholder="New round type name"
+                  aria-label="New round type name"
                   className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
                 <button

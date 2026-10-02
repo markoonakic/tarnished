@@ -3,247 +3,189 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: false
 
-# Cancel old runs when new commits pushed to same PR
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backend:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite, postgresql]
+    services:
+      postgres:
+        image: ${{ matrix.database == 'postgresql' && 'postgres:16-alpine' || '' }}
+        env:
+          POSTGRES_USER: tarnished
+          POSTGRES_PASSWORD: ci-postgres-password
+          POSTGRES_DB: tarnished_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U tarnished -d tarnished_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      SECRET_KEY: ci-only-secret-not-for-production-use
+      LITELLM_LOCAL_MODEL_COST_MAP: 'true'
+      TEST_DATABASE_URL: ${{ matrix.database == 'postgresql' && 'postgresql+asyncpg://tarnished:ci-postgres-password@localhost:5432/tarnished_test' || '' }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9
-
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libmagic1 ffmpeg poppler-utils
       - name: Install dependencies
         working-directory: backend
-        run: uv sync
-
-      - name: Ruff check
-        working-directory: backend
-        run: uv run ruff check
-
-      - name: Ruff format check
-        working-directory: backend
-        run: uv run ruff format --check
-
-      - name: Pyright
-        working-directory: backend
-        run: uv run pyright
-
-      - name: Bandit
-        working-directory: backend
-        run: uv run bandit -c pyproject.toml -r app
-
-      - name: Security audit
+        run: uv sync --locked
+      - name: Lint and type-check
+        if: matrix.database == 'sqlite'
         working-directory: backend
         run: |
-          uv export --no-dev --no-hashes -o requirements.txt
-          # Ignore CVE-2024-23342 (ecdsa): App uses HS256 for JWTs, not ECDSA
-          # Ignore CVE-2026-4539 (pygments): transitive dependency used for formatting / rich output,
-          # no patched release is currently available in our dependency graph
-          uv tool run pip-audit -r requirements.txt --no-deps --disable-pip --ignore-vuln CVE-2024-23342 --ignore-vuln CVE-2026-4539
-
+          uv run ruff check
+          uv run ruff format --check
+          uv run pyright app
+          uv run bandit -c pyproject.toml -r app
+      - name: Check migrations
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ matrix.database == 'postgresql' && 'postgresql+asyncpg://tarnished:ci-postgres-password@localhost:5432/tarnished_test' || 'sqlite+aiosqlite:///./data/ci.db' }}
+        run: |
+          mkdir -p data
+          uv run alembic upgrade head
+          uv run alembic check
       - name: Run tests
         working-directory: backend
-        run: uv run pytest
+        run: uv run pytest -q
+      - name: Security audit
+        if: matrix.database == 'sqlite'
+        working-directory: backend
+        run: |
+          uv export --locked --no-dev --no-hashes --no-emit-project -o requirements.txt
+          # JWTs use HS256, not the vulnerable ecdsa algorithm.
+          uv tool run pip-audit -r requirements.txt --no-deps --disable-pip --ignore-vuln CVE-2024-23342
 
   cli:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9
-
-      - name: Install dependencies
-        working-directory: cli
-        run: uv sync
-
-      - name: Ruff check
-        working-directory: cli
-        run: uv run ruff check src tests
-
-      - name: Ruff format check
-        working-directory: cli
-        run: uv run ruff format --check src tests
-
-      - name: Pyright
-        working-directory: cli
-        run: uv run pyright src tests
-
-      - name: Run tests
-        working-directory: cli
-        run: uv run pytest -q
-
-  frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
         with:
-          node-version: '22'
+          enable-cache: true
+          cache-dependency-glob: cli/uv.lock
+      - name: Check CLI
+        working-directory: cli
+        run: |
+          uv sync --locked
+          uv run ruff check src tests
+          uv run ruff format --check src tests
+          uv run pyright src tests
+          uv run pytest -q
+          uv build
 
+  javascript:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [frontend, extension, documentation]
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '24'
       - name: Enable Corepack
         run: corepack enable
-
-      - name: Cache yarn dependencies
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
-          path: |
-            ~/.cache/node
-            frontend/node_modules
-          key: ${{ runner.os }}-yarn-${{ hashFiles('frontend/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
+          path: ${{ matrix.project }}/.yarn/cache
+          key: ${{ runner.os }}-yarn-${{ matrix.project }}-${{ hashFiles(format('{0}/yarn.lock', matrix.project)) }}
       - name: Install dependencies
-        working-directory: frontend
+        working-directory: ${{ matrix.project }}
         run: yarn install --immutable
-
-      - name: ESLint
+      - name: Frontend checks
+        if: matrix.project == 'frontend'
         working-directory: frontend
-        run: yarn lint
-
-      - name: Prettier check
-        working-directory: frontend
-        run: npx prettier --check .
-
-      - name: TypeScript
-        working-directory: frontend
-        run: npx tsc --noEmit
-
-      - name: Vitest
-        working-directory: frontend
-        run: yarn test:run
-
-      - name: Build
-        working-directory: frontend
-        run: yarn build
-
-      - name: Security audit
-        working-directory: frontend
-        # CI checks all deps for awareness, but non-blocking
-        run: yarn npm audit --all --recursive --severity high
-        continue-on-error: true
+        run: |
+          yarn lint
+          yarn format:check
+          yarn test:run
+          yarn build
+          yarn npm audit --all --recursive --environment production --severity high
+      - name: Extension checks
+        if: matrix.project == 'extension'
+        working-directory: extension
+        run: |
+          yarn format:check
+          yarn exec tsc --noEmit
+          yarn test:run
+          yarn build:all
+      - name: Documentation checks
+        if: matrix.project == 'documentation'
+        working-directory: documentation
+        run: |
+          yarn typecheck
+          yarn build
 
   deployment:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Validate SQLite Compose config
-        run: docker compose -f deploy/compose/docker-compose.yml config > /tmp/docker-compose.sqlite.yaml
-
-      - name: Validate PostgreSQL Compose config
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - name: Validate Compose files
         env:
           POSTGRES_PASSWORD: ci-postgres-password
-        run: docker compose -f deploy/compose/docker-compose.postgres.yml config > /tmp/docker-compose.postgres.yaml
-
+        run: |
+          docker compose -f deploy/compose/docker-compose.yml config --quiet
+          docker compose -f deploy/compose/docker-compose.postgres.yml config --quiet
       - name: Build production image
         run: docker build -t tarnished:ci .
-
-      - name: Install Helm
-        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a
-
-      - name: Lint and render Helm chart scenarios
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4
+      - name: Release tools tests
+        run: python -m unittest discover -s .github/release-tools/tests
+      - name: Check Helm configurations
         run: |
           helm lint deploy/helm/tarnished
-          helm template tarnished ./deploy/helm/tarnished > /tmp/helm-default.yaml
           helm template tarnished ./deploy/helm/tarnished --set cleanup.enabled=true > /tmp/helm-cleanup.yaml
-          helm template tarnished ./deploy/helm/tarnished \
-            --set postgresql.enabled=true \
-            --set postgresql.password=ci-secret \
-            > /tmp/helm-postgres.yaml
-          helm template tarnished ./deploy/helm/tarnished \
-            --set replicaCount=2 \
-            --set postgresql.enabled=true \
-            --set postgresql.password=ci-secret \
-            --set persistence.accessMode=ReadWriteMany \
-            > /tmp/helm-multi-replica-rwx.yaml
-          helm template tarnished ./deploy/helm/tarnished \
-            --set replicaCount=2 \
-            --set postgresql.enabled=true \
-            --set postgresql.password=ci-secret \
-            --set persistence.existingClaim=tarnished-uploads \
-            --set persistence.sharedAccess=true \
-            > /tmp/helm-multi-replica-existing-claim.yaml
-
-  extension:
-    runs-on: ubuntu-latest
-    # Only run if extension files changed
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          fetch-depth: 0
-
-      - name: Check for extension changes
-        id: changes
-        run: |
-          BASE_SHA="$(git merge-base HEAD "origin/${{ github.base_ref }}")"
-          if git diff --name-only "$BASE_SHA" HEAD | grep -q "^extension/"; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Setup Node.js
-        if: steps.changes.outputs.changed == 'true'
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version: '22'
-
-      - name: Enable Corepack
-        if: steps.changes.outputs.changed == 'true'
-        run: corepack enable
-
-      - name: Cache yarn dependencies
-        if: steps.changes.outputs.changed == 'true'
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
-        with:
-          path: |
-            ~/.cache/node
-            extension/node_modules
-          key: ${{ runner.os }}-yarn-ext-${{ hashFiles('extension/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-ext-
-
-      - name: Install dependencies
-        if: steps.changes.outputs.changed == 'true'
-        working-directory: extension
-        run: yarn install --immutable
-
-      - name: Prettier check
-        if: steps.changes.outputs.changed == 'true'
-        working-directory: extension
-        run: npx prettier --check .
-
-      - name: TypeScript
-        if: steps.changes.outputs.changed == 'true'
-        working-directory: extension
-        run: npx tsc --noEmit
-
-      - name: Vitest
-        if: steps.changes.outputs.changed == 'true'
-        working-directory: extension
-        run: yarn test:run
-
-      - name: Build
-        if: steps.changes.outputs.changed == 'true'
-        working-directory: extension
-        run: yarn build
+          for scenario in sqlite postgres postgres-rwx postgres-existing-claim; do
+            args=()
+            if [ "$scenario" != sqlite ]; then
+              args+=(--set postgresql.enabled=true --set postgresql.host=postgres.example.test --set postgresql.password=ci-secret)
+            fi
+            case "$scenario" in
+              postgres-rwx) args+=(--set persistence.accessMode=ReadWriteMany) ;;
+              postgres-existing-claim) args+=(--set persistence.existingClaim=tarnished-uploads) ;;
+            esac
+            helm template tarnished ./deploy/helm/tarnished "${args[@]}" > "/tmp/helm-$scenario.yaml"
+            if helm template tarnished ./deploy/helm/tarnished "${args[@]}" --set replicaCount=2 > "/tmp/helm-$scenario-ha.log" 2>&1; then
+              echo "ERROR: $scenario accepted multiple replicas"
+              exit 1
+            fi
+            grep -F 'Tarnished requires replicaCount=1 for SQLite and PostgreSQL; HA is unsupported' "/tmp/helm-$scenario-ha.log"
+          done

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { listApplications } from '../lib/applications';
 import Layout from '../components/Layout';
 import ActivityHeatmap from '../components/ActivityHeatmap';
 import EmptyState from '../components/EmptyState';
+import Loading from '../components/Loading';
 import FlameEmblem from '../components/dashboard/FlameEmblem';
 import KPICards from '../components/dashboard/KPICards';
 import NeedsAttention from '../components/dashboard/NeedsAttention';
@@ -17,10 +17,11 @@ import {
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 export default function Dashboard() {
-  useAuth();
   const navigate = useNavigate();
   const [totalApplications, setTotalApplications] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [showImportPrompt, setShowImportPrompt] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -33,9 +34,13 @@ export default function Dashboard() {
   const showHeatmap = hasLoadedPreferences && preferences.show_heatmap;
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(false);
     async function loadTotalApplications() {
       try {
         const data = await listApplications({ page: 1, per_page: 1 });
+        if (!active) return;
         setTotalApplications(data.total);
 
         // Show import prompt if no applications and user hasn't dismissed it
@@ -43,16 +48,39 @@ export default function Dashboard() {
           setShowImportPrompt(true);
         }
       } catch {
-        setShowImportPrompt(false);
+        if (active) setError(true);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
 
     loadTotalApplications();
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [retry]);
 
-  if (loading) return null;
+  if (loading || error)
+    return (
+      <Layout>
+        <div className="mx-auto max-w-6xl px-4 py-8">
+          <h1 className="text-primary mb-6 text-2xl font-bold">Dashboard</h1>
+          {loading ? (
+            <Loading message="Loading dashboard..." />
+          ) : (
+            <div role="alert" className="text-red-bright">
+              Failed to load dashboard.
+              <button
+                className="text-accent ml-3 underline"
+                onClick={() => setRetry((value) => value + 1)}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+        </div>
+      </Layout>
+    );
 
   const handleDismissPrompt = () => {
     markImportPromptSeen();

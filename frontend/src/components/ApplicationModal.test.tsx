@@ -1,5 +1,11 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Status } from '../lib/types';
 import ApplicationModal from './ApplicationModal';
@@ -29,6 +35,8 @@ function createDeferredPromise<T>() {
   return { promise, resolve, reject };
 }
 
+afterEach(cleanup);
+
 describe('ApplicationModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -45,18 +53,20 @@ describe('ApplicationModal', () => {
 
     expect(companyInput).toHaveValue('Acme');
 
-    pendingStatuses.resolve([
-      {
-        id: 'status-applied',
-        name: 'Applied',
-        color: '#0f0',
-      },
-    ]);
+    await act(async () => {
+      pendingStatuses.resolve([
+        {
+          id: 'status-applied',
+          name: 'Applied',
+          meaning: 'applied',
+          color: '#0f0',
+        },
+      ]);
+      await pendingStatuses.promise;
+    });
 
-    await waitFor(() =>
-      expect(
-        screen.getByRole('combobox', { name: /status/i })
-      ).toHaveTextContent('Applied')
+    expect(screen.getByRole('combobox', { name: /status/i })).toHaveTextContent(
+      'Applied'
     );
 
     expect(companyInput).toHaveValue('Acme');

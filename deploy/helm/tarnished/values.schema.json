@@ -7,7 +7,7 @@
     "replicaCount": {
       "type": "integer",
       "minimum": 1,
-      "description": "Number of Tarnished replicas. SQLite deployments must remain single-replica. Multiple replicas require PostgreSQL plus shared uploads storage."
+      "description": "Exactly one Tarnished replica is supported for SQLite and PostgreSQL. The chart rejects other counts. Recreate updates cause downtime."
     },
     "image": {
       "type": "object",
@@ -162,15 +162,11 @@
         "accessMode": {
           "type": "string",
           "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"],
-          "description": "Access mode for the chart-managed PVC. Multiple replicas require shared write access."
+          "description": "Access mode for the chart-managed PVC. SQLite should use ReadWriteOnce. Storage mode does not change the single-replica limit."
         },
         "existingClaim": {
           "type": "string",
           "description": "Existing PVC to use instead of creating a new one."
-        },
-        "sharedAccess": {
-          "type": "boolean",
-          "description": "Acknowledgement flag required when multiple replicas use an existing shared claim."
         },
         "annotations": {
           "type": "object",
@@ -308,7 +304,7 @@
         "mode": {
           "type": "string",
           "enum": ["dry-run", "delete"],
-          "description": "Cleanup mode. dry-run reports orphaned uploads; delete removes them."
+          "description": "Scheduled cleanup supports dry-run only. Enabled delete mode is rejected; destructive cleanup requires manual stopped-writer maintenance with --delete --offline."
         },
         "successfulJobsHistoryLimit": {
           "type": "integer",

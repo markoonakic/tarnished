@@ -1,4 +1,10 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -66,6 +72,27 @@ describe('Dashboard preferences', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listApplications.mockResolvedValue({ total: 1 });
+  });
+
+  it('shows a retry action instead of an empty account after a failed read', async () => {
+    listApplications
+      .mockRejectedValueOnce(new Error('Offline'))
+      .mockResolvedValueOnce({ total: 1 });
+    useUserPreferences.mockReturnValue({ data: undefined });
+    const { default: Dashboard } = await import('./Dashboard');
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>
+    );
+    await screen.findByRole('alert');
+    expect(
+      screen.queryByText(
+        'Welcome! Add your first job application to get started.'
+      )
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await screen.findByText('KPICards');
   });
 
   it('hides streak, needs-attention, and heatmap sections when disabled', async () => {

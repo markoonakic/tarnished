@@ -97,12 +97,11 @@ function initTheme() {
   const stored = getStoredTheme();
   document.documentElement.setAttribute('data-theme', stored);
 
-  // Apply stored accent override for the current theme
   const overrides = getAccentOverrides();
   const accentForTheme = overrides[stored] || 'aqua';
   applyAccentColor(accentForTheme);
 
-  // Update favicon after a frame to ensure CSS vars are resolved
+  // Resolve CSS variables after the theme has changed.
   requestAnimationFrame(() => {
     void updateThemeFavicon(getResolvedAccentColor(accentForTheme));
   });
@@ -120,11 +119,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    // Initialize theme before React render
     initTheme();
   }, []);
 
-  // Sync theme settings to backend
   const syncSettingsToBackend = useCallback(
     async (theme: string, accent: string) => {
       try {
@@ -142,16 +139,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       document.documentElement.setAttribute('data-theme', themeId);
       setCurrentTheme(themeId);
 
-      // Apply stored accent override for the new theme
       const accentForTheme = accentOverrides[themeId] || 'aqua';
       applyAccentColor(accentForTheme);
 
-      // Update favicon after CSS vars resolve
       requestAnimationFrame(() => {
         void updateThemeFavicon(getResolvedAccentColor(accentForTheme));
       });
 
-      // Sync to backend
       syncSettingsToBackend(themeId, accentForTheme);
     },
     [accentOverrides, syncSettingsToBackend]
@@ -159,20 +153,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setAccentColor = useCallback(
     (colorName: string) => {
-      // Update localStorage
       const newOverrides = { ...accentOverrides, [currentTheme]: colorName };
       persistAccentOverrides(newOverrides);
       setAccentOverrides(newOverrides);
 
-      // Apply immediately via CSS custom properties
       applyAccentColor(colorName);
 
-      // Update favicon after CSS vars resolve
       requestAnimationFrame(() => {
         void updateThemeFavicon(getResolvedAccentColor(colorName));
       });
 
-      // Sync to backend
       syncSettingsToBackend(currentTheme, colorName);
     },
     [currentTheme, accentOverrides, syncSettingsToBackend]
