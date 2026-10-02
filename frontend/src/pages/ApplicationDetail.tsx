@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getApplication, deleteApplication } from '../lib/applications';
 import { deleteRound } from '../lib/rounds';
@@ -16,41 +16,55 @@ import RoundForm from '../components/RoundForm';
 import RoundCard from '../components/RoundCard';
 import DocumentSection from '../components/DocumentSection';
 import HistoryViewer from '../components/application/HistoryViewer';
+import ScopedReport from '../components/ScopedReport';
 import Layout from '../components/Layout';
 import EmptyState from '../components/EmptyState';
 import ApplicationModal from '../components/ApplicationModal';
 
 export default function ApplicationDetail() {
   const { id } = useParams<{ id: string }>();
+  return <ApplicationDetailContent key={id} id={id!} />;
+}
+
+function ApplicationDetailContent({ id }: { id: string }) {
+  const requestId = useRef(0);
   const navigate = useNavigate();
   const colors = useThemeColors();
   const toast = useToastContext();
+  const { error: showError } = toast;
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showRoundForm, setShowRoundForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackOpened, setFeedbackOpened] = useState(false);
 
   const loadApplication = useCallback(async () => {
-    if (!id) return;
-
-    setLoading(true);
+    const ownedRequest = ++requestId.current;
     setError('');
     try {
-      const data = await getApplication(id!);
+      const data = await getApplication(id);
+      if (ownedRequest !== requestId.current) return;
       setApplication(data);
     } catch {
+      if (ownedRequest !== requestId.current) return;
       const errorMsg = 'Failed to load application';
       setError(errorMsg);
-      toast.error(errorMsg);
+      showError(errorMsg);
     } finally {
-      setLoading(false);
+      if (ownedRequest === requestId.current) setLoading(false);
     }
-  }, [id, toast]);
+  }, [id, showError]);
 
   useEffect(() => {
+    setLoading(true);
     loadApplication();
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      ++requestId.current;
+    };
   }, [loadApplication]);
 
   async function handleDelete() {
@@ -62,7 +76,7 @@ export default function ApplicationDetail() {
     } catch {
       const errorMsg = 'Failed to delete application';
       setError(errorMsg);
-      toast.error(errorMsg);
+      showError(errorMsg);
     }
   }
 
@@ -80,7 +94,7 @@ export default function ApplicationDetail() {
     } catch {
       const errorMsg = 'Failed to delete round';
       setError(errorMsg);
-      toast.error(errorMsg);
+      showError(errorMsg);
     }
   }
 
@@ -88,6 +102,10 @@ export default function ApplicationDetail() {
     setShowRoundForm(false);
     setEditingId(null);
 
+    handleRoundPersisted(savedRound);
+  }
+
+  function handleRoundPersisted(savedRound: Round) {
     setApplication((prev) => {
       if (!prev) return null;
 
@@ -108,13 +126,14 @@ export default function ApplicationDetail() {
     } catch {
       const errorMsg = 'Failed to refresh media';
       setError(errorMsg);
-      toast.error(errorMsg);
+      showError(errorMsg);
     }
   }
 
   function formatDate(dateStr: string | null) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString();
+    // Applied dates are calendar dates, not instants in the device zone.
+    return new Date(dateStr).toLocaleDateString(undefined, { timeZone: 'UTC' });
   }
 
   function formatDateTime(dateStr: string | null) {
@@ -136,7 +155,15 @@ export default function ApplicationDetail() {
     return (
       <Layout>
         <div className="flex items-center justify-center py-20">
-          <div className="text-red-bright">Application not found</div>
+          <div role="alert" className="text-red-bright">
+            {error || 'Application not found'}
+            <button
+              className="text-accent ml-3 underline"
+              onClick={loadApplication}
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </Layout>
     );
@@ -251,7 +278,8 @@ export default function ApplicationDetail() {
           )}
 
           {/* Salary Information */}
-          {(application.salary_min || application.salary_max) && (
+          {(application.salary_min != null ||
+            application.salary_max != null) && (
             <div className="bg-bg2 mb-4 rounded-lg p-4">
               <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                 <i className="bi-currency-dollar icon-sm"></i>
@@ -301,6 +329,7 @@ export default function ApplicationDetail() {
             </div>
           )}
 
+          <div id="application-evidence" />
           {/* Requirements - Must Have */}
           {application.requirements_must_have &&
             application.requirements_must_have.length > 0 && (
@@ -374,6 +403,16 @@ export default function ApplicationDetail() {
 
           <div className="border-tertiary flex flex-wrap items-center justify-end gap-2 border-t pt-4">
             <button
+              onClick={() => {
+                setFeedbackOpened(true);
+                setShowFeedback(true);
+              }}
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
+            >
+              <i className="bi-stars icon-sm" aria-hidden="true" />
+              Application feedback
+            </button>
+            <button
               onClick={() => setShowEditModal(true)}
               className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
             >
@@ -390,6 +429,24 @@ export default function ApplicationDetail() {
           </div>
         </div>
 
+        {feedbackOpened && (
+          <div hidden={!showFeedback} className="mb-6">
+            <ScopedReport
+              key={id}
+              title="Application feedback"
+              scope="APPLICATION"
+              endpoint={`/api/applications/${id}/feedback`}
+              requestBody={(state) => ({
+                generation: state.generation,
+                config_revision: state.capability.configuration_revision,
+              })}
+              requestLabel="application feedback"
+              onClose={() => setShowFeedback(false)}
+              emptyHint="No feedback yet. Get suggestions from this application's saved details."
+            />
+          </div>
+        )}
+
         <div className="mb-6">
           <DocumentSection
             application={application}
@@ -397,8 +454,13 @@ export default function ApplicationDetail() {
           />
         </div>
 
-        <div className="mb-6">
-          <HistoryViewer applicationId={id!} />
+        <div className="mb-6 space-y-4">
+          <HistoryViewer
+            application={application}
+            applicationId={id!}
+            revision={application.evidence_revision}
+            onChanged={loadApplication}
+          />
         </div>
 
         <div className="bg-secondary rounded-lg p-6">
@@ -421,6 +483,7 @@ export default function ApplicationDetail() {
               <RoundForm
                 applicationId={id!}
                 onSave={handleRoundSaved}
+                onPersist={handleRoundPersisted}
                 onCancel={() => setShowRoundForm(false)}
               />
             </div>
@@ -435,6 +498,7 @@ export default function ApplicationDetail() {
                     round={round}
                     applicationId={id!}
                     onSave={handleRoundSaved}
+                    onPersist={handleRoundPersisted}
                     onCancel={() => setEditingId(null)}
                   />
                 ) : (

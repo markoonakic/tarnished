@@ -1,8 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import Modal from './Modal';
+import { useState, useRef, useEffect } from 'react';
 import {
   validateImport,
   importData,
   connectToImportProgress,
+  getImportStatus,
+  type ImportProgress,
 } from '../lib/import';
 import {
   createTransferStateFromJob,
@@ -25,6 +28,9 @@ export default function ImportModal({
   onSuccess,
 }: ImportModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const progressConnection = useRef<EventSource | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [validating, setValidating] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -39,6 +45,9 @@ export default function ImportModal({
   const [override, setOverride] = useState(false);
 
   const reset = () => {
+    progressConnection.current?.close();
+    progressConnection.current = null;
+    setJobId(null);
     setFile(null);
     setValidation(null);
     setTransferState(null);
@@ -55,27 +64,21 @@ export default function ImportModal({
     }
   }, [isOpen]);
 
-  const handleClose = useCallback(() => {
-    if (importing) return;
+  useEffect(() => () => progressConnection.current?.close(), []);
+
+  function handleClose() {
+    if (importing || validating || checking) return;
     reset();
     onClose();
-  }, [importing, onClose]);
-
-  useEffect(() => {
-    if (isOpen) {
-      const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape' && !importing) handleClose();
-      };
-      window.addEventListener('keydown', handleEscape);
-      return () => window.removeEventListener('keydown', handleEscape);
-    }
-  }, [isOpen, importing, handleClose]);
+  }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;
 
-    if (!selected.name.endsWith('.zip')) {
+    setValidation(null);
+    setOverride(false);
+    if (!selected.name.toLowerCase().endsWith('.zip')) {
       setError('Please select a ZIP file');
       setFile(null);
       if (fileInputRef.current) {
@@ -149,24 +152,13 @@ export default function ImportModal({
         }
       );
 
-      connectToImportProgress(
+      setJobId(import_id);
+      progressConnection.current = connectToImportProgress(
         import_id,
         (prog) => {
           setTransferState(createTransferStateFromJob(prog));
         },
-        (finalProgress) => {
-          setImporting(false);
-          if (finalProgress.status === 'complete') {
-            onSuccess();
-            reset();
-            return;
-          }
-          setError(
-            finalProgress.message ||
-              finalProgress.error?.error ||
-              'Import failed. Please try again.'
-          );
-        }
+        finishImport
       );
     } catch (err) {
       setError(
@@ -176,21 +168,46 @@ export default function ImportModal({
     }
   };
 
+  function finishImport(progress: ImportProgress) {
+    setImporting(false);
+    setTransferState(createTransferStateFromJob(progress));
+    if (progress.status === 'complete') {
+      onSuccess();
+      reset();
+      return;
+    }
+    setError(
+      progress.message ||
+        progress.error?.error ||
+        'Import failed. Please try again.'
+    );
+  }
+
+  async function checkStatus() {
+    if (!jobId) return;
+    setChecking(true);
+    setError('');
+    try {
+      const progress = await getImportStatus(jobId);
+      setTransferState(createTransferStateFromJob(progress));
+      if (['complete', 'failed', 'cancelled'].includes(progress.status))
+        finishImport(progress);
+    } catch {
+      setError(
+        'Could not check import status. The import may still be running. Try checking again before starting another import.'
+      );
+    } finally {
+      setChecking(false);
+    }
+  }
+
   if (!isOpen) return null;
 
   return (
-    <div
-      className="bg-bg0/80 fixed inset-0 z-50 flex items-center justify-center"
-      onClick={handleClose}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          handleClose();
-        }
-      }}
-      tabIndex={-1}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="import-modal-title"
+    <Modal
+      onClose={handleClose}
+      labelledBy="import-modal-title"
+      busy={importing || validating || checking}
     >
       <div
         className="bg-bg1 mx-4 flex max-h-[90vh] w-full max-w-md flex-col rounded-lg"
@@ -202,7 +219,7 @@ export default function ImportModal({
           </h3>
           <button
             onClick={handleClose}
-            disabled={importing}
+            disabled={importing || validating || checking}
             aria-label="Close modal"
             className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out disabled:opacity-50"
           >
@@ -220,6 +237,16 @@ export default function ImportModal({
           {transferState ? (
             <div className="py-8">
               <TransferProgressPanel state={transferState} />
+              {jobId && !importing && (
+                <button
+                  type="button"
+                  disabled={checking}
+                  onClick={checkStatus}
+                  className="text-accent mt-4 underline disabled:opacity-50"
+                >
+                  {checking ? 'Checking status...' : 'Check import status'}
+                </button>
+              )}
             </div>
           ) : validation ? (
             <div>
@@ -311,9 +338,11 @@ export default function ImportModal({
               <input
                 ref={fileInputRef}
                 type="file"
+                aria-label="ZIP archive"
+                disabled={validating}
                 accept=".zip"
                 onChange={handleFileSelect}
-                className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out file:mr-3 focus:ring-1 focus:outline-none"
               />
 
               {file && (
@@ -331,6 +360,6 @@ export default function ImportModal({
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

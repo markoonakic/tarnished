@@ -1,9 +1,7 @@
+import Modal from './Modal';
+import { PASSWORD_POLICY, validNewPassword } from '../lib/password';
 import { useState, useEffect } from 'react';
 import { updateUser, deleteUser } from '../lib/admin';
-import {
-  buildUserUpdatePayload,
-  getEditUserModalState,
-} from '../lib/adminUserModalState';
 import type { AdminUser } from '../lib/admin';
 
 interface Props {
@@ -26,40 +24,34 @@ export default function EditUserModal({
   const [loading, setLoading] = useState(false);
   const isCurrentUser = user?.id === currentUserId;
 
-  // Sync state with user prop
+  // Clear credentials when the selected user changes.
   useEffect(() => {
     if (user) {
-      const initialState = getEditUserModalState(user);
-      setIsAdmin(initialState.isAdmin);
-      setIsActive(initialState.isActive);
-      setPassword(initialState.password);
-      setError(initialState.error);
+      setIsAdmin(user.is_admin);
+      setIsActive(user.is_active);
+      setPassword('');
+      setError('');
     }
   }, [user]);
-
-  // Focus and escape handling
-  useEffect(() => {
-    if (user) {
-      const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') onClose();
-      };
-      window.addEventListener('keydown', handleEscape);
-      return () => window.removeEventListener('keydown', handleEscape);
-    }
-  }, [user, onClose]);
 
   if (!user) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
+    if (password && !validNewPassword(password)) {
+      setError(PASSWORD_POLICY);
+      return;
+    }
     setLoading(true);
     setError('');
 
     try {
-      await updateUser(
-        user!.id,
-        buildUserUpdatePayload({ isAdmin, isActive, password })
-      );
+      await updateUser(user!.id, {
+        is_admin: isAdmin,
+        is_active: isActive,
+        ...(password ? { password } : {}),
+      });
       onSuccess();
       onClose();
     } catch {
@@ -70,6 +62,7 @@ export default function EditUserModal({
   }
 
   async function handleDelete() {
+    if (loading) return;
     if (
       !confirm(`Delete user "${user!.email}"? This action cannot be undone.`)
     ) {
@@ -91,19 +84,7 @@ export default function EditUserModal({
   }
 
   return (
-    <div
-      className="bg-bg0/80 fixed inset-0 z-50 flex items-center justify-center"
-      onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          onClose();
-        }
-      }}
-      tabIndex={-1}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="edit-modal-title"
-    >
+    <Modal onClose={onClose} labelledBy="edit-modal-title" busy={loading}>
       <div
         className="bg-bg1 mx-4 flex max-h-[90vh] w-full max-w-md flex-col rounded-lg"
         onClick={(e) => e.stopPropagation()}
@@ -114,6 +95,7 @@ export default function EditUserModal({
           </h3>
           <button
             onClick={onClose}
+            disabled={loading}
             aria-label="Close modal"
             className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
           >
@@ -142,8 +124,7 @@ export default function EditUserModal({
                 type="checkbox"
                 checked={isAdmin}
                 onChange={(e) => setIsAdmin(e.target.checked)}
-                disabled={isCurrentUser}
-                autoFocus
+                disabled={isCurrentUser || loading}
                 className="border-tertiary h-4 w-4 rounded"
               />
               <span className="text-primary text-sm">Admin</span>
@@ -161,7 +142,7 @@ export default function EditUserModal({
                 type="checkbox"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
-                disabled={isCurrentUser}
+                disabled={isCurrentUser || loading}
                 className="border-tertiary h-4 w-4 rounded"
               />
               <span className="text-primary text-sm">Active</span>
@@ -183,13 +164,24 @@ export default function EditUserModal({
             <input
               id="new-password"
               type="password"
+              disabled={isCurrentUser || loading}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               placeholder="Leave blank to keep current password"
-              minLength={8}
+              autoComplete="new-password"
             />
+            {isCurrentUser && (
+              <p className="text-muted mt-1 text-xs">
+                Change your own password in Settings → Security.
+              </p>
+            )}
           </div>
+
+          <p className="text-muted text-sm">
+            {PASSWORD_POLICY} A password reset signs out browser sessions. API
+            keys stay active.
+          </p>
 
           <div className="border-tertiary flex flex-col-reverse justify-between gap-3 border-t pt-4 sm:flex-row sm:items-center">
             <button
@@ -205,13 +197,14 @@ export default function EditUserModal({
               <button
                 type="button"
                 onClick={onClose}
+                disabled={loading}
                 className="text-fg1 hover:bg-bg2 hover:text-fg0 flex-1 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50 sm:flex-initial"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || isCurrentUser}
                 className="bg-accent text-bg0 hover:bg-accent-bright flex-1 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50 sm:flex-initial"
               >
                 {loading ? 'Saving...' : 'Save'}
@@ -220,6 +213,6 @@ export default function EditUserModal({
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -7,23 +7,26 @@ import { useInterviewRoundsAnalytics } from '@/hooks/useAnalyticsData';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
+import HelpTip from '@/components/HelpTip';
 
 const EMPTY_FUNNEL_DATA: FunnelData[] = [];
 
 interface InterviewFunnelProps {
   period?: string;
   roundType?: string;
+  asOf?: string;
 }
 
 export default function InterviewFunnel({
   period = 'all',
   roundType,
+  asOf,
 }: InterviewFunnelProps) {
   const {
     data: analytics,
     isLoading,
     isError,
-  } = useInterviewRoundsAnalytics(period, roundType);
+  } = useInterviewRoundsAnalytics(period, roundType, asOf);
   const data: FunnelData[] = analytics?.funnel_data ?? EMPTY_FUNNEL_DATA;
   const colors = useThemeColors();
 
@@ -38,7 +41,7 @@ export default function InterviewFunnel({
       const dataIndex = p.dataIndex as number;
       const item = data[dataIndex];
       if (!item) return '';
-      return `${item.round}<br/>Count: ${item.count}<br/>Passed: ${item.passed}<br/>Conversion: ${item.conversion_rate}%`;
+      return `${item.round}\nCount: ${item.count}\nPassed: ${item.passed}\nPassed / recorded rounds: ${item.conversion_rate}%`;
     };
 
     const labelFormatter = (
@@ -55,6 +58,7 @@ export default function InterviewFunnel({
     return {
       tooltip: {
         trigger: 'item',
+        renderMode: 'richText',
         backgroundColor: colors.bg3,
         borderColor: colors.aquaBright,
         borderWidth: 1,
@@ -68,6 +72,7 @@ export default function InterviewFunnel({
           left: '10%',
           width: '80%',
           label: {
+            position: 'inside',
             formatter: labelFormatter,
             color: colors.fg0,
             fontSize: 14,
@@ -133,10 +138,11 @@ export default function InterviewFunnel({
 
   return (
     <div className="w-full overflow-x-auto">
-      <p className="text-fg4 mb-4 text-sm">
-        Visualizes the conversion rate of candidates through each interview
-        round stage. Each bar shows the count of interviews at that stage, with
-        the percentage of candidates who advanced to the next round.
+      <p className="text-fg4 mb-4 flex items-center gap-2 text-sm">
+        Interview rounds by type
+        <HelpTip label="About interview rounds">
+          <p>Percentages show the share of recorded rounds that passed.</p>
+        </HelpTip>
       </p>
       <ReactECharts
         option={option}

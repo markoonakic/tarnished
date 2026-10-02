@@ -15,11 +15,9 @@ export default function Pagination({
   totalItems,
   onPageChange,
 }: PaginationProps) {
-  // Calculate item range
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * perPage + 1;
   const endItem = Math.min(currentPage * perPage, totalItems);
 
-  // Generate page numbers with ellipsis logic
   const pageNumbers = useMemo(() => {
     if (totalPages <= 7) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -27,7 +25,6 @@ export default function Pagination({
 
     const pages: (number | 'ellipsis-start' | 'ellipsis-end')[] = [];
 
-    // Always show first page
     pages.push(1);
 
     if (currentPage <= 4) {
@@ -56,20 +53,17 @@ export default function Pagination({
     return pages;
   }, [currentPage, totalPages]);
 
-  // If only one page, show only item count
   const showPaginationControls = totalPages > 1;
 
   return (
     <div className="flex w-full flex-col items-center justify-between gap-4 sm:flex-row">
-      {/* Item count display */}
       <div className="text-muted text-sm">
-        Showing {startItem}-{endItem} of {totalItems} items
+        Showing {startItem}-{endItem} of {totalItems}{' '}
+        {totalItems === 1 ? 'item' : 'items'}
       </div>
 
-      {/* Pagination controls */}
       {showPaginationControls && (
         <div className="flex items-center gap-1">
-          {/* Previous button */}
           <button
             type="button"
             onClick={() => onPageChange(currentPage - 1)}
@@ -84,7 +78,6 @@ export default function Pagination({
             <i className="bi-chevron-left icon-sm" />
           </button>
 
-          {/* Page numbers */}
           {pageNumbers.map((page, index) => {
             if (page === 'ellipsis-start' || page === 'ellipsis-end') {
               return (
@@ -116,7 +109,6 @@ export default function Pagination({
             );
           })}
 
-          {/* Next button */}
           <button
             type="button"
             onClick={() => onPageChange(currentPage + 1)}

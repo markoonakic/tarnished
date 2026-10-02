@@ -1,4 +1,21 @@
+import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+function responseError(config: InternalAxiosRequestConfig, status: number) {
+  return new AxiosError(
+    'Request rejected',
+    'ERR_BAD_REQUEST',
+    config,
+    undefined,
+    {
+      status,
+      statusText: 'Request rejected',
+      headers: {},
+      config,
+      data: {},
+    }
+  );
+}
 
 function createStorageMock(): Storage {
   const store = new Map<string, string>();
@@ -88,9 +105,7 @@ describe('authenticated api helpers', () => {
         }
 
         const authHeader = fetchMock.mock.calls.at(-1)?.[1]?.headers as
-          | Headers
-          | Record<string, string>
-          | undefined;
+          Headers | Record<string, string> | undefined;
         const token =
           authHeader instanceof Headers
             ? authHeader.get('Authorization')
@@ -111,5 +126,223 @@ describe('authenticated api helpers', () => {
     expect(response.status).toBe(200);
     expect(localStorage.getItem('access_token')).toBe('fresh-token');
     expect(localStorage.getItem('refresh_token')).toBe('fresh-refresh-token');
+  });
+
+  it('shares a token refresh between concurrent fetch and axios requests', async () => {
+    const {
+      default: api,
+      fetchWithAuth,
+      setAuthTokens,
+    } = await import('./api');
+    setAuthTokens('expired-access', 'current-refresh');
+    let resolveRefresh!: (response: Response) => void;
+    const refresh = new Promise<Response>((resolve) => {
+      resolveRefresh = resolve;
+    });
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation((input, init) => {
+        if (String(input).endsWith('/api/auth/refresh')) return refresh;
+        const status =
+          new Headers(init?.headers).get('Authorization') ===
+          'Bearer fresh-access'
+            ? 200
+            : 401;
+        return Promise.resolve(new Response(null, { status }));
+      });
+    const fetchRequest = fetchWithAuth('/api/protected');
+    const axiosRequest = api.get('/api/other', {
+      adapter: async (config) => {
+        if (config.headers.get('Authorization') !== 'Bearer fresh-access') {
+          throw responseError(config, 401);
+        }
+        return { status: 200, statusText: 'OK', headers: {}, config, data: {} };
+      },
+    });
+    await vi.waitFor(() => {
+      expect(
+        fetchMock.mock.calls.filter(([input]) =>
+          String(input).endsWith('/api/auth/refresh')
+        )
+      ).toHaveLength(1);
+    });
+    resolveRefresh(
+      new Response(
+        JSON.stringify({
+          access_token: 'fresh-access',
+          refresh_token: 'fresh-refresh',
+        })
+      )
+    );
+    expect((await fetchRequest).status).toBe(200);
+    expect((await axiosRequest).status).toBe(200);
+    expect(
+      fetchMock.mock.calls.filter(([input]) =>
+        String(input).endsWith('/api/auth/refresh')
+      )
+    ).toHaveLength(1);
+  });
+
+  it.each(['sign out', 'sign in again'])(
+    'does not restore an old session after %s',
+    async (action) => {
+      const { refreshAuthTokens, clearAuthTokens, setAuthTokens } =
+        await import('./api');
+      setAuthTokens('old-access', 'old-refresh');
+      let resolveRefresh!: (response: Response) => void;
+      vi.spyOn(globalThis, 'fetch').mockReturnValue(
+        new Promise<Response>((resolve) => {
+          resolveRefresh = resolve;
+        })
+      );
+      const request = refreshAuthTokens();
+      clearAuthTokens();
+      if (action === 'sign in again')
+        setAuthTokens('new-access', 'new-refresh');
+      resolveRefresh(
+        new Response(
+          JSON.stringify({
+            access_token: 'stale-access',
+            refresh_token: 'stale-refresh',
+          })
+        )
+      );
+      expect(await request).toBeNull();
+      expect(localStorage.getItem('access_token')).toBe(
+        action === 'sign in again' ? 'new-access' : null
+      );
+    }
+  );
+
+  it('keeps tokens after a temporary refresh failure and allows a later retry', async () => {
+    const { refreshAuthTokens, setAuthTokens } = await import('./api');
+    setAuthTokens('current-access', 'current-refresh');
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(null, { status: 429 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            access_token: 'fresh-access',
+            refresh_token: 'fresh-refresh',
+          })
+        )
+      );
+    await expect(refreshAuthTokens()).rejects.toThrow(
+      'Could not refresh the session'
+    );
+    expect(localStorage.getItem('refresh_token')).toBe('current-refresh');
+    expect(await refreshAuthTokens()).toBe('fresh-access');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears an access token when its refresh token is missing', async () => {
+    const { refreshAuthTokens } = await import('./api');
+    localStorage.setItem('access_token', 'expired-access');
+    expect(await refreshAuthTokens()).toBeNull();
+    expect(localStorage.getItem('access_token')).toBeNull();
+  });
+
+  it.each(['/api/auth/login', '/api/auth/refresh'])(
+    'does not refresh on a 401 from %s',
+    async (url) => {
+      const {
+        default: api,
+        setAuthTokens,
+        getAccessToken,
+      } = await import('./api');
+      const fetchMock = vi.spyOn(globalThis, 'fetch');
+      setAuthTokens('current-access', 'current-refresh');
+      await expect(
+        api.post(
+          url,
+          {},
+          {
+            adapter: async (config) => {
+              throw responseError(config, 401);
+            },
+          }
+        )
+      ).rejects.toMatchObject({ response: { status: 401 } });
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(getAccessToken()).toBe('current-access');
+    }
+  );
+
+  it.each(['/api/auth/change-password', '/api/auth/signout-all'])(
+    'refreshes expired access and retries %s once with the same body',
+    async (url) => {
+      const { default: api, setAuthTokens } = await import('./api');
+      setAuthTokens('expired-access', 'valid-refresh');
+      const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            access_token: 'fresh-access',
+            refresh_token: 'fresh-refresh',
+          }),
+          { status: 200 }
+        )
+      );
+      const authorizations: unknown[] = [];
+      const body = url.endsWith('change-password')
+        ? {
+            current_password: 'synthetic current',
+            new_password: 'synthetic replacement',
+          }
+        : undefined;
+      const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
+        authorizations.push(config.headers.get('Authorization'));
+        expect(config.data).toBe(body ? JSON.stringify(body) : undefined);
+        if (config.headers.get('Authorization') === 'Bearer expired-access') {
+          throw responseError(config, 401);
+        }
+        return {
+          status: 204,
+          statusText: 'No Content',
+          headers: {},
+          config,
+          data: undefined,
+        };
+      });
+      const response = await api.post(url, body, { adapter });
+      expect(response.status).toBe(204);
+      expect(adapter).toHaveBeenCalledTimes(2);
+      expect(authorizations).toEqual([
+        'Bearer expired-access',
+        'Bearer fresh-access',
+      ]);
+      expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
+        expect.stringContaining('/api/auth/refresh'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ refresh_token: 'valid-refresh' }),
+        })
+      );
+      expect(localStorage.getItem('access_token')).toBe('fresh-access');
+      expect(localStorage.getItem('refresh_token')).toBe('fresh-refresh');
+    }
+  );
+
+  it('does not refresh or clear tokens after a wrong-current-password 400', async () => {
+    const { default: api, setAuthTokens } = await import('./api');
+    setAuthTokens('current-access', 'current-refresh');
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
+      throw responseError(config, 400);
+    });
+    await expect(
+      api.post(
+        '/api/auth/change-password',
+        {
+          current_password: 'wrong',
+          new_password: 'synthetic replacement',
+        },
+        { adapter }
+      )
+    ).rejects.toMatchObject({ response: { status: 400 } });
+    expect(adapter).toHaveBeenCalledOnce();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(localStorage.getItem('access_token')).toBe('current-access');
+    expect(localStorage.getItem('refresh_token')).toBe('current-refresh');
   });
 });

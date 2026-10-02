@@ -1,5 +1,12 @@
+import { invalidateEvidenceQueries } from './queryClient';
 import api from './api';
-import type { APIKey, APIKeyCreateResponse, RoundType, Status } from './types';
+import type {
+  APIKey,
+  APIKeyCreateResponse,
+  RoundType,
+  Status,
+  StatusMeaning,
+} from './types';
 
 export async function listStatuses(): Promise<Status[]> {
   const response = await api.get('/api/statuses');
@@ -8,22 +15,26 @@ export async function listStatuses(): Promise<Status[]> {
 
 export async function createStatus(data: {
   name: string;
+  meaning?: StatusMeaning;
   color?: string;
 }): Promise<Status> {
   const response = await api.post('/api/statuses', data);
+  invalidateEvidenceQueries();
   return response.data;
 }
 
 export async function updateStatus(
   id: string,
-  data: { name?: string; color?: string }
+  data: { name?: string; color?: string; meaning?: StatusMeaning }
 ): Promise<Status> {
   const response = await api.patch(`/api/statuses/${id}`, data);
+  invalidateEvidenceQueries();
   return response.data;
 }
 
 export async function deleteStatus(id: string): Promise<void> {
   await api.delete(`/api/statuses/${id}`);
+  invalidateEvidenceQueries();
 }
 
 export async function listRoundTypes(): Promise<RoundType[]> {
@@ -35,6 +46,7 @@ export async function createRoundType(data: {
   name: string;
 }): Promise<RoundType> {
   const response = await api.post('/api/round-types', data);
+  invalidateEvidenceQueries();
   return response.data;
 }
 
@@ -43,11 +55,13 @@ export async function updateRoundType(
   data: { name: string }
 ): Promise<RoundType> {
   const response = await api.patch(`/api/round-types/${id}`, data);
+  invalidateEvidenceQueries();
   return response.data;
 }
 
 export async function deleteRoundType(id: string): Promise<void> {
   await api.delete(`/api/round-types/${id}`);
+  invalidateEvidenceQueries();
 }
 
 export async function listAPIKeys(): Promise<APIKey[]> {

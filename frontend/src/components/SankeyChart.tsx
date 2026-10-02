@@ -3,202 +3,125 @@ import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import type { CallbackDataParams } from 'echarts/types/dist/shared';
 import { useSankeyAnalytics } from '@/hooks/useAnalyticsData';
-import { getSankeyNodeColor } from '../lib/statusColors';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { getSankeyNodeColor } from '@/lib/statusColors';
+import { groupSankey } from '@/lib/sankey';
 import Loading from './Loading';
 import EmptyState from './EmptyState';
+import HelpTip from './HelpTip';
 
-export default function SankeyChart() {
-  const { data, isLoading, isError } = useSankeyAnalytics();
+export default function SankeyChart({
+  period = 'all',
+  asOf,
+}: {
+  period?: string;
+  asOf?: string;
+}) {
+  const { data, isLoading, isError } = useSankeyAnalytics(period, asOf);
   const colors = useThemeColors();
-
-  const option: EChartsOption = useMemo((): EChartsOption => {
-    if (!data) return {};
-
-    // Calculate depths: terminal nodes go at SAME level as their source stage
-    const getDepth = (nodeId: string): number => {
-      if (nodeId.startsWith('terminal_rejected_')) {
-        const stage = nodeId.split('_').pop();
-        switch (stage) {
-          case 'applied':
-            return 1; // Same level as Screening
-          case 'screening':
-            return 2; // Same level as Interviewing
-          case 'interviewing':
-            return 3; // Same level as Offer
-          case 'offer':
-            return 4; // Same level as Accepted
-          default:
-            return 2;
-        }
-      }
-      if (nodeId.startsWith('terminal_withdrawn_')) {
-        const stage = nodeId.split('_').pop();
-        switch (stage) {
-          case 'applied':
-            return 1;
-          case 'screening':
-            return 2;
-          case 'interviewing':
-            return 3;
-          case 'offer':
-            return 4;
-          default:
-            return 2;
-        }
-      }
-      // Regular status nodes
-      if (nodeId.startsWith('status_applied')) return 0;
-      if (nodeId.startsWith('status_screening')) return 1;
-      if (nodeId.startsWith('status_interviewing')) return 2;
-      if (nodeId.startsWith('status_offer')) return 3;
-      if (nodeId.startsWith('status_accepted')) return 4;
-      return 2; // Unknown statuses
-    };
-
-    // Build nodes - skip "applications" source node
-    const nodes = data.nodes
-      .filter((n) => n.id !== 'applications')
-      .map((n) => ({
-        name: n.id,
-        depth: getDepth(n.id),
-        itemStyle: { color: getSankeyNodeColor(n.id, colors, n.color) },
-        value: n.value, // Include explicit value if provided
-      }));
-
-    // Filter out links from "applications" source
-    const links = data.links
-      .filter((l) => l.source !== 'applications' && l.target !== 'applications')
-      .map((l) => ({
-        source: l.source,
-        target: l.target,
-        value: l.value,
-      }));
-
-    // Helper to format a node ID to human-readable label
-    const formatNodeId = (nodeId: string): string => {
-      if (nodeId.startsWith('terminal_rejected_')) {
-        const stage = nodeId.split('_').pop()?.replace(/_/g, ' ') || '';
-        return `Rejected after ${stage.charAt(0).toUpperCase() + stage.slice(1)}`;
-      }
-      if (nodeId.startsWith('terminal_withdrawn_')) {
-        const stage = nodeId.split('_').pop()?.replace(/_/g, ' ') || '';
-        return `Withdrawn after ${stage.charAt(0).toUpperCase() + stage.slice(1)}`;
-      }
-      if (nodeId.startsWith('status_')) {
-        return nodeId
-          .replace('status_', '')
-          .replace(/_/g, ' ')
-          .replace(/\b\w/g, (c: string) => c.toUpperCase());
-      }
-      return nodeId;
-    };
-
-    const tooltipFormatter = (
-      params: CallbackDataParams | CallbackDataParams[]
-    ): string => {
-      const p = Array.isArray(params) ? params[0] : params;
-
-      // Handle edges/links (flows between nodes)
-      if (p.dataType === 'edge') {
-        const edgeData = p.data as {
-          source: string;
-          target: string;
-          value: number;
-        };
-        const source = formatNodeId(edgeData.source);
-        const target = formatNodeId(edgeData.target);
-        return `${source} → ${target}: ${edgeData.value}`;
-      }
-
-      // Handle nodes (the bars)
-      const label = formatNodeId(p.name);
-      return `${label}: ${p.value}`;
-    };
-
-    const labelFormatter = (
-      params: CallbackDataParams | CallbackDataParams[]
-    ): string => {
-      // Handle both single and array params
-      const p = Array.isArray(params) ? params[0] : params;
-
-      // Simple labels: "Rejected", "Withdrawn", or the status name
-      if (p.name.startsWith('terminal_rejected_')) {
-        return 'Rejected';
-      }
-      if (p.name.startsWith('terminal_withdrawn_')) {
-        return 'Withdrawn';
-      }
-      if (p.name.startsWith('status_')) {
-        return p.name
-          .replace('status_', '')
-          .replace(/_/g, ' ')
-          .replace(/\b\w/g, (c: string) => c.toUpperCase());
-      }
-      return p.name;
-    };
-
+  const grouped = useMemo(
+    () => (data ? groupSankey(data) : { nodes: [], links: [] }),
+    [data]
+  );
+  const option = useMemo((): EChartsOption => {
+    const byId = new Map(grouped.nodes.map((node) => [node.id, node]));
+    const label = (id: string) => byId.get(id)?.label ?? 'Unknown';
     return {
       tooltip: {
         trigger: 'item',
-        triggerOn: 'mousemove',
+        renderMode: 'richText',
         backgroundColor: colors.bg3,
         borderColor: colors.aquaBright,
-        borderWidth: 1,
-        borderRadius: 4,
         textStyle: { color: colors.fg0 },
-        formatter: tooltipFormatter,
+        formatter: (params: CallbackDataParams | CallbackDataParams[]) => {
+          const p = Array.isArray(params) ? params[0] : params;
+          if (p.dataType === 'edge') {
+            const edge = p.data as {
+              source: string;
+              target: string;
+              value: number;
+            };
+            return `${label(edge.source)} → ${label(edge.target)}: ${edge.value} recorded changes`;
+          }
+          return `${label(p.name)}: ${byId.get(p.name)?.value ?? 0} recorded visits`;
+        },
       },
       series: [
         {
           type: 'sankey',
-          data: nodes,
-          links: links,
-          emphasis: {
-            focus: 'adjacency',
-          },
-          lineStyle: {
-            color: 'gradient',
-            curveness: 0.5,
-          },
+          data: grouped.nodes.map((node) => ({
+            name: node.id,
+            depth: node.depth,
+            value: node.value,
+            itemStyle: {
+              color: getSankeyNodeColor(
+                `status_${node.meaning}`,
+                colors,
+                node.color
+              ),
+            },
+          })),
+          links: grouped.links,
           label: {
             color: colors.fg1,
             fontSize: 12,
-            formatter: labelFormatter,
+            formatter: (p: CallbackDataParams) => label(p.name),
           },
-          nodeAlign: 'justify',
+          emphasis: { focus: 'adjacency' },
+          lineStyle: { color: 'gradient', curveness: 0.5 },
+          nodeAlign: 'left',
           nodeGap: 30,
-          layoutIterations: 50,
         },
       ],
     };
-  }, [data, colors]);
-
-  if (isLoading) {
-    return <Loading message="Loading chart data..." size="sm" />;
-  }
-
-  if (isError) {
+  }, [grouped, colors]);
+  if (isLoading) return <Loading message="Loading chart data..." size="sm" />;
+  if (isError || !data)
+    return <p className="text-red-bright">Failed to load pipeline chart</p>;
+  if (!data.nodes.length)
+    return <EmptyState message="No application history for this period" />;
+  if (!grouped.links.length)
     return (
-      <div className="text-red-bright py-8 text-center">
-        Failed to load Sankey data
-      </div>
-    );
-  }
-
-  if (!data || data.nodes.length === 0 || data.links.length === 0) {
-    return (
-      <EmptyState message="Not enough data for visualization. Add more applications with different statuses." />
-    );
-  }
-
-  return (
-    <div className="w-full overflow-x-auto">
-      <ReactECharts
-        option={option}
-        style={{ width: '100%', height: '25rem' }}
-        opts={{ renderer: 'svg' }}
+      <EmptyState
+        message="No status changes to plot yet"
+        subMessage="The chart will appear as applications move between stages."
       />
+    );
+  const columns = grouped.nodes.reduce(
+    (max, node) => Math.max(max, node.depth + 1),
+    1
+  );
+  const columnSizes = new Map<number, number>();
+  for (const node of grouped.nodes)
+    columnSizes.set(node.depth, (columnSizes.get(node.depth) ?? 0) + 1);
+  const height = Math.max(400, Math.max(...columnSizes.values()) * 52);
+  return (
+    <div className="min-w-0">
+      <p className="text-muted mb-4 flex items-center gap-2 text-sm">
+        Application pipeline
+        <HelpTip label="About the pipeline chart">
+          <p>
+            Paths through application stages. Returning to a stage appears as a
+            separate step.
+          </p>
+        </HelpTip>
+      </p>
+      <div
+        className="w-full overflow-x-auto"
+        role="region"
+        aria-label="Application pipeline chart"
+        tabIndex={0}
+      >
+        <ReactECharts
+          option={option}
+          style={{
+            width: '100%',
+            minWidth: `${Math.max(600, columns * 180)}px`,
+            height: `${height}px`,
+          }}
+          opts={{ renderer: 'svg' }}
+        />
+      </div>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   type UserPreferencesUpdate,
 } from '@/lib/userPreferences';
 import { useToast } from '@/hooks/useToast';
+import { invalidateEvidenceQueries } from '@/lib/queryClient';
 
 interface UseUserPreferencesOptions {
   enabled?: boolean;
@@ -78,8 +79,11 @@ export function useUpdateUserPreferences(
         toast.error(options.errorMessage ?? 'Failed to update preferences');
       }
     },
-    onSuccess: (preferences) => {
+    onSuccess: (preferences, updates) => {
       queryClient.setQueryData(USER_PREFERENCES_QUERY_KEY, preferences);
+      if ('time_zone' in updates || 'time_zone_mode' in updates) {
+        invalidateEvidenceQueries(queryClient);
+      }
     },
   });
 }

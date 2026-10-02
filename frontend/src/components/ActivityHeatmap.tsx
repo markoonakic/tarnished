@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useHeatmapAnalytics } from '@/hooks/useAnalyticsData';
 import {
   getDatePartsFromKey,
@@ -29,7 +29,7 @@ interface CellData {
   date: string;
   count: number;
   level: number;
-  isPadding?: boolean; // Marks cells that are for alignment only (not real dates)
+  isPadding?: boolean;
 }
 
 export default function ActivityHeatmap() {
@@ -39,6 +39,13 @@ export default function ActivityHeatmap() {
   const dayKey = useEffectiveDayKey();
 
   const { data, isLoading, isError } = useHeatmapAnalytics(viewMode);
+  const [scrollable, setScrollable] = useState(false);
+  const scrollToRecent = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    const overflowing = node.scrollWidth > node.clientWidth;
+    setScrollable(overflowing);
+    if (overflowing) node.scrollLeft = node.scrollWidth;
+  }, []);
 
   const effectiveToday = useMemo(() => {
     const { year, month, day } = getDatePartsFromKey(dayKey);
@@ -90,41 +97,35 @@ export default function ActivityHeatmap() {
     let endDate: Date;
 
     if (viewMode === 'rolling') {
-      // Exactly 365 days: from (today - 365) to today
       startDate = new Date(today);
       startDate.setDate(today.getDate() - 365);
       endDate = new Date(today);
     } else {
-      // Year view: exactly Jan 1 to Dec 31 of selected year
       startDate = new Date(viewMode, 0, 1); // Jan 1
       endDate = new Date(viewMode, 11, 31); // Dec 31
     }
 
-    // Find the Sunday on or before startDate to ensure proper day-of-week alignment
+    // Align the first column to Sunday.
     const gridStart = new Date(startDate);
     const startDayOfWeek = startDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
     gridStart.setDate(startDate.getDate() - startDayOfWeek);
 
-    // Build complete weeks starting from the Sunday before startDate
     const currentDate = new Date(gridStart);
 
     while (currentDate <= endDate) {
       const weekData: CellData[] = [];
 
-      // Always add exactly 7 cells for this week (Sunday to Saturday)
       for (let i = 0; i < 7; i++) {
         const cellDate = new Date(currentDate);
         cellDate.setDate(currentDate.getDate() + i);
         cellDate.setHours(0, 0, 0, 0);
 
-        // Check if this date is within our display range
         if (cellDate >= startDate && cellDate <= endDate) {
           const dateStr = cellDate.toLocaleDateString('en-CA');
           const count = countMap.get(dateStr) || 0;
           const level = getLevel(count, data?.max_count ?? 0);
           weekData.push({ date: dateStr, count, level });
         } else {
-          // Add a padding cell to maintain alignment
           weekData.push({
             date: cellDate.toLocaleDateString('en-CA'),
             count: 0,
@@ -134,13 +135,11 @@ export default function ActivityHeatmap() {
         }
       }
 
-      // Only add week if it has at least one non-padding day
       const hasRealData = weekData.some((cell) => !cell.isPadding);
       if (hasRealData) {
         grid.push(weekData);
       }
 
-      // Move to next Sunday
       currentDate.setDate(currentDate.getDate() + 7);
     }
 
@@ -156,20 +155,18 @@ export default function ActivityHeatmap() {
     grid.forEach((week, weekIndex) => {
       if (week.length === 0) return;
 
-      // Find the first non-padding cell to determine the month label
       const firstRealCell = week.find((cell) => !cell.isPadding);
       if (!firstRealCell) return;
 
-      const firstDayOfWeek = new Date(firstRealCell.date);
-      const year = firstDayOfWeek.getFullYear();
-      const month = firstDayOfWeek.getMonth();
+      const { year, month: calendarMonth } = getDatePartsFromKey(
+        firstRealCell.date
+      );
+      const month = calendarMonth - 1;
 
-      // For rolling view, track only month names (not year) to avoid duplicates like "Feb 2025" and "Feb 2026"
-      // For year views, track year+month to distinguish months from padding years
+      // Show each month once in the rolling view.
       const monthKey =
         viewMode === 'rolling' ? String(month) : `${year}-${month}`;
 
-      // Label every month that hasn't been labeled yet
       if (!seenMonths.has(monthKey)) {
         labels.push({ label: MONTH_LABELS[month], week: weekIndex });
         seenMonths.add(monthKey);
@@ -197,7 +194,6 @@ export default function ActivityHeatmap() {
   const cellGap = 3;
   const gridWeeks = grid.length;
 
-  // Check for empty data AFTER building grid so Dropdown is always available
   if (!data || !data.days || data.days.length === 0 || data.max_count === 0) {
     return (
       <div>
@@ -254,7 +250,7 @@ export default function ActivityHeatmap() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div ref={scrollToRecent} className="overflow-x-auto">
         <div
           className="relative"
           style={{ minWidth: gridWeeks * (cellSize + cellGap) + 30 }}
@@ -298,6 +294,12 @@ export default function ActivityHeatmap() {
                   {week.map((cell, dayIndex) => (
                     <div
                       key={`${weekIndex}-${dayIndex}`}
+                      role={cell.isPadding ? undefined : 'img'}
+                      aria-label={
+                        cell.isPadding
+                          ? undefined
+                          : `${cell.count} ${cell.count === 1 ? 'application' : 'applications'} on ${cell.date}`
+                      }
                       className="cursor-pointer rounded-sm opacity-60 transition-all duration-200 ease-in-out hover:opacity-100"
                       style={{
                         width: cellSize,
@@ -330,6 +332,9 @@ export default function ActivityHeatmap() {
           )}
         </div>
       </div>
+      {scrollable && (
+        <p className="text-fg2 mt-2 text-xs">Scroll for earlier months</p>
+      )}
     </div>
   );
 }

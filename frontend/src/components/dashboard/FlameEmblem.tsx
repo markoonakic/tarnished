@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api, { withAxiosTimeZoneHeaders } from '@/lib/api';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useEffectiveDayKey } from '@/hooks/useEffectiveDayKey';
 import { getStableFlameQuote, type FlameStateKey } from '@/lib/flameQuotes';
 
 type FlameState = 'burning' | 'ember' | 'extinguished' | 'dormant';
@@ -159,7 +160,7 @@ function FlameCanvas({
         ref={canvasRef}
         width={width * 9}
         height={height * 15}
-        className="block"
+        className="block h-auto max-w-full"
         style={{ imageRendering: 'pixelated' }}
       />
     </div>
@@ -167,11 +168,12 @@ function FlameCanvas({
 }
 
 export default function FlameEmblem() {
-  const { currentAccent, accentOptions } = useTheme();
+  const { currentTheme, currentAccent, accentOptions } = useTheme();
+  const dayKey = useEffectiveDayKey();
   const [frameIndex, setFrameIndex] = useState(0);
 
   const { data, isLoading } = useQuery<StreakData>({
-    queryKey: ['streak'],
+    queryKey: ['streak', dayKey],
     queryFn: () =>
       api
         .get('/api/streak', { headers: withAxiosTimeZoneHeaders() })
@@ -230,7 +232,9 @@ export default function FlameEmblem() {
         ? style.getPropertyValue(option.cssVarBright).trim()
         : '#fabd2f',
     };
-  }, [accentOptions, currentAccent]);
+    // The same accent resolves to different CSS colors in each theme.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTheme, accentOptions, currentAccent]);
 
   const quote =
     data && stateKey
@@ -271,7 +275,7 @@ export default function FlameEmblem() {
         </div>
         <div
           key={stateKey}
-          className={`relative rounded-lg border-2 px-12 py-4 transition-all duration-300 ${borderClass}`}
+          className={`relative max-w-full rounded-lg border-2 px-4 py-4 transition-all duration-300 sm:px-12 ${borderClass}`}
           style={
             animated ? { animation: 'kindle-once 700ms ease-out 1' } : undefined
           }
@@ -293,7 +297,7 @@ export default function FlameEmblem() {
 
           <div className="mt-3 text-center">
             <div className="text-fg1 text-3xl font-bold">
-              {data.current_streak} DAYS
+              {data.current_streak} {data.current_streak === 1 ? 'DAY' : 'DAYS'}
             </div>
             {!stateKey.startsWith('burning') && (
               <div className="text-fg4 mt-1 text-sm font-medium capitalize">
@@ -308,8 +312,14 @@ export default function FlameEmblem() {
         </p>
 
         <div className="text-fg4 mt-4 flex gap-6 text-xs">
-          <span>Best: {data.longest_streak} days</span>
-          <span>Total: {data.total_activity_days} days</span>
+          <span>
+            Best: {data.longest_streak}{' '}
+            {data.longest_streak === 1 ? 'day' : 'days'}
+          </span>
+          <span>
+            Total: {data.total_activity_days}{' '}
+            {data.total_activity_days === 1 ? 'day' : 'days'}
+          </span>
         </div>
       </div>
     </div>

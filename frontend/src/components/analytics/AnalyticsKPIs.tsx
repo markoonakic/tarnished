@@ -1,4 +1,6 @@
 import { useAnalyticsKPIs } from '@/hooks/useAnalyticsData';
+import StageResidence from './StageResidence';
+import HelpTip from '../HelpTip';
 
 interface KPICardProps {
   title: string;
@@ -10,7 +12,7 @@ interface KPICardProps {
 function KPICard({ title, value, unit, tooltip }: KPICardProps) {
   return (
     <div className="bg-secondary group relative rounded-lg p-4" title={tooltip}>
-      <h3 className="text-fg4 mb-1 text-xs font-semibold">{title}</h3>
+      <h3 className="text-fg4 mb-1 text-xs! font-semibold">{title}</h3>
       <div className="flex items-baseline gap-1">
         <span className="text-fg1 text-xl font-bold">{value}</span>
         {unit && <span className="text-fg4 text-xs">{unit}</span>}
@@ -21,10 +23,11 @@ function KPICard({ title, value, unit, tooltip }: KPICardProps) {
 
 interface AnalyticsKPIsProps {
   period: string;
+  asOf?: string;
 }
 
-export default function AnalyticsKPIs({ period }: AnalyticsKPIsProps) {
-  const { data: kpis, isLoading, isError } = useAnalyticsKPIs(period);
+export default function AnalyticsKPIs({ period, asOf }: AnalyticsKPIsProps) {
+  const { data: kpis, isLoading, isError } = useAnalyticsKPIs(period, asOf);
 
   if (isLoading) {
     return (
@@ -49,28 +52,51 @@ export default function AnalyticsKPIs({ period }: AnalyticsKPIsProps) {
     );
   }
 
+  const rate = (value: number | null) => (value === null ? '—' : `${value}%`);
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-      <KPICard title="Total Applications" value={kpis.total_applications} />
-      <KPICard title="Interviews" value={kpis.interviews} />
-      <KPICard title="Offers" value={kpis.offers} />
-      <KPICard
-        title="App to Interview Rate"
-        value={kpis.application_to_interview_rate}
-        unit="%"
-        tooltip="Percentage of applications that resulted in interviews"
-      />
-      <KPICard
-        title="Response Rate"
-        value={kpis.response_rate}
-        unit="%"
-        tooltip="Percentage of applications that received any response"
-      />
-      <KPICard
-        title="Active Opportunities"
-        value={kpis.active_opportunities}
-        tooltip="Applications still in progress"
-      />
-    </div>
+    <>
+      <h3 className="text-fg1 mb-3 flex items-center gap-2 font-medium">
+        Pipeline metrics
+        <HelpTip label="About pipeline metrics">
+          <p>
+            Applications sent{' '}
+            {kpis.scope.cohort_start
+              ? `${kpis.scope.cohort_start} – ${kpis.scope.cohort_end}`
+              : 'at any time'}
+            . Rates use {kpis.total_applications} applications; saved leads are
+            excluded.
+          </p>
+        </HelpTip>
+      </h3>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+        <KPICard title="Total Applications" value={kpis.total_applications} />
+        <KPICard
+          title="Interviews"
+          value={kpis.interviews}
+          tooltip="Applications with a recorded interview stage, including those that have since moved on."
+        />
+        <KPICard
+          title="Offers"
+          value={kpis.offers}
+          tooltip="Applications with a recorded offer stage, including those that have since moved on."
+        />
+        <KPICard
+          title="App to Interview Rate"
+          value={rate(kpis.interview_rate)}
+          tooltip={`${kpis.interviews} of ${kpis.total_applications} applications reached an interview.`}
+        />
+        <KPICard
+          title="Response Rate"
+          value={rate(kpis.response_rate)}
+          tooltip={`${kpis.responded} of ${kpis.total_applications} applications have a recorded employer reply. ${kpis.response_unknown} have unknown response history.`}
+        />
+        <KPICard
+          title="Active Opportunities"
+          value={kpis.active_opportunities}
+          tooltip="Applications currently in progress."
+        />
+      </div>
+      <StageResidence metrics={kpis} />
+    </>
   );
 }

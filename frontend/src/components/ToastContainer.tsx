@@ -1,11 +1,6 @@
 import { useToastContext } from '@/contexts/ToastContext';
 import Toast from './Toast';
 
-/**
- * Container component that renders all active toasts.
- * Should be placed near the root of the app.
- * Positions toasts in the top-right corner with proper stacking.
- */
 export default function ToastContainer() {
   const { toasts, removeToast } = useToastContext();
 

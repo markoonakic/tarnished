@@ -123,7 +123,9 @@ export default function SearchableCombobox({
     const selectedIndex = filteredOptions.findIndex(
       (option) => option.value === value
     );
-    setFocusedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+    setFocusedIndex(
+      selectedIndex >= 0 ? selectedIndex : filteredOptions.length > 0 ? 0 : -1
+    );
   }, [filteredOptions, isOpen, value]);
 
   useEffect(() => {
@@ -164,6 +166,7 @@ export default function SearchableCombobox({
   }
 
   function handleSelect(option: DropdownOption) {
+    if (disabled) return;
     onChange(option.value);
     setInputValue(option.label);
     setIsOpen(false);
@@ -171,7 +174,7 @@ export default function SearchableCombobox({
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (disabled) {
+    if (disabled || event.nativeEvent.isComposing) {
       return;
     }
 
@@ -208,9 +211,15 @@ export default function SearchableCombobox({
         break;
       }
       case 'Escape': {
-        event.preventDefault();
+        if (isOpen) {
+          event.preventDefault();
+          event.stopPropagation();
+          closeCombobox();
+        }
+        break;
+      }
+      case 'Tab': {
         closeCombobox();
-        inputRef.current?.blur();
         break;
       }
       case 'Home': {
@@ -250,7 +259,13 @@ export default function SearchableCombobox({
     optionClasses[containerBackground as keyof typeof optionClasses];
 
   return (
-    <div ref={rootRef} className="relative">
+    <div
+      ref={rootRef}
+      className="relative"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) closeCombobox();
+      }}
+    >
       <div
         className={`${triggerBackground} focus-within:ring-accent-bright overflow-hidden rounded transition-all duration-200 ease-in-out focus-within:ring-1`}
       >
@@ -273,7 +288,7 @@ export default function SearchableCombobox({
           aria-haspopup="listbox"
           aria-autocomplete="list"
           aria-activedescendant={
-            isOpen && focusedIndex >= 0
+            isOpen && filteredOptions[focusedIndex]
               ? `${listboxId}-option-${focusedIndex}`
               : undefined
           }
@@ -304,6 +319,7 @@ export default function SearchableCombobox({
         id={listboxId}
         role="listbox"
         aria-hidden={!isOpen}
+        inert={!isOpen || disabled}
         className={`bg-bg0 ring-accent-bright absolute z-10 mt-1 w-full overflow-hidden rounded-lg ring-1 transition-all duration-200 ease-in-out ${
           isOpen
             ? 'translate-y-0 opacity-100'
@@ -327,6 +343,7 @@ export default function SearchableCombobox({
                   }}
                   type="button"
                   role="option"
+                  tabIndex={-1}
                   aria-selected={isSelected}
                   onMouseEnter={() => setFocusedIndex(index)}
                   onMouseDown={(event) => event.preventDefault()}

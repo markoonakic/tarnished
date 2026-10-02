@@ -2,12 +2,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useNeedsAttentionData } from '@/hooks/useDashboardData';
 
-interface NeedsAttentionItem {
-  id: string;
-  company: string;
-  job_title: string;
-  days_since: number;
-}
+import type { NeedsAttentionItem } from '@/lib/dashboard';
 
 interface AttentionSectionProps {
   title: string;
@@ -54,13 +49,13 @@ function AttentionSection({
             onClick={() => navigate(`/applications/${item.id}`)}
             className="bg-tertiary hover:bg-bg3 w-full cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5"
           >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
+            <div className="space-y-1">
+              <div className="min-w-0">
                 <p className="text-fg1 truncate font-medium">{item.company}</p>
                 <p className="text-fg4 truncate text-sm">{item.job_title}</p>
               </div>
               <div className="text-fg4 text-xs whitespace-nowrap">
-                {item.days_since}d
+                {item.days_since}d since applied
               </div>
             </div>
           </button>
@@ -100,7 +95,7 @@ export default function NeedsAttention() {
   }
 
   return (
-    <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
+    <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
       <AttentionSection
         title="Follow-ups"
         items={data.follow_ups}
@@ -109,16 +104,16 @@ export default function NeedsAttention() {
         iconColor="text-yellow"
       />
       <AttentionSection
-        title="No Responses"
+        title="Awaiting Response"
         items={data.no_responses}
-        emptyMessage="No pending responses"
+        emptyMessage="No pending reminders"
         icon="bi-clock-history"
         iconColor="text-red"
       />
       <AttentionSection
         title="Interviewing"
         items={data.interviewing}
-        emptyMessage="No active interviews"
+        emptyMessage="No currently interviewing applications"
         icon="bi-chat-square-quote"
         iconColor="text-green"
       />

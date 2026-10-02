@@ -1,9 +1,3 @@
-/**
- * Downloads a file using a blob URL and specified filename.
- *
- * @param blobUrl - The blob URL to download from
- * @param filename - The filename to save as
- */
 export function downloadFile(blobUrl: string, filename: string): void {
   const link = document.createElement('a');
   link.href = blobUrl;

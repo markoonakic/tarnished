@@ -21,55 +21,34 @@ const API_KEY_PRESETS = [
   { value: 'custom', label: 'Custom' },
 ] as const;
 
+const FULL_ACCESS_SCOPES = [
+  'applications:read',
+  'applications:write',
+  'job_leads:read',
+  'job_leads:write',
+  'profile:read',
+  'profile:write',
+  'rounds:read',
+  'rounds:write',
+  'statuses:read',
+  'statuses:write',
+  'round_types:read',
+  'round_types:write',
+  'dashboard:read',
+  'analytics:read',
+  'preferences:read',
+  'preferences:write',
+  'user_settings:read',
+  'user_settings:write',
+  'files:read',
+  'files:write',
+  'export:read',
+  'import:write',
+];
+
 const PRESET_SCOPES: Record<string, string[]> = {
-  full_access: [
-    'applications:read',
-    'applications:write',
-    'job_leads:read',
-    'job_leads:write',
-    'profile:read',
-    'profile:write',
-    'rounds:read',
-    'rounds:write',
-    'statuses:read',
-    'statuses:write',
-    'round_types:read',
-    'round_types:write',
-    'dashboard:read',
-    'analytics:read',
-    'preferences:read',
-    'preferences:write',
-    'user_settings:read',
-    'user_settings:write',
-    'files:read',
-    'files:write',
-    'export:read',
-    'import:write',
-  ],
-  cli: [
-    'applications:read',
-    'applications:write',
-    'job_leads:read',
-    'job_leads:write',
-    'profile:read',
-    'profile:write',
-    'rounds:read',
-    'rounds:write',
-    'statuses:read',
-    'statuses:write',
-    'round_types:read',
-    'round_types:write',
-    'dashboard:read',
-    'analytics:read',
-    'preferences:read',
-    'preferences:write',
-    'user_settings:read',
-    'user_settings:write',
-    'files:read',
-    'files:write',
-    'export:read',
-    'import:write',
-  ],
+  full_access: FULL_ACCESS_SCOPES,
+  cli: FULL_ACCESS_SCOPES,
   extension: [
     'applications:read',
     'applications:write',
@@ -124,6 +103,7 @@ function formatMaskedKey(prefix: string): string {
 
 export default function SettingsAPIKey() {
   const toast = useToast();
+  const { error: showError } = toast;
   const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -146,11 +126,11 @@ export default function SettingsAPIKey() {
       const data = await listAPIKeys();
       setApiKeys(Array.isArray(data) ? data : []);
     } catch {
-      toast.error('Failed to load API keys');
+      showError('Failed to load API keys');
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [showError]);
 
   useEffect(() => {
     loadAPIKeys();
@@ -159,7 +139,7 @@ export default function SettingsAPIKey() {
   async function handleCreateKey() {
     const label = newLabel.trim();
     if (!label) {
-      toast.error('Enter a label for the API key');
+      showError('Enter a label for the API key');
       return;
     }
 
@@ -178,7 +158,7 @@ export default function SettingsAPIKey() {
       setAdvancedScopesOpen(false);
       toast.success('API key created');
     } catch {
-      toast.error('Failed to create API key');
+      showError('Failed to create API key');
     } finally {
       setSubmitting(false);
     }
@@ -216,14 +196,14 @@ export default function SettingsAPIKey() {
       await navigator.clipboard.writeText(revealedKey);
       toast.success('API key copied to clipboard');
     } catch {
-      toast.error('Failed to copy API key');
+      showError('Failed to copy API key');
     }
   }
 
   async function handleRenameKey(id: string) {
     const label = editingLabel.trim();
     if (!label) {
-      toast.error('Enter a label for the API key');
+      showError('Enter a label for the API key');
       return;
     }
 
@@ -244,7 +224,7 @@ export default function SettingsAPIKey() {
       setEditingAdvancedScopesOpen(false);
       toast.success('API key updated');
     } catch {
-      toast.error('Failed to update API key');
+      showError('Failed to update API key');
     } finally {
       setSubmitting(false);
     }
@@ -261,7 +241,7 @@ export default function SettingsAPIKey() {
       setApiKeys((current) => current.filter((item) => item.id !== id));
       toast.success('API key revoked');
     } catch {
-      toast.error('Failed to revoke API key');
+      showError('Failed to revoke API key');
     } finally {
       setSubmitting(false);
     }

@@ -1,6 +1,6 @@
 export const DEFAULT_THEME_ID = 'gruvbox-dark';
 export const STORAGE_KEY_ACCENTS = 'themeAccents';
-export const STORAGE_KEY_THEME = 'theme';
+const STORAGE_KEY_THEME = 'theme';
 
 export function getStoredTheme(): string {
   return localStorage.getItem(STORAGE_KEY_THEME) || DEFAULT_THEME_ID;
@@ -13,7 +13,12 @@ export function persistThemeSelection(themeId: string): void {
 export function getAccentOverrides(): Record<string, string> {
   try {
     const stored = localStorage.getItem(STORAGE_KEY_ACCENTS);
-    return stored ? (JSON.parse(stored) as Record<string, string>) : {};
+    const overrides: unknown = stored ? JSON.parse(stored) : {};
+    if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides))
+      return {};
+    return Object.fromEntries(
+      Object.entries(overrides).filter(([, value]) => typeof value === 'string')
+    );
   } catch {
     return {};
   }

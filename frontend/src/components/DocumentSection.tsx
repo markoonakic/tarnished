@@ -1,3 +1,5 @@
+import DocumentTextFallback from './DocumentTextFallback';
+import FileButton from './FileButton';
 import { useState } from 'react';
 import {
   uploadCV,
@@ -109,79 +111,88 @@ export default function DocumentSection({ application, onUpdate }: Props) {
       isUploading && uploadProgress > 0 && uploadProgress < 100;
 
     return (
-      <div className="flex flex-col justify-between gap-3 py-3 sm:flex-row sm:items-center">
+      <div
+        id={`document-${application.id}-${type === 'cv' ? 'cv' : 'cover_letter'}`}
+        className="flex flex-col justify-between gap-3 py-3 sm:flex-row sm:items-center"
+      >
         <span className="text-primary font-medium">{label}</span>
-        {hasFile ? (
-          <div className="flex flex-col items-start gap-2 sm:items-end">
-            {isProgressActive && (
-              <ProgressBar
-                progress={uploadProgress}
-                fileName={uploadingFile?.name}
-              />
-            )}
-            <div className="flex items-center gap-2">
-              <span
-                className={`text-sm ${wasJustReplaced ? 'text-accent-bright' : 'text-green-bright'}`}
-              >
-                {wasJustReplaced ? 'Replaced!' : 'Uploaded'}
-              </span>
-              <button
-                onClick={() => handlePreview(type)}
-                disabled={isUploading}
-                className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
-                title={canPreview ? 'Preview' : 'View/Download'}
-              >
-                <i className="bi-eye icon-sm"></i>
-                Preview
-              </button>
-              <label className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50">
-                <i className="bi-arrow-repeat icon-sm"></i>
-                Replace
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
+        <div className="flex flex-wrap items-center gap-2">
+          {hasFile ? (
+            <div className="flex flex-col items-start gap-2 sm:items-end">
+              {isProgressActive && (
+                <ProgressBar
+                  progress={uploadProgress}
+                  fileName={uploadingFile?.name}
+                />
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`text-sm ${wasJustReplaced ? 'text-accent-bright' : 'text-green-bright'}`}
+                >
+                  {wasJustReplaced ? 'Replaced!' : 'Uploaded'}
+                </span>
+                <button
+                  onClick={() => handlePreview(type)}
+                  disabled={isUploading}
+                  className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
+                  title={canPreview ? 'Preview' : 'View/Download'}
+                >
+                  <i className="bi-eye icon-sm"></i>
+                  {canPreview ? 'Preview' : 'View/Download'}
+                </button>
+                <FileButton
+                  accept=".pdf,.doc,.docx,.txt"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) handleUpload(type, file, true);
                   }}
-                  className="hidden"
                   disabled={isUploading}
-                />
-              </label>
-              <button
-                onClick={() => handleDelete(type)}
-                disabled={isUploading}
-                className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
-              >
-                <i className="bi-trash icon-sm"></i>
-                Delete
-              </button>
+                  className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
+                >
+                  <i className="bi-arrow-repeat icon-sm"></i>
+                  Replace
+                </FileButton>
+                <button
+                  onClick={() => handleDelete(type)}
+                  disabled={isUploading}
+                  className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
+                >
+                  <i className="bi-trash icon-sm"></i>
+                  Delete
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-start gap-2 sm:items-end">
-            {isProgressActive && (
-              <ProgressBar
-                progress={uploadProgress}
-                fileName={uploadingFile?.name}
-              />
-            )}
-            <label className="bg-accent text-bg0 hover:bg-accent-bright flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50">
-              <i className="bi-upload icon-sm"></i>
-              {isUploading ? 'Uploading...' : 'Upload'}
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx"
+          ) : (
+            <div className="flex flex-col items-start gap-2 sm:items-end">
+              {isProgressActive && (
+                <ProgressBar
+                  progress={uploadProgress}
+                  fileName={uploadingFile?.name}
+                />
+              )}
+              <FileButton
+                accept=".pdf,.doc,.docx,.txt"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleUpload(type, file);
                 }}
-                className="hidden"
                 disabled={isUploading}
-              />
-            </label>
-          </div>
-        )}
+                className="bg-accent text-bg0 hover:bg-accent-bright flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
+              >
+                <i className="bi-upload icon-sm"></i>
+                {isUploading ? 'Uploading...' : 'Upload'}
+              </FileButton>
+            </div>
+          )}
+          <DocumentTextFallback
+            applicationId={application.id}
+            kind={type === 'cv' ? 'cv' : 'cover_letter'}
+            revision={application.evidence_revision}
+            onSaved={(revision) =>
+              onUpdate({ ...application, evidence_revision: revision })
+            }
+          />
+        </div>
       </div>
     );
   }

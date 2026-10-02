@@ -1,3 +1,4 @@
+import { invalidateEvidenceQueries } from './queryClient';
 import api, { withAxiosTimeZoneHeaders } from './api';
 import type {
   Application,
@@ -45,6 +46,7 @@ export async function createApplication(
   const response = await api.post('/api/applications', data, {
     headers: withAxiosTimeZoneHeaders(),
   });
+  invalidateEvidenceQueries();
   return response.data;
 }
 
@@ -53,11 +55,13 @@ export async function updateApplication(
   data: ApplicationUpdate
 ): Promise<Application> {
   const response = await api.patch(`/api/applications/${id}`, data);
+  invalidateEvidenceQueries();
   return response.data;
 }
 
 export async function deleteApplication(id: string): Promise<void> {
   await api.delete(`/api/applications/${id}`);
+  invalidateEvidenceQueries();
 }
 
 export async function uploadCV(
@@ -79,11 +83,13 @@ export async function uploadCV(
       },
     }
   );
+  invalidateEvidenceQueries();
   return response.data;
 }
 
 export async function deleteCV(applicationId: string): Promise<Application> {
   const response = await api.delete(`/api/applications/${applicationId}/cv`);
+  invalidateEvidenceQueries();
   return response.data;
 }
 
@@ -106,6 +112,7 @@ export async function uploadCoverLetter(
       },
     }
   );
+  invalidateEvidenceQueries();
   return response.data;
 }
 
@@ -115,6 +122,7 @@ export async function deleteCoverLetter(
   const response = await api.delete(
     `/api/applications/${applicationId}/cover-letter`
   );
+  invalidateEvidenceQueries();
   return response.data;
 }
 

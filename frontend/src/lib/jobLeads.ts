@@ -1,3 +1,5 @@
+import { isAxiosError } from 'axios';
+import { invalidateEvidenceQueries } from './queryClient';
 import api, { withAxiosTimeZoneHeaders } from './api';
 import type { Application, JobLead } from './types';
 
@@ -5,13 +7,13 @@ interface JobLeadsParams {
   page?: number;
   per_page?: number;
   search?: string;
-  status?: 'pending' | 'extracted' | 'failed';
+  status?: JobLead['status'];
   source?: string;
   sort?: 'newest' | 'oldest';
 }
 
 interface JobLeadsListResponse {
-  items: JobLead[];
+  items: JobLeadListItem[];
   total: number;
   page: number;
   per_page: number;
@@ -53,12 +55,104 @@ export async function deleteJobLead(id: string): Promise<void> {
   await api.delete(`/api/job-leads/${id}`);
 }
 
-/**
- * Retry extraction for a failed job lead.
- */
-export async function retryJobLead(id: string): Promise<JobLead> {
-  const response = await api.post(`/api/job-leads/${id}/retry`);
+export type JobLeadListItem = Pick<
+  JobLead,
+  | 'id'
+  | 'status'
+  | 'title'
+  | 'company'
+  | 'url'
+  | 'location'
+  | 'salary_min'
+  | 'salary_max'
+  | 'salary_currency'
+  | 'source'
+  | 'scraped_at'
+  | 'converted_to_application_id'
+  | 'error_message'
+>;
+
+export interface JobLeadCreate {
+  url: string;
+  text?: string;
+  html?: string;
+}
+
+export type JobLeadUpdate = Partial<
+  Pick<
+    JobLead,
+    | 'title'
+    | 'company'
+    | 'description'
+    | 'location'
+    | 'salary_min'
+    | 'salary_max'
+    | 'salary_currency'
+    | 'recruiter_name'
+    | 'recruiter_title'
+    | 'recruiter_linkedin_url'
+    | 'requirements_must_have'
+    | 'requirements_nice_to_have'
+    | 'skills'
+    | 'years_experience_min'
+    | 'years_experience_max'
+    | 'source'
+    | 'posted_date'
+  >
+> & { expected_revision: number };
+
+export interface JobLeadExtractRequest {
+  expected_revision: number;
+  restart_processing?: boolean;
+}
+
+export async function createJobLead(body: JobLeadCreate): Promise<JobLead> {
+  const response = await api.post('/api/job-leads', body);
   return response.data;
+}
+
+export async function updateJobLead(
+  id: string,
+  body: JobLeadUpdate
+): Promise<JobLead> {
+  const response = await api.patch(`/api/job-leads/${id}`, body);
+  return response.data;
+}
+
+export async function extractJobLead(
+  id: string,
+  body: JobLeadExtractRequest
+): Promise<JobLead> {
+  const response = await api.post(`/api/job-leads/${id}/extract`, body);
+  return response.data;
+}
+
+export async function retryJobLead(
+  id: string,
+  body: JobLeadExtractRequest
+): Promise<JobLead> {
+  const response = await api.post(`/api/job-leads/${id}/retry`, body);
+  return response.data;
+}
+
+export function jobLeadError(error: unknown): {
+  message: string;
+  id?: string;
+  conflict: boolean;
+} {
+  const detail = isAxiosError(error) ? error.response?.data?.detail : null;
+  return {
+    message:
+      typeof detail === 'string'
+        ? detail
+        : typeof detail?.message === 'string'
+          ? detail.message
+          : error instanceof Error
+            ? error.message
+            : 'Request failed',
+    id: typeof detail?.id === 'string' ? detail.id : undefined,
+    conflict: isAxiosError(error) && error.response?.status === 409,
+  };
 }
 
 /**
@@ -72,5 +166,6 @@ export async function convertToApplication(id: string): Promise<Application> {
       headers: withAxiosTimeZoneHeaders(),
     }
   );
+  invalidateEvidenceQueries();
   return response.data;
 }

@@ -1,6 +1,7 @@
+import Modal from './Modal';
+import { PASSWORD_POLICY, validNewPassword } from '../lib/password';
 import { useState, useEffect } from 'react';
 import { createUser } from '../lib/admin';
-import { getCreateUserModalState } from '../lib/adminUserModalState';
 
 interface Props {
   isOpen: boolean;
@@ -14,31 +15,24 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Reset form when modal opens/closes
+  // Discard credentials when the dialog closes.
   useEffect(() => {
     if (!isOpen) {
-      const initialState = getCreateUserModalState();
-      setEmail(initialState.email);
-      setPassword(initialState.password);
-      setError(initialState.error);
+      setEmail('');
+      setPassword('');
+      setError('');
     }
   }, [isOpen]);
-
-  // Focus management
-  useEffect(() => {
-    if (isOpen) {
-      const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') onClose();
-      };
-      window.addEventListener('keydown', handleEscape);
-      return () => window.removeEventListener('keydown', handleEscape);
-    }
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
+    if (!validNewPassword(password)) {
+      setError(PASSWORD_POLICY);
+      return;
+    }
     setLoading(true);
     setError('');
 
@@ -54,19 +48,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
   }
 
   return (
-    <div
-      className="bg-bg0/80 fixed inset-0 z-50 flex items-center justify-center"
-      onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          onClose();
-        }
-      }}
-      tabIndex={-1}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-    >
+    <Modal onClose={onClose} labelledBy="modal-title" busy={loading}>
       <div
         className="bg-bg1 mx-4 flex max-h-[90vh] w-full max-w-md flex-col rounded-lg"
         onClick={(e) => e.stopPropagation()}
@@ -77,6 +59,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
           </h3>
           <button
             onClick={onClose}
+            disabled={loading}
             aria-label="Close modal"
             className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
           >
@@ -104,11 +87,11 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
             <input
               id="create-email"
               type="email"
+              disabled={loading}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               required
-              autoFocus
             />
           </div>
 
@@ -122,18 +105,25 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
             <input
               id="create-password"
               type="password"
+              disabled={loading}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               required
-              minLength={8}
+              autoComplete="new-password"
             />
           </div>
+
+          <p className="text-muted text-sm">
+            {PASSWORD_POLICY} Password resets invalidate all browser sessions
+            and signed links, not API keys.
+          </p>
 
           <div className="border-tertiary flex justify-end gap-3 border-t pt-4">
             <button
               type="button"
               onClick={onClose}
+              disabled={loading}
               className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
             >
               Cancel
@@ -148,6 +138,6 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 }

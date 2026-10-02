@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 interface Props {
   value: string;
@@ -15,15 +15,20 @@ export default function PasswordInput({
   required = false,
   autoComplete,
 }: Props) {
+  const id = useId();
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div>
-      <label className="text-muted mb-1 block text-sm font-semibold">
+      <label
+        htmlFor={id}
+        className="text-muted mb-1 block text-sm font-semibold"
+      >
         {label}
       </label>
       <div className="relative">
         <input
+          id={id}
           type={showPassword ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value)}

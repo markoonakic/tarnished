@@ -1,3 +1,5 @@
+import api, { safeErrorMessage } from './api';
+import { invalidateEvidenceQueries } from './queryClient';
 import {
   API_BASE,
   buildAuthenticatedEventSourceUrl,
@@ -56,12 +58,28 @@ export async function validateImport(file: File): Promise<ImportValidation> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      errorData.detail || errorData.errors?.join(', ') || 'Validation failed'
-    );
+    throw new Error(safeErrorMessage(errorData.detail, 'Validation failed'));
   }
 
-  return response.json();
+  const validation: ImportValidation = await response.json();
+  if (!validation.valid) {
+    throw new Error(
+      validation.errors
+        .filter((error) => typeof error === 'string')
+        .join('\n') || 'Validation failed'
+    );
+  }
+  return validation;
+}
+
+export async function getImportStatus(
+  importId: string
+): Promise<ImportProgress> {
+  const { data } = await api.get<ImportProgress>(
+    `/api/import/status/${importId}`
+  );
+  if (data.status === 'complete') invalidateEvidenceQueries();
+  return data;
 }
 
 export async function importData(
@@ -109,7 +127,7 @@ export async function importData(
           }
         }
 
-        reject(new Error(payload.detail || 'Import failed'));
+        reject(new Error(safeErrorMessage(payload.detail, 'Import failed')));
       } catch {
         reject(new Error('Import failed'));
       }
@@ -135,17 +153,23 @@ export function connectToImportProgress(
 
     if (['complete', 'failed', 'cancelled'].includes(progress.status)) {
       eventSource.close();
+      if (progress.status === 'complete') invalidateEvidenceQueries();
       onTerminal(progress);
     }
   });
 
-  eventSource.addEventListener('timeout', () => {
+  function interrupted() {
     eventSource.close();
-  });
+    onTerminal({
+      status: 'unknown',
+      percent: 0,
+      message:
+        'Progress connection lost. The import may still be running. Check its status before starting another import.',
+    });
+  }
 
-  eventSource.onerror = () => {
-    eventSource.close();
-  };
+  eventSource.addEventListener('timeout', interrupted);
+  eventSource.onerror = interrupted;
 
   return eventSource;
 }

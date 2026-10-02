@@ -85,13 +85,13 @@ export default function KPICards() {
         title="Last 7 Days"
         value={kpis.last_7_days}
         trend={kpis.last_7_days_trend}
-        suffix="applications"
+        suffix={kpis.last_7_days === 1 ? 'application' : 'applications'}
       />
       <KPICard
         title="Last 30 Days"
         value={kpis.last_30_days}
         trend={kpis.last_30_days_trend}
-        suffix="applications"
+        suffix={kpis.last_30_days === 1 ? 'application' : 'applications'}
       />
       <KPICard
         title="Active Opportunities"

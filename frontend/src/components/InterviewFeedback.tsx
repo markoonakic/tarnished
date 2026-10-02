@@ -1,0 +1,80 @@
+import type { Round } from '../lib/types';
+import { useFeedback, type FeedbackState } from '../hooks/useFeedback';
+import FeedbackStatus from './FeedbackStatus';
+import HelpTip from './HelpTip';
+import FeedbackFindings from './FeedbackFindings';
+
+export type InterviewState = FeedbackState & { generation: number };
+
+export default function InterviewFeedback({
+  round,
+  onClose,
+}: {
+  round: Round;
+  onClose?: () => void;
+}) {
+  const feedback = useFeedback<InterviewState>(
+    `/api/rounds/${round.id}/interview-feedback`,
+    (state) => ({
+      generation: state.generation,
+      config_revision: state.capability.configuration_revision,
+    })
+  );
+  const report = feedback.state?.report;
+  return (
+    <section
+      className="border-accent mt-4 space-y-3 border-t-2 pt-4"
+      aria-label="Interview feedback"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h3 className="text-primary text-lg font-semibold">
+            Interview feedback
+          </h3>
+          <HelpTip label="About interview feedback">
+            <p>
+              Uses your transcript and job details with the configured AI
+              service. Charges may apply only when you request feedback.
+            </p>
+          </HelpTip>
+        </div>
+        {onClose && (
+          <button
+            type="button"
+            aria-label="Close interview feedback"
+            onClick={onClose}
+            className="text-fg1 hover:bg-bg3 cursor-pointer rounded p-2"
+          >
+            <i className="bi-x-lg icon-lg" aria-hidden="true" />
+          </button>
+        )}
+      </div>
+      <FeedbackStatus
+        feedback={feedback}
+        requestLabel="interview feedback"
+        emptyHint="No feedback yet. Save a transcript and identify your answers as Candidate before requesting personal feedback."
+      />
+      {report && (
+        <div
+          className="max-w-3xl space-y-3"
+          aria-label="Saved interview feedback"
+        >
+          {!report.findings.length && (
+            <p className="text-fg1">
+              No actionable feedback from the saved information this time. Check
+              that your answers are identified as Candidate in the transcript
+              and the application has job requirements.
+            </p>
+          )}
+          {report.findings.length > 0 && (
+            <FeedbackFindings
+              key={report.run_at}
+              report={report}
+              scope="interview"
+            />
+          )}
+        </div>
+      )}
+    </section>
+  );
+}

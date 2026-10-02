@@ -18,23 +18,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshUser = async () => {
-    // Check if setup is needed first (before auth check)
     try {
       const setupResponse = await api.get('/api/auth/setup-status');
       if (setupResponse.data.needs_setup) {
         setUser(null);
-        // Don't redirect if already on the register page
-        if (!window.location.pathname.startsWith('/register')) {
-          // Don't set loading=false - we're redirecting, keep showing loading state
+        if (!['/register', '/login'].includes(window.location.pathname)) {
           window.location.href = '/register?setup=true';
           return;
         }
-        // Already on register page, allow form to display
         setLoading(false);
         return;
       }
     } catch {
-      // If setup-status check fails, continue with normal auth flow
+      // Sign-in can continue if the setup check is unavailable.
     }
 
     if (!isAuthenticated()) {

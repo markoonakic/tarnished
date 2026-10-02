@@ -3,12 +3,19 @@ import type { JobLead } from './types';
 export function getJobLeadStatusBadgeClass(status: JobLead['status']): string {
   const colors = {
     pending: 'bg-yellow-bright/20 text-yellow-bright',
+    processing: 'bg-yellow-bright/20 text-yellow-bright',
     extracted: 'bg-green-bright/20 text-green-bright',
     failed: 'bg-red-bright/20 text-red-bright',
     converted: 'bg-blue-bright/20 text-blue-bright',
   } satisfies Record<JobLead['status'], string>;
 
   return colors[status];
+}
+
+export function getJobLeadStatusLabel(status: JobLead['status']): string {
+  return status === 'pending'
+    ? 'Saved'
+    : status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 export function formatSalaryRange(

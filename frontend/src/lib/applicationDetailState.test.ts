@@ -9,7 +9,7 @@ import {
 import type { Application, Round, Status } from './types';
 
 function createStatus(): Status {
-  return { id: 'status-1', name: 'Applied', color: 'aqua' };
+  return { id: 'status-1', name: 'Applied', color: 'aqua', meaning: 'applied' };
 }
 
 function createRound(id: string, mediaCount = 0): Round {
@@ -35,6 +35,13 @@ function createRound(id: string, mediaCount = 0): Round {
 
 function createApplication(rounds: Round[] = []): Application {
   return {
+    status_meaning: 'applied',
+    status_meaning_provenance: 'recorded',
+    evidence_revision: 0,
+    response_state: 'not_recorded',
+    response_occurred_on: null,
+    response_recorded_at: null,
+    response_reference: null,
     id: 'app-1',
     company: 'Acme',
     job_title: 'Engineer',
@@ -72,6 +79,22 @@ describe('application detail state helpers', () => {
     expect(preserveApplicationRounds(previous, updated).rounds).toEqual(
       previous.rounds
     );
+  });
+
+  it('does not replace a newer application with a late document response', () => {
+    const previous = {
+      ...createApplication(),
+      evidence_revision: 3,
+      cover_letter_path: '/new.pdf',
+    };
+    const updated = { ...createApplication(), evidence_revision: 2 };
+    expect(preserveApplicationRounds(previous, updated)).toBe(previous);
+  });
+
+  it('does not retain rounds from another application', () => {
+    const previous = createApplication([createRound('round-1')]);
+    const updated = { ...createApplication(), id: 'app-2' };
+    expect(preserveApplicationRounds(previous, updated)).toBe(updated);
   });
 
   it('replaces an existing round when saving edits', () => {

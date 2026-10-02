@@ -31,6 +31,7 @@ const settingsCategories: SettingsCategory[] = [
     name: 'Account',
     sections: [
       { path: 'profile', label: 'Profile', icon: 'bi-person' },
+      { path: 'security', label: 'Security', icon: 'bi-shield-lock' },
       { path: 'api-key', label: 'API Keys', icon: 'bi-key' },
     ],
   },
@@ -116,17 +117,20 @@ export default function SettingsLayout() {
   const navigate = useNavigate();
   const isOnSettingsRoot = location.pathname === '/settings';
 
-  // On desktop, redirect /settings to /settings/theme
   useEffect(() => {
-    if (isOnSettingsRoot && window.matchMedia('(min-width: 768px)').matches) {
-      navigate('theme', { replace: true });
-    }
+    if (!isOnSettingsRoot) return;
+    const desktop = window.matchMedia('(min-width: 768px)');
+    const showDesktopSettings = () => {
+      if (desktop.matches) navigate('theme', { replace: true });
+    };
+    showDesktopSettings();
+    desktop.addEventListener('change', showDesktopSettings);
+    return () => desktop.removeEventListener('change', showDesktopSettings);
   }, [isOnSettingsRoot, navigate]);
 
   return (
     <Layout>
       <div className="flex min-h-screen flex-col md:flex-row">
-        {/* Desktop sidebar - hidden on mobile */}
         <aside className="bg-secondary hidden w-72 flex-shrink-0 px-3 py-8 md:block">
           <h1 className="text-fg1 mb-6 px-3 text-2xl font-bold">Settings</h1>
           <nav className="space-y-6">
@@ -147,17 +151,9 @@ export default function SettingsLayout() {
           </nav>
         </aside>
 
-        {/* Desktop content area */}
-        <main className="hidden min-w-0 flex-1 md:block">
-          <div className="mx-auto max-w-4xl px-6 py-8">
-            <Outlet />
-          </div>
-        </main>
-
-        {/* Mobile content - section list or nested route */}
-        <div className="flex-1 md:hidden">
+        <div className="min-w-0 flex-1">
           {isOnSettingsRoot ? (
-            <div className="p-4">
+            <div className="p-4 md:hidden">
               <h1 className="text-fg1 mb-6 text-2xl font-bold">Settings</h1>
               <div className="space-y-6">
                 {settingsCategories.map((category) => (
@@ -177,7 +173,7 @@ export default function SettingsLayout() {
               </div>
             </div>
           ) : (
-            <div className="p-4">
+            <div className="mx-auto max-w-4xl p-4 md:px-6 md:py-8">
               <Outlet />
             </div>
           )}

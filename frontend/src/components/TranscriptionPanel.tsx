@@ -1,0 +1,306 @@
+import { useEffect, useRef, useState } from 'react';
+import api, { safeErrorMessage } from '../lib/api';
+import { isAxiosError } from 'axios';
+import { getAICapabilities, type Capability } from '../lib/aiSettings';
+import type { Round } from '../lib/types';
+
+interface Job {
+  id: string;
+  media_id: string;
+  state: string;
+  stage: string;
+  completed_chunks: number;
+  uncertain: boolean;
+  error: string | null;
+  provider: string;
+  model: string;
+  coverage: { track: number; channel: number; start: number; end: number }[];
+}
+const active = (job: Job) =>
+  ['queued', 'preparing', 'transcribing'].includes(job.state);
+
+export default function TranscriptionPanel({
+  round,
+  onChange,
+  onResult,
+  initialMediaId = '',
+}: {
+  round: Round;
+  onChange: () => void;
+  onResult: () => void;
+  initialMediaId?: string;
+}) {
+  const [speech, setSpeech] = useState<Capability | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [mediaId, setMediaId] = useState(initialMediaId);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [reload, setReload] = useState(0);
+  const submitting = useRef(false);
+  const observedActive = useRef(false);
+  const selectedId = round.media.some((media) => media.id === mediaId)
+    ? mediaId
+    : round.media[0]?.id;
+  const intents = useRef<Record<string, string>>({});
+  const callback = useRef(onChange);
+  useEffect(() => {
+    callback.current = onChange;
+  }, [onChange]);
+  useEffect(() => {
+    intents.current = {};
+    observedActive.current = false;
+  }, [round.id]);
+  useEffect(() => {
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    async function load() {
+      try {
+        const [capabilities, response] = await Promise.all([
+          getAICapabilities(),
+          api.get<Job[]>(`/api/rounds/${round.id}/transcriptions`),
+        ]);
+        if (!alive) return;
+        setSpeech(capabilities.speech);
+        setJobs(response.data);
+        setError('');
+        const running = response.data.some(active);
+        if (observedActive.current && !running) callback.current();
+        observedActive.current = running;
+        if (running) timer = setTimeout(() => void load(), 1000);
+      } catch {
+        if (alive)
+          setError(
+            'Cannot load transcription status. Check status before requesting work.'
+          );
+      }
+    }
+    void load();
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [round.id, round.media_generation, round.transcript_generation, reload]);
+
+  const activeJob = jobs.find(active);
+  const selectedJob = jobs.find((job) => job.media_id === selectedId);
+  const shownJob = activeJob ?? selectedJob;
+  const retryJob =
+    !activeJob &&
+    selectedJob &&
+    ['failed', 'interrupted'].includes(selectedJob.state)
+      ? selectedJob
+      : undefined;
+  const activeName =
+    round.media.find((media) => media.id === activeJob?.media_id)
+      ?.original_filename || 'another recording';
+
+  async function request(job?: Job) {
+    if (
+      submitting.current ||
+      !speech?.available ||
+      activeJob ||
+      error ||
+      (!job && !selectedId)
+    )
+      return;
+    if (
+      job &&
+      !confirm(
+        'Retry transcription? The service may already have processed part of this recording. Another attempt may repeat work or charges; matching completed parts may be reused.'
+      )
+    )
+      return;
+    if (
+      !job &&
+      (round.has_current_transcript || round.transcript_path) &&
+      !confirm(
+        'Replace the saved transcript and its corrections only if full transcription succeeds? Later saved edits prevent replacement. Unsaved edits are not sent.'
+      )
+    )
+      return;
+    const key = job?.id ?? selectedId!;
+    const intent = intents.current[key] ?? crypto.randomUUID();
+    intents.current[key] = intent;
+    submitting.current = true;
+    setBusy(true);
+    setError('');
+    try {
+      const response = await api.post<Job>(
+        job
+          ? `/api/transcriptions/${job.id}/retry`
+          : `/api/rounds/${round.id}/media/${selectedId}/transcription`,
+        null,
+        {
+          headers: {
+            'Request-Intent': intent,
+            'Expected-Transcript-Generation': round.transcript_generation ?? 0,
+            'Speech-Configuration-Revision': speech.configuration_revision,
+          },
+        }
+      );
+      if (response.data?.id && response.data?.state) {
+        delete intents.current[key];
+        setJobs((current) => [
+          response.data,
+          ...current.filter((item) => item.id !== response.data.id),
+        ]);
+        observedActive.current = active(response.data);
+        if (response.data.state === 'complete') callback.current();
+      }
+      setReload((n) => n + 1);
+    } catch (error) {
+      setError(
+        safeErrorMessage(
+          isAxiosError(error) ? error.response?.data?.detail : null,
+          'The request outcome is not confirmed. Check status before retrying; work may have started.'
+        )
+      );
+    } finally {
+      submitting.current = false;
+      setBusy(false);
+    }
+  }
+  const mainLabel = busy
+    ? 'Starting transcription…'
+    : activeJob
+      ? activeJob.state === 'queued'
+        ? 'Waiting…'
+        : activeJob.state === 'preparing'
+          ? 'Preparing audio…'
+          : activeJob.stage === 'structuring'
+            ? 'Assigning parts and roles…'
+            : 'Transcribing…'
+      : retryJob
+        ? 'Retry transcription'
+        : round.has_current_transcript || round.transcript_path
+          ? 'Transcribe again'
+          : 'Start transcription';
+  return (
+    <section
+      className="border-tertiary mt-3 space-y-3 border-t pt-3"
+      aria-label="Recording transcription"
+    >
+      <h5 className="text-primary font-medium">Transcribe recording</h5>
+      {speech ? (
+        <p className="text-muted text-sm">
+          {speech.provider === 'local'
+            ? 'Audio is processed by the local speech service on this server.'
+            : 'Audio is sent to the configured speech service. Charges may apply.'}{' '}
+          The transcript is then sent to the configured text analysis service to
+          assign parts and roles automatically. Charges may apply.
+        </p>
+      ) : (
+        !error && <p role="status">Loading speech service…</p>
+      )}
+      {round.media.length > 1 && (
+        <label className="block text-sm">
+          Recording to transcribe
+          <select
+            className="bg-bg2 text-fg1 focus:ring-accent-bright mt-1 w-full rounded px-3 py-2 focus:ring-1 focus:outline-none"
+            value={selectedId || ''}
+            disabled={busy || !!activeJob}
+            onChange={(event) => setMediaId(event.target.value)}
+          >
+            {round.media.map((media) => (
+              <option key={media.id} value={media.id}>
+                {media.original_filename || 'Recording'}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {busy && <p role="status">Starting transcription…</p>}
+      {activeJob && (
+        <p role="status" className="text-fg1">
+          {activeJob.state === 'queued'
+            ? `Waiting to transcribe ${activeName}…`
+            : activeJob.state === 'preparing'
+              ? `Preparing audio from ${activeName}…`
+              : activeJob.stage === 'structuring'
+                ? `Assigning parts and roles for ${activeName}…`
+                : `Transcribing ${activeName}…`}{' '}
+          You can close this panel and return later.
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="text-red-bright">
+          {error}
+        </p>
+      )}
+      {speech && !speech.available && (
+        <p role="status" className="text-muted text-sm">
+          Transcription is unavailable. Ask your administrator to check the
+          speech settings.
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={
+            busy ||
+            !speech?.available ||
+            !!error ||
+            !round.media.length ||
+            !!activeJob
+          }
+          onClick={() => void request(retryJob)}
+        >
+          {mainLabel}
+        </button>
+        <button
+          type="button"
+          className="text-fg1 hover:bg-bg3 cursor-pointer rounded px-3 py-2"
+          aria-label="Reload transcription status"
+          disabled={busy}
+          onClick={() => {
+            onChange();
+            setReload((n) => n + 1);
+          }}
+        >
+          Check status
+        </button>
+      </div>
+      {shownJob && (
+        <div className="bg-bg3 space-y-2 rounded p-3 text-sm">
+          {!activeJob && (
+            <p role="status">
+              {shownJob.state === 'complete'
+                ? 'Transcript ready'
+                : shownJob.state === 'invalidated'
+                  ? 'The recording or transcript changed. Review the current version before starting again.'
+                  : shownJob.state === 'failed'
+                    ? 'Could not finish transcription.'
+                    : 'Transcription was interrupted.'}
+            </p>
+          )}
+          {shownJob.uncertain && !active(shownJob) && (
+            <p>
+              The service may already have processed part of this recording.
+              Retrying may repeat work or charges.
+            </p>
+          )}
+          {shownJob.error && shownJob.state !== 'invalidated' && (
+            <p>{shownJob.error}</p>
+          )}
+          {shownJob.completed_chunks > 0 && (
+            <p className="text-muted">
+              {shownJob.completed_chunks}{' '}
+              {shownJob.completed_chunks === 1 ? 'audio part' : 'audio parts'}{' '}
+              completed.
+            </p>
+          )}
+          {shownJob.state === 'complete' && (
+            <button
+              type="button"
+              className="text-accent hover:bg-bg4 cursor-pointer rounded px-3 py-2"
+              onClick={onResult}
+            >
+              View transcript
+            </button>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}

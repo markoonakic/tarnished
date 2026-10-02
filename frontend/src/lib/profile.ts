@@ -14,19 +14,13 @@ interface UserProfileUpdate {
   requires_sponsorship?: boolean | null;
 }
 
-/**
- * Get the current user's profile.
- * Creates an empty profile if one doesn't exist.
- */
+/** Creates an empty profile if none exists. */
 export async function getProfile(): Promise<UserProfile> {
   const response = await api.get('/api/profile');
   return response.data;
 }
 
-/**
- * Update the current user's profile.
- * Only provided fields will be updated.
- */
+/** Updates only the supplied fields. */
 export async function updateProfile(
   data: UserProfileUpdate
 ): Promise<UserProfile> {

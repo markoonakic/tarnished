@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { safeErrorMessage } from '../lib/api';
 import { login } from '../lib/auth';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordInput from '../components/PasswordInput';
@@ -25,7 +26,10 @@ export default function Login() {
     } catch (err: unknown) {
       setError(
         axios.isAxiosError(err)
-          ? err.response?.data?.detail || 'Login failed'
+          ? safeErrorMessage(
+              err.response?.data?.detail,
+              'Login failed. Check your email and password and try again.'
+            )
           : 'Login failed'
       );
     } finally {
@@ -39,7 +43,10 @@ export default function Login() {
         <h1 className="text-accent-bright mb-6 text-2xl font-bold">Sign In</h1>
 
         {error && (
-          <div className="bg-red-bright/20 border-red-bright text-red-bright mb-4 rounded border p-3">
+          <div
+            role="alert"
+            className="bg-red-bright/20 border-red-bright text-red-bright mb-4 rounded border p-3"
+          >
             {error}
           </div>
         )}
@@ -55,6 +62,7 @@ export default function Login() {
             <input
               id="email"
               type="email"
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoFocus
@@ -81,12 +89,12 @@ export default function Login() {
         </form>
 
         <p className="text-muted mt-4 text-center">
-          Don't have an account?{' '}
+          Contact your administrator for an account.{' '}
           <Link
             to="/register"
             className="text-accent hover:text-accent-bright transition-all duration-200 ease-in-out"
           >
-            Register
+            Setup instructions
           </Link>
         </p>
       </div>
