@@ -1,15 +1,8 @@
-/**
- * Filling utilities for form fields.
- *
- * Uses native prototype setters to bypass React/Vue value interception
- * and dispatches the full event sequence for proper state synchronization.
- */
+import type { AutofillProfile } from './types';
+import { scanForFillableFields } from './detection';
 
-/**
- * Set the value of an input using the native prototype setter.
- * This bypasses React's value interceptor.
- */
-export function setNativeValue(
+/** Bypasses React's value interceptor with the native setter. */
+function setNativeValue(
   element: HTMLInputElement | HTMLTextAreaElement,
   value: string
 ): void {
@@ -33,7 +26,7 @@ function truncateToMaxLength(
 ): string {
   const maxLength = (element as HTMLInputElement).maxLength;
   // maxLength of -1 means no limit
-  if (maxLength > 0 && value.length > maxLength) {
+  if (maxLength >= 0 && value.length > maxLength) {
     return value.substring(0, maxLength);
   }
   return value;
@@ -62,19 +55,8 @@ function isFillable(element: HTMLInputElement | HTMLTextAreaElement): boolean {
   return true;
 }
 
-/**
- * Fill a single field with the full event sequence.
- *
- * Sequence:
- * 1. Focus - initializes framework handlers
- * 2. Set native value - bypasses React interception
- * 3. Dispatch input - triggers React onChange
- * 4. Dispatch change - triggers legacy validation
- * 5. Blur - triggers validation and enables submit buttons
- *
- * @returns true if the field was filled, false otherwise
- */
-export function fillField(
+/** Uses native setters and the focus/input/change/blur sequence for framework forms. */
+function fillField(
   element: HTMLInputElement | HTMLTextAreaElement,
   value: string
 ): boolean {
@@ -87,6 +69,7 @@ export function fillField(
   }
 
   const truncatedValue = truncateToMaxLength(value, element);
+  if (!truncatedValue) return false;
 
   try {
     // 1. Focus - initializes framework handlers ("touched" state)
@@ -116,24 +99,14 @@ export function fillField(
   }
 }
 
-/**
- * Fill multiple fields in sequence.
- *
- * @returns Number of fields successfully filled
- */
-export function fillFields(
-  fields: Array<{
-    element: HTMLInputElement | HTMLTextAreaElement;
-    value: string;
-  }>
-): number {
+export function fillProfile(profile: AutofillProfile): number {
   let filledCount = 0;
-
-  for (const { element, value } of fields) {
-    if (fillField(element, value)) {
-      filledCount++;
-    }
+  for (const { element, fieldType } of scanForFillableFields().fillableFields) {
+    const value =
+      fieldType === 'full_name'
+        ? [profile.first_name, profile.last_name].filter(Boolean).join(' ')
+        : profile[fieldType];
+    if (value && fillField(element, value)) filledCount++;
   }
-
   return filledCount;
 }

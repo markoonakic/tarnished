@@ -8,11 +8,18 @@ from functools import lru_cache
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import unquote
 
 import httpx
 from tzlocal import get_localzone_name
 
 AuthMode = Literal["none", "api_key"]
+
+
+def redact_credentials(text: str, api_key: str | None = None) -> str:
+    if api_key:
+        text = text.replace(api_key, "[redacted]")
+    return re.sub(r"(\w+://)[^\s/]*@", r"\1[redacted]@", text)
 
 
 def _resolve_cli_version() -> str:
@@ -32,6 +39,8 @@ DATE_SENSITIVE_ROUTE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("GET", re.compile(r"^/api/analytics/weekly$")),
     ("GET", re.compile(r"^/api/analytics/heatmap$")),
     ("GET", re.compile(r"^/api/analytics/interview-rounds$")),
+    ("GET", re.compile(r"^/api/analytics/feedback$")),
+    ("POST", re.compile(r"^/api/analytics/feedback$")),
     ("POST", re.compile(r"^/api/analytics/insights$")),
     ("POST", re.compile(r"^/api/applications$")),
     ("POST", re.compile(r"^/api/applications/extract$")),
@@ -87,17 +96,42 @@ class TarnishedClient:
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
+        try:
+            self._origin_url = httpx.URL(self.base_url)
+        except httpx.InvalidURL:
+            raise CLIError(
+                "Invalid server URL. Configure the final server URL."
+            ) from None
         self._client = httpx.Client(
             base_url=self.base_url,
             follow_redirects=True,
             timeout=30.0,
             transport=transport,
+            event_hooks={"request": [self._check_request_origin]},
             headers={
                 "Accept": "application/json",
                 "User-Agent": f"tarnished-cli/{CLI_VERSION}",
                 "X-Client-Version": CLI_VERSION,
             },
         )
+
+    def _check_request_origin(self, request: httpx.Request) -> None:
+        # HTTPX strips Authorization, but NOT custom X-API-Key, on redirects.
+        # Request hooks run before transport on every hop (including uploads).
+        url = request.url
+        origin = self._origin_url
+        if (
+            url.userinfo
+            or origin.userinfo
+            or (self.api_key and self.api_key in unquote(str(url)))
+            or url.scheme not in {"http", "https"}
+            or (url.scheme, url.host, url.port)
+            != (origin.scheme, origin.host, origin.port)
+        ):
+            raise CLIError(
+                "Cross-origin and credential-bearing URLs/redirects are unsupported. "
+                "Configure the final server URL instead."
+            )
 
     def close(self) -> None:
         self._client.close()
@@ -116,17 +150,42 @@ class TarnishedClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
         files: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
         auth: AuthMode = "api_key",
+        timeout: float = 30.0,
+        headers: dict[str, str] | None = None,
     ) -> httpx.Response:
-        response = self._client.request(
-            method,
-            path,
-            params=params,
-            json=json_body,
-            files=files,
-            headers=self._build_request_headers(method, path, auth),
-        )
+        request_headers = self._build_request_headers(method, path, auth)
+        if headers:
+            request_headers.update(headers)
+        try:
+            response = self._client.request(
+                method,
+                path,
+                params=params,
+                json=json_body,
+                files=files,
+                data=data,
+                headers=request_headers,
+                timeout=timeout,
+            )
+        except httpx.TimeoutException:
+            raise CLIError("Server request timed out.") from None
+        except httpx.TooManyRedirects:
+            raise CLIError(
+                "Too many redirects. Configure the final server URL."
+            ) from None
+        except (httpx.HTTPError, httpx.StreamError, httpx.InvalidURL):
+            # Exception text may contain credentials, URLs, or response content.
+            raise CLIError(
+                "Server connection or response transfer failed. "
+                "Check the server URL, network and TLS configuration."
+            ) from None
 
+        if response.is_redirect:
+            raise CLIError(
+                "Unsupported or incomplete redirect. Configure the final server URL."
+            )
         if response.is_error:
             raise self._to_api_error(response)
 
@@ -138,20 +197,25 @@ class TarnishedClient:
         *,
         params: dict[str, Any] | None = None,
         auth: AuthMode = "api_key",
+        timeout: float = 30.0,
+        headers: dict[str, str] | None = None,
     ) -> Any:
         return self._decode_response(
-            self.request("GET", path, params=params, auth=auth)
+            self.request(
+                "GET", path, params=params, auth=auth, timeout=timeout, headers=headers
+            )
         )
 
     def post_json(
         self,
         path: str,
         *,
-        body: dict[str, Any],
+        body: dict[str, Any] | None,
         auth: AuthMode = "api_key",
+        headers: dict[str, str] | None = None,
     ) -> Any:
         return self._decode_response(
-            self.request("POST", path, json_body=body, auth=auth)
+            self.request("POST", path, json_body=body, auth=auth, headers=headers)
         )
 
     def patch_json(
@@ -160,9 +224,10 @@ class TarnishedClient:
         *,
         body: dict[str, Any],
         auth: AuthMode = "api_key",
+        headers: dict[str, str] | None = None,
     ) -> Any:
         return self._decode_response(
-            self.request("PATCH", path, json_body=body, auth=auth)
+            self.request("PATCH", path, json_body=body, auth=auth, headers=headers)
         )
 
     def put_json(
@@ -171,9 +236,10 @@ class TarnishedClient:
         *,
         body: dict[str, Any],
         auth: AuthMode = "api_key",
+        headers: dict[str, str] | None = None,
     ) -> Any:
         return self._decode_response(
-            self.request("PUT", path, json_body=body, auth=auth)
+            self.request("PUT", path, json_body=body, auth=auth, headers=headers)
         )
 
     def delete(self, path: str, *, auth: AuthMode = "api_key") -> None:
@@ -198,16 +264,13 @@ class TarnishedClient:
                 file_tuple = (file_path.name, handle)
             else:
                 file_tuple = (file_path.name, handle, content_type)
-            response = self._client.request(
+            response = self.request(
                 "POST",
                 path,
                 files={field_name: file_tuple},
                 data=data,
-                headers=self._build_request_headers("POST", path, auth),
+                auth=auth,
             )
-
-        if response.is_error:
-            raise self._to_api_error(response)
 
         return self._decode_response(response)
 
@@ -244,17 +307,32 @@ class TarnishedClient:
     def _decode_response(self, response: httpx.Response) -> Any:
         if response.status_code == 204 or not response.content:
             return None
-        content_type = response.headers.get("content-type", "")
-        if "application/json" in content_type:
+        try:
             return response.json()
-        return response.text
+        except (ValueError, UnicodeError):
+            raise CLIError("Server returned an invalid JSON response.") from None
+
+    def _redact_error_payload(self, payload: Any) -> Any:
+        if isinstance(payload, str):
+            return redact_credentials(payload, self.api_key)
+        if isinstance(payload, list):
+            return [self._redact_error_payload(value) for value in payload]
+        if isinstance(payload, dict):
+            return {
+                redact_credentials(key, self.api_key): self._redact_error_payload(value)
+                for key, value in payload.items()
+            }
+        return payload
 
     def _to_api_error(self, response: httpx.Response) -> APIError:
         try:
             payload = response.json()
-        except json.JSONDecodeError:
+        except (ValueError, UnicodeError):
             payload = response.text or None
 
+        # Preserve structured API details without echoing the configured key or
+        # credentials embedded in URLs, including nested values and object keys.
+        payload = self._redact_error_payload(payload)
         detail = payload
         if isinstance(payload, dict) and "detail" in payload:
             detail = payload["detail"]

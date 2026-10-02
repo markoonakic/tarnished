@@ -92,11 +92,15 @@
             <div class="job-location" id="jobLocation">Location</div>
           </div>
           <div class="button-row">
-            <button id="saveAsLeadBtn" class="btn primary">Add as Lead</button>
+            <button id="saveAsLeadBtn" class="btn primary">Save as Lead</button>
             <button id="saveAsApplicationBtn" class="btn primary">
               Add as Application
             </button>
           </div>
+          <p class="hint">
+            Saving a lead does not use AI. Adding an application uses AI to fill
+            in job details and may incur provider charges.
+          </p>
           <!-- Autofill section -->
           <div id="autofillDetectedSection" class="autofill-section hidden">
             <div class="autofill-header">
@@ -115,7 +119,7 @@
         <div id="state-saved" class="state hidden">
           <div class="message success">
             <span class="message-icon">*</span>
-            <span id="savedMessage">Saved to Job Leads</span>
+            <span id="savedMessage" role="status">Saved to Job Leads</span>
           </div>
           <div id="savedJobInfo" class="job-info">
             <div class="job-title" id="savedJobTitle">Job Title</div>

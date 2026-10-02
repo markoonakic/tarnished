@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -8,7 +9,9 @@ import typer
 from tarnished_cli.auth_storage import StoredAuth, clear_auth, load_auth, save_auth
 from tarnished_cli.client import TarnishedClient
 from tarnished_cli.config import (
-    CliConfig,
+    BASE_URL_ENV,
+    OUTPUT_ENV,
+    ProfileConfig,
     load_config,
     normalize_base_url,
     resolve_config_dir,
@@ -17,37 +20,37 @@ from tarnished_cli.config import (
 
 @dataclass(slots=True)
 class AppState:
-    config: CliConfig
     config_dir: Path
     profile: str
     base_url: str
     json_output: bool
-    verbose: bool
     tokens: StoredAuth
 
     @classmethod
     def load(
         cls,
         *,
-        profile: str,
+        profile: str | None,
         base_url: str | None,
         json_output: bool,
-        verbose: bool = False,
         config_dir: Path | None = None,
     ) -> AppState:
         resolved_dir = resolve_config_dir(config_dir)
         config = load_config(resolved_dir)
-        profile_config = config.get_profile(profile)
-        effective_base_url = normalize_base_url(base_url or profile_config.base_url)
+        profile = profile if profile is not None else config.default_profile
+        profile_config = config.profiles.get(profile, ProfileConfig())
+        effective_base_url = normalize_base_url(
+            base_url or os.getenv(BASE_URL_ENV) or profile_config.base_url
+        )
+        env_output = os.getenv(OUTPUT_ENV)
+        output = env_output if env_output in {"json", "text"} else profile_config.output
         tokens = load_auth(profile, config_dir=resolved_dir)
 
         return cls(
-            config=config,
             config_dir=resolved_dir,
             profile=profile,
             base_url=effective_base_url,
-            json_output=json_output or profile_config.output == "json",
-            verbose=verbose,
+            json_output=json_output or output == "json",
             tokens=tokens,
         )
 
@@ -63,13 +66,14 @@ class AppState:
             transport=transport,  # type: ignore[arg-type]
         )
 
-    def save_api_key(self, api_key: str | None) -> None:
-        self.tokens.api_key = api_key
-        save_auth(self.tokens, self.profile, config_dir=self.config_dir)
+    def save_api_key(self, api_key: str) -> None:
+        auth = StoredAuth(api_key=api_key)
+        save_auth(auth, self.profile, config_dir=self.config_dir)
+        self.tokens = auth
 
-    def clear_all_auth(self) -> None:
-        self.tokens = StoredAuth()
+    def clear_api_key(self) -> None:
         clear_auth(self.profile, config_dir=self.config_dir)
+        self.tokens = StoredAuth()
 
 
 def get_state(ctx: typer.Context) -> AppState:

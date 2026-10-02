@@ -101,4 +101,20 @@ describe('popup view', () => {
     ).toBe(false);
     expect(view.getCurrentState()).toBe('error' satisfies PopupState);
   });
+  it('renders untrusted posting fields and messages as inert text', () => {
+    const view = createPopupView(document, {
+      hasApplicationForm: false,
+      fillableFieldCount: 0,
+    });
+    const text =
+      '<img src=x onerror="window.untrustedRan=true"><script>instructions()</script>';
+    view.updateJobInfoDisplay(
+      { title: text, company: text, location: text },
+      'savedJob'
+    );
+    view.showError(text);
+    expect(document.querySelectorAll('img,script')).toHaveLength(0);
+    expect(document.getElementById('savedJobTitle')?.textContent).toBe(text);
+    expect(document.getElementById('errorText')?.textContent).toBe(text);
+  });
 });

@@ -1,4 +1,4 @@
-export const API_ERROR_NAME_TO_CODE = {
+const API_ERROR_NAME_TO_CODE = {
   AuthenticationError: 'ERR_AUTH_FAILED',
   DuplicateLeadError: 'ERR_ALREADY_SAVED',
   TimeoutError: 'ERR_TIMEOUT',

@@ -1,6 +1,6 @@
 # Tarnished CLI
 
-Agent-first command-line interface for Tarnished.
+Command-line interface for Tarnished, version **0.2.0**. Use a matching Tarnished backend.
 
 **Documentation:** https://markoonakic.github.io/tarnished/
 
@@ -9,20 +9,26 @@ For the user-facing CLI guide, see:
 
 ## Install
 
-Recommended install path:
+Install version 0.2.0 from PyPI once that release is available:
 
 ```bash
-uv tool install tarnished-cli
+uv tool install tarnished-cli==0.2.0
 ```
 
-Homebrew convenience path:
+To install this checkout, including before a release is published, run from the repository root:
+
+```bash
+uv tool install ./cli
+```
+
+Homebrew convenience path (the tap can lag the PyPI release):
 
 ```bash
 brew tap markoonakic/tap
 brew install tarnished-cli
 ```
 
-For local release verification only:
+To install a downloaded wheel:
 
 ```bash
 uv tool install ./dist/tarnished_cli-<version>-py3-none-any.whl
@@ -57,6 +63,49 @@ tarnished auth api-key clear
 The web app remains the source of truth for API keys. The CLI does **not**
 create, rotate, revoke, or otherwise manage remote API keys.
 
+The CLI uses the system keyring when available. Otherwise, it stores the key in
+a private file in the CLI config directory. `TARNISHED_API_KEY` overrides stored
+credentials. Clearing a stored key does not unset this environment variable.
+
+## Usage
+
+Global options go before the command:
+
+```bash
+tarnished --base-url https://tarnished.example.com auth status
+tarnished --profile work --json applications list
+tarnished applications --help
+```
+
+Create `config.json` in `~/.config/tarnished` (or
+`$XDG_CONFIG_HOME/tarnished`) to set profiles:
+
+```json
+{
+  "default_profile": "default",
+  "profiles": {
+    "default": { "base_url": "http://127.0.0.1:5577", "output": "json" },
+    "work": { "base_url": "https://tarnished.example.com", "output": "json" }
+  }
+}
+```
+
+`--config-dir` and `TARNISHED_CONFIG_DIR` override this directory. Server URL
+precedence is `--base-url`, then `TARNISHED_BASE_URL`, then the selected profile.
+Use a trusted server: URL overrides send the selected profile's key to that server.
+The CLI follows same-origin redirects but rejects cross-origin or
+credential-bearing URLs. Use the final server URL where possible.
+
+JSON is the default output. Set the profile's output to `text` or use
+`TARNISHED_OUTPUT=text` for text output; `--json` overrides both. API and local
+configuration errors exit with code 1. JSON errors go to stdout; text errors go
+to stderr. Invalid command arguments use Typer's standard error output.
+
+Imports, reports, and transcriptions support `--wait`, `--poll-interval`, and
+`--timeout-seconds`. A local wait timeout does not cancel server work. Report
+waits stop if another job replaces the submitted job. Review the saved state
+before retrying an AI or speech request, which can incur provider charges.
+
 ## Development
 
 ```bash
@@ -64,6 +113,10 @@ cd cli
 uv sync
 uv run tarnished --help
 uv run pytest -q
+uv run ruff check .
+uv run ruff format --check .
+uv run pyright
+uv build
 ```
 
 ## Release
@@ -110,3 +163,7 @@ to the GitHub release and publishes the package to PyPI.
 
 `homebrew-tap.yml` then updates the Homebrew tap separately once the published
 sdist is old enough for `brew update-python-resources` to resolve safely.
+
+## License
+
+MIT. The wheel and source distribution include the LICENSE file.

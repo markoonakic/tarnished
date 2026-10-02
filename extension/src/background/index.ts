@@ -1,8 +1,3 @@
-/**
- * Background script for Tarnished extension
- * Manages tab state tracking, badge updates, and message handling
- */
-
 import browser from 'webextension-polyfill';
 import {
   createOffscreenIconCanvas,
@@ -11,17 +6,17 @@ import {
   updateActionIcon,
 } from './icon';
 import { buildActionIconPayload } from './icon-payload';
-import { getProfile } from '../lib/api';
+import { getProfile, getUserSettings } from '../lib/api';
 import { hasAutofillData, type AutofillProfile } from '../lib/autofill';
-import { ThemeColors, UserSettings, DEFAULT_COLORS } from '../lib/theme';
+import { ThemeColors, DEFAULT_COLORS } from '../lib/theme';
 import {
   getSettings,
   getThemeColorsCache,
   setThemeColorsCache,
   getAutoFillOnLoad,
 } from '../lib/storage';
-import { buildUrl } from '../lib/url';
 import { debug, warn, error } from '../lib/logger';
+import { handleIframeInjectionRequest } from './iframe-injection';
 
 async function fetchThemeSettings(): Promise<ThemeColors> {
   const { appUrl, apiKey } = await getSettings();
@@ -32,21 +27,7 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
   }
 
   try {
-    const url = buildUrl(appUrl, '/api/users/settings');
-    debug('Theme', 'Fetching from:', url);
-
-    const response = await fetch(url, {
-      headers: {
-        'X-API-Key': apiKey,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const settings: UserSettings = await response.json();
+    const settings = await getUserSettings();
     debug('Theme', 'Loaded theme:', settings.theme, 'accent:', settings.accent);
 
     // Cache settings for popup
@@ -67,10 +48,6 @@ async function fetchThemeSettings(): Promise<ThemeColors> {
   }
 }
 
-/**
- * Get the current accent color from cached theme settings
- * Falls back to DEFAULT_COLORS if not cached
- */
 async function getAccentColor(): Promise<string> {
   const colors = await getThemeColorsCache();
   return colors.accent;
@@ -125,10 +102,6 @@ const pendingIframeInjections = new Map<number, string[]>();
 let lastThemeFetch = 0;
 const THEME_FETCH_INTERVAL = 30000;
 
-// ============================================================================
-// Auto-Fill Setting Management
-// ============================================================================
-
 /**
  * Load the auto-fill on load setting from storage
  */
@@ -140,10 +113,6 @@ async function loadAutoFillSetting(): Promise<void> {
   }
 }
 
-/**
- * Trigger autofill in the content script for a specific tab
- * @param tabId - The tab ID to trigger autofill in
- */
 async function triggerAutoFill(tabId: number): Promise<void> {
   try {
     // Get user profile from backend
@@ -189,14 +158,6 @@ browser.storage.onChanged.addListener((changes) => {
   }
 });
 
-// ============================================================================
-// Tab Update Listener
-// ============================================================================
-
-/**
- * Listen for tab updates to trigger detection
- * When a tab finishes loading, request detection from content script
- */
 browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
     // Request detection from content script
@@ -222,11 +183,6 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   }
 });
 
-/**
- * Listen for messages from content script and popup
- * Handles DETECTION_RESULT from content script, GET_TAB_STATUS from popup,
- * and FORM_DETECTION_UPDATE for auto-fill feature
- */
 browser.runtime.onMessage.addListener(
   (message: unknown, sender: { tab?: { id?: number } }) => {
     const msg = message as { type: string; [key: string]: unknown };
@@ -319,32 +275,22 @@ browser.runtime.onMessage.addListener(
     // From content script: request injection into iframe
     if (msg.type === 'INJECT_INTO_IFRAME' && sender.tab?.id) {
       const iframeMsg = msg as unknown as { frameSrc: string };
-      // We need to use scripting API to inject into iframes
-      // Note: This requires the iframe to be same-origin with a host_permissions match
-      // For truly cross-origin iframes, the content script already handles it via postMessage
-      debug('Iframe', 'Injection request:', iframeMsg.frameSrc);
+      const response = handleIframeInjectionRequest(iframeMsg.frameSrc);
+      debug('Iframe', 'Injection request noted:', iframeMsg.frameSrc);
 
-      // Store the frame src for potential retry
       const tabId = sender.tab.id;
       if (!pendingIframeInjections.has(tabId)) {
         pendingIframeInjections.set(tabId, []);
       }
       pendingIframeInjections.get(tabId)?.push(iframeMsg.frameSrc);
 
-      return Promise.resolve({ success: true });
+      return Promise.resolve(response);
     }
 
     return Promise.resolve(undefined);
   }
 );
 
-/**
- * Update badge for a tab
- * Uses accent color with checkmark for job pages, clear badge for non-job pages
- *
- * @param tabId - The tab ID to update the badge for
- * @param isJobPage - Whether the page is detected as a job posting
- */
 async function updateBadge(tabId: number, isJobPage: boolean): Promise<void> {
   if (isJobPage) {
     // Show badge with accent color and checkmark for job pages
@@ -357,10 +303,6 @@ async function updateBadge(tabId: number, isJobPage: boolean): Promise<void> {
   }
 }
 
-/**
- * Clean up when tabs are closed
- * Remove tab status from memory to prevent leaks
- */
 browser.tabs.onRemoved.addListener((tabId) => {
   tabStatus.delete(tabId);
   tabFormDetectionState.delete(tabId);

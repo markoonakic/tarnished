@@ -1,24 +1,18 @@
-/**
- * Popup script for Tarnished extension
- * Handles the popup UI state management and user interactions
- */
-
 import browser from 'webextension-polyfill';
 import {
   getSettings,
   getAutoFillOnLoad,
   setAutoFillOnLoad,
-  setJobStatus,
+  getThemeColorsCache,
 } from '../lib/storage';
 import {
   checkExistingLead,
   checkExistingApplication,
   convertLeadToApplication,
   getProfile,
-  extractApplication,
-  getStatuses,
+  extractJobLead,
+  getJobLead,
   saveJobLead as saveJobLeadRequest,
-  type JobLeadResponse,
   type ApplicationResponse,
 } from '../lib/api';
 import { hasAutofillData } from '../lib/autofill';
@@ -40,12 +34,12 @@ import {
   isRestrictedUrl,
   type FormDetectionState,
 } from './detection';
-import { getThemeColors, applyThemeToDocument } from './lib/theme';
+import { applyThemeToDocument } from '../lib/theme-utils';
 import {
   createBrowserNotifier,
   createPopupNotifications,
 } from './notifications';
-import { createPopupSaveLeadController } from './save-job-lead';
+import { createPopupSaveLeadController, type SavedLead } from './save-job-lead';
 import { createPopupSettingsController } from './settings';
 import { createPopupStateController } from './state';
 import { handlePopupRuntimeMessage } from './runtime-messages';
@@ -62,10 +56,6 @@ interface TabStatus {
   url: string;
 }
 
-// ============================================================================
-// State
-// ============================================================================
-
 /** Current job info for detected jobs */
 let currentJobInfo: JobInfo = { title: null, company: null, location: null };
 
@@ -76,7 +66,7 @@ let currentTabId: number | null = null;
 let currentTabUrl: string | null = null;
 
 /** Existing lead info (if any) */
-let existingLead: JobLeadResponse | null = null;
+let existingLead: SavedLead | null = null;
 
 /** Existing application info (if any) */
 let existingApplication: ApplicationResponse | null = null;
@@ -92,13 +82,6 @@ let settingsOpen = false;
 
 /** Auto-fill on page load setting */
 let autoFillOnLoad = false;
-
-/** Cached "Applied" status ID */
-let appliedStatusId: string | null = null;
-
-// ============================================================================
-// DOM Elements
-// ============================================================================
 
 const elements = {
   // State containers
@@ -154,19 +137,14 @@ const popupNotifications = createPopupNotifications({
   notify: createBrowserNotifier(browser.notifications),
   warn,
 });
-const {
-  showNotification,
-  showSuccessNotification,
-  showApplicationSuccessNotification,
-  showErrorNotification,
-} = popupNotifications;
+const { showNotification, showSuccessNotification, showErrorNotification } =
+  popupNotifications;
 
 const popupView = createPopupView(document, formDetection);
 const popupSaveLead = createPopupSaveLeadController({
   deps: {
     getCurrentTabText,
     saveJobLead: saveJobLeadRequest,
-    setJobStatus,
   },
   ui: {
     showState,
@@ -196,6 +174,7 @@ const popupSaveLead = createPopupSaveLeadController({
     },
   },
   elements: {
+    convertBtn: elements.convertBtn,
     savedMessage: elements.savedMessage as {
       textContent: string | null;
     } | null,
@@ -211,7 +190,7 @@ const popupAutofill = createPopupAutofillController({
       browser.tabs.sendMessage(tabId, {
         type: 'AUTOFILL_FORM',
         profile,
-      }) as Promise<{ filledCount?: number }>,
+      }) as Promise<{ filledCount?: number; framesContacted?: number }>,
     hasAutofillData,
   },
   state: {
@@ -256,17 +235,6 @@ const popupSettings = createPopupSettingsController({
     set existingLead(value) {
       existingLead = value
         ? ({ ...existingLead, id: value.id } as typeof existingLead)
-        : null;
-    },
-    get existingApplication() {
-      return existingApplication ? { id: existingApplication.id } : null;
-    },
-    set existingApplication(value) {
-      existingApplication = value
-        ? ({
-            ...existingApplication,
-            id: value.id,
-          } as typeof existingApplication)
         : null;
     },
   },
@@ -361,26 +329,19 @@ const popupState = createPopupStateController({
 });
 const popupActions = createPopupActions({
   deps: {
-    getStatuses,
-    extractApplication,
+    saveJobLead: () => popupSaveLead.saveJobLead(),
+    getJobLead,
+    extractJobLead,
     convertLeadToApplication,
-    getCurrentTabText,
   },
   ui: {
     showState,
     showError,
     showErrorNotification,
-    showApplicationSuccessNotification,
     showNotification,
     updateJobInfoDisplay: (info) => updateJobInfoDisplay(info, 'savedJob'),
   },
   state: {
-    get currentTabUrl() {
-      return currentTabUrl;
-    },
-    set currentTabUrl(value) {
-      currentTabUrl = value;
-    },
     get currentJobInfo() {
       return currentJobInfo;
     },
@@ -399,12 +360,6 @@ const popupActions = createPopupActions({
     set existingApplication(value) {
       existingApplication = value;
     },
-    get appliedStatusId() {
-      return appliedStatusId;
-    },
-    set appliedStatusId(value) {
-      appliedStatusId = value;
-    },
   },
   elements: {
     get savedMessage() {
@@ -422,21 +377,14 @@ const popupActions = createPopupActions({
       } | null;
     },
   },
-  debug,
-  warn,
   mapApiError,
   getErrorMessage,
-  isRecoverable,
 });
 
 function setFormDetectionState(next: FormDetectionState): void {
   formDetection = next;
   popupView.setFormDetection(next);
 }
-
-// ============================================================================
-// State Management
-// ============================================================================
 
 /**
  * Shows the specified state and hides all others
@@ -467,10 +415,6 @@ function showError(message: string, recoverable: boolean = true): void {
   popupView.showError(message, recoverable);
 }
 
-// ============================================================================
-// Settings Dropdown
-// ============================================================================
-
 /**
  * Toggles the settings dropdown visibility
  */
@@ -498,14 +442,6 @@ async function handleAutoFillToggle(): Promise<void> {
 async function loadAutoFillSetting(): Promise<void> {
   await popupSettings.loadAutoFillSetting();
 }
-
-// ============================================================================
-// Notifications
-// ============================================================================
-
-// ============================================================================
-// Actions
-// ============================================================================
 
 /**
  * Opens the extension settings/options page
@@ -536,16 +472,12 @@ async function saveJobLead(): Promise<void> {
 }
 
 /**
- * Saves the job directly as an application with "Applied" status
+ * Saves the posting first, then explicitly extracts and converts it
  */
 async function saveAsApplication(): Promise<void> {
   await popupActions.saveAsApplication();
 }
 
-/**
- * Convert an existing job lead to an application.
- * Called when user clicks "Convert to Application" button.
- */
 async function handleConvertToApplication(): Promise<void> {
   await popupActions.handleConvertToApplication();
 }
@@ -558,18 +490,9 @@ async function retryAction(): Promise<void> {
   await determineState();
 }
 
-/**
- * Autofills the form on the current page with user profile data.
- * Fetches the profile from the backend and sends it to the content script
- * for autofill.
- */
 async function autofillFormHandler(): Promise<void> {
   await popupAutofill.autofillFormHandler();
 }
-
-// ============================================================================
-// Content Script Communication
-// ============================================================================
 
 /**
  * Get text content from the content script
@@ -594,28 +517,10 @@ async function getCurrentFormDetection(): Promise<FormDetectionState | null> {
   }
 }
 
-// ============================================================================
-// State Determination
-// ============================================================================
-
-/**
- * Main state determination logic
- * Determines which state to show based on settings, detection, and existing leads
- */
 async function determineState(): Promise<void> {
   await popupState.determineState();
 }
 
-/**
- * Check if URL is restricted (chrome://, about:, etc.)
- */
-// ============================================================================
-// Initialization
-// ============================================================================
-
-/**
- * Set up button click handlers
- */
 function setupEventListeners(): void {
   bindPopupEventListeners({
     elements,
@@ -638,7 +543,6 @@ function setupEventListeners(): void {
     openJobLeads,
     openApplications,
     getExistingApplicationId: () => existingApplication?.id ?? null,
-    getExistingLeadId: () => existingLead?.id ?? null,
     handleConvertToApplication: () => {
       void handleConvertToApplication();
     },
@@ -656,7 +560,7 @@ function setupEventListeners(): void {
  */
 async function init(): Promise<void> {
   await applyPopupTheme({
-    getThemeColors,
+    getThemeColors: getThemeColorsCache,
     applyThemeToDocument,
     updateFavicon: (accentColor) =>
       updatePopupFavicon({
@@ -693,14 +597,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ============================================================================
-// Runtime Message Listener
-// ============================================================================
-
-/**
- * Listen for FORM_DETECTION_UPDATE messages from content script
- * This allows the popup to update its UI when forms are dynamically detected
- */
 browser.runtime.onMessage.addListener((message: unknown) => {
   return handlePopupRuntimeMessage(message, {
     setFormDetectionState,

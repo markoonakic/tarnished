@@ -10,6 +10,7 @@ import typer
 from pydantic import BaseModel
 
 from tarnished_cli.client import APIError, CLIError
+from tarnished_cli.files import write_private_file
 
 
 def _json_default(value: Any) -> Any:
@@ -22,6 +23,16 @@ def _json_default(value: Any) -> Any:
     if is_dataclass(value):
         return asdict(cast(Any, value))
     raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+
+def write_download(output: Path, content: bytes) -> None:
+    """Replace the destination only after all bytes have been written successfully."""
+    try:
+        write_private_file(output, content)
+    except OSError:
+        raise CLIError(
+            "Could not save download. Check destination permissions and disk space."
+        ) from None
 
 
 def emit_json(data: Any) -> None:

@@ -1,30 +1,36 @@
-type JobInfo = {
-  title: string | null;
-  company: string | null;
-  location: string | null;
-};
+import type { JobLeadResponse } from '../lib/api-core';
+import { DuplicateLeadError } from '../lib/api-core';
+import { AlreadySavedError } from '../lib/errors';
+import type { JobInfo } from './view';
 
-type LeadResponse = {
-  id: string;
-  title: string | null;
-  company: string | null;
-  location?: string | null;
-};
+// A duplicate response supplies identity even if a follow-up read is unavailable.
+export type SavedLead = Pick<JobLeadResponse, 'id' | 'title' | 'company'> &
+  Partial<JobLeadResponse>;
+
+export function describeSavedLead(lead: SavedLead): string {
+  const identity = `Saved lead ${lead.id}.`;
+  if (lead.converted_to_application_id || lead.status === 'converted') {
+    return `${identity} Already converted; open in app to view the application.`;
+  }
+  if (lead.status === 'processing') {
+    return `${identity} Processing may still be running or interrupted. Open in app to review; restarting may repeat billed work.`;
+  }
+  const ready = lead.title?.trim() && lead.company?.trim();
+  const status =
+    lead.status === 'failed'
+      ? 'Extraction failed; posting retained.'
+      : lead.status === 'extracted'
+        ? 'Extracted.'
+        : lead.status === 'pending'
+          ? 'Not extracted; no background job is queued.'
+          : 'Processing state unavailable; open in app to review.';
+  return `${identity} ${status} ${ready ? 'Ready to convert without AI.' : 'Open in app to complete company/title manually or explicitly extract with AI.'}${lead.content_warning ? ` ${lead.content_warning}` : ''}${lead.source_truncated ? ' Source was truncated.' : ''}`;
+}
 
 export function createPopupSaveLeadController(options: {
   deps: {
     getCurrentTabText: () => Promise<string>;
-    saveJobLead: (url: string, text: string) => Promise<LeadResponse>;
-    setJobStatus: (
-      url: string,
-      status: {
-        url: string;
-        isJobPage: boolean;
-        existingLeadId: string;
-        title: string | null;
-        company: string | null;
-      }
-    ) => Promise<void>;
+    saveJobLead: (url: string, text: string) => Promise<SavedLead>;
   };
   ui: {
     showState: (state: 'saving' | 'saved') => void;
@@ -39,10 +45,11 @@ export function createPopupSaveLeadController(options: {
   state: {
     currentTabUrl: string | null;
     currentJobInfo: JobInfo;
-    existingLead: LeadResponse | null;
+    existingLead: SavedLead | null;
   };
   elements: {
     savedMessage: { textContent: string | null } | null;
+    convertBtn?: { classList: { remove: (token: string) => void } } | null;
   };
   mapApiError: (error: unknown) => unknown;
   getErrorMessage: (error: unknown) => string;
@@ -57,47 +64,69 @@ export function createPopupSaveLeadController(options: {
     getErrorMessage,
     isRecoverable,
   } = options;
+  let saving = false;
 
-  async function saveJobLead(): Promise<void> {
-    if (!state.currentTabUrl) {
-      const errorMsg = 'No URL to save';
-      ui.showError(errorMsg);
-      ui.showErrorNotification(errorMsg);
-      return;
+  async function saveJobLead(): Promise<{
+    lead: SavedLead;
+    created: boolean;
+  } | null> {
+    if (saving) return null;
+    const url = state.currentTabUrl;
+    if (!url) {
+      ui.showError('No URL to save');
+      ui.showErrorNotification('No URL to save');
+      return null;
     }
-
+    saving = true;
     ui.showState('saving');
-
+    let created = false;
+    let warning = '';
     try {
-      const text = await deps.getCurrentTabText();
-      const result = await deps.saveJobLead(state.currentTabUrl, text);
-
+      let result = state.existingLead;
+      if (!result) {
+        let text = '';
+        try {
+          text = await deps.getCurrentTabText();
+        } catch {
+          warning = ' Page text unavailable; URL saved.';
+        }
+        try {
+          result = await deps.saveJobLead(url, text);
+          created = true;
+        } catch (error) {
+          if (
+            (error instanceof DuplicateLeadError ||
+              error instanceof AlreadySavedError) &&
+            error.existingId
+          ) {
+            result = { id: error.existingId, url, title: null, company: null };
+          } else {
+            throw error;
+          }
+        }
+      }
       state.existingLead = result;
       state.currentJobInfo = {
         title: result.title,
         company: result.company,
         location: result.location || null,
       };
-
-      await deps.setJobStatus(state.currentTabUrl, {
-        url: state.currentTabUrl,
-        isJobPage: true,
-        existingLeadId: result.id,
-        title: result.title,
-        company: result.company,
-      });
-
-      ui.showSuccessNotification(result.title, result.company);
       if (elements.savedMessage) {
-        elements.savedMessage.textContent = 'Saved to Job Leads';
+        elements.savedMessage.textContent = `${created ? '' : 'Already saved; existing posting was not changed. '}${describeSavedLead(result)}${warning}`;
       }
+      elements.convertBtn?.classList.remove('hidden');
       ui.updateJobInfoDisplay(state.currentJobInfo, 'savedJob');
       ui.showState('saved');
+      ui.showSuccessNotification(result.title, result.company);
+      return { lead: result, created };
     } catch (error) {
       const extensionError = mapApiError(error);
-      const message = getErrorMessage(extensionError);
+      const message = `${getErrorMessage(extensionError)} Save outcome may be uncertain; check Job Leads before saving again.`;
       ui.showError(message, isRecoverable(extensionError));
       ui.showErrorNotification(message);
+      return null;
+    } finally {
+      saving = false;
     }
   }
 

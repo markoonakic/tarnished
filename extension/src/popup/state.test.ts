@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createPopupStateController } from './state';
 
+vi.mock('../lib/storage', () => ({}));
+vi.mock('../lib/logger', () => ({ debug: vi.fn(), warn: vi.fn() }));
+
 describe('popup state controller', () => {
   const getSettings = vi.fn();
   const queryTabs = vi.fn();
@@ -28,6 +31,7 @@ describe('popup state controller', () => {
       title: string | null;
       company: string | null;
       location?: string | null;
+      url?: string;
     } | null,
     existingApplication: null as {
       id: string;
@@ -113,7 +117,7 @@ describe('popup state controller', () => {
       hasApplicationForm: true,
       fillableFieldCount: 2,
     });
-    expect(elements.savedMessage.textContent).toBe('Saved to Job Leads');
+    expect(elements.savedMessage.textContent).toContain('Saved lead lead-1.');
     expect(updateJobInfoDisplay).toHaveBeenCalledWith(
       { title: 'Engineer', company: 'Acme', location: 'Remote' },
       'savedJob'
@@ -144,5 +148,22 @@ describe('popup state controller', () => {
       'job'
     );
     expect(showState).toHaveBeenCalledWith('detected');
+  });
+  it('keeps a known saved identity during a later failed lookup for the same URL', async () => {
+    getSettings.mockResolvedValue({ appUrl: 'https://app', apiKey: 'key' });
+    const url = 'https://example.com/job';
+    queryTabs.mockResolvedValue([{ id: 5, url }]);
+    getTabStatus.mockResolvedValue(null);
+    getDetection.mockResolvedValue(null);
+    getFormDetection.mockResolvedValue(null);
+    checkExistingLead.mockRejectedValue(new Error('offline'));
+    checkExistingApplication.mockResolvedValue(null);
+    state.existingLead = { id: 'known-1', url, title: null, company: null };
+    await createSubject().determineState();
+    expect(state.existingLead?.id).toBe('known-1');
+    expect(showState).toHaveBeenLastCalledWith('saved');
+    expect(elements.savedMessage.textContent).toContain(
+      'Processing state unavailable'
+    );
   });
 });

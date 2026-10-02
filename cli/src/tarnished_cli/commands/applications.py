@@ -8,8 +8,9 @@ from tarnished_cli.models import (
     ApplicationCreate,
     ApplicationExtractRequest,
     ApplicationUpdate,
+    DocumentTextPaste,
 )
-from tarnished_cli.output import emit_result, exit_for_error
+from tarnished_cli.output import emit_result, exit_for_error, write_download
 from tarnished_cli.state import get_state
 
 APPLICATIONS_HELP = """Manage job applications.
@@ -183,13 +184,19 @@ def delete_history_entry(
     ctx: typer.Context,
     application_id: str,
     history_id: str,
+    expected_revision: int | None = typer.Option(None, min=0),
     yes: bool = typer.Option(False, "--yes"),
 ) -> None:
     state = get_state(ctx)
     require_yes(yes, resource=f"history entry {history_id}")
     try:
         state.build_client().delete(
-            f"/api/applications/{application_id}/history/{history_id}",
+            f"/api/applications/{application_id}/history/{history_id}"
+            + (
+                f"?expected_revision={expected_revision}"
+                if expected_revision is not None
+                else ""
+            ),
             auth="api_key",
         )
         emit_result(
@@ -267,14 +274,13 @@ def _download_document(
     disposition: str,
 ) -> None:
     state = get_state(ctx)
-    output.parent.mkdir(parents=True, exist_ok=True)
     try:
         content, _headers = state.build_client().get_bytes(
             f"/api/files/{application_id}/{doc_type}",
             params={"disposition": disposition},
             auth="api_key",
         )
-        output.write_bytes(content)
+        write_download(output, content)
         emit_result(
             state,
             {"output_path": str(output), "bytes": len(content)},
@@ -390,3 +396,98 @@ def download_cover_letter(
         output=output,
         disposition=disposition,
     )
+
+
+def _get_document_text(ctx: typer.Context, application_id: str, kind: str) -> None:
+    state = get_state(ctx)
+    try:
+        payload = state.build_client().get_json(
+            f"/api/applications/{application_id}/documents/{kind}/text"
+        )
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+def _paste_document_text(
+    ctx: typer.Context, application_id: str, kind: str, body_file: Path
+) -> None:
+    state = get_state(ctx)
+    body = load_model_body(body_file, DocumentTextPaste)
+    try:
+        payload = state.build_client().put_json(
+            f"/api/applications/{application_id}/documents/{kind}/text",
+            body=body,
+        )
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+@cv_app.command("text")
+def get_cv_text(ctx: typer.Context, application_id: str) -> None:
+    _get_document_text(ctx, application_id, "cv")
+
+
+@cv_app.command("paste-text")
+def paste_cv_text(
+    ctx: typer.Context,
+    application_id: str,
+    body_file: Path = typer.Option(..., "--body-file", exists=True),
+) -> None:
+    _paste_document_text(ctx, application_id, "cv", body_file)
+
+
+@cover_letter_app.command("text")
+def get_cover_letter_text(ctx: typer.Context, application_id: str) -> None:
+    _get_document_text(ctx, application_id, "cover_letter")
+
+
+@cover_letter_app.command("paste-text")
+def paste_cover_letter_text(
+    ctx: typer.Context,
+    application_id: str,
+    body_file: Path = typer.Option(..., "--body-file", exists=True),
+) -> None:
+    _paste_document_text(ctx, application_id, "cover_letter", body_file)
+
+
+@app.command("correct-meaning")
+def correct_meaning(
+    ctx: typer.Context,
+    application_id: str,
+    body_file: Path = typer.Option(..., "--body-file", exists=True),
+) -> None:
+    """Correct current classification only; does not reconstruct history."""
+    from tarnished_cli.models.requests import CurrentMeaningCorrection
+
+    state = get_state(ctx)
+    body = load_model_body(body_file, CurrentMeaningCorrection)
+    try:
+        payload = state.build_client().patch_json(
+            f"/api/applications/{application_id}/meaning", body=body
+        )
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)
+
+
+@history_app.command("correct")
+def correct_history(
+    ctx: typer.Context,
+    application_id: str,
+    history_id: str,
+    body_file: Path = typer.Option(..., "--body-file", exists=True),
+) -> None:
+    """Correct only supplied fields of one identified event."""
+    from tarnished_cli.models.requests import HistoryCorrection
+
+    state = get_state(ctx)
+    body = load_model_body(body_file, HistoryCorrection)
+    try:
+        payload = state.build_client().patch_json(
+            f"/api/applications/{application_id}/history/{history_id}", body=body
+        )
+        emit_result(state, payload)
+    except CLIError as exc:
+        exit_for_error(state, exc)

@@ -1,9 +1,8 @@
-/* Theme Variables - Set dynamically by theme.ts applyThemeToDocument() */
 :root {
   /* Layout */
   --side-padding: 1rem;
 
-  /* Core theme variables (set by JS, fallback values for safety) */
+  /* Default colors before the saved theme is applied. */
   --bg0: #1d2021;
   --bg1: #282828;
   --bg2: #3c3836;
@@ -19,19 +18,10 @@
   --red: #fb4934;
   --green: #b8bb26;
 
-  /* Additional colors not in dynamic theme (kept as static fallbacks) */
   --yellow: #d79921;
   --yellow-bright: #fabd2f;
-  --orange: #d65d0e;
-  --orange-bright: #fe8019;
-  --purple: #b16286;
-  --purple-bright: #d3869b;
-  --blue: #458588;
-  --blue-bright: #83a598;
 
-  /* Legacy aliases for backwards compatibility */
-  --aqua: var(--accent);
-  --aqua-bright: var(--accent-bright);
+  /* Status colors follow the saved theme. */
   --green-bright: var(--green);
   --red-bright: var(--red);
 }
@@ -288,30 +278,6 @@ button.neutral {
 .btn.neutral:hover,
 button.neutral:hover {
   background: var(--bg2);
-}
-
-/* Danger button - for destructive actions */
-.btn.danger,
-button.danger {
-  background: transparent;
-  color: var(--red);
-  border: none;
-}
-
-.btn.danger:hover,
-button.danger:hover {
-  background: var(--bg2);
-  color: var(--red);
-}
-
-/* Secondary button - legacy variant, use neutral instead */
-.btn.secondary {
-  background: var(--bg2);
-  color: var(--fg1);
-}
-
-.btn.secondary:hover {
-  background: var(--bg3);
 }
 
 /* Loading state */

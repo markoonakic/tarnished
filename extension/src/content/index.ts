@@ -1,38 +1,18 @@
-/**
- * Content script for Tarnished extension
- * Runs on web pages to detect job listings, communicate with the popup/background scripts,
- * and autofill application forms.
- *
- * Architecture:
- * - Runs in top frame only (all_frames: false in manifest)
- * - Detects job pages and scans forms in main frame
- * - Injects iframe-scanner.js into iframes for cross-origin form detection
- * - Aggregates results from iframes via postMessage
- */
-
 import browser from 'webextension-polyfill';
 import { createIframeRegistry, type IframeScanResult } from './iframe-registry';
 import { shouldScheduleFormRescan } from './scan-trigger';
 import { detectJobPage, type DetectionResult } from '../lib/detection';
 import { debug, warn } from '../lib/logger';
 import {
-  getAutofillEngine,
+  scanForFillableFields,
+  fillProfile,
   type AutofillProfile,
-  type AutofillResult,
 } from '../lib/autofill/index';
-
-// ============================================================================
-// Message Type Constants
-// ============================================================================
 
 const MESSAGE_PREFIX = 'TARNISHED_';
 const IFRAME_SCAN_RESULT = `${MESSAGE_PREFIX}IFRAME_SCAN_RESULT`;
 const IFRAME_AUTOFILL = `${MESSAGE_PREFIX}IFRAME_AUTOFILL`;
 const IFRAME_AUTOFILL_RESULT = `${MESSAGE_PREFIX}IFRAME_AUTOFILL_RESULT`;
-
-// ============================================================================
-// Form Detection State
-// ============================================================================
 
 let formDetected = false;
 let fillableFieldCount = 0;
@@ -40,16 +20,54 @@ let scanRetryCount = 0;
 const MAX_SCAN_RETRIES = 5;
 const SCAN_RETRY_DELAY = 1000; // 1 second
 
-const iframeRegistry = createIframeRegistry();
+// Correlates injected scanner results; visible to the hosting page.
+function generateScanToken(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(
+    ''
+  );
+}
 
-// ============================================================================
-// Iframe Handling
-// ============================================================================
+const scanToken = generateScanToken();
 
-/**
- * Inject the iframe scanner into all iframes on the page.
- * Uses messaging to request background script injection for cross-origin iframes.
- */
+const iframeRegistry = createIframeRegistry({
+  isTrustedFrame: isEmbeddedFrame,
+  resolveFrameWindow: resolveFrameWindow,
+  scanToken: scanToken,
+});
+
+/** Checks frame membership before sharing profile data. */
+function isEmbeddedFrame(source: MessageEventSource | null): boolean {
+  if (!source) {
+    return false;
+  }
+  for (const iframe of document.querySelectorAll('iframe')) {
+    if (iframe.contentWindow === source) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Excludes removed or replaced frames, including at dispatch time. */
+function resolveFrameWindow(
+  source: MessageEventSource | null
+): { postMessage: (message: unknown, targetOrigin: string) => void } | null {
+  if (!source) {
+    return null;
+  }
+  for (const iframe of document.querySelectorAll('iframe')) {
+    if (iframe.contentWindow === source) {
+      return iframe.contentWindow as unknown as {
+        postMessage: (message: unknown, targetOrigin: string) => void;
+      };
+    }
+  }
+  return null;
+}
+
+/** Injects scanners into accessible same-origin frames only. */
 async function injectIntoIframes(): Promise<void> {
   const iframes = document.querySelectorAll('iframe');
 
@@ -57,9 +75,11 @@ async function injectIntoIframes(): Promise<void> {
     try {
       // Try to inject directly for same-origin iframes
       if (iframe.contentDocument) {
-        // Same-origin: create and inject script element
+        // The scanner reads this DOM attribute via document.currentScript in
+        // its page world; an isolated-world window property would not transfer.
         const script = iframe.contentDocument.createElement('script');
         script.src = browser.runtime.getURL('content/iframe-scanner.js');
+        script.dataset.tarnishedScanToken = scanToken;
         script.onload = () => {
           debug('Content', 'Injected scanner into same-origin iframe');
         };
@@ -140,8 +160,7 @@ function setupIframeMessageListener(): void {
  */
 function aggregateAndReport(): void {
   // Start with main frame scan
-  const engine = getAutofillEngine();
-  const mainResult = engine.scan();
+  const mainResult = scanForFillableFields();
 
   let totalFillable = mainResult.fillableFields.length;
   let hasApplicationForm = mainResult.hasApplicationForm;
@@ -170,23 +189,16 @@ function aggregateAndReport(): void {
     });
 }
 
-/**
- * Send autofill command to all iframes.
- */
-function sendAutofillToIframes(profile: AutofillProfile): void {
-  iframeRegistry.sendAutofill(IFRAME_AUTOFILL, profile);
+/** Returns delivery attempts, not successfully filled fields. */
+function sendAutofillToIframes(profile: AutofillProfile): number {
+  return iframeRegistry.sendAutofill(IFRAME_AUTOFILL, profile);
 }
-
-// ============================================================================
-// Form Detection
-// ============================================================================
 
 /**
  * Scan for fillable fields in the main frame and update state.
  */
 function scanForFields(): void {
-  const engine = getAutofillEngine();
-  const result = engine.scan();
+  const result = scanForFillableFields();
 
   // Get all inputs on page for debugging
   const allInputs = document.querySelectorAll<
@@ -230,10 +242,6 @@ function scanForFields(): void {
   injectIntoIframes();
 }
 
-// ============================================================================
-// MutationObserver for Lazy-Loaded Fields and Iframes
-// ============================================================================
-
 let scanTimeout: ReturnType<typeof setTimeout> | null = null;
 
 /**
@@ -264,10 +272,6 @@ function setupMutationObserver(): void {
     subtree: true,
   });
 }
-
-// ============================================================================
-// Job Detection
-// ============================================================================
 
 /**
  * Runs job detection and sends the result to the background script.
@@ -311,10 +315,6 @@ if (document.readyState === 'complete') {
   });
 }
 
-// ============================================================================
-// Message Listener
-// ============================================================================
-
 /**
  * Message listener for requests from popup/background scripts.
  */
@@ -325,6 +325,7 @@ browser.runtime.onMessage.addListener(
     | {
         text?: string;
         filledCount?: number;
+        framesContacted?: number;
         fillableFieldCount?: number;
         hasApplicationForm?: boolean;
       }
@@ -353,14 +354,16 @@ browser.runtime.onMessage.addListener(
 
     if (msg.type === 'AUTOFILL_FORM' && msg.profile) {
       // Fill fields in main frame
-      const engine = getAutofillEngine();
-      const result: AutofillResult = engine.fill(msg.profile);
+      const filledCount = fillProfile(msg.profile);
 
-      // Also send to iframes
-      sendAutofillToIframes(msg.profile);
+      // Also send to embedded iframes. Frame results are asynchronous, so report
+      // the frame post-attempt count alongside the main-frame fill count; the popup
+      // states plainly when frame results could not be confirmed.
+      const framesContacted = sendAutofillToIframes(msg.profile);
 
       return Promise.resolve({
-        filledCount: result.filledCount,
+        filledCount,
+        framesContacted,
       });
     }
 

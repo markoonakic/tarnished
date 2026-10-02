@@ -1,37 +1,24 @@
-/**
- * Options page script for Tarnished extension.
- *
- * This script handles:
- * - Loading existing settings from storage
- * - Saving new settings to storage
- * - Validation of user input
- * - User feedback on save operations
- * - Dynamic favicon with theme accent color
- */
-
 import browser from 'webextension-polyfill';
-import { getSettings, setSettings, type Settings } from '../lib/storage';
-import { getThemeColors, applyThemeToDocument } from '../lib/theme-utils';
+import {
+  getSettings,
+  setSettings,
+  getThemeColorsCache,
+  type Settings,
+} from '../lib/storage';
+import { applyThemeToDocument } from '../lib/theme-utils';
 import { debug, warn, error as logError } from '../lib/logger';
-import { normalizeBaseUrl } from '../lib/url';
-
-// ============================================================================
-// DOM Elements
-// ============================================================================
+import { buildUrl, normalizeBaseUrl } from '../lib/url';
+import { getErrorMessage } from '../lib/errors';
 
 const appUrlInput = document.getElementById('appUrl') as HTMLInputElement;
 const apiKeyInput = document.getElementById('apiKey') as HTMLInputElement;
 const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
 const apiKeyLink = document.getElementById('apiKeyLink') as HTMLAnchorElement;
 
-// ============================================================================
-// Initialization
-// ============================================================================
-
 document.addEventListener('DOMContentLoaded', async () => {
   // Apply theme first (before any UI renders)
   try {
-    const colors = await getThemeColors();
+    const colors = await getThemeColorsCache();
     applyThemeToDocument(colors);
     debug('Options', 'Applied theme, accent:', colors.accent);
 
@@ -111,16 +98,12 @@ function setupEventListeners(): void {
   });
 }
 
-// ============================================================================
-// Event Handlers
-// ============================================================================
-
 /**
  * Handle save button click.
  */
 async function handleSave(): Promise<void> {
   const newSettings: Settings = {
-    appUrl: normalizeBaseUrl(appUrlInput.value.trim()),
+    appUrl: appUrlInput.value.trim(),
     apiKey: apiKeyInput.value.trim(),
   };
 
@@ -130,10 +113,12 @@ async function handleSave(): Promise<void> {
     return;
   }
 
-  // Validate URL format
+  appUrlInput.setCustomValidity('');
   try {
-    new URL(newSettings.appUrl);
-  } catch {
+    newSettings.appUrl = normalizeBaseUrl(newSettings.appUrl);
+  } catch (error) {
+    appUrlInput.setCustomValidity(getErrorMessage(error));
+    appUrlInput.reportValidity();
     appUrlInput.focus();
     return;
   }
@@ -171,17 +156,15 @@ async function handleSave(): Promise<void> {
   }
 }
 
-/**
- * Handle API key link click.
- * Opens the Tarnished settings page in a new tab.
- */
 function handleApiKeyLinkClick(e: Event): void {
   e.preventDefault();
-  const appUrl = appUrlInput.value.trim();
-  if (appUrl) {
-    browser.tabs.create({ url: `${appUrl}/settings/api-key` });
+  try {
+    const url = buildUrl(appUrlInput.value.trim(), '/settings/api-key');
+    void browser.tabs.create({ url }).catch((error) => {
+      logError('Options', 'Failed to open API key settings:', error);
+    });
+  } catch (error) {
+    appUrlInput.setCustomValidity(getErrorMessage(error));
+    appUrlInput.reportValidity();
   }
 }
-
-// Export for module detection
-export {};

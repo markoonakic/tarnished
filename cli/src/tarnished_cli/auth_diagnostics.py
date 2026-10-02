@@ -6,7 +6,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from tarnished_cli.auth_storage import StoredAuth
-from tarnished_cli.client import CLIError
+from tarnished_cli.client import CLIError, redact_credentials
 from tarnished_cli.models.auth import AuthDiagnostics, LiveAuthIdentity
 
 API_KEY_PREFIX_LENGTH = 8
@@ -26,6 +26,7 @@ CLI_REQUIRED_SCOPES = (
     "round_types:write",
     "dashboard:read",
     "analytics:read",
+    "analytics:generate",
     "streak:read",
     "streak:write",
     "preferences:read",
@@ -49,7 +50,7 @@ def parse_live_identity(payload: object) -> LiveAuthIdentity:
 
 
 def stored_api_key_prefix(api_key: str | None) -> str | None:
-    if not api_key:
+    if not api_key or len(api_key) <= API_KEY_PREFIX_LENGTH:
         return None
     return api_key[:API_KEY_PREFIX_LENGTH]
 
@@ -63,7 +64,7 @@ def build_auth_diagnostics(
 ) -> AuthDiagnostics:
     return AuthDiagnostics(
         profile=profile,
-        base_url=base_url,
+        base_url=redact_credentials(base_url, stored_auth.api_key),
         has_stored_api_key=bool(stored_auth.api_key),
         stored_api_key_prefix=stored_api_key_prefix(stored_auth.api_key),
         live_identity=_coerce_live_identity(live_identity),

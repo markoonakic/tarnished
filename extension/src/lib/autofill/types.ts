@@ -54,19 +54,6 @@ export interface FormScanResult {
 }
 
 /**
- * Result of autofill operation.
- */
-export interface AutofillResult {
-  filledCount: number;
-  skippedCount: number;
-  fields: {
-    fieldType: FieldType;
-    filled: boolean;
-    score: number;
-  }[];
-}
-
-/**
  * Checks if the profile has any data that can be used for autofill.
  */
 export function hasAutofillData(profile: AutofillProfile | null): boolean {

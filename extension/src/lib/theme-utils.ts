@@ -1,10 +1,4 @@
 import { ThemeColors } from './theme';
-import { getThemeColorsCache, THEME_SETTINGS_STORAGE_KEY } from './storage';
-
-export async function getThemeColors(): Promise<ThemeColors> {
-  return getThemeColorsCache();
-}
-
 export function applyThemeToDocument(colors: ThemeColors): void {
   const root = document.documentElement;
 
@@ -26,5 +20,3 @@ export function applyThemeToDocument(colors: ThemeColors): void {
   root.style.setProperty('--red', colors.red);
   root.style.setProperty('--green', colors.green);
 }
-
-export { THEME_SETTINGS_STORAGE_KEY as SETTINGS_STORAGE_KEY };

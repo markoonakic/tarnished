@@ -1,218 +1,133 @@
-type JobInfo = {
-  title: string | null;
-  company: string | null;
-  location: string | null;
-};
+import { describeSavedLead, type SavedLead } from './save-job-lead';
+import type { JobInfo } from './view';
 
-type LeadLike = {
-  id: string;
-  title?: string | null;
-  company?: string | null;
-  location?: string | null;
-} | null;
 type ApplicationLike = {
   id: string;
   job_title: string;
   company: string;
   location?: string | null;
-} | null;
-
-type ActionDeps = {
-  getStatuses: () => Promise<Array<{ id: string; name: string }>>;
-  extractApplication: (input: {
-    url: string;
-    status_id: string;
-    applied_at: string;
-    text?: string;
-  }) => Promise<{ id: string; job_title: string; company: string }>;
-  convertLeadToApplication: (leadId: string) => Promise<{
-    id: string;
-    job_title: string;
-    company: string;
-    location?: string | null;
-  }>;
-  getCurrentTabText: () => Promise<string>;
-};
-
-type ActionUi = {
-  showState: (state: 'saving' | 'saved') => void;
-  showError: (message: string, recoverable?: boolean) => void;
-  showErrorNotification: (message: string) => void;
-  showApplicationSuccessNotification: (
-    title: string | null,
-    company: string | null
-  ) => void;
-  showNotification: (title: string, message: string) => void;
-  updateJobInfoDisplay: (info: JobInfo, prefix: 'savedJob') => void;
-};
-
-type ActionState = {
-  currentTabUrl: string | null;
-  currentJobInfo: JobInfo;
-  existingLead: LeadLike;
-  existingApplication: ApplicationLike;
-  appliedStatusId: string | null;
-};
-
-type ActionElements = {
-  savedMessage: { textContent: string | null } | null;
-  viewBtn: { textContent: string; dataset: Record<string, string> } | null;
-  convertBtn: { classList: { add: (token: string) => void } } | null;
 };
 
 export function createPopupActions(options: {
-  deps: ActionDeps;
-  ui: ActionUi;
-  state: ActionState;
-  elements: ActionElements;
-  debug: (context: string, ...args: unknown[]) => void;
-  warn: (context: string, ...args: unknown[]) => void;
+  deps: {
+    saveJobLead: () => Promise<{ lead: SavedLead; created: boolean } | null>;
+    getJobLead: (id: string) => Promise<SavedLead>;
+    extractJobLead: (
+      id: string,
+      expectedRevision: number
+    ) => Promise<SavedLead>;
+    convertLeadToApplication: (leadId: string) => Promise<ApplicationLike>;
+  };
+  ui: {
+    showState: (state: 'saving' | 'saved') => void;
+    showError: (message: string, recoverable?: boolean) => void;
+    showErrorNotification: (message: string) => void;
+    showNotification: (title: string, message: string) => void;
+    updateJobInfoDisplay: (info: JobInfo, prefix: 'savedJob') => void;
+  };
+  state: {
+    currentJobInfo: JobInfo;
+    existingLead: SavedLead | null;
+    existingApplication: ApplicationLike | null;
+  };
+  elements: {
+    savedMessage: { textContent: string | null } | null;
+    viewBtn: { textContent: string; dataset: Record<string, string> } | null;
+    convertBtn: { classList: { add: (token: string) => void } } | null;
+  };
   mapApiError: (error: unknown) => unknown;
   getErrorMessage: (error: unknown) => string;
-  isRecoverable: (error: unknown) => boolean;
 }) {
-  const {
-    deps,
-    ui,
-    state,
-    elements,
-    debug,
-    warn,
-    mapApiError,
-    getErrorMessage,
-    isRecoverable,
-  } = options;
+  const { deps, ui, state, elements, mapApiError, getErrorMessage } = options;
+  let busy = false;
 
-  async function getAppliedStatusId(): Promise<string | null> {
-    if (state.appliedStatusId) {
-      return state.appliedStatusId;
-    }
+  function savedMessage(message: string): void {
+    if (elements.savedMessage) elements.savedMessage.textContent = message;
+    ui.showState('saved');
+  }
 
-    try {
-      const statuses = await deps.getStatuses();
-      const appliedStatus = statuses.find(
-        (s) => s.name.toLowerCase() === 'applied'
-      );
-      if (appliedStatus) {
-        state.appliedStatusId = appliedStatus.id;
-      }
-      return state.appliedStatusId;
-    } catch (error) {
-      warn('Popup', 'Failed to get statuses:', error);
-      return null;
+  function savedFailure(id: string, error: unknown): void {
+    savedMessage(
+      `Lead ${id} is saved. ${getErrorMessage(mapApiError(error))} The request outcome may be uncertain or stale; open the saved lead to review before retrying. No automatic AI retry.`
+    );
+  }
+
+  async function convert(lead: SavedLead): Promise<void> {
+    if (
+      !lead.converted_to_application_id &&
+      (lead.status === 'processing' ||
+        !lead.title?.trim() ||
+        !lead.company?.trim())
+    ) {
+      savedMessage(describeSavedLead(lead));
+      return;
     }
+    ui.showState('saving');
+    const result = await deps.convertLeadToApplication(lead.id);
+    state.existingApplication = result;
+    // Keep the originating lead identity as well as the application identity.
+    state.currentJobInfo = {
+      title: result.job_title,
+      company: result.company,
+      location: result.location || null,
+    };
+    ui.updateJobInfoDisplay(state.currentJobInfo, 'savedJob');
+    elements.convertBtn?.classList.add('hidden');
+    if (elements.viewBtn) {
+      elements.viewBtn.textContent = 'View in App';
+      elements.viewBtn.dataset.applicationId = result.id;
+    }
+    savedMessage('Added as Application');
+    ui.showNotification('Converted!', 'Job lead converted to application.');
   }
 
   async function saveAsApplication(): Promise<void> {
-    if (!state.currentTabUrl) {
-      const errorMsg = 'No URL to save';
-      ui.showError(errorMsg);
-      ui.showErrorNotification(errorMsg);
-      return;
-    }
-
-    ui.showState('saving');
-
+    if (busy) return;
+    busy = true;
     try {
-      const statusId = await getAppliedStatusId();
-      if (!statusId) {
-        const errorMsg =
-          'Could not find "Applied" status. Please ensure it exists in your application settings.';
-        ui.showError(errorMsg, true);
-        ui.showErrorNotification(errorMsg);
+      const saved = await deps.saveJobLead();
+      // Duplicate actions must not enrich/overwrite an existing posting implicitly.
+      if (!saved || !saved.created) return;
+      const { lead } = saved;
+      if (lead.revision === undefined) {
+        savedMessage(describeSavedLead(lead));
         return;
       }
-
-      let text: string | undefined;
       try {
-        text = await deps.getCurrentTabText();
-        debug(
-          'Popup',
-          'Got text from content script:',
-          text?.substring(0, 100)
+        savedMessage(
+          `Lead ${lead.id} is saved. AI extraction requested; waiting for this request. Closing the popup may leave an uncertain outcome. Open in app to review.`
         );
-      } catch (e) {
-        warn('Popup', 'Failed to get text from content script:', e);
+        const extracted = await deps.extractJobLead(lead.id, lead.revision);
+        state.existingLead = extracted;
+        await convert(extracted);
+      } catch (error) {
+        savedFailure(lead.id, error);
       }
-
-      debug(
-        'Popup',
-        'Calling extractApplication with text:',
-        !!text,
-        'length:',
-        text?.length
-      );
-
-      const result = await deps.extractApplication({
-        url: state.currentTabUrl,
-        status_id: statusId,
-        applied_at: new Date().toISOString().split('T')[0],
-        text,
-      });
-
-      ui.showApplicationSuccessNotification(result.job_title, result.company);
-      if (elements.savedMessage) {
-        elements.savedMessage.textContent = 'Added as Application';
-      }
-      state.currentJobInfo = {
-        title: result.job_title,
-        company: result.company,
-        location: null,
-      };
-      ui.updateJobInfoDisplay(state.currentJobInfo, 'savedJob');
-      if (elements.viewBtn) {
-        elements.viewBtn.textContent = 'View in App';
-        elements.viewBtn.dataset.applicationId = result.id;
-      }
-      ui.showState('saved');
-    } catch (error) {
-      const extensionError = mapApiError(error);
-      const message = getErrorMessage(extensionError);
-      ui.showError(message, isRecoverable(extensionError));
-      ui.showErrorNotification(message);
+    } finally {
+      busy = false;
     }
   }
 
   async function handleConvertToApplication(): Promise<void> {
-    if (!state.existingLead) {
+    if (busy) return;
+    const lead = state.existingLead;
+    if (!lead) {
       ui.showErrorNotification('No lead to convert');
       return;
     }
-
+    busy = true;
     ui.showState('saving');
-
     try {
-      const result = await deps.convertLeadToApplication(state.existingLead.id);
-      state.existingApplication = result;
-      state.existingLead = null;
-      state.currentJobInfo = {
-        title: result.job_title,
-        company: result.company,
-        location: result.location || null,
-      };
-
-      if (elements.savedMessage) {
-        elements.savedMessage.textContent = 'Added as Application';
-      }
-      ui.updateJobInfoDisplay(state.currentJobInfo, 'savedJob');
-      elements.convertBtn?.classList.add('hidden');
-      if (elements.viewBtn) {
-        elements.viewBtn.dataset.applicationId = result.id;
-      }
-      ui.showState('saved');
-      ui.showNotification('Converted!', 'Job lead converted to application.');
+      // Refresh manual completeness, processing and conversion state before acting.
+      const current = await deps.getJobLead(lead.id);
+      state.existingLead = current;
+      await convert(current);
     } catch (error) {
-      const extensionError = mapApiError(error);
-      const message = getErrorMessage(extensionError);
-      ui.showError(message, isRecoverable(extensionError));
-      ui.showErrorNotification(message);
-      ui.showState('saved');
+      savedFailure(lead.id, error);
+    } finally {
+      busy = false;
     }
   }
 
-  return {
-    getAppliedStatusId,
-    saveAsApplication,
-    handleConvertToApplication,
-  };
+  return { saveAsApplication, handleConvertToApplication };
 }

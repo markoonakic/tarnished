@@ -10,9 +10,13 @@ from pydantic import BaseModel, ValidationError
 
 def load_model_body(body_file: Path, model_type: type[BaseModel]) -> dict[str, Any]:
     try:
-        payload = json.loads(body_file.read_text())
+        payload = json.loads(body_file.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise typer.BadParameter(f"Invalid JSON body: {exc}") from exc
+    except (OSError, UnicodeError):
+        raise typer.BadParameter(
+            "Could not read body file. Use a readable UTF-8 JSON file."
+        ) from None
 
     if not isinstance(payload, dict):
         raise typer.BadParameter("JSON body must be an object.")

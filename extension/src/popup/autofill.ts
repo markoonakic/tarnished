@@ -5,7 +5,7 @@ type AutofillDeps = {
   sendAutofillMessage: (
     tabId: number,
     profile: AutofillProfile
-  ) => Promise<{ filledCount?: number }>;
+  ) => Promise<{ filledCount?: number; framesContacted?: number }>;
   hasAutofillData: (profile: AutofillProfile) => boolean;
 };
 
@@ -46,9 +46,23 @@ export function createPopupAutofillController(options: {
 
       if (typeof response?.filledCount === 'number') {
         if (response.filledCount > 0) {
+          // Frame results arrive asynchronously, so when frames were contacted
+          // the message must not imply the whole page was filled.
+          const frames = response.framesContacted ?? 0;
+          const suffix =
+            frames > 0
+              ? ` Embedded frames were also contacted (${frames}); check them for partial fills.`
+              : '';
           ui.showNotification(
             'Autofill Complete',
-            `Filled ${response.filledCount} field${response.filledCount !== 1 ? 's' : ''}.`
+            `Filled ${response.filledCount} field${response.filledCount !== 1 ? 's' : ''} in this page.${suffix}`
+          );
+        } else if ((response.framesContacted ?? 0) > 0) {
+          // Nothing was filled here but frames were contacted; reporting "no empty
+          // fields found" would overstate certainty about those frames.
+          ui.showNotification(
+            'Autofill Sent',
+            `No empty fields on this page. Sent autofill to ${response.framesContacted} embedded frame${response.framesContacted !== 1 ? 's' : ''}; check them for partial fills.`
           );
         } else {
           ui.showNotification(

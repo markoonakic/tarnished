@@ -1,3 +1,4 @@
+import { describeSavedLead, type SavedLead } from './save-job-lead';
 import type { FormDetectionState } from './detection';
 import type { JobInfo, PopupState } from './view';
 
@@ -8,12 +9,7 @@ type TabStatus = {
   url: string;
 };
 
-type LeadLike = {
-  id: string;
-  title: string | null;
-  company: string | null;
-  location?: string | null;
-} | null;
+type LeadLike = SavedLead | null;
 
 type ApplicationLike = {
   id: string;
@@ -135,7 +131,12 @@ export function createPopupStateController(options: {
         }),
       ]);
 
-      state.existingLead = lead;
+      const savedLead =
+        lead ??
+        (state.existingLead?.url === currentTab.url
+          ? state.existingLead
+          : null);
+      state.existingLead = savedLead;
       state.existingApplication = application;
 
       if (application) {
@@ -150,14 +151,15 @@ export function createPopupStateController(options: {
         elements.convertBtn?.classList.add('hidden');
         ui.updateJobInfoDisplay(state.currentJobInfo, 'savedJob');
         ui.showState('saved');
-      } else if (lead) {
+      } else if (savedLead) {
+        const lead = savedLead;
         state.currentJobInfo = {
           title: lead.title,
           company: lead.company,
           location: lead.location || null,
         };
         if (elements.savedMessage) {
-          elements.savedMessage.textContent = 'Saved to Job Leads';
+          elements.savedMessage.textContent = describeSavedLead(lead);
         }
         elements.convertBtn?.classList.remove('hidden');
         ui.updateJobInfoDisplay(state.currentJobInfo, 'savedJob');

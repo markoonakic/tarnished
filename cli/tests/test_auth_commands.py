@@ -1,16 +1,18 @@
-import importlib
 import json
 import re
-from typing import Any, cast
-
-import pytest
 
 import tarnished_cli.commands.auth as auth_commands
 import tarnished_cli.state as state_module
+from tarnished_cli.auth_diagnostics import (
+    CLI_REQUIRED_SCOPES,
+    build_auth_diagnostics,
+    parse_live_identity,
+)
 from tarnished_cli.auth_storage import load_auth as load_auth_impl
 from tarnished_cli.auth_storage import save_auth as save_auth_impl
 from tarnished_cli.client import CLIError
 from tarnished_cli.main import app
+from tarnished_cli.models.auth import AuthDiagnostics, LiveAuthIdentity
 
 
 def _load_auth_file_only(profile="default", *, config_dir=None):
@@ -74,35 +76,6 @@ def test_api_key_clear_removes_stored_key(runner, cli_config_dir, monkeypatch):
     assert result.exit_code == 0
     stored = load_auth_impl(config_dir=cli_config_dir, prefer_keyring=False)
     assert stored.api_key is None
-
-
-def _cli_preset_scopes() -> list[str]:
-    return [
-        "applications:read",
-        "applications:write",
-        "job_leads:read",
-        "job_leads:write",
-        "profile:read",
-        "profile:write",
-        "rounds:read",
-        "rounds:write",
-        "statuses:read",
-        "statuses:write",
-        "round_types:read",
-        "round_types:write",
-        "dashboard:read",
-        "analytics:read",
-        "streak:read",
-        "streak:write",
-        "preferences:read",
-        "preferences:write",
-        "user_settings:read",
-        "user_settings:write",
-        "files:read",
-        "files:write",
-        "export:read",
-        "import:write",
-    ]
 
 
 def _live_identity_payload(
@@ -352,7 +325,9 @@ def test_auth_doctor_reports_passing_checks_for_cli_preset_key(
             assert path == "/api/auth/whoami"
             assert auth == "api_key"
             assert self.api_key == "api-key-123"
-            return _live_identity_payload(scopes=_cli_preset_scopes(), preset="cli")
+            return _live_identity_payload(
+                scopes=list(CLI_REQUIRED_SCOPES), preset="cli"
+            )
 
         def close(self):
             return None
@@ -400,47 +375,9 @@ def test_auth_help_mentions_web_managed_api_keys_and_doctor(runner):
     assert "api-key" in output
 
 
-def _import_or_fail(module_name: str):
-    try:
-        return importlib.import_module(module_name)
-    except ModuleNotFoundError as exc:
-        pytest.fail(f"Expected module {module_name} to exist for Task 11: {exc}")
-
-
-def test_parse_live_identity_returns_exported_model_for_api_key_payload():
-    diagnostics_module = _import_or_fail("tarnished_cli.auth_diagnostics")
-    models_module = _import_or_fail("tarnished_cli.models")
-
-    parse_live_identity = getattr(diagnostics_module, "parse_live_identity", None)
-    live_auth_identity_model = getattr(models_module, "LiveAuthIdentity", None)
-
-    assert callable(parse_live_identity)
-    assert live_auth_identity_model is not None
-
-    identity = cast(
-        Any,
-        parse_live_identity(
-            {
-                "id": "user-1",
-                "email": "whoami@example.com",
-                "is_admin": False,
-                "is_active": True,
-                "auth_method": "api_key",
-                "api_key": {
-                    "id": "key-1",
-                    "label": "MacBook CLI",
-                    "preset": "custom",
-                    "scopes": ["applications:read"],
-                    "key_prefix": "api-key-",
-                    "created_at": "2026-04-11T10:00:00",
-                    "last_used_at": "2026-04-11T11:00:00",
-                    "revoked_at": None,
-                },
-            }
-        ),
-    )
-
-    assert isinstance(identity, live_auth_identity_model)
+def test_parse_live_identity_returns_typed_api_key_metadata():
+    identity = parse_live_identity(_live_identity_payload())
+    assert isinstance(identity, LiveAuthIdentity)
     assert identity.email == "whoami@example.com"
     assert identity.auth_method == "api_key"
     assert identity.api_key is not None
@@ -450,43 +387,14 @@ def test_parse_live_identity_returns_exported_model_for_api_key_payload():
     assert identity.api_key.created_at.isoformat() == "2026-04-11T10:00:00"
 
 
-def test_build_auth_diagnostics_captures_stored_prefix_for_auth_init_groundwork():
-    diagnostics_module = _import_or_fail("tarnished_cli.auth_diagnostics")
-    models_module = _import_or_fail("tarnished_cli.models")
-
-    build_auth_diagnostics = getattr(diagnostics_module, "build_auth_diagnostics", None)
-    auth_diagnostics_model = getattr(models_module, "AuthDiagnostics", None)
-
-    assert callable(build_auth_diagnostics)
-    assert auth_diagnostics_model is not None
-
-    diagnostics = cast(
-        Any,
-        build_auth_diagnostics(
-            profile="default",
-            base_url="https://api.example.com",
-            stored_auth=state_module.StoredAuth(api_key="api-key-1234567890"),
-            live_identity={
-                "id": "user-1",
-                "email": "whoami@example.com",
-                "is_admin": False,
-                "is_active": True,
-                "auth_method": "api_key",
-                "api_key": {
-                    "id": "key-1",
-                    "label": "MacBook CLI",
-                    "preset": "custom",
-                    "scopes": ["applications:read"],
-                    "key_prefix": "api-key-",
-                    "created_at": "2026-04-11T10:00:00",
-                    "last_used_at": "2026-04-11T11:00:00",
-                    "revoked_at": None,
-                },
-            },
-        ),
+def test_build_auth_diagnostics_captures_stored_prefix():
+    diagnostics = build_auth_diagnostics(
+        profile="default",
+        base_url="https://api.example.com",
+        stored_auth=state_module.StoredAuth(api_key="api-key-1234567890"),
+        live_identity=_live_identity_payload(),
     )
-
-    assert isinstance(diagnostics, auth_diagnostics_model)
+    assert isinstance(diagnostics, AuthDiagnostics)
     assert diagnostics.profile == "default"
     assert diagnostics.base_url == "https://api.example.com"
     assert diagnostics.has_stored_api_key is True
@@ -497,20 +405,11 @@ def test_build_auth_diagnostics_captures_stored_prefix_for_auth_init_groundwork(
 
 
 def test_build_auth_diagnostics_omits_prefix_when_no_local_api_key():
-    diagnostics_module = _import_or_fail("tarnished_cli.auth_diagnostics")
-    build_auth_diagnostics = getattr(diagnostics_module, "build_auth_diagnostics", None)
-
-    assert callable(build_auth_diagnostics)
-
-    diagnostics = cast(
-        Any,
-        build_auth_diagnostics(
-            profile="default",
-            base_url="https://api.example.com",
-            stored_auth=state_module.StoredAuth(),
-        ),
+    diagnostics = build_auth_diagnostics(
+        profile="default",
+        base_url="https://api.example.com",
+        stored_auth=state_module.StoredAuth(),
     )
-
     assert diagnostics.has_stored_api_key is False
     assert diagnostics.stored_api_key_prefix is None
     assert diagnostics.live_identity is None

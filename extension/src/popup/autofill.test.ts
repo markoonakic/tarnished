@@ -68,7 +68,55 @@ describe('popup autofill controller', () => {
     expect(sendAutofillMessage).toHaveBeenCalledWith(123, expect.any(Object));
     expect(showNotification).toHaveBeenCalledWith(
       'Autofill Complete',
-      'Filled 2 fields.'
+      'Filled 2 fields in this page.'
+    );
+  });
+
+  it('does not imply full-page success when frames were also contacted', async () => {
+    getProfile.mockResolvedValue({
+      first_name: 'A',
+      last_name: 'B',
+      email: 'a@example.com',
+      phone: null,
+      city: null,
+      country: null,
+      linkedin_url: null,
+    });
+    hasAutofillData.mockReturnValue(true);
+    sendAutofillMessage.mockResolvedValue({
+      filledCount: 1,
+      framesContacted: 2,
+    });
+
+    await createSubject().autofillFormHandler();
+
+    expect(showNotification).toHaveBeenCalledWith(
+      'Autofill Complete',
+      expect.stringContaining('Embedded frames were also contacted (2)')
+    );
+  });
+
+  it('does not claim no fields exist when frames were contacted', async () => {
+    getProfile.mockResolvedValue({
+      first_name: 'A',
+      last_name: 'B',
+      email: 'a@example.com',
+      phone: null,
+      city: null,
+      country: null,
+      linkedin_url: null,
+    });
+    hasAutofillData.mockReturnValue(true);
+    sendAutofillMessage.mockResolvedValue({
+      filledCount: 0,
+      framesContacted: 1,
+    });
+
+    await createSubject().autofillFormHandler();
+
+    expect(showNotification).toHaveBeenCalledWith(
+      'Autofill Sent',
+      expect.stringContaining('check them for partial fills')
     );
   });
 

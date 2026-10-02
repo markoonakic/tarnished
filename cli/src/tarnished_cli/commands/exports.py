@@ -3,7 +3,7 @@ from pathlib import Path
 import typer
 
 from tarnished_cli.client import CLIError
-from tarnished_cli.output import emit_result, exit_for_error
+from tarnished_cli.output import emit_result, exit_for_error, write_download
 from tarnished_cli.state import get_state
 
 app = typer.Typer(help="Export Tarnished data.")
@@ -11,10 +11,9 @@ app = typer.Typer(help="Export Tarnished data.")
 
 def _download_export(ctx: typer.Context, *, endpoint: str, output: Path) -> None:
     state = get_state(ctx)
-    output.parent.mkdir(parents=True, exist_ok=True)
     try:
         content, _headers = state.build_client().get_bytes(endpoint, auth="api_key")
-        output.write_bytes(content)
+        write_download(output, content)
         emit_result(
             state,
             {"output_path": str(output), "bytes": len(content)},
