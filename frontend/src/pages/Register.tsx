@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import api, { safeErrorMessage } from '../lib/api';
 import { login } from '../lib/auth';
-import { PASSWORD_POLICY, validNewPassword } from '../lib/password';
+import { newPasswordError } from '../lib/password';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordInput from '../components/PasswordInput';
 
@@ -39,8 +39,9 @@ export default function Register() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (!validNewPassword(password)) {
-      setError(PASSWORD_POLICY);
+    const passwordError = newPasswordError(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     if (password !== confirmPassword) {
@@ -121,7 +122,6 @@ export default function Register() {
                 required
                 autoComplete="new-password"
               />
-              <p className="text-muted text-sm">{PASSWORD_POLICY}</p>
               <PasswordInput
                 value={confirmPassword}
                 onChange={setConfirmPassword}

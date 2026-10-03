@@ -267,14 +267,14 @@ class TranscriptEdit(BaseModel):
 
 
 def validate_new_password(password: str) -> str:
+    if not password:
+        raise ValueError("Password must not be empty")
+    if len(password) > 64:
+        raise ValueError("Use at most 64 characters.")
     try:
-        valid = len(password) >= 12 and len(password.encode("utf-8")) <= 72
+        password.encode("utf-8")
     except UnicodeError:
-        valid = False
-    if not valid:
-        raise ValueError(
-            "Password must have at least 12 characters and at most 72 UTF-8 bytes"
-        )
+        raise ValueError("Password cannot be encoded as UTF-8") from None
     return password
 
 

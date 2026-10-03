@@ -1,5 +1,5 @@
 import Modal from './Modal';
-import { PASSWORD_POLICY, validNewPassword } from '../lib/password';
+import { newPasswordError } from '../lib/password';
 import { useState, useEffect } from 'react';
 import { updateUser, deleteUser } from '../lib/admin';
 import type { AdminUser } from '../lib/admin';
@@ -39,8 +39,9 @@ export default function EditUserModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
-    if (password && !validNewPassword(password)) {
-      setError(PASSWORD_POLICY);
+    const passwordError = password ? newPasswordError(password) : '';
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     setLoading(true);
@@ -179,8 +180,7 @@ export default function EditUserModal({
           </div>
 
           <p className="text-muted text-sm">
-            {PASSWORD_POLICY} A password reset signs out browser sessions. API
-            keys stay active.
+            A password reset signs out browser sessions. API keys stay active.
           </p>
 
           <div className="border-tertiary flex flex-col-reverse justify-between gap-3 border-t pt-4 sm:flex-row sm:items-center">

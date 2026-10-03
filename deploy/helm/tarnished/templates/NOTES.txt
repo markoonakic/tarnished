@@ -11,7 +11,7 @@
    Setup works only once. Later accounts are administrator-managed.
    Lost access: use the recovery command from an operator terminal:
    kubectl exec -it -n {{ .Release.Namespace }} deploy/{{ include "tarnished.fullname" . }} -c {{ .Chart.Name }} -- ./entrypoint.sh manage reset-password --email owner@example.com
-   Passwords are hidden terminal input (12+ characters, at most 72 UTF-8 bytes).
+   Passwords are hidden terminal input.
    Optional --reactivate --recover-admin --revoke-all-keys recover authority/clean up keys.
    Recovery requires the existing configured secret and migrated schema.
 

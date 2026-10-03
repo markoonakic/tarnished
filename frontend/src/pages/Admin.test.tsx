@@ -247,6 +247,60 @@ it('disables every capability input while saving and retains sensitive drafts on
   expect(a.getByLabelText('Text credential')).toHaveValue('next-unsaved-key');
 });
 
+it.each(['Local speech', 'OpenAI', 'Groq', 'Custom endpoint'])(
+  'shows the selected %s preset after selection, save and reopening',
+  async (label) => {
+    const a = await tab();
+    fireEvent.click(a.getByLabelText('Apply speech preset'));
+    fireEvent.click(a.getByRole('option', { name: label }));
+    expect(a.getByLabelText('Apply speech preset')).toHaveTextContent(label);
+    await act(async () => fireEvent.click(a.getByText('Save Settings')));
+    expect(a.getByLabelText('Speech endpoint')).toHaveValue('');
+    expect(a.getByLabelText('Apply speech preset')).toHaveTextContent(label);
+    fireEvent.click(a.getByRole('button', { name: 'Close AI settings' }));
+    fireEvent.click(a.getByRole('button', { name: 'Configure AI' }));
+    expect(a.getByLabelText('Apply speech preset')).toHaveTextContent(label);
+  }
+);
+
+it.each([
+  ['local', 'Systran/faster-whisper-tiny.en', 'Local speech'],
+  ['openai', 'whisper-1', 'OpenAI'],
+  ['openai', 'whisper-large-v3-turbo', 'Groq'],
+  ['openai', 'custom-model', 'Custom endpoint'],
+  ['', '', 'Choose a preset'],
+])(
+  'derives the saved preset from provider %s and model %s without the private endpoint',
+  async (provider, model, label) => {
+    server.speech_provider = provider || null;
+    server.speech_model = model || null;
+    server.speech_endpoint_configured = !!provider;
+    const a = await tab();
+    expect(a.getByLabelText('Speech endpoint')).toHaveValue('');
+    expect(a.getByLabelText('Apply speech preset')).toHaveTextContent(label);
+    fireEvent.click(a.getByRole('button', { name: 'Close AI settings' }));
+    fireEvent.click(a.getByRole('button', { name: 'Configure AI' }));
+    expect(a.getByLabelText('Apply speech preset')).toHaveTextContent(label);
+  }
+);
+
+it.each([
+  ['https://api.openai.com/v1', 'OpenAI'],
+  ['https://api.groq.com/openai/v1', 'Groq'],
+  ['https://speech.example.test/v1', 'Custom endpoint'],
+])(
+  'derives the preset from the edited endpoint %s',
+  async (endpoint, label) => {
+    server.speech_model = 'custom-model';
+    const a = await tab();
+    fireEvent.change(a.getByLabelText('Speech endpoint'), {
+      target: { value: endpoint },
+    });
+    expect(a.getByLabelText('Apply speech preset')).toHaveTextContent(label);
+    expect(updateAISettings).not.toHaveBeenCalled();
+  }
+);
+
 it('local preset clears speech secrets, preserves text and performs no implicit service check', async () => {
   const a = await tab();
   fireEvent.change(a.getByLabelText('Speech credential'), {

@@ -14,7 +14,7 @@ const signOut = vi.fn();
 vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => ({ signOut }) }));
 vi.mock('../../lib/api', () => ({ default: { post: vi.fn() } }));
 
-function form() {
+function form(password = 'synthetic new password') {
   render(
     <MemoryRouter>
       <SettingsSecurity />
@@ -24,10 +24,10 @@ function form() {
     target: { value: 'legacy' },
   });
   fireEvent.change(screen.getByLabelText('New password'), {
-    target: { value: 'synthetic new password' },
+    target: { value: password },
   });
   fireEvent.change(screen.getByLabelText('Confirm new password'), {
-    target: { value: 'synthetic new password' },
+    target: { value: password },
   });
 }
 
@@ -36,18 +36,22 @@ beforeEach(() => {
 });
 
 describe('SettingsSecurity', () => {
-  it('changes password then clears the browser session', async () => {
-    vi.mocked(api.post).mockResolvedValue({});
-    form();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Change password and sign out' })
-    );
-    await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
-    expect(api.post).toHaveBeenCalledWith('/api/auth/change-password', {
-      current_password: 'legacy',
-      new_password: 'synthetic new password',
-    });
-  });
+  it.each(['x', ' ', 'x'.repeat(64), '😀'.repeat(50)])(
+    'changes an accepted password then clears the browser session',
+    async (password) => {
+      vi.mocked(api.post).mockResolvedValue({});
+      form(password);
+      expect(screen.queryByText(/Use at (least|most)/)).not.toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Change password and sign out' })
+      );
+      await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
+      expect(api.post).toHaveBeenCalledWith('/api/auth/change-password', {
+        current_password: 'legacy',
+        new_password: password,
+      });
+    }
+  );
   it('signs out all sessions without changing the password', async () => {
     vi.mocked(api.post).mockResolvedValue({});
     form();
@@ -71,9 +75,9 @@ describe('SettingsSecurity', () => {
       'synthetic new password'
     );
   });
-  it('rejects UTF-8 overlong passwords and mismatches before sending', async () => {
+  it('rejects passwords over 64 characters and mismatches before sending', () => {
     form();
-    for (const value of ['short', 'é'.repeat(37), '😀'.repeat(19)]) {
+    for (const value of ['x'.repeat(65), '😀'.repeat(65)]) {
       fireEvent.change(screen.getByLabelText('New password'), {
         target: { value },
       });
@@ -83,8 +87,22 @@ describe('SettingsSecurity', () => {
       fireEvent.click(
         screen.getByRole('button', { name: 'Change password and sign out' })
       );
-      expect(screen.getByRole('alert')).toHaveTextContent('72 UTF-8 bytes');
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Use at most 64 characters.'
+      );
     }
+    fireEvent.change(screen.getByLabelText('New password'), {
+      target: { value: 'x' },
+    });
+    fireEvent.change(screen.getByLabelText('Confirm new password'), {
+      target: { value: 'y' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Change password and sign out' })
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Passwords do not match'
+    );
     expect(api.post).not.toHaveBeenCalled();
   });
 });

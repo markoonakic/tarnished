@@ -53,6 +53,70 @@ afterEach(() => {
   localStorage.clear();
 });
 
+it.each(['x', ' ', 'x'.repeat(64), '😀'.repeat(50)])(
+  'creates a user with an accepted password',
+  async (password) => {
+    const onSuccess = vi.fn();
+    render(<CreateUserModal isOpen onClose={vi.fn()} onSuccess={onSuccess} />);
+    expect(screen.queryByText(/Use at (least|most)/)).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/^Email/), {
+      target: { value: 'new@example.test' },
+    });
+    fireEvent.change(screen.getByLabelText(/^Password/), {
+      target: { value: password },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+    expect(requests[0].body).toEqual({ email: 'new@example.test', password });
+  }
+);
+
+it.each(['create', 'edit'])(
+  'rejects passwords over 64 characters in the %s form',
+  (mode) => {
+    if (mode === 'create') {
+      render(<CreateUserModal isOpen onClose={vi.fn()} onSuccess={vi.fn()} />);
+      fireEvent.change(screen.getByLabelText(/^Email/), {
+        target: { value: 'new@example.test' },
+      });
+    } else {
+      render(
+        <EditUserModal
+          user={firstUser}
+          currentUserId="operator"
+          onClose={vi.fn()}
+          onSuccess={vi.fn()}
+        />
+      );
+    }
+    expect(
+      screen.queryByText('Use at most 64 characters.')
+    ).not.toBeInTheDocument();
+    for (const password of ['x'.repeat(65), '😀'.repeat(65)]) {
+      fireEvent.change(
+        screen.getByLabelText(
+          mode === 'create' ? /^Password/ : 'New Password (optional)'
+        ),
+        { target: { value: password } }
+      );
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: mode === 'create' ? 'Create' : 'Save',
+        })
+      );
+      expect(screen.getByText('Use at most 64 characters.')).toBeVisible();
+    }
+    expect(requests).toEqual([]);
+  }
+);
+
+it('rejects an empty create password before sending', () => {
+  render(<CreateUserModal isOpen onClose={vi.fn()} onSuccess={vi.fn()} />);
+  fireEvent.submit(screen.getByLabelText(/^Password/).closest('form')!);
+  expect(screen.getByText('Password must not be empty.')).toBeVisible();
+  expect(requests).toEqual([]);
+});
+
 it('clears a failed edited create draft on close/reopen and creates only on explicit submit', async () => {
   const onClose = vi.fn();
   const onSuccess = vi.fn();
@@ -170,11 +234,11 @@ it('switches selected users without carrying the previous password, flags or err
 
 it.each([
   { name: 'omits a blank password', password: '', expectedPassword: {} },
-  {
-    name: 'sends an explicit valid password',
-    password: 'Synthetic reset 789!',
-    expectedPassword: { password: 'Synthetic reset 789!' },
-  },
+  ...['x', ' ', 'x'.repeat(64), '😀'.repeat(50)].map((password) => ({
+    name: 'sends an accepted password',
+    password,
+    expectedPassword: { password },
+  })),
 ])(
   '$name when saving changed flags for the selected user',
   async ({ password, expectedPassword }) => {

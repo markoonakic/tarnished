@@ -16,8 +16,7 @@ browser, normally **http://localhost:5577**. Select **Create the first admin
 account** on the sign-in page, or open `/register` directly.
 
 Enter your email, password and password confirmation, then select **Create admin
-account**. Use at least 12 Unicode characters and no more than 72 UTF-8 bytes.
-Spaces are allowed. You are signed in and taken to the dashboard automatically.
+account**. You are signed in and taken to the dashboard automatically.
 
 Setup runs only once; concurrent requests cannot create extra owners. Deleting
 accounts does not reopen setup. Upgraded installations with existing accounts do

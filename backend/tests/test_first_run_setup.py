@@ -19,9 +19,10 @@ def isolated_limits(monkeypatch):
     monkeypatch.setattr(limiter, "enabled", False)
 
 
-async def test_setup_once_and_normal_login(client, db):
+@pytest.mark.parametrize("password", ["x", " ", "x" * 64, "😀" * 50, "😀" * 64])
+async def test_setup_once_and_normal_login(client, db, password):
     assert (await client.get("/api/auth/setup-status")).json() == {"needs_setup": True}
-    payload = {"email": "owner@example.com", "password": PASSWORD}
+    payload = {"email": "owner@example.com", "password": password}
     response = await client.post("/api/auth/setup", json=payload)
     assert response.status_code == 201
     assert response.json()["is_admin"] is True
@@ -80,7 +81,7 @@ async def test_concurrent_http_setup_creates_only_one_owner(client, db_engine):
 
 @pytest.mark.parametrize(
     "password",
-    ["", "shortsecret", "é" * 37, "😀" * 19, "x" * 73, None, {"secret": "canary"}],
+    ["", "x" * 65, "é" * 65, "😀" * 65, None, {"secret": "canary"}],
 )
 async def test_setup_password_validation(client, db, password):
     response = await client.post(

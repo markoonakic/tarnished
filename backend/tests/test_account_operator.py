@@ -144,11 +144,17 @@ async def test_operator_concurrent_bootstrap_and_explicit_recovery(
     )
     assert code == 1
     code, _ = await asyncio.to_thread(
-        operator_process, url, ["reset-password", "--email", owner.email], "weak-secret"
+        operator_process, url, ["reset-password", "--email", owner.email], "short"
+    )
+    assert code == 0
+    await db.refresh(owner)
+    assert verify_password("short", owner.password_hash)
+    code, _ = await asyncio.to_thread(
+        operator_process, url, ["reset-password", "--email", owner.email], "x" * 65
     )
     assert code == 1
     await db.refresh(owner)
-    assert verify_password(PASSWORD, owner.password_hash)
+    assert verify_password("short", owner.password_hash)
 
 
 @pytest.mark.parametrize("db_engine", ["20260411_job_lead_fk_name"], indirect=True)

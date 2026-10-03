@@ -10,7 +10,6 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import Register from './Register';
 import api from '../lib/api';
 import { login } from '../lib/auth';
-import { PASSWORD_POLICY } from '../lib/password';
 
 const { refreshUser } = vi.hoisted(() => ({ refreshUser: vi.fn() }));
 vi.mock('../lib/api', async (importOriginal) => ({
@@ -66,6 +65,7 @@ it('shows the first admin form only when setup is needed', async () => {
   );
   expect(screen.getByLabelText('Confirm password')).toBeRequired();
   expect(api.get).toHaveBeenCalledWith('/api/auth/setup-status');
+  expect(screen.queryByText(/Use at (least|most)/)).not.toBeInTheDocument();
 });
 
 it('shows the managed accounts message without a form or command after setup', async () => {
@@ -82,12 +82,14 @@ it('shows the managed accounts message without a form or command after setup', a
   );
 });
 
-it.each(['short', 'x'.repeat(73), '😀'.repeat(19)])(
+it.each(['x'.repeat(65), '😀'.repeat(65)])(
   'rejects an invalid password %s',
   async (password) => {
     renderSetup();
     await fill(password);
-    expect(screen.getByRole('alert')).toHaveTextContent(PASSWORD_POLICY);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Use at most 64 characters.'
+    );
     expect(api.post).not.toHaveBeenCalled();
   }
 );
@@ -101,23 +103,26 @@ it('rejects mismatched passwords', async () => {
   expect(api.post).not.toHaveBeenCalled();
 });
 
-it('creates the account, signs in and opens the dashboard', async () => {
-  vi.mocked(api.post).mockResolvedValue({
-    data: { id: 'owner', is_admin: true },
-  });
-  renderSetup();
-  await fill();
-  expect(
-    await screen.findByRole('heading', { name: 'Dashboard' })
-  ).toBeInTheDocument();
-  const credentials = {
-    email: 'owner@example.com',
-    password: 'synthetic password 123',
-  };
-  expect(api.post).toHaveBeenCalledWith('/api/auth/setup', credentials);
-  expect(login).toHaveBeenCalledWith(credentials);
-  expect(refreshUser).toHaveBeenCalledOnce();
-});
+it.each(['x', ' ', 'x'.repeat(64), '😀'.repeat(50)])(
+  'creates the account and signs in with an accepted password',
+  async (password) => {
+    vi.mocked(api.post).mockResolvedValue({
+      data: { id: 'owner', is_admin: true },
+    });
+    renderSetup();
+    await fill(password);
+    expect(
+      await screen.findByRole('heading', { name: 'Dashboard' })
+    ).toBeInTheDocument();
+    const credentials = {
+      email: 'owner@example.com',
+      password,
+    };
+    expect(api.post).toHaveBeenCalledWith('/api/auth/setup', credentials);
+    expect(login).toHaveBeenCalledWith(credentials);
+    expect(refreshUser).toHaveBeenCalledOnce();
+  }
+);
 
 it('offers sign in if account creation succeeds but login fails', async () => {
   vi.mocked(api.post).mockResolvedValue({ data: {} });
