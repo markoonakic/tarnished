@@ -15,12 +15,24 @@ settings = get_settings()
 logger = logging.getLogger(__name__)
 
 
+def _bcrypt_password(encoded: bytes) -> bytes:
+    # Keep existing short-password hashes; prehash long passwords without truncation.
+    if len(encoded) > 72:
+        return base64.b64encode(hashlib.sha256(encoded).digest())
+    return encoded
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a bcrypt hash."""
     try:
         encoded = plain_password.encode("utf-8")
-        return len(encoded) <= 72 and bcrypt.checkpw(
-            encoded, hashed_password.encode("ascii")
+        # Distinguish prehashed credentials so the digest itself cannot be a password.
+        prehashed = hashed_password.startswith("sha256:")
+        if not encoded or prehashed != (len(encoded) > 72):
+            return False
+        return bcrypt.checkpw(
+            _bcrypt_password(encoded),
+            hashed_password.removeprefix("sha256:").encode("ascii"),
         )
     except (ValueError, TypeError, UnicodeError):
         return False
@@ -28,20 +40,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def validate_new_password(password: str) -> str:
     """Do not trim, normalize, truncate or echo passwords in validation errors."""
+    if not password:
+        raise ValueError("Password must not be empty")
+    if len(password) > 64:
+        raise ValueError("Use at most 64 characters.")
     try:
-        valid = len(password) >= 12 and len(password.encode("utf-8")) <= 72
+        password.encode("utf-8")
     except UnicodeError:
-        valid = False
-    if not valid:
-        raise ValueError(
-            "Password must have at least 12 characters and at most 72 UTF-8 bytes"
-        )
+        raise ValueError("Password cannot be encoded as UTF-8") from None
     return password
 
 
 def get_password_hash(password: str) -> str:
     """Hash a password using bcrypt."""
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    encoded = validate_new_password(password).encode("utf-8")
+    hashed = bcrypt.hashpw(_bcrypt_password(encoded), bcrypt.gensalt()).decode()
+    return "sha256:" + hashed if len(encoded) > 72 else hashed
 
 
 def create_access_token(data: dict) -> str:

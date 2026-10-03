@@ -2,7 +2,7 @@ import { useState } from 'react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import PasswordInput from '../PasswordInput';
-import { PASSWORD_POLICY, validNewPassword } from '../../lib/password';
+import { newPasswordError } from '../../lib/password';
 import { SettingsBackLink } from './SettingsLayout';
 
 export default function SettingsSecurity() {
@@ -15,13 +15,9 @@ export default function SettingsSecurity() {
 
   async function invalidate(changePassword: boolean) {
     setError('');
-    if (
-      changePassword &&
-      (!validNewPassword(password) || password !== confirmation)
-    ) {
-      setError(
-        password !== confirmation ? 'Passwords do not match' : PASSWORD_POLICY
-      );
+    const passwordError = newPasswordError(password);
+    if (changePassword && (passwordError || password !== confirmation)) {
+      setError(passwordError || 'Passwords do not match');
       return;
     }
     setBusy(true);
@@ -51,9 +47,6 @@ export default function SettingsSecurity() {
       </div>
       <div className="bg-secondary space-y-4 rounded-lg p-4 md:p-6">
         <h2 className="text-fg1 text-xl font-bold">Security</h2>
-        <p className="text-muted text-sm">
-          Use at least 12 characters. Spaces are allowed.
-        </p>
         <p className="text-muted">
           Changing your password signs out all browser sessions. API keys stay
           active; you can revoke them in API Keys.

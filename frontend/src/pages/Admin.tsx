@@ -80,6 +80,20 @@ export default function Admin() {
     clearKey: false,
     clearEndpoint: false,
   });
+  const speechPreset =
+    speech.provider === 'local'
+      ? 'local'
+      : speech.endpoint.includes('api.openai.com')
+        ? 'openai'
+        : speech.endpoint.includes('api.groq.com')
+          ? 'groq'
+          : speech.provider === 'openai' && speech.model === 'whisper-1'
+            ? 'openai'
+            : speech.model === 'whisper-large-v3-turbo'
+              ? 'groq'
+              : speech.provider || speech.model || speech.endpoint
+                ? 'custom'
+                : '';
   const [localStatus, setLocalStatus] = useState('');
   const [checkingLocal, setCheckingLocal] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
@@ -497,7 +511,7 @@ export default function Admin() {
                             Apply speech preset
                             <Dropdown
                               id="speech-preset"
-                              value=""
+                              value={speechPreset}
                               placeholder="Choose a preset"
                               disabled={savingAi}
                               containerBackground="bg1"

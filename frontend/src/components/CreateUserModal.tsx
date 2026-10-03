@@ -1,5 +1,5 @@
 import Modal from './Modal';
-import { PASSWORD_POLICY, validNewPassword } from '../lib/password';
+import { newPasswordError } from '../lib/password';
 import { useState, useEffect } from 'react';
 import { createUser } from '../lib/admin';
 
@@ -29,8 +29,9 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
-    if (!validNewPassword(password)) {
-      setError(PASSWORD_POLICY);
+    const passwordError = newPasswordError(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     setLoading(true);
@@ -115,8 +116,8 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
           </div>
 
           <p className="text-muted text-sm">
-            {PASSWORD_POLICY} Password resets invalidate all browser sessions
-            and signed links, not API keys.
+            Password resets invalidate all browser sessions and signed links,
+            not API keys.
           </p>
 
           <div className="border-tertiary flex justify-end gap-3 border-t pt-4">

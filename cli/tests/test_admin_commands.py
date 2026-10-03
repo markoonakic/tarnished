@@ -141,7 +141,7 @@ def test_admin_password_and_null_validation_does_not_echo_inputs(
 ):
     import json
 
-    for password in ("weak-secret", "é" * 37, "😀" * 19, "", None):
+    for password in ("x" * 65, "é" * 65, "😀" * 65, "\ud800", "", None):
         body = tmp_path / "body.json"
         body.write_text(json.dumps({"email": "new@example.com", "password": password}))
         result = runner.invoke(
@@ -167,11 +167,12 @@ def test_admin_password_and_null_validation_does_not_echo_inputs(
 def test_admin_new_password_unicode_and_omitted_reset_contract():
     from tarnished_cli.models import AdminUserCreate, AdminUserUpdate
 
-    for password in ("é" * 36, "😀" * 18, " " * 12):
+    for password in ("x", " ", "x" * 64, "é" * 64, "😀" * 50):
         assert (
             AdminUserCreate(email="new@example.com", password=password).password
             == password
         )
+        assert AdminUserUpdate(password=password).password == password
     assert AdminUserUpdate(is_active=False).model_dump(exclude_unset=True) == {
         "is_active": False
     }

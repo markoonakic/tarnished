@@ -1,8 +1,11 @@
 """Real migrated database/API lifecycle regressions (synthetic accounts only)."""
 
 import asyncio
+import base64
+import hashlib
 from datetime import UTC, datetime, timedelta
 
+import bcrypt
 import pytest
 from jose import jwt
 from sqlalchemy import func, select, update
@@ -124,10 +127,9 @@ async def test_password_validation_boundaries_and_safe_login(client, db):
     tokens = await login(client, owner)
     for password in (
         "",
-        "shortsecret",
-        "é" * 37,
-        "😀" * 19,
-        "x" * 73,
+        "x" * 65,
+        "é" * 65,
+        "😀" * 65,
         None,
         {"secret": "do-not-echo"},
     ):
@@ -148,17 +150,85 @@ async def test_password_validation_boundaries_and_safe_login(client, db):
             "/api/auth/login", json={"email": owner.email, "password": password}
         )
         assert response.status_code == 401
-    for password in ("é" * 36, "😀" * 18, " " * 12):
+    for index, password in enumerate(("x", " ", "x" * 64, "é" * 64, "😀" * 50)):
         response = await client.post(
             "/api/admin/users",
             headers=headers(tokens),
-            json={"email": f"valid-{len(password)}@example.com", "password": password},
+            json={"email": f"valid-{index}@example.com", "password": password},
         )
         assert response.status_code == 201
+        user = await db.get(User, response.json()["id"])
+        await login(client, user, password)
     assert verify_password("short", get_password_hash("short"))
     for malformed in ("broken", "$2b$invalid", "☃"):
         assert not verify_password("short", malformed)
     assert not verify_password("\ud800", get_password_hash("short"))
+
+
+@pytest.mark.parametrize("password", ["x", " ", "é" * 64, "😀" * 50, "😀" * 64])
+def test_password_hash_roundtrip(password):
+    hashed = get_password_hash(password)
+    assert verify_password(password, hashed)
+    assert not verify_password(password[:-1] + "y", hashed)
+
+
+def test_long_password_does_not_ignore_bytes_after_bcrypt_limit():
+    password = "😀" * 50
+    different = "😀" * 49 + "😁"
+    assert len(password.encode("utf-8")) == 200
+    assert password.encode("utf-8")[:72] == different.encode("utf-8")[:72]
+    hashed = get_password_hash(password)
+    assert not verify_password(different, hashed)
+    digest = base64.b64encode(hashlib.sha256(password.encode("utf-8")).digest())
+    assert bcrypt.checkpw(digest, hashed.removeprefix("sha256:").encode("ascii"))
+    assert not verify_password(digest.decode("ascii"), hashed)
+    raw_digest_hash = bcrypt.hashpw(digest, bcrypt.gensalt()).decode()
+    assert not verify_password(password, raw_digest_hash)
+
+
+@pytest.mark.parametrize("password", ["short", " " * 72])
+def test_existing_raw_bcrypt_hashes_still_verify(password):
+    # Legacy passwords can exceed the new character limit; login must still work.
+    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode()
+    assert verify_password(password, hashed)
+    assert not verify_password("wrong", hashed)
+
+
+def test_invalid_unicode_password_is_rejected_without_echoing_it():
+    from app.schemas.auth import UserSetup
+
+    with pytest.raises(ValueError, match="Password cannot be encoded as UTF-8"):
+        UserSetup(email="new@example.com", password="\ud800")
+
+
+def test_empty_password_cannot_be_hashed_or_verified():
+    with pytest.raises(ValueError, match="Password must not be empty"):
+        get_password_hash("")
+    legacy_empty_hash = bcrypt.hashpw(b"", bcrypt.gensalt()).decode()
+    assert not verify_password("", legacy_empty_hash)
+
+
+@pytest.mark.parametrize("password", ["x", "😀" * 50])
+async def test_short_and_long_password_change_and_admin_reset(client, db, password):
+    owner = await account(db)
+    personal = await account(db, "personal@example.com", False)
+    admin_tokens = await login(client, owner)
+    tokens = await login(client, personal)
+    response = await client.post(
+        "/api/auth/change-password",
+        headers=headers(tokens),
+        json={"current_password": PASSWORD, "new_password": password},
+    )
+    assert response.status_code == 204
+    tokens = await login(client, personal, password)
+    response = await client.patch(
+        f"/api/admin/users/{personal.id}",
+        headers=headers(admin_tokens),
+        json={"password": password},
+    )
+    assert response.status_code == 200
+    await rejected_sessions(client, tokens)
+    await login(client, personal, password)
 
 
 async def test_password_change_signout_reset_disable_and_key_independence(client, db):
