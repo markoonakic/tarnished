@@ -11,25 +11,22 @@ plan your next step.
 ## Quick start
 
 You need Docker with Compose v2 and `curl`. No Python, Node.js or AI key is needed.
-This installs the published Tarnished container image for **v0.2.0** with SQLite.
+This installs the published Tarnished container image for **v0.2.1** with SQLite.
 The download commands require that release to be published. For an unreleased
 source checkout, use [Run from source](#run-from-source) below.
 
 ```bash
 mkdir tarnished && cd tarnished
-curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/markoonakic/tarnished/v0.2.0/deploy/compose/docker-compose.yml
+curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/markoonakic/tarnished/v0.2.1/deploy/compose/docker-compose.yml
 docker compose up -d --wait
 ```
 
-Open **http://localhost:5577**. For the first account, run this command in the
-install directory and enter a password when prompted:
+Open **http://localhost:5577** and create the first admin account in the browser.
+Finish this step before exposing the instance to other networks.
 
-```bash
-docker compose exec app ./entrypoint.sh manage bootstrap-owner --email you@example.com
-```
-
-Sign in, then add your first application. Later accounts are created in
-**Admin → Users**. There is no public registration. See
+You are signed in automatically. Add your first application. Later accounts are
+created in **Admin → Users**. Setup works only once; there is no public registration
+when setup is complete. The manage CLI is for recovery. See
 [account setup and recovery](documentation/content/get-started/create-admin-account.md).
 
 The default port is local-only. Set `APP_PORT` and `APP_URL` in a `.env` file to
@@ -47,10 +44,10 @@ From the root of a source checkout, build the image and use its Compose file:
 ```bash
 docker build -t tarnished:local .
 TARNISHED_IMAGE=tarnished:local docker compose -f deploy/compose/docker-compose.yml up -d --wait
-TARNISHED_IMAGE=tarnished:local docker compose -f deploy/compose/docker-compose.yml exec app ./entrypoint.sh manage bootstrap-owner --email you@example.com
 ```
 
-Open **http://localhost:5577**. This Compose file stores data in
+Open **http://localhost:5577** and create the first admin account in the browser.
+This Compose file stores data in
 `deploy/compose/data`. Keep `TARNISHED_IMAGE=tarnished:local` on later Compose
 commands so they continue to use your local build.
 
@@ -82,7 +79,7 @@ All installations run one application process. Updates require a short downtime.
 Install the CLI with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv tool install tarnished-cli==0.2.0
+uv tool install tarnished-cli==0.2.1
 ```
 
 Create a key in **Settings → API Keys**, then follow the [CLI guide](cli/README.md).

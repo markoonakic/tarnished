@@ -93,11 +93,12 @@ there is no bulk historical reinterpretation or change to other timestamp fields
 - `/api/auth/refresh`
 - `/api/auth/me`
 - `/api/auth/whoami`
-- `/api/auth/setup-status` (read-only; no HTTP bootstrap)
+- `/api/auth/setup-status` (read-only; reports whether first-run setup is needed)
+- `POST /api/auth/setup` (creates the first admin once; 409 after setup is complete)
 - `POST /api/auth/change-password` (`current_password`, `new_password`; JWT only)
 - `POST /api/auth/signout-all` (JWT only)
 
-There is no `/api/auth/register` route. Use host-only owner setup then
+There is no `/api/auth/register` route. Use browser first-run setup, then
 `POST /api/admin/users` for administrator-managed enrollment. Admin routes require
 both current admin role and matching scopes for API keys. No
 `/api/admin/applications` browsing route exists. Password changes/resets invalidate

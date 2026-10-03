@@ -122,15 +122,15 @@ The chart runs database migrations through an init container before the Tarnishe
 
 ## Account setup
 
-Create the first account after startup:
+After startup, open Tarnished and create the first admin account in the browser.
+Later accounts are managed in Admin. The manage CLI is for recovery only:
 
 ```bash
 kubectl exec -it -n tarnished deploy/tarnished -c tarnished -- \
-  ./entrypoint.sh manage bootstrap-owner --email you@example.com
+  ./entrypoint.sh manage reset-password --email you@example.com
 ```
 
-Enter the password at the prompt, then sign in through the browser. Later accounts
-are managed in Admin. See the [account guide](https://markoonakic.github.io/tarnished/get-started/create-admin-account).
+Enter the password at the prompt. See the [account guide](https://markoonakic.github.io/tarnished/get-started/create-admin-account).
 
 ## Maintainers
 

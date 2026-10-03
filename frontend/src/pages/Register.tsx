@@ -1,22 +1,77 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import api from '../lib/api';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import api, { safeErrorMessage } from '../lib/api';
+import { login } from '../lib/auth';
+import { PASSWORD_POLICY, validNewPassword } from '../lib/password';
+import { useAuth } from '../contexts/AuthContext';
+import PasswordInput from '../components/PasswordInput';
 
 export default function Register() {
-  const [message, setMessage] = useState('');
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
+  const [checking, setChecking] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { refreshUser } = useAuth();
 
   async function refreshStatus() {
-    setLoading(true);
+    setChecking(true);
+    setError('');
     try {
       const response = await api.get('/api/auth/setup-status');
-      setMessage(
-        response.data.needs_setup
-          ? 'Owner setup is still required.'
-          : 'Setup is complete. You can sign in.'
-      );
+      setNeedsSetup(response.data.needs_setup);
     } catch {
-      setMessage('Cannot check setup status. Try again.');
+      setNeedsSetup(null);
+      setError('Cannot check setup status. Try again.');
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  useEffect(() => {
+    void refreshStatus();
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    if (!validNewPassword(password)) {
+      setError(PASSWORD_POLICY);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    setLoading(true);
+    let created = false;
+    try {
+      await api.post('/api/auth/setup', { email, password });
+      created = true;
+      await login({ email, password });
+      await refreshUser();
+      navigate('/');
+    } catch (err: unknown) {
+      if (created) {
+        setNeedsSetup(false);
+        setError('Your account was created. Sign in to continue.');
+      } else {
+        if (axios.isAxiosError(err) && err.response?.status === 409) {
+          setNeedsSetup(false);
+        }
+        setError(
+          axios.isAxiosError(err)
+            ? safeErrorMessage(
+                err.response?.data?.detail,
+                'Setup failed. Try again.'
+              )
+            : 'Setup failed. Try again.'
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -25,31 +80,79 @@ export default function Register() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="bg-secondary w-full max-w-md space-y-4 rounded-lg p-8">
-        <h1 className="text-accent-bright text-2xl font-bold">Account setup</h1>
-        <p>
-          Accounts are managed by your administrator. There is no public
-          registration.
-        </p>
-        <p>
-          For a new installation, the host operator runs this command in the
-          configured backend environment after migrations:
-        </p>
-        <code className="bg-bg2 block overflow-x-auto rounded p-3">
-          python -m app.manage bootstrap-owner --email owner@example.com
-        </code>
-        <p className="text-muted">
-          The command prompts privately for a password. It works only once. See
-          the account recovery guide for container commands. Never paste
-          passwords or server secrets here.
-        </p>
-        <button
-          className="touch-target bg-accent text-bg0 rounded px-4 py-2 disabled:opacity-50"
-          disabled={loading}
-          onClick={refreshStatus}
-        >
-          Refresh setup status
-        </button>
-        <p role="status">{message}</p>
+        <h1 className="text-accent-bright text-2xl font-bold">
+          {needsSetup ? 'Create the first admin account' : 'Account setup'}
+        </h1>
+        {checking && <p role="status">Checking setup status...</p>}
+        {error && (
+          <div
+            role="alert"
+            className="bg-red-bright/20 border-red-bright text-red-bright rounded border p-3"
+          >
+            {error}
+          </div>
+        )}
+        {!checking && needsSetup === true && (
+          <>
+            <p>Create an administrator account to start using Tarnished.</p>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="email"
+                  className="text-muted mb-1 block text-sm font-semibold"
+                >
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoFocus
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                  required
+                />
+              </div>
+              <PasswordInput
+                value={password}
+                onChange={setPassword}
+                label="Password"
+                required
+                autoComplete="new-password"
+              />
+              <p className="text-muted text-sm">{PASSWORD_POLICY}</p>
+              <PasswordInput
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                label="Confirm password"
+                required
+                autoComplete="new-password"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-accent text-bg0 hover:bg-accent-bright w-full cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
+              >
+                {loading ? 'Creating account...' : 'Create admin account'}
+              </button>
+            </form>
+          </>
+        )}
+        {!checking && needsSetup === false && (
+          <p>
+            Accounts are managed by your administrator. There is no public
+            registration.
+          </p>
+        )}
+        {!checking && needsSetup === null && (
+          <button
+            className="touch-target bg-accent text-bg0 rounded px-4 py-2"
+            onClick={refreshStatus}
+          >
+            Retry setup check
+          </button>
+        )}
         <Link className="text-accent block" to="/login">
           Sign in
         </Link>

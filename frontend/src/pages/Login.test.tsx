@@ -54,6 +54,46 @@ it('renders a usable 422 error without validation objects, input or secrets', as
   expect(screen.getByRole('button', { name: 'Sign In' })).toBeEnabled();
 });
 
+it('links to the first admin form when setup is needed', async () => {
+  api.defaults.adapter = async (config) => ({
+    config,
+    headers: {},
+    status: 200,
+    statusText: 'OK',
+    data: { needs_setup: true },
+  });
+  render(
+    <MemoryRouter>
+      <Login />
+    </MemoryRouter>
+  );
+  expect(
+    await screen.findByRole('link', { name: 'Create the first admin account' })
+  ).toHaveAttribute('href', '/register');
+  expect(
+    screen.queryByText(/Contact your administrator/)
+  ).not.toBeInTheDocument();
+});
+
+it('keeps administrator guidance when setup is complete', async () => {
+  api.defaults.adapter = async (config) => ({
+    config,
+    headers: {},
+    status: 200,
+    statusText: 'OK',
+    data: { needs_setup: false },
+  });
+  render(
+    <MemoryRouter>
+      <Login />
+    </MemoryRouter>
+  );
+  expect(
+    await screen.findByRole('link', { name: 'Account setup' })
+  ).toHaveAttribute('href', '/register');
+  expect(screen.getByText(/Contact your administrator/)).toBeInTheDocument();
+});
+
 it('accepts only nonempty string details, never stringifies objects', () => {
   for (const detail of [null, {}, [{ input: 'secret' }], '', '  ', 42]) {
     expect(safeErrorMessage(detail, 'Try again')).toBe('Try again');

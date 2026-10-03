@@ -1,6 +1,6 @@
 ---
 title: Install with Helm
-description: Install Tarnished 0.2.0 on Kubernetes with persistent storage.
+description: Install Tarnished 0.2.1 on Kubernetes with persistent storage.
 ---
 
 You need Kubernetes 1.23 or newer, Helm 3.8 or newer, `kubectl` and a working
@@ -12,7 +12,7 @@ separately.
 
 ```bash
 helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
-  --version 0.2.0 --namespace tarnished --create-namespace
+  --version 0.2.1 --namespace tarnished --create-namespace
 kubectl rollout status -n tarnished deploy/tarnished
 kubectl port-forward -n tarnished svc/tarnished 5577:5577
 ```
@@ -22,14 +22,8 @@ and applies migrations. Preserve the PVC, including its `.secret_key` file.
 Alternatively, supply an existing Kubernetes Secret with
 `secretKey.existingSecret` and `secretKey.existingSecretKey`.
 
-In another terminal, create the first account:
-
-```bash
-kubectl exec -it -n tarnished deploy/tarnished -c tarnished -- \
-  ./entrypoint.sh manage bootstrap-owner --email you@example.com
-```
-
-Open **http://localhost:5577** and sign in. See
+Open **http://localhost:5577** and create the first admin account in the browser.
+You are signed in automatically. See
 [account setup and recovery](../get-started/create-admin-account.md).
 
 ## External PostgreSQL
@@ -53,7 +47,7 @@ Use this install command instead of the SQLite command:
 
 ```bash
 helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
-  --version 0.2.0 --namespace tarnished --create-namespace \
+  --version 0.2.1 --namespace tarnished --create-namespace \
   --values values-production.yaml
 ```
 

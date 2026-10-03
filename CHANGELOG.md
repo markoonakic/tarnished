@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.1] - 2026-10-03
+
+### Added
+
+- Browser first-run admin setup with one-time, race-safe account creation.
+- Password confirmation and automatic sign-in after first-run setup.
+
+### Fixed
+
+- The setup page no longer shows an incorrect command. After setup, it explains
+  that accounts are managed by an administrator.
+- Quick-start instructions use browser setup; the manage CLI remains available
+  for account recovery.
+
 ## [0.2.0] - 2026-10-02
 
 ### Added
