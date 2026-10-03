@@ -1,6 +1,7 @@
 import { isAxiosError } from 'axios';
 import { useEffect, useState } from 'react';
 import Modal from './Modal';
+import { observeRead } from '../lib/queryClient';
 import FileButton from './FileButton';
 import { safeErrorMessage, API_BASE } from '../lib/api';
 import {
@@ -71,21 +72,28 @@ export default function TranscriptEditor({
 
   useEffect(() => {
     let active = true;
-    getTranscript(roundId)
-      .then((data) => {
-        if (!active) return;
-        setSaved(data);
-        setSegments(data.transcript?.segments ?? []);
-      })
-      .catch((err: unknown) => {
-        if (active)
-          setError(getApiErrorMessage(err, 'Failed to load transcript'));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    const stop = observeRead(
+      () =>
+        getTranscript(roundId)
+          .then((data) => {
+            if (!active) return;
+            setSaved(data);
+            setSegments(data.transcript?.segments ?? []);
+            setError('');
+          })
+          .catch((err: unknown) => {
+            if (active)
+              setError(getApiErrorMessage(err, 'Failed to load transcript'));
+            return { error: err };
+          })
+          .finally(() => {
+            if (active) setLoading(false);
+          }),
+      { staleTime: Infinity }
+    );
     return () => {
       active = false;
+      stop();
     };
   }, [roundId, retry]);
 

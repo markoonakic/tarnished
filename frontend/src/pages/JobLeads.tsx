@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { observeRead } from '../lib/queryClient';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   getJobLeads,
@@ -75,10 +76,11 @@ export default function JobLeads() {
       if (ownedRequest !== requestId.current) return;
       setJobLeads(data.items);
       setTotal(data.total);
-    } catch {
+    } catch (error) {
       if (ownedRequest !== requestId.current) return;
       setListError(true);
       showError('Failed to load job leads');
+      return { error };
     } finally {
       if (ownedRequest === requestId.current) setLoading(false);
     }
@@ -95,23 +97,23 @@ export default function JobLeads() {
   const loadSources = useCallback(async () => {
     try {
       setSources(await getJobLeadSources());
-    } catch {
+    } catch (error) {
       setSources([]);
+      return { error };
     }
   }, []);
 
   useEffect(() => {
-    loadJobLeads();
+    const stop = observeRead(loadJobLeads);
     return () => {
+      stop();
       // Invalidate retries as well as the initial request.
       // eslint-disable-next-line react-hooks/exhaustive-deps
       ++requestId.current;
     };
   }, [loadJobLeads]);
 
-  useEffect(() => {
-    loadSources();
-  }, [loadSources]);
+  useEffect(() => observeRead(loadSources), [loadSources]);
 
   const updateParams = useCallback(
     (updates: Record<string, string>) => {
@@ -163,7 +165,11 @@ export default function JobLeads() {
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-primary text-2xl font-bold">Job Leads</h1>
-          <JobLeadCaptureForm onSaved={loadJobLeads} />
+          <JobLeadCaptureForm
+            onSaved={async () => {
+              await loadJobLeads();
+            }}
+          />
         </div>
 
         <div className="bg-bg1 mb-6 rounded-lg p-4">

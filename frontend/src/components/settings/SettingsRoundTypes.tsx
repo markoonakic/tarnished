@@ -1,3 +1,4 @@
+import { observeRead } from '@/lib/queryClient';
 import { useState, useEffect } from 'react';
 import {
   listRoundTypes,
@@ -19,16 +20,16 @@ export default function SettingsRoundTypes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => observeRead(loadData), []);
 
   async function loadData() {
     try {
       const roundTypeData = await listRoundTypes();
       setRoundTypes(roundTypeData);
-    } catch {
+      setError('');
+    } catch (error) {
       setError('Failed to load settings');
+      return { error };
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,5 @@
 import axios, { AxiosHeaders, type AxiosRequestConfig } from 'axios';
+import { ReadHttpError } from './readRecovery';
 
 // Validation objects can contain submitted secrets.
 export function safeErrorMessage(detail: unknown, fallback: string): string {
@@ -118,6 +119,7 @@ async function refreshTokens(refreshToken: string): Promise<string | null> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ refresh_token: refreshToken }),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (getRefreshToken() !== refreshToken) return null;
@@ -125,7 +127,7 @@ async function refreshTokens(refreshToken: string): Promise<string | null> {
     clearAuthTokens();
     return null;
   }
-  if (!response.ok) throw new Error('Could not refresh the session');
+  if (!response.ok) throw new ReadHttpError(response.status);
 
   const data = (await response.json()) as {
     access_token: string;
@@ -179,7 +181,12 @@ export async function fetchWithAuth(
     return response;
   }
 
-  const refreshedToken = await refreshAuthTokens();
+  const currentToken = getAccessToken();
+  const refreshedToken =
+    currentToken &&
+    authorizedHeaders.get('Authorization') !== `Bearer ${currentToken}`
+      ? currentToken
+      : await refreshAuthTokens();
   if (!refreshedToken) {
     redirectToLogin();
     return response;
@@ -205,6 +212,13 @@ export function buildAuthenticatedEventSourceUrl(path: string): string {
 }
 
 api.interceptors.request.use((config) => {
+  if (
+    ['get', 'head'].includes(config.method ?? 'get') &&
+    !config.timeout &&
+    !['blob', 'arraybuffer'].includes(config.responseType ?? '')
+  ) {
+    config.timeout = 10_000;
+  }
   const headers = toAxiosHeaders(config.headers);
 
   const token = getAccessToken();
@@ -241,7 +255,14 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const refreshedToken = await refreshAuthTokens();
+    const currentToken = getAccessToken();
+    const sentToken = toAxiosHeaders(originalRequest.headers).get(
+      'Authorization'
+    );
+    const refreshedToken =
+      currentToken && sentToken !== `Bearer ${currentToken}`
+        ? currentToken
+        : await refreshAuthTokens();
     if (!refreshedToken) {
       redirectToLogin();
       return Promise.reject(error);

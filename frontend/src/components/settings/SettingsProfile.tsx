@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { observeRead } from '@/lib/queryClient';
 import { useToast } from '@/hooks/useToast';
 import { getProfile, updateProfile } from '@/lib/profile';
 import type { UserProfile } from '@/lib/types';
@@ -17,16 +18,18 @@ export default function SettingsProfile() {
     try {
       const data = await getProfile();
       setProfile(data);
-    } catch {
+    } catch (error) {
       showError('Failed to load profile');
+      return { error };
     } finally {
       setLoading(false);
     }
   }, [showError]);
 
-  useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+  useEffect(
+    () => observeRead(loadProfile, { staleTime: Infinity }),
+    [loadProfile]
+  );
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();

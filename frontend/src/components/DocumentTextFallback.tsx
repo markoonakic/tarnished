@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Modal from './Modal';
+import { observeRead } from '../lib/queryClient';
 import { isAxiosError } from 'axios';
 import api, { safeErrorMessage } from '../lib/api';
 
@@ -38,26 +39,32 @@ export default function DocumentTextFallback({
     const generation = ++readGeneration.current;
     const explicit = explicitReload.current;
     explicitReload.current = false;
-    api
-      .get<TextState>(path)
-      .then((response) => {
-        if (!alive || generation !== readGeneration.current) return;
-        if (dirtyRef.current && !explicit) {
-          setError(
-            'This document changed while you were editing. Your draft is kept. Refresh the saved text before saving.'
-          );
-        } else {
-          setSaved(response.data);
-          setError('');
-        }
-        if (!dirtyRef.current) setDraft(response.data.text);
-      })
-      .catch(() => {
-        if (alive && generation === readGeneration.current)
-          setError('Cannot load saved document text. Your draft is kept.');
-      });
+    const stop = observeRead(
+      () =>
+        api
+          .get<TextState>(path)
+          .then((response) => {
+            if (!alive || generation !== readGeneration.current) return;
+            if (dirtyRef.current && !explicit) {
+              setError(
+                'This document changed while you were editing. Your draft is kept. Refresh the saved text before saving.'
+              );
+            } else {
+              setSaved(response.data);
+              setError('');
+            }
+            if (!dirtyRef.current) setDraft(response.data.text);
+          })
+          .catch((error: unknown) => {
+            if (alive && generation === readGeneration.current)
+              setError('Cannot load saved document text. Your draft is kept.');
+            return { error };
+          }),
+      { staleTime: Infinity }
+    );
     return () => {
       alive = false;
+      stop();
     };
     // Draft edits never cause reads or get overwritten by background updates.
   }, [path, revision, reload]);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { observeRead } from '../lib/queryClient';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   getJobLead,
@@ -46,21 +47,23 @@ function JobLeadDetailContent({ id }: { id: string }) {
       if (ownedRequest !== requestId.current) return;
       setJobLead(data);
       setStale(false);
-    } catch {
+    } catch (error) {
       if (ownedRequest !== requestId.current) return;
       setStale(true);
       const errorMsg =
         'Failed to load current job lead. Any displayed data may be stale; reload before making changes.';
       setError(errorMsg);
       showError(errorMsg);
+      return { error };
     } finally {
       if (ownedRequest === requestId.current) setLoading(false);
     }
   }, [id, showError]);
 
   useEffect(() => {
-    loadJobLead();
+    const stop = observeRead(loadJobLead);
     return () => {
+      stop();
       // eslint-disable-next-line react-hooks/exhaustive-deps
       ++requestId.current;
     };

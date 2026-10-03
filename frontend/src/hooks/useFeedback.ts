@@ -4,6 +4,7 @@ import { isAxiosError } from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import api, { safeErrorMessage } from '../lib/api';
 import { queryClient } from '../lib/queryClient';
+import { recoverReadInterval } from '../lib/readRecovery';
 
 export interface FeedbackSource {
   id: string;
@@ -156,9 +157,12 @@ export function useFeedback<T extends FeedbackState = FeedbackState>(
       },
       staleTime: 0,
       gcTime: 0,
-      retry: false,
       refetchInterval: (current) =>
-        isRunning(current.state.data) ? 1000 : false,
+        current.state.status === 'error'
+          ? recoverReadInterval(current)
+          : isRunning(current.state.data)
+            ? 1000
+            : false,
     },
     queryClient
   );

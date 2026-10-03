@@ -1,4 +1,5 @@
 import Modal from './Modal';
+import { observeRead } from '../lib/queryClient';
 import { useEffect, useRef, useState } from 'react';
 import { createApplication, updateApplication } from '../lib/applications';
 import {
@@ -97,11 +98,15 @@ export default function ApplicationModal({
       try {
         const data = await listStatuses();
         setStatuses(data);
-      } catch {
+        setError((current) =>
+          current === 'Failed to load statuses' ? '' : current
+        );
+      } catch (error) {
         setError('Failed to load statuses');
+        return { error };
       }
     }
-    loadStatuses();
+    return observeRead(loadStatuses);
   }, []);
 
   useEffect(() => {

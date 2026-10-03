@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { observeRead } from '../lib/queryClient';
 import { getApplication, deleteApplication } from '../lib/applications';
 import { deleteRound } from '../lib/rounds';
 import {
@@ -48,11 +49,12 @@ function ApplicationDetailContent({ id }: { id: string }) {
       const data = await getApplication(id);
       if (ownedRequest !== requestId.current) return;
       setApplication(data);
-    } catch {
+    } catch (error) {
       if (ownedRequest !== requestId.current) return;
       const errorMsg = 'Failed to load application';
       setError(errorMsg);
       showError(errorMsg);
+      return { error };
     } finally {
       if (ownedRequest === requestId.current) setLoading(false);
     }
@@ -60,8 +62,9 @@ function ApplicationDetailContent({ id }: { id: string }) {
 
   useEffect(() => {
     setLoading(true);
-    loadApplication();
+    const stop = observeRead(loadApplication);
     return () => {
+      stop();
       // eslint-disable-next-line react-hooks/exhaustive-deps
       ++requestId.current;
     };
@@ -459,7 +462,9 @@ function ApplicationDetailContent({ id }: { id: string }) {
             application={application}
             applicationId={id!}
             revision={application.evidence_revision}
-            onChanged={loadApplication}
+            onChanged={async () => {
+              await loadApplication();
+            }}
           />
         </div>
 

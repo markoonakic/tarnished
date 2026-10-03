@@ -1,3 +1,4 @@
+import { observeRead } from '@/lib/queryClient';
 import { useState, useEffect, useCallback } from 'react';
 import {
   listStatuses,
@@ -46,16 +47,16 @@ export default function SettingsStatuses() {
     try {
       const statusData = await listStatuses();
       setStatuses(statusData);
-    } catch {
+      setError('');
+    } catch (error) {
       setError('Failed to load settings');
+      return { error };
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => observeRead(loadData), [loadData]);
 
   // Use the new theme color until the user starts a draft.
   useEffect(() => {
