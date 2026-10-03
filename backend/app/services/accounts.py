@@ -1,4 +1,4 @@
-"""Account lifecycle transactions. Host authority is required by app.manage."""
+"""Account lifecycle transactions for first-run setup and account recovery."""
 
 from datetime import UTC, datetime
 
@@ -23,7 +23,7 @@ async def needs_owner_setup(db: AsyncSession) -> bool:
 async def bootstrap_owner(db: AsyncSession, email: str, password: str) -> User:
     password_hash = get_password_hash(validate_new_password(password))
     try:
-        # First DB operation: the unique INSERT serializes independent operators.
+        # First DB operation: the unique INSERT serializes concurrent setup attempts.
         await db.execute(
             insert(SystemSettings).values(key=OWNER_BOOTSTRAPPED, value="true")
         )

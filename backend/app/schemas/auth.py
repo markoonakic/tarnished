@@ -13,6 +13,11 @@ class PasswordChange(BaseModel):
     new_password: NewPassword
 
 
+class UserSetup(BaseModel):
+    email: EmailStr
+    password: NewPassword
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str

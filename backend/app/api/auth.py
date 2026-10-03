@@ -25,8 +25,9 @@ from app.schemas.auth import (
     TokenRefresh,
     UserLogin,
     UserResponse,
+    UserSetup,
 )
-from app.services.accounts import needs_owner_setup, update_account
+from app.services.accounts import bootstrap_owner, needs_owner_setup, update_account
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -101,6 +102,15 @@ async def get_whoami(
             else None
         ),
     )
+
+
+@router.post("/setup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
+async def setup(request: Request, data: UserSetup, db: AsyncSession = Depends(get_db)):
+    try:
+        return await bootstrap_owner(db, data.email, data.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
 
 
 @router.get("/setup-status")

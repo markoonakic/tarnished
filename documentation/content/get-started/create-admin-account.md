@@ -3,33 +3,25 @@ title: Account setup and recovery
 description: Create the first owner, manage accounts and recover access.
 ---
 
-Tarnished 0.2.0 has no public registration. The installation operator creates the
-first account from the host; administrators create later accounts in the web app.
+Tarnished 0.2.1 lets you create the first admin account in the browser.
+Administrators create later accounts in the web app; public registration is closed
+after setup.
 Each user's application records are private from other users, but the host
 operator can access the database and files.
 
 ## Create the first account
 
-Start Tarnished and let startup migrations finish. In the installation directory:
+Start Tarnished and let startup migrations finish. Open your instance in a
+browser, normally **http://localhost:5577**. Select **Create the first admin
+account** on the sign-in page, or open `/register` directly.
 
-```bash
-docker compose exec app ./entrypoint.sh manage bootstrap-owner --email you@example.com
-```
+Enter your email, password and password confirmation, then select **Create admin
+account**. Use at least 12 Unicode characters and no more than 72 UTF-8 bytes.
+Spaces are allowed. You are signed in and taken to the dashboard automatically.
 
-For Helm:
-
-```bash
-kubectl exec -it -n tarnished deploy/tarnished -c tarnished -- \
-  ./entrypoint.sh manage bootstrap-owner --email you@example.com
-```
-
-Enter and confirm the hidden password. Use at least 12 Unicode characters and no
-more than 72 UTF-8 bytes. Spaces are allowed. The command requires a terminal;
-password arguments and piped passwords are not supported.
-
-Open the browser and sign in with the account you created. Setup runs only once;
-deleting accounts does not reopen it. Upgraded installations with existing
-accounts do not need setup again.
+Setup runs only once; concurrent requests cannot create extra owners. Deleting
+accounts does not reopen setup. Upgraded installations with existing accounts do
+not need setup again.
 
 ## Manage accounts
 
@@ -60,6 +52,24 @@ revoke its keys, add these explicit options:
 docker compose exec app ./entrypoint.sh manage reset-password --email you@example.com \
   --reactivate --recover-admin --revoke-all-keys
 ```
+
+For Helm, use the same recovery command in the application container:
+
+```bash
+kubectl exec -it -n tarnished deploy/tarnished -c tarnished -- \
+  ./entrypoint.sh manage reset-password --email you@example.com
+```
+
+If browser setup is unavailable on a fresh installation, the recovery CLI can
+create the first owner instead:
+
+```bash
+docker compose exec app ./entrypoint.sh manage bootstrap-owner --email you@example.com
+```
+
+Recovery commands prompt privately for a password and require a terminal.
+Password arguments and piped passwords are not supported. Bootstrap works only
+before setup is complete; it cannot bypass the permanent setup marker.
 
 The operator command loads the existing signing secret. It does not generate a
 new secret or run migrations. Restore missing configuration before recovery.

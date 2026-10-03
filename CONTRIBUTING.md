@@ -18,7 +18,6 @@ export DATABASE_URL="sqlite+aiosqlite:///$(pwd)/data/development.db"
 export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
 export UPLOAD_DIR="$(pwd)/uploads"
 uv run alembic upgrade head
-uv run python -m app.manage bootstrap-owner --email owner@example.com
 uv run uvicorn app.main:app --reload --port 5577
 ```
 
@@ -30,8 +29,8 @@ corepack yarn install --immutable
 corepack yarn dev
 ```
 
-The frontend proxies `/api` to backend port `5577`. Sign in with the account you
-created. Use Admin for later accounts. See [account recovery](documentation/content/get-started/create-admin-account.md)
+The frontend proxies `/api` to backend port `5577`. Open the frontend and create
+the first admin account in the browser. Use Admin for later accounts. See [account recovery](documentation/content/get-started/create-admin-account.md)
 if you lose access. The [CLI](cli/README.md) and [extension](extension/README.md)
 have their own build instructions.
 

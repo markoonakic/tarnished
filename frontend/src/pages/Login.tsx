@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { safeErrorMessage } from '../lib/api';
+import api, { safeErrorMessage } from '../lib/api';
 import { login } from '../lib/auth';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordInput from '../components/PasswordInput';
@@ -11,8 +11,16 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [needsSetup, setNeedsSetup] = useState(false);
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
+
+  useEffect(() => {
+    api.get('/api/auth/setup-status').then(
+      (response) => setNeedsSetup(response.data.needs_setup),
+      () => {} // Sign-in can continue if the setup check is unavailable.
+    );
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,12 +97,12 @@ export default function Login() {
         </form>
 
         <p className="text-muted mt-4 text-center">
-          Contact your administrator for an account.{' '}
+          {!needsSetup && 'Contact your administrator for an account. '}
           <Link
             to="/register"
             className="text-accent hover:text-accent-bright transition-all duration-200 ease-in-out"
           >
-            Setup instructions
+            {needsSetup ? 'Create the first admin account' : 'Account setup'}
           </Link>
         </p>
       </div>

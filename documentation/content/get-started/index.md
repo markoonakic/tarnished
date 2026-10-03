@@ -11,8 +11,8 @@ This section is about first-use onboarding inside the product, not infrastructur
 
 ### 1. Create your admin account
 
-Create the first account from the installation host, then sign in through the
-browser. Later accounts are managed by an administrator:
+Create the first admin account in the browser. You are signed in automatically.
+Later accounts are managed by an administrator:
 
 - [Create your admin account](./create-admin-account.md)
 
