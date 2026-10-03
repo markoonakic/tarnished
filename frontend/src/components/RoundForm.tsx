@@ -1,4 +1,5 @@
 import FileButton from './FileButton';
+import { observeRead } from '../lib/queryClient';
 import { useState, useEffect, useCallback } from 'react';
 import { isAxiosError } from 'axios';
 import { useUserPreferences } from '../hooks/useUserPreferences';
@@ -121,18 +122,23 @@ function RoundFormFields({
     try {
       const data = await listRoundTypes();
       setRoundTypes(data);
+      setError((current) =>
+        current === 'Failed to load round types' ? '' : current
+      );
       if (!isEditing && data.length > 0) {
         const defaultType = data.find((t) => t.is_default) || data[0];
         setRoundTypeId(defaultType.id);
       }
-    } catch {
+    } catch (error) {
       setError('Failed to load round types');
+      return { error };
     }
   }, [isEditing]);
 
-  useEffect(() => {
-    loadRoundTypes();
-  }, [loadRoundTypes]);
+  useEffect(
+    () => observeRead(loadRoundTypes, { staleTime: Infinity }),
+    [loadRoundTypes]
+  );
 
   function reloadDates() {
     const savedRound = persistedRound || round;

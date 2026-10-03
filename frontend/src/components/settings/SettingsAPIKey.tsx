@@ -1,3 +1,4 @@
+import { observeRead } from '@/lib/queryClient';
 import { useCallback, useEffect, useState } from 'react';
 
 import {
@@ -125,16 +126,15 @@ export default function SettingsAPIKey() {
     try {
       const data = await listAPIKeys();
       setApiKeys(Array.isArray(data) ? data : []);
-    } catch {
+    } catch (error) {
       showError('Failed to load API keys');
+      return { error };
     } finally {
       setLoading(false);
     }
   }, [showError]);
 
-  useEffect(() => {
-    loadAPIKeys();
-  }, [loadAPIKeys]);
+  useEffect(() => observeRead(loadAPIKeys), [loadAPIKeys]);
 
   async function handleCreateKey() {
     const label = newLabel.trim();

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import api, { safeErrorMessage } from '../lib/api';
+import { observeRead } from '../lib/queryClient';
 import { login } from '../lib/auth';
 import { PASSWORD_POLICY, validNewPassword } from '../lib/password';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,17 +25,16 @@ export default function Register() {
     try {
       const response = await api.get('/api/auth/setup-status');
       setNeedsSetup(response.data.needs_setup);
-    } catch {
+    } catch (error) {
       setNeedsSetup(null);
       setError('Cannot check setup status. Try again.');
+      return { error };
     } finally {
       setChecking(false);
     }
   }
 
-  useEffect(() => {
-    void refreshStatus();
-  }, []);
+  useEffect(() => observeRead(refreshStatus, { staleTime: Infinity }), []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { observeRead } from '../lib/queryClient';
 import { listApplications } from '../lib/applications';
 import Layout from '../components/Layout';
 import ActivityHeatmap from '../components/ActivityHeatmap';
@@ -42,21 +43,24 @@ export default function Dashboard() {
         const data = await listApplications({ page: 1, per_page: 1 });
         if (!active) return;
         setTotalApplications(data.total);
+        setError(false);
 
         // Show import prompt if no applications and user hasn't dismissed it
         if (data.total === 0 && !hasSeenImportPrompt()) {
           setShowImportPrompt(true);
         }
-      } catch {
+      } catch (error) {
         if (active) setError(true);
+        return { error };
       } finally {
         if (active) setLoading(false);
       }
     }
 
-    loadTotalApplications();
+    const stop = observeRead(loadTotalApplications);
     return () => {
       active = false;
+      stop();
     };
   }, [retry]);
 

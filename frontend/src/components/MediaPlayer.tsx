@@ -1,4 +1,5 @@
 import Modal from './Modal';
+import { observeRead } from '../lib/queryClient';
 import { useState, useEffect } from 'react';
 import type { RoundMedia } from '../lib/types';
 import { getMediaSignedUrl } from '../lib/rounds';
@@ -23,16 +24,21 @@ export default function MediaPlayer({ media, onClose }: Props) {
     async function fetchSignedUrl() {
       try {
         const { url } = await getMediaSignedUrl(media.id, 'inline');
-        if (active) setMediaUrl(`${API_BASE}${url}`);
-      } catch {
+        if (active) {
+          setMediaUrl(`${API_BASE}${url}`);
+          setError(false);
+        }
+      } catch (error) {
         if (active) setError(true);
+        return { error };
       } finally {
         if (active) setLoading(false);
       }
     }
-    fetchSignedUrl();
+    const stop = observeRead(fetchSignedUrl);
     return () => {
       active = false;
+      stop();
     };
   }, [media.id]);
 

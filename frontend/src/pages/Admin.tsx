@@ -5,6 +5,7 @@ import {
   useDeferredValue,
   useRef,
 } from 'react';
+import { observeRead } from '../lib/queryClient';
 import { useAuth } from '../contexts/AuthContext';
 import { listUsers, getAdminStats, deleteUser } from '../lib/admin';
 import type { AdminUser, AdminStats } from '../lib/admin';
@@ -138,9 +139,10 @@ export default function Admin() {
       }
 
       setError('');
-    } catch {
+    } catch (error) {
       if (ownedRequest !== requestId.current) return;
       setError('Failed to load admin data. You may not have admin privileges.');
+      return { error };
     } finally {
       if (ownedRequest === requestId.current) {
         setLoading(false);
@@ -151,8 +153,9 @@ export default function Admin() {
   }, [deferredSearchQuery, page, perPage]);
 
   useEffect(() => {
-    loadData();
+    const stop = observeRead(loadData);
     return () => {
+      stop();
       // eslint-disable-next-line react-hooks/exhaustive-deps
       ++requestId.current;
     };

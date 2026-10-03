@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import api, { safeErrorMessage } from '../lib/api';
+import { observeRead } from '../lib/queryClient';
 import { login } from '../lib/auth';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordInput from '../components/PasswordInput';
@@ -16,9 +17,11 @@ export default function Login() {
   const { refreshUser } = useAuth();
 
   useEffect(() => {
-    api.get('/api/auth/setup-status').then(
-      (response) => setNeedsSetup(response.data.needs_setup),
-      () => {} // Sign-in can continue if the setup check is unavailable.
+    return observeRead(() =>
+      api.get('/api/auth/setup-status').then(
+        (response) => setNeedsSetup(response.data.needs_setup),
+        (error: unknown) => ({ error }) // Sign-in stays available during recovery.
+      )
     );
   }, []);
 

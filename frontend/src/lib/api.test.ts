@@ -49,6 +49,23 @@ describe('authenticated api helpers', () => {
     vi.restoreAllMocks();
   });
 
+  it('bounds data-read timeouts without changing downloads or writes', async () => {
+    const { default: api } = await import('./api');
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => ({
+      status: 200,
+      statusText: 'OK',
+      config,
+      headers: {},
+      data: null,
+    }));
+    await api.get('/api/data', { adapter });
+    await api.get('/api/download', { adapter, responseType: 'blob' });
+    await api.post('/api/work', {}, { adapter });
+    expect(adapter.mock.calls.map(([config]) => config.timeout)).toEqual([
+      10_000, 0, 0,
+    ]);
+  });
+
   it('adds the bearer token to authenticated fetch requests', async () => {
     localStorage.setItem('access_token', 'token-1');
     const fetchMock = vi
@@ -183,6 +200,46 @@ describe('authenticated api helpers', () => {
     ).toHaveLength(1);
   });
 
+  it('reuses a completed refresh for a late 401 from the hidden tab', async () => {
+    const { default: api, setAuthTokens } = await import('./api');
+    setAuthTokens('old-access', 'old-refresh');
+    const refresh = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          access_token: 'fresh-access',
+          refresh_token: 'fresh-refresh',
+        })
+      )
+    );
+    let rejectLate!: () => void;
+    const late = api.get('/api/late', {
+      adapter: async (config) => {
+        if (config.headers.get('Authorization') === 'Bearer fresh-access')
+          return {
+            status: 200,
+            statusText: 'OK',
+            config,
+            headers: {},
+            data: {},
+          };
+        return new Promise((_, reject) => {
+          rejectLate = () => reject(responseError(config, 401));
+        });
+      },
+    });
+    await vi.waitFor(() => expect(rejectLate).toBeDefined());
+    await api.get('/api/first', {
+      adapter: async (config) => {
+        if (config.headers.get('Authorization') !== 'Bearer fresh-access')
+          throw responseError(config, 401);
+        return { status: 200, statusText: 'OK', config, headers: {}, data: {} };
+      },
+    });
+    rejectLate();
+    expect((await late).status).toBe(200);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
   it.each(['sign out', 'sign in again'])(
     'does not restore an old session after %s',
     async (action) => {
@@ -229,7 +286,7 @@ describe('authenticated api helpers', () => {
         )
       );
     await expect(refreshAuthTokens()).rejects.toThrow(
-      'Could not refresh the session'
+      'Could not load data (429)'
     );
     expect(localStorage.getItem('refresh_token')).toBe('current-refresh');
     expect(await refreshAuthTokens()).toBe('fresh-access');

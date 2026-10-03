@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { observeRead } from '../lib/queryClient';
 import api, { safeErrorMessage } from '../lib/api';
 import { isAxiosError } from 'axios';
 import { getAICapabilities, type Capability } from '../lib/aiSettings';
@@ -52,7 +53,7 @@ export default function TranscriptionPanel({
   }, [round.id]);
   useEffect(() => {
     let alive = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+
     async function load() {
       try {
         const [capabilities, response] = await Promise.all([
@@ -66,18 +67,20 @@ export default function TranscriptionPanel({
         const running = response.data.some(active);
         if (observedActive.current && !running) callback.current();
         observedActive.current = running;
-        if (running) timer = setTimeout(() => void load(), 1000);
-      } catch {
+      } catch (error) {
         if (alive)
           setError(
             'Cannot load transcription status. Check status before requesting work.'
           );
+        return { error };
       }
     }
-    void load();
+    const stop = observeRead(load, {
+      refetchInterval: () => (observedActive.current ? 1000 : false),
+    });
     return () => {
       alive = false;
-      clearTimeout(timer);
+      stop();
     };
   }, [round.id, round.media_generation, round.transcript_generation, reload]);
 

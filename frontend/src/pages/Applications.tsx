@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { observeRead } from '../lib/queryClient';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { getApplicationSources, listApplications } from '../lib/applications';
 import type { ListParams } from '../lib/applications';
@@ -41,8 +42,8 @@ export default function Applications() {
     try {
       const data = await listStatuses();
       setStatuses(data);
-    } catch {
-      // statuses are optional for filtering
+    } catch (error) {
+      return { error }; // Optional filters can recover without blocking the list.
     }
   }, []);
 
@@ -60,11 +61,12 @@ export default function Applications() {
       if (ownedRequest !== requestId.current) return;
       setApplications(data.items);
       setTotal(data.total);
-    } catch {
+    } catch (error) {
       if (ownedRequest !== requestId.current) return;
       const errorMsg = 'Failed to load applications';
       setError(errorMsg);
       showError(errorMsg);
+      return { error };
     } finally {
       if (ownedRequest === requestId.current) setLoading(false);
     }
@@ -73,27 +75,25 @@ export default function Applications() {
   const loadSources = useCallback(async () => {
     try {
       setSources(await getApplicationSources());
-    } catch {
+    } catch (error) {
       setSources([]);
+      return { error };
     }
   }, []);
 
-  useEffect(() => {
-    loadStatuses();
-  }, [loadStatuses]);
+  useEffect(() => observeRead(loadStatuses), [loadStatuses]);
 
   useEffect(() => {
-    loadApplications();
+    const stop = observeRead(loadApplications);
     return () => {
+      stop();
       // Invalidate the current generation, including retries started after this effect.
       // eslint-disable-next-line react-hooks/exhaustive-deps
       ++requestId.current;
     };
   }, [loadApplications]);
 
-  useEffect(() => {
-    loadSources();
-  }, [loadSources]);
+  useEffect(() => observeRead(loadSources), [loadSources]);
 
   function updateParams(updates: Record<string, string>) {
     const newParams = new URLSearchParams(searchParams);

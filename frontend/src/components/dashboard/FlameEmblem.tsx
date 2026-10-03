@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { ReadHttpError } from '../../lib/readRecovery';
 import api, { withAxiosTimeZoneHeaders } from '@/lib/api';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useEffectiveDayKey } from '@/hooks/useEffectiveDayKey';
@@ -186,9 +187,11 @@ export default function FlameEmblem() {
     enabled: Boolean(stateKey),
     queryKey: ['flame-asset', stateKey],
     queryFn: async () => {
-      const response = await fetch(`/flame-assets/${stateKey}.json`);
+      const response = await fetch(`/flame-assets/${stateKey}.json`, {
+        signal: AbortSignal.timeout(10_000),
+      });
       if (!response.ok) {
-        throw new Error('Failed to load flame asset');
+        throw new ReadHttpError(response.status);
       }
       return (await response.json()) as FlameAssetPayload;
     },
