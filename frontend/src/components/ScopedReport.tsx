@@ -14,6 +14,7 @@ interface ReportProps {
   requestLabel: string;
   emptyHint?: string;
   onClose?: () => void;
+  period?: string;
 }
 
 const periods: Record<string, string> = {
@@ -26,11 +27,9 @@ const periods: Record<string, string> = {
 function savedLabel(report: NonNullable<FeedbackState['report']>) {
   const parts = [
     report.period ? (periods[report.period] ?? report.period) : null,
-    report.as_of
-      ? new Date(report.as_of).toLocaleDateString(undefined, {
-          timeZone: report.time_zone ?? undefined,
-        })
-      : null,
+    new Date(report.as_of || report.run_at).toLocaleDateString(undefined, {
+      timeZone: report.time_zone ?? undefined,
+    }),
   ].filter(Boolean);
   return parts.join(' · ');
 }
@@ -57,8 +56,10 @@ export function ScopedReportContent({
   onClose,
   feedback,
   hideAction = false,
+  period,
 }: ReportProps & { feedback: FeedbackController; hideAction?: boolean }) {
   const report = feedback.state?.report;
+  const requestedPeriod = period ?? feedback.state?.period;
 
   return (
     <section
@@ -94,20 +95,20 @@ export function ScopedReportContent({
         requestLabel={requestLabel}
         emptyHint={emptyHint}
         hideAction={hideAction}
+        readyLabel={
+          scope === 'PIPELINE' && report ? savedLabel(report) : undefined
+        }
+        requestedPeriod={
+          scope === 'PIPELINE' && requestedPeriod
+            ? (periods[requestedPeriod] ?? requestedPeriod)
+            : undefined
+        }
+        savedPeriod={
+          scope === 'PIPELINE' && report?.period
+            ? (periods[report.period] ?? report.period)
+            : undefined
+        }
       />
-      {scope === 'PIPELINE' && report?.period && (
-        <p className="text-muted text-sm">
-          Saved feedback: {savedLabel(report)}
-          {feedback.state?.period &&
-            feedback.state.period !== report.period && (
-              <>
-                . Charts:{' '}
-                {periods[feedback.state.period] ?? feedback.state.period}. The
-                saved feedback still uses its original cohort.
-              </>
-            )}
-        </p>
-      )}
       {report && (
         <div className="max-w-3xl space-y-3" aria-label="Saved feedback">
           {!report.findings.length && (

@@ -366,27 +366,8 @@ function SavedMetrics({ report }: { report: Report }) {
     )?.text
   );
   if (!metrics) return null;
-  const scope = metrics.scope as Record<string, unknown> | undefined;
-  const asOf = report.as_of
-    ? new Date(report.as_of).toLocaleString(undefined, {
-        timeZone: report.time_zone ?? 'UTC',
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      })
-    : text(scope?.as_of);
   return (
     <div className="space-y-2" aria-label="Saved cohort metrics">
-      {scope && (
-        <p className="text-fg2 text-sm">
-          Applied-date cohort:{' '}
-          {scope.cohort_start
-            ? `${text(scope.cohort_start)} – `
-            : 'All recorded dates through '}
-          {text(scope.cohort_end)}. As of {asOf} ({text(scope.time_zone)}).
-          Current stages describe records at the saved snapshot, not historical
-          stage residence.
-        </p>
-      )}
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {(
           [

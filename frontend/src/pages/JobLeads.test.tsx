@@ -118,3 +118,35 @@ it('does not show errors from a request after unmount', async () => {
     screen.queryByText('Failed to load job leads')
   ).not.toBeInTheDocument();
 });
+
+it('shows an untitled lead with its domain, not a raw URL, on desktop and mobile', async () => {
+  vi.mocked(getJobLeads).mockResolvedValue({
+    ...empty,
+    total: 1,
+    items: [
+      {
+        id: 'pending',
+        status: 'pending',
+        company: null,
+        title: null,
+        url: 'https://careers.example.com/jobs/engineer?tracking=long-query',
+        location: null,
+        salary_min: null,
+        salary_max: null,
+        salary_currency: null,
+        source: null,
+        scraped_at: '2026-10-01T12:00:00Z',
+        converted_to_application_id: null,
+        error_message: null,
+      },
+    ],
+  });
+  mount();
+  await screen.findAllByText('Untitled lead');
+  expect(screen.getAllByText('Untitled lead')).toHaveLength(2);
+  expect(screen.getAllByText('careers.example.com')).toHaveLength(2);
+  expect(screen.getAllByText('—')).toHaveLength(2);
+  expect(screen.queryByText(/tracking=long-query/)).not.toBeInTheDocument();
+  for (const label of screen.getAllByText('Untitled lead'))
+    expect(label).toHaveClass('text-muted');
+});

@@ -401,7 +401,10 @@ export default function RoundCard({
           onClose={() => setTranscribingMedia(null)}
         >
           <div className="bg-bg1 mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg p-6">
-            <div className="flex justify-end">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h2 className="text-primary text-xl font-semibold">
+                Transcribe recording
+              </h2>
               <button
                 aria-label="Close transcription"
                 onClick={() => setTranscribingMedia(null)}

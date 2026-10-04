@@ -6,11 +6,17 @@ export default function FeedbackStatus({
   requestLabel,
   emptyHint = 'No feedback yet. Get suggestions from your saved information.',
   hideAction = false,
+  readyLabel,
+  requestedPeriod,
+  savedPeriod,
 }: {
   feedback: FeedbackController;
   requestLabel: string;
   emptyHint?: string;
   hideAction?: boolean;
+  readyLabel?: string;
+  requestedPeriod?: string;
+  savedPeriod?: string;
 }) {
   const {
     state,
@@ -26,23 +32,29 @@ export default function FeedbackStatus({
     'pipeline scope or text configuration changed'
   );
   const staleMessage = differentScope
-    ? 'Saved feedback uses a different period or AI configuration. Request feedback for this period to update it.'
+    ? 'Saved feedback uses different settings. Update feedback when ready.'
     : state?.stale_reason?.startsWith('feedback prompt changed')
-      ? 'The feedback instructions have changed. Update feedback to use the current version.'
+      ? 'Feedback instructions changed. Update feedback when ready.'
       : state?.stale_reason?.startsWith('feedback prompt version unknown')
-        ? 'This saved feedback has no recorded instruction version. It may be out of date. Update it to use the current version.'
+        ? 'Saved feedback may use older instructions. Update feedback when ready.'
         : 'Your saved information has changed. This feedback may be out of date.';
   const failureDetail =
     state?.job?.state !== 'invalidated'
       ? state?.job?.error || requestError || null
       : null;
+  const periodChanged =
+    !!report &&
+    !!savedPeriod &&
+    !!requestedPeriod &&
+    savedPeriod !== requestedPeriod;
+  const forPeriod = requestedPeriod ? ` for ${requestedPeriod}` : '';
   let message = '';
-  if (starting) message = 'Starting feedback…';
+  if (starting) message = `Starting feedback${forPeriod}…`;
   else if (running)
     message =
       state?.job?.state === 'queued'
-        ? 'Waiting to start…'
-        : 'Preparing feedback…';
+        ? `Waiting to start${forPeriod}…`
+        : `Preparing feedback${forPeriod}…`;
   else if (feedback.loading) message = 'Loading saved feedback…';
   else if (feedback.readError)
     message =
@@ -59,10 +71,18 @@ export default function FeedbackStatus({
         (state?.job?.state === 'interrupted'
           ? 'Feedback was interrupted.'
           : 'Could not create feedback.');
+  else if (periodChanged) message = `Saved feedback is for ${savedPeriod}.`;
   else if (report && state?.stale_reason) message = staleMessage;
   else if (report)
-    message = `Feedback ready · ${new Date(report.run_at).toLocaleDateString()}`;
+    message =
+      readyLabel ||
+      `Feedback ready · ${new Date(report.run_at).toLocaleDateString()}`;
   else if (state) message = emptyHint;
+
+  if (running && (state?.job?.total_sections ?? 0) > 1)
+    message += ` ${state!.job!.completed_sections} of ${state!.job!.total_sections} parts reviewed.`;
+  if (!running && !starting && (unknown || terminalUncertain))
+    message += ' · Trying again may repeat work or charges.';
 
   const problem = feedback.readError || unknown || failed || !!requestError;
   return (
@@ -73,7 +93,12 @@ export default function FeedbackStatus({
           className={
             problem
               ? 'text-yellow-bright'
-              : report && state?.stale_reason && !differentScope
+              : report &&
+                  state?.stale_reason &&
+                  !differentScope &&
+                  !periodChanged &&
+                  !starting &&
+                  !running
                 ? 'text-yellow-bright'
                 : 'text-fg1'
           }
@@ -87,43 +112,20 @@ export default function FeedbackStatus({
           {message}
         </p>
       )}
-      {(starting || running) && (
+      {report && (starting || running) && (
         <p className="text-muted">
-          You can keep using this page. The result will appear here when ready.
+          {savedPeriod
+            ? `Showing saved feedback for ${savedPeriod}.`
+            : 'Showing saved feedback.'}
         </p>
       )}
-      {!running && !starting && (unknown || terminalUncertain) && (
-        <p className="text-muted">
-          The service may already have processed part of this request. Trying
-          again may repeat work or charges.
-        </p>
-      )}
-      {report && (starting || running || failed || unknown) && (
-        <p className="text-muted">
-          Saved feedback from {new Date(report.run_at).toLocaleDateString()} is
-          shown below.
-        </p>
-      )}
-      {report &&
-        state?.stale_reason &&
-        (starting || running || failed || unknown) && (
-          <p className={differentScope ? 'text-fg1' : 'text-yellow-bright'}>
-            {staleMessage}
-          </p>
-        )}
       {state && !state.capability.available && (
         <p className="text-muted">
           New feedback is unavailable. Ask your administrator to check the AI
           settings. Saved feedback can still be read.
         </p>
       )}
-      {running && (state?.job?.total_sections ?? 0) > 1 && (
-        <p className="text-muted">
-          {state!.job!.completed_sections} of {state!.job!.total_sections} parts
-          reviewed.
-        </p>
-      )}
-      {!hideAction && !feedback.loading && (
+      {!hideAction && !feedback.loading && !starting && !running && (
         <button
           type="button"
           aria-label={`${feedback.actionLabel}: ${requestLabel}`}

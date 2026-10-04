@@ -118,8 +118,12 @@ it('keeps every analytics section, reads saved state without POST and uses one e
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Seek Grace' }));
   await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
-  expect(screen.getByRole('button', { name: 'Seeking…' })).toBeDisabled();
-  expect(await screen.findByText('Waiting to start…')).toBeVisible();
+  expect(
+    screen.queryByRole('button', { name: 'Seeking…' })
+  ).not.toBeInTheDocument();
+  expect(
+    await screen.findByText('Waiting to start for Last 30 days…')
+  ).toBeVisible();
   fireEvent.click(
     screen.getByRole('button', { name: 'Close pipeline feedback' })
   );
@@ -211,10 +215,14 @@ it('keeps a starting request visible across a period change and refreshes the cu
       true
     )
   );
-  expect(screen.getByRole('button', { name: 'Seeking…' })).toBeDisabled();
-  expect(screen.getByText('Starting feedback…')).toBeVisible();
+  expect(
+    screen.queryByRole('button', { name: 'Seeking…' })
+  ).not.toBeInTheDocument();
+  expect(screen.getByText('Starting feedback for All time…')).toBeVisible();
   await act(async () => acknowledge());
-  expect(await screen.findByText('Waiting to start…')).toBeVisible();
+  expect(
+    await screen.findByText('Waiting to start for All time…')
+  ).toBeVisible();
   expect(post).toHaveBeenCalledTimes(1);
   expect(post.mock.calls[0][1].period).toBe('30d');
 });
@@ -241,7 +249,11 @@ it('labels the saved pipeline period separately from the current chart selection
       <Analytics />
     </MemoryRouter>
   );
-  expect(await screen.findByText(/Saved feedback: All time/)).toBeVisible();
-  expect(screen.getByText(/may be out of date/)).toBeVisible();
+  expect(
+    await screen.findByText('Saved feedback is for All time.')
+  ).toBeVisible();
+  expect(
+    screen.queryByText(/may be out of date|Saved feedback:|Feedback ready/)
+  ).not.toBeInTheDocument();
   expect(post).not.toHaveBeenCalled();
 });

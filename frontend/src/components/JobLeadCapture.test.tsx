@@ -21,7 +21,11 @@ import JobLeadEditForm from './JobLeadEditForm';
 import JobLeadDetail from '../pages/JobLeadDetail';
 import JobLeads from '../pages/JobLeads';
 
-const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }));
+const toast = vi.hoisted(() => ({
+  error: vi.fn(),
+  success: vi.fn(),
+  warning: vi.fn(),
+}));
 vi.mock('../contexts/ToastContext', () => ({ useToastContext: () => toast }));
 vi.mock('../hooks/useToast', () => ({ useToast: () => toast }));
 vi.mock('./Layout', () => ({
@@ -86,6 +90,7 @@ beforeEach(() => {
   saved = lead();
   requests = [];
   failure = 'none';
+  vi.clearAllMocks();
   vi.spyOn(window, 'confirm').mockReturnValue(true);
   api.defaults.adapter = async (config) => {
     const body = config.data ? JSON.parse(config.data) : {};
@@ -189,7 +194,7 @@ it('shows a posted calendar date without inventing a time or shifting its day', 
   );
 });
 
-it('saves without AI and shows persisted identity/warning before optional navigation', async () => {
+it('closes after saving and offers the saved lead in a toast with its warning', async () => {
   render(
     <MemoryRouter>
       <JobLeadCaptureForm />
@@ -203,12 +208,18 @@ it('saves without AI and shows persisted identity/warning before optional naviga
     target: { value: '<script>untrusted</script>' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Save Lead' }));
-  expect(
-    await screen.findByRole('link', { name: 'Open saved lead' })
-  ).toHaveAttribute('href', '/job-leads/saved-id');
-  expect(screen.getByRole('status')).toHaveTextContent(
-    'Source text was truncated.'
+  await waitFor(() =>
+    expect(toast.success).toHaveBeenCalledWith('Job lead saved', {
+      label: 'Open',
+      to: '/job-leads/saved-id',
+    })
   );
+  expect(toast.warning).toHaveBeenCalledWith('Source text was truncated.');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'New Job Lead' }));
+  expect(screen.getByLabelText(/Job URL/)).toHaveValue('');
+  expect(screen.getByLabelText(/Job description/)).toHaveValue('');
+  fireEvent.click(screen.getByRole('button', { name: 'Close new job lead' }));
   expect(requests).toEqual([
     {
       method: 'post',
@@ -251,10 +262,11 @@ it('does not claim the list is empty when its actual post-save transport refresh
   expect(await screen.findByRole('alert')).toHaveTextContent(
     'Could not refresh the list'
   );
-  expect(screen.getByRole('link', { name: 'Open saved lead' })).toHaveAttribute(
-    'href',
-    '/job-leads/saved-id'
-  );
+  expect(toast.success).toHaveBeenCalledWith('Job lead saved', {
+    label: 'Open',
+    to: '/job-leads/saved-id',
+  });
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(
     screen.queryByText(
       'No job leads yet. Add URLs to start tracking job opportunities.'
@@ -274,13 +286,16 @@ it('keeps the saved identity through a rejected post-save list refresh', async (
     target: { value: saved.url },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Save Lead' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Lead saved, but the list could not be refreshed'
+  await waitFor(() =>
+    expect(toast.error).toHaveBeenCalledWith(
+      'Lead saved, but the list could not be refreshed.'
+    )
   );
-  expect(screen.getByRole('link', { name: 'Open saved lead' })).toHaveAttribute(
-    'href',
-    '/job-leads/saved-id'
-  );
+  expect(toast.success).toHaveBeenCalledWith('Job lead saved', {
+    label: 'Open',
+    to: '/job-leads/saved-id',
+  });
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(onSaved).toHaveBeenCalledOnce();
   expect(requests).toHaveLength(1);
   expect(
@@ -308,7 +323,7 @@ it('validates source by Unicode characters without silently clipping the input',
   expect(source).toHaveValue('😀'.repeat(100001));
   fireEvent.change(source, { target: { value: '😀'.repeat(100000) } });
   fireEvent.click(screen.getByRole('button', { name: 'Save Lead' }));
-  await screen.findByRole('link', { name: 'Open saved lead' });
+  await waitFor(() => expect(toast.success).toHaveBeenCalled());
   expect(requests[0].body.text).toBe('😀'.repeat(100000));
 });
 

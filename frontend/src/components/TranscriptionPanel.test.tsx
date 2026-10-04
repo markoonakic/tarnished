@@ -201,9 +201,10 @@ it('keeps the same job active while assigning roles, with no new user request', 
   expect(
     await screen.findByText(/Assigning parts and roles for recording.wav/)
   ).toBeVisible();
-  expect(
-    screen.getByRole('button', { name: 'Assigning parts and roles…' })
-  ).toBeDisabled();
+  const status = screen.getByRole('status');
+  expect(status).toHaveTextContent('Assigning parts and roles');
+  expect(status.querySelector('.animate-spin')).not.toBeNull();
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
   expect(requests.every((r) => r.method === 'get')).toBe(true);
 });
 
@@ -217,4 +218,67 @@ it('TranscriptionPanel unavailable configuration cannot dispatch', async () => {
     screen.getByRole('button', { name: 'Start transcription' })
   ).toBeDisabled();
   expect(requests.every((r) => r.method === 'get')).toBe(true);
+});
+
+it('polls active work through completion without a check-status button', async () => {
+  const job = {
+    id: 'job',
+    media_id: 'media',
+    state: 'transcribing',
+    stage: 'structuring',
+    uncertain: false,
+    coverage: [],
+    completed_chunks: 1,
+    provider: 'local',
+    model: 'speech',
+  };
+  jobs = [job];
+  const onChange = vi.fn();
+  render(
+    <TranscriptionPanel round={round} onChange={onChange} onResult={vi.fn()} />
+  );
+  await screen.findByText(/Assigning parts and roles for/);
+  expect(
+    screen.queryByRole('button', { name: 'Check status' })
+  ).not.toBeInTheDocument();
+  jobs = [{ ...job, state: 'complete' }];
+  await screen.findByText('Transcript ready', {}, { timeout: 2500 });
+  expect(onChange).toHaveBeenCalledOnce();
+  expect(screen.getByRole('button', { name: 'View transcript' })).toBeVisible();
+});
+
+it('shows visible loading feedback when retrying a failed status read', async () => {
+  api.defaults.adapter = async () => {
+    throw new Error('Offline');
+  };
+  render(
+    <TranscriptionPanel round={round} onChange={vi.fn()} onResult={vi.fn()} />
+  );
+  await screen.findByRole('alert');
+  let resolve!: (value: unknown) => void;
+  const pending = new Promise((done) => {
+    resolve = done;
+  });
+  api.defaults.adapter = async (config) => {
+    await pending;
+    return {
+      data: config.url === '/api/ai-capabilities' ? { speech } : [],
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+    };
+  };
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Try loading status again' })
+  );
+  expect(screen.getByRole('status')).toHaveTextContent(
+    'Loading speech service'
+  );
+  resolve(null);
+  await screen.findByText(/Audio is sent to the configured speech service/);
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Start transcription' })
+  ).toBeEnabled();
 });

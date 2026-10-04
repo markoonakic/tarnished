@@ -70,7 +70,7 @@ export default function TranscriptionPanel({
       } catch (error) {
         if (alive)
           setError(
-            'Cannot load transcription status. Check status before requesting work.'
+            'Cannot load transcription status. Try loading again before requesting work.'
           );
         return { error };
       }
@@ -155,7 +155,7 @@ export default function TranscriptionPanel({
       setError(
         safeErrorMessage(
           isAxiosError(error) ? error.response?.data?.detail : null,
-          'The request outcome is not confirmed. Check status before retrying; work may have started.'
+          'The request outcome is not confirmed. Try loading status again before retrying; work may have started.'
         )
       );
     } finally {
@@ -163,27 +163,13 @@ export default function TranscriptionPanel({
       setBusy(false);
     }
   }
-  const mainLabel = busy
-    ? 'Starting transcription…'
-    : activeJob
-      ? activeJob.state === 'queued'
-        ? 'Waiting…'
-        : activeJob.state === 'preparing'
-          ? 'Preparing audio…'
-          : activeJob.stage === 'structuring'
-            ? 'Assigning parts and roles…'
-            : 'Transcribing…'
-      : retryJob
-        ? 'Retry transcription'
-        : round.has_current_transcript || round.transcript_path
-          ? 'Transcribe again'
-          : 'Start transcription';
+  const mainLabel = retryJob
+    ? 'Retry transcription'
+    : round.has_current_transcript || round.transcript_path
+      ? 'Transcribe again'
+      : 'Start transcription';
   return (
-    <section
-      className="border-tertiary mt-3 space-y-3 border-t pt-3"
-      aria-label="Recording transcription"
-    >
-      <h5 className="text-primary font-medium">Transcribe recording</h5>
+    <section className="space-y-3" aria-label="Recording transcription">
       {speech ? (
         <p className="text-muted text-sm">
           {speech.provider === 'local'
@@ -212,9 +198,21 @@ export default function TranscriptionPanel({
           </select>
         </label>
       )}
-      {busy && <p role="status">Starting transcription…</p>}
+      {busy && !activeJob && (
+        <p role="status" className="text-fg1">
+          <i
+            className="bi-arrow-repeat icon-sm mr-2 inline-block animate-spin"
+            aria-hidden="true"
+          />
+          Starting transcription…
+        </p>
+      )}
       {activeJob && (
         <p role="status" className="text-fg1">
+          <i
+            className="bi-arrow-repeat icon-sm mr-2 inline-block animate-spin"
+            aria-hidden="true"
+          />
           {activeJob.state === 'queued'
             ? `Waiting to transcribe ${activeName}…`
             : activeJob.state === 'preparing'
@@ -237,32 +235,30 @@ export default function TranscriptionPanel({
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={
-            busy ||
-            !speech?.available ||
-            !!error ||
-            !round.media.length ||
-            !!activeJob
-          }
-          onClick={() => void request(retryJob)}
-        >
-          {mainLabel}
-        </button>
-        <button
-          type="button"
-          className="text-fg1 hover:bg-bg3 cursor-pointer rounded px-3 py-2"
-          aria-label="Reload transcription status"
-          disabled={busy}
-          onClick={() => {
-            onChange();
-            setReload((n) => n + 1);
-          }}
-        >
-          Check status
-        </button>
+        {!busy && !activeJob && (
+          <button
+            type="button"
+            className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!speech?.available || !!error || !round.media.length}
+            onClick={() => void request(retryJob)}
+          >
+            {mainLabel}
+          </button>
+        )}
+        {error && (
+          <button
+            type="button"
+            className="text-fg1 hover:bg-bg3 cursor-pointer rounded px-3 py-2"
+            disabled={busy}
+            onClick={() => {
+              setError('');
+              setSpeech(null);
+              setReload((n) => n + 1);
+            }}
+          >
+            Try loading status again
+          </button>
+        )}
       </div>
       {shownJob && (
         <div className="bg-bg3 space-y-2 rounded p-3 text-sm">

@@ -84,6 +84,7 @@ export default function Analytics() {
             <ScopedReportContent
               title="Pipeline feedback"
               scope="PIPELINE"
+              period={period}
               feedback={feedback}
               hideAction
               onClose={() => setShowFeedback(false)}

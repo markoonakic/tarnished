@@ -155,9 +155,12 @@ export default function JobLeads() {
     return new Date(dateStr).toLocaleDateString();
   }
 
-  function truncate(str: string | null | undefined, length: number) {
-    if (!str) return '-';
-    return str.length > length ? str.slice(0, length) + '...' : str;
+  function domain(url: string) {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return '';
+    }
   }
 
   return (
@@ -274,11 +277,18 @@ export default function JobLeads() {
                             to={`/job-leads/${lead.id}`}
                             className="text-fg1 hover:text-accent-bright cursor-pointer font-medium transition-all duration-200 ease-in-out"
                           >
-                            {lead.company || truncate(lead.url, 40)}
+                            <span className={lead.company ? '' : 'text-muted'}>
+                              {lead.company || 'Untitled lead'}
+                            </span>
+                            {!lead.company && (
+                              <span className="text-muted mt-1 block text-xs font-normal">
+                                {domain(lead.url)}
+                              </span>
+                            )}
                           </Link>
                         </td>
                         <td className="text-primary px-4 py-3 text-sm">
-                          {lead.title || '-'}
+                          {lead.title || <span className="text-muted">—</span>}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           <span
@@ -311,9 +321,18 @@ export default function JobLeads() {
                     className="bg-secondary hover:bg-bg2 block cursor-pointer rounded-lg p-4 transition-all duration-200 ease-in-out"
                   >
                     <div className="mb-2 flex items-start justify-between gap-2">
-                      <span className="text-fg1 truncate font-medium">
-                        {lead.company || truncate(lead.url, 30)}
-                      </span>
+                      <div className="min-w-0">
+                        <span
+                          className={`${lead.company ? 'text-fg1' : 'text-muted'} block truncate font-medium`}
+                        >
+                          {lead.company || 'Untitled lead'}
+                        </span>
+                        {!lead.company && (
+                          <span className="text-muted mt-1 block truncate text-xs">
+                            {domain(lead.url)}
+                          </span>
+                        )}
+                      </div>
                       <span
                         className={`inline-flex flex-shrink-0 items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${statusClass}`}
                       >
@@ -322,7 +341,7 @@ export default function JobLeads() {
                       </span>
                     </div>
                     <div className="text-primary mb-2 truncate text-sm">
-                      {lead.title || 'No title'}
+                      {lead.title || <span className="text-muted">—</span>}
                     </div>
                     <div className="text-secondary text-xs">
                       {formatDate(lead.scraped_at)}

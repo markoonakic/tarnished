@@ -119,6 +119,10 @@ it('keeps the round compact and opens transcription or feedback only on request'
   expect(
     screen.getByRole('dialog', { name: 'Transcribe recording' })
   ).toBeVisible();
+  expect(
+    screen.getByRole('heading', { name: 'Transcribe recording', level: 2 })
+  ).toHaveClass('text-xl');
+  expect(screen.getAllByText('Transcribe recording')).toHaveLength(1);
   await screen.findByText(/Transcription is unavailable/);
   fireEvent.click(screen.getByRole('button', { name: 'Close transcription' }));
   fireEvent.click(screen.getByRole('button', { name: 'Interview feedback' }));
