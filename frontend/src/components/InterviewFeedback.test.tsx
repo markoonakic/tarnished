@@ -368,6 +368,36 @@ it('keeps saved-report update and failed retry as explicit primary actions', asy
   expect(screen.getByText('Keep this saved action.')).toBeVisible();
 });
 
+it('keeps interview progress short while an older stale result is shown', async () => {
+  state.stale_reason = 'evidence changed; rerun required';
+  state.job = {
+    id: 'job',
+    state: 'analyzing',
+    uncertain: false,
+    error: null,
+    completed_sections: 0,
+    total_sections: 1,
+  };
+  state.report = {
+    run_at: '2026-10-04',
+    provider: 'fixture',
+    model: 'test',
+    findings: [],
+    sources: [],
+    limitations: [],
+    coverage: { sections: 1, sources: 1, characters: 10 },
+  };
+  render(<InterviewFeedback round={round} />);
+  await screen.findByText('Preparing feedback…');
+  expect(screen.getAllByRole('status')).toHaveLength(1);
+  expect(screen.getByText('Showing saved feedback.')).toBeVisible();
+  expect(
+    screen.queryByText(
+      /saved information has changed|keep using|Saved feedback from/
+    )
+  ).not.toBeInTheDocument();
+});
+
 it('shows no feedback yet, not a stale warning, for a transcript with no saved report', async () => {
   state.stale_reason = 'evidence changed; rerun required';
   state.job = {

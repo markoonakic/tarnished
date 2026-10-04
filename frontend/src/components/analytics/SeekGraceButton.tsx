@@ -11,16 +11,7 @@ export function SeekGraceButton({
   disabled = false,
   label = 'Seek Grace',
 }: SeekGraceButtonProps) {
-  if (loading)
-    return (
-      <p role="status" className="text-fg1 flex items-center gap-2 text-sm">
-        <i
-          className="bi-arrow-repeat icon-sm animate-spin"
-          aria-hidden="true"
-        />
-        Seeking…
-      </p>
-    );
+  if (loading) return null;
   return (
     <button
       onClick={onSeekGrace}

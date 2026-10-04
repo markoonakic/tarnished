@@ -95,6 +95,122 @@ describe('ScopedReport', () => {
     vi.unstubAllGlobals();
   });
 
+  it.each(['ready', 'different-period', 'running'])(
+    'keeps pipeline %s copy to one status and an optional saved-result note',
+    async (phase) => {
+      await renderReport(
+        state({
+          period: phase === 'ready' ? '7d' : '30d',
+          stale_reason:
+            phase === 'ready'
+              ? null
+              : 'pipeline scope or text configuration changed; rerun required',
+          job:
+            phase === 'running'
+              ? {
+                  id: 'job',
+                  state: 'analyzing',
+                  uncertain: false,
+                  error: null,
+                  completed_sections: 0,
+                  total_sections: 1,
+                }
+              : null,
+          report: {
+            period: '7d',
+            as_of: '2026-10-04T09:00:00Z',
+            time_zone: 'UTC',
+            run_at: '2026-10-04T09:00:00Z',
+            provider: 'fixture',
+            model: 'test',
+            findings: [
+              {
+                observation: 'Saved observation',
+                interpretation: 'Saved explanation',
+                action: 'Keep this saved action.',
+                limitations: 'Recorded facts only.',
+                citations: [],
+              },
+            ],
+            sources: [
+              {
+                id: 'pipeline:metrics:0',
+                kind: 'pipeline_metrics',
+                text: JSON.stringify({
+                  total_applications: 3,
+                  scope: {
+                    cohort_start: '2026-09-28',
+                    cohort_end: '2026-10-04',
+                    time_zone: 'UTC',
+                  },
+                }),
+              },
+            ],
+            limitations: [],
+            coverage: { sections: 1, sources: 1, characters: 10 },
+          },
+        }),
+        { scope: 'PIPELINE' }
+      );
+      expect(screen.getAllByRole('status')).toHaveLength(1);
+      expect(screen.getByRole('status')).toHaveTextContent(
+        phase === 'ready'
+          ? 'Last 7 days · 10/4/2026'
+          : phase === 'running'
+            ? 'Preparing feedback for Last 30 days…'
+            : 'Saved feedback is for Last 7 days.'
+      );
+      expect(
+        screen.queryByText(
+          /Feedback ready|Saved feedback:|Applied-date cohort|saved snapshot|keep using this page|Saved feedback from|different period or/
+        )
+      ).not.toBeInTheDocument();
+      if (phase === 'running') {
+        expect(
+          screen.getByText('Showing saved feedback for Last 7 days.')
+        ).toBeVisible();
+        expect(
+          screen.queryByRole('button', { name: /: application feedback$/i })
+        ).not.toBeInTheDocument();
+      } else expect(requestButton()).toBeEnabled();
+      expect(screen.getByText('Keep this saved action.')).toBeVisible();
+      expect(post).not.toHaveBeenCalled();
+    }
+  );
+
+  it('keeps application progress short while retaining an older stale result', async () => {
+    await renderReport(
+      state({
+        stale_reason: 'application evidence changed; rerun required',
+        job: {
+          id: 'job',
+          state: 'analyzing',
+          uncertain: false,
+          error: null,
+          completed_sections: 0,
+          total_sections: 1,
+        },
+        report: {
+          run_at: '2026-10-04',
+          provider: 'fixture',
+          model: 'test',
+          findings: [],
+          sources: [],
+          limitations: [],
+          coverage: { sections: 1, sources: 1, characters: 10 },
+        },
+      })
+    );
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent('Preparing feedback…');
+    expect(screen.getByText('Showing saved feedback.')).toBeVisible();
+    expect(
+      screen.queryByText(
+        /saved information has changed|keep using|Saved feedback from/
+      )
+    ).not.toBeInTheDocument();
+  });
+
   it('loads status without dispatching any work', async () => {
     await renderReport(state(), {
       emptyHint: 'No saved application report yet.',
@@ -238,7 +354,7 @@ describe('ScopedReport', () => {
   it.each([
     [
       'pipeline scope or text configuration changed; rerun required',
-      'Saved feedback uses a different period or AI configuration.',
+      'Saved feedback uses different settings.',
       'text-fg1',
     ],
     [
@@ -802,10 +918,14 @@ describe('ScopedReport', () => {
         }),
         { scope: 'PIPELINE' }
       );
-      expect(screen.getByText(/Charts: Last 7 days/)).toHaveTextContent(
-        /saved feedback still uses its original cohort/
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Saved feedback is for Last 30 days.'
       );
-      expect(screen.getByText(/Applied-date cohort: 2026-08-30/)).toBeVisible();
+      expect(
+        screen.queryByText(
+          /Applied-date cohort|saved snapshot|original cohort|Charts:/
+        )
+      ).not.toBeInTheDocument();
       expect(screen.getByText('69.2%')).toBeVisible();
       expect(screen.getByText('Rate unavailable')).toBeVisible();
       expect(screen.getByText(/Applied 2026-09-18/)).toBeVisible();
@@ -829,11 +949,11 @@ describe('ScopedReport', () => {
   it.each([
     [
       'feedback prompt changed; update explicitly',
-      'The feedback instructions have changed.',
+      'Feedback instructions changed.',
     ],
     [
       'feedback prompt version unknown; update explicitly',
-      'This saved feedback has no recorded instruction version.',
+      'Saved feedback may use older instructions.',
     ],
   ])(
     'explains %s without changing saved actions or starting work',
