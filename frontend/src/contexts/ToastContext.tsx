@@ -8,17 +8,23 @@ import {
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
+export interface ToastAction {
+  label: string;
+  to: string;
+}
+
 export interface Toast {
   id: string;
   type: ToastType;
   message: string;
+  action?: ToastAction;
 }
 
 interface ToastContextType {
   toasts: Toast[];
-  addToast: (type: ToastType, message: string) => void;
+  addToast: (type: ToastType, message: string, action?: ToastAction) => void;
   removeToast: (id: string) => void;
-  success: (message: string) => void;
+  success: (message: string, action?: ToastAction) => void;
   error: (message: string) => void;
   warning: (message: string) => void;
   info: (message: string) => void;
@@ -31,22 +37,26 @@ let toastId = 0;
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const addToast = useCallback((type: ToastType, message: string) => {
-    const id = `toast-${++toastId}`;
-    setToasts((prev) => [...prev, { id, type, message }]);
+  const addToast = useCallback(
+    (type: ToastType, message: string, action?: ToastAction) => {
+      const id = `toast-${++toastId}`;
+      setToasts((prev) => [...prev, { id, type, message, action }]);
 
-    // Auto-dismiss after 4 seconds
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
-  }, []);
+      // Auto-dismiss after 4 seconds
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 4000);
+    },
+    []
+  );
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   const success = useCallback(
-    (message: string) => addToast('success', message),
+    (message: string, action?: ToastAction) =>
+      addToast('success', message, action),
     [addToast]
   );
   const error = useCallback(

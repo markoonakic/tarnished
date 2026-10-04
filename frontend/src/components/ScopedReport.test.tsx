@@ -153,11 +153,34 @@ describe('ScopedReport', () => {
     expect(post).not.toHaveBeenCalled();
   });
 
-  it('explains an empty result even when source changes left a stale reason', async () => {
-    await renderReport(state({ stale_reason: 'application evidence changed' }));
-    expect(screen.getByText(/No feedback yet/)).toBeVisible();
-    expect(post).not.toHaveBeenCalled();
-  });
+  it.each(['APPLICATION', 'PIPELINE'])(
+    'shows neutral missing %s feedback after evidence changes',
+    async (scope) => {
+      await renderReport(
+        state({
+          stale_reason: `${scope.toLowerCase()} evidence changed; rerun required`,
+          job: {
+            id: 'old-job',
+            state: 'invalidated',
+            uncertain: false,
+            error: 'evidence changed; rerun required',
+            completed_sections: 0,
+            total_sections: 1,
+          },
+        }),
+        { scope }
+      );
+      expect(screen.getByRole('status')).toHaveTextContent('No feedback yet');
+      expect(screen.getByRole('status')).not.toHaveClass('text-yellow-bright');
+      expect(
+        screen.queryByText(
+          /out of date|rerun required|saved information has changed/i
+        )
+      ).not.toBeInTheDocument();
+      expect(requestButton()).toBeEnabled();
+      expect(post).not.toHaveBeenCalled();
+    }
+  );
 
   it('shows Starting immediately and prevents duplicate clicks before acknowledgement', async () => {
     await renderReport(state());
@@ -168,9 +191,13 @@ describe('ScopedReport', () => {
       })
     );
     fireEvent.click(requestButton());
-    expect(screen.getByRole('button', { name: /Starting/ })).toBeDisabled();
+    expect(
+      screen.queryByRole('button', { name: /: application feedback$/i })
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Starting feedback…')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: /Starting/ }));
+    expect(
+      screen.getByRole('status').querySelector('.animate-spin')
+    ).not.toBeNull();
     await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
     resolve({
       data: {
@@ -199,6 +226,9 @@ describe('ScopedReport', () => {
       })
     );
     expect(screen.getByText('Preparing feedback…')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /: application feedback$/i })
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText(/Trying again may repeat work or charges/)
     ).not.toBeInTheDocument();

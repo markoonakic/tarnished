@@ -360,7 +360,39 @@ it('keeps saved-report update and failed retry as explicit primary actions', asy
     expect(requests.filter((r) => r.method === 'post')).toHaveLength(1)
   );
   expect(
-    screen.getByRole('button', { name: /^(Starting|Waiting)/ })
-  ).toBeDisabled();
+    screen.queryByRole('button', { name: /^(Starting|Waiting)/ })
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('status')).toHaveTextContent(
+    /Starting feedback|Waiting to start/
+  );
   expect(screen.getByText('Keep this saved action.')).toBeVisible();
+});
+
+it('shows no feedback yet, not a stale warning, for a transcript with no saved report', async () => {
+  state.stale_reason = 'evidence changed; rerun required';
+  state.job = {
+    id: 'old-job',
+    state: 'invalidated',
+    uncertain: false,
+    error: 'evidence changed; rerun required',
+    completed_sections: 0,
+    total_sections: 1,
+  };
+  render(
+    <InterviewFeedback round={{ ...round, has_current_transcript: true }} />
+  );
+  await screen.findByRole('button', {
+    name: 'Get feedback: interview feedback',
+  });
+  expect(screen.getByRole('status')).toHaveTextContent('No feedback yet');
+  expect(screen.getByRole('status')).not.toHaveClass('text-yellow-bright');
+  expect(
+    screen.queryByText(
+      /saved information has changed|rerun required|out of date/i
+    )
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Get feedback: interview feedback' })
+  ).toBeEnabled();
+  expect(requests.every((r) => r.method === 'get')).toBe(true);
 });

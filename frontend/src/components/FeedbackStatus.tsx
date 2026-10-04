@@ -123,7 +123,7 @@ export default function FeedbackStatus({
           reviewed.
         </p>
       )}
-      {!hideAction && !feedback.loading && (
+      {!hideAction && !feedback.loading && !starting && !running && (
         <button
           type="button"
           aria-label={`${feedback.actionLabel}: ${requestLabel}`}

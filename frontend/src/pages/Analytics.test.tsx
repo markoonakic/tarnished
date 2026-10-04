@@ -118,7 +118,10 @@ it('keeps every analytics section, reads saved state without POST and uses one e
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Seek Grace' }));
   await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
-  expect(screen.getByRole('button', { name: 'Seeking…' })).toBeDisabled();
+  expect(
+    screen.queryByRole('button', { name: 'Seeking…' })
+  ).not.toBeInTheDocument();
+  expect(screen.getByText('Seeking…').closest('[role="status"]')).toBeVisible();
   expect(await screen.findByText('Waiting to start…')).toBeVisible();
   fireEvent.click(
     screen.getByRole('button', { name: 'Close pipeline feedback' })
@@ -211,7 +214,10 @@ it('keeps a starting request visible across a period change and refreshes the cu
       true
     )
   );
-  expect(screen.getByRole('button', { name: 'Seeking…' })).toBeDisabled();
+  expect(
+    screen.queryByRole('button', { name: 'Seeking…' })
+  ).not.toBeInTheDocument();
+  expect(screen.getByText('Seeking…').closest('[role="status"]')).toBeVisible();
   expect(screen.getByText('Starting feedback…')).toBeVisible();
   await act(async () => acknowledge());
   expect(await screen.findByText('Waiting to start…')).toBeVisible();
