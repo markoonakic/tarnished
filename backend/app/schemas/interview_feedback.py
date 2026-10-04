@@ -4,7 +4,14 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    StringConstraints,
+)
 
 
 class Citation(BaseModel):
@@ -17,6 +24,18 @@ CoachingText = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1200)
 ]
 CitationIndex = Annotated[int, Field(strict=True, ge=0, le=15)]
+
+
+def _display_indices(value):
+    """Optional display pointers cannot invalidate otherwise grounded evidence."""
+    if not isinstance(value, list):
+        return []
+    return list(dict.fromkeys(i for i in value if type(i) is int and 0 <= i <= 15))
+
+
+DisplayCitationIndices = Annotated[
+    list[CitationIndex], BeforeValidator(_display_indices)
+]
 
 
 class CoachingBase(BaseModel):
@@ -48,7 +67,10 @@ class ConditionalDraft(BaseModel):
 
 class ApplicationCoaching(CoachingBase):
     kind: Literal["application"]
-    context_citations: list[CitationIndex] = Field(min_length=1, max_length=4)
+    # Check all usable pointers before reducing the visible selection to four.
+    context_citations: DisplayCitationIndices = Field(
+        default_factory=list, max_length=16
+    )
     branches: list[ConditionalStep] = Field(min_length=1, max_length=4)
     draft: ConditionalDraft | None = None
 
@@ -56,7 +78,7 @@ class ApplicationCoaching(CoachingBase):
 class RecordStep(ConditionalStep):
     # References the exact JSON object in an existing validated citation.
     record_citation: CitationIndex
-    round_citations: list[CitationIndex] = Field(default_factory=list, max_length=4)
+    round_citations: DisplayCitationIndices = Field(default_factory=list, max_length=16)
 
 
 class PipelineCoaching(CoachingBase):

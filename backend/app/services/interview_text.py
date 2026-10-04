@@ -52,17 +52,17 @@ _SECTION_SUBJECT = {"APPLICATION": "application", "PIPELINE": "pipeline"}
 # field. Every string is safe to store and return: it never contains the provider
 # response body, response headers, the endpoint URL or any credential.
 SAFE_FAILURE_MESSAGES = {
-    "configuration": "Report configuration is incomplete or unsupported; no provider request was sent. Ask an administrator to correct it.",
-    "connection": "Could not reach the report provider (DNS, TLS or network). No automatic retry; explicit retry only.",
-    "timeout": "The report provider request timed out. Remote work may have occurred; explicit retry only.",
-    "provider_auth": "The report provider rejected authentication or permission (401/403). Check the configured credential; no automatic retry.",
-    "provider_rate_limit": "The report provider rate limit was reached (429). Wait, then explicitly retry; no automatic retry.",
-    "provider_request": "The report provider rejected the request (4xx). Check model and endpoint compatibility; no automatic retry.",
-    "provider_unavailable": "The report provider reported a server error (5xx). Remote work may have occurred; explicit retry only.",
-    "provider_response_invalid": "The report provider returned an unusable response (invalid, oversized or unexpected JSON). Explicit retry only.",
-    "provider_output_limit": "The report provider stopped at its output-token limit before writing the report (incomplete/max_output_tokens). Nothing usable was produced; explicit retry only.",
-    "report_grounding": "The report output failed schema or citation-grounding checks and was not published. Explicit retry only.",
-    "unknown": "Report analysis stopped. Existing good report kept unless source removed. Explicit retry may repeat remote work and charges",
+    "configuration": "Report settings are incomplete or not supported. No request was sent. Ask an administrator to check the settings.",
+    "connection": "Could not connect to the report service. Check your connection and try again.",
+    "timeout": "The report service took too long to respond. Try again. The service may charge for both attempts.",
+    "provider_auth": "The report service refused access. Ask an administrator to check the access key and permissions.",
+    "provider_rate_limit": "The report service has reached its usage limit. Wait, then try again.",
+    "provider_request": "The report service could not accept the request. Ask an administrator to check the report settings.",
+    "provider_unavailable": "The report service is not available. Try again later. The service may charge for both attempts.",
+    "provider_response_invalid": "The report service returned a response that could not be read. It was not saved. Try again.",
+    "provider_output_limit": "The report service stopped before it finished the report. The report was not saved. Try again.",
+    "report_grounding": "The AI response could not be verified against your data, so it was not saved. Try again.",
+    "unknown": "The report could not be completed. Try again. The service may charge for both attempts.",
 }
 
 
@@ -303,17 +303,12 @@ class ValidationRule(StrEnum):
     COACHING_KIND = "coaching.kind"
     ANSWER = "coaching.answer_reference"
     QUESTION = "coaching.question_reference"
-    DUPLICATE_CONTEXT = "coaching.duplicate_context"
-    CONTEXT_INDEX = "coaching.context_index"
-    CONTEXT_PASSAGE = "coaching.context_passage"
     METRIC = "pipeline.metric_missing"
     RECORD_INDEX = "pipeline.record_index"
     RECORD_SOURCE = "pipeline.record_source"
     RECORD_CONTEXT = "pipeline.record_context"
     RECORD_FIELD = "pipeline.record_field"
     RECORD_IDENTITY = "pipeline.record_identity"
-    DUPLICATE_RECORD = "pipeline.duplicate_record"
-    DUPLICATE_ROUND = "pipeline.duplicate_round"
     ROUND_IDENTITY = "pipeline.round_identity"
     LIMITATIONS = "bounds.limitations"
     CHECKPOINT_SIZE = "bounds.checkpoints"
@@ -562,31 +557,40 @@ def _validate_section(
                 ):
                     raise SectionValidationError(ValidationRule.QUESTION)
         elif isinstance(coaching, ApplicationCoaching):
-            if len(set(coaching.context_citations)) != len(coaching.context_citations):
-                raise SectionValidationError(ValidationRule.DUPLICATE_CONTEXT)
-            for index in coaching.context_citations:
-                if index >= len(finding.citations):
-                    raise SectionValidationError(ValidationRule.CONTEXT_INDEX)
-                quote = finding.citations[index].quote
-                if len(quote) > 500 or quote.lstrip().startswith(("{", "[")):
-                    raise SectionValidationError(ValidationRule.CONTEXT_PASSAGE)
+            # All citations above remain mandatory evidence checks, even when a
+            # passage is unsuitable for the optional visible context selection.
+            coaching.context_citations = [
+                index
+                for index in coaching.context_citations
+                if index < len(finding.citations)
+                and len(finding.citations[index].quote) <= 500
+                and not finding.citations[index].quote.lstrip().startswith(("{", "["))
+            ][:4]
         elif isinstance(coaching, PipelineCoaching):
             if not any(s["kind"] == "pipeline_metrics" for s in cited):
                 raise SectionValidationError(ValidationRule.METRIC)
-            identities = set()
             for step in coaching.records:
                 record = _record_citation(
                     finding, step.record_citation, lookup, "recorded_approaches"
                 )
-                if record["application_id"] in identities:
-                    raise SectionValidationError(ValidationRule.DUPLICATE_RECORD)
-                identities.add(record["application_id"])
-                if len(set(step.round_citations)) != len(step.round_citations):
-                    raise SectionValidationError(ValidationRule.DUPLICATE_ROUND)
+                step.round_citations = [
+                    index
+                    for index in step.round_citations
+                    if index < len(finding.citations)
+                ]
                 for index in step.round_citations:
                     round_record = _record_citation(finding, index, lookup, "rounds")
                     if round_record["application_id"] != record["application_id"]:
                         raise SectionValidationError(ValidationRule.ROUND_IDENTITY)
+                # Validate every selected round before limiting display pointers.
+                step.round_citations = step.round_citations[:4]
+            # Distinct conditional actions for one record are useful; identical
+            # repeated steps are only display noise. Validate both before deduping.
+            coaching.records = [
+                step
+                for index, step in enumerate(coaching.records)
+                if step not in coaching.records[:index]
+            ]
     if any(not isinstance(s, str) or len(s) > 1200 for s in result.limitations):
         raise SectionValidationError(ValidationRule.LIMITATIONS)
     return result.model_dump(exclude_none=True)
@@ -739,9 +743,12 @@ def _system_prompt(scope, *, current_date=None):
             "assert a cause. Current documents are not historical submission proof; prior round findings are "
             "model output, not verified fact or raw candidate testimony. Missing supplied documents do not "
             "prove that none were submitted. Do not turn earlier AI findings into a CV achievement. "
-            "Coaching kind 'application': context_citations selects 1-4 zero-based citation indices for the "
-            "visible record context. Select short exact passages or scalar values (at most 500 characters), "
-            "not serialized objects/arrays. Preserve the source type, especially prior AI output versus "
+            "Coaching kind 'application': context_citations is an optional display selection of at most four "
+            "unique zero-based indices into THIS finding's citations, not the sources array. Every index must "
+            "be smaller than the number of citations. For example, if citations has two entries, "
+            "context_citations can be [0, 1], never [1, 2]. Select short exact passages or scalar values "
+            "(at most 500 characters), not serialized objects/arrays. Use [] when no citation is suitable "
+            "for display; keep all evidence in citations regardless. Preserve the source type, especially prior AI output versus "
             "profile statements or applicant records. branches each contain an explicit condition and a record-specific "
             "action. Distinguish practice, attended/waiting, not attended/waiting and rescheduled where "
             "relevant, without asserting an unknown branch is true. A practice record needs no employer contact. "
@@ -781,7 +788,10 @@ def _system_prompt(scope, *, current_date=None):
             "Coaching kind 'pipeline': pair the recorded pattern and its cautious explanation with named "
             "records and conditional actions. records[].record_citation is the zero-based index of a citation "
             "quoting ONE COMPLETE application object verbatim from pipeline:recorded_approaches. "
-            "round_citations are indices of complete objects from pipeline:rounds for that same application. "
+            "round_citations is an optional display selection of at most four unique indices of complete "
+            "objects from pipeline:rounds for that same application; use [] if none is available. "
+            "For example, with citations [metric, application, round], record_citation is 1 and "
+            "round_citations is [2], not [3]. Do not repeat an identical record action. "
             "Record citation contract: "
             + json.dumps(_RECORD_CITATION_CONTRACT)
             + " Each reference selects an index in THIS finding's citations, not a source index or an application ID. "

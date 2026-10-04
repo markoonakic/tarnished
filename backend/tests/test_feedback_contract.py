@@ -86,7 +86,6 @@ async def test_current_wire_contract(protocol, scope, output):
         ("INTERVIEW", "answer_citation"),
         ("INTERVIEW", "better_answer"),
         ("INTERVIEW", "action"),
-        ("APPLICATION", "context_citations"),
         ("APPLICATION", "branches"),
         ("APPLICATION", "action"),
     ],

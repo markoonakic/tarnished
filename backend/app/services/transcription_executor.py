@@ -17,7 +17,11 @@ from app.core.database import async_session_maker
 from app.models import InterviewJob, ProcessingJob
 from app.services import interview_jobs
 from app.services.ai_settings import get_ai_settings
-from app.services.interview_text import report_failure_message, supported
+from app.services.interview_text import (
+    SAFE_FAILURE_MESSAGES,
+    report_failure_message,
+    supported,
+)
 from app.services.speech_openai import transcribe_chunk
 from app.services.transcription_audio import (
     inspect_audio,
@@ -85,7 +89,7 @@ class TranscriptionExecutor:
                             claim_id=None,
                             checkpoints=[],
                             manifest={},
-                            error="Execution interrupted; explicit retry only. Remote work may have occurred",
+                            error=SAFE_FAILURE_MESSAGES["unknown"],
                         )
                     )
                     await db.commit()
@@ -228,8 +232,7 @@ class TranscriptionExecutor:
                         state=state,
                         checkpoints=[],
                         manifest=manifest,
-                        error=error
-                        or "Report analysis stopped. Existing good report kept unless source removed. Explicit retry may repeat remote work and charges",
+                        error=error or SAFE_FAILURE_MESSAGES["unknown"],
                     )
                 )
                 await db.commit()
