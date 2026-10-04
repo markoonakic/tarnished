@@ -1,7 +1,7 @@
 services:
   # Prepare the bind mount for the non-root application.
   init:
-    image: ${TARNISHED_IMAGE:-ghcr.io/markoonakic/tarnished:0.2.1}
+    image: ${TARNISHED_IMAGE:-ghcr.io/markoonakic/tarnished:0.2.2}
     user: "0:0"
     entrypoint:
       - sh
@@ -12,7 +12,7 @@ services:
     restart: "no"
 
   app:
-    image: ${TARNISHED_IMAGE:-ghcr.io/markoonakic/tarnished:0.2.1}
+    image: ${TARNISHED_IMAGE:-ghcr.io/markoonakic/tarnished:0.2.2}
     ports:
       - "${APP_PORT:-127.0.0.1:5577}:5577"
     volumes:

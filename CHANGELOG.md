@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.2] - 2026-10-04
+
+### Fixed
+
+- Clearer password rules and speech presets that keep the selected option (#80).
+- Automatic recovery of saved data after connection failures (#81).
+- Job-lead save notifications, untitled leads, a transcription dialog and shorter
+  feedback panels (#82).
+- More reliable feedback with valid source checks and plain error messages (#83).
+
 ## [0.2.1] - 2026-10-03
 
 ### Added
