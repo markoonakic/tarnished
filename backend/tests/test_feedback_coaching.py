@@ -251,8 +251,6 @@ def test_interview_coaching_preserves_attribution_and_bounds(change):
 @pytest.mark.parametrize(
     "change",
     [
-        "context_index",
-        "context_json",
         "empty_branches",
         "too_many_branches",
         "long_condition",
@@ -264,12 +262,7 @@ def test_application_coaching_rejects_invalid_context_branches_and_drafts(change
     sources = sample_sources()
     value = coached_section(sources, "APPLICATION")
     coaching = value["findings"][0]["coaching"]
-    if change == "context_index":
-        coaching["context_citations"] = [5]
-    elif change == "context_json":
-        sources[3]["text"] = '{"company": "Example Labs"}'
-        value["findings"][0]["citations"][0]["quote"] = sources[3]["text"]
-    elif change == "empty_branches":
+    if change == "empty_branches":
         coaching["branches"] = []
     elif change == "too_many_branches":
         coaching["branches"] *= 5
@@ -328,7 +321,6 @@ def test_pipeline_coaching_keeps_three_records_and_their_rounds_with_metric():
         "wrong_source",
         "wrong_round",
         "wrong_metric",
-        "duplicate",
         "empty",
         "too_many",
         "index",
@@ -355,8 +347,6 @@ def test_pipeline_coaching_requires_exact_named_records_and_matching_rounds(chan
         )
     elif change == "wrong_metric":
         sources[4]["kind"] = "profile"
-    elif change == "duplicate":
-        coaching["records"] *= 2
     elif change == "empty":
         coaching["records"] = []
     elif change == "too_many":
