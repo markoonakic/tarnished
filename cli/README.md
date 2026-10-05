@@ -1,6 +1,6 @@
 # Tarnished CLI
 
-Command-line interface for Tarnished, version **0.2.4**. Use a matching Tarnished backend.
+Command-line interface for Tarnished, version **0.2.5**. Use a matching Tarnished backend.
 
 **Documentation:** https://markoonakic.github.io/tarnished/
 
@@ -9,10 +9,10 @@ For the user-facing CLI guide, see:
 
 ## Install
 
-Install version 0.2.4 from PyPI once that release is available:
+Install version 0.2.5 from PyPI once that release is available:
 
 ```bash
-uv tool install tarnished-cli==0.2.4
+uv tool install tarnished-cli==0.2.5
 ```
 
 To install this checkout, including before a release is published, run from the repository root:

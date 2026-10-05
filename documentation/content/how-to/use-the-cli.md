@@ -7,10 +7,10 @@ description: Install and authenticate the Tarnished CLI.
 ## Install
 
 ```bash
-uv tool install tarnished-cli==0.2.4
+uv tool install tarnished-cli==0.2.5
 ```
 
-See the [CLI README](https://github.com/markoonakic/tarnished/blob/v0.2.4/cli/README.md)
+See the [CLI README](https://github.com/markoonakic/tarnished/blob/v0.2.5/cli/README.md)
 for source installation and the command reference.
 
 ## Authenticate
