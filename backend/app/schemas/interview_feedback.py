@@ -151,6 +151,85 @@ class PipelineOutputSection(PipelineSection):
     findings: list[PipelineOutputFinding] = Field(max_length=3)
 
 
+# Provider item counts are preferences, not permission to discard unchecked evidence.
+# Parse every item first; the service checks grounding before applying display limits.
+InputCitationIndex = Annotated[int, Field(strict=True, ge=0)]
+
+
+def _input_display_indices(value):
+    if not isinstance(value, list):
+        return []
+    return list(dict.fromkeys(i for i in value if type(i) is int and i >= 0))
+
+
+InputDisplayIndices = Annotated[
+    list[InputCitationIndex], BeforeValidator(_input_display_indices)
+]
+InputText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
+class InputDraft(ConditionalDraft):
+    condition: InputText
+    text: InputText
+
+
+class InputInterviewCoaching(InterviewCoaching):
+    title: str = Field(min_length=1)
+    answer_citation: InputCitationIndex
+
+
+class InputApplicationCoaching(ApplicationCoaching):
+    title: str = Field(min_length=1)
+    context_citations: InputDisplayIndices = Field(default_factory=list)
+    branches: list[ConditionalStep] = Field(min_length=1)
+    draft: InputDraft | None = None
+
+
+class InputRecordStep(RecordStep):
+    record_citation: InputCitationIndex
+    round_citations: InputDisplayIndices = Field(default_factory=list)
+
+
+class InputPipelineCoaching(PipelineCoaching):
+    title: str = Field(min_length=1)
+    records: list[InputRecordStep] = Field(min_length=1)
+
+
+InputScopedCoaching = Annotated[
+    InputApplicationCoaching | InputPipelineCoaching, Field(discriminator="kind")
+]
+
+
+class InputInterviewFinding(InterviewFinding):
+    coaching: InputInterviewCoaching | None = None
+    citations: list[Citation] = Field(min_length=1)
+
+
+class InputScopedFinding(ScopedFinding):
+    coaching: InputScopedCoaching | None = None
+    citations: list[Citation] = Field(min_length=1)
+
+
+class InputPipelineFinding(PipelineFinding):
+    coaching: InputScopedCoaching | None = None
+    citations: list[Citation] = Field(min_length=1)
+
+
+class InputInterviewSection(InterviewSection):
+    findings: list[InputInterviewFinding]
+    limitations: list[str]
+
+
+class InputApplicationSection(ApplicationSection):
+    findings: list[InputScopedFinding]
+    limitations: list[str]
+
+
+class InputPipelineSection(PipelineSection):
+    findings: list[InputPipelineFinding]
+    limitations: list[str]
+
+
 class InterviewRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     intent_id: UUID

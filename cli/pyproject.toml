@@ -1,6 +1,6 @@
 [project]
 name = "tarnished-cli"
-version = "0.2.2"
+version = "0.2.3"
 description = "Command-line interface for Tarnished"
 readme = "README.md"
 license = "MIT"

@@ -1,6 +1,6 @@
 ---
 title: Install with Docker Compose
-description: Install Tarnished 0.2.2 with SQLite and persistent local storage.
+description: Install Tarnished 0.2.3 with SQLite and persistent local storage.
 ---
 
 Docker Compose with SQLite is the simplest installation. You need Docker Engine
@@ -12,11 +12,11 @@ Run in a new directory:
 
 ```bash
 mkdir tarnished && cd tarnished
-curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/markoonakic/tarnished/v0.2.2/deploy/compose/docker-compose.yml
+curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/markoonakic/tarnished/v0.2.3/deploy/compose/docker-compose.yml
 docker compose up -d --wait
 ```
 
-The file uses `ghcr.io/markoonakic/tarnished:0.2.2`. Its init service prepares
+The file uses `ghcr.io/markoonakic/tarnished:0.2.3`. Its init service prepares
 `./data` for the non-root application. No separate permission command is needed.
 Open **http://localhost:5577** and create the first admin account in the browser.
 Enter your email, password and password confirmation. You are signed in
@@ -32,7 +32,7 @@ The default binding is `127.0.0.1:5577`. Create a `.env` file to override it:
 ```dotenv
 APP_PORT=127.0.0.1:5577
 APP_URL=http://localhost:5577
-TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.2.2
+TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.2.3
 ```
 
 For remote access, set the browser-facing `APP_URL`, configure an HTTPS proxy,
@@ -61,4 +61,4 @@ Read [backup and restore](../how-to/backup-and-restore-tarnished.md) before an
 - [Configure AI](../how-to/configure-ai-settings.md) in Admin after signing in.
 - [Use PostgreSQL](./postgresql-docker-compose.md) instead of SQLite.
 - For local English transcription, follow the repository's
-  [local speech guide](https://github.com/markoonakic/tarnished/blob/v0.2.2/deploy/compose/LOCAL-SPEECH.md).
+  [local speech guide](https://github.com/markoonakic/tarnished/blob/v0.2.3/deploy/compose/LOCAL-SPEECH.md).

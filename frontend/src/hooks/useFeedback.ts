@@ -157,6 +157,8 @@ export function useFeedback<T extends FeedbackState = FeedbackState>(
       },
       staleTime: 0,
       gcTime: 0,
+      // Queued work can finish while another round or browser tab has focus.
+      refetchIntervalInBackground: true,
       refetchInterval: (current) =>
         current.state.status === 'error'
           ? recoverReadInterval(current)

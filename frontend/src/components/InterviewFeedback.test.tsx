@@ -7,6 +7,7 @@ import {
   within,
 } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { focusManager } from '@tanstack/react-query';
 import type { InternalAxiosRequestConfig } from 'axios';
 import api from '../lib/api';
 import type { Round } from '../lib/types';
@@ -74,6 +75,7 @@ afterEach(() => {
   cleanup();
   queryClient.clear();
   api.defaults.adapter = original;
+  focusManager.setFocused(undefined);
   vi.restoreAllMocks();
 });
 
@@ -396,6 +398,98 @@ it('keeps interview progress short while an older stale result is shown', async 
       /saved information has changed|keep using|Saved feedback from/
     )
   ).not.toBeInTheDocument();
+});
+
+it('updates both round panels when a queued job finishes while another tab has focus', async () => {
+  const states: Record<string, InterviewState> = {
+    first: structuredClone(state),
+    second: structuredClone(state),
+  };
+  api.defaults.adapter = async (config) => {
+    requests.push(config);
+    const target = config.url?.includes('/first/') ? 'first' : 'second';
+    if (config.method === 'post') {
+      states[target] = {
+        ...states[target],
+        job: {
+          id: `${target}-job`,
+          intent_id: JSON.parse(config.data).intent_id,
+          state: target === 'first' ? 'analyzing' : 'queued',
+          uncertain: false,
+          error: null,
+          completed_sections: 0,
+          total_sections: 1,
+        },
+      };
+    }
+    return {
+      data: config.method === 'post' ? states[target].job : states[target],
+      status: config.method === 'post' ? 202 : 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+    };
+  };
+  render(
+    <>
+      <div data-testid="first-panel">
+        <InterviewFeedback round={{ ...round, id: 'first' }} />
+      </div>
+      <div data-testid="second-panel">
+        <InterviewFeedback round={{ ...round, id: 'second' }} />
+      </div>
+    </>
+  );
+  const first = within(screen.getByTestId('first-panel'));
+  const second = within(screen.getByTestId('second-panel'));
+  for (const panel of [first, second]) {
+    const button = await panel.findByRole('button', {
+      name: 'Get feedback: interview feedback',
+    });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+  }
+  await first.findByText('Preparing feedback…');
+  await second.findByText('Waiting to start…');
+  focusManager.setFocused(false);
+  function complete(target: string, action: string) {
+    states[target] = {
+      ...states[target],
+      job: { ...states[target].job!, state: 'complete', completed_sections: 1 },
+      report: {
+        run_at: '2026-10-05T10:00:00Z',
+        provider: 'fixture',
+        model: 'fixture',
+        findings: [
+          {
+            observation: 'Saved fact',
+            interpretation: 'Qualified advice',
+            action,
+            limitations: 'Partial record',
+            citations: [],
+          },
+        ],
+        sources: [],
+        limitations: [],
+        coverage: { sections: 1, sources: 0, characters: 0 },
+      },
+    };
+  }
+  complete('first', 'First round advice.');
+  states.second = {
+    ...states.second,
+    job: { ...states.second.job!, state: 'analyzing' },
+  };
+  await first.findByText('First round advice.', {}, { timeout: 2500 });
+  await second.findByText('Preparing feedback…', {}, { timeout: 2500 });
+  complete('second', 'Second round advice.');
+  await second.findByText('Second round advice.', {}, { timeout: 2500 });
+  expect(first.getByText('First round advice.')).toBeVisible();
+  expect(first.queryByText('Second round advice.')).not.toBeInTheDocument();
+  expect(second.queryByText('Waiting to start…')).not.toBeInTheDocument();
+  expect(requests.filter((request) => request.method === 'post')).toHaveLength(
+    2
+  );
 });
 
 it('shows no feedback yet, not a stale warning, for a transcript with no saved report', async () => {

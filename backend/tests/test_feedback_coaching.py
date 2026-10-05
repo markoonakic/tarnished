@@ -198,7 +198,6 @@ def test_coaching_accepts_new_legacy_and_empty_sections(scope):
     [
         ("version", 2),
         ("version", True),
-        ("title", "x" * 121),
         ("title", 4),
         ("kind", "wrong"),
         ("priority", 1),
@@ -252,7 +251,6 @@ def test_interview_coaching_preserves_attribution_and_bounds(change):
     "change",
     [
         "empty_branches",
-        "too_many_branches",
         "long_condition",
         "draft_type",
         "cross_scope",
@@ -264,8 +262,6 @@ def test_application_coaching_rejects_invalid_context_branches_and_drafts(change
     coaching = value["findings"][0]["coaching"]
     if change == "empty_branches":
         coaching["branches"] = []
-    elif change == "too_many_branches":
-        coaching["branches"] *= 5
     elif change == "long_condition":
         coaching["branches"][0]["condition"] = "x" * 1201
     elif change == "draft_type":
@@ -309,8 +305,9 @@ def test_pipeline_coaching_keeps_three_records_and_their_rounds_with_metric():
     assert len(saved["citations"]) == 7
     assert len(saved["coaching"]["records"]) == 3
     finding["citations"] *= 3
-    with pytest.raises(ValueError):
-        validate_section(value, sources, "PIPELINE")
+    bounded = validate_section(value, sources, "PIPELINE")["findings"][0]
+    assert len(bounded["citations"]) == 16
+    assert bounded["coaching"] == saved["coaching"]
 
 
 @pytest.mark.parametrize(
@@ -322,7 +319,6 @@ def test_pipeline_coaching_keeps_three_records_and_their_rounds_with_metric():
         "wrong_round",
         "wrong_metric",
         "empty",
-        "too_many",
         "index",
         "cross_scope",
     ],
@@ -349,8 +345,6 @@ def test_pipeline_coaching_requires_exact_named_records_and_matching_rounds(chan
         sources[4]["kind"] = "profile"
     elif change == "empty":
         coaching["records"] = []
-    elif change == "too_many":
-        coaching["records"] *= 7
     elif change == "index":
         coaching["records"][0]["record_citation"] = 5
     else:
