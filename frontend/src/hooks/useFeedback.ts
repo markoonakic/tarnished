@@ -76,6 +76,9 @@ export interface FeedbackState {
   job: {
     id: string;
     intent_id?: string;
+    period?: string;
+    as_of?: string | null;
+    time_zone?: string;
     prompt_revision?: string | null;
     state: string;
     uncertain: boolean;
@@ -289,6 +292,12 @@ export function useFeedback<T extends FeedbackState = FeedbackState>(
     state,
     starting,
     running,
+    requestedPeriod: starting
+      ? (Object.values(attempts).find(pendingForScope)?.body.period as
+          string | undefined)
+      : running
+        ? state?.job?.period
+        : undefined,
     unknown,
     terminalUncertain,
     failed,

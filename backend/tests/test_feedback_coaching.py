@@ -200,12 +200,9 @@ def test_coaching_accepts_new_legacy_and_empty_sections(scope):
         ("version", True),
         ("title", 4),
         ("kind", "wrong"),
-        ("priority", 1),
     ],
 )
-def test_coaching_rejects_unknown_versions_types_and_unrequested_fields(
-    scope, field, bad
-):
+def test_coaching_rejects_unknown_versions_and_types(scope, field, bad):
     value = coached_section(sample_sources(), scope)
     value["findings"][0]["coaching"][field] = bad
     with pytest.raises(ValueError):

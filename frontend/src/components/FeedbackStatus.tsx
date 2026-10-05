@@ -9,6 +9,7 @@ export default function FeedbackStatus({
   readyLabel,
   requestedPeriod,
   savedPeriod,
+  activePeriod,
 }: {
   feedback: FeedbackController;
   requestLabel: string;
@@ -17,6 +18,7 @@ export default function FeedbackStatus({
   readyLabel?: string;
   requestedPeriod?: string;
   savedPeriod?: string;
+  activePeriod?: string;
 }) {
   const {
     state,
@@ -47,7 +49,7 @@ export default function FeedbackStatus({
     !!savedPeriod &&
     !!requestedPeriod &&
     savedPeriod !== requestedPeriod;
-  const forPeriod = requestedPeriod ? ` for ${requestedPeriod}` : '';
+  const forPeriod = activePeriod ? ` for ${activePeriod}` : '';
   let message = '';
   if (starting) message = `Starting feedback${forPeriod}…`;
   else if (running)
@@ -112,7 +114,7 @@ export default function FeedbackStatus({
           {message}
         </p>
       )}
-      {report && (starting || running) && (
+      {report && (savedPeriod || starting || running) && (
         <p className="text-muted">
           {savedPeriod
             ? `Showing saved feedback for ${savedPeriod}.`

@@ -5,6 +5,7 @@ target (round / application / account) and the evidence builder, not the
 scheduling, authorization or checkpoint machinery.
 """
 
+import asyncio
 import json
 from datetime import UTC, datetime
 
@@ -462,7 +463,7 @@ async def start(
     return job
 
 
-async def checkpoint(db, job_id, claim, index, output, sources):
+async def checkpoint(db, job_id, claim, index, output, sources, *, pending=False):
     job, _, _ = await guard(db, job_id, claim, ("analyzing",))
     if (
         not job.uncertain
@@ -489,7 +490,7 @@ async def checkpoint(db, job_id, claim, index, output, sources):
             "report_grounding", SAFE_FAILURE_MESSAGES["report_grounding"]
         )
     job.checkpoints = value
-    job.uncertain = False
+    job.uncertain = pending
 
 
 async def publish(db, job_id, claim, sources, limits):
@@ -626,20 +627,49 @@ async def execute(executor, job_id, claim):
             ],
         }
         await db.commit()
-    for index, batch in enumerate(batches):
+
+    async def analyze(index, batch, settings):
+        with validation_context(job_id, scope, index):
+            return await analyze_section(
+                settings, batch, limits, scope, session_id=job_id
+            )
+
+    # Pipeline sections are independent. Dispatch bounded waves, then retain
+    # their checkpoints in source order. Other scopes keep sequential dispatch.
+    width = 3 if scope == "PIPELINE" else 1
+    for start in range(0, len(batches), width):
+        wave = batches[start : start + width]
         async with executor.sessions() as db:
             job, _, settings = await guard(db, job_id, claim, ("analyzing",))
             if not executor.accepting:
                 raise HTTPException(409, "Executor is stopping")
+            # Commit before any provider call. A crash cannot trigger an
+            # automatic repeat of requests whose outcome is not yet retained.
             job.uncertain = True
             await db.commit()
-        with validation_context(job_id, scope, index):
-            output = await analyze_section(
-                settings, batch, limits, scope, session_id=job_id
-            )
-        async with executor.sessions() as db:
-            await checkpoint(db, job_id, claim, index, output, batch)
-            await db.commit()
+        tasks = [
+            asyncio.create_task(analyze(start + offset, batch, settings))
+            for offset, batch in enumerate(wave)
+        ]
+        try:
+            outputs = await asyncio.gather(*tasks)
+        finally:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+        for offset, (batch, output) in enumerate(zip(wave, outputs, strict=True)):
+            async with executor.sessions() as db:
+                await checkpoint(
+                    db,
+                    job_id,
+                    claim,
+                    start + offset,
+                    output,
+                    batch,
+                    pending=offset < len(wave) - 1,
+                )
+                await db.commit()
     async with executor.sessions() as db:
         await publish(db, job_id, claim, sources, limits)
         await db.commit()
@@ -650,6 +680,9 @@ def status(job):
         "id": job.id,
         "intent_id": job.intent_id,
         "scope": job.scope,
+        "period": (job.manifest or {}).get("period"),
+        "as_of": (job.manifest or {}).get("as_of"),
+        "time_zone": (job.manifest or {}).get("time_zone"),
         "prompt_revision": (job.manifest or {}).get("prompt_revision"),
         "state": job.state,
         "uncertain": job.uncertain,

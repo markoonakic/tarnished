@@ -3,7 +3,7 @@ title: Account setup and recovery
 description: Create the first owner, manage accounts and recover access.
 ---
 
-Tarnished 0.2.3 lets you create the first admin account in the browser.
+Tarnished 0.2.4 lets you create the first admin account in the browser.
 Administrators create later accounts in the web app; public registration is closed
 after setup.
 Each user's application records are private from other users, but the host

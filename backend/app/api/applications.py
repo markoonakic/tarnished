@@ -1,5 +1,6 @@
 from datetime import date
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
@@ -75,6 +76,9 @@ async def list_applications(
     ),
     date_from: date | None = None,
     date_to: date | None = None,
+    sort: Literal[
+        "applied_desc", "applied_asc", "company", "status", "updated"
+    ] = "applied_desc",
     user: User = Depends(get_current_user_flexible),
     _: object = Depends(require_api_key_scope("applications:read")),
     db: AsyncSession = Depends(get_db),
@@ -116,7 +120,17 @@ async def list_applications(
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
-    query = query.order_by(Application.applied_at.desc(), Application.created_at.desc())
+    order = {
+        "applied_desc": Application.applied_at.desc(),
+        "applied_asc": Application.applied_at.asc(),
+        "company": func.lower(Application.company).asc(),
+        "status": select(func.lower(ApplicationStatus.name))
+        .where(ApplicationStatus.id == Application.status_id)
+        .scalar_subquery()
+        .asc(),
+        "updated": Application.updated_at.desc(),
+    }[sort]
+    query = query.order_by(order, Application.created_at.desc(), Application.id)
     query = query.offset((page - 1) * per_page).limit(per_page)
 
     round_count = (

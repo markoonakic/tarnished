@@ -24,7 +24,7 @@ EXTRACTION_SYSTEM_PROMPT = """You are a job posting data extractor. Your task is
 You must respond with ONLY a valid JSON object (no markdown code blocks, no extra text) with these fields:
 - title: string or null - The job title (e.g., "Senior Software Engineer")
 - company: string or null - The company name
-- description: string or null - Full job description (plain text summary of the role)
+- description: string or null - Full job description, including all stated pay basis and employment terms (plain text; preserve important details, not just a short role summary)
 - location: string or null - Job location (e.g., "San Francisco, CA" or "Remote")
 - salary_min: integer or null - Minimum salary (numeric only, no currency symbols)
 - salary_max: integer or null - Maximum salary (numeric only, no currency symbols)
@@ -44,7 +44,8 @@ Instructions:
 1. Carefully analyze the job posting content - ignore navigation, headers, footers, and unrelated text
 2. Extract ALL available information - be thorough, don't skip fields
 3. If a field cannot be found, use null for optional fields or empty array [] for list fields
-4. For salary, extract only numeric values (no currency symbols or text)
+4. For salary_min/salary_max, extract only numeric values (no currency symbols or text). Do not convert monthly to annual pay or net to gross. Preserve the stated net/gross basis and per month/year/hour period in description, alongside the amount and currency. If the basis or period is absent, leave it unknown.
+   Preserve employment type, contract duration, working hours, probation, benefits and conditions in description when stated. Keep negations and timing exactly in meaning, such as "no initial on-call duty"; do not shorten this to "on-call duty" or assume it never applies. Do not invent terms.
 5. For dates, use ISO format (YYYY-MM-DD)
 6. Look for sections like "Requirements", "Qualifications", "Responsibilities", "Skills", "About the Role"
 7. If content is not a job posting, set all fields to null/empty
