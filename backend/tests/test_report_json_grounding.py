@@ -9,6 +9,44 @@ from tests.test_pipeline_record_contract import built_sources, section_for
 from tests.test_report_responses_protocol import responses_fixture, text_settings
 
 from app.services import interview_text as text
+from app.services.interview_evidence import pipeline_sections
+
+
+async def test_every_pipeline_batch_keeps_original_metric_context():
+    sources = await built_sources()
+    sources += [
+        {
+            "id": f"pipeline:recorded_approaches:{offset}",
+            "kind": "pipeline_record",
+            "text": "x" * 4000,
+            "offset": offset,
+        }
+        for offset in range(12000, 92000, 4000)
+    ]
+    batches = pipeline_sections(sources)
+    assert len(batches) > 1
+    metric = next(s for s in sources if s["id"] == "pipeline:metrics:0")
+    for batch in batches:
+        assert metric in batch
+        assert all(source in sources for source in batch)
+        assert len({source["id"] for source in batch}) == len(batch)
+        assert sum(len(source["text"]) for source in batch) <= 36000
+    prompt = text._system_prompt("PIPELINE")
+    assert "EVERY finding MUST include its own citation" in prompt
+    assert "A metric cited in another finding does not count" in prompt
+
+
+async def test_record_only_pipeline_finding_is_still_rejected():
+    sources = await built_sources()
+    section = section_for(sources)
+    finding = section["findings"][0]
+    finding["citations"].pop(0)
+    finding["coaching"]["records"][0].update(record_citation=0, round_citations=[1])
+    with pytest.raises(text.SectionValidationError) as error:
+        text.validate_section(
+            section, sources, "PIPELINE", require_current_contract=True
+        )
+    assert error.value.rule == text.ValidationRule.METRIC
 
 
 async def test_reordered_complete_record_and_metric_subset_are_grounded():

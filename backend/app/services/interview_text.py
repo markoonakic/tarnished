@@ -896,6 +896,10 @@ def _system_prompt(scope, *, current_date=None):
     if scope == "PIPELINE":
         return (
             "Give useful English feedback about a whole job-search pipeline, not employer motives or a score. "
+            "EVERY finding MUST include its own citation to a supplied source with kind 'pipeline_metrics', "
+            "including activity and interview findings. Record citations alone are insufficient. "
+            "A metric cited in another finding does not count. If no supplied metric supports a finding, "
+            "omit that finding; if no metric source is supplied, return no findings. "
             + common
             + "Write the first observation as a short, standalone takeaway from this section's supplied "
             "evidence, not a summary of unseen sections. Every finding's subject MUST be 'pipeline': "
