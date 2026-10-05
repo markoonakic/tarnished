@@ -11,6 +11,12 @@
   JSON still fails with a safe parse error category (#85).
 - Each pipeline section keeps original metric context, and the prompt requires a
   metric citation in every finding (#85).
+- Extra feedback findings, citations and coaching items are reduced to display
+  limits only after validation. Kept citation pointers are remapped safely.
+- Queued feedback panels keep checking status when another round or browser tab
+  has focus, so completed reports appear without a reload.
+- Provider reasoning metadata has a separate bounded response allowance. Report
+  text keeps its 100 KB limit, and pipeline sections have a five-minute deadline.
 
 ## [0.2.2] - 2026-10-04
 

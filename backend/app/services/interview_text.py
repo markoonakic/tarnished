@@ -21,6 +21,9 @@ from pydantic import ValidationError
 from app.schemas.interview_feedback import (
     ApplicationCoaching,
     ApplicationSection,
+    InputApplicationSection,
+    InputInterviewSection,
+    InputPipelineSection,
     InterviewCoaching,
     InterviewSection,
     PipelineCoaching,
@@ -30,15 +33,19 @@ from app.schemas.interview_feedback import (
 from app.services.ai_settings import CapabilitySettingsState
 
 MAX_RESPONSE_BYTES = 100_000
+# Compatible Responses services include large, unused reasoning summaries.
+# Bound the envelope separately; report text keeps its original 100 KB limit.
+MAX_REPORT_ENVELOPE_BYTES = 400_000
 
 # Responses includes reasoning tokens in its output budget.
 RESPONSES_MAX_OUTPUT_TOKENS = 12_000
 # Whole-pipeline comparisons need more reasoning headroom than a single record.
-# This is still a hard cap, with the same response-size, time and no-retry guards.
+# Token, text, envelope and time limits remain hard caps; there are no retries.
 RESPONSES_PIPELINE_MAX_OUTPUT_TOKENS = 32_000
 
 # The same deadline covers reasoning time and the streamed response.
 SECTION_REQUEST_TIMEOUT_SECONDS = 180
+PIPELINE_SECTION_REQUEST_TIMEOUT_SECONDS = 300
 CONNECT_TIMEOUT_SECONDS = 10
 
 # One checked schema and instruction set per report scope. The interview scope
@@ -47,6 +54,11 @@ _SECTION_MODELS = {
     "INTERVIEW": InterviewSection,
     "APPLICATION": ApplicationSection,
     "PIPELINE": PipelineSection,
+}
+_SECTION_INPUT_MODELS = {
+    "INTERVIEW": InputInterviewSection,
+    "APPLICATION": InputApplicationSection,
+    "PIPELINE": InputPipelineSection,
 }
 _SECTION_SUBJECT = {"APPLICATION": "application", "PIPELINE": "pipeline"}
 
@@ -500,7 +512,7 @@ def _validate_section(
 ) -> dict:
     """Read old reports by default; new provider/checkpoint output must opt in."""
     model = _SECTION_MODELS[scope]
-    result = model.model_validate(value)
+    result = _SECTION_INPUT_MODELS[scope].model_validate(value)
     lookup = {s["id"]: s for s in sources}
     for finding_index, finding in enumerate(result.findings):
         cited = []
@@ -603,7 +615,79 @@ def _validate_section(
             ]
     if any(not isinstance(s, str) or len(s) > 1200 for s in result.limitations):
         raise SectionValidationError(ValidationRule.LIMITATIONS)
-    return result.model_dump(exclude_none=True)
+    bounded = _limit_section(result.model_dump(exclude_none=True), lookup, scope)
+    return model.model_validate(bounded).model_dump(exclude_none=True)
+
+
+def _limit_section(value, lookup, scope):
+    """Apply display preferences only after every item passed the safety checks.
+
+    Keep whole citations and conditional actions. Never truncate source quotes,
+    conditions or advice. Oversized optional drafts are omitted, not cut mid-rule.
+    """
+    value["findings"] = value["findings"][: 2 if scope == "INTERVIEW" else 3]
+    value["limitations"] = value["limitations"][:8]
+    for finding in value["findings"]:
+        citations = finding["citations"]
+        coaching = finding.get("coaching")
+        required, display = [], []
+        if coaching:
+            coaching["title"] = coaching["title"][:120]
+            if coaching["kind"] == "interview":
+                required.append(coaching["answer_citation"])
+            elif coaching["kind"] == "application":
+                coaching["branches"] = coaching["branches"][:4]
+                display.extend(coaching["context_citations"])
+                draft = coaching.get("draft")
+                if draft and any(
+                    len(draft[key]) > 1200 for key in ("condition", "text")
+                ):
+                    coaching.pop("draft")
+            else:
+                coaching["records"] = coaching["records"][:6]
+                for record in coaching["records"]:
+                    required.append(record["record_citation"])
+                    display.extend(record["round_citations"])
+        # These source kinds remain mandatory even when no display pointer selects them.
+        kinds = (
+            ("transcript", "requirement")
+            if scope == "INTERVIEW"
+            else ("pipeline_metrics",)
+            if scope == "PIPELINE"
+            else ()
+        )
+        for kind in kinds:
+            index = next(
+                (
+                    i
+                    for i, c in enumerate(citations)
+                    if lookup[c["source_id"]]["kind"] == kind
+                ),
+                None,
+            )
+            if index is not None:
+                required.append(index)
+        limit = 16 if scope == "PIPELINE" else 6
+        selected = sorted(
+            list(dict.fromkeys([*required, *display, *range(len(citations))]))[:limit]
+        )
+        remap = {old: new for new, old in enumerate(selected)}
+        finding["citations"] = [citations[index] for index in selected]
+        if not coaching:
+            continue
+        if coaching["kind"] == "interview":
+            coaching["answer_citation"] = remap[coaching["answer_citation"]]
+        elif coaching["kind"] == "application":
+            coaching["context_citations"] = [
+                remap[i] for i in coaching["context_citations"] if i in remap
+            ]
+        else:
+            for record in coaching["records"]:
+                record["record_citation"] = remap[record["record_citation"]]
+                record["round_citations"] = [
+                    remap[i] for i in record["round_citations"] if i in remap
+                ]
+    return value
 
 
 def unique_object(pairs):
@@ -629,6 +713,11 @@ def parse_section(output):
     Never repair JSON, skip a malformed first value, or select among alternatives.
     Duplicate keys and non-finite numbers remain errors.
     """
+    if isinstance(output, str) and len(output.encode("utf-8")) > MAX_RESPONSE_BYTES:
+        raise ReportFailure(
+            "provider_response_invalid",
+            SAFE_FAILURE_MESSAGES["provider_response_invalid"],
+        )
     decoder = json.JSONDecoder(
         object_pairs_hook=unique_object, parse_constant=_nonfinite_number
     )
@@ -786,7 +875,7 @@ def responses_output_text(payload) -> str:
 
 
 # Bump for validator-only contract changes. Prompt/schema edits change the hash too.
-OUTPUT_CONTRACT_REVISION = 3
+OUTPUT_CONTRACT_REVISION = 4
 
 
 def prompt_revision(scope):
@@ -1057,7 +1146,7 @@ async def _openai_transport(settings, endpoint):
         follow_redirects=False,
         timeout=httpx.Timeout(
             None, connect=CONNECT_TIMEOUT_SECONDS
-        ),  # bounded by asyncio.timeout(SECTION_REQUEST_TIMEOUT_SECONDS)
+        ),  # bounded by the scoped request deadline
         transport=httpx.AsyncHTTPTransport(retries=0),
         event_hooks={
             "request": [request_boundary],
@@ -1121,8 +1210,13 @@ async def _analyze_section_chat(
 ):
     endpoint = (settings.base_url or "").rstrip("/") + "/chat/completions"
     system = _system_prompt(scope)
+    deadline = (
+        PIPELINE_SECTION_REQUEST_TIMEOUT_SECONDS
+        if scope == "PIPELINE"
+        else SECTION_REQUEST_TIMEOUT_SECONDS
+    )
     try:
-        async with asyncio.timeout(SECTION_REQUEST_TIMEOUT_SECONDS):
+        async with asyncio.timeout(deadline):
             async with (
                 _openai_transport(settings, endpoint) as transport,
                 _openai_client(settings, transport, session_id=session_id) as client,
@@ -1144,7 +1238,7 @@ async def _analyze_section_chat(
                 ) as response:
                     body = bytearray()
                     async for block in response.iter_bytes(chunk_size=4096):
-                        if len(body) + len(block) > MAX_RESPONSE_BYTES:
+                        if len(body) + len(block) > MAX_REPORT_ENVELOPE_BYTES:
                             raise ReportFailure(
                                 "provider_response_invalid",
                                 SAFE_FAILURE_MESSAGES["provider_response_invalid"],
@@ -1210,8 +1304,13 @@ async def _analyze_section_responses(
     endpoint = (settings.base_url or "").rstrip("/") + "/responses"
     system = _system_prompt(scope)
     user_input = json.dumps({"sources": sources, "limitations": limits}, default=str)
+    deadline = (
+        PIPELINE_SECTION_REQUEST_TIMEOUT_SECONDS
+        if scope == "PIPELINE"
+        else SECTION_REQUEST_TIMEOUT_SECONDS
+    )
     try:
-        async with asyncio.timeout(SECTION_REQUEST_TIMEOUT_SECONDS):
+        async with asyncio.timeout(deadline):
             async with (
                 _openai_transport(settings, endpoint) as transport,
                 _openai_client(settings, transport, session_id=session_id) as client,
@@ -1232,7 +1331,7 @@ async def _analyze_section_responses(
                 ) as response:
                     body = bytearray()
                     async for block in response.iter_bytes(chunk_size=4096):
-                        if len(body) + len(block) > MAX_RESPONSE_BYTES:
+                        if len(body) + len(block) > MAX_REPORT_ENVELOPE_BYTES:
                             raise ReportFailure(
                                 "provider_response_invalid",
                                 SAFE_FAILURE_MESSAGES["provider_response_invalid"],
