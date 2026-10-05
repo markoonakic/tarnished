@@ -368,11 +368,16 @@ def pipeline_sections(sources):
 def _batched(sources, *, context_kinds):
     # Reuse bounded context without rewriting original passage references.
     context = []
-    for source in sources:
-        if (
-            source["kind"] in context_kinds
-            and sum(len(s["text"]) for s in context) + len(source["text"]) <= 12000
-        ):
+    # Later notes/transcript batches still need the round's saved dates and
+    # outcome. Prioritize these small original passages within the same bound.
+    round_facts = [
+        s
+        for s in sources
+        if s["kind"] == "round"
+        and s["id"].endswith((":scheduled_at:0", ":completed_at:0", ":outcome:0"))
+    ]
+    for source in round_facts + [s for s in sources if s["kind"] in context_kinds]:
+        if sum(len(s["text"]) for s in context) + len(source["text"]) <= 12000:
             context.append(source)
     batches = []
     batch = []

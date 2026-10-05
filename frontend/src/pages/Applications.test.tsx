@@ -6,7 +6,7 @@ import {
   screen,
   within,
 } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import Applications from './Applications';
 import { listApplications } from '../lib/applications';
@@ -38,12 +38,16 @@ function Notifications() {
     </>
   );
 }
-function mount() {
+function Location() {
+  return <output aria-label="Location">{useLocation().search}</output>;
+}
+function mount(path = '/') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[path]}>
       <ToastProvider>
         <Applications />
         <Notifications />
+        <Location />
       </ToastProvider>
     </MemoryRouter>
   );
@@ -70,6 +74,43 @@ beforeEach(() => {
   vi.mocked(listApplications).mockImplementation(() => new Promise(() => {}));
 });
 afterEach(cleanup);
+
+it('loads sorting from the URL and resets the page while keeping filters', async () => {
+  vi.mocked(listApplications).mockResolvedValue(empty);
+  mount(
+    '/applications?sort=company&page=3&status=own&source=Referral&search=engineer'
+  );
+  expect(
+    await screen.findByRole('combobox', { name: 'Sort applications' })
+  ).toBeVisible();
+  expect(listApplications).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      sort: 'company',
+      page: 3,
+      status_id: 'own',
+      source: 'Referral',
+      search: 'engineer',
+    })
+  );
+  fireEvent.click(screen.getByRole('combobox', { name: 'Sort applications' }));
+  fireEvent.click(
+    screen.getByRole('option', { name: 'Applied: oldest first' })
+  );
+  expect(listApplications).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      sort: 'applied_asc',
+      page: 1,
+      status_id: 'own',
+      source: 'Referral',
+    })
+  );
+  const params = new URLSearchParams(
+    screen.getByLabelText('Location').textContent!
+  );
+  expect(params.get('sort')).toBe('applied_asc');
+  expect(params.get('page')).toBe('1');
+  expect(params.get('search')).toBe('engineer');
+});
 
 it('renders summary round counts without detail rounds in both layouts', async () => {
   const summary = {

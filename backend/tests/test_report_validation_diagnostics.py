@@ -44,7 +44,6 @@ def diagnostics():
     "change,rule,path",
     [
         ("missing", "schema.missing", ["findings", 0, "observation"]),
-        ("extra", "schema.extra", ["findings", 0, "<field>"]),
         ("literal", "schema.literal", ["findings", 0, "subject"]),
         ("type", "schema.type", ["findings", 0, "observation"]),
         ("length", "schema.length", ["findings", 0, "observation"]),
@@ -177,7 +176,6 @@ async def test_both_provider_paths_log_before_safe_failure(protocol, diagnostics
     "change,rule,category",
     [
         ("parse", "schema.parse", "provider_response_invalid"),
-        ("extra", "schema.extra", "report_grounding"),
         ("coaching", "coaching.missing", "report_grounding"),
     ],
 )
@@ -276,20 +274,31 @@ def test_unknown_error_and_untrusted_context(diagnostics):
     ]
 
 
-def test_nested_extra_key_never_logged(diagnostics):
-    value = coached_section(sample_sources(), "PIPELINE")
-    value["findings"][0]["coaching"]["records"][0][SECRET] = SECRET
-    with pytest.raises(ValueError):
-        text.validate_section(
-            value, sample_sources(), "PIPELINE", require_current_contract=True
-        )
-    assert diagnostics[-1]["path"] == [
-        "findings",
-        0,
-        "coaching",
-        "pipeline",
-        "records",
-        0,
-        "<field>",
-    ]
+@pytest.mark.parametrize("scope", ["INTERVIEW", "APPLICATION", "PIPELINE"])
+def test_extra_fields_are_dropped_in_all_scopes(diagnostics, scope):
+    sources = sample_sources()
+    value = coached_section(sources, scope)
+    expected = text.validate_section(
+        value, sources, scope, require_current_contract=True
+    )
+    value[SECRET] = SECRET
+    finding = value["findings"][0]
+    finding["confidence"] = 0.99
+    finding["citations"][0][SECRET] = SECRET
+    finding["coaching"][SECRET] = SECRET
+    if scope == "PIPELINE":
+        finding["coaching"]["records"][0][SECRET] = SECRET
+    if scope == "APPLICATION":
+        finding["coaching"]["branches"][0][SECRET] = SECRET
+    assert (
+        text.validate_section(value, sources, scope, require_current_contract=True)
+        == expected
+    )
+    assert diagnostics[-1]["rule"] == "schema.extra_dropped"
+    assert diagnostics[-1]["fields"] == ["<field>", "confidence"]
     assert SECRET not in json.dumps(diagnostics)
+    # Extra fields cannot hide invalid evidence or relax required/type checks.
+    finding["citations"][0]["quote"] = "fabricated quote"
+    with pytest.raises(ValueError):
+        text.validate_section(value, sources, scope, require_current_contract=True)
+    assert diagnostics[-1]["rule"] == "reference.quote_mismatch"

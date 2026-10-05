@@ -41,6 +41,10 @@ Choose the protocol supported by the endpoint:
 - **Chat Completions** sends feedback requests to `<base>/chat/completions`.
 - **Responses API** sends feedback requests to `<base>/responses`.
 
+OpenAI-compatible proxies may require **Chat Completions** for some models,
+even when the same proxy also offers the Responses API. Check model support
+for the selected protocol; a model list alone does not prove both work.
+
 Both remove the leading `openai/` from the model name before sending it. Changing
 protocol does not select a different model or endpoint. Responses requests have
 bounded output allowances of 12,000 tokens for individual application/interview

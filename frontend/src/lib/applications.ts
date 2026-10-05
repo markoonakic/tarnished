@@ -15,6 +15,7 @@ export interface ListParams {
   search?: string;
   date_from?: string;
   date_to?: string;
+  sort?: string;
 }
 
 interface ApplicationSourcesResponse {

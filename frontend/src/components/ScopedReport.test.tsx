@@ -109,6 +109,7 @@ describe('ScopedReport', () => {
             phase === 'running'
               ? {
                   id: 'job',
+                  period: '30d',
                   state: 'analyzing',
                   uncertain: false,
                   error: null,

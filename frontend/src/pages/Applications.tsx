@@ -16,6 +16,14 @@ import EmptyState from '../components/EmptyState';
 import ApplicationModal from '../components/ApplicationModal';
 import Pagination from '../components/Pagination';
 
+const sortOptions = [
+  { value: 'applied_desc', label: 'Applied: newest first' },
+  { value: 'applied_asc', label: 'Applied: oldest first' },
+  { value: 'company', label: 'Company: A–Z' },
+  { value: 'status', label: 'Status: A–Z' },
+  { value: 'updated', label: 'Last updated' },
+];
+
 export default function Applications() {
   const navigate = useNavigate();
   const colors = useThemeColors();
@@ -36,6 +44,9 @@ export default function Applications() {
   const statusFilter = searchParams.get('status') || '';
   const sourceFilter = searchParams.get('source') || '';
   const search = searchParams.get('search') || '';
+  const sort =
+    sortOptions.find((option) => option.value === searchParams.get('sort'))
+      ?.value ?? 'applied_desc';
   const isFiltered = search || statusFilter || sourceFilter;
 
   const loadStatuses = useCallback(async () => {
@@ -56,6 +67,7 @@ export default function Applications() {
       if (statusFilter) params.status_id = statusFilter;
       if (sourceFilter) params.source = sourceFilter;
       if (search) params.search = search;
+      if (sort !== 'applied_desc') params.sort = sort;
 
       const data = await listApplications(params);
       if (ownedRequest !== requestId.current) return;
@@ -70,7 +82,7 @@ export default function Applications() {
     } finally {
       if (ownedRequest === requestId.current) setLoading(false);
     }
-  }, [page, perPage, statusFilter, sourceFilter, search, showError]);
+  }, [page, perPage, statusFilter, sourceFilter, search, sort, showError]);
 
   const loadSources = useCallback(async () => {
     try {
@@ -107,7 +119,8 @@ export default function Applications() {
     if (
       updates.status !== undefined ||
       updates.search !== undefined ||
-      updates.source !== undefined
+      updates.source !== undefined ||
+      updates.sort !== undefined
     ) {
       newParams.set('page', '1');
     }
@@ -188,6 +201,14 @@ export default function Applications() {
                 size="xs"
                 containerBackground="bg1"
                 disabled={sources.length === 0}
+              />
+              <Dropdown
+                options={sortOptions}
+                value={sort}
+                onChange={(value) => updateParams({ sort: value })}
+                placeholder="Sort applications"
+                size="xs"
+                containerBackground="bg1"
               />
               <Dropdown
                 options={[

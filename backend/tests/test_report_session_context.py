@@ -158,7 +158,8 @@ async def test_dispatcher_uses_job_not_claim_across_sections_and_reentry(
         monkeypatch.setattr(jobs, "checkpoint", interrupt_before_checkpoint)
         with pytest.raises(asyncio.CancelledError):
             await jobs.execute(executor, job_id, claim)
-        assert len(calls) == 1  # No retry of the uncertain section.
+        interrupted_calls = 2 if scope == "PIPELINE" else 1
+        assert len(calls) == interrupted_calls  # No retry of the uncertain wave.
         # Explicit synthetic re-entry under another claim, not a new job or an
         # automatic resume policy. Production failure/recovery rules stay unchanged.
         job = await db.get(InterviewJob, job_id, populate_existing=True)
@@ -167,16 +168,21 @@ async def test_dispatcher_uses_job_not_claim_across_sections_and_reentry(
         await db.commit()
         monkeypatch.setattr(jobs, "checkpoint", original_checkpoint)
         await jobs.execute(executor, job_id, claim)
-        assert len(calls) == 3
-        assert [session_header(headers) for headers, _ in calls] == [job_id] * 3
+        completed_calls = interrupted_calls + 2
+        assert len(calls) == completed_calls
+        assert [session_header(headers) for headers, _ in calls] == [
+            job_id
+        ] * completed_calls
         report = (await client.get(path)).json()["report"]
         assert report is not None and job_id not in json.dumps(report)
         assert "x-opencode-session" not in json.dumps(report)
         assert job_id not in caplog.text
         next_id, next_claim = await admit()
         await jobs.execute(executor, next_id, next_claim)
-        assert len(calls) == 5 and next_id != job_id
-        assert [session_header(headers) for headers, _ in calls[3:]] == [next_id] * 2
+        assert len(calls) == completed_calls + 2 and next_id != job_id
+        assert [session_header(headers) for headers, _ in calls[completed_calls:]] == [
+            next_id
+        ] * 2
         if scope == "PIPELINE":
             other = workspace[1]
             client.headers["Authorization"] = "Bearer " + create_access_token(
@@ -184,8 +190,11 @@ async def test_dispatcher_uses_job_not_claim_across_sections_and_reentry(
             )
             other_id, other_claim = await admit()
             await jobs.execute(executor, other_id, other_claim)
-            assert len(calls) == 7 and other_id not in (job_id, next_id)
-            assert [session_header(headers) for headers, _ in calls[5:]] == [
-                other_id
-            ] * 2
-            assert other.id not in session_header(calls[5][0])
+            assert len(calls) == completed_calls + 4 and other_id not in (
+                job_id,
+                next_id,
+            )
+            assert [
+                session_header(headers) for headers, _ in calls[completed_calls + 2 :]
+            ] == [other_id] * 2
+            assert other.id not in session_header(calls[completed_calls + 2][0])

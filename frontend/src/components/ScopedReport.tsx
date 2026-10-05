@@ -60,6 +60,7 @@ export function ScopedReportContent({
 }: ReportProps & { feedback: FeedbackController; hideAction?: boolean }) {
   const report = feedback.state?.report;
   const requestedPeriod = period ?? feedback.state?.period;
+  const activePeriod = feedback.requestedPeriod;
 
   return (
     <section
@@ -102,6 +103,9 @@ export function ScopedReportContent({
           scope === 'PIPELINE' && requestedPeriod
             ? (periods[requestedPeriod] ?? requestedPeriod)
             : undefined
+        }
+        activePeriod={
+          activePeriod ? (periods[activePeriod] ?? activePeriod) : undefined
         }
         savedPeriod={
           scope === 'PIPELINE' && report?.period

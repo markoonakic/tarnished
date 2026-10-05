@@ -76,7 +76,8 @@ async def test_concurrent_http_setup_creates_only_one_owner(client, db_engine):
     assert sorted(response.status_code for response in responses) == [201, 409]
     async with sessions() as db:
         assert await db.scalar(select(func.count(User.id))) == 1
-        assert (await db.scalar(select(User))).is_admin
+        user = await db.scalar(select(User))
+        assert user is not None and user.is_admin
 
 
 @pytest.mark.parametrize(

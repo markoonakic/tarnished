@@ -65,6 +65,7 @@ beforeEach(() => {
       job: {
         id: 'job',
         intent_id: body.intent_id,
+        period: body.period,
         state: 'queued',
         uncertain: false,
         error: null,
@@ -190,6 +191,7 @@ it('keeps a starting request visible across a period change and refreshes the cu
       job: {
         id: 'job',
         intent_id: body.intent_id,
+        period: body.period,
         state: 'queued',
         uncertain: false,
         error: null,
@@ -218,10 +220,10 @@ it('keeps a starting request visible across a period change and refreshes the cu
   expect(
     screen.queryByRole('button', { name: 'Seeking…' })
   ).not.toBeInTheDocument();
-  expect(screen.getByText('Starting feedback for All time…')).toBeVisible();
+  expect(screen.getByText('Starting feedback for Last 30 days…')).toBeVisible();
   await act(async () => acknowledge());
   expect(
-    await screen.findByText('Waiting to start for All time…')
+    await screen.findByText('Waiting to start for Last 30 days…')
   ).toBeVisible();
   expect(post).toHaveBeenCalledTimes(1);
   expect(post.mock.calls[0][1].period).toBe('30d');
