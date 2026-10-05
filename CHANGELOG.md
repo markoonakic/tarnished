@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.3] - 2026-10-05
+
+### Fixed
+
+- Pipeline feedback accepts JSON citations with equal values despite differences in
+  spacing, key order, Unicode escaping or number format. Fabricated values and
+  records outside the selected sources remain rejected (#85).
+- Feedback reports can use one JSON code fence or plain surrounding text. Invalid
+  JSON still fails with a safe parse error category (#85).
+- Each pipeline section keeps original metric context, and the prompt requires a
+  metric citation in every finding (#85).
+
 ## [0.2.2] - 2026-10-04
 
 ### Fixed

@@ -1,6 +1,6 @@
 ---
 title: Install with PostgreSQL Docker Compose
-description: Install Tarnished 0.2.2 with a PostgreSQL 16 service.
+description: Install Tarnished 0.2.3 with a PostgreSQL 16 service.
 ---
 
 Use this instead of the SQLite Compose file when you want a separate database.
@@ -10,7 +10,7 @@ You need Docker with Compose v2 and `curl`. Tarnished runs one application proce
 
 ```bash
 mkdir tarnished && cd tarnished
-curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/markoonakic/tarnished/v0.2.2/deploy/compose/docker-compose.postgres.yml
+curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/markoonakic/tarnished/v0.2.3/deploy/compose/docker-compose.postgres.yml
 ```
 
 Create `.env` with a strong database password. Protect the file with `chmod 600 .env`.
@@ -20,7 +20,7 @@ Do not overwrite a password from an existing installation.
 POSTGRES_PASSWORD=replace-with-a-long-random-password
 APP_PORT=127.0.0.1:5577
 APP_URL=http://localhost:5577
-TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.2.2
+TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.2.3
 ```
 
 ```bash

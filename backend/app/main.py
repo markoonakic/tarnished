@@ -58,7 +58,7 @@ async def lifespan(app: FastAPI):
         yield
 
 
-app = FastAPI(title="Tarnished API", version="0.2.2", lifespan=lifespan)
+app = FastAPI(title="Tarnished API", version="0.2.3", lifespan=lifespan)
 
 
 @app.exception_handler(RequestValidationError)

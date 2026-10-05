@@ -9,7 +9,7 @@ Use this guide to install and configure the Tarnished browser extension.
 ## Install the extension
 
 Use the Chrome or Firefox ZIP from
-[the v0.2.2 release](https://github.com/markoonakic/tarnished/releases/tag/v0.2.2).
+[the v0.2.3 release](https://github.com/markoonakic/tarnished/releases/tag/v0.2.3).
 There is no browser-store install path.
 
 1. Download and extract the ZIP for your browser.
