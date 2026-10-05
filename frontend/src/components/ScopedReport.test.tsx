@@ -990,7 +990,7 @@ describe('ScopedReport', () => {
     }
   );
 
-  it('labels a bounded pipeline fallback instead of silently showing action-only coaching', async () => {
+  it('shows the advice of a pipeline finding without record cards', async () => {
     await renderReport(
       state({
         report: {
@@ -1015,8 +1015,8 @@ describe('ScopedReport', () => {
       { scope: 'PIPELINE' }
     );
     expect(
-      screen.getByText(/Record-specific coaching is unavailable/)
-    ).toBeVisible();
+      screen.queryByText(/Record-specific coaching is unavailable/)
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Check the available records.')).toBeVisible();
     expect(post).not.toHaveBeenCalled();
   });

@@ -103,15 +103,6 @@ function Passage({
   );
 }
 
-function CoachingFallback({ finding }: { finding: FeedbackFinding }) {
-  return finding.coaching_unavailable === 'complete_record_unavailable' ? (
-    <p className="text-fg2 mt-1 text-sm">
-      Record-specific coaching is unavailable: this evidence section has no
-      complete application record that can be quoted.
-    </p>
-  ) : null;
-}
-
 /** Only optional, validated coaching changes presentation. Legacy actions stay verbatim. */
 export default function FeedbackFindings({
   report,
@@ -135,7 +126,6 @@ export default function FeedbackFindings({
           {report.findings.map((finding, index) => (
             <li key={index} className="pl-1 break-words whitespace-pre-line">
               {finding.action}
-              <CoachingFallback finding={finding} />
             </li>
           ))}
         </ul>
@@ -154,7 +144,6 @@ export default function FeedbackFindings({
               className="text-fg1 break-words whitespace-pre-line"
             >
               <p>{finding.action}</p>
-              <CoachingFallback finding={finding} />
             </div>
           );
         return (
@@ -202,9 +191,6 @@ export default function FeedbackFindings({
                 Why this matters
               </h5>
               <p className="whitespace-pre-line">{finding.interpretation}</p>
-              <p className="text-fg2 text-sm whitespace-pre-line">
-                {finding.limitations}
-              </p>
             </div>
             {coaching.kind === 'interview' ? (
               <>
