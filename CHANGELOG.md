@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.4] - 2026-10-05
+
+### Added
+
+- Application sorting by applied date, company, status and last update, with
+  stable pagination and URL state.
+
+### Fixed
+
+- Unknown model-output fields are dropped in every feedback scope, with safe
+  diagnostic categories. Required fields, types and grounding checks stay strict.
+- Independent pipeline sections run up to three at a time. Findings and durable
+  checkpoints keep their source order, deadlines and safe interruption handling.
+- Feedback always shows its saved period. Starting and running labels use the
+  requested period, not a later chart selection.
+- Job extraction preserves stated net/gross pay, pay period, employment terms
+  and conditions such as no initial on-call duty.
+- Later report sections retain saved round dates and outcomes. Advice treats
+  completed rounds as past and distinguishes future practice from a next round.
+- The settings guide explains that some models on OpenAI-compatible proxies
+  require Chat Completions even when the proxy also offers the Responses API.
+
 ## [0.2.3] - 2026-10-05
 
 ### Fixed
