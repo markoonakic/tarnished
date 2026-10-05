@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.5] - 2026-10-05
+
+### Fixed
+
+- Saved feedback no longer displays internal fallback text or per-finding limitation notes.
+
 ## [0.2.4] - 2026-10-05
 
 ### Added
