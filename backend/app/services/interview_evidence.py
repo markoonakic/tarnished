@@ -361,7 +361,8 @@ def application_sections(sources):
 
 
 def pipeline_sections(sources):
-    return _batched(sources, context_kinds=("profile",))
+    # Each finding needs a deterministic metric, including record-only batches.
+    return _batched(sources, context_kinds=("pipeline_metrics", "profile"))
 
 
 def _batched(sources, *, context_kinds):

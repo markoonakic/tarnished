@@ -4,10 +4,12 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 import ssl
 from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar
 from datetime import UTC, datetime
+from decimal import Decimal
 from enum import StrEnum
 from urllib.parse import urlsplit
 from uuid import UUID, uuid4
@@ -225,6 +227,13 @@ class RecordContextCode(StrEnum):
     BOTH = "missing_and_extra_keys"
 
 
+class ParseErrorCode(StrEnum):
+    SYNTAX = "invalid_json"
+    DUPLICATE = "duplicate_key"
+    NONFINITE = "nonfinite_number"
+    WRAPPER = "invalid_wrapper"
+
+
 class RecordKind(StrEnum):
     APPLICATION = "application"
     ROUND = "round"
@@ -324,7 +333,7 @@ class SectionValidationError(ValueError):
         rule: ValidationRule,
         *,
         record_kind: RecordKind | None = None,
-        code: RecordContextCode | None = None,
+        code: RecordContextCode | ParseErrorCode | None = None,
         subject: str | None = None,
         finding_index: int | None = None,
     ):
@@ -433,12 +442,13 @@ def log_validation_failure(exc, scope=None):
         diagnostic["rule"] = exc.rule.value
         if isinstance(exc.record_kind, RecordKind):
             diagnostic["record_kind"] = exc.record_kind.value
-        if isinstance(exc.code, RecordContextCode):
+        if isinstance(exc.code, (RecordContextCode, ParseErrorCode)):
             diagnostic["code"] = exc.code.value
         if exc.rule == ValidationRule.SUBJECT:
             diagnostic.update(_subject_diagnostic(exc.subject, exc.finding_index))
     elif isinstance(exc, json.JSONDecodeError):
         diagnostic["rule"] = "schema.parse"
+        diagnostic["code"] = ParseErrorCode.SYNTAX.value
     elif isinstance(exc, ValidationError):
         # One bounded event contains the first schema failure. Never retain error input.
         error = exc.errors(
@@ -498,7 +508,7 @@ def _validate_section(
             source = lookup.get(citation.source_id)
             if source is None:
                 raise SectionValidationError(ValidationRule.UNKNOWN_SOURCE)
-            if citation.quote not in source["text"]:
+            if not quote_matches(citation.quote, source):
                 raise SectionValidationError(ValidationRule.QUOTE_MISMATCH)
             cited.append(source)
         if scope == "INTERVIEW":
@@ -518,7 +528,7 @@ def _validate_section(
                     finding_index=finding_index,
                 )
             # No invented evidence: every cited passage must be a real scoped
-            # source, which the exact-quote lookup above already proved.
+            # source, which the scoped quote lookup above already proved.
             if not cited:
                 raise SectionValidationError(ValidationRule.CITATION_MISSING)
         coaching = finding.coaching
@@ -553,7 +563,7 @@ def _validate_section(
                     question is None
                     or question["kind"] != "transcript"
                     or question.get("role") != "interviewer"
-                    or coaching.question.quote not in question["text"]
+                    or not quote_matches(coaching.question.quote, question)
                 ):
                     raise SectionValidationError(ValidationRule.QUESTION)
         elif isinstance(coaching, ApplicationCoaching):
@@ -600,9 +610,128 @@ def unique_object(pairs):
     value = {}
     for key, item in pairs:
         if key in value:
-            raise SectionValidationError(ValidationRule.SCHEMA_PARSE)
+            raise SectionValidationError(
+                ValidationRule.SCHEMA_PARSE, code=ParseErrorCode.DUPLICATE
+            )
         value[key] = item
     return value
+
+
+def _nonfinite_number(_):
+    raise SectionValidationError(
+        ValidationRule.SCHEMA_PARSE, code=ParseErrorCode.NONFINITE
+    )
+
+
+def parse_section(output):
+    """Accept one JSON value, optionally fenced or surrounded by plain prose.
+
+    Never repair JSON, skip a malformed first value, or select among alternatives.
+    Duplicate keys and non-finite numbers remain errors.
+    """
+    decoder = json.JSONDecoder(
+        object_pairs_hook=unique_object, parse_constant=_nonfinite_number
+    )
+    try:
+        return decoder.decode(output)
+    except json.JSONDecodeError:
+        pass
+    output = output.strip()
+    if "```" in output:
+        fenced = re.fullmatch(
+            r"[^{}\[\]`]*```(?:json)?\s*\n(.*?)\n```[^{}\[\]`]*",
+            output,
+            re.DOTALL,
+        )
+        if not fenced:
+            raise SectionValidationError(
+                ValidationRule.SCHEMA_PARSE, code=ParseErrorCode.WRAPPER
+            )
+        return decoder.decode(fenced[1])
+    start = re.search(r"[\[{]", output)
+    if start is None:
+        return decoder.decode(output)
+    value, end = decoder.raw_decode(output, start.start())
+    if re.search(r"[{}\[\]`]", output[: start.start()] + output[end:]):
+        raise SectionValidationError(
+            ValidationRule.SCHEMA_PARSE, code=ParseErrorCode.WRAPPER
+        )
+    return value
+
+
+def _json_subset(quote, value):
+    if type(quote) is not type(value):
+        return False  # JSON true is not the number 1.
+    if isinstance(quote, dict):
+        return (
+            (not quote and not value)
+            or bool(quote)
+            and all(
+                key in value and _json_subset(item, value[key])
+                for key, item in quote.items()
+            )
+        )
+    if isinstance(quote, list):
+        return len(quote) == len(value) and all(
+            _json_subset(a, b) for a, b in zip(quote, value, strict=True)
+        )
+    return quote == value
+
+
+def _json_contains(quote, value):
+    if _json_subset(quote, value):
+        return True
+    children = value.values() if isinstance(value, dict) else value
+    return isinstance(value, (dict, list)) and any(
+        _json_contains(quote, child) for child in children
+    )
+
+
+def quote_matches(quote, source):
+    """Compare only this source; never borrow fields from another record/chunk.
+
+    Preserve exact fragments. For JSON compare parsed values (including decimal
+    numbers), not whitespace inside strings. Plain prose may vary only in spacing.
+    """
+    passage = source["text"]
+    if quote in passage:
+        return True
+    decoder = json.JSONDecoder(
+        object_pairs_hook=unique_object,
+        parse_int=Decimal,
+        parse_float=Decimal,
+        parse_constant=_nonfinite_number,
+    )
+    structured = source["kind"] in ("pipeline_metrics", "pipeline_record", "history")
+    structured = structured or passage.lstrip().startswith(("{", "["))
+    try:
+        values = [decoder.decode(passage)]
+    except ValueError:
+        values = []
+    else:
+        structured = True
+    try:
+        quoted = decoder.decode(quote)
+    except ValueError:
+        quoted = None
+    else:
+        if values:
+            return _json_contains(quoted, values[0])
+        if structured or isinstance(quoted, dict):
+            # A 4000-character source can end/start inside its enclosing array.
+            # Only complete nonempty objects qualify; escaped JSON inside strings
+            # cannot decode as an object with keys. Never join split fragments.
+            for match in re.finditer(r"\{", passage):
+                try:
+                    item, _ = decoder.raw_decode(passage, match.start())
+                except ValueError:
+                    continue
+                if isinstance(item, dict) and item and _json_contains(quoted, item):
+                    return True
+    if structured or quote.lstrip().startswith(("{", "[")):
+        return False
+    normalized = " ".join(quote.split())
+    return bool(normalized) and normalized in " ".join(passage.split())
 
 
 # Compatible providers may omit SDK fields; validate the required envelope directly.
@@ -657,7 +786,7 @@ def responses_output_text(payload) -> str:
 
 
 # Bump for validator-only contract changes. Prompt/schema edits change the hash too.
-OUTPUT_CONTRACT_REVISION = 2
+OUTPUT_CONTRACT_REVISION = 3
 
 
 def prompt_revision(scope):
@@ -706,7 +835,12 @@ def _system_prompt(scope, *, current_date=None):
         "Do not invent deadlines, priority scores or daily schedules. Suggest timing such as today or "
         "tomorrow only when supplied dates or commitments justify it. "
         "Correlation is not causation and employer motives are unknown; never state or imply a motive. "
-        "Cite only exact provided source text with its exact source_id. No Markdown, only JSON matching: "
+        "Cite only provided source text with its exact source_id. Copy JSON records exactly as supplied, "
+        "including every value; do not paraphrase JSON strings or combine fields from different records. "
+        'For example, for source text {"count": 2, "stage": "applied"}, quote '
+        '"{\\"count\\": 2, \\"stage\\": \\"applied\\"}" (a JSON string), not an invented count. '
+        "For record coaching, use record_citation indexes into your citations as shown below. "
+        "No Markdown, only JSON matching: "
     )
     if scope == "INTERVIEW":
         return (
@@ -762,6 +896,10 @@ def _system_prompt(scope, *, current_date=None):
     if scope == "PIPELINE":
         return (
             "Give useful English feedback about a whole job-search pipeline, not employer motives or a score. "
+            "EVERY finding MUST include its own citation to a supplied source with kind 'pipeline_metrics', "
+            "including activity and interview findings. Record citations alone are insufficient. "
+            "A metric cited in another finding does not count. If no supplied metric supports a finding, "
+            "omit that finding; if no metric source is supplied, return no findings. "
             + common
             + "Write the first observation as a short, standalone takeaway from this section's supplied "
             "evidence, not a summary of unseen sections. Every finding's subject MUST be 'pipeline': "
@@ -1033,10 +1171,7 @@ async def _analyze_section_chat(
                         SAFE_FAILURE_MESSAGES["provider_response_invalid"],
                     )
                 try:
-                    section = json.loads(
-                        message.get("content") or "",
-                        object_pairs_hook=unique_object,
-                    )
+                    section = parse_section(message.get("content") or "")
                 except (json.JSONDecodeError, TypeError) as exc:
                     log_validation_failure(exc, scope)
                     raise ReportFailure(
@@ -1123,10 +1258,7 @@ async def _analyze_section_responses(
                         SAFE_FAILURE_MESSAGES["provider_response_invalid"],
                     ) from None
                 try:
-                    section = json.loads(
-                        output_text,
-                        object_pairs_hook=unique_object,
-                    )
+                    section = parse_section(output_text)
                 except ValueError as exc:
                     log_validation_failure(exc, scope)
                     raise ReportFailure(
