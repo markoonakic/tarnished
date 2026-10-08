@@ -81,15 +81,17 @@ async def test_plain_save_without_ai_source_bounds_and_partial_failure(
     lead = await save(
         client, url="https://jobs.example/text", text="useful text " * 8000
     )
-    assert len(lead["source_text"]) <= 50_000 and lead["source_truncated"]
-    assert "partial" in lead["content_warning"] and lead["source"] is None
-    lead = await save(
-        client,
-        url="https://jobs.example/html",
-        html="<article><h1>Engineer</h1><p>Useful posting.</p></article>"
-        + " " * 110_000,
+    assert lead["source_text"] == "useful text " * 8000 and not lead["source_truncated"]
+    assert lead["content_warning"] is None and lead["source"] is None
+    response = await client.post(
+        "/api/job-leads",
+        json={
+            "url": "https://jobs.example/html",
+            "html": "<article><h1>Engineer</h1><p>Useful posting.</p></article>"
+            + " " * 110_000,
+        },
     )
-    assert "Engineer" in lead["source_text"] and lead["source_truncated"]
+    assert response.status_code == 422 and "limit" in response.text
     lead = await save(
         client,
         url="https://jobs.example/prefer",
@@ -119,8 +121,9 @@ async def test_plain_save_without_ai_source_bounds_and_partial_failure(
     [
         ("Engineer\x00Company", "Engineer Company", False),
         ("\x00", None, False),
-        ("Useful source " * 5000 + "\x00", None, True),
+        ("Useful source " * 5000 + "\x00", ("Useful source " * 5000).strip(), False),
     ],
+    ids=["embedded", "empty", "long"],
 )
 async def test_nul_source_saves_identity_with_honest_warning(
     client, capture_workspace, text, expected, truncated

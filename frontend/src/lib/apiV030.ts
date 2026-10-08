@@ -1,4 +1,4 @@
-import api from './api';
+import api, { withAxiosTimeZoneHeaders } from './api';
 
 export type ID = string;
 export type ISODate = string;
@@ -65,14 +65,20 @@ export interface Lead extends JobFields {
   source_text: string | null; source_truncated: boolean; content_warning: string | null; source: string | null;
   confirmed_requirements: ConfirmedRequirement[]; requirements_revision: number; converted_to_application_id: ID | null;
 }
-export type LeadUpdate = Partial<LeadInput> & { decision?: LeadDecision | null; description?: string | null; source?: string | null; posted_date?: ISODate | null; salary_min?: number | null; salary_max?: number | null; salary_currency?: string | null } & Revision;
+export type LeadUpdate = Partial<Omit<LeadInput, 'text' | 'html'>> & { decision?: LeadDecision | null; description?: string | null; source?: string | null; posted_date?: ISODate | null; salary_min?: number | null; salary_max?: number | null; salary_currency?: string | null } & Revision;
 export interface JobQuery extends PageQuery {
   search?: string; source?: string; company_id?: ID; location?: string; work_mode?: WorkMode;
   employment_type?: EmploymentType; seniority?: string; priority?: Priority; tags?: string[];
   date_field?: 'added' | 'posted' | 'deadline' | 'updated' | 'applied' | 'created'; date_from?: ISODate; date_to?: ISODate;
   show_archived?: boolean; status_id?: ID; status?: string; decision?: LeadDecision | 'undecided';
 }
-export interface ApplicationRecord extends JobFields {
+export interface ExtractedJobFields {
+  salary_min?: number | null; salary_max?: number | null; salary_currency?: string | null;
+  recruiter_name?: string | null; recruiter_title?: string | null; recruiter_linkedin_url?: string | null;
+  requirements_must_have?: string[]; requirements_nice_to_have?: string[]; skills?: string[];
+  years_experience_min?: number | null; years_experience_max?: number | null;
+}
+export interface ApplicationRecord extends JobFields, ExtractedJobFields {
   id: ID; user_id?: ID; company: string; job_title: string; location: string | null;
   job_url: string | null; job_description?: string | null; applied_at: ISODate | null; created_at: ISODateTime; updated_at: ISODateTime;
   status: { id: ID; name: string; color: string; meaning: string; builtin_key?: string | null };
@@ -80,7 +86,7 @@ export interface ApplicationRecord extends JobFields {
   source_text: string | null; source_revision: number; source?: string | null;
   confirmed_requirements: ConfirmedRequirement[]; requirements_revision: number;
 }
-export interface ApplicationInput extends JobFields { company?: string; job_title?: string; status_id: ID; applied_at?: ISODate | null; location?: string | null; job_url?: string | null; job_description?: string | null; source?: string | null }
+export interface ApplicationInput extends JobFields, ExtractedJobFields { company?: string; job_title?: string; status_id: ID; applied_at?: ISODate | null; location?: string | null; job_url?: string | null; job_description?: string | null; source?: string | null }
 export type ApplicationUpdate = Partial<ApplicationInput> & Revision & { archived?: boolean; status_changed_at?: ISODateTime; status_comment?: string | null; status_reason?: string | null };
 export interface BoardCard extends ApplicationRecord { round_count: number; next_interview_at: ISODateTime | null; open_reminder_count: number }
 export interface BoardColumn { status_id: ID; count: number; items: BoardCard[]; page: number; per_page: number }
@@ -120,8 +126,12 @@ export interface Profile {
   authorized_to_work: string | null; requires_sponsorship: boolean | null; location_restrictions: string | null;
   work_history: ProfileItem[] | null; projects: ProfileItem[]; education: ProfileItem[] | null; certificates: ProfileItem[]; languages: ProfileItem[]; technologies: ProfileItem[]; skill_items: ProfileItem[]; skills: string[] | null;
 }
-export type ProfileUpdate = Partial<Omit<Profile, 'id' | 'user_id' | 'revision' | 'permission_revision'>> & Revision;
-export interface Account { id: ID; email: string; is_admin: boolean; is_active: boolean; approval_pending: boolean; last_login_at: ISODateTime | null }
+export type ProfileItemInput = Omit<ProfileItem, 'id'> & { id?: ID };
+export type ProfileUpdate = Partial<Omit<Profile, 'id' | 'user_id' | 'revision' | 'permission_revision' | 'work_history' | 'education' | 'projects' | 'certificates' | 'languages' | 'technologies' | 'skill_items'>> & Revision & {
+  work_history?: ProfileItemInput[] | null; education?: ProfileItemInput[] | null;
+  projects?: ProfileItemInput[]; certificates?: ProfileItemInput[]; languages?: ProfileItemInput[]; technologies?: ProfileItemInput[]; skill_items?: ProfileItemInput[];
+};
+export interface Account { can_delete_account: boolean; id: ID; email: string; is_admin: boolean; is_active: boolean; approval_pending: boolean; last_login_at: ISODateTime | null }
 export interface AdminUser extends Account { created_at: ISODateTime; application_count: number }
 export interface AdminUsersQuery extends PageQuery { query?: string; state?: 'all' | 'pending' | 'active' | 'inactive' }
 export interface AdminStats { total_users: number; active_users: number; pending_users: number; total_applications: number; applications_this_month: number }
@@ -129,6 +139,8 @@ export interface AnalyticsQuery { period?: '7d' | '30d' | '3m' | 'all'; as_of?: 
 export interface Frequency { label: string; count: number }
 export interface StageAverage { meaning: string; mean_days: number; mean_hours: number; n: number }
 export interface Breakdown {
+  repeated_requirements: { items: Frequency[]; denominator: number };
+  missing_evidence: { items: Frequency[]; denominator: number };
   first_response: { mean_days: number | null; n: number; unknown_count: number }; rejected_count: number;
   current_phases: { meaning: string; count: number }[];
   outcomes_by_source: { source: string | null; sent: number; interview: number; offer: number; rejected: number; withdrawn: number }[];
@@ -145,10 +157,10 @@ export function queryParams(values: object = {}): URLSearchParams {
   }
   return query;
 }
-const get = async <T>(path: string, params?: object): Promise<T> => (await api.get<T>(`/api${path}`, { params: queryParams(params) })).data;
-const post = async <T>(path: string, data?: unknown): Promise<T> => (await api.post<T>(`/api${path}`, data)).data;
-const patch = async <T>(path: string, data: unknown): Promise<T> => (await api.patch<T>(`/api${path}`, data)).data;
-const put = async <T>(path: string, data: unknown): Promise<T> => (await api.put<T>(`/api${path}`, data)).data;
+const get = async <T>(path: string, params?: object): Promise<T> => (await api.get<T>(`/api${path}`, { params: queryParams(params), headers: withAxiosTimeZoneHeaders() })).data;
+const post = async <T>(path: string, data?: unknown): Promise<T> => (await api.post<T>(`/api${path}`, data, { headers: withAxiosTimeZoneHeaders() })).data;
+const patch = async <T>(path: string, data: unknown): Promise<T> => (await api.patch<T>(`/api${path}`, data, { headers: withAxiosTimeZoneHeaders() })).data;
+const put = async <T>(path: string, data: unknown): Promise<T> => (await api.put<T>(`/api${path}`, data, { headers: withAxiosTimeZoneHeaders() })).data;
 const remove = async (path: string, revision?: number): Promise<void> => { await api.delete(`/api${path}`, { params: queryParams({ expected_revision: revision }) }); };
 export const apiV030 = {
   register: (email: string, password: string) => post<{ message: string }>('/auth/register', { email, password }),

@@ -5,7 +5,14 @@ These schemas handle request/response validation for the user profile API endpoi
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 
 class ProfileFields(BaseModel):
@@ -52,6 +59,20 @@ class ProfileFields(BaseModel):
 
 class UserProfileUpdate(ProfileFields):
     expected_revision: int | None = Field(None, ge=0)
+
+    @model_validator(mode="after")
+    def typed_items(self):
+        import json
+
+        from app.schemas.profile_items import ENTRY_SCHEMAS, validate_entries
+
+        for field in self.model_fields_set & ENTRY_SCHEMAS.keys():
+            value = getattr(self, field)
+            if len(json.dumps(value)) > 100_000:
+                raise ValueError("Profile section exceeds 100000 characters")
+            setattr(self, field, validate_entries(field, value))
+        return self
+
     """Update supplied profile fields; ownership comes from authentication."""
 
     # Personal info

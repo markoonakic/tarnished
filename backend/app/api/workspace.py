@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.deps import get_current_user_jwt, get_request_time_zone
@@ -19,6 +20,8 @@ from app.models.workspace import (
     Reminder,
     RoundContact,
 )
+from app.schemas.application import ApplicationListItem
+from app.schemas.round import RoundResponse
 from app.schemas.workspace import (
     CompanyCreate,
     CompanyUpdate,
@@ -58,6 +61,9 @@ async def saved(db, user, row, event):
     await db.flush()
     await audit(db, user.id, event, row)
     await db.commit()
+    from app.api.streak import record_streak_activity
+
+    await record_streak_activity(user=user, db=db)
     await db.refresh(row)
     return record_dict(row)
 
@@ -131,7 +137,6 @@ async def company_detail(record_id: str, db: DB, user: Owner):
     for field, model in (
         ("contacts", Contact),
         ("leads", JobLead),
-        ("applications", Application),
     ):
         result[field] = (
             await paged(
@@ -143,6 +148,16 @@ async def company_detail(record_id: str, db: DB, user: Owner):
                 100,
             )
         )["items"]
+    result["applications"] = [
+        ApplicationListItem.model_validate(app).model_dump()
+        for app in await db.scalars(
+            select(Application)
+            .where(Application.user_id == user.id, Application.company_id == row.id)
+            .options(selectinload(Application.status))
+            .order_by(Application.updated_at.desc())
+            .limit(100)
+        )
+    ]
     return result
 
 
@@ -217,7 +232,7 @@ async def contact_detail(record_id: str, db: DB, user: Owner):
         else None
     )
     result["applications"] = [
-        record_dict(app)
+        ApplicationListItem.model_validate(app).model_dump()
         for app in await db.scalars(
             select(Application)
             .join(
@@ -228,11 +243,12 @@ async def contact_detail(record_id: str, db: DB, user: Owner):
                 ApplicationContact.user_id == user.id,
                 ApplicationContact.contact_id == row.id,
             )
+            .options(selectinload(Application.status))
             .limit(100)
         )
     ]
     result["rounds"] = [
-        record_dict(rnd)
+        RoundResponse.model_validate(rnd).model_dump()
         for rnd in await db.scalars(
             select(Round)
             .join(Application)
@@ -242,6 +258,7 @@ async def contact_detail(record_id: str, db: DB, user: Owner):
                 RoundContact.user_id == user.id,
                 RoundContact.contact_id == row.id,
             )
+            .options(selectinload(Round.round_type), selectinload(Round.media))
             .limit(100)
         )
     ]
@@ -288,7 +305,12 @@ async def put_application_contacts(
     record_id: str, data: ContactLinks, db: DB, user: Owner
 ):
     row = await owned(db, Application, record_id, user.id)
-    await change_record(db, row, user.id, data.expected_revision, {})
+    values = (
+        {"recruiter_contact_id": None}
+        if row.recruiter_contact_id not in data.contact_ids
+        else {}
+    )
+    await change_record(db, row, user.id, data.expected_revision, values)
     await link_contacts(db, row, user.id, data.contact_ids)
     await audit(db, user.id, "application.contacts", row)
     await db.commit()
@@ -412,13 +434,13 @@ async def create_reminder(
     user: Owner,
     zone: str | None = Depends(get_request_time_zone),
 ):
-    values = reminder_values(data, user, zone)
-    await targets_owned(db, user.id, values)
     row = await db.scalar(
         select(Reminder).where(
             Reminder.user_id == user.id, Reminder.intent_id == str(data.intent_id)
         )
     )
+    values = reminder_values(data, user, zone, row)
+    await targets_owned(db, user.id, values)
     if row:
         for key, value in values.items():
             stored = getattr(row, key)

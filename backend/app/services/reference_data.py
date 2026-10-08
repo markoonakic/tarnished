@@ -78,7 +78,7 @@ async def get_initial_application_status(
         return None
 
     for status in visible_statuses:
-        if status.normalized_name == "applied":
+        if status.builtin_key == "applied" or status.normalized_name == "applied":
             return status
 
     return visible_statuses[0]

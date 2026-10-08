@@ -1,6 +1,9 @@
 """Model registry for export/import system."""
 
 from dataclasses import dataclass
+from typing import TypeVar
+
+ModelType = TypeVar("ModelType", bound=type)
 
 
 @dataclass
@@ -46,7 +49,7 @@ def exportable(order: int, registry: ExportRegistry = default_registry):
             ...
     """
 
-    def decorator(model_class: type) -> type:
+    def decorator(model_class: ModelType) -> ModelType:
         registry.register(model_class, order)
         return model_class
 

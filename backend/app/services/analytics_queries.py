@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models import Application, ApplicationStatusHistory, Round, User
 from app.services import user_time
+from app.services.requirement_insights import requirement_insights
 
 ACTIVE_MEANINGS = {"applied", "screening", "interviewing", "offer"}
 CLOSED_MEANINGS = {"accepted", "rejected", "withdrawn", "no_reply"}
@@ -138,6 +139,7 @@ async def get_calculation_data(
     )
     responded = undated = unknown_response = interviewed = offered = 0
     for app in apps:
+        assert app.applied_at is not None  # The sent-date SQL cohort excludes NULL.
         current = (
             app.status_meaning
             if app.status_meaning_provenance == "recorded"
@@ -483,6 +485,7 @@ async def get_calculation_data(
             "observed_at": observed_at,
             "basis": "live_current_records_not_historical_as_of",
         },
+        **requirement_insights(apps),
         "first_response": {
             "mean_days": sum(response_days) / len(response_days)
             if response_days

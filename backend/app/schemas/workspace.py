@@ -68,7 +68,7 @@ class CompanyFields(Input):
 
 
 class CompanyCreate(CompanyFields):
-    name: ShortText
+    name: ShortText = Field(...)
 
 
 class CompanyUpdate(CompanyFields, Revision):
@@ -98,7 +98,7 @@ class ContactFields(Input):
 
 
 class ContactCreate(ContactFields):
-    name: ShortText
+    name: ShortText = Field(...)
 
 
 class ContactUpdate(ContactFields, Revision):
@@ -168,8 +168,8 @@ class ReminderFields(TargetFields):
 
 
 class ReminderCreate(ReminderFields):
-    kind: ReminderKind
-    title: ShortText
+    kind: ReminderKind = Field(...)
+    title: ShortText = Field(...)
     intent_id: UUID
 
     @model_validator(mode="after")

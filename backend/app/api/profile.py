@@ -168,6 +168,14 @@ async def update_profile(
                 )
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from None
+    identifiers = [
+        item["id"]
+        for field in ITEM_FIELDS
+        for item in (update_data.get(field, getattr(profile, field)) or [])
+        if isinstance(item, dict) and item.get("id")
+    ]
+    if len(identifiers) != len(set(identifiers)):
+        raise HTTPException(422, "Profile item IDs must be unique across sections")
     if "skill_items" in update_data:
         update_data["skills"] = [
             item["name"]
@@ -183,11 +191,14 @@ async def update_profile(
         "ai_permissions" in update_data
         and update_data["ai_permissions"] != profile.ai_permissions
     )
-    if any(
-        value != getattr(profile, key, None)
-        for key, value in update_data.items()
-        if key not in ("city", "country")
-    ):
+    from app.services.profile_items import allowed_profile
+
+    prospective = {
+        column.key: getattr(profile, column.key)
+        for column in UserProfile.__table__.columns
+    }
+    prospective.update(update_data)
+    if allowed_profile(profile) != allowed_profile(prospective):
         await invalidate_interviews(db, user_id=user.id, removed=True)
     changed = await db.scalar(
         update(UserProfile)

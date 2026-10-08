@@ -347,6 +347,7 @@ EXPORT_FIELDS["UserProfile"] += (
     "languages",
 )
 EXPORT_FIELDS["ApplicationStatusHistory"] += ("reason",)
+EXPORT_FIELDS["User"] += ("approval_pending", "last_login_at")
 
 # User.settings may retain legacy credentials and unknown internal state.
 EXPORT_SETTINGS_FIELDS = (
@@ -382,11 +383,7 @@ def serialize_value(value: Any) -> Any:
         return None
     if isinstance(value, (str, int, float, bool)):
         return value
-    if isinstance(value, datetime):
-        return (
-            value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
-        ).isoformat()
-    if isinstance(value, date):
+    if isinstance(value, (datetime, date)):
         return value.isoformat()
     if isinstance(value, UUID):
         return str(value)
@@ -409,7 +406,15 @@ def serialize_model_instance(instance: Any) -> dict[str, Any] | None:
         field: serialize_value(getattr(instance, field))
         for field in EXPORT_FIELDS[model_name]
     }
-    for field in ("response_recorded_at", "corrected_at", "changed_at"):
+    for field in (
+        "response_recorded_at",
+        "corrected_at",
+        "changed_at",
+        "due_at",
+        "task_deadline",
+        "archived_at",
+        "last_login_at",
+    ):
         if field in result and (value := getattr(instance, field)) is not None:
             # SQLite drops the timezone of our UTC-normalized evidence writes.
             result[field] = (

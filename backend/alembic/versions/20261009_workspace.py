@@ -1,7 +1,7 @@
 """Address book, planning records, profile permissions and account requests."""
 
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import sqlalchemy as sa
 from alembic import op
@@ -561,7 +561,10 @@ def _schema():
     with op.batch_alter_table("users", schema=None) as batch_op:
         batch_op.add_column(
             sa.Column(
-                "approval_pending", sa.Boolean(), server_default="false", nullable=False
+                "approval_pending",
+                sa.Boolean(),
+                server_default=sa.false(),
+                nullable=False,
             )
         )
         batch_op.add_column(
@@ -583,6 +586,12 @@ def _meanings():
         ),
     ]:
         with op.batch_alter_table(table) as batch:
+            if table == "application_status_history":
+                batch.drop_constraint("ck_history_gap", type_="check")
+                batch.create_check_constraint(
+                    "ck_history_gap",
+                    "(is_gap AND from_status_id IS NULL AND to_status_id IS NULL AND from_meaning IS NULL AND to_meaning IS NULL AND note IS NULL AND reason IS NULL AND corrected_at IS NULL AND correction_note IS NULL) OR (NOT is_gap AND to_status_id IS NOT NULL)",
+                )
             for name, field in fields:
                 batch.drop_constraint(name, type_="check")
                 batch.create_check_constraint(
@@ -682,6 +691,7 @@ def _data():
     profile = tables["user_profiles"]
     for row in bind.execute(sa.select(profile)).mappings().all():
         values = {}
+        used_ids = set()
         for field in ("work_history", "education", "skills"):
             entries = row[field]
             if entries is None:
@@ -696,28 +706,37 @@ def _data():
                     item = {"name": entry}
                 else:
                     item = {"legacy_value": entry, "needs_repair": True}
-                item.setdefault("id", str(uuid4()))
+                previous_id = item.get("id")
+                try:
+                    item_id = str(UUID(str(previous_id)))
+                    if item_id in used_ids:
+                        raise ValueError("Duplicate legacy identity")
+                except ValueError:
+                    if previous_id is not None:
+                        item["legacy_id"] = previous_id
+                    item_id = str(uuid4())
+                item["id"] = item_id
+                used_ids.add(item_id)
+                for key in (
+                    "title",
+                    "company",
+                    "description",
+                    "institution",
+                    "degree",
+                    "field",
+                    "name",
+                ):
+                    if (
+                        key in item
+                        and item[key] is not None
+                        and not isinstance(item[key], str)
+                    ):
+                        item["needs_repair"] = True
                 items.append(item)
             values["skill_items" if field == "skills" else field] = items
         bind.execute(profile.update().where(profile.c.id == row["id"]).values(**values))
-    statuses = tables["application_statuses"]
-    if not bind.scalar(
-        sa.select(statuses.c.id).where(
-            statuses.c.user_id.is_(None), statuses.c.normalized_name == "preparing"
-        )
-    ):
-        bind.execute(
-            statuses.insert().values(
-                id=str(uuid4()),
-                name="Preparing",
-                normalized_name="preparing",
-                builtin_key="preparing",
-                meaning="preparing",
-                color="#7c8996",
-                order=-1,
-                is_default=True,
-            )
-        )
+    # Preparing is installed by the existing idempotent startup seed, just like
+    # every other built-in status. Migration does not invent reference rows.
 
 
 def downgrade():

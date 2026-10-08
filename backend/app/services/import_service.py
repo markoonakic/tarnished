@@ -327,6 +327,7 @@ class ImportService:
             media = session.get(RoundMedia, media_id) if media_id else None
             if (
                 round is None
+                or round.current_transcript is None
                 or media is None
                 or media.round_id != round.id
                 or media.sha256 != transcript["source_hash"]

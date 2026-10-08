@@ -307,6 +307,14 @@ class JobLeadExtractionInput(BaseModel):
 
 
 class JobLeadEditable(JobLeadExtractionInput, JobFields):
+    url: str | None = Field(None, max_length=2048)
+
+    @field_validator("url")
+    @classmethod
+    def safe_url(cls, value):
+        JobLeadCreate.validate_url(value)
+        return JobLeadCreate.validate_url_not_internal(value)
+
     decision: Literal["interesting", "rejected", "archived"] | None = None
     """Business-field allowlist; null clears scalar fields, [] clears lists."""
 
@@ -316,6 +324,7 @@ class JobLeadEditable(JobLeadExtractionInput, JobFields):
     def bounded_fields(self):
         limits = {
             "description": 50_000,
+            "url": 2048,
             "salary_currency": 10,
             "recruiter_linkedin_url": 512,
             "source": 100,

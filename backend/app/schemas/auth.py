@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, field_validator
 
 from app.core.security import validate_new_password
 from app.schemas.api_keys import UserAPIKeyResponse
@@ -35,6 +35,7 @@ class TokenRefresh(BaseModel):
 
 
 class UserResponse(BaseModel):
+    can_delete_account: bool = True
     approval_pending: bool = False
     last_login_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
@@ -44,7 +45,16 @@ class UserResponse(BaseModel):
     is_admin: bool
     is_active: bool
 
+    @field_validator("last_login_at")
+    @classmethod
+    def utc_last_login(cls, value):
+        return value.replace(tzinfo=UTC) if value and value.tzinfo is None else value
 
-class AuthWhoAmIResponse(UserResponse):
+
+class AuthWhoAmIResponse(BaseModel):
+    id: str
+    email: str
+    is_admin: bool
+    is_active: bool
     auth_method: Literal["jwt", "api_key"]
     api_key: UserAPIKeyResponse | None

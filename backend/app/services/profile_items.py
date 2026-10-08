@@ -102,7 +102,7 @@ def normalize_items(value, old=None):
                 ),
                 None,
             )
-            item["id"] = match["id"] if match else str(uuid4())
+            item["id"] = (match.get("id") if match else None) or str(uuid4())
         try:
             item["id"] = str(UUID(item["id"]))
         except (ValueError, TypeError, AttributeError):
@@ -156,7 +156,7 @@ async def legacy_ai_profile(db, user_id):
     """Old reports keep their source IDs but use the same permission selector."""
     profile = await db.scalar(select(UserProfile).where(UserProfile.user_id == user_id))
     allowed = allowed_profile(profile)
-    return {
+    result = {
         "work_history": [
             {k: v for k, v in item.items() if k != "id"}
             for item in allowed.get("work_history", [])
@@ -167,3 +167,13 @@ async def legacy_ai_profile(db, user_id):
         ]
         or None,
     }
+    import json
+
+    from fastapi import HTTPException
+
+    if len(json.dumps(result, ensure_ascii=False)) > 64_000:
+        raise HTTPException(
+            422,
+            "Evidence exceeds analysis bounds; shorten or paste bounded relevant text",
+        )
+    return result

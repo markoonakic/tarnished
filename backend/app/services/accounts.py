@@ -59,14 +59,6 @@ async def update_account(
     from app.services.ai_settings import lock_ai_settings
 
     await lock_ai_settings(db)
-    account = await db.get(User, user_id)
-    if (
-        account
-        and account.is_admin
-        and account.is_active
-        and (is_admin is False or is_active is False)
-    ):
-        await guard_last_admin(db, user_id)
     values: dict = {"session_version": User.session_version + 1}
     if approval_pending is not None:
         if approval_pending:
@@ -129,9 +121,35 @@ async def delete_account(
         raise HTTPException(409, "Account changed; sign in again")
     if user.is_admin and user.is_active:
         await guard_last_admin(db, user_id)
+    transfer_paths = {
+        path
+        for job in await db.scalars(
+            select(TransferJob).where(TransferJob.user_id == user_id)
+        )
+        for path in (job.source_path, job.artifact_path)
+        if path
+    }
     await update_account(db, user_id, revoke_all_keys=True)
     for model in (InterviewJob, ProcessingJob, TransferJob, AuditLog):
         await db.execute(delete(model).where(model.user_id == user_id))
     await clear_existing_import_data(db, user_id)
     await db.delete(user)
     await db.commit()
+    from pathlib import Path
+
+    from sqlalchemy import or_
+
+    for stored_path in transfer_paths:
+        if not await db.scalar(
+            select(TransferJob.id)
+            .where(
+                or_(
+                    TransferJob.source_path == stored_path,
+                    TransferJob.artifact_path == stored_path,
+                )
+            )
+            .limit(1)
+        ):
+            path = Path(stored_path)
+            if path.is_file() and not path.is_symlink():
+                path.unlink(missing_ok=True)

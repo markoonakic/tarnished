@@ -471,6 +471,10 @@ async def import_payload_data(
         from app.services.ai_settings import lock_ai_settings
 
         await lock_ai_settings(db)
+        from app.services.interview_jobs import invalidate_interviews
+
+        if data.get("models", {}).get("UserProfile"):
+            await invalidate_interviews(db, user_id=user_id, removed=True)
         result = await db.run_sync(_run_import_user_data, data, user_id, file_mapping)
         # Verify cited evidence before committing the import.
         from app.services.interview_archive import verify_restored_report_text

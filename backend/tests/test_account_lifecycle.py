@@ -59,7 +59,7 @@ async def rejected_sessions(client, tokens):
     ).status_code == 401
 
 
-async def test_no_public_register_or_email_escalation(client, db, monkeypatch):
+async def test_registration_cannot_bypass_owner_setup_or_escalate_email(client, db, monkeypatch):
     monkeypatch.setenv("ADMIN_EMAIL", "attacker@example.com")
     for suffix in ("", "?needs_setup=true&proof=operator", "?token=owner_bootstrapped"):
         response = await client.post(
@@ -70,7 +70,7 @@ async def test_no_public_register_or_email_escalation(client, db, monkeypatch):
                 "is_admin": True,
             },
         )
-        assert response.status_code == 404
+        assert response.status_code == 409
     assert await db.scalar(select(func.count(User.id))) == 0
     assert (await client.get("/api/auth/setup-status")).json() == {"needs_setup": True}
     assert (
@@ -104,7 +104,7 @@ async def test_admin_managed_accounts_and_private_content(client, db):
             await client.post(
                 "/api/auth/register", headers=headers(tokens), json=payload
             )
-        ).status_code == 404
+        ).status_code == 202
         assert (
             await client.get("/api/admin/applications", headers=headers(tokens))
         ).status_code == 404

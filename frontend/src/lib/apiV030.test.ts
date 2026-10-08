@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from './api';
 import { apiV030, queryParams } from './apiV030';
 
-vi.mock('./api', () => ({ default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), put: vi.fn(), delete: vi.fn() } }));
+vi.mock('./api', () => ({ withAxiosTimeZoneHeaders: () => ({ 'Time-Zone': 'UTC' }), default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), put: vi.fn(), delete: vi.fn() } }));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -20,7 +20,7 @@ describe('v0.3 API contract', () => {
   it('keeps revision and history input in the same status mutation', async () => {
     const input = { expected_revision: 1, status_id: 'rejected', status_changed_at: '2026-10-01T09:00:00Z', status_comment: 'Closed', status_reason: 'Position filled' };
     await apiV030.updateApplication('one', input);
-    expect(api.patch).toHaveBeenCalledWith('/api/applications/one', input);
+    expect(api.patch).toHaveBeenCalledWith('/api/applications/one', input, { headers: { 'Time-Zone': 'UTC' } });
   });
   it('sends deletion revision and explicit account confirmation', async () => {
     await apiV030.deleteCompany('one', 3);
@@ -31,10 +31,10 @@ describe('v0.3 API contract', () => {
   it('does not lose reminder intent or item permissions', async () => {
     const reminder = { title: 'Call', kind: 'interview' as const, due_at: '2026-10-01T09:00:00Z', intent_id: 'intent' };
     await apiV030.createReminder(reminder);
-    expect(api.post).toHaveBeenCalledWith('/api/reminders', reminder);
+    expect(api.post).toHaveBeenCalledWith('/api/reminders', reminder, { headers: { 'Time-Zone': 'UTC' } });
     const profile = { expected_revision: 1, ai_permissions: { projects: false, item: false } };
     await apiV030.updateProfile(profile);
-    expect(api.put).toHaveBeenCalledWith('/api/profile', profile);
+    expect(api.put).toHaveBeenCalledWith('/api/profile', profile, { headers: { 'Time-Zone': 'UTC' } });
   });
   it('uploads a kind with the file and uses authenticated downloads', async () => {
     const file = new File(['portfolio'], 'portfolio.txt');

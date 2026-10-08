@@ -75,7 +75,12 @@ class RoundResponse(InterviewFields):
     media: list[RoundMediaResponse]
     created_at: datetime
 
-    @field_validator("scheduled_at", "completed_at")
+    @field_validator("task_deadline")
+    @classmethod
+    def utc_deadline(cls, value):
+        return value.replace(tzinfo=UTC) if value and value.tzinfo is None else value
+
+    @field_validator("scheduled_at", "completed_at", "created_at", "updated_at")
     @classmethod
     def round_dates_are_utc(cls, value: datetime | None) -> datetime | None:
         # SQLite drops timezone metadata from UTC-normalized round writes.

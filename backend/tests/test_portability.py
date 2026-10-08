@@ -165,7 +165,12 @@ async def test_profile_restores_coherently_without_account_authority(db):
         select(UserProfile).where(UserProfile.user_id == recipient.id)
     )
     assert profile.first_name == "Ada" and profile.skills == ["Python", "SQL"]
-    assert profile.work_history == [{"company": "Analytical", "title": "Engineer"}]
+    assert [
+        {key: value for key, value in item.items() if key != "id"}
+        for item in profile.work_history
+    ] == [{"company": "Analytical", "title": "Engineer"}]
+    assert profile.work_history[0]["id"]
+    assert all(value is False for value in profile.ai_permissions.values())
     assert (
         recipient.password_hash,
         recipient.session_version,

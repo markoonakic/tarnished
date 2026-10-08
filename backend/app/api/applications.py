@@ -139,15 +139,15 @@ async def list_applications(
         .correlate(Application)
         .scalar_subquery()
     )
-    result = await db.execute(query.add_columns(round_count))
+    result = await db.execute(query.add_columns(round_count.label("round_count")))
 
     return ApplicationListResponse(
         items=[
             ApplicationSummary(
-                **ApplicationListItem.model_validate(application).model_dump(),
-                round_count=count,
+                **ApplicationListItem.model_validate(row["Application"]).model_dump(),
+                round_count=row["round_count"],
             )
-            for application, count in result
+            for row in result.mappings()
         ],
         total=total,
         page=page,
@@ -196,10 +196,24 @@ async def create_application(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status"
         )
 
-    extra = {field: getattr(data, field) for field in JOB_FIELDS}
+    if (
+        "applied_at" in data.model_fields_set
+        and data.applied_at is None
+        and selected_status.meaning != "preparing"
+    ):
+        raise HTTPException(422, "Only Preparing can have no applied date")
+    extra = data.model_dump(include=set(JOB_FIELDS), exclude_unset=True)
+    legacy_recruiter = {
+        field: getattr(data, field)
+        for field in ("recruiter_name", "recruiter_title", "recruiter_linkedin_url")
+        if field in data.model_fields_set
+    }
+    extra.update(legacy_recruiter)
     await job_links(db, user.id, extra)
+    for field in legacy_recruiter:
+        extra.pop(field, None)
     if selected_status.meaning != "preparing" and (
-        not data.company.strip() or not data.job_title.strip()
+        not extra.get("company", data.company).strip() or not data.job_title.strip()
     ):
         raise HTTPException(422, "Company and position are required")
     application = Application(
@@ -499,15 +513,15 @@ async def update_application(
         status_changed
         and application.status_meaning == "preparing"
         and destination != "preparing"
-    ):
-        if (
+        and (
             not update_data.get("company", application.company)
             or not update_data.get("job_title", application.job_title)
             or not (data.applied_at or application.applied_at)
-        ):
-            raise HTTPException(
-                422, "Set company, position and applied date before sending"
-            )
+        )
+    ):
+        raise HTTPException(
+            422, "Set company, position and applied date before sending"
+        )
     if status_changed:
         update_data["outcome_reason"] = (
             data.status_reason if destination in ("rejected", "withdrawn") else None

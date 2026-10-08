@@ -59,6 +59,8 @@ class ApplicationEvidenceMetrics(BaseModel):
 
 
 class PipelineMetrics(BaseModel):
+    repeated_requirements: dict = {}
+    missing_evidence: dict = {}
     first_response: dict = {}
     rejected_count: int = 0
     outcomes_by_source: list[dict] = []

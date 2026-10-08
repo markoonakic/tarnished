@@ -155,6 +155,11 @@ async def audit(db, user_id, event, row):
                 if getattr(row, name + "_id", None)
             }
         )
+    if kind not in TARGETS:
+        for target in TARGETS:
+            if details.get(target + "_id"):
+                details.update(target_type=target, target_id=details[target + "_id"])
+                break
     db.add(
         AuditLog(
             user_id=user_id,
@@ -173,6 +178,35 @@ async def audit(db, user_id, event, row):
         await db.execute(
             update(Application)
             .where(Application.id == parent_id, Application.user_id == user_id)
+            .values(updated_at=datetime.now(UTC))
+        )
+    contact_id = (
+        row.id if isinstance(row, Contact) else getattr(row, "contact_id", None)
+    )
+    company_id = (
+        row.id if isinstance(row, Company) else getattr(row, "company_id", None)
+    )
+    if contact_id:
+        company_id = company_id or await db.scalar(
+            select(Contact.company_id).where(
+                Contact.id == contact_id, Contact.user_id == user_id
+            )
+        )
+        await db.execute(
+            update(Contact)
+            .where(Contact.id == contact_id, Contact.user_id == user_id)
+            .values(updated_at=datetime.now(UTC))
+        )
+    if parent_id and not company_id:
+        company_id = await db.scalar(
+            select(Application.company_id).where(
+                Application.id == parent_id, Application.user_id == user_id
+            )
+        )
+    if company_id:
+        await db.execute(
+            update(Company)
+            .where(Company.id == company_id, Company.user_id == user_id)
             .values(updated_at=datetime.now(UTC))
         )
 

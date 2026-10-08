@@ -201,16 +201,30 @@ async def test_new_report_pins_language_without_translating_quotes(
 
 @pytest.mark.parametrize("db_engine", ["20260419_report_scopes"], indirect=True)
 async def test_migration_backfills_only_builtin_definitions(db, db_engine):
+    from datetime import UTC, datetime
+
+    from sqlalchemy import MetaData, Table
     from tests.conftest import _run_alembic_upgrade
 
-    owner = User(
-        email="migration-language@example.com",
-        password_hash="unused",
-        settings={"theme": "dracula"},
+    owner_id = str(uuid4())
+    # Historical-schema fixtures must not insert columns from a newer ORM model.
+    await db.run_sync(
+        lambda session: session.execute(
+            Table("users", MetaData(), autoload_with=session.connection())
+            .insert()
+            .values(
+                id=owner_id,
+                email="migration-language@example.com",
+                password_hash="unused",
+                is_admin=False,
+                is_active=True,
+                created_at=datetime.now(UTC),
+                settings={"theme": "dracula"},
+            )
+        )
     )
-    db.add(owner)
     await db.commit()
-    for identity, user_id in (("global", None), ("custom", owner.id)):
+    for identity, user_id in (("global", None), ("custom", owner_id)):
         await db.execute(
             text(
                 'INSERT INTO application_statuses (id,name,normalized_name,color,is_default,user_id,"order",meaning) VALUES (:id,'
@@ -227,7 +241,7 @@ async def test_migration_backfills_only_builtin_definitions(db, db_engine):
     await db.commit()
     async with db_engine.begin() as connection:
         await connection.run_sync(_run_alembic_upgrade, str(db_engine.url))
-    await db.refresh(owner)
+    owner = await db.get(User, owner_id)
     assert owner.settings == {"theme": "dracula", "language": "en"}
     assert (await db.get(ApplicationStatus, "global")).builtin_key == "applied"
     assert (await db.get(ApplicationStatus, "custom")).builtin_key is None

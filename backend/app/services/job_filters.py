@@ -65,7 +65,7 @@ def apply_filters(query, model, filters, date_from=None, date_to=None):
         query = query.where(model.location.ilike(f"%{filters.location}%"))
     for tag in filters.tags:
         literal = (
-            json.dumps(tag, ensure_ascii=False)
+            json.dumps(tag)
             .replace("\\", "\\\\")
             .replace("%", "\\%")
             .replace("_", "\\_")
@@ -78,9 +78,14 @@ def apply_filters(query, model, filters, date_from=None, date_to=None):
                 if filters.decision == "undecided"
                 else JobLead.decision == filters.decision
             )
-        elif not filters.show_archived:
+        else:
+            visible = (
+                ["interesting", "archived"]
+                if filters.show_archived
+                else ["interesting"]
+            )
             query = query.where(
-                or_(JobLead.decision.is_(None), JobLead.decision == "interesting")
+                or_(JobLead.decision.is_(None), JobLead.decision.in_(visible))
             )
         fields = {
             "added": JobLead.scraped_at,

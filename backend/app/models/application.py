@@ -97,7 +97,7 @@ class ApplicationStatusHistory(Base):
             name="ck_history_time_provenance",
         ),
         CheckConstraint(
-            "(is_gap AND from_status_id IS NULL AND to_status_id IS NULL AND from_meaning IS NULL AND to_meaning IS NULL AND note IS NULL AND corrected_at IS NULL AND correction_note IS NULL) OR (NOT is_gap AND to_status_id IS NOT NULL)",
+            "(is_gap AND from_status_id IS NULL AND to_status_id IS NULL AND from_meaning IS NULL AND to_meaning IS NULL AND note IS NULL AND reason IS NULL AND corrected_at IS NULL AND correction_note IS NULL) OR (NOT is_gap AND to_status_id IS NOT NULL)",
             name="ck_history_gap",
         ),
     )

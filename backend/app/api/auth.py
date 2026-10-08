@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -95,8 +95,22 @@ async def refresh_token(
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_me(user: User = Depends(get_current_user_jwt)):
-    return user
+async def get_me(
+    user: User = Depends(get_current_user_jwt), db: AsyncSession = Depends(get_db)
+):
+    can_delete = not user.is_admin or bool(
+        await db.scalar(
+            select(func.count())
+            .select_from(User)
+            .where(
+                User.is_admin.is_(True), User.is_active.is_(True), User.id != user.id
+            )
+        )
+    )
+    return {
+        **UserResponse.model_validate(user).model_dump(),
+        "can_delete_account": can_delete,
+    }
 
 
 @router.get("/whoami", response_model=AuthWhoAmIResponse)

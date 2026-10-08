@@ -36,6 +36,8 @@ async def breakdowns(
         "scope",
         "current_record_basis",
         "first_response",
+        "repeated_requirements",
+        "missing_evidence",
         "rejected_count",
         "current_phases",
         "outcomes_by_source",

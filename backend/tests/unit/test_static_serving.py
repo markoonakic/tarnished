@@ -58,7 +58,7 @@ async def test_static_paths_cannot_escape(static_client, path):
         ("/assets/missing.js", 404, None),
         ("/api", 404, None),
         ("/api/not-a-route", 404, None),
-        ("/api/rounds/missing", 404, None),
+        ("/api/rounds/missing", 401, None),
         ("/health", 200, '{"status":"healthy"}'),
     ],
 )

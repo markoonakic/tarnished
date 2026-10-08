@@ -406,7 +406,9 @@ def _append_source(sources, source_id, kind, text, **metadata):
         )
 
 
-async def application_evidence_sources(data, *, include_round_reports=True):
+async def application_evidence_sources(
+    data, *, include_round_reports=True, include_imported_reports=False
+):
     sources = []
     limits = [
         "One application, not a causal explanation of an employer decision. Current documents are not historical submission evidence.",
@@ -429,7 +431,11 @@ async def application_evidence_sources(data, *, include_round_reports=True):
         for field in ROUND_FIELDS:
             add(f"round:{round_id}:{field}", "round", round_row[field])
         report = round_row.get("interview_report")
-        if include_round_reports and report:
+        if (
+            include_round_reports
+            and report
+            and (include_imported_reports or report.get("fingerprint") != "")
+        ):
             limits.append(
                 "Round interview findings are prior model output, not verified fact."
             )
@@ -465,7 +471,7 @@ async def application_evidence_sources(data, *, include_round_reports=True):
     return sources, limits
 
 
-async def pipeline_evidence_sources(data):
+async def pipeline_evidence_sources(data, *, include_workspace_metrics=True):
     metrics = data["metrics"]
     sources = []
     limits = [
@@ -495,9 +501,29 @@ async def pipeline_evidence_sources(data):
             "unknown_applications",
             "current_stage_breakdown",
             "stage_breakdown",
+            "first_response",
+            "repeated_requirements",
+            "missing_evidence",
+            "rejected_count",
+            "stage_averages",
+            "outcomes_by_source",
+            "top_positions",
+            "top_technologies",
             "coverage",
         )
     }
+    if not include_workspace_metrics:
+        for field in (
+            "first_response",
+            "repeated_requirements",
+            "missing_evidence",
+            "rejected_count",
+            "stage_averages",
+            "outcomes_by_source",
+            "top_positions",
+            "top_technologies",
+        ):
+            summary.pop(field, None)
     summary["active_stages"] = sorted(ACTIVE_MEANINGS)
     summary["closed_stages"] = sorted(CLOSED_MEANINGS)
     add("pipeline:metrics", "pipeline_metrics", summary)

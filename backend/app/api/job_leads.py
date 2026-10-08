@@ -298,6 +298,8 @@ async def update_job_lead(
         )
     except ValidationError as exc:
         raise HTTPException(422, str(exc)) from exc
+    if values.get("url") and values["url"] != lead.url:
+        await _duplicate(db, user.id, values["url"])
     await job_links(db, user.id, values, lead)
     values["manual_fields"] = sorted(set(lead.manual_fields) | values.keys())
     # An edit invalidates the claim AND clears processing, even if its callback
@@ -393,6 +395,8 @@ async def _extract_lead(
     error = None
     try:
         if not source_text:
+            if not url:
+                raise ExtractionError("Add source text or a URL before extraction")
             html = await fetch_job_posting_html(url)
             captured = await run_in_threadpool(capture_source, None, html)
             source_text = captured["source_text"]
@@ -412,7 +416,7 @@ async def _extract_lead(
         await db.commit()  # No open database transaction across a provider request.
         extracted = await extract_job_data(
             text=source_text,
-            url=url,
+            url=url or "",
             model=ai_settings.effective_model,
             api_key=ai_settings.dispatch_api_key,
             api_base=ai_settings.base_url,

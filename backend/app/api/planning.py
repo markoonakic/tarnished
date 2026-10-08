@@ -98,7 +98,10 @@ async def deadlines(db, user, zone_name, until=None):
             model.user_id == user.id, model.deadline.is_not(None), ~reminder_exists
         )
         query = (
-            query.where(or_(model.decision.is_(None), model.decision == "interesting"))
+            query.where(
+                or_(model.decision.is_(None), model.decision == "interesting"),
+                model.converted_to_application_id.is_(None),
+            )
             if model is JobLead
             else query.where(Application.archived_at.is_(None))
         )
