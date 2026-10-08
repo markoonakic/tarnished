@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import {
   useEffect,
   useId,
@@ -84,12 +86,13 @@ export default function SearchableCombobox({
   options,
   value,
   onChange,
-  placeholder = 'Search…',
+  placeholder = t('Search…'),
   disabled = false,
   containerBackground = 'bg1',
   id,
-  noResultsText = 'No matches found.',
+  noResultsText = t('No matches found.'),
 }: SearchableComboboxProps) {
+  useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -306,7 +309,7 @@ export default function SearchableCombobox({
             }
           }}
           disabled={disabled}
-          aria-label={isOpen ? 'Close options' : 'Open options'}
+          aria-label={isOpen ? t('Close options') : t('Open options')}
           className="text-fg4 absolute inset-y-0 right-0 flex h-full cursor-pointer items-center px-3 transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
         >
           <i

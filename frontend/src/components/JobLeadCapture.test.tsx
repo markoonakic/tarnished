@@ -102,6 +102,7 @@ beforeEach(() => {
         reject(config, 409, {
           id: saved.id,
           message: 'This job has already been saved',
+          code: 'DUPLICATE_RESOURCE',
         });
     } else if (config.method === 'patch') {
       if (failure === 'conflict')
@@ -122,6 +123,7 @@ beforeEach(() => {
         reject(config, 502, {
           id: saved.id,
           message: 'AI service unavailable',
+          code: 'service_unavailable',
         });
       }
       saved = { ...saved, status: 'extracted', revision: saved.revision + 2 };
@@ -479,7 +481,7 @@ it('keeps saved identity and reads the new revision after provider failure, with
   failure = 'extract';
   fireEvent.click(screen.getByRole('button', { name: 'Extract with AI' }));
   expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Your job lead is saved. AI service unavailable'
+    'Your job lead is saved. The service is unavailable.'
   );
   await screen.findByText('Failed', { selector: 'span' });
   expect(screen.queryByText(/Saved lead:|Revision 2/)).not.toBeInTheDocument();

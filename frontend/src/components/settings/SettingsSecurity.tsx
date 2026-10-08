@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,6 +8,7 @@ import { newPasswordError } from '../../lib/password';
 import { SettingsBackLink } from './SettingsLayout';
 
 export default function SettingsSecurity() {
+  useTranslation();
   const { signOut } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
@@ -17,7 +20,7 @@ export default function SettingsSecurity() {
     setError('');
     const passwordError = newPasswordError(password);
     if (changePassword && (passwordError || password !== confirmation)) {
-      setError(passwordError || 'Passwords do not match');
+      setError(passwordError || t('Passwords do not match'));
       return;
     }
     setBusy(true);
@@ -32,8 +35,10 @@ export default function SettingsSecurity() {
     } catch {
       setError(
         changePassword
-          ? 'Could not change password. Check your current password or sign in again.'
-          : 'Could not sign out sessions. Try again.'
+          ? t(
+              'Could not change password. Check your current password or sign in again.'
+            )
+          : t('Could not sign out sessions. Try again.')
       );
     } finally {
       setBusy(false);
@@ -46,10 +51,11 @@ export default function SettingsSecurity() {
         <SettingsBackLink />
       </div>
       <div className="bg-secondary space-y-4 rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 text-xl font-bold">Security</h2>
+        <h2 className="text-fg1 text-xl font-bold">{t('Security')}</h2>
         <p className="text-muted">
-          Changing your password signs out all browser sessions. API keys stay
-          active; you can revoke them in API Keys.
+          {t(
+            'Changing your password signs out all browser sessions. API keys stay active; you can revoke them in API Keys.'
+          )}
         </p>
         {error && (
           <p role="alert" className="text-red-bright">
@@ -64,21 +70,21 @@ export default function SettingsSecurity() {
           }}
         >
           <PasswordInput
-            label="Current password"
+            label={t('Current password')}
             value={currentPassword}
             onChange={setCurrentPassword}
             required
             autoComplete="current-password"
           />
           <PasswordInput
-            label="New password"
+            label={t('New password')}
             value={password}
             onChange={setPassword}
             required
             autoComplete="new-password"
           />
           <PasswordInput
-            label="Confirm new password"
+            label={t('Confirm new password')}
             value={confirmation}
             onChange={setConfirmation}
             required
@@ -88,7 +94,7 @@ export default function SettingsSecurity() {
             className="touch-target bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
             disabled={busy}
           >
-            Change password and sign out
+            {t('Change password and sign out')}
           </button>
         </form>
         <button
@@ -96,7 +102,7 @@ export default function SettingsSecurity() {
           disabled={busy}
           onClick={() => void invalidate(false)}
         >
-          Sign out all sessions
+          {t('Sign out all sessions')}
         </button>
       </div>
     </section>

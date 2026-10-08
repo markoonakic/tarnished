@@ -249,6 +249,7 @@ describe('ScopedReport', () => {
       'config_revision',
       'generation',
       'intent_id',
+      'language',
     ]);
     expect(body.generation).toBe(0);
     expect(body.config_revision).toBe('rev-1');
@@ -369,6 +370,13 @@ describe('ScopedReport', () => {
       await renderReport(
         state({
           stale_reason: reason,
+          stale_reason_code: reason.startsWith('pipeline scope')
+            ? 'scope_changed'
+            : reason.startsWith('feedback prompt version')
+              ? 'prompt_unknown'
+              : reason.startsWith('feedback prompt changed')
+                ? 'prompt_changed'
+                : 'evidence_changed',
           report: {
             run_at: '2026-09-28T10:00:00Z',
             provider: 'fixture',
@@ -489,6 +497,7 @@ describe('ScopedReport', () => {
       state({
         job: {
           id: 'timeout-job',
+          error_code: 'report_timeout',
           state: 'failed',
           uncertain: true,
           error:
@@ -499,7 +508,7 @@ describe('ScopedReport', () => {
       })
     );
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'The report provider request timed out'
+      'The report service took too long to respond'
     );
     expect(screen.queryByText('Request details')).not.toBeInTheDocument();
     expect(
@@ -962,6 +971,13 @@ describe('ScopedReport', () => {
       await renderReport(
         state({
           stale_reason: reason,
+          stale_reason_code: reason.startsWith('pipeline scope')
+            ? 'scope_changed'
+            : reason.startsWith('feedback prompt version')
+              ? 'prompt_unknown'
+              : reason.startsWith('feedback prompt changed')
+                ? 'prompt_changed'
+                : 'evidence_changed',
           report: {
             run_at: '2026-01-01',
             provider: 'test',

@@ -1,3 +1,4 @@
+import { language, t } from '@/lib/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
@@ -64,6 +65,7 @@ export interface FeedbackState {
   period?: string;
   as_of?: string | null;
   stale_reason: string | null;
+  stale_reason_code?: string | null;
   capability: {
     available: boolean;
     provider: string | null;
@@ -83,6 +85,7 @@ export interface FeedbackState {
     state: string;
     uncertain: boolean;
     error: string | null;
+    error_code?: string | null;
     completed_sections: number;
     total_sections: number;
   } | null;
@@ -220,7 +223,9 @@ export function useFeedback<T extends FeedbackState = FeedbackState>(
     if (
       (old?.phase === 'unknown' || terminalUncertain) &&
       !confirm(
-        'Try again? The service may already have processed this request. Another attempt can repeat work or charges.'
+        t(
+          'Try again? The service may already have processed this request. Another attempt can repeat work or charges.'
+        )
       )
     )
       return;
@@ -231,7 +236,7 @@ export function useFeedback<T extends FeedbackState = FeedbackState>(
         : {
             scope: scopeIdentity,
             id: crypto.randomUUID(),
-            body: requestBody(state),
+            body: { ...requestBody(state), language: language() },
             phase: 'starting',
           };
     updateAttempt(identity, next);
@@ -261,8 +266,12 @@ export function useFeedback<T extends FeedbackState = FeedbackState>(
         error: safeErrorMessage(
           isAxiosError(error) ? error.response?.data?.detail : null,
           rejected
-            ? 'The request could not be started. Check the saved details and try again.'
-            : 'The request may have started. Check its status before trying again.'
+            ? t(
+                'The request could not be started. Check the saved details and try again.'
+              )
+            : t(
+                'The request may have started. Check its status before trying again.'
+              )
         ),
       });
       if (rejected) await queryClient.invalidateQueries({ queryKey: scopeKey });
@@ -272,22 +281,22 @@ export function useFeedback<T extends FeedbackState = FeedbackState>(
   const failed =
     !!state?.job && ['failed', 'interrupted'].includes(state.job.state);
   const actionLabel = starting
-    ? 'Starting…'
+    ? t('Starting…')
     : running
       ? state?.job?.state === 'queued'
-        ? 'Waiting…'
-        : 'Preparing…'
+        ? t('Waiting…')
+        : t('Preparing…')
       : query.isError
-        ? 'Try loading again'
+        ? t('Try loading again')
         : unknown
           ? attempt.checked
-            ? 'Retry request'
-            : 'Check status'
+            ? t('Retry request')
+            : t('Check status')
           : failed || attempt?.phase === 'rejected'
-            ? 'Try again'
+            ? t('Try again')
             : state?.report
-              ? 'Update feedback'
-              : 'Get feedback';
+              ? t('Update feedback')
+              : t('Get feedback');
   return {
     state,
     starting,

@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import Dropdown, { type DropdownOption } from './Dropdown';
 
 export interface JobLeadsFiltersValue {
@@ -14,24 +16,84 @@ interface JobLeadsFiltersProps {
 }
 
 const statusOptions: DropdownOption[] = [
-  { value: '', label: 'All Statuses' },
-  { value: 'pending', label: 'Saved / not extracted' },
-  { value: 'processing', label: 'Processing / possibly interrupted' },
-  { value: 'converted', label: 'Converted' },
-  { value: 'extracted', label: 'Extracted' },
-  { value: 'failed', label: 'Failed' },
+  {
+    value: '',
+    get label() {
+      return t('All Statuses');
+    },
+  },
+  {
+    value: 'pending',
+    get label() {
+      return t('Saved / not extracted');
+    },
+  },
+  {
+    value: 'processing',
+    get label() {
+      return t('Processing / possibly interrupted');
+    },
+  },
+  {
+    value: 'converted',
+    get label() {
+      return t('Converted');
+    },
+  },
+  {
+    value: 'extracted',
+    get label() {
+      return t('Extracted');
+    },
+  },
+  {
+    value: 'failed',
+    get label() {
+      return t('Failed');
+    },
+  },
 ];
 
 const sortOptions: DropdownOption[] = [
-  { value: 'newest', label: 'Newest First' },
-  { value: 'oldest', label: 'Oldest First' },
+  {
+    value: 'newest',
+    get label() {
+      return t('Newest First');
+    },
+  },
+  {
+    value: 'oldest',
+    get label() {
+      return t('Oldest First');
+    },
+  },
 ];
 
 const perPageOptions: DropdownOption[] = [
-  { value: '10', label: '10 / page' },
-  { value: '25', label: '25 / page' },
-  { value: '50', label: '50 / page' },
-  { value: '100', label: '100 / page' },
+  {
+    value: '10',
+    get label() {
+      return t('10 / page');
+    },
+  },
+  {
+    value: '25',
+    get label() {
+      return t('25 / page');
+    },
+  },
+  {
+    value: '50',
+    get label() {
+      return t('50 / page');
+    },
+  },
+  {
+    value: '100',
+    get label() {
+      return t('100 / page');
+    },
+  },
 ];
 
 export default function JobLeadsFilters({
@@ -39,8 +101,9 @@ export default function JobLeadsFilters({
   onChange,
   sources,
 }: JobLeadsFiltersProps) {
+  useTranslation();
   const sourceOptions: DropdownOption[] = [
-    { value: '', label: 'All Sources' },
+    { value: '', label: t('All Sources') },
     ...sources.map((source) => ({ value: source, label: source })),
   ];
 
@@ -66,7 +129,7 @@ export default function JobLeadsFilters({
         options={statusOptions}
         value={value.status}
         onChange={handleStatusChange}
-        placeholder="All Statuses"
+        placeholder={t('All Statuses')}
         size="xs"
         containerBackground="bg1"
       />
@@ -74,7 +137,7 @@ export default function JobLeadsFilters({
         options={sourceOptions}
         value={value.source}
         onChange={handleSourceChange}
-        placeholder="All Sources"
+        placeholder={t('All Sources')}
         size="xs"
         containerBackground="bg1"
         disabled={sources.length === 0}
@@ -83,7 +146,7 @@ export default function JobLeadsFilters({
         options={sortOptions}
         value={value.sort}
         onChange={handleSortChange}
-        placeholder="Newest First"
+        placeholder={t('Newest First')}
         size="xs"
         containerBackground="bg1"
       />
@@ -91,7 +154,7 @@ export default function JobLeadsFilters({
         options={perPageOptions}
         value={String(value.perPage)}
         onChange={handlePerPageChange}
-        placeholder="25 / page"
+        placeholder={t('25 / page')}
         size="xs"
         containerBackground="bg1"
       />

@@ -15,6 +15,7 @@ export function groupSankey(data: Pick<SankeyData, 'nodes' | 'links'>) {
     {
       id: string;
       label: string;
+      builtin_key?: string | null;
       meaning: string;
       color?: string;
       depth: number;
@@ -29,10 +30,16 @@ export function groupSankey(data: Pick<SankeyData, 'nodes' | 'links'>) {
         a.id.localeCompare(b.id)
     );
     path.forEach((node, depth) => {
-      const id = JSON.stringify([depth, node.meaning, node.name]);
+      const id = JSON.stringify([
+        depth,
+        node.meaning,
+        node.name,
+        node.builtin_key,
+      ]);
       const group = groups.get(id) ?? {
         id,
         label: node.name,
+        builtin_key: node.builtin_key,
         meaning: node.meaning,
         color: node.color,
         depth,

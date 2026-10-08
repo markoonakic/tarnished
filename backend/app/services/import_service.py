@@ -217,8 +217,20 @@ class ImportService:
             model_class = exportable_model.model_class
             model_name = model_class.__name__
 
-            # Skip User model - we're importing for an existing user
+            # Restore only the language preference, never account authority.
             if model_name == "User":
+                owner = session.get(User, user_id)
+                for record in export_data["models"].get("User", []):
+                    preferences = record.get("settings")
+                    if (
+                        isinstance(preferences, dict)
+                        and preferences.get("language") in ("en", "sr-Latn")
+                        and owner is not None
+                    ):
+                        owner.settings = {
+                            **(owner.settings or {}),
+                            "language": preferences["language"],
+                        }
                 continue
 
             # The owner's profile is personal data and restores with an explicit
@@ -764,7 +776,12 @@ class ImportService:
         # 1. Check for global status with this name (SQLAlchemy 2.0 style)
         stmt = select(ApplicationStatus).where(
             ApplicationStatus.user_id.is_(None),
-            ApplicationStatus.normalized_name == normalized_reference_name(status_name),
+            (
+                ApplicationStatus.builtin_key == status_data["builtin_key"]
+                if status_data.get("builtin_key") and status_data.get("user_id") is None
+                else ApplicationStatus.normalized_name
+                == normalized_reference_name(status_name)
+            ),
         )
         global_status = session.execute(stmt).scalar_one_or_none()
         global_matches = global_status is not None and (
@@ -786,7 +803,11 @@ class ImportService:
         ):
             raise ValueError(f"Status meaning conflict: {status_name}")
         # Archived global references may still map to their matching global.
-        if global_matches and global_status is not None:
+        if (
+            global_matches
+            and global_status is not None
+            and status_data.get("user_id") is None
+        ):
             if original_id:
                 self.id_mapper.add("ApplicationStatus", original_id, global_status.id)
             return global_status
@@ -813,6 +834,7 @@ class ImportService:
         new_data["user_id"] = user_id
         new_data["is_default"] = False
         new_data["id"] = str(uuid4())
+        new_data["builtin_key"] = None
         instance = ApplicationStatus(**new_data)
         session.add(instance)
         session.flush()  # Get the ID
@@ -847,10 +869,15 @@ class ImportService:
         # 1. Check for global round type with this name (SQLAlchemy 2.0 style)
         stmt = select(RoundType).where(
             RoundType.user_id.is_(None),
-            RoundType.normalized_name == normalized_reference_name(type_name),
+            (
+                RoundType.builtin_key == round_type_data["builtin_key"]
+                if round_type_data.get("builtin_key")
+                and round_type_data.get("user_id") is None
+                else RoundType.normalized_name == normalized_reference_name(type_name)
+            ),
         )
         global_type = session.execute(stmt).scalar_one_or_none()
-        if global_type:
+        if global_type and round_type_data.get("user_id") is None:
             if original_id:
                 self.id_mapper.add("RoundType", original_id, global_type.id)
             return global_type
@@ -883,6 +910,8 @@ class ImportService:
         # Set user_id AFTER the loop (consistent with _import_record)
         new_data["user_id"] = user_id
         new_data["id"] = str(uuid4())
+        new_data["is_default"] = False
+        new_data["builtin_key"] = None
         instance = RoundType(**new_data)
         session.add(instance)
         session.flush()

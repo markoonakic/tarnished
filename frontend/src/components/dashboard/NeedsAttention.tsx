@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { useNeedsAttentionData } from '@/hooks/useDashboardData';
@@ -19,6 +21,7 @@ function AttentionSection({
   icon,
   iconColor,
 }: AttentionSectionProps) {
+  useTranslation();
   const navigate = useNavigate();
 
   if (items.length === 0) {
@@ -55,7 +58,8 @@ function AttentionSection({
                 <p className="text-fg4 truncate text-sm">{item.job_title}</p>
               </div>
               <div className="text-fg4 text-xs whitespace-nowrap">
-                {item.days_since}d since applied
+                {item.days_since}
+                {t('d since applied')}
               </div>
             </div>
           </button>
@@ -66,6 +70,7 @@ function AttentionSection({
 }
 
 export default function NeedsAttention() {
+  useTranslation();
   const { data, isLoading, isError } = useNeedsAttentionData();
 
   if (isLoading) {
@@ -88,7 +93,7 @@ export default function NeedsAttention() {
     return (
       <div className="bg-secondary rounded-lg p-6">
         <p className="text-red-bright">
-          Failed to load items needing attention
+          {t('Failed to load items needing attention')}
         </p>
       </div>
     );
@@ -97,23 +102,23 @@ export default function NeedsAttention() {
   return (
     <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
       <AttentionSection
-        title="Follow-ups"
+        title={t('Follow-ups')}
         items={data.follow_ups}
-        emptyMessage="No applications need follow-up"
+        emptyMessage={t('No applications need follow-up')}
         icon="bi-bell"
         iconColor="text-yellow"
       />
       <AttentionSection
-        title="Awaiting Response"
+        title={t('Awaiting Response')}
         items={data.no_responses}
-        emptyMessage="No pending reminders"
+        emptyMessage={t('No pending reminders')}
         icon="bi-clock-history"
         iconColor="text-red"
       />
       <AttentionSection
-        title="Interviewing"
+        title={t('Interviewing')}
         items={data.interviewing}
-        emptyMessage="No currently interviewing applications"
+        emptyMessage={t('No currently interviewing applications')}
         icon="bi-chat-square-quote"
         iconColor="text-green"
       />

@@ -53,13 +53,11 @@ describe('TimeZoneSettings', () => {
     const { default: TimeZoneSettings } = await import('./TimeZoneSettings');
     render(<TimeZoneSettings />);
 
-    expect(screen.getByText('Current device time zone')).toBeInTheDocument();
-    expect(screen.getByText('Europe/Belgrade')).toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole('combobox', { name: /time zone source/i })
-    );
-    fireEvent.click(screen.getByRole('option', { name: /set manually/i }));
+    const input = screen.getByRole('combobox', { name: /time zone/i });
+    expect(input).toHaveValue('Europe/Belgrade · Use device time zone');
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'Belgrade' } });
+    fireEvent.click(screen.getByRole('option', { name: 'Europe/Belgrade' }));
 
     expect(mutate).toHaveBeenCalledWith({
       time_zone_mode: 'manual',
@@ -89,7 +87,9 @@ describe('TimeZoneSettings', () => {
     const { default: TimeZoneSettings } = await import('./TimeZoneSettings');
     render(<TimeZoneSettings />);
 
-    const manualTimeZoneInput = screen.getAllByRole('combobox')[1]!;
+    const manualTimeZoneInput = screen.getByRole('combobox', {
+      name: /time zone/i,
+    });
     fireEvent.focus(manualTimeZoneInput);
     fireEvent.change(manualTimeZoneInput, {
       target: { value: 'los' },

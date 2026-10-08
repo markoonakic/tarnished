@@ -1,3 +1,5 @@
+import { t, uiLabel, locale } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import {
   jobLeadError,
@@ -42,6 +44,7 @@ export default function JobLeadEditForm({
   onCancel: () => void;
   onReload: () => void;
 }) {
+  useTranslation();
   // Freeze the revision and baseline for this draft; a newer read must not rebase it silently.
   const [baseline] = useState(lead);
   const [fields, setFields] = useState<Record<string, string>>(() =>
@@ -67,7 +70,10 @@ export default function JobLeadEditForm({
         fields[key].includes('\u0000')
       ) {
         setError(
-          `${label} allows up to ${limit.toLocaleString()} characters and cannot contain NUL.`
+          t(
+            '{{value0}} allows up to {{value1}} characters and cannot contain NUL.',
+            { value0: uiLabel(label), value1: limit.toLocaleString(locale()) }
+          )
         );
         return;
       }
@@ -89,7 +95,7 @@ export default function JobLeadEditForm({
           values.some((value) => Array.from(value).length > 2000)
         ) {
           setError(
-            'Lists allow up to 200 entries, each up to 2,000 characters.'
+            t('Lists allow up to 200 entries, each up to 2,000 characters.')
           );
           return;
         }
@@ -109,7 +115,9 @@ export default function JobLeadEditForm({
       setStale(failure.conflict);
       setError(
         failure.conflict
-          ? 'This draft is stale or the lead was converted. Your draft is retained, but was not saved. Reload before editing again.'
+          ? t(
+              'This draft is stale or the lead was converted. Your draft is retained, but was not saved. Reload before editing again.'
+            )
           : failure.message
       );
     } finally {
@@ -118,16 +126,18 @@ export default function JobLeadEditForm({
   }
 
   return (
-    <Modal label="Edit Job Lead" onClose={onCancel} busy={busy}>
+    <Modal label={t('Edit Job Lead')} onClose={onCancel} busy={busy}>
       <form
         onSubmit={save}
         className="bg-bg1 mx-4 max-h-[90vh] w-full max-w-2xl space-y-4 overflow-y-auto rounded-lg p-6"
       >
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-primary text-xl font-semibold">Edit Job Lead</h2>
+          <h2 className="text-primary text-xl font-semibold">
+            {t('Edit Job Lead')}
+          </h2>
           <button
             type="button"
-            aria-label="Close lead editor"
+            aria-label={t('Close lead editor')}
             disabled={busy}
             onClick={onCancel}
             className="text-fg1 hover:bg-bg2 cursor-pointer rounded p-2"
@@ -146,7 +156,7 @@ export default function JobLeadEditForm({
             className="text-accent underline"
             onClick={onReload}
           >
-            Discard draft and reload saved lead
+            {t('Discard draft and reload saved lead')}
           </button>
         )}
         <fieldset
@@ -158,7 +168,7 @@ export default function JobLeadEditForm({
               key={key}
               className={`text-muted block text-sm font-semibold ${key === 'description' ? 'sm:col-span-2' : ''}`}
             >
-              {label}
+              {uiLabel(label)}
               {key === 'description' ? (
                 <textarea
                   rows={5}
@@ -185,7 +195,7 @@ export default function JobLeadEditForm({
           ))}
           {numberFields.map(([key, label]) => (
             <label key={key} className="text-muted block text-sm font-semibold">
-              {label}
+              {uiLabel(label)}
               <input
                 type="number"
                 min={0}
@@ -204,7 +214,7 @@ export default function JobLeadEditForm({
               key={key}
               className="text-muted block text-sm font-semibold sm:col-span-2"
             >
-              {label} (one per line)
+              {uiLabel(label)} {t('(one per line)')}
               <textarea
                 rows={3}
                 className={inputClass}
@@ -223,13 +233,13 @@ export default function JobLeadEditForm({
             className="text-fg1 hover:bg-bg2 cursor-pointer rounded-md px-4 py-2 transition-all duration-200 ease-in-out"
             onClick={onCancel}
           >
-            Cancel
+            {t('Cancel')}
           </button>
           <button
             className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
             disabled={busy || stale}
           >
-            {busy ? 'Saving…' : 'Save'}
+            {busy ? t('Saving…') : t('Save')}
           </button>
         </div>
       </form>

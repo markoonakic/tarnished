@@ -96,12 +96,16 @@ def _validate_section(data: dict, name: str) -> dict:
     return data
 
 
+from app.services.output_language import output_language_instruction
+
+
 def generate_insights_from_settings(
     settings: AISettingsState,
     pipeline_data: dict[str, Any],
     interview_data: dict[str, Any],
     activity_data: dict[str, Any],
     period: str,
+    output_language: str = "en",
 ) -> GraceInsights:
     """Generate AI insights from analytics data using preloaded settings."""
     model = settings.effective_model or "openai/gpt-4o-mini"
@@ -117,7 +121,11 @@ def generate_insights_from_settings(
         response = completion(
             model=model,
             messages=[
-                {"role": "system", "content": INSIGHTS_SYSTEM_PROMPT},
+                {
+                    "role": "system",
+                    "content": INSIGHTS_SYSTEM_PROMPT
+                    + output_language_instruction(output_language),
+                },
                 {"role": "user", "content": user_prompt},
             ],
             api_key=api_key,
@@ -164,6 +172,7 @@ async def generate_insights_async(
     interview_data: dict[str, Any],
     activity_data: dict[str, Any],
     period: str,
+    output_language: str = "en",
 ) -> GraceInsights:
     """Run blocking insights generation off the event loop."""
     return await run_in_threadpool(
@@ -173,4 +182,5 @@ async def generate_insights_async(
         interview_data,
         activity_data,
         period,
+        output_language,
     )

@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n';
 import axios from 'axios';
 import type { QueryState } from '@tanstack/react-query';
 
@@ -27,7 +28,7 @@ export function isTransientReadError(error: unknown): boolean {
 export class ReadHttpError extends Error {
   readonly status: number;
   constructor(status: number) {
-    super(`Could not load data (${status})`);
+    super(t('Could not load data ({{status}})', { status: status }));
     this.status = status;
   }
 }

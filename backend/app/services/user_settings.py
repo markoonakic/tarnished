@@ -11,6 +11,7 @@ TimeZoneMode = Literal["device", "manual"]
 
 
 class UserPreferencesSettings(TypedDict):
+    language: Literal["en", "sr-Latn"]
     show_streak_stats: bool
     show_needs_attention: bool
     show_heatmap: bool
@@ -19,6 +20,7 @@ class UserPreferencesSettings(TypedDict):
 
 
 DEFAULT_USER_PREFERENCES: UserPreferencesSettings = {
+    "language": "en",
     "show_streak_stats": True,
     "show_needs_attention": True,
     "show_heatmap": True,
@@ -53,6 +55,7 @@ def get_user_preferences(
     time_zone = current.get("time_zone", DEFAULT_USER_PREFERENCES["time_zone"])
 
     return {
+        "language": "sr-Latn" if current.get("language") == "sr-Latn" else "en",
         "show_streak_stats": bool(show_streak_stats),
         "show_needs_attention": bool(show_needs_attention),
         "show_heatmap": bool(show_heatmap),

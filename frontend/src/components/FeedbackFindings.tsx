@@ -1,3 +1,5 @@
+import { t, locale } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import type {
   FeedbackCitation,
   FeedbackFinding,
@@ -23,7 +25,7 @@ function recordValue(quote?: string): Record<string, unknown> | null {
   }
 }
 const text = (value: unknown) =>
-  typeof value === 'string' && value ? value : 'Not recorded';
+  typeof value === 'string' && value ? value : t('Not recorded');
 
 function stageText(value: unknown) {
   return typeof value === 'string' && Object.hasOwn(historyStageLabels, value)
@@ -54,7 +56,7 @@ function citationText(quote: string, timeZone?: string) {
   const date = offset ? new Date(`${calendarValue}${offset}`) : calendar;
   if (!Number.isFinite(date.getTime())) return quote;
   // Offset-free values are calendar fields, not inferred UTC instants.
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString(locale(), {
     timeZone: offset ? timeZone : 'UTC',
     dateStyle: 'medium',
     ...(clock ? { timeStyle: 'short' as const } : {}),
@@ -63,21 +65,21 @@ function citationText(quote: string, timeZone?: string) {
 
 function sourceLabel(source?: FeedbackSource) {
   if (source?.id.includes(':interview_findings:'))
-    return 'Earlier AI feedback · not verified experience';
-  if (source?.kind === 'profile') return 'Saved profile statement';
-  if (source?.kind === 'requirement') return 'Role requirement';
-  if (source?.kind === 'history') return 'Recorded history';
+    return t('Earlier AI feedback · not verified experience');
+  if (source?.kind === 'profile') return t('Saved profile statement');
+  if (source?.kind === 'requirement') return t('Role requirement');
+  if (source?.kind === 'history') return t('Recorded history');
   if (source?.kind === 'round') {
     if (source.id.includes(':scheduled_at:'))
-      return 'Scheduled round · not proof of attendance';
-    if (source.id.includes(':completed_at:')) return 'Round completed';
-    if (source.id.includes(':outcome:')) return 'Round outcome';
-    return 'Round record';
+      return t('Scheduled round · not proof of attendance');
+    if (source.id.includes(':completed_at:')) return t('Round completed');
+    if (source.id.includes(':outcome:')) return t('Round outcome');
+    return t('Round record');
   }
-  if (source?.kind === 'cv') return 'Current CV · not proof of submission';
+  if (source?.kind === 'cv') return t('Current CV · not proof of submission');
   if (source?.kind === 'cover_letter')
-    return 'Current cover letter · not proof of submission';
-  return 'Application record';
+    return t('Current cover letter · not proof of submission');
+  return t('Application record');
 }
 
 function Passage({
@@ -89,6 +91,7 @@ function Passage({
   label: string;
   timeZone?: string;
 }) {
+  useTranslation();
   const value = citationText(citation.quote, timeZone);
   return (
     <blockquote className="border-accent bg-bg1 space-y-1 border-l-2 px-4 py-3">
@@ -111,6 +114,7 @@ export default function FeedbackFindings({
   report: Report;
   scope: 'interview' | 'application' | 'pipeline';
 }) {
+  useTranslation();
   const rich = (finding: FeedbackFinding) =>
     finding.coaching?.version === 1 && finding.coaching.kind === scope;
   const first = report.findings.findIndex(rich);
@@ -159,14 +163,16 @@ export default function FeedbackFindings({
               <>
                 {coaching.question && (
                   <p className="text-fg2 text-sm">
-                    <span className="font-semibold">Recorded question: </span>
+                    <span className="font-semibold">
+                      {t('Recorded question:')}{' '}
+                    </span>
                     {coaching.question.quote}
                   </p>
                 )}
                 {finding.citations[coaching.answer_citation] && (
                   <Passage
                     citation={finding.citations[coaching.answer_citation]}
-                    label="Your answer"
+                    label={t('Your answer')}
                   />
                 )}
               </>
@@ -188,27 +194,27 @@ export default function FeedbackFindings({
               })}
             <div className="space-y-1">
               <h5 className="text-primary text-sm font-semibold">
-                Why this matters
+                {t('Why this matters')}
               </h5>
               <p className="whitespace-pre-line">{finding.interpretation}</p>
             </div>
             {coaching.kind === 'interview' ? (
               <>
                 <details className={disclosure} open={index === first}>
-                  <summary>Better answer</summary>
+                  <summary>{t('Better answer')}</summary>
                   <p className="text-fg2 mt-3 text-xs">
-                    Proposed wording · check the facts before using it
+                    {t('Proposed wording · check the facts before using it')}
                   </p>
                   <p className="mt-2 whitespace-pre-line">
                     {coaching.better_answer}
                   </p>
                 </details>
                 <details className={disclosure} open={index === first}>
-                  <summary>Practise this</summary>
+                  <summary>{t('Practise this')}</summary>
                   <p className="mt-3 whitespace-pre-line">{finding.action}</p>
                 </details>
                 <details className={disclosure}>
-                  <summary>Role requirement</summary>
+                  <summary>{t('Role requirement')}</summary>
                   <div className="mt-3 space-y-3">
                     {finding.citations
                       .filter((c) =>
@@ -221,7 +227,7 @@ export default function FeedbackFindings({
                         <Passage
                           key={i}
                           citation={citation}
-                          label="Exact cited requirement"
+                          label={t('Exact cited requirement')}
                         />
                       ))}
                   </div>
@@ -232,7 +238,7 @@ export default function FeedbackFindings({
                 {coaching.kind === 'application' ? (
                   <div className="space-y-3">
                     <h5 className="text-primary text-sm font-semibold">
-                      Next steps · use a confirmed condition
+                      {t('Next steps · use a confirmed condition')}
                     </h5>
                     {coaching.branches.map((branch, i) => (
                       <details key={i} className={disclosure} open={i === 0}>
@@ -244,13 +250,14 @@ export default function FeedbackFindings({
                     ))}
                     {coaching.draft && (
                       <details className={disclosure} open={index === first}>
-                        <summary>Conditional draft</summary>
+                        <summary>{t('Conditional draft')}</summary>
                         <p className="mt-3 whitespace-pre-line">
                           {coaching.draft.condition}
                         </p>
                         <p className="text-fg2 mt-2 text-xs">
-                          Writing example only. Check the condition and fill the
-                          brackets. Nothing is sent.
+                          {t(
+                            'Writing example only. Check the condition and fill the brackets. Nothing is sent.'
+                          )}
                         </p>
                         <blockquote className="bg-bg1 mt-3 rounded p-4 whitespace-pre-line">
                           {coaching.draft.text}
@@ -259,7 +266,7 @@ export default function FeedbackFindings({
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-3" aria-label="Records to check">
+                  <div className="space-y-3" aria-label={t('Records to check')}>
                     {coaching.records.map((step, i) => {
                       const record = recordValue(
                         finding.citations[step.record_citation]?.quote
@@ -290,23 +297,24 @@ export default function FeedbackFindings({
                             )}
                           </h5>
                           <p className="text-fg2 text-sm">
-                            {text(record.role)} · Applied{' '}
+                            {text(record.role)} {t('· Applied')}{' '}
                             {text(record.applied_at)}
                           </p>
                           <p className="text-fg2 text-sm">
-                            Source: {text(record.source)} · Current stage:{' '}
+                            {t('Source:')} {text(record.source)}{' '}
+                            {t('· Current stage:')}{' '}
                             {stageText(record.current_stage)}
                           </p>
                           {record.stage_at_report_date !==
                             record.current_stage && (
                             <p className="text-fg2 text-sm">
-                              Stage at report date:{' '}
+                              {t('Stage at report date:')}{' '}
                               {stageText(record.stage_at_report_date)}
                             </p>
                           )}
                           {record.history_incomplete === true && (
                             <p className="text-fg2 text-sm">
-                              Recorded history is incomplete.
+                              {t('Recorded history is incomplete.')}
                             </p>
                           )}
                           {step.round_citations?.map((c) => {
@@ -315,15 +323,17 @@ export default function FeedbackFindings({
                             );
                             return round ? (
                               <p key={c} className="text-fg2 text-sm">
-                                {text(round.round_type)} · Scheduled:{' '}
-                                {text(round.scheduled_at)} · Completed:{' '}
-                                {text(round.completed_at)} · Outcome:{' '}
+                                {text(round.round_type)} {t('· Scheduled:')}{' '}
+                                {text(round.scheduled_at)} {t('· Completed:')}{' '}
+                                {text(round.completed_at)} {t('· Outcome:')}{' '}
                                 {text(round.outcome)}
                               </p>
                             ) : null;
                           })}
                           <p className="whitespace-pre-line">
-                            <span className="font-semibold">Check: </span>
+                            <span className="font-semibold">
+                              {t('Check:')}{' '}
+                            </span>
                             {step.condition}
                           </p>
                           <p className="whitespace-pre-line">{step.action}</p>
@@ -333,7 +343,9 @@ export default function FeedbackFindings({
                   </div>
                 )}
                 <div className="border-accent border-l-2 pl-4">
-                  <h5 className="text-fg1 text-sm font-semibold">Next step</h5>
+                  <h5 className="text-fg1 text-sm font-semibold">
+                    {t('Next step')}
+                  </h5>
                   <p className="mt-1 whitespace-pre-line">{finding.action}</p>
                 </div>
               </>
@@ -346,6 +358,7 @@ export default function FeedbackFindings({
 }
 
 function SavedMetrics({ report }: { report: Report }) {
+  useTranslation();
   const metrics = recordValue(
     report.sources.find(
       (s) => s.id === 'pipeline:metrics:0' && s.kind === 'pipeline_metrics'
@@ -353,14 +366,14 @@ function SavedMetrics({ report }: { report: Report }) {
   );
   if (!metrics) return null;
   return (
-    <div className="space-y-2" aria-label="Saved cohort metrics">
+    <div className="space-y-2" aria-label={t('Saved cohort metrics')}>
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {(
           [
-            ['Applications', 'total_applications', null],
-            ['Responses', 'responded', 'response_rate'],
-            ['Reached interview', 'interviews', 'interview_rate'],
-            ['Offers', 'offers', 'offer_rate'],
+            [t('Applications'), 'total_applications', null],
+            [t('Responses'), 'responded', 'response_rate'],
+            [t('Reached interview'), 'interviews', 'interview_rate'],
+            [t('Offers'), 'offers', 'offer_rate'],
           ] as const
         ).map(([label, count, rate]) => (
           <div key={count} className="bg-bg2 rounded p-3">
@@ -368,13 +381,13 @@ function SavedMetrics({ report }: { report: Report }) {
             <dd className="text-primary mt-1 text-lg font-semibold">
               {typeof metrics[count] === 'number'
                 ? String(metrics[count])
-                : 'Not recorded'}
+                : t('Not recorded')}
             </dd>
             {rate && (
               <dd className="text-fg2 text-xs">
                 {typeof metrics[rate] === 'number'
                   ? `${metrics[rate]}%`
-                  : 'Rate unavailable'}
+                  : t('Rate unavailable')}
               </dd>
             )}
           </div>

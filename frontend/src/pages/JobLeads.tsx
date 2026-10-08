@@ -1,3 +1,5 @@
+import { t, locale } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { observeRead } from '../lib/queryClient';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -38,6 +40,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function JobLeads() {
+  useTranslation();
   const { error: showError } = useToastContext();
   const requestId = useRef(0);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -79,7 +82,7 @@ export default function JobLeads() {
     } catch (error) {
       if (ownedRequest !== requestId.current) return;
       setListError(true);
-      showError('Failed to load job leads');
+      showError(t('Failed to load job leads'));
       return { error };
     } finally {
       if (ownedRequest === requestId.current) setLoading(false);
@@ -152,7 +155,7 @@ export default function JobLeads() {
 
   function formatDate(dateStr: string | null) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString();
+    return new Date(dateStr).toLocaleDateString(locale());
   }
 
   function domain(url: string) {
@@ -167,7 +170,7 @@ export default function JobLeads() {
     <Layout>
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-primary text-2xl font-bold">Job Leads</h1>
+          <h1 className="text-primary text-2xl font-bold">{t('Job Leads')}</h1>
           <JobLeadCaptureForm
             onSaved={async () => {
               await loadJobLeads();
@@ -181,8 +184,8 @@ export default function JobLeads() {
               <i className="bi-search icon-sm text-muted absolute top-1/2 left-3 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search company or job title..."
-                aria-label="Search job leads"
+                placeholder={t('Search company or job title...')}
+                aria-label={t('Search job leads')}
                 value={search}
                 onChange={(e) => updateParams({ search: e.target.value })}
                 className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
@@ -191,7 +194,7 @@ export default function JobLeads() {
                 <button
                   onClick={() => updateParams({ search: '' })}
                   className="text-muted hover:text-fg1 absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
-                  aria-label="Clear search"
+                  aria-label={t('Clear search')}
                 >
                   <i className="bi-x icon-sm" />
                 </button>
@@ -212,28 +215,32 @@ export default function JobLeads() {
         </div>
 
         {loading ? (
-          <Loading message="Loading job leads..." />
+          <Loading message={t('Loading job leads...')} />
         ) : listError ? (
           <div role="alert" className="text-red-bright">
-            Could not refresh the list. This does not undo any saved lead.
+            {t(
+              'Could not refresh the list. This does not undo any saved lead.'
+            )}
             <button
               className="text-accent ml-3 underline"
               onClick={loadJobLeads}
             >
-              Reload list
+              {t('Reload list')}
             </button>
           </div>
         ) : jobLeads.length === 0 ? (
           isFiltered ? (
             <EmptyState
-              message="No job leads match your search or filters."
-              subMessage="Try different keywords or clear filters."
+              message={t('No job leads match your search or filters.')}
+              subMessage={t('Try different keywords or clear filters.')}
               icon="bi-search"
             />
           ) : (
             <EmptyState
-              message="No job leads yet. Add URLs to start tracking job opportunities."
-              subMessage="Save a link with New Job Lead to get started."
+              message={t(
+                'No job leads yet. Add URLs to start tracking job opportunities.'
+              )}
+              subMessage={t('Save a link with New Job Lead to get started.')}
               icon="bi-bookmark-star"
             />
           )
@@ -244,19 +251,19 @@ export default function JobLeads() {
                 <thead>
                   <tr className="border-tertiary border-b">
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                      Company
+                      {t('Company')}
                     </th>
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                      Position
+                      {t('Position')}
                     </th>
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                      Status
+                      {t('Status')}
                     </th>
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                      Source
+                      {t('Source')}
                     </th>
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                      Added
+                      {t('Added')}
                     </th>
                   </tr>
                 </thead>
@@ -278,7 +285,7 @@ export default function JobLeads() {
                             className="text-fg1 hover:text-accent-bright cursor-pointer font-medium transition-all duration-200 ease-in-out"
                           >
                             <span className={lead.company ? '' : 'text-muted'}>
-                              {lead.company || 'Untitled lead'}
+                              {lead.company || t('Untitled lead')}
                             </span>
                             {!lead.company && (
                               <span className="text-muted mt-1 block text-xs font-normal">
@@ -325,7 +332,7 @@ export default function JobLeads() {
                         <span
                           className={`${lead.company ? 'text-fg1' : 'text-muted'} block truncate font-medium`}
                         >
-                          {lead.company || 'Untitled lead'}
+                          {lead.company || t('Untitled lead')}
                         </span>
                         {!lead.company && (
                           <span className="text-muted mt-1 block truncate text-xs">

@@ -71,6 +71,7 @@ beforeEach(() => {
       if (failure)
         throw new AxiosError('Recording failed', undefined, config, undefined, {
           data: {
+            code: 'no_audio_track',
             detail:
               'Recording has no audio track. Upload a recording containing speech',
           },

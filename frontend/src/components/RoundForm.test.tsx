@@ -73,6 +73,7 @@ beforeEach(() => {
           undefined,
           {
             data: {
+              code: 'round_time_zone_changed',
               detail:
                 'Round time zone changed. Reload time zone preferences and saved dates before saving.',
             },

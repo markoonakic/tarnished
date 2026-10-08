@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import {
   Outlet,
   NavLink,
@@ -21,45 +23,107 @@ interface SettingsCategory {
 
 const settingsCategories: SettingsCategory[] = [
   {
-    name: 'Personalization',
+    get name() {
+      return t('Personalization');
+    },
     sections: [
-      { path: 'theme', label: 'Theme', icon: 'bi-palette' },
-      { path: 'features', label: 'Features', icon: 'bi-toggle-on' },
+      {
+        path: 'theme',
+        get label() {
+          return t('Theme');
+        },
+        icon: 'bi-palette',
+      },
+      {
+        path: 'features',
+        get label() {
+          return t('Features');
+        },
+        icon: 'bi-toggle-on',
+      },
+      {
+        path: 'language',
+        get label() {
+          return t('Language & time');
+        },
+        icon: 'bi-translate',
+      },
     ],
   },
   {
-    name: 'Account',
+    get name() {
+      return t('Account');
+    },
     sections: [
-      { path: 'profile', label: 'Profile', icon: 'bi-person' },
-      { path: 'security', label: 'Security', icon: 'bi-shield-lock' },
-      { path: 'api-key', label: 'API Keys', icon: 'bi-key' },
+      {
+        path: 'profile',
+        get label() {
+          return t('Profile');
+        },
+        icon: 'bi-person',
+      },
+      {
+        path: 'security',
+        get label() {
+          return t('Security');
+        },
+        icon: 'bi-shield-lock',
+      },
+      {
+        path: 'api-key',
+        get label() {
+          return t('API Keys');
+        },
+        icon: 'bi-key',
+      },
     ],
   },
   {
-    name: 'Workflow',
+    get name() {
+      return t('Workflow');
+    },
     sections: [
       {
         path: 'statuses',
-        label: 'Application Statuses',
+        get label() {
+          return t('Application Statuses');
+        },
         icon: 'bi-signpost-2',
       },
       {
         path: 'round-types',
-        label: 'Interview Round Types',
+        get label() {
+          return t('Interview Round Types');
+        },
         icon: 'bi-list-check',
       },
     ],
   },
   {
-    name: 'Data',
+    get name() {
+      return t('Data');
+    },
     sections: [
-      { path: 'export', label: 'Data Export', icon: 'bi-download' },
-      { path: 'import', label: 'Data Import', icon: 'bi-upload' },
+      {
+        path: 'export',
+        get label() {
+          return t('Data Export');
+        },
+        icon: 'bi-download',
+      },
+      {
+        path: 'import',
+        get label() {
+          return t('Data Import');
+        },
+        icon: 'bi-upload',
+      },
     ],
   },
 ];
 
 function DesktopSidebarLink({ section }: { section: SettingsSection }) {
+  useTranslation();
   return (
     <NavLink
       to={section.path}
@@ -84,6 +148,7 @@ function DesktopSidebarLink({ section }: { section: SettingsSection }) {
 }
 
 function MobileSectionCard({ section }: { section: SettingsSection }) {
+  useTranslation();
   return (
     <NavLink
       to={section.path}
@@ -101,18 +166,20 @@ function MobileSectionCard({ section }: { section: SettingsSection }) {
 }
 
 export function SettingsBackLink() {
+  useTranslation();
   return (
     <Link
       to="/settings"
       className="text-accent hover:text-accent-bright mb-6 flex cursor-pointer items-center gap-2 text-sm transition-all duration-200 ease-in-out"
     >
       <i className="bi-chevron-left icon-sm" />
-      Back to Settings
+      {t('Back to Settings')}
     </Link>
   );
 }
 
 export default function SettingsLayout() {
+  useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const isOnSettingsRoot = location.pathname === '/settings';
@@ -132,7 +199,9 @@ export default function SettingsLayout() {
     <Layout>
       <div className="flex min-h-screen flex-col md:flex-row">
         <aside className="bg-secondary hidden w-72 flex-shrink-0 px-3 py-8 md:block">
-          <h1 className="text-fg1 mb-6 px-3 text-2xl font-bold">Settings</h1>
+          <h1 className="text-fg1 mb-6 px-3 text-2xl font-bold">
+            {t('Settings')}
+          </h1>
           <nav className="space-y-6">
             {settingsCategories.map((category) => (
               <div key={category.name}>
@@ -154,7 +223,9 @@ export default function SettingsLayout() {
         <div className="min-w-0 flex-1">
           {isOnSettingsRoot ? (
             <div className="p-4 md:hidden">
-              <h1 className="text-fg1 mb-6 text-2xl font-bold">Settings</h1>
+              <h1 className="text-fg1 mb-6 text-2xl font-bold">
+                {t('Settings')}
+              </h1>
               <div className="space-y-6">
                 {settingsCategories.map((category) => (
                   <div key={category.name}>

@@ -1,3 +1,4 @@
+import { t, language } from '@/lib/i18n';
 type TransferPhase =
   | 'idle'
   | 'uploading'
@@ -42,7 +43,7 @@ export function createTransferStateFromUpload({
   fileName,
 }: UploadInput): TransferState {
   const progress = total > 0 ? Math.round((loaded / total) * 100) : 0;
-  const verb = phase === 'uploading' ? 'Uploading' : 'Downloading';
+  const verb = phase === 'uploading' ? t('Uploading') : t('Downloading');
   return {
     phase,
     progress,
@@ -52,12 +53,27 @@ export function createTransferStateFromUpload({
 }
 
 export function createTransferStateFromJob(job: JobInput): TransferState {
+  const stages = {
+    validating: 'Validating ZIP file...',
+    extracting: 'Extracting files...',
+    clearing: 'Removing existing data...',
+    importing: 'Importing data...',
+    finalizing: 'Finalizing...',
+    queued: 'Queued for processing',
+    exporting: 'Collecting export data...',
+    archiving: 'Preparing ZIP archive...',
+  } as const;
   const progress = job.percent ?? 0;
+  const message = language() === 'en' ? job.message : undefined;
+  const stageMessage =
+    job.stage && Object.hasOwn(stages, job.stage)
+      ? t(stages[job.stage as keyof typeof stages])
+      : t('Processing...');
   if (job.status === 'complete') {
     return {
       phase: 'ready',
       progress,
-      message: job.message ?? 'Ready',
+      message: message ?? t('Ready'),
       result: job.result ?? undefined,
     };
   }
@@ -67,10 +83,10 @@ export function createTransferStateFromJob(job: JobInput): TransferState {
       phase: job.status,
       progress,
       message:
-        job.message ??
+        message ??
         (job.status === 'cancelled'
-          ? 'Transfer cancelled'
-          : 'Transfer status unknown'),
+          ? t('Transfer cancelled')
+          : t('Transfer status unknown')),
     };
   }
 
@@ -79,8 +95,8 @@ export function createTransferStateFromJob(job: JobInput): TransferState {
       phase: 'failed',
       progress,
       stage: job.stage ?? undefined,
-      message: job.message ?? 'Transfer failed',
-      error: job.error?.error ?? job.message ?? 'Transfer failed',
+      message: t('Transfer failed'),
+      error: t('Transfer failed'),
       result: job.result ?? undefined,
     };
   }
@@ -89,7 +105,7 @@ export function createTransferStateFromJob(job: JobInput): TransferState {
     phase: 'processing',
     progress,
     stage: job.stage ?? undefined,
-    message: job.message ?? 'Processing...',
+    message: message ?? stageMessage,
     result: job.result ?? undefined,
   };
 }

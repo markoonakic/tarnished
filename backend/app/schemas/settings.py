@@ -42,6 +42,7 @@ class StatusUpdate(BaseModel):
 
 
 class StatusFullResponse(BaseModel):
+    builtin_key: str | None = None
     meaning: Meaning
     model_config = ConfigDict(from_attributes=True)
 
@@ -65,6 +66,7 @@ class RoundTypeCreate(BaseModel):
 
 
 class RoundTypeFullResponse(BaseModel):
+    builtin_key: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
     id: str

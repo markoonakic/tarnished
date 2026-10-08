@@ -1,9 +1,13 @@
 import axios, { AxiosHeaders, type AxiosRequestConfig } from 'axios';
 import { ReadHttpError } from './readRecovery';
+import { uiLabel, isInterfaceText } from './i18n';
+import { errorMessage } from './errorMessage';
 
 // Validation objects can contain submitted secrets.
 export function safeErrorMessage(detail: unknown, fallback: string): string {
-  return typeof detail === 'string' && detail.trim() ? detail : fallback;
+  return typeof detail === 'string' && isInterfaceText(detail)
+    ? uiLabel(detail)
+    : fallback;
 }
 
 export const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -233,6 +237,19 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    if (error.response) {
+      const raw = error.response.data;
+      const data = raw && typeof raw === 'object' ? raw : {};
+      error.response.data = data;
+      const message = errorMessage(data, error.response.status);
+      if (
+        data.detail &&
+        typeof data.detail === 'object' &&
+        !Array.isArray(data.detail)
+      )
+        data.detail = { ...data.detail, message };
+      else data.detail = message;
+    }
     if (error.response?.status !== 401) {
       return Promise.reject(error);
     }

@@ -331,7 +331,11 @@ it('local preset clears speech secrets, preserves text and performs no implicit 
     fireEvent.click(a.getByText('Check saved local installation'))
   );
   expect(getLocalSpeechStatus).toHaveBeenCalledOnce();
-  expect(a.getByText('not_installed: Run explicit setup.')).toBeVisible();
+  expect(
+    a.getByText(
+      'No supported model is installed. Selecting a model does not download it.'
+    )
+  ).toBeVisible();
 });
 
 it('offers both curated local models and selects base without any implicit call', async () => {

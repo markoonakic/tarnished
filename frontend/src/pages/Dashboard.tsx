@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { observeRead } from '../lib/queryClient';
@@ -18,6 +20,7 @@ import {
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 export default function Dashboard() {
+  useTranslation();
   const navigate = useNavigate();
   const [totalApplications, setTotalApplications] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -68,17 +71,19 @@ export default function Dashboard() {
     return (
       <Layout>
         <div className="mx-auto max-w-6xl px-4 py-8">
-          <h1 className="text-primary mb-6 text-2xl font-bold">Dashboard</h1>
+          <h1 className="text-primary mb-6 text-2xl font-bold">
+            {t('Dashboard')}
+          </h1>
           {loading ? (
-            <Loading message="Loading dashboard..." />
+            <Loading message={t('Loading dashboard...')} />
           ) : (
             <div role="alert" className="text-red-bright">
-              Failed to load dashboard.
+              {t('Failed to load dashboard.')}
               <button
                 className="text-accent ml-3 underline"
                 onClick={() => setRetry((value) => value + 1)}
               >
-                Retry
+                {t('Retry')}
               </button>
             </div>
           )}
@@ -115,10 +120,11 @@ export default function Dashboard() {
           <div className="bg-accent/20 border-accent text-primary mb-6 rounded-lg border px-6 py-4">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <div>
-                <h3 className="mb-1 font-semibold">Welcome! 👋</h3>
+                <h3 className="mb-1 font-semibold">{t('Welcome! 👋')}</h3>
                 <p className="text-sm">
-                  Do you have data from a previous export? You can import it to
-                  get started.
+                  {t(
+                    'Do you have data from a previous export? You can import it to get started.'
+                  )}
                 </p>
               </div>
               <div className="flex flex-shrink-0 gap-3">
@@ -126,13 +132,13 @@ export default function Dashboard() {
                   onClick={handleDismissPrompt}
                   className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                 >
-                  Skip
+                  {t('Skip')}
                 </button>
                 <button
                   onClick={handleOpenImportModal}
                   className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                 >
-                  Import Data
+                  {t('Import Data')}
                 </button>
               </div>
             </div>
@@ -140,16 +146,20 @@ export default function Dashboard() {
         )}
         {totalApplications === 0 ? (
           <EmptyState
-            message="Welcome! Add your first job application to get started."
+            message={t(
+              'Welcome! Add your first job application to get started.'
+            )}
             icon="bi-plus-circle"
             action={{
-              label: 'Add Application',
+              label: t('Add Application'),
               onClick: () => setShowCreateModal(true),
             }}
           />
         ) : (
           <>
-            <h1 className="text-primary mb-6 text-2xl font-bold">Dashboard</h1>
+            <h1 className="text-primary mb-6 text-2xl font-bold">
+              {t('Dashboard')}
+            </h1>
 
             {showStreakStats && <FlameEmblem />}
 
@@ -163,7 +173,7 @@ export default function Dashboard() {
               >
                 <i className="bi bi-plus-lg text-accent icon-xl align-middle"></i>
                 <span className="text-fg1 ml-3 align-middle font-medium">
-                  New Application
+                  {t('New Application')}
                 </span>
               </button>
               <button
@@ -172,7 +182,7 @@ export default function Dashboard() {
               >
                 <i className="bi bi-graph-up text-accent icon-xl align-middle"></i>
                 <span className="text-fg1 ml-3 align-middle font-medium">
-                  View Analytics
+                  {t('View Analytics')}
                 </span>
               </button>
               <button
@@ -181,7 +191,7 @@ export default function Dashboard() {
               >
                 <i className="bi bi-list-ul text-accent icon-xl align-middle"></i>
                 <span className="text-fg1 ml-3 align-middle font-medium">
-                  View Applications
+                  {t('View Applications')}
                 </span>
               </button>
             </div>
@@ -192,7 +202,7 @@ export default function Dashboard() {
               <div className="bg-secondary rounded-lg p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-primary text-lg font-semibold">
-                    Activity Overview
+                    {t('Activity Overview')}
                   </h2>
                 </div>
                 <ActivityHeatmap />

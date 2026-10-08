@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import {
   useEffect,
   useId,
@@ -95,12 +97,13 @@ export default function Dropdown({
   options,
   value,
   onChange,
-  placeholder = 'Select...',
+  placeholder = t('Select...'),
   disabled = false,
   size = 'md',
   containerBackground = 'bg1',
   id,
 }: DropdownProps) {
+  useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const triggerRef = useRef<HTMLButtonElement>(null);

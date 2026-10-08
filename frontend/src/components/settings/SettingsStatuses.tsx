@@ -1,3 +1,6 @@
+import { t } from '@/lib/i18n';
+import { statusLabel } from '@/lib/referenceLabels';
+import { useTranslation } from 'react-i18next';
 import { observeRead } from '@/lib/queryClient';
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -19,7 +22,7 @@ import { SettingsBackLink } from './SettingsLayout';
 
 const stageLabel = (meaning: StatusMeaning) =>
   meaning === 'unknown'
-    ? 'Unclassified'
+    ? t('Unclassified')
     : meaning
         .replaceAll('_', ' ')
         .replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -29,6 +32,7 @@ const stageOptions = statusMeanings.map((meaning) => ({
 }));
 
 export default function SettingsStatuses() {
+  useTranslation();
   const colors = useThemeColors();
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [newStatusName, setNewStatusName] = useState('');
@@ -49,7 +53,7 @@ export default function SettingsStatuses() {
       setStatuses(statusData);
       setError('');
     } catch (error) {
-      setError('Failed to load settings');
+      setError(t('Failed to load settings'));
       return { error };
     } finally {
       setLoading(false);
@@ -78,7 +82,7 @@ export default function SettingsStatuses() {
       setNewStatusName('');
       loadData();
     } catch {
-      setError('Failed to create status');
+      setError(t('Failed to create status'));
     }
   }
 
@@ -102,14 +106,17 @@ export default function SettingsStatuses() {
       setEditingStatus(null);
       loadData();
     } catch {
-      setError('Failed to update status');
+      setError(t('Failed to update status'));
     }
   }
 
   async function handleDeleteStatus(status: Status) {
     if (
       !confirm(
-        `Delete status "${status.name}"? Applications using this status will need to be updated.`
+        t(
+          'Delete status "{{value0}}"? Applications using this status will need to be updated.',
+          { value0: statusLabel(status) }
+        )
       )
     ) {
       return;
@@ -119,7 +126,7 @@ export default function SettingsStatuses() {
       await deleteStatus(status.id);
       loadData();
     } catch {
-      setError('Failed to delete status');
+      setError(t('Failed to delete status'));
     }
   }
 
@@ -131,7 +138,7 @@ export default function SettingsStatuses() {
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
         <h2 className="text-fg1 mb-4 text-xl font-bold">
-          Application Statuses
+          {t('Application Statuses')}
         </h2>
 
         {error && (
@@ -141,37 +148,37 @@ export default function SettingsStatuses() {
         )}
 
         {loading ? (
-          <Loading message="Loading settings..." />
+          <Loading message={t('Loading settings...')} />
         ) : (
           <>
             {statuses.filter((s) => !s.is_default).length === 0 && (
               <p className="text-muted bg-tertiary mb-4 rounded p-3 text-sm">
-                Using default statuses. Add custom statuses to override.
+                {t('Using default statuses. Add custom statuses to override.')}
               </p>
             )}
             <div className="mb-4 space-y-2">
               {statuses.map((status) => (
                 <div
                   key={status.id}
-                  className="bg-tertiary flex items-center justify-between rounded px-3 py-2"
+                  className="bg-tertiary flex items-center justify-between gap-3 rounded px-3 py-2"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     <div
-                      className="h-4 w-4 rounded"
+                      className="h-4 w-4 shrink-0 rounded"
                       style={{ backgroundColor: status.color }}
                     />
                     <div className="min-w-0">
-                      <span className="text-fg1">{status.name}</span>
+                      <span className="text-fg1 break-words">{statusLabel(status)}</span>
                       {!status.is_default && (
                         <p className="text-muted text-xs">
-                          Stage: {stageLabel(status.meaning)}
+                          {t('Stage:')} {stageLabel(status.meaning)}
                         </p>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     {status.is_default && (
-                      <span className="text-muted text-xs">Default</span>
+                      <span className="text-muted text-xs">{t('Default')}</span>
                     )}
                     {!status.is_default && (
                       <button
@@ -179,7 +186,7 @@ export default function SettingsStatuses() {
                         className="text-fg1 hover:bg-bg3 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
                       >
                         <i className="bi-pencil icon-xs"></i>
-                        Edit
+                        {t('Edit')}
                       </button>
                     )}
                     {!status.is_default && (
@@ -188,7 +195,7 @@ export default function SettingsStatuses() {
                         className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
                       >
                         <i className="bi-trash icon-xs"></i>
-                        Delete
+                        {t('Delete')}
                       </button>
                     )}
                   </div>
@@ -201,14 +208,16 @@ export default function SettingsStatuses() {
                 onSubmit={handleUpdateStatus}
                 className="bg-secondary mb-4 rounded p-3"
               >
-                <div className="text-muted mb-2 text-sm">Edit Status</div>
+                <div className="text-muted mb-2 text-sm">
+                  {t('Edit Status')}
+                </div>
                 <div className="flex flex-wrap items-end gap-2">
                   <div className="w-full sm:w-44">
                     <label
                       htmlFor="edit-status-stage"
                       className="text-muted mb-1 block text-sm"
                     >
-                      Stage
+                      {t('Stage')}
                     </label>
                     <Dropdown
                       id="edit-status-stage"
@@ -224,13 +233,13 @@ export default function SettingsStatuses() {
                     type="text"
                     value={editStatusName}
                     onChange={(e) => setEditStatusName(e.target.value)}
-                    placeholder="Status name"
-                    aria-label="Status name"
+                    placeholder={t('Status name')}
+                    aria-label={t('Status name')}
                     className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright h-10 min-w-0 flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
                   <input
                     type="color"
-                    aria-label="Status color"
+                    aria-label={t('Status color')}
                     value={editStatusColor}
                     onChange={(e) => setEditStatusColor(e.target.value)}
                     className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"
@@ -239,14 +248,14 @@ export default function SettingsStatuses() {
                     type="submit"
                     className="bg-accent text-bg0 hover:bg-accent-bright h-10 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                   >
-                    Save
+                    {t('Save')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingStatus(null)}
                     className="text-fg1 hover:bg-bg2 hover:text-fg0 h-10 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out"
                   >
-                    Cancel
+                    {t('Cancel')}
                   </button>
                 </div>
               </form>
@@ -260,7 +269,7 @@ export default function SettingsStatuses() {
                     htmlFor="new-status-stage"
                     className="text-muted mb-1 block text-sm"
                   >
-                    Stage
+                    {t('Stage')}
                   </label>
                   <Dropdown
                     id="new-status-stage"
@@ -274,13 +283,13 @@ export default function SettingsStatuses() {
                   type="text"
                   value={newStatusName}
                   onChange={(e) => setNewStatusName(e.target.value)}
-                  placeholder="New status name"
-                  aria-label="New status name"
+                  placeholder={t('New status name')}
+                  aria-label={t('New status name')}
                   className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright h-10 min-w-0 flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
                 <input
                   type="color"
-                  aria-label="New status color"
+                  aria-label={t('New status color')}
                   value={newStatusColor}
                   onChange={(e) => setNewStatusColor(e.target.value)}
                   className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"
@@ -289,15 +298,15 @@ export default function SettingsStatuses() {
                   type="submit"
                   className="bg-accent text-bg0 hover:bg-accent-bright h-10 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                 >
-                  Add
+                  {t('Add')}
                 </button>
               </form>
             )}
 
             <p className="text-muted mt-3 text-xs">
-              Choose the stage used in reports; the status name can be your own.
-              Changes apply the next time a status is selected, not to existing
-              history.
+              {t(
+                'Choose the stage used in reports; the status name can be your own. Changes apply the next time a status is selected, not to existing history.'
+              )}
             </p>
           </>
         )}

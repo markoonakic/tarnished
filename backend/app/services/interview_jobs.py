@@ -307,6 +307,18 @@ async def _target(db, job):
     raise HTTPException(409, "Unsupported report scope")
 
 
+def _stale_reason_code(reason):
+    if not reason:
+        return None
+    if reason.startswith("pipeline scope or text configuration changed"):
+        return "scope_changed"
+    if reason.startswith("feedback prompt version unknown"):
+        return "prompt_unknown"
+    if reason.startswith("feedback prompt changed"):
+        return "prompt_changed"
+    return "evidence_changed"
+
+
 def _prompt_stale_reason(metadata, scope):
     revision = metadata.get("prompt_revision")
     if not revision:
@@ -448,6 +460,7 @@ async def start(
         manifest={
             "fingerprint": digest,
             "prompt_revision": prompt_revision(scope),
+            "output_language": request.language,
             **manifest,
         },
         config_revision=settings.revision,
@@ -512,6 +525,7 @@ async def publish(db, job_id, claim, sources, limits):
     report = {
         "version": 1,
         "scope": job.scope,
+        "output_language": job.manifest.get("output_language", "en"),
         "run_at": datetime.now(UTC).isoformat(),
         "provider": job.provider,
         "model": job.model,
@@ -594,6 +608,7 @@ async def publish(db, job_id, claim, sources, limits):
     job.manifest = {
         "fingerprint": job.fingerprint,
         "prompt_revision": job.manifest["prompt_revision"],
+        "output_language": job.manifest.get("output_language", "en"),
     }
 
 
@@ -612,6 +627,7 @@ async def execute(executor, job_id, claim):
     async with executor.sessions() as db:
         job, data, _ = await guard(db, job_id, claim, ("analyzing",))
         scope = job.scope
+        output_language = job.manifest.get("output_language", "en")
         await db.commit()
     sources, limits, batches = await _scope_evidence(scope, data)
     async with executor.sessions() as db:
@@ -631,7 +647,16 @@ async def execute(executor, job_id, claim):
     async def analyze(index, batch, settings):
         with validation_context(job_id, scope, index):
             return await analyze_section(
-                settings, batch, limits, scope, session_id=job_id
+                settings,
+                batch,
+                limits,
+                scope,
+                session_id=job_id,
+                **(
+                    {"output_language": output_language}
+                    if output_language != "en"
+                    else {}
+                ),
             )
 
     # Pipeline sections are independent. Dispatch bounded waves, then retain
@@ -676,6 +701,16 @@ async def execute(executor, job_id, claim):
 
 
 def status(job):
+    from app.services.interview_text import SAFE_FAILURE_MESSAGES
+
+    failure_code = next(
+        (
+            "report_" + key
+            for key, message in SAFE_FAILURE_MESSAGES.items()
+            if message == job.error
+        ),
+        "report_unknown",
+    )
     return {
         "id": job.id,
         "intent_id": job.intent_id,
@@ -687,6 +722,7 @@ def status(job):
         "state": job.state,
         "uncertain": job.uncertain,
         "error": job.error,
+        "error_code": failure_code if job.error else None,
         "provider": job.provider,
         "model": job.model,
         "created_at": job.created_at,
@@ -789,6 +825,7 @@ async def read(db, auth, round_id):
             result["stale_reason"]
             or "evidence or text configuration changed; rerun required"
         )
+    result["stale_reason_code"] = _stale_reason_code(result.get("stale_reason"))
     return result
 
 
@@ -819,6 +856,7 @@ async def read_application(db, auth, application_id):
             result["stale_reason"]
             or "application evidence or text configuration changed; rerun required"
         )
+    result["stale_reason_code"] = _stale_reason_code(result.get("stale_reason"))
     return result
 
 
@@ -865,6 +903,7 @@ async def read_pipeline(db, auth, period="30d", as_of=None, x_timezone=None):
             result["stale_reason"] = (
                 result["stale_reason"] or "pipeline evidence changed; rerun required"
             )
+    result["stale_reason_code"] = _stale_reason_code(result.get("stale_reason"))
     return result
 
 

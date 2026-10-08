@@ -1,3 +1,5 @@
+import { uiLabel } from './i18n';
+
 export type FlameStateKey =
   'dormant' | 'ember' | 'extinguished' | `burning-${number}`;
 
@@ -82,5 +84,5 @@ export function getStableFlameQuote(input: StableFlameQuoteInput): string {
   const bucket = stateBucket(input.stateKey);
   const options = restrainedQuotes[bucket];
   const index = getQuoteSeed(input) % options.length;
-  return options[index] ?? options[0] ?? '';
+  return uiLabel(options[index] ?? options[0] ?? '');
 }

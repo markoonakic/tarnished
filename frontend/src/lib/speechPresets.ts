@@ -1,14 +1,27 @@
+import { t } from '@/lib/i18n';
 /** Form-only defaults. Selection never contacts a provider or downloads a model. */
 export const localSpeechModels = [
   {
     id: 'Systran/faster-whisper-tiny.en',
-    label: 'Tiny English',
-    note: 'About 78 MB snapshot. Fastest on CPU; lowest accuracy of the pair.',
+    get label() {
+      return t('Tiny English');
+    },
+    get note() {
+      return t(
+        'About 78 MB snapshot. Fastest on CPU; lowest accuracy of the pair.'
+      );
+    },
   },
   {
     id: 'Systran/faster-whisper-base.en',
-    label: 'Base English',
-    note: 'About 148 MB snapshot. Optional larger model; better accuracy, roughly 30% slower on CPU.',
+    get label() {
+      return t('Base English');
+    },
+    get note() {
+      return t(
+        'About 148 MB snapshot. Optional larger model; better accuracy, roughly 30% slower on CPU.'
+      );
+    },
   },
 ] as const;
 

@@ -1,3 +1,5 @@
+import { t, locale } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 import { observeRead } from '../lib/queryClient';
 import { useState, useEffect } from 'react';
@@ -11,6 +13,7 @@ interface Props {
 }
 
 export default function MediaPlayer({ media, onClose }: Props) {
+  useTranslation();
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
@@ -47,7 +50,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
   }
 
   return (
-    <Modal onClose={onClose} label="Media player">
+    <Modal onClose={onClose} label={t('Media player')}>
       <div
         className="bg-bg1 mx-4 w-full max-w-4xl overflow-hidden rounded-lg"
         onClick={(e) => e.stopPropagation()}
@@ -58,7 +61,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
           </h3>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('Close')}
             className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
           >
             <i className="bi bi-x-lg icon-xl" />
@@ -67,10 +70,12 @@ export default function MediaPlayer({ media, onClose }: Props) {
 
         <div className="p-4">
           {loading ? (
-            <div className="text-muted py-12 text-center">Loading...</div>
+            <div className="text-muted py-12 text-center">
+              {t('Loading...')}
+            </div>
           ) : error || !mediaUrl ? (
             <div className="text-red-bright py-12 text-center">
-              Failed to load media file
+              {t('Failed to load media file')}
             </div>
           ) : isVideo ? (
             <video
@@ -80,7 +85,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
               onError={handleError}
               className="bg-bg2 max-h-[60vh] w-full rounded"
             >
-              Your browser does not support video playback.
+              {t('Your browser does not support video playback.')}
             </video>
           ) : (
             <div className="py-8">
@@ -96,14 +101,15 @@ export default function MediaPlayer({ media, onClose }: Props) {
                 onError={handleError}
                 className="w-full"
               >
-                Your browser does not support audio playback.
+                {t('Your browser does not support audio playback.')}
               </audio>
             </div>
           )}
         </div>
 
         <div className="text-muted px-4 pb-4 text-sm">
-          Uploaded: {new Date(media.uploaded_at).toLocaleString()}
+          {t('Uploaded:')}{' '}
+          {new Date(media.uploaded_at).toLocaleString(locale())}
         </div>
       </div>
     </Modal>

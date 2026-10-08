@@ -27,8 +27,9 @@ def _count_custom(items: list[dict]) -> int:
 
 async def _collect_new_format_warnings(
     db: AsyncSession, user_id: str, models: dict
-) -> list[str]:
+) -> tuple[list[str], list[dict[str, int | str]]]:
     warnings = []
+    messages = []
 
     result = await db.execute(select(Application).where(Application.user_id == user_id))
     existing_count = len(result.scalars().all())
@@ -36,6 +37,7 @@ async def _collect_new_format_warnings(
         warnings.append(
             f"You have {existing_count} existing applications. Import will add to these unless you choose to override."
         )
+        messages.append({"code": "existing_applications", "count": existing_count})
 
     exported_statuses = {
         normalized_reference_name(status["name"])
@@ -60,6 +62,13 @@ async def _collect_new_format_warnings(
             status_str += "..."
         warnings.append(
             f"Will create {len(missing_statuses)} new statuses: {status_str}"
+        )
+        messages.append(
+            {
+                "code": "new_statuses",
+                "count": len(missing_statuses),
+                "names": status_str,
+            }
         )
 
     exported_round_types = {
@@ -86,8 +95,15 @@ async def _collect_new_format_warnings(
         warnings.append(
             f"Will create {len(missing_round_types)} new round types: {round_type_str}"
         )
+        messages.append(
+            {
+                "code": "new_round_types",
+                "count": len(missing_round_types),
+                "names": round_type_str,
+            }
+        )
 
-    return warnings
+    return warnings, messages
 
 
 async def _validate_new_format_payload(
@@ -113,8 +129,10 @@ async def _validate_new_format_payload(
         "job_leads": len(models.get("JobLead", [])),
         "files": zip_info["file_count"] - 2,
     }
-    warnings = await _collect_new_format_warnings(db, user_id, models)
-    return ImportValidationResponse(valid=True, summary=summary, warnings=warnings)
+    warnings, messages = await _collect_new_format_warnings(db, user_id, models)
+    return ImportValidationResponse(
+        valid=True, summary=summary, warnings=warnings, warning_messages=messages
+    )
 
 
 async def _validate_legacy_payload(
@@ -129,10 +147,12 @@ async def _validate_legacy_payload(
     existing_count = len(result.scalars().all())
 
     warnings = []
+    messages = []
     if existing_count > 0:
         warnings.append(
             f"You have {existing_count} existing applications. Import will add to these unless you choose to override."
         )
+        messages.append({"code": "existing_applications", "count": existing_count})
 
     existing_statuses = await db.execute(
         select(ApplicationStatus.name).where(
@@ -161,6 +181,13 @@ async def _validate_legacy_payload(
         warnings.append(
             f"Will create {len(missing_statuses)} new statuses: {status_str}"
         )
+        messages.append(
+            {
+                "code": "new_statuses",
+                "count": len(missing_statuses),
+                "names": status_str,
+            }
+        )
 
     return ImportValidationResponse(
         valid=True,
@@ -175,6 +202,7 @@ async def _validate_legacy_payload(
             "files": zip_info["file_count"] - 1,
         },
         warnings=warnings,
+        warning_messages=messages,
     )
 
 

@@ -83,6 +83,7 @@ class PipelineMetrics(BaseModel):
 
 
 class SankeyNode(BaseModel):
+    builtin_key: str | None = None
     id: str
     name: str
     meaning: str
@@ -121,6 +122,7 @@ class AnalyticsKPIsResponse(PipelineMetrics):
 
 
 class FunnelData(BaseModel):
+    builtin_key: str | None = None
     round: str
     count: int
     passed: int
@@ -128,6 +130,7 @@ class FunnelData(BaseModel):
 
 
 class OutcomeData(BaseModel):
+    builtin_key: str | None = None
     round: str
     passed: int
     failed: int
@@ -136,6 +139,7 @@ class OutcomeData(BaseModel):
 
 
 class TimelineData(BaseModel):
+    builtin_key: str | None = None
     round: str
     avg_days: float
     avg_hours: float | None = None

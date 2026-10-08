@@ -142,6 +142,7 @@ class ImportDataSchema(BaseModel):
 
 
 class ImportValidationResponse(BaseModel):
+    warning_messages: list[dict[str, int | str]] = []
     valid: bool
     summary: dict
     warnings: list[str] = []

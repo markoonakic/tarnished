@@ -1,3 +1,6 @@
+import { t, locale } from '@/lib/i18n';
+import { statusLabel } from '@/lib/referenceLabels';
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { observeRead } from '../lib/queryClient';
@@ -23,11 +26,13 @@ import EmptyState from '../components/EmptyState';
 import ApplicationModal from '../components/ApplicationModal';
 
 export default function ApplicationDetail() {
+  useTranslation();
   const { id } = useParams<{ id: string }>();
   return <ApplicationDetailContent key={id} id={id!} />;
 }
 
 function ApplicationDetailContent({ id }: { id: string }) {
+  useTranslation();
   const requestId = useRef(0);
   const navigate = useNavigate();
   const colors = useThemeColors();
@@ -51,7 +56,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
       setApplication(data);
     } catch (error) {
       if (ownedRequest !== requestId.current) return;
-      const errorMsg = 'Failed to load application';
+      const errorMsg = t('Failed to load application');
       setError(errorMsg);
       showError(errorMsg);
       return { error };
@@ -71,13 +76,14 @@ function ApplicationDetailContent({ id }: { id: string }) {
   }, [loadApplication]);
 
   async function handleDelete() {
-    if (!confirm('Are you sure you want to delete this application?')) return;
+    if (!confirm(t('Are you sure you want to delete this application?')))
+      return;
     try {
       await deleteApplication(id!);
-      toast.success('Application deleted');
+      toast.success(t('Application deleted'));
       navigate('/applications');
     } catch {
-      const errorMsg = 'Failed to delete application';
+      const errorMsg = t('Failed to delete application');
       setError(errorMsg);
       showError(errorMsg);
     }
@@ -88,14 +94,14 @@ function ApplicationDetailContent({ id }: { id: string }) {
   }
 
   async function handleDeleteRound(roundId: string) {
-    if (!confirm('Delete this round?')) return;
+    if (!confirm(t('Delete this round?'))) return;
     try {
       await deleteRound(roundId);
 
       setApplication((prev) => removeApplicationRound(prev, roundId));
-      toast.success('Round deleted');
+      toast.success(t('Round deleted'));
     } catch {
-      const errorMsg = 'Failed to delete round';
+      const errorMsg = t('Failed to delete round');
       setError(errorMsg);
       showError(errorMsg);
     }
@@ -127,7 +133,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
         mergeApplicationRoundMedia(prev, updatedApplication, roundId)
       );
     } catch {
-      const errorMsg = 'Failed to refresh media';
+      const errorMsg = t('Failed to refresh media');
       setError(errorMsg);
       showError(errorMsg);
     }
@@ -136,19 +142,19 @@ function ApplicationDetailContent({ id }: { id: string }) {
   function formatDate(dateStr: string | null) {
     if (!dateStr) return '-';
     // Applied dates are calendar dates, not instants in the device zone.
-    return new Date(dateStr).toLocaleDateString(undefined, { timeZone: 'UTC' });
+    return new Date(dateStr).toLocaleDateString(locale(), { timeZone: 'UTC' });
   }
 
   function formatDateTime(dateStr: string | null) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString();
+    return new Date(dateStr).toLocaleString(locale());
   }
 
   if (loading) {
     return (
       <Layout>
         <div className="flex items-center justify-center py-20">
-          <div className="text-muted">Loading...</div>
+          <div className="text-muted">{t('Loading...')}</div>
         </div>
       </Layout>
     );
@@ -159,12 +165,12 @@ function ApplicationDetailContent({ id }: { id: string }) {
       <Layout>
         <div className="flex items-center justify-center py-20">
           <div role="alert" className="text-red-bright">
-            {error || 'Application not found'}
+            {error || t('Application not found')}
             <button
               className="text-accent ml-3 underline"
               onClick={loadApplication}
             >
-              Retry
+              {t('Retry')}
             </button>
           </div>
         </div>
@@ -180,7 +186,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
             to="/applications"
             className="text-accent hover:text-accent-bright cursor-pointer transition-all duration-200 ease-in-out"
           >
-            &larr; Back to Applications
+            {t('← Back to Applications')}
           </Link>
         </div>
 
@@ -234,20 +240,20 @@ function ApplicationDetailContent({ id }: { id: string }) {
                     ),
                   }}
                 />
-                {application.status.name}
+                {statusLabel(application.status)}
               </span>
             </div>
           </div>
 
           <div className="mb-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
             <div>
-              <span className="text-muted">Applied:</span>
+              <span className="text-muted">{t('Applied:')}</span>
               <span className="text-primary ml-2">
                 {formatDate(application.applied_at)}
               </span>
             </div>
             <div>
-              <span className="text-muted">Updated:</span>
+              <span className="text-muted">{t('Updated:')}</span>
               <span className="text-primary ml-2">
                 {formatDateTime(application.updated_at)}
               </span>
@@ -262,7 +268,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
                 rel="noopener noreferrer"
                 className="text-accent hover:text-accent-bright cursor-pointer text-sm transition-all duration-200 ease-in-out"
               >
-                Open Job Page &rarr;
+                {t('Open Job Page →')}
               </a>
             </div>
           )}
@@ -272,7 +278,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
             <div className="bg-bg2 mb-4 rounded-lg p-4">
               <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                 <i className="bi-file-text icon-sm"></i>
-                Description
+                {t('Description')}
               </h3>
               <div className="text-primary text-sm break-words whitespace-pre-wrap">
                 {application.job_description}
@@ -286,13 +292,13 @@ function ApplicationDetailContent({ id }: { id: string }) {
             <div className="bg-bg2 mb-4 rounded-lg p-4">
               <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                 <i className="bi-currency-dollar icon-sm"></i>
-                Salary Range
+                {t('Salary Range')}
               </h3>
               <p className="text-primary font-medium">
                 {application.salary_currency || 'USD'}{' '}
-                {application.salary_min?.toLocaleString() || '???'}
+                {application.salary_min?.toLocaleString(locale()) || '???'}
                 {' - '}
-                {application.salary_max?.toLocaleString() || '???'}
+                {application.salary_max?.toLocaleString(locale()) || '???'}
               </p>
             </div>
           )}
@@ -304,7 +310,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
             <div className="bg-bg2 mb-4 rounded-lg p-4">
               <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                 <i className="bi-person icon-sm"></i>
-                Recruiter
+                {t('Recruiter')}
               </h3>
               <div className="space-y-1">
                 {application.recruiter_name && (
@@ -325,7 +331,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
                     className="text-accent hover:text-accent-bright flex cursor-pointer items-center gap-1 text-sm transition-all duration-200 ease-in-out"
                   >
                     <i className="bi-linkedin icon-sm"></i>
-                    LinkedIn Profile
+                    {t('LinkedIn Profile')}
                   </a>
                 )}
               </div>
@@ -339,7 +345,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
               <div className="bg-bg2 mb-4 rounded-lg p-4">
                 <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                   <i className="bi-check-circle icon-sm"></i>
-                  Must-Have Requirements
+                  {t('Must-Have Requirements')}
                 </h3>
                 <ul className="text-primary list-inside list-disc space-y-1">
                   {application.requirements_must_have.map((req) => (
@@ -357,7 +363,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
               <div className="bg-bg2 mb-4 rounded-lg p-4">
                 <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                   <i className="bi-star icon-sm"></i>
-                  Nice-to-Have Requirements
+                  {t('Nice-to-Have Requirements')}
                 </h3>
                 <ul className="text-primary list-inside list-disc space-y-1">
                   {application.requirements_nice_to_have.map((req) => (
@@ -374,7 +380,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
             <div className="bg-bg2 mb-4 rounded-lg p-4">
               <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                 <i className="bi-lightning icon-sm"></i>
-                Skills
+                {t('Skills')}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {application.skills.map((skill) => (
@@ -395,11 +401,11 @@ function ApplicationDetailContent({ id }: { id: string }) {
             <div className="bg-bg2 mb-4 rounded-lg p-4">
               <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                 <i className="bi-clock-history icon-sm"></i>
-                Experience Required
+                {t('Experience Required')}
               </h3>
               <p className="text-primary font-medium">
                 {application.years_experience_min ?? '?'}-
-                {application.years_experience_max ?? '?'} years
+                {application.years_experience_max ?? '?'} {t('years')}
               </p>
             </div>
           )}
@@ -413,21 +419,21 @@ function ApplicationDetailContent({ id }: { id: string }) {
               className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
             >
               <i className="bi-stars icon-sm" aria-hidden="true" />
-              Application feedback
+              {t('Application feedback')}
             </button>
             <button
               onClick={() => setShowEditModal(true)}
               className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
             >
               <i className="bi-pencil icon-sm"></i>
-              Edit
+              {t('Edit')}
             </button>
             <button
               onClick={handleDelete}
               className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
             >
               <i className="bi-trash icon-sm"></i>
-              Delete
+              {t('Delete')}
             </button>
           </div>
         </div>
@@ -436,7 +442,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
           <div hidden={!showFeedback} className="mb-6">
             <ScopedReport
               key={id}
-              title="Application feedback"
+              title={t('Application feedback')}
               scope="APPLICATION"
               endpoint={`/api/applications/${id}/feedback`}
               requestBody={(state) => ({
@@ -445,7 +451,9 @@ function ApplicationDetailContent({ id }: { id: string }) {
               })}
               requestLabel="application feedback"
               onClose={() => setShowFeedback(false)}
-              emptyHint="No feedback yet. Get suggestions from this application's saved details."
+              emptyHint={t(
+                "No feedback yet. Get suggestions from this application's saved details."
+              )}
             />
           </div>
         )}
@@ -471,14 +479,14 @@ function ApplicationDetailContent({ id }: { id: string }) {
         <div className="bg-secondary rounded-lg p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-primary text-lg font-semibold">
-              Interview Rounds
+              {t('Interview Rounds')}
             </h2>
             {application.rounds && application.rounds.length > 0 && (
               <button
                 onClick={() => setShowRoundForm(true)}
                 className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
               >
-                Add Round
+                {t('Add Round')}
               </button>
             )}
           </div>
@@ -519,10 +527,10 @@ function ApplicationDetailContent({ id }: { id: string }) {
             </div>
           ) : !showRoundForm ? (
             <EmptyState
-              message="No interview rounds yet."
+              message={t('No interview rounds yet.')}
               icon="bi-calendar-x"
               action={{
-                label: 'Add Round',
+                label: t('Add Round'),
                 onClick: () => setShowRoundForm(true),
               }}
             />

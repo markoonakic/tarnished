@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 
 interface PaginationProps {
@@ -15,6 +17,7 @@ export default function Pagination({
   totalItems,
   onPageChange,
 }: PaginationProps) {
+  useTranslation();
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * perPage + 1;
   const endItem = Math.min(currentPage * perPage, totalItems);
 
@@ -58,8 +61,7 @@ export default function Pagination({
   return (
     <div className="flex w-full flex-col items-center justify-between gap-4 sm:flex-row">
       <div className="text-muted text-sm">
-        Showing {startItem}-{endItem} of {totalItems}{' '}
-        {totalItems === 1 ? 'item' : 'items'}
+        {t('pagination', { start: startItem, end: endItem, count: totalItems })}
       </div>
 
       {showPaginationControls && (
@@ -73,7 +75,7 @@ export default function Pagination({
                 ? 'bg-bg2 text-muted cursor-not-allowed opacity-50'
                 : 'bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3'
             } `}
-            aria-label="Previous page"
+            aria-label={t('Previous page')}
           >
             <i className="bi-chevron-left icon-sm" />
           </button>
@@ -101,7 +103,7 @@ export default function Pagination({
                     ? 'bg-accent text-bg1'
                     : 'bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3'
                 } `}
-                aria-label={`Page ${page}`}
+                aria-label={t('Page {{page}}', { page: page })}
                 aria-current={isActive ? 'page' : undefined}
               >
                 {page}
@@ -118,7 +120,7 @@ export default function Pagination({
                 ? 'bg-bg2 text-muted cursor-not-allowed opacity-50'
                 : 'bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3'
             } `}
-            aria-label="Next page"
+            aria-label={t('Next page')}
           >
             <i className="bi-chevron-right icon-sm" />
           </button>

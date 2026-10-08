@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useDashboardKPIs } from '@/hooks/useDashboardData';
 
 interface KPICardProps {
@@ -13,7 +15,7 @@ function getTrendDisplay(value: number, trend?: number | null) {
   }
 
   if (trend === null) {
-    return value > 0 ? { text: 'New', className: 'text-green' } : null;
+    return value > 0 ? { text: t('New'), className: 'text-green' } : null;
   }
 
   if (trend > 0) {
@@ -37,6 +39,7 @@ function getTrendDisplay(value: number, trend?: number | null) {
 }
 
 function KPICard({ title, value, trend, suffix = '' }: KPICardProps) {
+  useTranslation();
   const trendDisplay = getTrendDisplay(value, trend);
 
   return (
@@ -56,6 +59,7 @@ function KPICard({ title, value, trend, suffix = '' }: KPICardProps) {
 }
 
 export default function KPICards() {
+  useTranslation();
   const { data: kpis, isLoading, isError } = useDashboardKPIs();
 
   if (isLoading) {
@@ -74,7 +78,7 @@ export default function KPICards() {
   if (isError || !kpis) {
     return (
       <div className="bg-secondary rounded-lg p-6">
-        <p className="text-red-bright">Failed to load dashboard KPIs</p>
+        <p className="text-red-bright">{t('Failed to load dashboard KPIs')}</p>
       </div>
     );
   }
@@ -82,21 +86,21 @@ export default function KPICards() {
   return (
     <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
       <KPICard
-        title="Last 7 Days"
+        title={t('Last 7 Days')}
         value={kpis.last_7_days}
         trend={kpis.last_7_days_trend}
-        suffix={kpis.last_7_days === 1 ? 'application' : 'applications'}
+        suffix={t('applicationNoun', { count: kpis.last_7_days })}
       />
       <KPICard
-        title="Last 30 Days"
+        title={t('Last 30 Days')}
         value={kpis.last_30_days}
         trend={kpis.last_30_days_trend}
-        suffix={kpis.last_30_days === 1 ? 'application' : 'applications'}
+        suffix={t('applicationNoun', { count: kpis.last_30_days })}
       />
       <KPICard
-        title="Active Opportunities"
+        title={t('Active Opportunities')}
         value={kpis.active_opportunities}
-        suffix="open"
+        suffix={t('openNoun', { count: kpis.active_opportunities })}
       />
     </div>
   );

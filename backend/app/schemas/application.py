@@ -86,6 +86,7 @@ class ApplicationUpdate(BaseModel):
 
 
 class StatusResponse(BaseModel):
+    builtin_key: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
     id: str

@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getApplicationHistory, deleteHistoryEntry } from '../../lib/history';
@@ -18,6 +20,7 @@ export default function HistoryViewer({
   revision,
   onChanged,
 }: Props) {
+  useTranslation();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,12 +43,14 @@ export default function HistoryViewer({
     },
   });
   const deleteError = deleteMutation.isError
-    ? 'Deletion failed. Reload if evidence changed before retrying.'
+    ? t('Deletion failed. Reload if evidence changed before retrying.')
     : '';
   function handleDelete(historyId: string) {
     if (
       confirm(
-        'Delete this history entry? Its content is removed and the history keeps a gap.'
+        t(
+          'Delete this history entry? Its content is removed and the history keeps a gap.'
+        )
       )
     )
       deleteMutation.mutate(historyId);
@@ -54,14 +59,16 @@ export default function HistoryViewer({
     <>
       <div id="application-history" className="bg-bg1 rounded-lg p-6">
         <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <h2 className="text-primary text-lg font-semibold">Status History</h2>
+          <h2 className="text-primary text-lg font-semibold">
+            {t('Status History')}
+          </h2>
           <div className="flex gap-2">
             {!!history?.length && (
               <button
                 onClick={() => setIsEditing(!isEditing)}
                 className={`cursor-pointer rounded-md px-4 py-2 font-medium transition-colors ${isEditing ? 'bg-accent text-bg0 hover:bg-accent-bright' : 'text-fg1 hover:bg-bg2'}`}
               >
-                {isEditing ? 'Done' : 'Edit History'}
+                {isEditing ? t('Done') : t('Edit History')}
               </button>
             )}
             <button
@@ -69,17 +76,17 @@ export default function HistoryViewer({
               disabled={!history?.length}
               className="text-fg1 hover:bg-bg2 cursor-pointer rounded-md px-4 py-2 font-medium disabled:cursor-not-allowed disabled:opacity-50"
             >
-              View All History
+              {t('View All History')}
             </button>
           </div>
         </div>
         {isLoading ? (
           <p role="status" className="text-muted py-8 text-center">
-            Loading history…
+            {t('Loading history…')}
           </p>
         ) : error ? (
           <p role="alert" className="text-red-bright">
-            Failed to load history
+            {t('Failed to load history')}
           </p>
         ) : (
           <>
@@ -95,11 +102,12 @@ export default function HistoryViewer({
                   aria-hidden="true"
                 />
                 <p className="text-muted text-sm">
-                  No status changes recorded yet.
+                  {t('No status changes recorded yet.')}
                 </p>
                 <p className="text-muted mt-2 text-xs">
-                  History will appear here when you update the application
-                  status.
+                  {t(
+                    'History will appear here when you update the application status.'
+                  )}
                 </p>
               </div>
             ) : (
@@ -127,7 +135,7 @@ export default function HistoryViewer({
                         className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-sm disabled:opacity-50"
                       >
                         <i className="bi-trash icon-xs" aria-hidden="true" />
-                        Delete
+                        {t('Delete')}
                       </button>
                     )}
                   </div>
@@ -138,7 +146,7 @@ export default function HistoryViewer({
                       onClick={() => setIsModalOpen(true)}
                       className="text-muted hover:text-fg0 hover:bg-bg2 cursor-pointer rounded px-2 py-1 text-sm"
                     >
-                      View {history.length - 3} more
+                      {t('View {{count}} more', { count: history.length - 3 })}
                     </button>
                   </div>
                 )}

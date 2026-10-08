@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 import Modal from './Modal';
 import { observeRead } from '../lib/queryClient';
@@ -20,19 +22,20 @@ export default function DocumentTextFallback({
   revision: number;
   onSaved?: (revision: number) => void;
 }) {
+  useTranslation();
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState<TextState | null>(null);
   const [draft, setDraft] = useState('');
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [busyLabel, setBusyLabel] = useState('Saving text…');
+  const [busyLabel, setBusyLabel] = useState(t('Saving text…'));
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
   const explicitReload = useRef(false);
   const dirtyRef = useRef(false);
   const readGeneration = useRef(0);
-  const label = kind === 'cv' ? 'CV' : 'Cover letter';
+  const label = kind === 'cv' ? t('CV') : t('Cover letter');
   const path = `/api/applications/${applicationId}/documents/${kind}/text`;
   useEffect(() => {
     let alive = true;
@@ -47,7 +50,9 @@ export default function DocumentTextFallback({
             if (!alive || generation !== readGeneration.current) return;
             if (dirtyRef.current && !explicit) {
               setError(
-                'This document changed while you were editing. Your draft is kept. Refresh the saved text before saving.'
+                t(
+                  'This document changed while you were editing. Your draft is kept. Refresh the saved text before saving.'
+                )
               );
             } else {
               setSaved(response.data);
@@ -57,7 +62,9 @@ export default function DocumentTextFallback({
           })
           .catch((error: unknown) => {
             if (alive && generation === readGeneration.current)
-              setError('Cannot load saved document text. Your draft is kept.');
+              setError(
+                t('Cannot load saved document text. Your draft is kept.')
+              );
             return { error };
           }),
       { staleTime: Infinity }
@@ -71,7 +78,7 @@ export default function DocumentTextFallback({
   async function save(text: string) {
     if (!saved) return;
     ++readGeneration.current;
-    setBusyLabel(text ? 'Saving text…' : 'Clearing saved text…');
+    setBusyLabel(text ? t('Saving text…') : t('Clearing saved text…'));
     setNotice('');
     setBusy(true);
     try {
@@ -84,13 +91,17 @@ export default function DocumentTextFallback({
       dirtyRef.current = false;
       setDirty(false);
       setError('');
-      setNotice(text ? 'Document text saved.' : 'Saved document text cleared.');
+      setNotice(
+        text ? t('Document text saved.') : t('Saved document text cleared.')
+      );
       onSaved?.(response.data.revision);
     } catch (err) {
       setError(
         safeErrorMessage(
           isAxiosError(err) ? err.response?.data?.detail : null,
-          'Document text was not saved. Your draft is kept. Refresh the saved text before trying again.'
+          t(
+            'Document text was not saved. Your draft is kept. Refresh the saved text before trying again.'
+          )
         )
       );
     } finally {
@@ -107,36 +118,42 @@ export default function DocumentTextFallback({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={`Use ${label} text`}
-        title="Paste text instead of a file"
+        aria-label={t('Use {{label}} text', { label: label })}
+        title={t('Paste text instead of a file')}
         className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
       >
         <i className="bi-file-text icon-sm" aria-hidden="true" />
-        Use text
+        {t('Use text')}
       </button>
       {open && (
-        <Modal label={`${label} text`} onClose={close} busy={busy}>
+        <Modal
+          label={t('{{label}} text', { label: label })}
+          onClose={close}
+          busy={busy}
+        >
           <div className="bg-bg1 mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg p-6">
             <div className="mb-4 flex items-center justify-between gap-2">
               <h2 className="text-primary text-xl font-semibold">
-                {label} text
+                {t('{{label}} text', { label })}
               </h2>
               <button
                 type="button"
                 onClick={close}
                 disabled={busy}
-                aria-label="Close document text"
+                aria-label={t('Close document text')}
                 className="text-fg1 hover:bg-bg2 cursor-pointer rounded p-2"
               >
                 <i className="bi-x-lg icon-lg" aria-hidden="true" />
               </button>
             </div>
             <p className="text-muted my-2 text-sm">
-              Paste text if you do not have a file or its text cannot be read.
-              Feedback uses this text instead of the attachment. Replacing the
-              attachment clears saved text.
+              {t(
+                'Paste text if you do not have a file or its text cannot be read. Feedback uses this text instead of the attachment. Replacing the attachment clears saved text.'
+              )}
             </p>
-            {!saved && !error && <p role="status">Loading saved text…</p>}
+            {!saved && !error && (
+              <p role="status">{t('Loading saved text…')}</p>
+            )}
             {busy && (
               <p role="status" className="text-muted text-sm">
                 {busyLabel}
@@ -148,7 +165,7 @@ export default function DocumentTextFallback({
               </p>
             )}
             <label className="block">
-              {label} pasted text
+              {t('{{label}} pasted text', { label })}
               <textarea
                 className="bg-bg2 text-fg1 focus:ring-accent-bright my-2 block w-full rounded px-3 py-2 focus:ring-1 focus:outline-none"
                 rows={6}
@@ -165,7 +182,7 @@ export default function DocumentTextFallback({
             </label>
             {dirty && (
               <p className="text-muted text-sm">
-                Unsaved document draft; not sent for analysis.
+                {t('Unsaved document draft; not sent for analysis.')}
               </p>
             )}
             <button
@@ -174,7 +191,7 @@ export default function DocumentTextFallback({
               disabled={busy || !saved}
               onClick={() => void save(draft)}
             >
-              Save {label} text
+              {t('Save {{label}} text', { label })}
             </button>
             <button
               type="button"
@@ -185,7 +202,7 @@ export default function DocumentTextFallback({
                 setReload((n) => n + 1);
               }}
             >
-              Refresh saved {label} text (keep draft)
+              {t('Refresh saved {{label}} text (keep draft)', { label })}
             </button>
             <button
               type="button"
@@ -193,12 +210,16 @@ export default function DocumentTextFallback({
               disabled={busy || !saved?.text}
               onClick={() => {
                 if (
-                  confirm(`Clear saved ${label} text and dependent feedback?`)
+                  confirm(
+                    t('Clear saved {{label}} text and dependent feedback?', {
+                      label: label,
+                    })
+                  )
                 )
                   void save('');
               }}
             >
-              Clear saved {label} text
+              {t('Clear saved {{label}} text', { label })}
             </button>
             {error && (
               <p role="alert" className="text-red-bright">

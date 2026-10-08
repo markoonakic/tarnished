@@ -1,3 +1,6 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
+import { roundTypeLabel } from '@/lib/referenceLabels';
 import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
@@ -17,7 +20,7 @@ const EMPTY_TIMELINE_DATA: TimelineData[] = [];
 function formatDuration(days: number) {
   if (days > 0 && days < 1 / 24) {
     const minutes = days * 1440;
-    return minutes < 1 ? '<1 min' : `${Math.round(minutes)} min`;
+    return minutes < 1 ? t('<1 min') : `${Math.round(minutes)} min`;
   }
   return days > 0 && days < 1
     ? `${(days * 24).toFixed(1)} h`
@@ -35,6 +38,7 @@ export default function InterviewTimeline({
   roundType,
   asOf,
 }: InterviewTimelineProps) {
+  const { t } = useTranslation();
   const {
     data: analytics,
     isLoading,
@@ -66,7 +70,10 @@ export default function InterviewTimeline({
         renderMode: 'richText',
         formatter: (params: TopLevelFormatterParams) => {
           const param = (params as CallbackDataParams[])[0];
-          return `${param.name}: ${formatDuration(param.value as number)} elapsed scheduled-to-completed`;
+          return t('{{name}}: {{value0}} elapsed scheduled-to-completed', {
+            name: param.name,
+            value0: formatDuration(param.value as number),
+          });
         },
       },
       grid: {
@@ -78,7 +85,7 @@ export default function InterviewTimeline({
       },
       xAxis: {
         type: 'value',
-        name: 'Scheduled-to-completed days',
+        name: t('Scheduled-to-completed days'),
         nameLocation: 'middle',
         nameTextStyle: {
           color: colors.fg4,
@@ -101,7 +108,9 @@ export default function InterviewTimeline({
       },
       yAxis: {
         type: 'category',
-        data: data.map((d) => d.round),
+        data: data.map((d) =>
+          roundTypeLabel({ name: d.round, builtin_key: d.builtin_key })
+        ),
         axisLabel: {
           color: colors.fg4,
           fontSize: 13,
@@ -135,16 +144,16 @@ export default function InterviewTimeline({
         },
       ],
     };
-  }, [data, colors]);
+  }, [data, colors, t]);
 
   if (isLoading) {
-    return <Loading message="Loading interview timeline..." size="sm" />;
+    return <Loading message={t('Loading interview timeline...')} size="sm" />;
   }
 
   if (isError) {
     return (
       <div className="text-red-bright py-8 text-center">
-        Failed to load interview timeline data
+        {t('Failed to load interview timeline data')}
       </div>
     );
   }
@@ -153,11 +162,12 @@ export default function InterviewTimeline({
     <div className="w-full">
       {/* Description */}
       <p className="text-fg4 mb-4 flex items-center gap-2 text-sm">
-        Interview duration
-        <HelpTip label="About interview duration">
+        {t('Interview duration')}
+        <HelpTip label={t('About interview duration')}>
           <p>
-            Average days from the scheduled interview to its recorded
-            completion.
+            {t(
+              'Average days from the scheduled interview to its recorded completion.'
+            )}
           </p>
         </HelpTip>
       </p>
@@ -165,8 +175,10 @@ export default function InterviewTimeline({
       {/* Chart */}
       {data.length === 0 ? (
         <EmptyState
-          message="No measured interview durations available"
-          subMessage="Completed interview rounds with dates will appear here"
+          message={t('No measured interview durations available')}
+          subMessage={t(
+            'Completed interview rounds with dates will appear here'
+          )}
           icon="bi-clock-history"
         />
       ) : (

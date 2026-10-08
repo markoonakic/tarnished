@@ -62,6 +62,7 @@ class Coverage(BaseModel):
 
 
 class ArchivedInterviewReport(BaseModel):
+    output_language: Literal["en", "sr-Latn"] = "en"
     model_config = ConfigDict(extra="forbid", strict=True)
     version: Literal[1]
     scope: Literal["INTERVIEW"]
@@ -84,6 +85,7 @@ class ArchivedInterviewReport(BaseModel):
 
 
 class ArchivedScopedReport(BaseModel):
+    output_language: Literal["en", "sr-Latn"] = "en"
     """Application- and pipeline-scope latest report; latest only, never a history."""
 
     model_config = ConfigDict(extra="forbid", strict=True)

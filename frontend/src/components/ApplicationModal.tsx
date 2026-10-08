@@ -1,3 +1,6 @@
+import { t } from '@/lib/i18n';
+import { statusLabel } from '@/lib/referenceLabels';
+import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 import { observeRead } from '../lib/queryClient';
 import { useEffect, useRef, useState } from 'react';
@@ -33,6 +36,7 @@ export default function ApplicationModal({
   onSuccess,
   application,
 }: ApplicationModalProps) {
+  useTranslation();
   const isEditing = Boolean(application);
   const initializedFormKeyRef = useRef<string | null>(null);
   const [formApplication, setFormApplication] = useState(application);
@@ -86,7 +90,7 @@ export default function ApplicationModal({
       const normalized = normalizeApplicationUrl(jobUrl);
       setJobUrl(normalized);
       if (!isValidApplicationUrl(normalized)) {
-        setJobUrlError('Please enter a valid URL');
+        setJobUrlError(t('Please enter a valid URL'));
       } else {
         setJobUrlError('');
       }
@@ -102,7 +106,7 @@ export default function ApplicationModal({
           current === 'Failed to load statuses' ? '' : current
         );
       } catch (error) {
-        setError('Failed to load statuses');
+        setError(t('Failed to load statuses'));
         return { error };
       }
     }
@@ -150,13 +154,13 @@ export default function ApplicationModal({
     e.preventDefault();
     if (loading) return;
     if (!company.trim() || !jobTitle.trim() || !statusId) {
-      setError('Please fill in required fields');
+      setError(t('Please fill in required fields'));
       return;
     }
 
     const normalizedUrl = normalizeApplicationUrl(jobUrl);
     if (normalizedUrl && !isValidApplicationUrl(normalizedUrl)) {
-      setJobUrlError('Please enter a valid URL');
+      setJobUrlError(t('Please enter a valid URL'));
       return;
     }
 
@@ -207,7 +211,7 @@ export default function ApplicationModal({
       }
     } catch (error) {
       setError(
-        error instanceof Error ? error.message : 'Failed to save application'
+        error instanceof Error ? error.message : t('Failed to save application')
       );
     } finally {
       setLoading(false);
@@ -222,12 +226,12 @@ export default function ApplicationModal({
       >
         <div className="border-tertiary flex flex-shrink-0 items-center justify-between border-b p-4">
           <h3 id="modal-title" className="text-primary font-medium">
-            {isEditing ? 'Edit Application' : 'New Application'}
+            {isEditing ? t('Edit Application') : t('New Application')}
           </h3>
           <button
             onClick={onClose}
             disabled={loading}
-            aria-label="Close modal"
+            aria-label={t('Close modal')}
             className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
           >
             <i className="bi bi-x-lg icon-xl" />
@@ -248,7 +252,7 @@ export default function ApplicationModal({
                   htmlFor="company"
                   className="text-muted mb-1 block text-sm font-semibold"
                 >
-                  Company <span className="text-red-bright">*</span>
+                  {t('Company')} <span className="text-red-bright">*</span>
                 </label>
                 <input
                   id="company"
@@ -265,7 +269,7 @@ export default function ApplicationModal({
                   htmlFor="job-title"
                   className="text-muted mb-1 block text-sm font-semibold"
                 >
-                  Job Title <span className="text-red-bright">*</span>
+                  {t('Job Title')} <span className="text-red-bright">*</span>
                 </label>
                 <input
                   id="job-title"
@@ -282,25 +286,25 @@ export default function ApplicationModal({
                   htmlFor="application-status"
                   className="text-muted mb-1 block text-sm font-semibold"
                 >
-                  Status <span className="text-red-bright">*</span>
+                  {t('Status')} <span className="text-red-bright">*</span>
                 </label>
                 <Dropdown
                   id="application-status"
                   options={[
-                    { value: '', label: 'Select status' },
+                    { value: '', label: t('Select status') },
                     ...statusOptionsWithCurrent(
                       statuses,
                       formApplication?.status
                     ).map((status) => ({
                       value: status.id,
                       label: !statuses.some((option) => option.id === status.id)
-                        ? `${status.name} (current)`
-                        : status.name,
+                        ? `${statusLabel(status)} (${t('Current')})`
+                        : statusLabel(status),
                     })),
                   ]}
                   value={statusId}
                   onChange={(value) => setStatusId(value)}
-                  placeholder="Select status"
+                  placeholder={t('Select status')}
                   containerBackground="bg1"
                 />
               </div>
@@ -324,19 +328,19 @@ export default function ApplicationModal({
                       )
                     }
                   />
-                  Employer replied
+                  {t('Employer replied')}
                 </label>
                 <p className="text-muted text-xs">
-                  Include rejections, but not automatic receipts.
+                  {t('Include rejections, but not automatic receipts.')}
                 </p>
                 {(responseAction === 'record' ||
                   (responseAction === 'unchanged' &&
                     formApplication?.response_state === 'recorded')) && (
                   <>
                     <label className="block">
-                      Response date (optional)
+                      {t('Response date (optional)')}
                       <input
-                        aria-label="Response date"
+                        aria-label={t('Response date')}
                         type="date"
                         value={responseDate}
                         onChange={(e) => {
@@ -347,9 +351,9 @@ export default function ApplicationModal({
                       />
                     </label>
                     <label className="block">
-                      Response note (optional)
+                      {t('Response note (optional)')}
                       <input
-                        aria-label="Response note"
+                        aria-label={t('Response note')}
                         maxLength={2000}
                         value={responseNote}
                         onChange={(e) => {
@@ -368,7 +372,7 @@ export default function ApplicationModal({
                   htmlFor="applied-date"
                   className="text-muted mb-1 block text-sm font-semibold"
                 >
-                  Applied Date
+                  {t('Applied Date')}
                 </label>
                 <input
                   aria-describedby="applied-date-help"
@@ -386,7 +390,9 @@ export default function ApplicationModal({
                   id="applied-date-help"
                   className="text-muted text-sm sm:col-span-2"
                 >
-                  Leave the date blank to use today in your effective time zone.
+                  {t(
+                    'Leave the date blank to use today in your effective time zone.'
+                  )}
                 </p>
               )}
               <div className="sm:col-span-2">
@@ -394,7 +400,7 @@ export default function ApplicationModal({
                   htmlFor="job-url"
                   className="text-muted mb-1 block text-sm font-semibold"
                 >
-                  Job URL
+                  {t('Job URL')}
                 </label>
                 <input
                   id="job-url"
@@ -405,7 +411,7 @@ export default function ApplicationModal({
                     setJobUrlError('');
                   }}
                   onBlur={handleJobUrlBlur}
-                  placeholder="example.com or https://..."
+                  placeholder={t('example.com or https://...')}
                   className={`bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none ${
                     jobUrlError ? 'border-red-bright border' : ''
                   }`}
@@ -420,14 +426,14 @@ export default function ApplicationModal({
                   htmlFor="salary-min"
                   className="text-muted mb-1 block text-sm font-semibold"
                 >
-                  Min Salary
+                  {t('Min Salary')}
                 </label>
                 <input
                   id="salary-min"
                   type="number"
                   value={salaryMin}
                   onChange={(e) => setSalaryMin(e.target.value)}
-                  placeholder="e.g. 100000"
+                  placeholder={t('e.g. 100000')}
                   step="1"
                   className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
@@ -438,14 +444,14 @@ export default function ApplicationModal({
                   htmlFor="salary-max"
                   className="text-muted mb-1 block text-sm font-semibold"
                 >
-                  Max Salary
+                  {t('Max Salary')}
                 </label>
                 <input
                   id="salary-max"
                   type="number"
                   value={salaryMax}
                   onChange={(e) => setSalaryMax(e.target.value)}
-                  placeholder="e.g. 150000"
+                  placeholder={t('e.g. 150000')}
                   step="1"
                   className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
@@ -456,7 +462,7 @@ export default function ApplicationModal({
                   htmlFor="salary-currency"
                   className="text-muted mb-1 block text-sm font-semibold"
                 >
-                  Currency
+                  {t('Currency')}
                 </label>
                 <Dropdown
                   id="salary-currency"
@@ -469,7 +475,7 @@ export default function ApplicationModal({
                   ]}
                   value={salaryCurrency}
                   onChange={(value) => setSalaryCurrency(value)}
-                  placeholder="Currency"
+                  placeholder={t('Currency')}
                   containerBackground="bg1"
                   size="xs"
                 />
@@ -478,7 +484,7 @@ export default function ApplicationModal({
 
             <div className="border-tertiary border-t pt-4">
               <h4 className="text-muted mb-3 text-sm font-semibold">
-                Recruiter (Optional)
+                {t('Recruiter (Optional)')}
               </h4>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
@@ -486,14 +492,14 @@ export default function ApplicationModal({
                     htmlFor="recruiter-name"
                     className="text-muted mb-1 block text-sm font-semibold"
                   >
-                    Recruiter Name
+                    {t('Recruiter Name')}
                   </label>
                   <input
                     id="recruiter-name"
                     type="text"
                     value={recruiterName}
                     onChange={(e) => setRecruiterName(e.target.value)}
-                    placeholder="e.g. John Smith"
+                    placeholder={t('e.g. John Smith')}
                     className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
                 </div>
@@ -503,14 +509,14 @@ export default function ApplicationModal({
                     htmlFor="recruiter-title"
                     className="text-muted mb-1 block text-sm font-semibold"
                   >
-                    Recruiter Title
+                    {t('Recruiter Title')}
                   </label>
                   <input
                     id="recruiter-title"
                     type="text"
                     value={recruiterTitle}
                     onChange={(e) => setRecruiterTitle(e.target.value)}
-                    placeholder="e.g. Senior Recruiter"
+                    placeholder={t('e.g. Senior Recruiter')}
                     className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
                 </div>
@@ -520,7 +526,7 @@ export default function ApplicationModal({
                     htmlFor="recruiter-linkedin"
                     className="text-muted mb-1 block text-sm font-semibold"
                   >
-                    LinkedIn URL
+                    {t('LinkedIn URL')}
                   </label>
                   <input
                     id="recruiter-linkedin"
@@ -536,7 +542,7 @@ export default function ApplicationModal({
 
             <div className="border-tertiary border-t pt-4">
               <h4 className="text-muted mb-3 text-sm font-semibold">
-                Requirements (Optional)
+                {t('Requirements (Optional)')}
               </h4>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
@@ -544,14 +550,16 @@ export default function ApplicationModal({
                     htmlFor="requirements-must"
                     className="text-muted mb-1 block text-sm font-semibold"
                   >
-                    Must Have
+                    {t('Must Have')}
                   </label>
                   <textarea
                     id="requirements-must"
                     value={requirementsMustHave}
                     onChange={(e) => setRequirementsMustHave(e.target.value)}
                     rows={3}
-                    placeholder="One requirement per line&#10;e.g. React experience&#10;5+ years TypeScript"
+                    placeholder={t(
+                      'One requirement per line\ne.g. React experience\n5+ years TypeScript'
+                    )}
                     className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
                 </div>
@@ -561,14 +569,16 @@ export default function ApplicationModal({
                     htmlFor="requirements-nice"
                     className="text-muted mb-1 block text-sm font-semibold"
                   >
-                    Nice to Have
+                    {t('Nice to Have')}
                   </label>
                   <textarea
                     id="requirements-nice"
                     value={requirementsNiceToHave}
                     onChange={(e) => setRequirementsNiceToHave(e.target.value)}
                     rows={3}
-                    placeholder="One requirement per line&#10;e.g. Docker experience&#10;AWS certification"
+                    placeholder={t(
+                      'One requirement per line\ne.g. Docker experience\nAWS certification'
+                    )}
                     className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
                 </div>
@@ -578,14 +588,14 @@ export default function ApplicationModal({
                     htmlFor="source"
                     className="text-muted mb-1 block text-sm font-semibold"
                   >
-                    Source
+                    {t('Source')}
                   </label>
                   <input
                     id="source"
                     type="text"
                     value={source}
                     onChange={(e) => setSource(e.target.value)}
-                    placeholder="e.g. LinkedIn, Indeed, Referral"
+                    placeholder={t('e.g. LinkedIn, Indeed, Referral')}
                     className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
                 </div>
@@ -598,7 +608,7 @@ export default function ApplicationModal({
                   htmlFor="job-description"
                   className="text-muted mb-1 block text-sm font-semibold"
                 >
-                  Job Description
+                  {t('Job Description')}
                 </label>
                 <textarea
                   id="job-description"
@@ -616,14 +626,18 @@ export default function ApplicationModal({
                 onClick={onClose}
                 className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
               >
-                Cancel
+                {t('Cancel')}
               </button>
               <button
                 type="submit"
                 disabled={loading}
                 className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
               >
-                {loading ? 'Saving...' : isEditing ? 'Save' : 'Add Application'}
+                {loading
+                  ? t('Saving...')
+                  : isEditing
+                    ? t('Save')
+                    : t('Add Application')}
               </button>
             </div>
           </fieldset>

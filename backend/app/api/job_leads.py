@@ -395,6 +395,9 @@ async def _extract_lead(
             api_key=ai_settings.dispatch_api_key,
             api_base=ai_settings.base_url,
             retry_invalid_response=False,
+            output_language=(data.language if data else None) or (
+                "sr-Latn" if (user.settings or {}).get("language") == "sr-Latn" else "en"
+            ),
         )
         values = {
             name: value

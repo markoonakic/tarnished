@@ -24,6 +24,7 @@ export interface HistoryCorrection {
 }
 
 export interface User {
+  display_name?: string | null;
   id: string;
   email: string;
   is_admin: boolean;
@@ -32,6 +33,7 @@ export interface User {
 }
 
 export interface Status {
+  builtin_key?: string | null;
   meaning: StatusMeaning;
   id: string;
   name: string;
@@ -41,6 +43,7 @@ export interface Status {
 }
 
 export interface RoundType {
+  builtin_key?: string | null;
   id: string;
   name: string;
   is_default?: boolean;
@@ -205,6 +208,8 @@ type JobLeadStatus =
   'pending' | 'processing' | 'extracted' | 'failed' | 'converted';
 
 export interface JobLead {
+  content_warning_code?: string | null;
+  error_code?: string | null;
   id: string;
   source_text: string | null;
   source_truncated: boolean;

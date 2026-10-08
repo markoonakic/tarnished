@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useAnalyticsKPIs } from '@/hooks/useAnalyticsData';
 import StageResidence from './StageResidence';
 import HelpTip from '../HelpTip';
@@ -10,6 +12,7 @@ interface KPICardProps {
 }
 
 function KPICard({ title, value, unit, tooltip }: KPICardProps) {
+  useTranslation();
   return (
     <div className="bg-secondary group relative rounded-lg p-4" title={tooltip}>
       <h3 className="text-fg4 mb-1 text-xs! font-semibold">{title}</h3>
@@ -27,6 +30,7 @@ interface AnalyticsKPIsProps {
 }
 
 export default function AnalyticsKPIs({ period, asOf }: AnalyticsKPIsProps) {
+  useTranslation();
   const { data: kpis, isLoading, isError } = useAnalyticsKPIs(period, asOf);
 
   if (isLoading) {
@@ -46,7 +50,7 @@ export default function AnalyticsKPIs({ period, asOf }: AnalyticsKPIsProps) {
     return (
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
         <div className="bg-secondary col-span-full rounded-lg p-4">
-          <p className="text-red-bright text-sm">Failed to load KPIs</p>
+          <p className="text-red-bright text-sm">{t('Failed to load KPIs')}</p>
         </div>
       </div>
     );
@@ -56,42 +60,58 @@ export default function AnalyticsKPIs({ period, asOf }: AnalyticsKPIsProps) {
   return (
     <>
       <h3 className="text-fg1 mb-3 flex items-center gap-2 font-medium">
-        Pipeline metrics
-        <HelpTip label="About pipeline metrics">
+        {t('Pipeline metrics')}
+        <HelpTip label={t('About pipeline metrics')}>
           <p>
-            Applications sent{' '}
+            {t('Applications sent')}{' '}
             {kpis.scope.cohort_start
               ? `${kpis.scope.cohort_start} – ${kpis.scope.cohort_end}`
-              : 'at any time'}
-            . Rates use {kpis.total_applications} applications; saved leads are
-            excluded.
+              : t('at any time')}
+            {t('. Rates use')} {kpis.total_applications}{' '}
+            {t('applications; saved leads are excluded.')}
           </p>
         </HelpTip>
       </h3>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-        <KPICard title="Total Applications" value={kpis.total_applications} />
         <KPICard
-          title="Interviews"
+          title={t('Total Applications')}
+          value={kpis.total_applications}
+        />
+        <KPICard
+          title={t('Interviews')}
           value={kpis.interviews}
           tooltip="Applications with a recorded interview stage, including those that have since moved on."
         />
         <KPICard
-          title="Offers"
+          title={t('Offers')}
           value={kpis.offers}
           tooltip="Applications with a recorded offer stage, including those that have since moved on."
         />
         <KPICard
-          title="App to Interview Rate"
+          title={t('App to Interview Rate')}
           value={rate(kpis.interview_rate)}
-          tooltip={`${kpis.interviews} of ${kpis.total_applications} applications reached an interview.`}
+          tooltip={t(
+            '{{interviews}} of {{total_applications}} applications reached an interview.',
+            {
+              interviews: kpis.interviews,
+              total_applications: kpis.total_applications,
+            }
+          )}
         />
         <KPICard
-          title="Response Rate"
+          title={t('Response Rate')}
           value={rate(kpis.response_rate)}
-          tooltip={`${kpis.responded} of ${kpis.total_applications} applications have a recorded employer reply. ${kpis.response_unknown} have unknown response history.`}
+          tooltip={t(
+            '{{responded}} of {{total_applications}} applications have a recorded employer reply. {{response_unknown}} have unknown response history.',
+            {
+              responded: kpis.responded,
+              total_applications: kpis.total_applications,
+              response_unknown: kpis.response_unknown,
+            }
+          )}
         />
         <KPICard
-          title="Active Opportunities"
+          title={t('Active Opportunities')}
           value={kpis.active_opportunities}
           tooltip="Applications currently in progress."
         />

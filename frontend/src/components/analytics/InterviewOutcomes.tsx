@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { roundTypeLabel } from '@/lib/referenceLabels';
 import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption, LabelLayoutOptionCallback } from 'echarts';
@@ -26,6 +28,7 @@ export default function InterviewOutcomes({
   roundType,
   asOf,
 }: InterviewOutcomesProps) {
+  const { t } = useTranslation();
   const {
     data: analytics,
     isLoading,
@@ -69,7 +72,7 @@ export default function InterviewOutcomes({
       },
       legend: {
         type: 'scroll',
-        data: ['Passed', 'Failed', 'Pending', 'Withdrawn'],
+        data: [t('Passed'), t('Failed'), t('Pending'), t('Withdrawn')],
         top: 0,
         right: 0,
         textStyle: { color: colors.fg1 },
@@ -89,7 +92,9 @@ export default function InterviewOutcomes({
       },
       yAxis: {
         type: 'category',
-        data: data.map((d) => d.round),
+        data: data.map((d) =>
+          roundTypeLabel({ name: d.round, builtin_key: d.builtin_key })
+        ),
         axisLabel: {
           color: colors.fg4,
           width: 120,
@@ -99,10 +104,10 @@ export default function InterviewOutcomes({
       },
       series: (
         [
-          ['passed', 'Passed', colors.green],
-          ['failed', 'Failed', colors.red],
-          ['pending', 'Pending', colors.orange],
-          ['withdrew', 'Withdrawn', colors.yellow],
+          ['passed', t('Passed'), colors.green],
+          ['failed', t('Failed'), colors.red],
+          ['pending', t('Pending'), colors.orange],
+          ['withdrew', t('Withdrawn'), colors.yellow],
         ] as const
       ).map(([key, name, color]) => ({
         name,
@@ -128,16 +133,16 @@ export default function InterviewOutcomes({
         })),
       })),
     };
-  }, [data, colors]);
+  }, [data, colors, t]);
 
   if (isLoading) {
-    return <Loading message="Loading interview outcomes..." size="sm" />;
+    return <Loading message={t('Loading interview outcomes...')} size="sm" />;
   }
 
   if (isError) {
     return (
       <div className="text-red-bright py-8 text-center">
-        Failed to load interview outcomes data
+        {t('Failed to load interview outcomes data')}
       </div>
     );
   }
@@ -145,8 +150,10 @@ export default function InterviewOutcomes({
   if (data.length === 0) {
     return (
       <EmptyState
-        message="No interview outcome data available"
-        subMessage="Add completed interview rounds to see outcome analytics"
+        message={t('No interview outcome data available')}
+        subMessage={t(
+          'Add completed interview rounds to see outcome analytics'
+        )}
         icon="bi-bar-chart-steps"
       />
     );
@@ -155,11 +162,12 @@ export default function InterviewOutcomes({
   return (
     <div className="w-full">
       <p className="text-fg4 mb-4 flex items-center gap-2 text-sm">
-        Interview outcomes by round type
-        <HelpTip label="About interview outcomes">
+        {t('Interview outcomes by round type')}
+        <HelpTip label={t('About interview outcomes')}>
           <p>
-            Each round type shows the number and percentage of passed, failed,
-            pending and withdrawn rounds.
+            {t(
+              'Each round type shows the number and percentage of passed, failed, pending and withdrawn rounds.'
+            )}
           </p>
         </HelpTip>
       </p>

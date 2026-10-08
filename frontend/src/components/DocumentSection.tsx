@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import DocumentTextFallback from './DocumentTextFallback';
 import FileButton from './FileButton';
 import { useState } from 'react';
@@ -18,6 +20,7 @@ interface Props {
 }
 
 export default function DocumentSection({ application, onUpdate }: Props) {
+  useTranslation();
   const [uploading, setUploading] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
@@ -59,7 +62,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
       }
       setTimeout(() => setUploadProgress(0), 500);
     } catch {
-      setError(`Failed to upload ${type}`);
+      setError(t('Failed to upload {{type}}', { type: type }));
       setUploadProgress(0);
     } finally {
       setUploading(null);
@@ -68,7 +71,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
   }
 
   async function handleDelete(type: 'cv' | 'cover-letter') {
-    if (!confirm(`Delete this ${type}?`)) return;
+    if (!confirm(t('Delete this {{type}}?', { type: type }))) return;
     setError('');
     try {
       let updated: Application;
@@ -79,7 +82,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
       }
       onUpdate(updated);
     } catch {
-      setError(`Failed to delete ${type}`);
+      setError(t('Failed to delete {{type}}', { type: type }));
     }
   }
 
@@ -88,7 +91,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
       const { url } = await getSignedUrl(application.id, type, 'inline');
       window.open(`${API_BASE}${url}`, '_blank');
     } catch {
-      setError(`Failed to get preview URL for ${type}`);
+      setError(t('Failed to get preview URL for {{type}}', { type: type }));
     }
   }
 
@@ -129,16 +132,16 @@ export default function DocumentSection({ application, onUpdate }: Props) {
                 <span
                   className={`text-sm ${wasJustReplaced ? 'text-accent-bright' : 'text-green-bright'}`}
                 >
-                  {wasJustReplaced ? 'Replaced!' : 'Uploaded'}
+                  {wasJustReplaced ? t('Replaced!') : t('Uploaded')}
                 </span>
                 <button
                   onClick={() => handlePreview(type)}
                   disabled={isUploading}
                   className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
-                  title={canPreview ? 'Preview' : 'View/Download'}
+                  title={canPreview ? t('Preview') : t('View/Download')}
                 >
                   <i className="bi-eye icon-sm"></i>
-                  {canPreview ? 'Preview' : 'View/Download'}
+                  {canPreview ? t('Preview') : t('View/Download')}
                 </button>
                 <FileButton
                   accept=".pdf,.doc,.docx,.txt"
@@ -150,7 +153,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
                   className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
                 >
                   <i className="bi-arrow-repeat icon-sm"></i>
-                  Replace
+                  {t('Replace')}
                 </FileButton>
                 <button
                   onClick={() => handleDelete(type)}
@@ -158,7 +161,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
                   className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
                 >
                   <i className="bi-trash icon-sm"></i>
-                  Delete
+                  {t('Delete')}
                 </button>
               </div>
             </div>
@@ -180,7 +183,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
                 className="bg-accent text-bg0 hover:bg-accent-bright flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
               >
                 <i className="bi-upload icon-sm"></i>
-                {isUploading ? 'Uploading...' : 'Upload'}
+                {isUploading ? t('Uploading...') : t('Upload')}
               </FileButton>
             </div>
           )}
@@ -199,7 +202,9 @@ export default function DocumentSection({ application, onUpdate }: Props) {
 
   return (
     <div className="bg-bg1 rounded-lg p-6">
-      <h2 className="text-primary mb-4 text-lg font-semibold">Documents</h2>
+      <h2 className="text-primary mb-4 text-lg font-semibold">
+        {t('Documents')}
+      </h2>
 
       {error && (
         <div className="bg-red-bright/20 border-red-bright text-red-bright mb-4 rounded border px-3 py-2 text-sm">
@@ -208,9 +213,9 @@ export default function DocumentSection({ application, onUpdate }: Props) {
       )}
 
       <>
-        {renderDocRow('CV', 'cv', application.cv_path)}
+        {renderDocRow(t('CV'), 'cv', application.cv_path)}
         {renderDocRow(
-          'Cover Letter',
+          t('Cover Letter'),
           'cover-letter',
           application.cover_letter_path
         )}

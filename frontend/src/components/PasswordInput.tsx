@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useId, useState } from 'react';
 
 interface Props {
@@ -15,6 +17,7 @@ export default function PasswordInput({
   required = false,
   autoComplete,
 }: Props) {
+  useTranslation();
   const id = useId();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -40,7 +43,7 @@ export default function PasswordInput({
           type="button"
           onClick={() => setShowPassword(!showPassword)}
           className="text-fg1 hover:text-fg0 absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded bg-transparent px-3 py-1.5 transition-all duration-200 ease-in-out"
-          aria-label={showPassword ? 'Hide password' : 'Show password'}
+          aria-label={showPassword ? t('Hide password') : t('Show password')}
         >
           <i
             className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'} text-lg`}

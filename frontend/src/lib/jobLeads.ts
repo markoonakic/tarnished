@@ -1,3 +1,5 @@
+import { t, language } from '@/lib/i18n';
+import { errorMessage } from './errorMessage';
 import { isAxiosError } from 'axios';
 import { invalidateEvidenceQueries } from './queryClient';
 import api, { withAxiosTimeZoneHeaders } from './api';
@@ -123,7 +125,7 @@ export async function extractJobLead(
   id: string,
   body: JobLeadExtractRequest
 ): Promise<JobLead> {
-  const response = await api.post(`/api/job-leads/${id}/extract`, body);
+  const response = await api.post(`/api/job-leads/${id}/extract`, { ...body, language: language() });
   return response.data;
 }
 
@@ -131,7 +133,7 @@ export async function retryJobLead(
   id: string,
   body: JobLeadExtractRequest
 ): Promise<JobLead> {
-  const response = await api.post(`/api/job-leads/${id}/retry`, body);
+  const response = await api.post(`/api/job-leads/${id}/retry`, { ...body, language: language() });
   return response.data;
 }
 
@@ -142,14 +144,9 @@ export function jobLeadError(error: unknown): {
 } {
   const detail = isAxiosError(error) ? error.response?.data?.detail : null;
   return {
-    message:
-      typeof detail === 'string'
-        ? detail
-        : typeof detail?.message === 'string'
-          ? detail.message
-          : error instanceof Error
-            ? error.message
-            : 'Request failed',
+    message: isAxiosError(error)
+      ? errorMessage(error.response?.data, error.response?.status)
+      : t('Request failed'),
     id: typeof detail?.id === 'string' ? detail.id : undefined,
     conflict: isAxiosError(error) && error.response?.status === 409,
   };

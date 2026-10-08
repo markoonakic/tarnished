@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
@@ -17,6 +18,7 @@ export default function WeeklyActivityChart({
   period,
   asOf,
 }: WeeklyActivityChartProps) {
+  const { t } = useTranslation();
   const { data = [], isLoading, isError } = useWeeklyActivityData(period, asOf);
   const colors = useThemeColors();
 
@@ -51,14 +53,16 @@ export default function WeeklyActivityChart({
       },
       xAxis: {
         type: 'category',
-        data: sortedData.map((d) => d.week),
+        data: sortedData.map((d) =>
+          t('Week {{week}}', { week: d.week.match(/\d+/)?.[0] ?? d.week })
+        ),
         axisLabel: { color: colors.fg4 },
         axisLine: { lineStyle: { color: colors.bg2 } },
         axisTick: { lineStyle: { color: colors.bg2 } },
       },
       yAxis: {
         type: 'value',
-        name: 'Count',
+        name: t('Count'),
         nameTextStyle: { color: colors.fg4 },
         axisLabel: { color: colors.fg4 },
         axisLine: { lineStyle: { color: colors.bg2 } },
@@ -68,19 +72,19 @@ export default function WeeklyActivityChart({
       legend: { type: 'scroll', top: 0, textStyle: { color: colors.fg4 } },
       series: [
         {
-          name: 'Rounds scheduled',
+          name: t('Rounds scheduled'),
           type: 'bar',
           data: sortedData.map((d) => d.rounds_scheduled),
           itemStyle: { color: colors.aqua },
         },
         {
-          name: 'Rounds completed',
+          name: t('Rounds completed'),
           type: 'bar',
           data: sortedData.map((d) => d.rounds_completed),
           itemStyle: { color: colors.green },
         },
         {
-          name: 'Applications',
+          name: t('Applications'),
           type: 'bar',
           data: sortedData.map((d) => d.applications),
           itemStyle: { color: colors.blue },
@@ -90,7 +94,7 @@ export default function WeeklyActivityChart({
           },
         },
         {
-          name: 'Interviewing transitions',
+          name: t('Interviewing transitions'),
           type: 'bar',
           data: sortedData.map((d) => d.interviews),
           itemStyle: { color: colors.orange },
@@ -101,32 +105,33 @@ export default function WeeklyActivityChart({
         },
       ],
     };
-  }, [data, colors]);
+  }, [data, colors, t]);
 
   if (isLoading) {
-    return <Loading message="Loading chart data..." size="sm" />;
+    return <Loading message={t('Loading chart data...')} size="sm" />;
   }
 
   if (isError) {
     return (
       <div className="text-red-bright py-8 text-center">
-        Failed to load chart data
+        {t('Failed to load chart data')}
       </div>
     );
   }
 
   if (data.length === 0) {
-    return <EmptyState message="No data available for this period" />;
+    return <EmptyState message={t('No data available for this period')} />;
   }
 
   return (
     <div className="w-full">
       <p className="text-muted mb-3 flex items-center gap-2 text-sm">
-        Weekly activity
-        <HelpTip label="About weekly activity">
+        {t('Weekly activity')}
+        <HelpTip label={t('About weekly activity')}>
           <p>
-            Applications and interview activity by week. Week 1 is the most
-            recent week.
+            {t(
+              'Applications and interview activity by week. Week 1 is the most recent week.'
+            )}
           </p>
         </HelpTip>
       </p>

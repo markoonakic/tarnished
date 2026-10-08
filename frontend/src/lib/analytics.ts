@@ -73,6 +73,7 @@ export interface PipelineMetrics {
 }
 
 export interface SankeyNode {
+  builtin_key?: string | null;
   meaning: string;
   application_id: string;
   entered_at: string;
@@ -138,6 +139,7 @@ export async function getHeatmapData(
 }
 
 export interface FunnelData {
+  builtin_key?: string | null;
   round: string;
   count: number;
   passed: number;
@@ -145,6 +147,7 @@ export interface FunnelData {
 }
 
 export interface OutcomeData {
+  builtin_key?: string | null;
   round: string;
   passed: number;
   failed: number;
@@ -153,6 +156,7 @@ export interface OutcomeData {
 }
 
 export interface TimelineData {
+  builtin_key?: string | null;
   round: string;
   avg_days: number;
   avg_hours?: number | null;

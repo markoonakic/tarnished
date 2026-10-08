@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 
 // Dropdowns stay inside the dialog (no portals). The browser owns focus,
@@ -15,6 +16,7 @@ export default function Modal({
   label?: string;
   busy?: boolean;
 }) {
+  useTranslation();
   const ref = useRef<HTMLDialogElement>(null);
   useLayoutEffect(() => {
     const dialog = ref.current!;

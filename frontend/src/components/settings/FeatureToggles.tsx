@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import {
   useUpdateUserPreferences,
   useUserPreferences,
@@ -15,23 +17,37 @@ interface ToggleConfig {
 const toggles: ToggleConfig[] = [
   {
     key: 'show_streak_stats',
-    label: 'Show Flame of Ambition',
-    description: 'Display the Flame of Ambition widget on the dashboard.',
+    get label() {
+      return t('Show Flame of Ambition');
+    },
+    get description() {
+      return t('Display the Flame of Ambition widget on the dashboard.');
+    },
   },
   {
     key: 'show_needs_attention',
-    label: 'Show Needs Attention',
-    description: 'Display follow-up sections on the dashboard.',
+    get label() {
+      return t('Show Needs Attention');
+    },
+    get description() {
+      return t('Display follow-up sections on the dashboard.');
+    },
   },
   {
     key: 'show_heatmap',
-    label: 'Show Activity Heatmap',
-    description:
-      'Display the activity heatmap on the dashboard and analytics page.',
+    get label() {
+      return t('Show Activity Heatmap');
+    },
+    get description() {
+      return t(
+        'Display the activity heatmap on the dashboard and analytics page.'
+      );
+    },
   },
 ];
 
 export default function FeatureToggles() {
+  useTranslation();
   const {
     data: preferences,
     isLoading,
@@ -39,7 +55,7 @@ export default function FeatureToggles() {
     refetch,
   } = useUserPreferences();
   const updateMutation = useUpdateUserPreferences({
-    errorMessage: 'Failed to save feature visibility settings',
+    errorMessage: t('Failed to save feature visibility settings'),
   });
 
   function handleToggle(key: BooleanPreferenceKey) {
@@ -53,8 +69,10 @@ export default function FeatureToggles() {
   if (isLoading) {
     return (
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 mb-4 text-xl font-bold">Features</h2>
-        <div className="text-muted text-sm">Loading feature settings...</div>
+        <h2 className="text-fg1 mb-4 text-xl font-bold">{t('Features')}</h2>
+        <div className="text-muted text-sm">
+          {t('Loading feature settings...')}
+        </div>
       </div>
     );
   }
@@ -62,16 +80,16 @@ export default function FeatureToggles() {
   if (isError || !preferences) {
     return (
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 mb-4 text-xl font-bold">Features</h2>
+        <h2 className="text-fg1 mb-4 text-xl font-bold">{t('Features')}</h2>
         <p className="text-red-bright mb-4 text-sm">
-          Failed to load feature settings.
+          {t('Failed to load feature settings.')}
         </p>
         <button
           type="button"
           onClick={() => void refetch()}
           className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 ease-in-out"
         >
-          Try Again
+          {t('Try Again')}
         </button>
       </div>
     );
@@ -79,9 +97,11 @@ export default function FeatureToggles() {
 
   return (
     <div className="bg-secondary rounded-lg p-4 md:p-6">
-      <h2 className="text-fg1 mb-4 text-xl font-bold">Features</h2>
+      <h2 className="text-fg1 mb-4 text-xl font-bold">{t('Features')}</h2>
       <p className="text-muted mb-6 text-sm">
-        Choose which optional dashboard and analytics sections stay visible.
+        {t(
+          'Choose which optional dashboard and analytics sections stay visible.'
+        )}
       </p>
 
       <ul className="space-y-3">

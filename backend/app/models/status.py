@@ -26,6 +26,7 @@ class ApplicationStatus(Base):
         ),
     )
 
+    builtin_key: Mapped[str | None] = mapped_column(String(40), nullable=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     normalized_name: Mapped[str] = mapped_column(String(100), nullable=False)
     color: Mapped[str] = mapped_column(String(7), default="#83a598")

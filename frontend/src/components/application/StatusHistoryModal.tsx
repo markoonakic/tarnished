@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import Modal from '../Modal';
 import HistoryEvidenceDetails from './HistoryEvidenceDetails';
 import HistoryEntrySummary from './HistoryEntrySummary';
@@ -32,6 +34,7 @@ export default function StatusHistoryModal({
   deleteIsPending,
   deleteError,
 }: Props) {
+  useTranslation();
   if (!isOpen) return null;
   return (
     <Modal onClose={onClose} labelledBy="status-history-title">
@@ -44,7 +47,7 @@ export default function StatusHistoryModal({
             id="status-history-title"
             className="text-primary text-lg font-semibold"
           >
-            Status History
+            {t('Status History')}
           </h3>
           <div className="flex items-center gap-2">
             {!!history.length && (
@@ -53,11 +56,11 @@ export default function StatusHistoryModal({
                 onClick={onToggleEditing}
                 className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-3 py-2"
               >
-                {isEditing ? 'Done' : 'Edit History'}
+                {isEditing ? t('Done') : t('Edit History')}
               </button>
             )}
             <button
-              aria-label="Close history"
+              aria-label={t('Close history')}
               onClick={onClose}
               className="text-fg1 hover:bg-bg2 cursor-pointer rounded p-2"
             >
@@ -76,7 +79,7 @@ export default function StatusHistoryModal({
           )}
           {!history.length ? (
             <p className="text-muted py-12 text-center text-sm">
-              No status changes recorded yet.
+              {t('No status changes recorded yet.')}
             </p>
           ) : (
             history.map((entry) => (
@@ -101,7 +104,7 @@ export default function StatusHistoryModal({
                     className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-sm disabled:opacity-50"
                   >
                     <i className="bi-trash icon-xs" aria-hidden="true" />
-                    Delete
+                    {t('Delete')}
                   </button>
                 )}
               </div>

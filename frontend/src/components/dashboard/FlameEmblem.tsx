@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ReadHttpError } from '../../lib/readRecovery';
@@ -123,6 +125,7 @@ function FlameCanvas({
   frameIndex: number;
   animated: boolean;
 }) {
+  useTranslation();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -169,6 +172,7 @@ function FlameCanvas({
 }
 
 export default function FlameEmblem() {
+  useTranslation();
   const { currentTheme, currentAccent, accentOptions } = useTheme();
   const dayKey = useEffectiveDayKey();
   const [frameIndex, setFrameIndex] = useState(0);
@@ -274,7 +278,7 @@ export default function FlameEmblem() {
     <div className="bg-secondary mb-6 rounded-lg p-6">
       <div className="flex flex-col items-center justify-center">
         <div className="text-muted mb-2 text-xs tracking-[0.08em] uppercase">
-          Flame of Ambition
+          {t('Flame of Ambition')}
         </div>
         <div
           key={stateKey}
@@ -300,11 +304,19 @@ export default function FlameEmblem() {
 
           <div className="mt-3 text-center">
             <div className="text-fg1 text-3xl font-bold">
-              {data.current_streak} {data.current_streak === 1 ? 'DAY' : 'DAYS'}
+              {t('daysCount', {
+                count: data.current_streak,
+              }).toLocaleUpperCase()}
             </div>
             {!stateKey.startsWith('burning') && (
               <div className="text-fg4 mt-1 text-sm font-medium capitalize">
-                {stateKey}
+                {t(
+                  stateKey === 'dormant'
+                    ? 'Dormant'
+                    : stateKey === 'ember'
+                      ? 'Ember'
+                      : 'Extinguished'
+                )}
               </div>
             )}
           </div>
@@ -316,12 +328,10 @@ export default function FlameEmblem() {
 
         <div className="text-fg4 mt-4 flex gap-6 text-xs">
           <span>
-            Best: {data.longest_streak}{' '}
-            {data.longest_streak === 1 ? 'day' : 'days'}
+            {t('Best:')} {t('daysCount', { count: data.longest_streak })}
           </span>
           <span>
-            Total: {data.total_activity_days}{' '}
-            {data.total_activity_days === 1 ? 'day' : 'days'}
+            {t('Total:')} {t('daysCount', { count: data.total_activity_days })}
           </span>
         </div>
       </div>

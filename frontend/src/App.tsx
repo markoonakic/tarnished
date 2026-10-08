@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -24,14 +26,17 @@ import SettingsImport from './components/settings/SettingsImport';
 import SettingsAPIKey from './components/settings/SettingsAPIKey';
 import SettingsSecurity from './components/settings/SettingsSecurity';
 import SettingsProfile from './components/settings/SettingsProfile';
+import SettingsLanguage from './components/settings/SettingsLanguage';
+import LanguagePreference from './components/LanguagePreference';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  useTranslation();
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
       <div className="text-muted flex min-h-screen items-center justify-center">
-        Loading...
+        {t('Loading...')}
       </div>
     );
   }
@@ -44,12 +49,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
+  useTranslation();
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
       <div className="text-muted flex min-h-screen items-center justify-center">
-        Loading...
+        {t('Loading...')}
       </div>
     );
   }
@@ -62,6 +68,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
+  useTranslation();
   useScrollRestoration();
 
   return (
@@ -140,6 +147,7 @@ function AppRoutes() {
       >
         <Route path="theme" element={<SettingsTheme />} />
         <Route path="features" element={<SettingsFeatures />} />
+        <Route path="language" element={<SettingsLanguage />} />
         <Route path="profile" element={<SettingsProfile />} />
         <Route path="security" element={<SettingsSecurity />} />
         <Route path="api-key" element={<SettingsAPIKey />} />
@@ -161,12 +169,14 @@ function AppRoutes() {
 }
 
 function App() {
+  useTranslation();
   return (
     <ErrorBoundary>
       <BrowserRouter>
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>
+              <LanguagePreference />
               <AppRoutes />
               <ToastContainer />
             </ToastProvider>

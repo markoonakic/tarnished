@@ -31,6 +31,7 @@ from app.schemas.interview_feedback import (
     PipelineSection,
 )
 from app.services.ai_settings import CapabilitySettingsState
+from app.services.output_language import output_language_instruction
 
 MAX_RESPONSE_BYTES = 100_000
 # Compatible Responses services include large, unused reasoning summaries.
@@ -925,6 +926,14 @@ def prompt_revision(scope):
     return hashlib.sha256(contract.encode()).hexdigest()
 
 
+def _localized_system_prompt(scope, language):
+    prompt = _system_prompt(scope)
+    if language == "sr-Latn":
+        prompt = prompt.replace("English", "Serbian (Latin script)")
+        return output_language_instruction(language) + "\n" + prompt
+    return prompt
+
+
 def _system_prompt(scope, *, current_date=None):
     common = (
         f"The current UTC date is {current_date or datetime.now(UTC).date().isoformat()}. "
@@ -1222,6 +1231,7 @@ async def analyze_section(
     scope="INTERVIEW",
     *,
     session_id: str | None = None,
+    output_language: str = "en",
 ):
     """Use one durable job UUID, or a fresh UUID for one standalone logical call."""
     if not supported(settings):
@@ -1234,10 +1244,20 @@ async def analyze_section(
         ) from None
     if getattr(settings, "protocol", "chat_completions") == "responses":
         return await _analyze_section_responses(
-            settings, sources, limits, scope, session_id=context
+            settings,
+            sources,
+            limits,
+            scope,
+            session_id=context,
+            output_language=output_language,
         )
     return await _analyze_section_chat(
-        settings, sources, limits, scope, session_id=context
+        settings,
+        sources,
+        limits,
+        scope,
+        session_id=context,
+        output_language=output_language,
     )
 
 
@@ -1248,9 +1268,10 @@ async def _analyze_section_chat(
     scope="INTERVIEW",
     *,
     session_id: str,
+    output_language: str = "en",
 ):
     endpoint = (settings.base_url or "").rstrip("/") + "/chat/completions"
-    system = _system_prompt(scope)
+    system = _localized_system_prompt(scope, output_language)
     deadline = (
         PIPELINE_SECTION_REQUEST_TIMEOUT_SECONDS
         if scope == "PIPELINE"
@@ -1340,10 +1361,11 @@ async def _analyze_section_responses(
     scope="INTERVIEW",
     *,
     session_id: str,
+    output_language: str = "en",
 ):
     """Explicit Responses API path: instructions + input, strict JSON, no tools."""
     endpoint = (settings.base_url or "").rstrip("/") + "/responses"
-    system = _system_prompt(scope)
+    system = _localized_system_prompt(scope, output_language)
     user_input = json.dumps({"sources": sources, "limitations": limits}, default=str)
     deadline = (
         PIPELINE_SECTION_REQUEST_TIMEOUT_SECONDS

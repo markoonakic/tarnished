@@ -1,3 +1,6 @@
+import { t } from '@/lib/i18n';
+import { roundTypeLabel } from '@/lib/referenceLabels';
+import { useTranslation } from 'react-i18next';
 import { observeRead } from '@/lib/queryClient';
 import { useState, useEffect } from 'react';
 import {
@@ -11,6 +14,7 @@ import Loading from '../Loading';
 import { SettingsBackLink } from './SettingsLayout';
 
 export default function SettingsRoundTypes() {
+  useTranslation();
   const [roundTypes, setRoundTypes] = useState<RoundType[]>([]);
   const [newRoundTypeName, setNewRoundTypeName] = useState('');
   const [editingRoundType, setEditingRoundType] = useState<RoundType | null>(
@@ -28,7 +32,7 @@ export default function SettingsRoundTypes() {
       setRoundTypes(roundTypeData);
       setError('');
     } catch (error) {
-      setError('Failed to load settings');
+      setError(t('Failed to load settings'));
       return { error };
     } finally {
       setLoading(false);
@@ -51,12 +55,14 @@ export default function SettingsRoundTypes() {
       setEditingRoundType(null);
       loadData();
     } catch {
-      setError('Failed to update round type');
+      setError(t('Failed to update round type'));
     }
   }
 
   async function handleDeleteRoundType(roundType: RoundType) {
-    if (!confirm(`Delete round type "${roundType.name}"?`)) {
+    if (
+      !confirm(t('Delete round type "{{name}}"?', { name: roundType.name }))
+    ) {
       return;
     }
 
@@ -64,7 +70,7 @@ export default function SettingsRoundTypes() {
       await deleteRoundType(roundType.id);
       loadData();
     } catch {
-      setError('Failed to delete round type');
+      setError(t('Failed to delete round type'));
     }
   }
 
@@ -77,7 +83,7 @@ export default function SettingsRoundTypes() {
       setNewRoundTypeName('');
       loadData();
     } catch {
-      setError('Failed to create round type');
+      setError(t('Failed to create round type'));
     }
   }
 
@@ -89,7 +95,7 @@ export default function SettingsRoundTypes() {
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
         <h2 className="text-fg1 mb-4 text-xl font-bold">
-          Interview Round Types
+          {t('Interview Round Types')}
         </h2>
 
         {error && (
@@ -99,12 +105,14 @@ export default function SettingsRoundTypes() {
         )}
 
         {loading ? (
-          <Loading message="Loading settings..." />
+          <Loading message={t('Loading settings...')} />
         ) : (
           <>
             {roundTypes.filter((t) => !t.is_default).length === 0 && (
               <p className="text-muted bg-tertiary mb-4 rounded p-3 text-sm">
-                Using default round types. Add custom round types to override.
+                {t(
+                  'Using default round types. Add custom round types to override.'
+                )}
               </p>
             )}
             <div className="mb-4 space-y-2">
@@ -113,10 +121,10 @@ export default function SettingsRoundTypes() {
                   key={type.id}
                   className="bg-tertiary flex items-center justify-between rounded px-3 py-2"
                 >
-                  <span className="text-fg1">{type.name}</span>
+                  <span className="text-fg1">{roundTypeLabel(type)}</span>
                   <div className="flex items-center gap-2">
                     {type.is_default && (
-                      <span className="text-muted text-xs">Default</span>
+                      <span className="text-muted text-xs">{t('Default')}</span>
                     )}
                     {!type.is_default && (
                       <>
@@ -125,14 +133,14 @@ export default function SettingsRoundTypes() {
                           className="text-fg1 hover:bg-bg3 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
                         >
                           <i className="bi-pencil icon-xs"></i>
-                          Edit
+                          {t('Edit')}
                         </button>
                         <button
                           onClick={() => handleDeleteRoundType(type)}
                           className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
                         >
                           <i className="bi-trash icon-xs"></i>
-                          Delete
+                          {t('Delete')}
                         </button>
                       </>
                     )}
@@ -146,28 +154,30 @@ export default function SettingsRoundTypes() {
                 onSubmit={handleUpdateRoundType}
                 className="bg-secondary mb-4 rounded p-3"
               >
-                <div className="text-muted mb-2 text-sm">Edit Round Type</div>
+                <div className="text-muted mb-2 text-sm">
+                  {t('Edit Round Type')}
+                </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={editRoundTypeName}
                     onChange={(e) => setEditRoundTypeName(e.target.value)}
-                    placeholder="Round type name"
-                    aria-label="Round type name"
+                    placeholder={t('Round type name')}
+                    aria-label={t('Round type name')}
                     className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
                   <button
                     type="submit"
                     className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                   >
-                    Save
+                    {t('Save')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingRoundType(null)}
                     className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out"
                   >
-                    Cancel
+                    {t('Cancel')}
                   </button>
                 </div>
               </form>
@@ -177,15 +187,15 @@ export default function SettingsRoundTypes() {
                   type="text"
                   value={newRoundTypeName}
                   onChange={(e) => setNewRoundTypeName(e.target.value)}
-                  placeholder="New round type name"
-                  aria-label="New round type name"
+                  placeholder={t('New round type name')}
+                  aria-label={t('New round type name')}
                   className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
                 <button
                   type="submit"
                   className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                 >
-                  Add
+                  {t('Add')}
                 </button>
               </form>
             )}

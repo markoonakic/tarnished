@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n';
 import { getBrowserTimeZone } from './api';
 import type { UserPreferences } from './userPreferences';
 
@@ -36,12 +37,13 @@ export function formatRoundDateTimeForApi(
   if (!date) return null;
   if (!time) return `${date}T00:00:00`;
   const match = time.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-  if (!match) throw new Error('Enter a valid time, such as 14:30 or 2:30 PM.');
+  if (!match)
+    throw new Error(t('Enter a valid time, such as 14:30 or 2:30 PM.'));
   let hours = Number(match[1]);
   const minutes = Number(match[2]);
   const period = match[3]?.toUpperCase();
   if (minutes > 59 || (period ? hours < 1 || hours > 12 : hours > 23)) {
-    throw new Error('Enter a valid time, such as 14:30 or 2:30 PM.');
+    throw new Error(t('Enter a valid time, such as 14:30 or 2:30 PM.'));
   }
   if (period) hours = (hours % 12) + (period === 'PM' ? 12 : 0);
   return `${date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
