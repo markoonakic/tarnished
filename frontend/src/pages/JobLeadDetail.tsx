@@ -104,9 +104,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
           ? t(
               'The previous request may still be running or have been billed. Restarting may repeat paid work. Explicitly replace it?'
             )
-          : t(
-              'Send this job posting to the configured AI service to fill in its details? Charges may apply.'
-            )
+          : t('ai.reviewDisclosure')
       )
     )
       return;
@@ -122,7 +120,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
         restart_processing: restarting,
       });
       setJobLead(updated);
-      toast.success(t('Extraction completed'));
+      toast.success(t('ai.queued'));
     } catch (error) {
       const failure = jobLeadError(error);
       setError(

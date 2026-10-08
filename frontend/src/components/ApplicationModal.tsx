@@ -2,6 +2,7 @@ import { t } from '@/lib/i18n';
 import { statusLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
+import ApplicationPostingCapture from './ai/ApplicationPostingCapture';
 import { observeRead } from '../lib/queryClient';
 import { useEffect, useRef, useState } from 'react';
 import { createApplication, updateApplication } from '../lib/applications';
@@ -238,6 +239,15 @@ export default function ApplicationModal({
           </button>
         </div>
 
+        {!isEditing && (
+          <ApplicationPostingCapture
+            statusId={statusId}
+            onCreated={(id) => {
+              onSuccess(id);
+              onClose();
+            }}
+          />
+        )}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
           <fieldset disabled={loading} className="space-y-4">
             {error && (
