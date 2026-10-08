@@ -44,7 +44,7 @@ export default function CollapsibleCard({
               aria-hidden="true"
             />
           )}
-          <span className="font-display">{title}</span>
+          <span style={{ fontFamily: 'var(--font-display)' }}>{title}</span>
           {count !== undefined && (
             <span className="bg-tertiary text-fg4 rounded-full px-2 py-0.5 text-xs">
               {count}

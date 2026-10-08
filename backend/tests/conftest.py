@@ -25,7 +25,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import event, select
+from sqlalchemy import event, inspect, select, text
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -119,6 +119,9 @@ async def db_engine(request, migrated_sqlite_template):
     seed_rows = {}
     if reuse_postgres_schema:
         async with engine.connect() as conn:
+            starting_revision = await conn.scalar(
+                text("SELECT version_num FROM alembic_version")
+            )
             for table in Base.metadata.sorted_tables:
                 rows = (await conn.execute(select(table))).mappings().all()
                 if rows:
@@ -130,7 +133,16 @@ async def db_engine(request, migrated_sqlite_template):
         async with engine.begin() as conn:
             if is_sqlite:
                 await conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
-            if reuse_postgres_schema:
+            has_revision = await conn.run_sync(
+                lambda connection: inspect(connection).has_table("alembic_version")
+            )
+            current_revision = (
+                await conn.scalar(text("SELECT version_num FROM alembic_version"))
+                if has_revision
+                else None
+            )
+            # A migration test can replace or downgrade the schema itself.
+            if reuse_postgres_schema and current_revision == starting_revision:
                 names = ", ".join(
                     conn.dialect.identifier_preparer.quote(table.name)
                     for table in Base.metadata.sorted_tables

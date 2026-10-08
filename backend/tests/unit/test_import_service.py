@@ -118,8 +118,9 @@ class TestImportService:
         # Create a mock model class
         mock_model_class = Mock()
         mock_model_class.__name__ = "Application"
-        mock_instance = Mock()
+        mock_instance = Mock(confirmed_requirements=[])
         mock_model_class.return_value = mock_instance
+        mock_session.get.return_value = mock_instance
 
         export_data = {
             "format_version": "1.0.0",

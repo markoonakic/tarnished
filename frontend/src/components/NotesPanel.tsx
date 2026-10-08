@@ -51,6 +51,7 @@ export interface NoteItem {
   body: string;
   created_at: string;
   updated_at?: string;
+  revision?: number;
 }
 export interface NotesPanelProps {
   notes: NoteItem[];
@@ -169,7 +170,10 @@ export default function NotesPanel({
                       dateStyle: 'medium',
                       timeStyle: 'short',
                     })}
-                    {note.updated_at && note.updated_at !== note.created_at && (
+                    {(note.revision !== undefined
+                      ? note.revision > 0
+                      : note.updated_at &&
+                        note.updated_at !== note.created_at) && (
                       <> · {t('kit.edited')}</>
                     )}
                   </span>

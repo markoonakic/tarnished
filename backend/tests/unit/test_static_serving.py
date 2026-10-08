@@ -71,6 +71,13 @@ async def test_static_navigation_and_assets(static_client, path, code, body):
         assert response.headers["content-type"].startswith("application/json")
 
 
+@pytest.mark.parametrize("method", ["POST", "PATCH", "DELETE"])
+async def test_missing_api_mutations_never_reach_static_files(static_client, method):
+    response = await static_client.request(method, "/api/not-a-route")
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/json")
+
+
 async def test_static_absolute_decoded_path_cannot_escape(static_client, tmp_path):
     absolute = str(tmp_path / "config.txt").replace("/", "%2f")
     response = await static_client.get("/" + absolute)

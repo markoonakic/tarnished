@@ -317,6 +317,20 @@ it('retains a reminder draft on failure and closes without saving on cancel', as
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(onClose).toHaveBeenCalledOnce();
 });
+it('marks notes edited only after a saved revision, not timestamp rounding', () => {
+  const note = {
+    id: 'new-note',
+    body: 'A note',
+    created_at: '2026-10-08T09:00:00.000001Z',
+    updated_at: '2026-10-08T09:00:00.000010Z',
+    revision: 0,
+  };
+  const view = render(<NotesPanel notes={[note]} />);
+  expect(screen.queryByText(/edited/)).not.toBeInTheDocument();
+  view.rerender(<NotesPanel notes={[{ ...note, revision: 1 }]} />);
+  expect(screen.getByText(/edited/)).toBeInTheDocument();
+});
+
 const statuses = [
   { value: 'open', label: 'Applied', meaning: 'applied' },
   { value: 'reject', label: 'Declined', meaning: 'rejected' },
