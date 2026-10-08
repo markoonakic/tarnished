@@ -447,6 +447,11 @@ async def update_application(
     destination = (
         selected_status.meaning if selected_status else application.status_meaning
     )
+    for field in ("company", "job_title"):
+        if field in update_data and not update_data[field].strip():
+            if destination != "preparing":
+                raise HTTPException(422, "Company and position are required")
+            update_data[field] = ""
     if (
         "applied_at" in update_data
         and update_data["applied_at"] is None

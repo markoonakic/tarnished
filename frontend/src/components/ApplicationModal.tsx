@@ -79,7 +79,12 @@ export default function ApplicationModal({
   const [jobUrlError, setJobUrlError] = useState('');
   const [statusId, setStatusId] = useState('');
   const isPreparing =
-    statuses.find((status) => status.id === statusId)?.meaning === 'preparing';
+    (
+      statuses.find((status) => status.id === statusId) ??
+      (formApplication?.status.id === statusId
+        ? formApplication.status
+        : undefined)
+    )?.meaning === 'preparing';
   const [appliedAt, setAppliedAt] = useState('');
   const [salaryMin, setSalaryMin] = useState('');
   const [salaryMax, setSalaryMax] = useState('');
@@ -237,8 +242,8 @@ export default function ApplicationModal({
       if (isEditing && formApplication) {
         const data: ApplicationUpdate = buildUpdateApplicationPayload(values);
         if (isPreparing) {
-          data.company = company.trim() || null;
-          data.job_title = jobTitle.trim() || null;
+          data.company = company.trim();
+          data.job_title = jobTitle.trim();
         }
         Object.assign(data, metadata, { location: location || null });
         if (
@@ -521,11 +526,7 @@ export default function ApplicationModal({
                     aria-describedby="applied-date-help"
                     id="applied-date"
                     type="date"
-                    required={
-                      isEditing &&
-                      statuses.find((status) => status.id === statusId)
-                        ?.meaning !== 'preparing'
-                    }
+                    required={isEditing && !isPreparing}
                     value={appliedAt}
                     onChange={(e) => setAppliedAt(e.target.value)}
                     className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"

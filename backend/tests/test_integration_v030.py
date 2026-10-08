@@ -2,6 +2,7 @@
 
 from datetime import UTC, date, datetime
 
+import pytest
 from sqlalchemy import select
 
 from app.core.security import create_access_token
@@ -139,3 +140,49 @@ async def test_activity_status_transition_keeps_builtin_identity_and_custom_name
     )
     assert row["from_status"] == {"name": "Applied", "builtin_key": "applied"}
     assert row["to_status"] == {"name": "Team review", "builtin_key": None}
+
+
+@pytest.mark.parametrize(
+    "meaning, expected_code", [("preparing", 200), ("applied", 422)]
+)
+async def test_only_preparing_can_clear_company_and_position(
+    db, client, meaning, expected_code
+):
+    await seed_defaults(db)
+    user = User(email="preparing-fields@example.com", password_hash="unused")
+    db.add(user)
+    await db.flush()
+    status = await db.scalar(
+        select(ApplicationStatus).where(ApplicationStatus.meaning == meaning)
+    )
+    app = Application(
+        user_id=user.id,
+        company="North",
+        job_title="Engineer",
+        status_id=status.id,
+        status_meaning=meaning,
+        applied_at=date(2026, 1, 1),
+    )
+    db.add(app)
+    await db.commit()
+    headers = {
+        "Authorization": "Bearer "
+        + create_access_token({"sub": user.id, "session_version": user.session_version})
+    }
+    response = await client.patch(
+        f"/api/applications/{app.id}",
+        headers=headers,
+        json={
+            "expected_revision": app.evidence_revision,
+            "company": "",
+            "job_title": " ",
+            "location": "Beograd",
+        },
+    )
+    assert response.status_code == expected_code, response.text
+    await db.refresh(app)
+    if meaning == "preparing":
+        assert app.company == app.job_title == ""
+        assert app.location == "Beograd"
+    else:
+        assert app.company == "North" and app.job_title == "Engineer"

@@ -251,8 +251,8 @@ it('saves incomplete preparation without an applied date and retains all record 
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() => expect(onSuccess).toHaveBeenCalled());
   expect(patches[0]).toMatchObject({
-    company: null,
-    job_title: null,
+    company: '',
+    job_title: '',
     applied_at: null,
     status_id: 'preparing',
     expected_revision: 0,

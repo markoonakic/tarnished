@@ -63,8 +63,8 @@ class ApplicationUpdate(JobFields):
 
     expected_revision: int | None = Field(None, ge=0)
     response_evidence: ResponseEvidenceInput | None = None
-    company: str | None = Field(None, min_length=1, max_length=255, pattern=r"\S")
-    job_title: str | None = Field(None, min_length=1, max_length=255, pattern=r"\S")
+    company: str | None = Field(None, max_length=255)
+    job_title: str | None = Field(None, max_length=255)
     job_description: str | None = None
     job_url: str | None = None
     status_id: str | None = Field(None, min_length=1, max_length=36)
