@@ -1,7 +1,51 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { locale } from '@/lib/i18n';
 import Card from './Card';
+function NoteBody({ body }: { body: string }) {
+  const { t } = useTranslation();
+  const ref = useRef<HTMLParagraphElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [long, setLong] = useState(false);
+  useLayoutEffect(() => {
+    const node = ref.current!;
+    const measure = () =>
+      setLong(
+        expanded ||
+          node.scrollHeight > node.clientHeight ||
+          body.split('\n').length > 6
+      );
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [body, expanded]);
+  return (
+    <>
+      <p
+        ref={ref}
+        className={
+          expanded
+            ? 'text-fg1 text-sm break-words whitespace-pre-wrap'
+            : 'text-fg1 line-clamp-6 text-sm break-words whitespace-pre-wrap'
+        }
+      >
+        {body}
+      </p>
+      {long && (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded(!expanded)}
+          className="text-accent focus:ring-accent mt-2 cursor-pointer rounded text-xs focus:ring-2"
+        >
+          {t(expanded ? 'kit.showLess' : 'kit.showMore')}
+        </button>
+      )}
+    </>
+  );
+}
 export interface NoteItem {
   id: string;
   body: string;
@@ -23,7 +67,6 @@ export default function NotesPanel({
   const { t } = useTranslation();
   const [editing, setEditing] = useState<string | null>(null);
   const [body, setBody] = useState('');
-  const [expanded, setExpanded] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   function start(id: string, text = '') {
@@ -154,35 +197,7 @@ export default function NotesPanel({
                     )}
                   </span>
                 </div>
-                <p
-                  className={
-                    expanded.includes(note.id)
-                      ? 'text-fg1 text-sm break-words whitespace-pre-wrap'
-                      : 'text-fg1 line-clamp-6 text-sm break-words whitespace-pre-wrap'
-                  }
-                >
-                  {note.body}
-                </p>
-                {(note.body.split('\n').length > 6 ||
-                  note.body.length > 360) && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setExpanded((ids) =>
-                        ids.includes(note.id)
-                          ? ids.filter((id) => id !== note.id)
-                          : [...ids, note.id]
-                      )
-                    }
-                    className="text-accent focus:ring-accent mt-2 cursor-pointer rounded text-xs focus:ring-2"
-                  >
-                    {t(
-                      expanded.includes(note.id)
-                        ? 'kit.showLess'
-                        : 'kit.showMore'
-                    )}
-                  </button>
-                )}
+                <NoteBody body={note.body} />
               </div>
             )
           )}

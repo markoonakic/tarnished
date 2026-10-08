@@ -22,6 +22,13 @@ import type { JobLead } from '../lib/types';
 import { useToastContext } from '../contexts/ToastContext';
 import Layout from '../components/Layout';
 import ConvertToApplicationModal from '../components/ConvertToApplicationModal';
+import LeadDetails from '../components/slots/LeadDetails';
+import LeadDecision from '../components/slots/LeadDecision';
+import LeadContacts from '../components/slots/LeadContacts';
+import LeadReminders from '../components/slots/LeadReminders';
+import LeadNotes from '../components/slots/LeadNotes';
+import LeadProfileMatch from '../components/slots/LeadProfileMatch';
+import LeadExtractionReview from '../components/slots/LeadExtractionReview';
 
 export default function JobLeadDetail() {
   useTranslation();
@@ -267,6 +274,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
               )}
             </div>
             <div className="flex flex-col items-end gap-2">
+              <LeadDecision lead={jobLead} onUpdated={loadJobLead} />
               <span
                 className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${getJobLeadStatusBadgeClass(jobLead.status)}`}
               >
@@ -329,33 +337,6 @@ function JobLeadDetailContent({ id }: { id: string }) {
                 {errorMessage({ code: jobLead.error_code })}
               </p>
             </div>
-          )}
-
-          {(jobLead.source_text || jobLead.content_warning) && (
-            <details className="bg-bg2 mb-4 rounded-lg p-4">
-              <summary className="text-primary cursor-pointer">
-                {t('Saved posting')}
-              </summary>
-              {jobLead.source_truncated && (
-                <p className="text-muted my-2 text-sm">
-                  {t('Only part of the posting was saved.')}
-                </p>
-              )}
-              {jobLead.content_warning && (
-                <p className="text-yellow mb-2">
-                  {t(
-                    jobLead.content_warning_code === 'source_missing'
-                      ? 'No useful source text was captured. Explicit extraction will attempt to fetch the URL.'
-                      : jobLead.content_warning_code === 'source_normalized'
-                        ? 'Source text was normalized for storage. Check the saved posting.'
-                        : 'The saved source may be incomplete. Check the posting text.'
-                  )}
-                </p>
-              )}
-              <pre className="text-primary max-h-96 overflow-auto text-sm break-words whitespace-pre-wrap">
-                {jobLead.source_text}
-              </pre>
-            </details>
           )}
 
           {/* Description - at the top like Applications */}
@@ -551,6 +532,39 @@ function JobLeadDetailContent({ id }: { id: string }) {
             </button>
           </div>
         </div>
+        <LeadDetails lead={jobLead} onUpdated={loadJobLead} />
+        {(jobLead.source_text || jobLead.content_warning) && (
+          <details className="bg-bg2 mb-4 rounded-lg p-4">
+            <summary className="text-primary cursor-pointer">
+              {t('Saved posting')}
+            </summary>
+            {jobLead.source_truncated && (
+              <p className="text-muted my-2 text-sm">
+                {t('Only part of the posting was saved.')}
+              </p>
+            )}
+            {jobLead.content_warning && (
+              <p className="text-yellow mb-2">
+                {t(
+                  jobLead.content_warning_code === 'source_missing'
+                    ? 'No useful source text was captured. Explicit extraction will attempt to fetch the URL.'
+                    : jobLead.content_warning_code === 'source_normalized'
+                      ? 'Source text was normalized for storage. Check the saved posting.'
+                      : 'The saved source may be incomplete. Check the posting text.'
+                )}
+              </p>
+            )}
+            <pre className="text-primary max-h-96 overflow-auto text-sm break-words whitespace-pre-wrap">
+              {jobLead.source_text}
+            </pre>
+          </details>
+        )}
+
+        <LeadExtractionReview lead={jobLead} onUpdated={loadJobLead} />
+        <LeadProfileMatch lead={jobLead} onUpdated={loadJobLead} />
+        <LeadContacts lead={jobLead} onUpdated={loadJobLead} />
+        <LeadReminders lead={jobLead} onUpdated={loadJobLead} />
+        <LeadNotes lead={jobLead} onUpdated={loadJobLead} />
       </div>
       {jobLead && (
         <ConvertToApplicationModal

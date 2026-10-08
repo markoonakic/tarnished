@@ -90,16 +90,18 @@ export default function MonthGrid({
           >
             <i className="bi bi-chevron-right" aria-hidden="true" />
           </button>
-        <button
-          type="button"
-          disabled={!onMonthChange}
-          onClick={() =>
-            onMonthChange?.(new Date(today.getFullYear(), today.getMonth(), 1))
-          }
-          className="text-accent hover:bg-bg2 focus:ring-accent cursor-pointer rounded px-3 py-1 text-sm focus:ring-2 disabled:opacity-40"
-        >
-          {t('kit.today')}
-        </button>
+          <button
+            type="button"
+            disabled={!onMonthChange}
+            onClick={() =>
+              onMonthChange?.(
+                new Date(today.getFullYear(), today.getMonth(), 1)
+              )
+            }
+            className="text-accent hover:bg-bg2 focus:ring-accent cursor-pointer rounded px-3 py-1 text-sm focus:ring-2 disabled:opacity-40"
+          >
+            {t('kit.today')}
+          </button>
         </div>
         {headerActions}
       </div>

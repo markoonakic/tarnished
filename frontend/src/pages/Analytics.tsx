@@ -1,4 +1,8 @@
 import { t, locale } from '@/lib/i18n';
+import AnalyticsNewKpis from '../components/slots/AnalyticsNewKpis';
+import AnalyticsBreakdowns from '../components/slots/AnalyticsBreakdowns';
+import AnalyticsActivity from '../components/slots/AnalyticsActivity';
+import AnalyticsAiInsights from '../components/slots/AnalyticsAiInsights';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -106,10 +110,12 @@ export default function Analytics() {
             <div className="bg-bg1 mb-4 rounded-lg p-6">
               <AnalyticsKPIs period={period} asOf={asOf} />
             </div>
+            <AnalyticsNewKpis period={period} asOf={asOf} />
             <div className="bg-bg1 rounded-lg p-6">
               <SankeyChart period={period} asOf={asOf} />
             </div>
           </section>
+          <AnalyticsBreakdowns period={period} asOf={asOf} />
           <section>
             <h2 className="text-fg1 mb-4 text-lg font-semibold">
               {t('Interview Analytics')}
@@ -139,6 +145,8 @@ export default function Analytics() {
               </div>
             )}
           </section>
+          <AnalyticsActivity period={period} asOf={asOf} />
+          <AnalyticsAiInsights period={period} asOf={asOf} />
         </div>
       </div>
     </Layout>

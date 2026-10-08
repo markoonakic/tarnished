@@ -2,7 +2,7 @@ import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import DocumentTextFallback from './DocumentTextFallback';
 import FileButton from './FileButton';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   uploadCV,
   uploadCoverLetter,
@@ -17,9 +17,14 @@ import ProgressBar from './ProgressBar';
 interface Props {
   application: Application;
   onUpdate: (app: Application) => void;
+  children?: ReactNode;
 }
 
-export default function DocumentSection({ application, onUpdate }: Props) {
+export default function DocumentSection({
+  application,
+  onUpdate,
+  children,
+}: Props) {
   useTranslation();
   const [uploading, setUploading] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -220,6 +225,7 @@ export default function DocumentSection({ application, onUpdate }: Props) {
           application.cover_letter_path
         )}
       </>
+      {children}
     </div>
   );
 }
