@@ -371,7 +371,14 @@ export interface Interview extends Omit<InterviewInput, 'round_type_id'> {
   company: string;
   company_id: ID | null;
   job_title: string;
-  media: unknown[];
+  media: import('./types').RoundMedia[];
+  scheduled_at: ISODateTime | null;
+  completed_at: ISODateTime | null;
+  outcome: string | null;
+  notes_summary: string | null;
+  transcript_summary: string | null;
+  transcript_path: string | null;
+  transcript_original_filename: string | null;
   has_current_transcript: boolean;
   media_generation: number;
   transcript_generation: number;

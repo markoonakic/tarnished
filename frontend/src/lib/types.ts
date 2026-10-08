@@ -1,3 +1,4 @@
+import type { InterviewInput } from './apiV030';
 export const statusMeanings = [
   'unknown',
   'applied',
@@ -61,7 +62,10 @@ export interface RoundMedia {
   uploaded_at: string;
 }
 
-export interface Round {
+export interface Round extends Omit<InterviewInput, 'round_type_id'> {
+  application_id?: string;
+  revision?: number;
+  updated_at?: string;
   id: string;
   round_type: RoundType;
   scheduled_at: string | null;

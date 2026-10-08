@@ -186,21 +186,21 @@ export default function Dashboard() {
                 </span>
               </button>
               <button
-                onClick={() => navigate('/analytics')}
+                onClick={() => navigate('/job-leads?new=1')}
                 className="bg-secondary hover:bg-bg2 cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5"
               >
-                <i className="bi bi-graph-up text-accent icon-xl align-middle"></i>
+                <i className="bi bi-link-45deg text-accent icon-xl align-middle"></i>
                 <span className="text-fg1 ml-3 align-middle font-medium">
-                  {t('View Analytics')}
+                  {t('tasks.newJobLead')}
                 </span>
               </button>
               <button
-                onClick={() => navigate('/applications')}
+                onClick={() => navigate('/applications?view=board')}
                 className="bg-secondary hover:bg-bg2 cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5"
               >
-                <i className="bi bi-list-ul text-accent icon-xl align-middle"></i>
+                <i className="bi bi-kanban text-accent icon-xl align-middle"></i>
                 <span className="text-fg1 ml-3 align-middle font-medium">
-                  {t('View Applications')}
+                  {t('tasks.openBoard')}
                 </span>
               </button>
             </div>

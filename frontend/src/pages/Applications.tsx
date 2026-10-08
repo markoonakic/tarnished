@@ -1,4 +1,5 @@
 import { t, locale } from '@/lib/i18n';
+import ApplicationBoard from '@/components/ApplicationBoard';
 import ApplicationsViewSwitch from '../components/slots/ApplicationsViewSwitch';
 import { statusLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
@@ -284,7 +285,9 @@ export default function Applications() {
           </div>
         )}
 
-        {loading ? (
+        {searchParams.get('view') === 'board' ? (
+          <ApplicationBoard params={searchParams} />
+        ) : loading ? (
           <Loading message={t('Loading applications...')} />
         ) : error ? null : applications.length === 0 ? (
           isFiltered ? (

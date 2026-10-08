@@ -31,6 +31,9 @@ vi.mock('../contexts/AuthContext', () => ({
   }),
 }));
 
+vi.mock('../components/slots/DashboardPipelineStrip', () => ({ default: () => null }));
+vi.mock('../components/slots/DashboardUpcomingRow', () => ({ default: () => null }));
+vi.mock('../components/slots/DashboardBoard', () => ({ default: () => null }));
 vi.mock('../components/Layout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));

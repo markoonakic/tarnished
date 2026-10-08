@@ -22,6 +22,8 @@ vi.mock('../lib/applications', () => ({
 vi.mock('../lib/jobLeads', () => ({ getJobLead, deleteJobLead: vi.fn() }));
 vi.mock('../contexts/ToastContext', () => ({ useToastContext: () => toast }));
 vi.mock('../hooks/useThemeColors', () => ({ useThemeColors: () => ({}) }));
+vi.mock('../components/slots/ApplicationReminders', () => ({ default: () => null }));
+vi.mock('../components/slots/LeadReminders', () => ({ default: () => null }));
 vi.mock('../components/Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
 }));

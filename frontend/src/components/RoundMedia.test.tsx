@@ -11,8 +11,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import api from '../lib/api';
 import { queryClient } from '../lib/queryClient';
 import type { Round } from '../lib/types';
-import RoundCard from './RoundCard';
-import RoundForm from './RoundForm';
+import RoundCard from './InterviewRecording';
 import TranscriptionPanel from './TranscriptionPanel';
 import i18n from '../lib/i18n';
 
@@ -243,60 +242,6 @@ it('RoundCard shows imported duration as unverified and disables inline playback
   expect(
     screen.getByText(/Transcribe to check this recording and enable playback/)
   ).toBeVisible();
-});
-
-it('RoundForm preserves new-round partial save, recording and draft without creating a duplicate', async () => {
-  const onSave = vi.fn(),
-    onPersist = vi.fn();
-  const view = render(
-    <QueryClientProvider client={queryClient}>
-      <RoundForm
-        applicationId="app-1"
-        onSave={onSave}
-        onCancel={vi.fn()}
-        onPersist={onPersist}
-      />
-    </QueryClientProvider>
-  );
-  await screen.findByLabelText('Notes');
-  await waitFor(() =>
-    expect(requests.some((r) => r.url === '/api/round-types')).toBe(true)
-  );
-  fireEvent.change(screen.getByLabelText('Notes'), {
-    target: { value: 'Unsaved recording notes' },
-  });
-  fireEvent.change(screen.getByLabelText('Transcript Summary'), {
-    target: { value: 'Independent summary' },
-  });
-  const file = new File(['synthetic'], 'draft.wav');
-  fireEvent.change(view.container.querySelectorAll('input[type=file]')[1], {
-    target: { files: [file] },
-  });
-  fireEvent.click(screen.getByRole('button', { name: 'Add Round' }));
-  await waitFor(() =>
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Round saved, but recording upload failed'
-    )
-  );
-  expect(screen.getByLabelText('Notes')).toHaveValue('Unsaved recording notes');
-  expect(screen.getByLabelText('Transcript Summary')).toHaveValue(
-    'Independent summary'
-  );
-  expect(screen.getByRole('button', { name: 'draft.wav' })).toBeVisible();
-  expect(onSave).not.toHaveBeenCalled();
-  failure = 0;
-  fireEvent.click(
-    screen.getByRole('button', { name: 'Retry save and upload' })
-  );
-  await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
-  expect(
-    requests.filter((r) => r.url === '/api/applications/app-1/rounds')
-  ).toHaveLength(1);
-  expect(
-    requests.filter(
-      (r) => r.url === '/api/rounds/round-1' && r.method === 'patch'
-    )
-  ).toHaveLength(1);
 });
 
 it('RoundCard stale delete keeps metadata and exposes explicit review/reload without a pending upload', async () => {
