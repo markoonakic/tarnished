@@ -36,7 +36,9 @@ export default function TaskRow({
           >
             {item.title}
           </span>
-          <KindPill kind={item.kind} />
+          <span className="max-w-full [&>span]:max-w-full [&>span]:whitespace-normal">
+            <KindPill kind={item.kind} />
+          </span>
         </div>
         <ReminderRelated item={item} />
       </div>

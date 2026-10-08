@@ -188,7 +188,7 @@ export default function Tasks() {
             type="button"
             disabled={!zone}
             onClick={() => openNew()}
-            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent rounded-md px-4 py-2 font-medium focus:ring-2 disabled:opacity-50"
+            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent self-start rounded-md px-4 py-2 font-medium focus:ring-2 disabled:opacity-50"
           >
             {t('kit.newReminder')}
           </button>
@@ -374,7 +374,7 @@ export default function Tasks() {
           </>
         ) : (
           <>
-            <div className="bg-secondary mb-6 flex flex-wrap items-center gap-3 rounded-lg p-4">
+            <div className="bg-secondary mb-6 flex flex-wrap items-center gap-3 rounded-lg p-4 [&_[role=radiogroup]>label]:px-2 sm:[&_[role=radiogroup]>label]:px-3">
               <SegmentedControl
                 label={t('kit.reminders')}
                 value={filter!}
@@ -385,6 +385,7 @@ export default function Tasks() {
                 onChange={(state) => update({ state })}
               />
               <Dropdown
+                size="sm"
                 value={kind || ''}
                 onChange={(kind) => update({ kind })}
                 options={[
