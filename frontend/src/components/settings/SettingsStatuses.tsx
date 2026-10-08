@@ -1,5 +1,6 @@
 import { t } from '@/lib/i18n';
 import { statusLabel } from '@/lib/referenceLabels';
+import { historyStageLabels } from '@/lib/history';
 import { useTranslation } from 'react-i18next';
 import { observeRead } from '@/lib/queryClient';
 import { useState, useEffect, useCallback } from 'react';
@@ -21,18 +22,14 @@ import Dropdown from '../Dropdown';
 import { SettingsBackLink } from './SettingsLayout';
 
 const stageLabel = (meaning: StatusMeaning) =>
-  meaning === 'unknown'
-    ? t('Unclassified')
-    : meaning
-        .replaceAll('_', ' ')
-        .replace(/\b\w/g, (letter) => letter.toUpperCase());
-const stageOptions = statusMeanings.map((meaning) => ({
-  value: meaning,
-  label: stageLabel(meaning),
-}));
+  meaning === 'unknown' ? t('Unclassified') : historyStageLabels[meaning];
 
 export default function SettingsStatuses() {
   useTranslation();
+  const stageOptions = statusMeanings.map((meaning) => ({
+    value: meaning,
+    label: stageLabel(meaning),
+  }));
   const colors = useThemeColors();
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [newStatusName, setNewStatusName] = useState('');

@@ -2,10 +2,11 @@ import { t, locale } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { PipelineMetrics } from '@/lib/analytics';
+import type { StatusMeaning } from '@/lib/types';
+import { historyStageLabels } from '@/lib/history';
 import HelpTip from '../HelpTip';
 
-const stageName = (value: string) =>
-  value.replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase());
+const stageName = (value: StatusMeaning) => historyStageLabels[value];
 function duration(hours: number) {
   if (hours > 0 && hours < 1 / 60) return '<1m';
   if (hours < 1) return `${Math.round(hours * 60)}m`;
@@ -20,7 +21,7 @@ export default function StageResidence({
   metrics: PipelineMetrics;
 }) {
   useTranslation();
-  const completed = new Map<string, { hours: number; count: number }>();
+  const completed = new Map<StatusMeaning, { hours: number; count: number }>();
   for (const visit of metrics.visits) {
     if (visit.kind !== 'completed' || visit.hours === null) continue;
     const stage = completed.get(visit.meaning) ?? { hours: 0, count: 0 };

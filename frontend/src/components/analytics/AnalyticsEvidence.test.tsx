@@ -13,6 +13,8 @@ import api from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 import type { AnalyticsKPIs as Metrics } from '@/lib/analytics';
 import AnalyticsKPIs from './AnalyticsKPIs';
+import StageResidence from './StageResidence';
+import i18n from '@/lib/i18n';
 import InterviewTimeline from './InterviewTimeline';
 import InterviewOutcomes from './InterviewOutcomes';
 import SankeyChart from '../SankeyChart';
@@ -144,13 +146,31 @@ const metrics: Metrics = {
   application_to_interview_rate: 20,
   active_opportunities: 9,
 };
+it('translates stage meanings in residence tables and wait labels, not record names', async () => {
+  await i18n.changeLanguage('sr-Latn');
+  mount(
+    <StageResidence
+      metrics={{
+        ...metrics,
+        applications: [{ ...metrics.applications[0], company: 'Applied' }],
+      }}
+    />
+  );
+  expect(screen.getByText('Poslata')).toBeVisible();
+  expect(screen.getByText('Preliminarni razgovor')).toBeVisible();
+  expect(
+    screen.getByRole('link', { name: /Applied · Role, Intervju/ })
+  ).toBeVisible();
+});
+
 const originalAdapter = api.defaults.adapter;
 beforeEach(() => {
   queryClient.clear();
   chart.mockClear();
 });
-afterEach(() => {
+afterEach(async () => {
   cleanup();
+  await i18n.changeLanguage('en');
   queryClient.clear();
   api.defaults.adapter = originalAdapter;
 });
