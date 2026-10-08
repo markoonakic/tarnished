@@ -1,4 +1,4 @@
-import { t, uiLabel } from '@/lib/i18n';
+import { t, uiLabel, locale } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useMemo, useState } from 'react';
 import { useHeatmapAnalytics } from '@/hooks/useAnalyticsData';
@@ -26,6 +26,10 @@ const MONTH_LABELS = [
   'Nov',
   'Dec',
 ];
+
+function displayDate(day: string): string {
+  return new Date(day).toLocaleDateString(locale(), { timeZone: 'UTC' });
+}
 
 interface CellData {
   date: string;
@@ -310,7 +314,7 @@ export default function ActivityHeatmap() {
                               value0: t('applicationNoun', {
                                 count: cell.count,
                               }),
-                              date: cell.date,
+                              date: displayDate(cell.date),
                             })
                       }
                       className="cursor-pointer rounded-sm opacity-60 transition-all duration-200 ease-in-out hover:opacity-100"
@@ -340,7 +344,9 @@ export default function ActivityHeatmap() {
                 {t('applicationNoun', { count: hoveredCell.count })}{' '}
                 {t('on')}{' '}
               </span>
-              <span className="text-primary">{hoveredCell.date}</span>
+              <span className="text-primary">
+                {displayDate(hoveredCell.date)}
+              </span>
             </div>
           )}
         </div>

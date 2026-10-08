@@ -1,7 +1,7 @@
 import { t, language } from '@/lib/i18n';
 import { errorMessage } from './errorMessage';
 import api, { safeErrorMessage } from './api';
-import { invalidateEvidenceQueries } from './queryClient';
+import { invalidateEvidenceQueries, queryClient } from './queryClient';
 import {
   API_BASE,
   buildAuthenticatedEventSourceUrl,
@@ -83,13 +83,18 @@ export async function validateImport(file: File): Promise<ImportValidation> {
   return validation;
 }
 
+function refreshImportedData() {
+  invalidateEvidenceQueries();
+  void queryClient.invalidateQueries({ queryKey: ['user-preferences'] });
+}
+
 export async function getImportStatus(
   importId: string
 ): Promise<ImportProgress> {
   const { data } = await api.get<ImportProgress>(
     `/api/import/status/${importId}`
   );
-  if (data.status === 'complete') invalidateEvidenceQueries();
+  if (data.status === 'complete') refreshImportedData();
   return data;
 }
 
@@ -166,7 +171,7 @@ export function connectToImportProgress(
 
     if (['complete', 'failed', 'cancelled'].includes(progress.status)) {
       eventSource.close();
-      if (progress.status === 'complete') invalidateEvidenceQueries();
+      if (progress.status === 'complete') refreshImportedData();
       onTerminal(progress);
     }
   });

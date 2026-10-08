@@ -416,7 +416,8 @@ export default function Applications() {
                     {app.job_title}
                   </div>
                   <div className="text-secondary text-xs">
-                    {formatDate(app.applied_at)} · {t('roundCount', { count: app.round_count })}
+                    {formatDate(app.applied_at)} ·{' '}
+                    {t('roundCount', { count: app.round_count })}
                   </div>
                 </Link>
               ))}

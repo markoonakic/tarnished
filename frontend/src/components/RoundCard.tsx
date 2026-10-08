@@ -82,8 +82,16 @@ export default function RoundCard({
 
   function getOutcomeLabel(outcome: string | null) {
     if (!outcome) return t('Pending');
-    const labels = { passed: 'Passed', failed: 'Failed', pending: 'Pending', cancelled: 'Cancelled', withdrew: 'Withdrawn' } as const;
-    return Object.hasOwn(labels, outcome) ? t(labels[outcome as keyof typeof labels]) : t('Unknown');
+    const labels = {
+      passed: 'Passed',
+      failed: 'Failed',
+      pending: 'Pending',
+      cancelled: 'Cancelled',
+      withdrew: 'Withdrawn',
+    } as const;
+    return Object.hasOwn(labels, outcome)
+      ? t(labels[outcome as keyof typeof labels])
+      : t('Unknown');
   }
 
   async function handleMediaUpload(

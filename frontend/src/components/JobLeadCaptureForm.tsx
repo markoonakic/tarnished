@@ -45,7 +45,7 @@ export default function JobLeadCaptureForm({
       try {
         await onSaved?.();
       } catch {
-        toast.error('Lead saved, but the list could not be refreshed.');
+        toast.error(t('Lead saved, but the list could not be refreshed.'));
       }
     } catch (error) {
       const failure = jobLeadError(error);

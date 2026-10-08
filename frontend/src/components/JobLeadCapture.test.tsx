@@ -10,6 +10,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import api from '../lib/api';
+import i18n from '../lib/i18n';
 import {
   convertToApplication,
   extractJobLead,
@@ -494,6 +495,7 @@ it('keeps saved identity and reads the new revision after provider failure, with
     'get',
   ]);
   expect(requests[1].body).toEqual({
+    language: 'en',
     expected_revision: 0,
     restart_processing: false,
   });
@@ -571,11 +573,12 @@ it('shows uncertain processing and sends acknowledged revisioned restart only af
   expect(requests[1]).toEqual({
     method: 'post',
     url: '/api/job-leads/saved-id/retry',
-    body: { expected_revision: 3, restart_processing: true },
+    body: { expected_revision: 3, restart_processing: true, language: 'en' },
   });
 });
 
-it('sends explicit extract/retry bodies and retains S05 conversion timezone transport', async () => {
+it('sends the chosen language on explicit extract/retry and retains conversion timezone transport', async () => {
+  await i18n.changeLanguage('sr-Latn');
   await extractJobLead(saved.id, { expected_revision: 0 });
   await retryJobLead(saved.id, {
     expected_revision: 2,
@@ -594,10 +597,11 @@ it('sends explicit extract/retry bodies and retains S05 conversion timezone tran
   };
   await convertToApplication(saved.id);
   expect(requests.map((request) => request.body)).toEqual([
-    { expected_revision: 0 },
-    { expected_revision: 2, restart_processing: true },
+    { expected_revision: 0, language: 'sr-Latn' },
+    { expected_revision: 2, restart_processing: true, language: 'sr-Latn' },
   ]);
   expect(timezone).toBeTruthy();
+  await i18n.changeLanguage('en');
 });
 
 it('native form submission preserves an unchanged scheme-less recruiter link in changed-only edits', async () => {

@@ -363,9 +363,14 @@ export default function ImportModal({
                 aria-label={t('ZIP archive')}
                 disabled={validating}
                 accept=".zip"
-                onChange={(event) => { handleFileSelect(event); event.currentTarget.value = ''; }}
+                onChange={(event) => {
+                  handleFileSelect(event);
+                  event.currentTarget.value = '';
+                }}
                 className="bg-bg2 text-fg1 focus:ring-accent-bright w-full cursor-pointer rounded px-3 py-2 text-left transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-              >{file?.name || t('Choose ZIP archive')}</FileButton>
+              >
+                {file?.name || t('Choose ZIP archive')}
+              </FileButton>
 
               {file && (
                 <div className="mt-4">

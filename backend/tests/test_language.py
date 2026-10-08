@@ -7,7 +7,11 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from tests.test_core_mutation_integrity import workspace as workspace
 from tests.test_interview_feedback import setup_round
-from tests.test_report_responses_protocol import responses_fixture, application_sources, text_settings
+from tests.test_report_responses_protocol import (
+    application_sources,
+    responses_fixture,
+    text_settings,
+)
 from tests.test_report_session_context import empty_output
 from tests.test_user_preferences import auth_headers as auth_headers
 from tests.test_user_preferences import test_user as test_user
@@ -189,12 +193,27 @@ async def test_new_report_pins_language_without_translating_quotes(
 async def test_migration_backfills_only_builtin_definitions(db, db_engine):
     from tests.conftest import _run_alembic_upgrade
 
-    owner = User(email="migration-language@example.com", password_hash="unused", settings={"theme": "dracula"})
+    owner = User(
+        email="migration-language@example.com",
+        password_hash="unused",
+        settings={"theme": "dracula"},
+    )
     db.add(owner)
     await db.commit()
     for identity, user_id in (("global", None), ("custom", owner.id)):
-        await db.execute(text('INSERT INTO application_statuses (id,name,normalized_name,color,is_default,user_id,"order",meaning) VALUES (:id,' + "'Applied','applied','#83a598',:is_default,:user_id,0,'applied')"), {"id": identity, "user_id": user_id, "is_default": user_id is None})
-        await db.execute(text("INSERT INTO round_types (id,name,normalized_name,is_default,user_id) VALUES (:id,'Technical','technical',:is_default,:user_id)"), {"id": identity, "user_id": user_id, "is_default": user_id is None})
+        await db.execute(
+            text(
+                'INSERT INTO application_statuses (id,name,normalized_name,color,is_default,user_id,"order",meaning) VALUES (:id,'
+                + "'Applied','applied','#83a598',:is_default,:user_id,0,'applied')"
+            ),
+            {"id": identity, "user_id": user_id, "is_default": user_id is None},
+        )
+        await db.execute(
+            text(
+                "INSERT INTO round_types (id,name,normalized_name,is_default,user_id) VALUES (:id,'Technical','technical',:is_default,:user_id)"
+            ),
+            {"id": identity, "user_id": user_id, "is_default": user_id is None},
+        )
     await db.commit()
     async with db_engine.begin() as connection:
         await connection.run_sync(_run_alembic_upgrade, str(db_engine.url))
@@ -209,31 +228,60 @@ async def test_migration_backfills_only_builtin_definitions(db, db_engine):
 @pytest.mark.parametrize("protocol", ["responses", "chat_completions"])
 async def test_serbian_prompt_preserves_source_text_in_both_protocols(protocol):
     import json
+
     from app.services.interview_text import analyze_section
 
     sources = application_sources()
     async with responses_fixture(body=empty_output(protocol)) as (endpoint, calls):
-        await analyze_section(text_settings(endpoint, protocol), sources, [], "APPLICATION", output_language="sr-Latn")
+        await analyze_section(
+            text_settings(endpoint, protocol),
+            sources,
+            [],
+            "APPLICATION",
+            output_language="sr-Latn",
+        )
     payload = calls[0][1]
-    instructions = payload["instructions"] if protocol == "responses" else payload["messages"][0]["content"]
-    submitted = json.loads(payload["input"] if protocol == "responses" else payload["messages"][1]["content"])
+    instructions = (
+        payload["instructions"]
+        if protocol == "responses"
+        else payload["messages"][0]["content"]
+    )
+    submitted = json.loads(
+        payload["input"]
+        if protocol == "responses"
+        else payload["messages"][1]["content"]
+    )
     assert "Serbian (Latin script)" in instructions
     assert submitted["sources"] == sources
 
 
-async def test_explicit_lead_extraction_uses_request_language(client, db, workspace, monkeypatch):
+async def test_explicit_lead_extraction_uses_request_language(
+    client, db, workspace, monkeypatch
+):
     from unittest.mock import AsyncMock
+
     from app.api import job_leads
     from app.schemas.job_lead import JobLeadExtractionInput
 
     async with responses_fixture() as (endpoint, calls):
         await setup_round(client, db, workspace, endpoint)
-        lead = (await client.post("/api/job-leads", json={"url": "https://example.com/language-role", "text": "A role at a company."})).json()
-        extract = AsyncMock(return_value=JobLeadExtractionInput(title="Role", company="Company"))
+        lead = (
+            await client.post(
+                "/api/job-leads",
+                json={
+                    "url": "https://example.com/language-role",
+                    "text": "A role at a company.",
+                },
+            )
+        ).json()
+        extract = AsyncMock(
+            return_value=JobLeadExtractionInput(title="Role", company="Company")
+        )
         monkeypatch.setattr(job_leads, "extract_job_data", extract)
-        response = await client.post(f"/api/job-leads/{lead['id']}/extract", json={"expected_revision": lead["revision"], "language": "sr-Latn"})
+        response = await client.post(
+            f"/api/job-leads/{lead['id']}/extract",
+            json={"expected_revision": lead["revision"], "language": "sr-Latn"},
+        )
         assert response.status_code == 200, response.text
         assert extract.call_args.kwargs["output_language"] == "sr-Latn"
         assert calls == []
-
-

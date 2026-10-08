@@ -168,7 +168,9 @@ export default function SettingsStatuses() {
                       style={{ backgroundColor: status.color }}
                     />
                     <div className="min-w-0">
-                      <span className="text-fg1 break-words">{statusLabel(status)}</span>
+                      <span className="text-fg1 break-words">
+                        {statusLabel(status)}
+                      </span>
                       {!status.is_default && (
                         <p className="text-muted text-xs">
                           {t('Stage:')} {stageLabel(status.meaning)}

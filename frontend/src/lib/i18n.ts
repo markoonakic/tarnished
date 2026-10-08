@@ -42,7 +42,11 @@ rememberLanguage(i18n.language);
 i18n.on('languageChanged', rememberLanguage);
 
 export function isInterfaceText(value: string): boolean {
-  return Object.hasOwn(en, value) || Object.values(en).includes(value) || Object.values(sr).includes(value);
+  return (
+    Object.hasOwn(en, value) ||
+    Object.values(en).includes(value) ||
+    Object.values(sr).includes(value)
+  );
 }
 
 export const t = i18n.t;

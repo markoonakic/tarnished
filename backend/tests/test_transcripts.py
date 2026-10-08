@@ -131,7 +131,7 @@ async def test_transcript_oversized_hours_validation_retains_content(
         assert response.status_code == 422
         assert response.json() == {
             "code": "validation_error",
-            "detail": "Invalid transcript. Use nonempty UTF-8 TXT/SRT/VTT within the documented limits"
+            "detail": "Invalid transcript. Use nonempty UTF-8 TXT/SRT/VTT within the documented limits",
         }
         assert (await client.get(path)).json() == original
         retained = await client.get(f"/api/files/rounds/{transcript_round}/transcript")

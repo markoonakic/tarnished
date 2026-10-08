@@ -125,7 +125,10 @@ export async function extractJobLead(
   id: string,
   body: JobLeadExtractRequest
 ): Promise<JobLead> {
-  const response = await api.post(`/api/job-leads/${id}/extract`, { ...body, language: language() });
+  const response = await api.post(`/api/job-leads/${id}/extract`, {
+    ...body,
+    language: language(),
+  });
   return response.data;
 }
 
@@ -133,7 +136,10 @@ export async function retryJobLead(
   id: string,
   body: JobLeadExtractRequest
 ): Promise<JobLead> {
-  const response = await api.post(`/api/job-leads/${id}/retry`, { ...body, language: language() });
+  const response = await api.post(`/api/job-leads/${id}/retry`, {
+    ...body,
+    language: language(),
+  });
   return response.data;
 }
 

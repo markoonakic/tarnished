@@ -14,7 +14,13 @@ export function getJobLeadStatusBadgeClass(status: JobLead['status']): string {
 }
 
 export function getJobLeadStatusLabel(status: JobLead['status']): string {
-  const labels = { pending: 'Saved', processing: 'Processing', extracted: 'Extracted', failed: 'Failed', converted: 'Converted' } as const;
+  const labels = {
+    pending: 'Saved',
+    processing: 'Processing',
+    extracted: 'Extracted',
+    failed: 'Failed',
+    converted: 'Converted',
+  } as const;
   return t(labels[status]);
 }
 
