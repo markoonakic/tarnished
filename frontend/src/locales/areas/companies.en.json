@@ -1,4 +1,6 @@
 {
+  "companies.discardReload": "Discard draft and reload",
+  "companies.contactName": "Name",
   "companies.customRole": "Custom role",
   "companies.companies": "Companies",
   "companies.contacts": "Contacts",

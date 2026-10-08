@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import Card from '../Card';
 import { dateLabel } from './addressBook';
 import { pillStyle } from '@/lib/uiPills';
-import { statusLabel } from '@/lib/referenceLabels';
+import { statusLabel, roundTypeLabel } from '@/lib/referenceLabels';
+import { useThemeColors } from '@/hooks/useThemeColors';
+import { getStatusColor } from '@/lib/statusColors';
 import type { ApplicationRecord, Lead, Interview } from '@/lib/apiV030';
 export function RelatedApplications({
   items,
@@ -13,6 +15,7 @@ export function RelatedApplications({
   withCompany?: boolean;
 }) {
   const { t } = useTranslation();
+  const colors = useThemeColors();
   return (
     <>
       {items.map((app) => (
@@ -21,13 +24,18 @@ export function RelatedApplications({
           to={'/applications/' + app.id}
           className="bg-tertiary hover:bg-bg3 focus:ring-accent mb-2 flex flex-wrap items-center gap-3 rounded-lg px-4 py-3 focus:ring-2"
         >
-          <span className="text-fg1 min-w-0 flex-1 text-sm">
+          <span className="text-fg1 min-w-0 flex-1 basis-full text-sm sm:basis-auto">
             {withCompany ? app.company + ' — ' : ''}
             {app.job_title}
           </span>
           <span
             className="rounded px-2 py-1 text-xs font-semibold"
-            style={pillStyle(app.status.color)}
+            style={{
+              color: getStatusColor(app.status.name, colors, app.status.color),
+              backgroundColor:
+                getStatusColor(app.status.name, colors, app.status.color) +
+                '20',
+            }}
           >
             ● {statusLabel(app.status)}
           </span>
@@ -56,10 +64,19 @@ export function RelatedLeads({ items }: { items: Lead[] }) {
           to={'/job-leads/' + lead.id}
           className="bg-tertiary hover:bg-bg3 focus:ring-accent mb-2 flex flex-wrap items-center gap-3 rounded-lg px-4 py-3 focus:ring-2"
         >
-          <span className="text-fg1 min-w-0 flex-1 text-sm">
+          <span className="text-fg1 min-w-0 flex-1 basis-full text-sm sm:basis-auto">
             {lead.title || t('companies.untitled')}
           </span>
-          <span className="text-muted text-xs">
+          <span
+            className="rounded px-2.5 py-1 text-xs font-semibold"
+            style={pillStyle(
+              lead.decision === 'interesting'
+                ? '--yellow-bright'
+                : lead.decision === 'rejected'
+                  ? '--red-bright'
+                  : '--gray'
+            )}
+          >
             {lead.decision
               ? t('companies.decision.' + lead.decision)
               : t('companies.notDecided')}
@@ -85,13 +102,22 @@ export function RelatedInterviews({ items }: { items: Interview[] }) {
           to={'/interviews/' + round.id}
           className="bg-tertiary hover:bg-bg3 focus:ring-accent mb-2 flex flex-wrap items-center gap-3 rounded-lg px-4 py-3 focus:ring-2"
         >
-          <span className="text-fg1 min-w-0 flex-1 text-sm">
-            {round.round_type.name}
+          <span className="text-fg1 min-w-0 flex-1 basis-full text-sm sm:basis-auto">
+            {roundTypeLabel(round.round_type)}
           </span>
           <span className="text-muted text-xs">
             {dateLabel(round.scheduled_at)}
           </span>
-          <span className="text-orange text-xs">
+          <span
+            className="rounded px-2.5 py-1 text-xs font-semibold"
+            style={pillStyle(
+              round.outcome === 'passed'
+                ? '--aqua-bright'
+                : round.outcome === 'failed'
+                  ? '--red-bright'
+                  : '--orange-bright'
+            )}
+          >
             {t('companies.outcome.' + (round.outcome || 'pending'))}
           </span>
         </Link>

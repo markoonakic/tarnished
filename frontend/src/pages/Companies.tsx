@@ -18,6 +18,7 @@ import {
   ContactModal,
 } from '@/components/companies/RecordModals';
 import { apiV030, type CompanyQuery } from '@/lib/apiV030';
+import { pillStyle } from '@/lib/uiPills';
 import {
   allCompanies,
   inputClass,
@@ -25,6 +26,7 @@ import {
   actionClass,
   roles,
   roleLabel,
+  roleColor,
   dateLabel,
   failureMessage,
 } from '@/components/companies/addressBook';
@@ -76,7 +78,7 @@ export default function Companies() {
     (companies.data ?? []).map((company) => [company.id, company.name])
   );
   const headings = contacts
-    ? ['name', 'function', 'company', 'role', 'last_contact_on', 'email']
+    ? ['contactName', 'function', 'company', 'role', 'last_contact_on', 'email']
     : [
         'company',
         'industry',
@@ -113,13 +115,33 @@ export default function Companies() {
         {row.name}
       </Link>,
       contact.function || '—',
-      contact.company_id ? companyNames.get(contact.company_id) || '—' : '—',
-      roleLabel(contact.role) || '—',
+      contact.company_id ? (
+        <Link
+          to={'/companies/' + contact.company_id}
+          className="text-accent focus:ring-accent rounded focus:ring-2"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {companyNames.get(contact.company_id) || '—'}
+        </Link>
+      ) : (
+        '—'
+      ),
+      contact.role ? (
+        <span
+          className="inline-flex rounded px-2.5 py-1 text-xs font-semibold"
+          style={pillStyle(roleColor(contact.role))}
+        >
+          {roleLabel(contact.role)}
+        </span>
+      ) : (
+        '—'
+      ),
       dateLabel(contact.last_contact_on),
       contact.email ? (
         <a
           href={'mailto:' + contact.email}
-          className="text-accent"
+          title={contact.email}
+          className="text-accent block truncate"
           onClick={(e) => e.stopPropagation()}
         >
           {contact.email}

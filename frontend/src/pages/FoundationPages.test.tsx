@@ -1,21 +1,44 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { apiV030 } from '@/lib/apiV030';
 import { afterEach, expect, it, vi } from 'vitest';
 import Companies from './Companies';
 import Tasks from './Tasks';
 vi.mock('@/components/Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
 }));
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 it('switches Companies to Contacts using the shared selector', () => {
+  vi.spyOn(apiV030, 'companies').mockResolvedValue({
+    items: [],
+    total: 0,
+    page: 1,
+    per_page: 25,
+  });
+  vi.spyOn(apiV030, 'contacts').mockResolvedValue({
+    items: [],
+    total: 0,
+    page: 1,
+    per_page: 25,
+  });
   render(
-    <MemoryRouter initialEntries={['/companies']}>
-      <Companies />
-    </MemoryRouter>
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <MemoryRouter initialEntries={['/companies']}>
+        <Companies />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
-  expect(screen.getByRole('button', { name: 'New Company' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'New Company' })).toBeEnabled();
   fireEvent.click(screen.getByRole('radio', { name: 'Contacts' }));
-  expect(screen.getByRole('button', { name: 'New Contact' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'New Contact' })).toBeEnabled();
   expect(screen.getByPlaceholderText('Search contacts…')).toBeInTheDocument();
 });
 it('switches Tasks to the month grid and opens the selected week', () => {

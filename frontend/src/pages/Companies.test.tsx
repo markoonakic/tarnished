@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -17,6 +18,7 @@ import CompanyDetail from './CompanyDetail';
 import ContactDetail from './ContactDetail';
 import CompanyPicker from '@/components/CompanyPicker';
 import TargetNotes from '@/components/TargetNotes';
+import AddressReminders from '@/components/companies/AddressReminders';
 import LinkedContacts from '@/components/companies/LinkedContacts';
 import {
   CompanyModal,
@@ -24,6 +26,13 @@ import {
 } from '@/components/companies/RecordModals';
 import en from '@/locales/areas/companies.en.json';
 import sr from '@/locales/areas/companies.sr-Latn.json';
+vi.mock('@/hooks/useThemeColors', () => ({
+  useThemeColors: () => ({
+    blueBright: '#83a598',
+    orangeBright: '#fe8019',
+    aqua: '#8ec07c',
+  }),
+}));
 vi.mock('@/components/Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -103,6 +112,180 @@ afterEach(() => {
   queryClient.clear();
   vi.restoreAllMocks();
 });
+it('keeps company and contact edit revisions frozen when newer reads arrive', async () => {
+  const updateCompany = vi
+    .spyOn(apiV030, 'updateCompany')
+    .mockResolvedValue(company);
+  const updateContact = vi
+    .spyOn(apiV030, 'updateContact')
+    .mockResolvedValue(contact);
+  const saved = vi.fn();
+  const close = vi.fn();
+  const view = show(
+    <CompanyModal company={company} onClose={close} onSaved={saved} />
+  );
+  fireEvent.change(screen.getByLabelText('Name', { exact: false }), {
+    target: { value: 'Changed company' },
+  });
+  view.rerender(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <CompanyModal
+          company={{ ...company, revision: 10 }}
+          onClose={close}
+          onSaved={saved}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() =>
+    expect(updateCompany).toHaveBeenCalledWith(
+      company.id,
+      expect.objectContaining({ name: 'Changed company', expected_revision: 4 })
+    )
+  );
+  view.unmount();
+  const contactView = show(
+    <ContactModal contact={contact} onClose={close} onSaved={saved} />
+  );
+  fireEvent.change(screen.getByLabelText('Name', { exact: false }), {
+    target: { value: 'Changed contact' },
+  });
+  contactView.rerender(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <ContactModal
+          contact={{ ...contact, revision: 10 }}
+          onClose={close}
+          onSaved={saved}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() =>
+    expect(updateContact).toHaveBeenCalledWith(
+      contact.id,
+      expect.objectContaining({ name: 'Changed contact', expected_revision: 2 })
+    )
+  );
+});
+it('replaces the single lead contact and keeps application links separate', async () => {
+  const other = { ...contact, id: 'second', name: 'Nikola Savić' };
+  vi.mocked(apiV030.contacts).mockResolvedValue(page([contact, other]));
+  const update = vi
+    .spyOn(apiV030, 'updateLead')
+    .mockResolvedValue({} as Awaited<ReturnType<typeof apiV030.updateLead>>);
+  show(
+    <LinkedContacts
+      kind="lead"
+      id="lead"
+      companyId={company.id}
+      contactId={contact.id}
+      revision={5}
+    />
+  );
+  await screen.findByRole('link', { name: contact.name });
+  fireEvent.click(screen.getByRole('button', { name: /Link contact/ }));
+  fireEvent.focus(screen.getByRole('combobox'));
+  fireEvent.click(
+    await screen.findByRole('option', { name: 'Nikola Savić — Talent Partner' })
+  );
+  await waitFor(() =>
+    expect(update).toHaveBeenCalledWith('lead', {
+      recruiter_contact_id: 'second',
+      expected_revision: 5,
+    })
+  );
+});
+it('does not silently rebase an open note draft after a background read', async () => {
+  const note = {
+    id: 'note',
+    user_id: 'owner',
+    body: 'Saved',
+    revision: 3,
+    created_at: company.created_at,
+    updated_at: company.updated_at,
+  };
+  vi.mocked(apiV030.notes).mockResolvedValue(page([note]));
+  const update = vi
+    .spyOn(apiV030, 'updateNote')
+    .mockRejectedValue(new Error('Conflict'));
+  show(<TargetNotes targetType="company" targetId={company.id} />);
+  await screen.findByText('Saved');
+  fireEvent.click(screen.getByRole('button', { name: 'Edit note' }));
+  fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+    target: { value: 'Draft' },
+  });
+  vi.mocked(apiV030.notes).mockResolvedValue(
+    page([{ ...note, revision: 9, body: 'Other edit' }])
+  );
+  await act(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['notes'] });
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() =>
+    expect(update).toHaveBeenCalledWith('note', {
+      body: 'Draft',
+      expected_revision: 3,
+    })
+  );
+  expect(screen.getByRole('textbox', { name: 'Note' })).toHaveValue('Draft');
+  expect(
+    await screen.findByRole('button', { name: 'Discard draft and reload' })
+  ).toBeInTheDocument();
+});
+it('creates a company reminder in the user zone and completes it with its revision', async () => {
+  const reminder = {
+    id: 'reminder',
+    user_id: 'owner',
+    kind: 'recruiter_follow_up' as const,
+    title: 'Call Ana',
+    note: null,
+    due_at: '2026-10-10T07:00:00Z',
+    time_zone: 'Europe/Belgrade',
+    state: 'open' as const,
+    completed_at: null,
+    intent_id: 'intent',
+    revision: 3,
+    created_at: company.created_at,
+    updated_at: company.updated_at,
+  };
+  vi.mocked(apiV030.reminders).mockResolvedValue(page([reminder]));
+  const create = vi
+    .spyOn(apiV030, 'createReminder')
+    .mockResolvedValue(reminder);
+  const update = vi
+    .spyOn(apiV030, 'updateReminder')
+    .mockResolvedValue({ ...reminder, state: 'done' });
+  show(<AddressReminders type="company" id={company.id} name={company.name} />);
+  await screen.findByText('Call Ana');
+  fireEvent.click(screen.getByRole('button', { name: 'Complete Call Ana' }));
+  await waitFor(() =>
+    expect(update).toHaveBeenCalledWith('reminder', {
+      state: 'done',
+      expected_revision: 3,
+    })
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Add reminder' }));
+  fireEvent.change(screen.getByLabelText('Date'), {
+    target: { value: '2026-10-12' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() =>
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        company_id: company.id,
+        title: 'Follow up with Orbis Ledger',
+        due_date: '2026-10-12',
+        due_time: '09:00',
+        time_zone: 'Europe/Belgrade',
+        intent_id: expect.any(String),
+      })
+    )
+  );
+});
 it('keeps every area string in both languages', () => {
   expect(Object.keys(sr).sort()).toEqual(Object.keys(en).sort());
   expect(Object.values(sr).every((value) => value.trim())).toBe(true);
@@ -167,6 +350,20 @@ it('keeps a company draft after a failed save and sends its frozen revision', as
     company.id,
     expect.objectContaining({ name: 'Orbis Two', expected_revision: 4 })
   );
+});
+it('distinguishes company names by location without changing the saved name', async () => {
+  vi.mocked(apiV030.companies).mockResolvedValue(
+    page([company, { ...company, id: 'other', location: 'Novi Sad' }])
+  );
+  const change = vi.fn();
+  show(<CompanyPicker onChange={change} />);
+  fireEvent.change(screen.getByRole('combobox'), {
+    target: { value: company.name },
+  });
+  fireEvent.click(
+    await screen.findByRole('option', { name: 'Orbis Ledger — Novi Sad' })
+  );
+  expect(change).toHaveBeenCalledWith('other', company.name);
 });
 it('creates a company from the picker and keeps the parent form open', async () => {
   const change = vi.fn();

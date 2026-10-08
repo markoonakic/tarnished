@@ -156,7 +156,9 @@ export function ContactModal({
       {(['name', 'function'] as const).map((key) => (
         <Field
           key={key}
-          label={t('companies.' + key)}
+          label={t(
+            key === 'name' ? 'companies.contactName' : 'companies.function'
+          )}
           value={draft[key] ?? ''}
           required={key === 'name'}
           onChange={(value) => setDraft({ ...draft, [key]: value })}
@@ -394,7 +396,7 @@ export function DeleteConfirm({
           </button>
           <button
             disabled={busy}
-            className={primaryClass + ' bg-red'}
+            className="bg-red text-bg0 hover:bg-red-bright focus:ring-red cursor-pointer rounded px-4 py-2 font-medium focus:ring-2 disabled:opacity-50"
             onClick={async () => {
               if (busy) return;
               setBusy(true);

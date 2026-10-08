@@ -44,7 +44,7 @@ export default function ContactDetail() {
           to="/contacts"
           className="text-accent focus:ring-accent mb-6 inline-flex items-center gap-2 rounded focus:ring-2"
         >
-          <i className="bi bi-chevron-left" />
+          <i className="bi bi-chevron-left" aria-hidden="true" />
           {t('companies.backContacts')}
         </Link>
         {query.isPending ? (
@@ -163,14 +163,14 @@ export default function ContactDetail() {
                     className={actionClass}
                     onClick={() => setEditing(true)}
                   >
-                    <i className="bi bi-pencil mr-2" />
+                    <i className="bi bi-pencil mr-2" aria-hidden="true" />
                     {t('companies.edit')}
                   </button>
                   <button
                     className={actionClass + ' text-red'}
                     onClick={() => setDeleting(true)}
                   >
-                    <i className="bi bi-trash mr-2" />
+                    <i className="bi bi-trash mr-2" aria-hidden="true" />
                     {t('companies.delete')}
                   </button>
                 </div>

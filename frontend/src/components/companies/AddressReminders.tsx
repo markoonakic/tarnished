@@ -6,7 +6,7 @@ import ReminderModal from '../ReminderModal';
 import { DeleteConfirm } from './RecordModals';
 import { apiV030, type Reminder } from '@/lib/apiV030';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
-import { failureMessage, actionClass } from './addressBook';
+import { allPages, failureMessage, actionClass } from './addressBook';
 
 export default function AddressReminders({
   type,
@@ -28,7 +28,14 @@ export default function AddressReminders({
   const query = useQuery({
     queryKey: key,
     queryFn: () =>
-      apiV030.reminders({ target_type: type, target_id: id, per_page: 100 }),
+      allPages((page) =>
+        apiV030.reminders({
+          target_type: type,
+          target_id: id,
+          per_page: 100,
+          page,
+        })
+      ),
   });
   const [editing, setEditing] = useState<Reminder | 'new' | null>(null);
   const [deleting, setDeleting] = useState<Reminder | null>(null);
@@ -36,7 +43,7 @@ export default function AddressReminders({
   const [busy, setBusy] = useState(false);
   const [intent, setIntent] = useState('');
   const find = (item: ReminderItem) =>
-    query.data?.items.find((row) => row.id === item.id);
+    query.data?.find((row) => row.id === item.id);
   const refresh = () => client.invalidateQueries({ queryKey: ['reminders'] });
   async function state(
     item: ReminderItem,
@@ -78,7 +85,7 @@ export default function AddressReminders({
   return (
     <>
       <RemindersCard
-        reminders={query.data?.items ?? []}
+        reminders={query.data ?? []}
         timeZone={zone}
         onAdd={() => {
           setIntent(crypto.randomUUID());

@@ -89,7 +89,7 @@ export default function RemindersCard({
                   />
                 )}
               </button>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-[min(100%,12rem)] flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={

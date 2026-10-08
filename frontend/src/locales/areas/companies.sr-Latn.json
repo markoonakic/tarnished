@@ -1,4 +1,6 @@
 {
+  "companies.discardReload": "Odbaci unos i učitaj ponovo",
+  "companies.contactName": "Ime i prezime",
   "companies.customRole": "Druga uloga",
   "companies.companies": "Kompanije",
   "companies.contacts": "Kontakti",
@@ -7,7 +9,7 @@
   "companies.editCompany": "Izmena kompanije",
   "companies.editContact": "Izmena kontakta",
   "companies.company": "Kompanija",
-  "companies.name": "Naziv / ime",
+  "companies.name": "Naziv",
   "companies.website": "Veb-sajt",
   "companies.industry": "Industrija",
   "companies.location": "Lokacija",

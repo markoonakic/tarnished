@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { queryClient } from '@/lib/queryClient';
@@ -18,23 +18,43 @@ export default function TargetNotes({
   const { t } = useTranslation();
   const client = useQueryClient(queryClient);
   const [deleting, setDeleting] = useState<Note | null>(null);
+  const [error, setError] = useState('');
+  const [editorKey, setEditorKey] = useState(0);
+  const revisions = useRef(new Map<string, number>());
   const key = ['notes', targetType, targetId];
   const query = useQuery(
     {
       queryKey: key,
-      queryFn: () =>
-        allPages((page) =>
+      staleTime: Infinity,
+      queryFn: async () => {
+        const notes = await allPages((page) =>
           apiV030.notes({
             target_type: targetType,
             target_id: targetId,
             per_page: 100,
             page,
           })
-        ),
+        );
+        for (const note of notes)
+          if (!revisions.current.has(note.id))
+            revisions.current.set(note.id, note.revision);
+        return notes;
+      },
     },
     queryClient
   );
   const refresh = () => client.invalidateQueries({ queryKey: key });
+  async function save(action: () => Promise<Note>) {
+    try {
+      const saved = await action();
+      revisions.current.set(saved.id, saved.revision);
+      setError('');
+      await refresh();
+    } catch (error) {
+      setError(failureMessage(error));
+      throw error;
+    }
+  }
   if (query.isPending) return <Loading />;
   if (query.isError)
     return (
@@ -48,23 +68,46 @@ export default function TargetNotes({
   return (
     <>
       <NotesPanel
-        notes={query.data}
-        onAdd={async (body) => {
-          await apiV030.createNote({ body, [targetType + '_id']: targetId });
-          await refresh();
-        }}
-        onEdit={async (id, body) => {
-          const note = query.data.find((note) => note.id === id)!;
-          await apiV030.updateNote(id, {
-            body,
-            expected_revision: note.revision,
-          });
-          await refresh();
-        }}
+        key={editorKey}
+        notes={query.data.map((note) => ({
+          ...note,
+          updated_at: note.revision > 0 ? note.updated_at : note.created_at,
+        }))}
+        onAdd={(body) =>
+          save(() =>
+            apiV030.createNote({ body, [targetType + '_id']: targetId })
+          )
+        }
+        onEdit={(id, body) =>
+          save(() =>
+            apiV030.updateNote(id, {
+              body,
+              expected_revision:
+                revisions.current.get(id) ??
+                query.data.find((note) => note.id === id)!.revision,
+            })
+          )
+        }
         onDelete={(id) =>
           setDeleting(query.data.find((note) => note.id === id) ?? null)
         }
       />
+      {error && (
+        <p role="alert" className="text-red mb-6">
+          {error}{' '}
+          <button
+            className={actionClass}
+            onClick={async () => {
+              revisions.current.clear();
+              await query.refetch();
+              setEditorKey((key) => key + 1);
+              setError('');
+            }}
+          >
+            {t('companies.discardReload')}
+          </button>
+        </p>
+      )}
       {deleting && (
         <DeleteConfirm
           message={t('companies.deleteNote')}

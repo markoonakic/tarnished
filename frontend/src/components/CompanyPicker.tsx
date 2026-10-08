@@ -29,7 +29,9 @@ export default function CompanyPicker({
   const [error, setError] = useState('');
   const options = (query.data ?? []).map((company) => ({
     value: company.id,
-    label: company.name,
+    label: [company.name, company.location || company.website]
+      .filter(Boolean)
+      .join(' — '),
   }));
   // Keep legacy names and selected records visible while the address book loads.
   const selected = value || (name ? 'legacy:' + name : '');
@@ -47,7 +49,7 @@ export default function CompanyPicker({
           setError('');
           onChange(
             id.startsWith('legacy:') ? null : id,
-            options.find((option) => option.value === id)?.label ?? ''
+            query.data?.find((company) => company.id === id)?.name ?? name
           );
         }}
         onCreate={async (name) => {

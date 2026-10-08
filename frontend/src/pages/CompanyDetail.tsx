@@ -52,7 +52,7 @@ export default function CompanyDetail() {
           to="/companies"
           className="text-accent focus:ring-accent mb-6 inline-flex items-center gap-2 rounded focus:ring-2"
         >
-          <i className="bi bi-chevron-left" />
+          <i className="bi bi-chevron-left" aria-hidden="true" />
           {t('companies.backCompanies')}
         </Link>
         {query.isPending ? (
@@ -82,7 +82,7 @@ export default function CompanyDetail() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <i className="bi bi-link-45deg" />
+                      <i className="bi bi-link-45deg" aria-hidden="true" />
                       {company.website.replace(/^https?:\/\//, '')}
                     </a>
                   )}
@@ -106,14 +106,14 @@ export default function CompanyDetail() {
                     className={actionClass}
                     onClick={() => setEditing(true)}
                   >
-                    <i className="bi bi-pencil mr-2" />
+                    <i className="bi bi-pencil mr-2" aria-hidden="true" />
                     {t('companies.edit')}
                   </button>
                   <button
                     className={actionClass + ' text-red'}
                     onClick={() => setDeleting(true)}
                   >
-                    <i className="bi bi-trash mr-2" />
+                    <i className="bi bi-trash mr-2" aria-hidden="true" />
                     {t('companies.delete')}
                   </button>
                 </div>
@@ -131,7 +131,7 @@ export default function CompanyDetail() {
                         setError('');
                       }}
                     >
-                      <i className="bi bi-pencil mr-2" />
+                      <i className="bi bi-pencil mr-2" aria-hidden="true" />
                       {t('companies.edit')}
                     </button>
                   )

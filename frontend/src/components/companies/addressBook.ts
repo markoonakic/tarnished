@@ -21,7 +21,11 @@ export const roles = [
 export const roleLabel = (role?: string | null) =>
   role ? (roles.includes(role) ? t('companies.role.' + role) : role) : '';
 export const roleColor = (role?: string | null) =>
-  role === 'Hiring manager' ? '--purple-bright' : '--green-bright';
+  role === 'Hiring manager'
+    ? '--purple-bright'
+    : role === 'Interviewer'
+      ? '--orange-bright'
+      : '--aqua-bright';
 export const dateLabel = (date?: string | null) =>
   date
     ? new Date(
