@@ -21,6 +21,7 @@ from app.core.security import (
     verify_password,
 )
 from app.models import User
+from app.models.user_profile import UserProfile
 from app.schemas.api_keys import UserAPIKeyResponse
 from app.schemas.auth import (
     AuthWhoAmIResponse,
@@ -110,6 +111,9 @@ async def get_me(
     return {
         **UserResponse.model_validate(user).model_dump(),
         "can_delete_account": can_delete,
+        "display_name": await db.scalar(
+            select(UserProfile.display_name).where(UserProfile.user_id == user.id)
+        ),
     }
 
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { t } from '@/lib/i18n';
+import i18n, { t, locale } from '@/lib/i18n';
 import {
   apiV030,
   type Profile as ProfileData,
@@ -195,11 +195,13 @@ const optionLabel = (value: string) =>
     ? '—'
     : /^[ABC][12]$/.test(value)
       ? value
-      : label(
-          value.toLowerCase() === 'personal'
-            ? 'personalProject'
-            : value.toLowerCase()
-        );
+      : i18n.exists(`accounts.${value.toLowerCase()}`)
+        ? label(
+            value.toLowerCase() === 'personal'
+              ? 'personalProject'
+              : value.toLowerCase()
+          )
+        : value;
 function tags(value: unknown): string[] {
   return Array.isArray(value)
     ? value
@@ -227,32 +229,44 @@ function summary(value: unknown, field?: Field): string {
 function itemTitle(section: EntrySection, item: ProfileItem): string {
   return String(
     section === 'work_history'
-      ? (item.title ?? item.name ?? '')
-      : section === 'education'
-        ? (item.degree ?? item.qualification ?? item.institution ?? '')
-        : (item.name ?? item.language ?? '')
+      ? [item.title ?? item.name, item.company ?? item.employer]
+          .filter(Boolean)
+          .join(' · ')
+      : section === 'projects'
+        ? [item.name, optionLabel(String(item.kind ?? 'personal'))]
+            .filter(Boolean)
+            .join(' · ')
+        : section === 'education'
+          ? (item.degree ?? item.qualification ?? item.institution ?? '')
+          : (item.name ?? item.language ?? '')
   );
 }
 function itemSubtitle(section: EntrySection, item: ProfileItem): string {
   if (section === 'languages')
     return optionLabel(String(item.level ?? item.proficiency ?? ''));
+  const month = (value: unknown) => {
+    if (!value) return '';
+    const date = new Date(`${String(value).slice(0, 7)}-01T12:00:00`);
+    return Number.isNaN(date.getTime())
+      ? String(value)
+      : new Intl.DateTimeFormat(locale(), {
+          month: 'short',
+          year: 'numeric',
+        }).format(date);
+  };
   const dates = [
-    item.start_date,
-    item.current ? label('present') : item.end_date,
+    month(item.start_date),
+    item.current ? label('present') : month(item.end_date),
   ]
     .filter(Boolean)
     .join(' – ');
   if (section === 'projects')
-    return [
-      optionLabel(String(item.kind ?? 'personal')),
-      item.description,
-      tags(item.technologies).join(', '),
-    ]
+    return [item.description, tags(item.technologies).join(', ')]
       .filter(Boolean)
       .join(' · ');
   return [
-    item.company ?? item.employer ?? item.institution ?? item.issuer,
-    dates || item.date,
+    section === 'work_history' ? undefined : (item.institution ?? item.issuer),
+    dates || month(item.date),
     item.description,
   ]
     .filter(Boolean)
@@ -487,12 +501,16 @@ export default function Profile() {
       ? {
           ...existing,
           ...(existing.needs_repair ? { needs_repair: false } : {}),
-          start_date: existing.start_date
-            ? String(existing.start_date).slice(0, 7)
-            : '',
-          end_date: existing.end_date
-            ? String(existing.end_date).slice(0, 7)
-            : '',
+          ...(['work_history', 'education'].includes(section)
+            ? {
+                start_date: existing.start_date
+                  ? String(existing.start_date).slice(0, 7)
+                  : '',
+                end_date: existing.end_date
+                  ? String(existing.end_date).slice(0, 7)
+                  : '',
+              }
+            : {}),
         }
       : {
           id: crypto.randomUUID(),
@@ -606,6 +624,15 @@ export default function Profile() {
           }
         }
     }
+  const viewProfile: Record<string, unknown> = profile
+    ? {
+        ...profile,
+        name:
+          [profile.first_name, profile.last_name].filter(Boolean).join(' ') ||
+          profile.display_name,
+        cityCountry: [profile.city, profile.country].filter(Boolean).join(', '),
+      }
+    : {};
   const modalSection = entry
     ? sections.find((section) => section.key === entry.section)!
     : null;
@@ -869,7 +896,16 @@ export default function Profile() {
                       <dl
                         className={`grid gap-4 ${section.key === 'skills' ? '' : 'sm:grid-cols-2'}`}
                       >
-                        {section.fields.map((field) => (
+                        {(section.key === 'personal'
+                          ? ([
+                              { key: 'name' },
+                              { key: 'email' },
+                              { key: 'phone' },
+                              { key: 'cityCountry' },
+                              { key: 'linkedin_url' },
+                            ] as Field[])
+                          : section.fields
+                        ).map((field) => (
                           <div key={field.key}>
                             <dt className="text-muted text-xs">
                               {label(field.key)}
@@ -892,10 +928,7 @@ export default function Profile() {
                                   ).length && '—'}
                                 </div>
                               ) : (
-                                summary(
-                                  profile[field.key as keyof ProfileData],
-                                  field
-                                )
+                                summary(viewProfile[field.key], field)
                               )}
                             </dd>
                           </div>
@@ -919,7 +952,7 @@ export default function Profile() {
                 e.preventDefault();
                 void saveEntry();
               }}
-              className="bg-secondary mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg p-6"
+              className="bg-secondary mx-4 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg p-6"
             >
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-fg1 text-xl font-bold">

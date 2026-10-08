@@ -12,7 +12,7 @@ import api from '../../lib/api';
 
 const signOut = vi.fn();
 vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => ({ signOut }) }));
-vi.mock('../../lib/api', () => ({ default: { post: vi.fn() } }));
+vi.mock('../../lib/api', () => ({ default: { post: vi.fn(), get: vi.fn() } }));
 
 function form(password = 'synthetic new password') {
   render(
@@ -33,6 +33,7 @@ function form(password = 'synthetic new password') {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(api.get).mockResolvedValue({ data: { can_delete_account: true } });
 });
 
 describe('SettingsSecurity', () => {

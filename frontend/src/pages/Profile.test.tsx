@@ -135,7 +135,7 @@ it('edits an entry in a modal without resetting its excluded permission', async 
     target: { value: 'Renamed private project' },
   });
   fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
-  await screen.findByText('Renamed private project');
+  await screen.findByText(/Renamed private project/);
   expect(profile.projects[0].id).toBe('excluded');
   expect(profile.ai_permissions.excluded).toBe(false);
 });
@@ -202,7 +202,7 @@ it('confirms deletion and saves only the owning profile item list', async () => 
     )
   );
   await waitFor(() =>
-    expect(screen.queryByText('Private project')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Private project/)).not.toBeInTheDocument()
   );
   expect(apiV030.updateProfile).toHaveBeenCalledWith({
     expected_revision: 7,

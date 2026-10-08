@@ -112,7 +112,13 @@ export default function Register() {
               <div className="text-fg1 mx-auto h-12 w-12 bg-current [mask-image:url('/tree.svg')] [mask-size:contain] [mask-position:center] [mask-repeat:no-repeat]" />
             )
           )}
-          <h1 className="text-fg1 text-center text-2xl font-bold">
+          <h1
+            className={
+              needsSetup
+                ? 'text-accent-bright text-2xl font-bold'
+                : 'text-fg1 text-center text-2xl font-bold'
+            }
+          >
             {sent
               ? t('accounts.requestSent')
               : needsSetup
@@ -198,7 +204,7 @@ export default function Register() {
             </button>
           )}
           <p className="text-muted text-center">
-            {!sent && t('accounts.alreadyHaveAccount')}{' '}
+            {!sent && !needsSetup && t('accounts.alreadyHaveAccount')}{' '}
             <Link className="text-accent" to="/login">
               {sent ? t('accounts.backToSignIn') : t('Sign in')}
             </Link>

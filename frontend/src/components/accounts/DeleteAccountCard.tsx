@@ -83,17 +83,32 @@ export default function DeleteAccountCard() {
           }}
         >
           <form
-            className="bg-secondary mx-4 w-full max-w-lg space-y-4 rounded-lg p-6"
+            className="bg-secondary mx-4 w-full max-w-xl space-y-4 rounded-lg p-6"
             onSubmit={(event) => {
               event.preventDefault();
               void remove();
             }}
           >
-            <h2 className="text-red text-xl font-bold">
-              {t('accounts.deleteAccount')}
-            </h2>
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-fg1 text-xl font-bold">
+                {t('accounts.deleteAccount')}
+              </h2>
+              <button
+                type="button"
+                disabled={busy}
+                aria-label={t('accounts.close')}
+                className="text-muted focus:ring-accent cursor-pointer rounded p-2 focus:ring-2"
+                onClick={() => {
+                  setOpen(false);
+                  setPassword('');
+                  setConfirm(false);
+                }}
+              >
+                <i className="bi-x-lg" aria-hidden="true" />
+              </button>
+            </div>
             <p className="text-muted text-sm">
-              {t('accounts.deleteAccountBody')}
+              {t('accounts.deleteModalBody')}
             </p>
             {error && (
               <p className="text-red" role="alert">

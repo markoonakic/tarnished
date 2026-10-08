@@ -35,6 +35,7 @@ class TokenRefresh(BaseModel):
 
 
 class UserResponse(BaseModel):
+    display_name: str | None = None
     can_delete_account: bool = True
     approval_pending: bool = False
     last_login_at: datetime | None = None

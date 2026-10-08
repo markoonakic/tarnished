@@ -422,6 +422,25 @@ export default function Admin() {
                     )}
                   </div>
 
+                  <div className="max-w-full overflow-x-auto [&_label]:px-2 [&_label]:text-xs sm:[&_label]:px-3 sm:[&_label]:text-sm">
+                    <SegmentedControl
+                      label={t('accounts.userState')}
+                      value={state}
+                      options={(
+                        ['all', 'pending', 'active', 'inactive'] as const
+                      ).map((value) => ({
+                        value,
+                        label:
+                          value === 'pending'
+                            ? `${t('accounts.pending')} (${stats?.pending_users ?? 0})`
+                            : t(`accounts.${value}`),
+                      }))}
+                      onChange={(value) => {
+                        setState(value);
+                        setPage(1);
+                      }}
+                    />
+                  </div>
                   <Dropdown
                     options={[
                       { value: '10', label: t('10 / page') },
@@ -438,25 +457,6 @@ export default function Admin() {
                 </div>
               </div>
 
-              <div className="bg-secondary mt-4 flex flex-wrap gap-3 rounded-lg p-4">
-                <SegmentedControl
-                  label={t('accounts.userState')}
-                  value={state}
-                  options={(
-                    ['all', 'pending', 'active', 'inactive'] as const
-                  ).map((value) => ({
-                    value,
-                    label:
-                      value === 'pending'
-                        ? `${t('accounts.pending')} (${stats?.pending_users ?? 0})`
-                        : t(`accounts.${value}`),
-                  }))}
-                  onChange={(value) => {
-                    setState(value);
-                    setPage(1);
-                  }}
-                />
-              </div>
               <div className="bg-secondary mt-4 hidden overflow-hidden rounded-lg md:block">
                 <table className="w-full table-fixed border-collapse">
                   <thead>
