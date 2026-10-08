@@ -110,11 +110,15 @@ async def create_round(
         raise HTTPException(status_code=400, detail="Invalid round type")
 
     try:
-        scheduled_at = normalize_round_datetime(
-            data.scheduled_at,
-            user,
-            x_timezone=x_timezone,
-            expected_time_zone=expected_round_time_zone,
+        scheduled_at = (
+            normalize_in_zone(data.scheduled_at, data.time_zone)
+            if data.time_zone
+            else normalize_round_datetime(
+                data.scheduled_at,
+                user,
+                x_timezone=x_timezone,
+                expected_time_zone=expected_round_time_zone,
+            )
         )
     except RoundTimeZoneConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -134,8 +138,6 @@ async def create_round(
         user, x_timezone=x_timezone
     )
     extra["completed_at"] = normalize_in_zone(data.completed_at, extra["time_zone"])
-    if data.time_zone:
-        scheduled_at = normalize_in_zone(data.scheduled_at, data.time_zone)
     round = Round(
         **extra,
         application_id=application_id,
@@ -198,11 +200,15 @@ async def update_round(
     try:
         for field in ("scheduled_at", "completed_at"):
             if field in update_data:
-                update_data[field] = normalize_round_datetime(
-                    update_data[field],
-                    user,
-                    x_timezone=x_timezone,
-                    expected_time_zone=expected_round_time_zone,
+                update_data[field] = (
+                    normalize_in_zone(update_data[field], data.time_zone)
+                    if data.time_zone
+                    else normalize_round_datetime(
+                        update_data[field],
+                        user,
+                        x_timezone=x_timezone,
+                        expected_time_zone=expected_round_time_zone,
+                    )
                 )
     except RoundTimeZoneConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -221,12 +227,6 @@ async def update_round(
             round_id=round_id,
             removed=any(v is None or v == "" for v in relevant.values()),
         )
-    if data.time_zone:
-        for field in ("scheduled_at", "completed_at"):
-            if field in update_data:
-                update_data[field] = normalize_in_zone(
-                    getattr(data, field), data.time_zone
-                )
     await change_record(
         db,
         round,

@@ -254,7 +254,13 @@ async def create_application(
         db.add(application)
         await db.flush()  # Get the generated ID
 
-        db.add(initial_evidence(application, selected_status))
+        db.add(
+            initial_evidence(
+                application,
+                selected_status,
+                applied_at_provided=data.applied_at is not None,
+            )
+        )
         for key, value in response_values(
             data.response_evidence, get_user_local_today(user, x_timezone=x_timezone)
         ).items():
@@ -401,7 +407,13 @@ async def create_application_from_url(
         db.add(application)
         await db.flush()  # Get the generated ID
 
-        db.add(initial_evidence(application, selected_status))
+        db.add(
+            initial_evidence(
+                application,
+                selected_status,
+                applied_at_provided=data.applied_at is not None,
+            )
+        )
         for key, value in response_values(
             data.response_evidence, get_user_local_today(user, x_timezone=x_timezone)
         ).items():

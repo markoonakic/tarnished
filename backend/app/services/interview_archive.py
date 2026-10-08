@@ -504,7 +504,13 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
     # Imported reports keep empty fingerprints and cannot become AI evidence.
     profile = await db.scalar(select(UserProfile).where(UserProfile.user_id == user_id))
     verification_profile = {
-        "work_history": profile_work_history(profile.work_history) if profile else None,
+        "work_history": [
+            {key: value for key, value in item.items() if key != "id"}
+            for item in (profile.work_history or [])
+            if isinstance(item, dict)
+        ]
+        if profile
+        else None,
         "skills": profile.skills if profile else None,
     }
     # Regenerated ids embed the IMPORTED identities, so every remapped identity

@@ -423,13 +423,15 @@ async def get_calculation_data(
         title = app.job_title.strip()
         if title:
             positions[title.casefold()] += 1
-            labels.setdefault(("position", title.casefold()), title)
+            key = ("position", title.casefold())
+            labels[key] = min(title, labels.get(key, title))
         unique = set()
         for technology in app.skills or []:
             if isinstance(technology, str) and technology.strip():
                 label = technology.strip()
                 unique.add(label.casefold())
-                labels.setdefault(("technology", label.casefold()), label)
+                key = ("technology", label.casefold())
+                labels[key] = min(label, labels.get(key, label))
         technologies.update(unique)
 
     def frequencies(counter, kind):

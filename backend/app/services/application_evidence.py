@@ -50,9 +50,12 @@ def response_values(
 
 
 def initial_evidence(
-    application: Application, status: ApplicationStatus
+    application: Application,
+    status: ApplicationStatus,
+    *,
+    applied_at_provided: bool = False,
 ) -> ApplicationStatusHistory:
-    if status.meaning == "preparing":
+    if status.meaning == "preparing" and not applied_at_provided:
         application.applied_at = None
     application.status_meaning = status.meaning
     application.status_meaning_provenance = "recorded"

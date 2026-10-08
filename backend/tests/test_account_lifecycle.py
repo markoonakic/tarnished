@@ -59,7 +59,9 @@ async def rejected_sessions(client, tokens):
     ).status_code == 401
 
 
-async def test_registration_cannot_bypass_owner_setup_or_escalate_email(client, db, monkeypatch):
+async def test_registration_cannot_bypass_owner_setup_or_escalate_email(
+    client, db, monkeypatch
+):
     monkeypatch.setenv("ADMIN_EMAIL", "attacker@example.com")
     for suffix in ("", "?needs_setup=true&proof=operator", "?token=owner_bootstrapped"):
         response = await client.post(

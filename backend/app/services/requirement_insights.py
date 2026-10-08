@@ -28,7 +28,7 @@ def requirement_insights(applications, matches_by_application=None):
             continue
         reviewed_count += 1
         for text in requirements.values():
-            labels.setdefault(text.casefold(), text)
+            labels[text.casefold()] = min(text, labels.get(text.casefold(), text))
         repeated.update({text.casefold() for text in requirements.values()})
         rows = matches_by_application.get(application.id)
         if rows is None:
