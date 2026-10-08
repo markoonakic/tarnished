@@ -3,6 +3,9 @@ import textwrap
 import pytest
 from sqlalchemy import inspect
 
+# Planner assertions need fresh statistics, not a schema reused after other tests.
+pytestmark = pytest.mark.parametrize("db_engine", ["head"], indirect=True)
+
 
 def _plan_text(rows: list[tuple]) -> str:
     return "\n".join(" ".join(str(part) for part in row) for row in rows)
