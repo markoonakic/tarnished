@@ -1,6 +1,6 @@
 ---
 title: Install Tarnished
-description: Choose a deployment method for Tarnished 0.3.0.
+description: Choose a deployment method for Tarnished 0.3.1.
 ---
 
 Start with [Docker Compose and SQLite](./docker-compose.md). It needs only Docker

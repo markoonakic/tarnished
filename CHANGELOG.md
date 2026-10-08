@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.1] - 2026-10-08
+
+### Fixed
+
+- Reviewed extraction prompts now include the canonical work-mode, employment-type
+  and pay-period values required by validation, while keeping original source quotes.
+- Application timestamps and board interview times keep their UTC offsets on SQLite,
+  so local-time displays and recent-activity ages remain correct.
+- Company activity timestamps retain their offsets without changing date-only values.
+
 ## [0.3.0] - 2026-10-08
 
 ### Added

@@ -11,13 +11,13 @@ plan your next step.
 ## Quick start
 
 You need Docker with Compose v2 and `curl`. No Python, Node.js or AI key is needed.
-This installs the published Tarnished container image for **v0.3.0** with SQLite.
+This installs the published Tarnished container image for **v0.3.1** with SQLite.
 The download commands require that release to be published. For an unreleased
 source checkout, use [Run from source](#run-from-source) below.
 
 ```bash
 mkdir tarnished && cd tarnished
-curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/markoonakic/tarnished/v0.3.0/deploy/compose/docker-compose.yml
+curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/markoonakic/tarnished/v0.3.1/deploy/compose/docker-compose.yml
 docker compose up -d --wait
 ```
 
@@ -84,7 +84,7 @@ All installations run one application process. Updates require a short downtime.
 Install the CLI with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv tool install tarnished-cli==0.3.0
+uv tool install tarnished-cli==0.3.1
 ```
 
 Create a key in **Settings → API Keys**, then follow the [CLI guide](cli/README.md).
