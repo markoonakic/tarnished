@@ -36,7 +36,11 @@ export function useJobAnalysis(
         round_id,
       });
       if (id === readId.current) {
-        setData({analysis: value.analysis ?? null, requirements: value.requirements ?? [], profile: value.profile ?? []});
+        setData({
+          analysis: value.analysis ?? null,
+          requirements: value.requirements ?? [],
+          profile: value.profile ?? [],
+        });
         setError(false);
       }
     } catch {
@@ -49,6 +53,8 @@ export function useJobAnalysis(
     setLoading(true);
     void read();
     return () => {
+      // Invalidate the latest request generation, not a DOM node.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       ++readId.current;
     };
   }, [read, refreshKey]);
