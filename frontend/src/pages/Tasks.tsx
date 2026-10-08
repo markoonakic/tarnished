@@ -23,7 +23,6 @@ import {
   taskGroups,
   taskGroup,
   dayKey,
-  dueText,
   reminderDraft,
   reminderTargetFields,
 } from '@/lib/taskDates';
@@ -444,13 +443,21 @@ export default function Tasks() {
                                 {t('tasks.deadline', { title: d.title })}
                               </Link>
                               <span className="text-muted text-xs">
-                                {dueText(d.due_at, zone, new Date(), true)}
+                                {new Date(d.due_at).toLocaleDateString(
+                                  locale(),
+                                  {
+                                    timeZone: zone,
+                                    ...(group === 'thisWeek'
+                                      ? { weekday: 'short' }
+                                      : { month: 'short', day: 'numeric' }),
+                                  }
+                                )}
                               </span>
                               <button
                                 className="text-primary focus:ring-accent rounded px-2 py-1 focus:ring-2"
                                 onClick={() => openNew(d)}
                               >
-                                <i className="bi bi-bell-plus mr-2" />
+                                <i className="bi bi-bell mr-2" />
                                 {t('tasks.remindMe')}
                               </button>
                             </div>

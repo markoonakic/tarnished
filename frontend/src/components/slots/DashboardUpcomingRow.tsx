@@ -102,7 +102,7 @@ export default function DashboardUpcomingRow() {
                   className={`text-xs ${new Date(r.due_at) < new Date() ? 'text-red-bright' : 'text-muted'}`}
                 >
                   {new Date(r.due_at) < new Date() &&
-                    `${t('tasks.overdue')} · `}
+                    `${t('tasks.group.overdue')} · `}
                   {zone
                     ? dueText(r.due_at, zone, new Date(), true)
                     : date(r.due_at)}

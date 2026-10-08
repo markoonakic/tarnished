@@ -106,7 +106,7 @@ export default function TargetReminders({
               className={`text-accent hover:bg-bg2 focus:ring-accent rounded py-1.5 text-sm whitespace-nowrap focus:ring-2 disabled:opacity-50 ${shortcutsOnly ? 'px-1' : 'px-3'}`}
             >
               <i
-                className={`bi ${query.data?.items.some((r) => r.kind === shortcut.kind && r.state === 'open') ? 'bi-bell-fill' : 'bi-bell-plus'} mr-2`}
+                className={`bi ${query.data?.items.some((r) => r.kind === shortcut.kind && r.state === 'open') ? 'bi-bell-fill' : 'bi-bell'} mr-2`}
                 aria-hidden="true"
               />
               {!iconOnly && (

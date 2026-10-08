@@ -282,6 +282,7 @@ it('opens and cancels a date shortcut without creating a reminder; Save uses the
   const shortcut = await screen.findByRole('button', { name: /Remind me/ });
   await waitFor(() => expect(shortcut).toBeEnabled());
   fireEvent.click(shortcut);
+  expect(shortcut.querySelector('i')).toHaveClass('bi-bell');
   expect(screen.getByLabelText('Date')).toHaveValue('2026-10-14');
   expect(screen.getByLabelText('Time')).toHaveValue('09:00');
   expect(writes()).toHaveLength(0);
@@ -431,5 +432,6 @@ it('shows the new dashboard row and pipeline status links without starting any w
     '/applications?status=applied'
   );
   expect(screen.getByText('Recently Updated')).toBeVisible();
+  expect(screen.queryByText(/tasks\./)).not.toBeInTheDocument();
   expect(writes()).toHaveLength(0);
 });
