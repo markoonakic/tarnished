@@ -102,6 +102,19 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+it('shows readable overdue deadlines relative to the account day', () => {
+  render(
+    <RecordDetails
+      record={{ id: 'past-lead', deadline: '2026-10-01' }}
+      type="lead"
+      title="Engineer"
+    />
+  );
+  expect(screen.getByText(/Overdue · 7 days ago/)).toHaveClass(
+    'text-red-bright'
+  );
+});
+
 it('saves a manual lead without a URL, creates and selects the company without losing the draft', async () => {
   render(
     <MemoryRouter>

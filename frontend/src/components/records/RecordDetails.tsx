@@ -32,7 +32,7 @@ export default function RecordDetails({
     : null;
   const urgent = days !== null && days <= 3;
   const deadlineLabel = record.deadline
-    ? `${date(record.deadline)} · ${new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' }).format(days!, 'day')}`
+    ? `${date(record.deadline)} · ${days! < 0 ? t('kit.overdue') + ' · ' : ''}${new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' }).format(days!, 'day')}`
     : '—';
   const pay =
     record.salary_min != null || record.salary_max != null
