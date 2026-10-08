@@ -73,7 +73,10 @@ async def test_language_archive_restores_only_target_preference(db, test_user):
     await db.commit()
     await seed_defaults(db)
     custom = RoundType(name="Technical", user_id=test_user.id, builtin_key=None)
-    db.add(custom)
+    custom_status = ApplicationStatus(
+        name="Applied", meaning="applied", user_id=test_user.id
+    )
+    db.add_all([custom, custom_status])
     await db.commit()
 
     def transfer(session):
@@ -101,6 +104,13 @@ async def test_language_archive_restores_only_target_preference(db, test_user):
         )
     )
     assert restored is not None and restored.builtin_key is None
+    restored_status = await db.scalar(
+        select(ApplicationStatus).where(
+            ApplicationStatus.user_id == recipient.id,
+            ApplicationStatus.name == "Applied",
+        )
+    )
+    assert restored_status is not None and restored_status.builtin_key is None
 
 
 async def test_builtin_identity_survives_renaming_and_reseeding(db):

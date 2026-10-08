@@ -806,7 +806,9 @@ class ImportService:
         if (
             global_matches
             and global_status is not None
-            and status_data.get("user_id") is None
+            and (
+                status_data.get("user_id") is None or global_status.builtin_key is None
+            )
         ):
             if original_id:
                 self.id_mapper.add("ApplicationStatus", original_id, global_status.id)
@@ -877,7 +879,9 @@ class ImportService:
             ),
         )
         global_type = session.execute(stmt).scalar_one_or_none()
-        if global_type and round_type_data.get("user_id") is None:
+        if global_type and (
+            round_type_data.get("user_id") is None or global_type.builtin_key is None
+        ):
             if original_id:
                 self.id_mapper.add("RoundType", original_id, global_type.id)
             return global_type
