@@ -318,11 +318,7 @@ export default function TranscriptionPanel({
           )}
           {shownJob.completed_chunks > 0 && (
             <p className="text-muted">
-              {shownJob.completed_chunks}{' '}
-              {shownJob.completed_chunks === 1
-                ? t('audio part')
-                : t('audio parts')}{' '}
-              {t('completed.')}
+              {t('audioParts', { count: shownJob.completed_chunks })}
             </p>
           )}
           {shownJob.state === 'complete' && (

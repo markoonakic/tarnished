@@ -13,6 +13,8 @@ import { queryClient } from '../lib/queryClient';
 import type { Round } from '../lib/types';
 import RoundCard from './RoundCard';
 import RoundForm from './RoundForm';
+import TranscriptionPanel from './TranscriptionPanel';
+import i18n from '../lib/i18n';
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'owner' } }),
@@ -46,10 +48,12 @@ const round: Round = {
 const adapter = api.defaults.adapter;
 let requests: InternalAxiosRequestConfig[];
 let failure: number;
+let completedChunks: number;
 beforeEach(() => {
   queryClient.clear();
   requests = [];
   failure = 422;
+  completedChunks = 0;
   api.defaults.adapter = async (config) => {
     requests.push(config);
     let data: unknown = round;
@@ -58,7 +62,17 @@ beforeEach(() => {
     if (config.url === '/api/round-types') data = [round.round_type];
     if (config.url === '/api/ai-capabilities')
       data = { speech: { available: false, message: 'Disabled' } };
-    if (config.url?.endsWith('/transcriptions')) data = [];
+    if (config.url?.endsWith('/transcriptions'))
+      data = completedChunks
+        ? [
+            {
+              id: 'job-1',
+              media_id: 'media-1',
+              state: 'complete',
+              completed_chunks: completedChunks,
+            },
+          ]
+        : [];
     if (config.url?.endsWith('/interview-feedback'))
       data = {
         generation: 0,
@@ -85,11 +99,37 @@ beforeEach(() => {
     return { data, status: 200, statusText: 'OK', headers: {}, config };
   };
 });
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   queryClient.clear();
   api.defaults.adapter = adapter;
+  await i18n.changeLanguage('en');
 });
+
+it.each([
+  [1, 'Završen 1 deo zvuka.'],
+  [2, 'Završena 2 dela zvuka.'],
+  [5, 'Završeno 5 delova zvuka.'],
+  [21, 'Završen 21 deo zvuka.'],
+  [22, 'Završena 22 dela zvuka.'],
+])(
+  'uses Serbian plurals for %s completed audio parts',
+  async (count, expected) => {
+    await i18n.changeLanguage('sr-Latn');
+    completedChunks = count;
+    render(
+      <QueryClientProvider client={queryClient}>
+        <TranscriptionPanel
+          round={round}
+          onChange={vi.fn()}
+          onResult={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    expect(await screen.findByText(expected)).toBeVisible();
+    expect(requests.every((request) => request.method === 'get')).toBe(true);
+  }
+);
 
 it('keeps the round compact and opens transcription or feedback only on request', async () => {
   render(
