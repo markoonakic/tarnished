@@ -169,16 +169,15 @@ export default function ImportModal({
 
   function finishImport(progress: ImportProgress) {
     setImporting(false);
-    setTransferState(createTransferStateFromJob(progress));
+    const state = createTransferStateFromJob(progress);
+    setTransferState(state);
     if (progress.status === 'complete') {
       onSuccess();
       reset();
       return;
     }
     setError(
-      progress.message ||
-        progress.error?.error ||
-        t('Import failed. Please try again.')
+      state.error || state.message || t('Import failed. Please try again.')
     );
   }
 
