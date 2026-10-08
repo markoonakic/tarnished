@@ -11,22 +11,22 @@ plan your next step.
 ## Quick start
 
 You need Docker with Compose v2 and `curl`. No Python, Node.js or AI key is needed.
-This installs the published Tarnished container image for **v0.2.5** with SQLite.
+This installs the published Tarnished container image for **v0.3.0** with SQLite.
 The download commands require that release to be published. For an unreleased
 source checkout, use [Run from source](#run-from-source) below.
 
 ```bash
 mkdir tarnished && cd tarnished
-curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/markoonakic/tarnished/v0.2.5/deploy/compose/docker-compose.yml
+curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/markoonakic/tarnished/v0.3.0/deploy/compose/docker-compose.yml
 docker compose up -d --wait
 ```
 
 Open **http://localhost:5577** and create the first admin account in the browser.
 Finish this step before exposing the instance to other networks.
 
-You are signed in automatically. Add your first application. Later accounts are
-created in **Admin → Users**. Setup works only once; there is no public registration
-when setup is complete. The manage CLI is for recovery. See
+You are signed in automatically. Add your first application. Later users can
+request an account from the sign-in page. Approve requests or create accounts in
+**Admin → Users**. Setup works only once. The manage CLI is for recovery. See
 [account setup and recovery](documentation/content/get-started/create-admin-account.md).
 
 The default port is local-only. Set `APP_PORT` and `APP_URL` in a `.env` file to
@@ -53,12 +53,17 @@ commands so they continue to use your local build.
 
 ## Features
 
-- Track application dates, statuses, salary, contacts and interview rounds.
+- Request accounts with administrator approval and manage your professional profile.
+- Organize companies, contacts, linked records and private notes.
+- Track applications in a list or board with filters, priorities, tags and archives.
 - Save job leads without AI, edit their fields and convert them to applications.
-- Keep CVs, cover letters, notes, recordings and editable interview transcripts.
-- Review activity, pipeline stages and response statistics in your time zone.
-- Request optional AI extraction and source-linked interview, application or
-  pipeline feedback. Review generated advice before you use it.
+- Plan reminders and tasks, and view interviews in a calendar or detail page.
+- Keep CVs, cover letters, other files, recordings and editable interview transcripts.
+- Review activity, pipeline stages, response statistics and source outcomes.
+- Review AI extraction before saving, compare requirements with allowed profile
+  items, and select preparation drafts to save to an interview.
+- Request optional source-linked interview, application or pipeline feedback.
+- Use the interface in English or Serbian (Latin script).
 - Configure themes, statuses, round types and optional dashboard sections.
 - Use scoped API keys with the CLI and browser extension.
 - Export JSON, CSV or ZIP archives with media, and import supported archives.
@@ -79,7 +84,7 @@ All installations run one application process. Updates require a short downtime.
 Install the CLI with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv tool install tarnished-cli==0.2.5
+uv tool install tarnished-cli==0.3.0
 ```
 
 Create a key in **Settings → API Keys**, then follow the [CLI guide](cli/README.md).

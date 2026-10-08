@@ -3,9 +3,9 @@ title: Account setup and recovery
 description: Create the first owner, manage accounts and recover access.
 ---
 
-Tarnished 0.2.5 lets you create the first admin account in the browser.
-Administrators create later accounts in the web app; public registration is closed
-after setup.
+Tarnished 0.3.0 lets you create the first admin account in the browser.
+Later users can request an account from the sign-in page. An administrator must
+approve each request before the account can sign in.
 Each user's application records are private from other users, but the host
 operator can access the database and files.
 
@@ -24,7 +24,8 @@ not need setup again.
 
 ## Manage accounts
 
-Use **Admin → Users → Create User**. **Edit User** can reset another user's
+Use **Admin → Users → Pending** to approve or reject account requests, or
+**Create User** to add an account directly. **Edit User** can reset another user's
 password, disable/reactivate an account or change its role. Leave the password
 field blank to keep it. Administrators cannot delete or demote themselves through
 these controls. Change your own password in **Settings → Security**.
