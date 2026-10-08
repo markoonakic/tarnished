@@ -1,4 +1,6 @@
-vi.mock('@/hooks/useEffectiveDayKey', () => ({ useEffectiveDayKey: () => '2026-10-08' }));
+vi.mock('@/hooks/useEffectiveDayKey', () => ({
+  useEffectiveDayKey: () => '2026-10-08',
+}));
 import {
   cleanup,
   fireEvent,

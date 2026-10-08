@@ -25,7 +25,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import event
+from sqlalchemy import event, select
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -88,6 +88,7 @@ async def db_engine(request, migrated_sqlite_template):
         shutil.copyfile(migrated_sqlite_template, sqlite_path)
     engine = create_async_engine(database_url, echo=False)
     is_sqlite = "sqlite" in database_url
+    reuse_postgres_schema = not is_sqlite and not hasattr(request, "param")
 
     if is_sqlite:
 
@@ -98,7 +99,7 @@ async def db_engine(request, migrated_sqlite_template):
             cursor.close()
 
     async with engine.begin() as conn:
-        if TEST_DATABASE_URL:
+        if TEST_DATABASE_URL and not reuse_postgres_schema:
             if is_sqlite:
                 await conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
             await conn.run_sync(Base.metadata.drop_all)
@@ -115,13 +116,31 @@ async def db_engine(request, migrated_sqlite_template):
     if cache_schema and not cached:
         shutil.copyfile(sqlite_path, migrated_sqlite_template)
 
+    seed_rows = {}
+    if reuse_postgres_schema:
+        async with engine.connect() as conn:
+            for table in Base.metadata.sorted_tables:
+                rows = (await conn.execute(select(table))).mappings().all()
+                if rows:
+                    seed_rows[table] = [dict(row) for row in rows]
+
     yield engine
 
     if sqlite_path is None:
         async with engine.begin() as conn:
             if is_sqlite:
                 await conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
-            await conn.run_sync(Base.metadata.drop_all)
+            if reuse_postgres_schema:
+                names = ", ".join(
+                    conn.dialect.identifier_preparer.quote(table.name)
+                    for table in Base.metadata.sorted_tables
+                )
+                await conn.exec_driver_sql(f"TRUNCATE {names} RESTART IDENTITY CASCADE")
+                for table, rows in seed_rows.items():
+                    await conn.execute(table.insert(), rows)
+            else:
+                await conn.run_sync(Base.metadata.drop_all)
+                await conn.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
             if is_sqlite:
                 await conn.exec_driver_sql("PRAGMA foreign_keys=ON")
     await engine.dispose()

@@ -175,7 +175,13 @@ it('reads without starting AI, saves reviewed choices atomically and collapses',
   expect(analysesApi.create).not.toHaveBeenCalled();
   expect(analysesApi.run).not.toHaveBeenCalled();
   expect(screen.getByRole('button', { name: 'Save reviewed' })).toBeDisabled();
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Accept all' })).toBeEnabled()
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Accept all' }));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Save reviewed' })).toBeEnabled()
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Save reviewed' }));
   await waitFor(() =>
     expect(analysesApi.review).toHaveBeenCalledWith(base, [

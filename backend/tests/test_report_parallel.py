@@ -15,7 +15,7 @@ from app.services import interview_jobs as jobs
 )
 async def test_section_dispatch_is_bounded_and_ordered(monkeypatch, scope, width):
     job = SimpleNamespace(scope=scope, manifest={}, checkpoints=[], uncertain=False)
-    db = SimpleNamespace(commit=AsyncMock())
+    db = SimpleNamespace(commit=AsyncMock(), scalar=AsyncMock(return_value=None))
 
     @asynccontextmanager
     async def sessions():
@@ -82,7 +82,7 @@ async def test_failed_or_cancelled_wave_keeps_uncertainty_and_cancels_siblings(
     job = SimpleNamespace(
         scope="PIPELINE", manifest={}, checkpoints=[], uncertain=False
     )
-    db = SimpleNamespace(commit=AsyncMock())
+    db = SimpleNamespace(commit=AsyncMock(), scalar=AsyncMock(return_value=None))
 
     @asynccontextmanager
     async def sessions():

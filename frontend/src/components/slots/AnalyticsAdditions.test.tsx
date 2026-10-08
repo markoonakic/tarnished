@@ -129,11 +129,18 @@ describe('deterministic analytics additions', () => {
   });
 
   it('shows translated status transitions and event-specific icons', async () => {
-    activity.mockResolvedValue({ ...firstPage, items: [
-      { ...event, from_status: { name: 'Applied', builtin_key: 'applied' }, to_status: { name: 'Rejected', builtin_key: 'rejected' } },
-      { ...event, id: 'note', event: 'workspace.note.created' },
-      { ...event, id: 'reminder', event: 'workspace.reminder.created' },
-    ] });
+    activity.mockResolvedValue({
+      ...firstPage,
+      items: [
+        {
+          ...event,
+          from_status: { name: 'Applied', builtin_key: 'applied' },
+          to_status: { name: 'Rejected', builtin_key: 'rejected' },
+        },
+        { ...event, id: 'note', event: 'workspace.note.created' },
+        { ...event, id: 'reminder', event: 'workspace.reminder.created' },
+      ],
+    });
     const { container } = renderAdditions();
     expect(await screen.findByText('Applied → Rejected')).toBeVisible();
     expect(container.querySelector('.bi-arrow-right')).toBeInTheDocument();

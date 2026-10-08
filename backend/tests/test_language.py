@@ -279,13 +279,8 @@ async def test_serbian_prompt_preserves_source_text_in_both_protocols(protocol):
     assert submitted["sources"] == sources
 
 
-async def test_explicit_lead_extraction_uses_request_language(
-    client, db, workspace, monkeypatch
-):
-    from unittest.mock import AsyncMock
-
-    from app.api import job_leads
-    from app.schemas.job_lead import JobLeadExtractionInput
+async def test_explicit_lead_extraction_uses_request_language(client, db, workspace):
+    from app.models import JobAnalysis
 
     async with responses_fixture() as (endpoint, calls):
         await setup_round(client, db, workspace, endpoint)
@@ -298,14 +293,18 @@ async def test_explicit_lead_extraction_uses_request_language(
                 },
             )
         ).json()
-        extract = AsyncMock(
-            return_value=JobLeadExtractionInput(title="Role", company="Company")
-        )
-        monkeypatch.setattr(job_leads, "extract_job_data", extract)
         response = await client.post(
             f"/api/job-leads/{lead['id']}/extract",
             json={"expected_revision": lead["revision"], "language": "sr-Latn"},
         )
         assert response.status_code == 200, response.text
-        assert extract.call_args.kwargs["output_language"] == "sr-Latn"
+        analysis = await db.scalar(
+            select(JobAnalysis).where(JobAnalysis.lead_id == lead["id"])
+        )
+        assert analysis is not None and analysis.language == "sr-Latn"
+        job = await db.scalar(
+            select(InterviewJob).where(InterviewJob.analysis_id == analysis.id)
+        )
+        assert job is not None and job.state == "queued"
+        assert response.json()["title"] is None
         assert calls == []
