@@ -40,21 +40,11 @@ from app.schemas.application import (
     ApplicationSummary,
     ApplicationUpdate,
 )
-from app.schemas.errors import ErrorCode, make_error_response
-from app.services.ai_settings import get_ai_settings, lock_ai_settings
+from app.services.ai_settings import lock_ai_settings
 from app.services.application_evidence import (
     compare_and_set_application,
     initial_evidence,
     response_values,
-    validate_response_date,
-)
-from app.services.extraction import (
-    ExtractionAuthError,
-    ExtractionError,
-    ExtractionInvalidResponseError,
-    ExtractionTimeoutError,
-    NoJobFoundError,
-    extract_job_data,
 )
 from app.services.interview_jobs import invalidate_interviews
 from app.services.job_fetch import fetch_job_posting_html
@@ -290,145 +280,68 @@ async def create_application_from_url(
     _: object = Depends(require_api_key_scope("applications:write")),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Extract job data from a URL using LLM and create an application.
-    This provides the same extraction quality as job leads and can be used
-    from JWT-backed sessions as well as API-token-based clients.
-    """
-    # 1. Validate status exists
-    result = await db.execute(
-        select(ApplicationStatus).where(
-            ApplicationStatus.id == data.status_id,
+    """Compatibility adapter: create Preparing and queue reviewable proposals."""
+    from uuid import uuid4
+
+    from app.schemas.job_analysis import CreateAnalysis, RunAnalysis
+    from app.services import job_analyses
+    from app.services.lead_capture import capture_source
+
+    selected_status = await db.scalar(
+        select(ApplicationStatus)
+        .where(
+            ApplicationStatus.meaning == "preparing",
             or_(
                 ApplicationStatus.user_id == user.id,
                 ApplicationStatus.user_id.is_(None),
             ),
         )
+        .order_by(ApplicationStatus.user_id.desc())
+        .limit(1)
     )
-    selected_status = result.scalars().first()
-    if not selected_status:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status"
-        )
-
-    # Reject invalid evidence before network/provider work; record it at creation.
-    validate_response_date(
-        data.response_evidence, get_user_local_today(user, x_timezone=x_timezone)
-    )
-
-    # 2. Get content for extraction - prefer text from extension, fall back to fetching HTML
+    if selected_status is None:
+        raise HTTPException(409, "Preparing status is unavailable")
     if data.text:
-        html_content = None
-        text_content = data.text
+        text = data.text
     else:
-        html_content = await fetch_job_posting_html(data.url)
-        text_content = None
-
-    # 3. Get AI settings and extract job data
-    ai_settings = await get_ai_settings(db)
-
-    if not ai_settings.is_configured:
-        raise HTTPException(400, ai_settings.disclosure().message)
-
-    try:
-        extracted = await extract_job_data(
-            html=html_content,
-            text=text_content,
-            url=data.url,
-            model=ai_settings.effective_model,
-            api_key=ai_settings.dispatch_api_key,
-            api_base=ai_settings.base_url,
-            output_language="sr-Latn"
-            if (user.settings or {}).get("language") == "sr-Latn"
-            else "en",
-        )
-    except ExtractionAuthError as e:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=make_error_response(
-                ErrorCode.AI_KEY_NOT_CONFIGURED, detail=e.message
-            ),
-        )
-    except ExtractionTimeoutError as e:
-        raise HTTPException(
-            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail=make_error_response(ErrorCode.AI_TIMEOUT, detail=e.message),
-        )
-    except ExtractionInvalidResponseError as e:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=make_error_response(ErrorCode.AI_SERVICE_ERROR, detail=e.message),
-        )
-    except NoJobFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=make_error_response(
-                ErrorCode.AI_EXTRACTION_FAILED, detail=e.message
-            ),
-        )
-    except ExtractionError as e:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=make_error_response(ErrorCode.AI_SERVICE_ERROR, detail=e.message),
-        )
-
-    # 4. Create the application with all extracted data
+        text = capture_source(None, await fetch_job_posting_html(data.url))[
+            "source_text"
+        ]
+    if not text or len(text) > 100000:
+        raise HTTPException(422, "Posting text must contain 1–100000 characters")
     application = Application(
         user_id=user.id,
-        company=extracted.company or "Unknown Company",
-        job_title=extracted.title or "Unknown Position",
-        job_description=extracted.description,
-        job_url=data.url,
-        status_id=data.status_id,
-        applied_at=data.applied_at or get_user_local_today(user, x_timezone=x_timezone),
-        # Location
-        location=extracted.location,
-        # Salary fields
-        salary_min=extracted.salary_min,
-        salary_max=extracted.salary_max,
-        salary_currency=extracted.salary_currency,
-        # Recruiter info
-        recruiter_name=extracted.recruiter_name,
-        recruiter_title=extracted.recruiter_title,
-        recruiter_linkedin_url=extracted.recruiter_linkedin_url,
-        # Requirements
-        requirements_must_have=extracted.requirements_must_have or [],
-        requirements_nice_to_have=extracted.requirements_nice_to_have or [],
-        # Skills
-        skills=extracted.skills or [],
-        # Experience
-        years_experience_min=extracted.years_experience_min,
-        years_experience_max=extracted.years_experience_max,
-        # Source
-        source=extracted.source,
+        company="",
+        job_title="",
+        job_url=data.url or None,
+        source_text=text,
+        status_id=selected_status.id,
+        applied_at=None,
+        requirements_must_have=[],
+        requirements_nice_to_have=[],
+        skills=[],
     )
-
-    try:
-        db.add(application)
-        await db.flush()  # Get the generated ID
-
-        db.add(
-            initial_evidence(
-                application,
-                selected_status,
-                applied_at_provided=data.applied_at is not None,
-            )
-        )
-        for key, value in response_values(
-            data.response_evidence, get_user_local_today(user, x_timezone=x_timezone)
-        ).items():
-            setattr(application, key, value)
-
-        await db.commit()
-    except BaseException:
-        await db.rollback()
-        raise
-    await db.refresh(application)
+    db.add(application)
+    await db.flush()
+    db.add(initial_evidence(application, selected_status, applied_at_provided=False))
+    analysis = await job_analyses.create(
+        db,
+        user.id,
+        CreateAnalysis(
+            kind="EXTRACTION",
+            application_id=application.id,
+            language=(user.settings or {}).get("language", "en"),
+        ),
+    )
+    await job_analyses.start(
+        db,
+        _,
+        analysis,
+        RunAnalysis(intent_id=uuid4(), expected_revision=analysis.revision),
+    )
+    await db.commit()
     await db.refresh(application, ["status"])
-
-    # 5. Record streak activity
-    await record_streak_activity(user=user, db=db, x_timezone=x_timezone)
-
+    application.pending_analysis_id = analysis.id
     return application
 
 

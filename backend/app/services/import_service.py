@@ -742,6 +742,11 @@ class ImportService:
             # processing request must validate these bytes before dispatch.
             new_data["validation"] = "imported_unverified"
 
+        if model_class.__name__ == "JobAnalysis":
+            # Imported proposals are inert, never execution or permission authority.
+            new_data["fingerprint"] = ""
+            new_data["review_state"] = "imported"
+            new_data["input_revisions"] = {}
         if model_class.__name__ == "Reminder":
             new_data["intent_id"] = str(uuid4())
         # Create instance

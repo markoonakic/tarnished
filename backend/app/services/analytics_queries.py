@@ -470,6 +470,8 @@ async def get_calculation_data(
         ).all()
     ]
 
+    from app.services.job_analyses import current_matches
+
     def rate(value: int) -> float | None:
         return round(value / n * 100, 1) if n else None
 
@@ -487,7 +489,7 @@ async def get_calculation_data(
             "observed_at": observed_at,
             "basis": "live_current_records_not_historical_as_of",
         },
-        **requirement_insights(apps),
+        **requirement_insights(apps, await current_matches(db, user_id, apps)),
         "first_response": {
             "mean_days": sum(response_days) / len(response_days)
             if response_days

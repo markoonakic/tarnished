@@ -42,6 +42,9 @@ class InterviewJob(Base):
     application_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("applications.id", ondelete="CASCADE"), index=True
     )
+    analysis_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("job_analyses.id", ondelete="CASCADE"), index=True
+    )
     intent_id: Mapped[str] = mapped_column(String(36))
     generation: Mapped[int] = mapped_column(Integer)
     fingerprint: Mapped[str] = mapped_column(String(64))

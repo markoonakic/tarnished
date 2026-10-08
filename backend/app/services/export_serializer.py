@@ -349,6 +349,25 @@ EXPORT_FIELDS["UserProfile"] += (
 EXPORT_FIELDS["ApplicationStatusHistory"] += ("reason",)
 EXPORT_FIELDS["User"] += ("approval_pending", "last_login_at")
 
+EXPORT_FIELDS["JobAnalysis"] = (
+    "id",
+    "user_id",
+    "lead_id",
+    "application_id",
+    "round_id",
+    "kind",
+    "revision",
+    "fingerprint",
+    "source_text",
+    "input_revisions",
+    "language",
+    "draft",
+    "reviewed",
+    "review_state",
+    "created_at",
+    "updated_at",
+)
+
 # User.settings may retain legacy credentials and unknown internal state.
 EXPORT_SETTINGS_FIELDS = (
     "language",

@@ -12,10 +12,10 @@ class ApplicationExtractRequest(BaseModel):
     response_evidence: ResponseEvidenceInput | None = None
     """Request to extract job data from URL and create an application."""
 
-    url: str
+    url: str = Field("", max_length=2048)
     status_id: str = Field(min_length=1, max_length=36)
     applied_at: date | None = None
-    text: str | None = None  # Optional page text content from extension
+    text: str | None = Field(None, max_length=100000)
 
     @field_validator("applied_at")
     @classmethod
@@ -102,6 +102,7 @@ class StatusResponse(BaseModel):
 
 
 class ApplicationListItem(ApplicationEvidence, JobFieldsResponse):
+    pending_analysis_id: str | None = None
     archived_at: datetime | None = None
     outcome_reason: str | None = None
     source_text: str | None = None

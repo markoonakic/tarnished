@@ -499,6 +499,9 @@ def log_validation_failure(exc, scope=None):
 def validate_section(
     value, sources, scope="INTERVIEW", *, require_current_contract=False
 ) -> dict:
+    if scope in ("EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
+        from app.services.job_analyses import validate_output
+        return validate_output(value, sources, scope)
     try:
         return _validate_section(
             value, sources, scope, require_current_contract=require_current_contract
@@ -935,6 +938,9 @@ def _localized_system_prompt(scope, language):
 
 
 def _system_prompt(scope, *, current_date=None):
+    if scope in ("EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
+        from app.services.job_analyses import prompt
+        return prompt(scope)
     common = (
         f"The current UTC date is {current_date or datetime.now(UTC).date().isoformat()}. "
         "For a historical pipeline report, use its supplied as-of date instead. "
