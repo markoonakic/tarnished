@@ -21,7 +21,7 @@ class ApplicationStatus(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "meaning IN ('unknown','applied','screening','interviewing','offer','accepted','rejected','withdrawn','no_reply')",
+            "meaning IN ('unknown','preparing','applied','screening','interviewing','offer','accepted','rejected','withdrawn','no_reply')",
             name="ck_status_meaning",
         ),
     )

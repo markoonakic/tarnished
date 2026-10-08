@@ -52,6 +52,8 @@ def response_values(
 def initial_evidence(
     application: Application, status: ApplicationStatus
 ) -> ApplicationStatusHistory:
+    if status.meaning == "preparing":
+        application.applied_at = None
     application.status_meaning = status.meaning
     application.status_meaning_provenance = "recorded"
     application.response_state = "not_recorded"
@@ -123,7 +125,7 @@ def erase_history_content(entry: ApplicationStatusHistory) -> None:
     entry.is_gap = True
     entry.from_status_id = entry.to_status_id = None
     entry.from_meaning = entry.to_meaning = None
-    entry.note = entry.correction_note = None
+    entry.note = entry.correction_note = entry.reason = None
     entry.corrected_at = None
     entry.from_meaning_provenance = entry.to_meaning_provenance = "legacy_unknown"
     entry.time_provenance = "legacy_unknown"

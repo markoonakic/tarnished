@@ -26,6 +26,10 @@ class User(Base):
     )
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    approval_pending: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

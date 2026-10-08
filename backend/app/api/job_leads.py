@@ -11,7 +11,7 @@ The API supports both web app authentication (Bearer token) and
 browser extension authentication (API token).
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import ValidationError
@@ -32,6 +32,7 @@ from app.core.deps import (
 from app.models import User
 from app.models.application import Application
 from app.models.job_lead import JobLead
+from app.models.workspace import ApplicationContact
 from app.schemas.application import ApplicationListItem
 from app.schemas.errors import ErrorCode, make_error_response
 from app.schemas.job_lead import (
@@ -51,9 +52,11 @@ from app.services.extraction import (
     extract_job_data,
 )
 from app.services.job_fetch import fetch_job_posting_html
-from app.services.lead_capture import capture_source
+from app.services.job_filters import JobFilters, apply_filters, filter_params
+from app.services.lead_capture import capture_complete_source, capture_source
 from app.services.reference_data import get_initial_application_status
 from app.services.user_time import get_user_local_today
+from app.services.workspace import JOB_FIELDS, audit, job_links
 
 router = APIRouter(prefix="/api/job-leads", tags=["job-leads"])
 
@@ -73,6 +76,9 @@ async def list_job_leads(
     search: str | None = Query(None, description="Search by company, title, or URL"),
     source: str | None = Query(None, description="Filter by exact source"),
     sort: str = Query("newest", pattern="^(newest|oldest)$"),
+    filters: JobFilters = Depends(filter_params),
+    date_from: date | None = None,
+    date_to: date | None = None,
     user: User = Depends(get_current_user_flexible),
     _: object = Depends(require_api_key_scope("job_leads:read")),
     db: AsyncSession = Depends(get_db),
@@ -92,7 +98,13 @@ async def list_job_leads(
     Returns:
         Paginated list of job leads.
     """
-    query = select(JobLead).where(JobLead.user_id == user.id)
+    query = apply_filters(
+        select(JobLead).where(JobLead.user_id == user.id),
+        JobLead,
+        filters,
+        date_from,
+        date_to,
+    )
 
     if status_filter:
         query = query.where(JobLead.status == status_filter)
@@ -207,7 +219,9 @@ def _conflict(lead_id: str) -> HTTPException:
     )
 
 
-async def _duplicate(db: AsyncSession, user_id: str, url: str) -> None:
+async def _duplicate(db: AsyncSession, user_id: str, url: str | None) -> None:
+    if not url:
+        return
     existing_id = await db.scalar(
         select(JobLead.id).where(JobLead.user_id == user_id, JobLead.url == url)
     )
@@ -235,10 +249,16 @@ async def create_job_lead(
     """Save a URL and bounded source locally. Never fetch or call AI on save."""
     user_id = user.id
     await _duplicate(db, user_id, data.url)
-    captured = await run_in_threadpool(capture_source, data.text, data.html)
-    lead = JobLead(user_id=user_id, url=data.url, status="pending", **captured)
+    captured = await run_in_threadpool(capture_complete_source, data.text, data.html)
+    values = data.model_dump(exclude={"url", "text", "html"}, exclude_unset=True)
+    await job_links(db, user_id, values)
+    lead = JobLead(
+        user_id=user_id, url=data.url, status="pending", **captured, **values
+    )
     db.add(lead)
     try:
+        await db.flush()
+        await audit(db, user.id, "lead.created", lead)
         await db.commit()
     except IntegrityError as exc:
         await db.rollback()
@@ -278,6 +298,7 @@ async def update_job_lead(
         )
     except ValidationError as exc:
         raise HTTPException(422, str(exc)) from exc
+    await job_links(db, user.id, values, lead)
     values["manual_fields"] = sorted(set(lead.manual_fields) | values.keys())
     # An edit invalidates the claim AND clears processing, even if its callback
     # later loses both success and failure CAS checks.
@@ -302,6 +323,7 @@ async def update_job_lead(
     if changed is None:
         await db.rollback()
         raise _conflict(job_lead_id)
+    await audit(db, user.id, "lead.updated", lead)
     await db.commit()
     await db.refresh(lead)
     return lead
@@ -663,6 +685,10 @@ async def convert_job_lead_to_application(
         years_experience_min=job_lead.years_experience_min,
         years_experience_max=job_lead.years_experience_max,
         source=job_lead.source,
+        source_text=job_lead.source_text,
+        confirmed_requirements=job_lead.confirmed_requirements,
+        requirements_revision=job_lead.requirements_revision,
+        **{field: getattr(job_lead, field) for field in JOB_FIELDS},
     )
 
     db.add(application)
@@ -673,6 +699,15 @@ async def convert_job_lead_to_application(
     from app.services.application_evidence import initial_evidence
 
     db.add(initial_evidence(application, default_status))
+    if application.recruiter_contact_id:
+        db.add(
+            ApplicationContact(
+                user_id=user.id,
+                application_id=application.id,
+                contact_id=application.recruiter_contact_id,
+            )
+        )
+    await audit(db, user.id, "application.created", application)
 
     await db.execute(
         update(JobLead)

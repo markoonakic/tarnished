@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Literal
 
@@ -30,6 +30,7 @@ from app.models import (
     Round,
     User,
 )
+from app.models.workspace import ApplicationContact
 from app.schemas.application import (
     ApplicationCreate,
     ApplicationExtractRequest,
@@ -57,7 +58,9 @@ from app.services.extraction import (
 )
 from app.services.interview_jobs import invalidate_interviews
 from app.services.job_fetch import fetch_job_posting_html
+from app.services.job_filters import JobFilters, apply_filters, filter_params
 from app.services.user_time import get_user_local_today
+from app.services.workspace import JOB_FIELDS, audit, job_links
 
 router = APIRouter(
     prefix="/api/applications", tags=["applications"], route_class=UploadLimitRoute
@@ -74,6 +77,7 @@ async def list_applications(
     url: str | None = Query(
         None, description="Filter by exact job URL (used by extension)"
     ),
+    filters: JobFilters = Depends(filter_params),
     date_from: date | None = None,
     date_to: date | None = None,
     sort: Literal[
@@ -110,11 +114,7 @@ async def list_applications(
             )
         )
 
-    if date_from:
-        query = query.where(Application.applied_at >= date_from)
-
-    if date_to:
-        query = query.where(Application.applied_at <= date_to)
+    query = apply_filters(query, Application, filters, date_from, date_to)
 
     count_query = select(func.count()).select_from(query.subquery())
     total_result = await db.execute(count_query)
@@ -196,9 +196,16 @@ async def create_application(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status"
         )
 
+    extra = {field: getattr(data, field) for field in JOB_FIELDS}
+    await job_links(db, user.id, extra)
+    if selected_status.meaning != "preparing" and (
+        not data.company.strip() or not data.job_title.strip()
+    ):
+        raise HTTPException(422, "Company and position are required")
     application = Application(
+        **{key: value for key, value in extra.items() if key != "company"},
         user_id=user.id,
-        company=data.company,
+        company=extra.get("company", data.company),
         job_title=data.job_title,
         job_description=data.job_description,
         job_url=data.job_url,
@@ -218,6 +225,17 @@ async def create_application(
         years_experience_max=data.years_experience_max,
         source=data.source,
     )
+    db.add(application)
+    await db.flush()
+    if application.recruiter_contact_id:
+        db.add(
+            ApplicationContact(
+                user_id=user.id,
+                application_id=application.id,
+                contact_id=application.recruiter_contact_id,
+            )
+        )
+    await audit(db, user.id, "application.created", application)
     try:
         db.add(application)
         await db.flush()  # Get the generated ID
@@ -454,9 +472,46 @@ async def update_application(
 
     old_status_id = application.status_id
     update_data = data.model_dump(
-        exclude_unset=True, exclude={"response_evidence", "expected_revision"}
+        exclude_unset=True,
+        exclude={
+            "response_evidence",
+            "expected_revision",
+            "archived",
+            "status_changed_at",
+            "status_comment",
+            "status_reason",
+        },
     )
     status_changed = "status_id" in update_data and data.status_id != old_status_id
+    await job_links(db, user.id, update_data, application)
+    if data.archived is not None:
+        update_data["archived_at"] = datetime.now(UTC) if data.archived else None
+    destination = (
+        selected_status.meaning if selected_status else application.status_meaning
+    )
+    if (
+        "applied_at" in update_data
+        and update_data["applied_at"] is None
+        and destination != "preparing"
+    ):
+        raise HTTPException(422, "Only Preparing can have no applied date")
+    if (
+        status_changed
+        and application.status_meaning == "preparing"
+        and destination != "preparing"
+    ):
+        if (
+            not update_data.get("company", application.company)
+            or not update_data.get("job_title", application.job_title)
+            or not (data.applied_at or application.applied_at)
+        ):
+            raise HTTPException(
+                422, "Set company, position and applied date before sending"
+            )
+    if status_changed:
+        update_data["outcome_reason"] = (
+            data.status_reason if destination in ("rejected", "withdrawn") else None
+        )
 
     if "response_evidence" in data.model_fields_set:
         update_data.update(
@@ -480,6 +535,11 @@ async def update_application(
             db.add(
                 ApplicationStatusHistory(
                     application_id=application_id,
+                    changed_at=data.status_changed_at or datetime.now(UTC),
+                    note=data.status_comment,
+                    reason=data.status_reason
+                    if destination in ("rejected", "withdrawn")
+                    else None,
                     from_status_id=old_status_id,
                     to_status_id=data.status_id,
                     from_meaning=application.status_meaning,
@@ -491,6 +551,24 @@ async def update_application(
                     time_provenance="recorded",
                 )
             )
+        if update_data.get("recruiter_contact_id"):
+            link = await db.scalar(
+                select(ApplicationContact.id).where(
+                    ApplicationContact.user_id == user.id,
+                    ApplicationContact.application_id == application.id,
+                    ApplicationContact.contact_id
+                    == update_data["recruiter_contact_id"],
+                )
+            )
+            if not link:
+                db.add(
+                    ApplicationContact(
+                        user_id=user.id,
+                        application_id=application.id,
+                        contact_id=update_data["recruiter_contact_id"],
+                    )
+                )
+        await audit(db, user.id, "application.updated", application)
         await db.commit()
     except BaseException:
         await db.rollback()

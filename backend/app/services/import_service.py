@@ -71,6 +71,22 @@ class ImportService:
         "skills",
     )
 
+    PROFILE_RESTORE_FIELDS += (
+        "display_name",
+        "desired_positions",
+        "fields_of_work",
+        "seniority",
+        "work_modes",
+        "employment_types",
+        "years_experience",
+        "location_restrictions",
+        "skill_items",
+        "technologies",
+        "projects",
+        "certificates",
+        "languages",
+    )
+
     def __init__(self, registry: ExportRegistry, id_mapper: IDMapper):
         """
         Initialize the import service.
@@ -118,6 +134,32 @@ class ImportService:
             from app.services.interview_archive import validate_interview_archive
 
             validate_interview_archive(data["models"])
+            from app.schemas.workspace import (
+                CompanyCreate,
+                ContactCreate,
+                InterviewFields,
+                JobFields,
+                NoteCreate,
+                ReminderCreate,
+            )
+
+            for model_name, schema in (
+                ("Company", CompanyCreate),
+                ("Contact", ContactCreate),
+                ("Note", NoteCreate),
+                ("Reminder", ReminderCreate),
+                ("Round", InterviewFields),
+                ("Application", JobFields),
+                ("JobLead", JobFields),
+            ):
+                for record in data["models"].get(model_name, []):
+                    schema.model_validate(
+                        {
+                            key: value
+                            for key, value in record.items()
+                            if key in schema.model_fields
+                        }
+                    )
             for row in data["models"].get("Round", []):
                 if row.get("current_transcript") is not None:
                     try:
@@ -376,6 +418,20 @@ class ImportService:
             profile.__setattr__(
                 field, self._deserialize_value(record_data[field], column)
             )
+        from app.services.profile_items import ITEM_FIELDS, SECTIONS, normalize_items
+
+        for field in ITEM_FIELDS:
+            setattr(profile, field, normalize_items(getattr(profile, field)))
+        if not profile.skill_items and profile.skills:
+            profile.skill_items = normalize_items(profile.skills)
+        profile.skills = [
+            item["name"]
+            for item in profile.skill_items
+            if isinstance(item.get("name"), str)
+        ]
+        profile.ai_permissions = dict.fromkeys(SECTIONS, False)
+        profile.revision = (profile.revision or 0) + 1
+        profile.permission_revision = (profile.permission_revision or 0) + 1
         session.flush()
         original_id = record_data.get("__original_id__")
         if original_id:
@@ -597,7 +653,7 @@ class ImportService:
                 value = remapped
 
             # Remap foreign keys if this looks like an FK field
-            if target_key.endswith("_id") and target_key != "id":
+            if target_key.endswith("_id") and target_key not in ("id", "intent_id"):
                 # Try to remap this FK
                 ref_model = self._guess_referenced_model(target_key)
                 if ref_model and value:
@@ -624,6 +680,13 @@ class ImportService:
             # Deserialize value based on column type
             value = self._deserialize_value(value, columns[target_key])
             if target_key in {
+                "due_at",
+                "task_deadline",
+                "scheduled_at",
+                "completed_at",
+                "created_at",
+                "updated_at",
+                "archived_at",
                 "changed_at",
                 "corrected_at",
                 "response_recorded_at",
@@ -678,6 +741,8 @@ class ImportService:
             # processing request must validate these bytes before dispatch.
             new_data["validation"] = "imported_unverified"
 
+        if model_class.__name__ == "Reminder":
+            new_data["intent_id"] = str(uuid4())
         # Create instance
         instance = model_class(**new_data)
         session.add(instance)
@@ -735,6 +800,10 @@ class ImportService:
         # Special cases for FK fields that don't follow simple naming conventions
         if fk_field in ("status_id", "from_status_id", "to_status_id"):
             return "ApplicationStatus"
+        if fk_field == "lead_id":
+            return "JobLead"
+        if fk_field == "recruiter_contact_id":
+            return "Contact"
         if fk_field == "round_type_id":
             return "RoundType"
         if fk_field == "converted_to_application_id":

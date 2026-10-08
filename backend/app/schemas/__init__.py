@@ -43,6 +43,7 @@ class ApplicationStatusHistoryResponse(HistoryEvidence):
     to_status: StatusResponse | None
     changed_at: datetime
     note: str | None
+    reason: str | None = None
 
     @field_validator("changed_at")
     @classmethod

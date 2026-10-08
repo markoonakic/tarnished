@@ -1,5 +1,8 @@
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -14,6 +17,7 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
+    get_password_hash,
     verify_password,
 )
 from app.models import User
@@ -49,9 +53,18 @@ async def login(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled",
+            detail={
+                "code": "account_pending"
+                if user.approval_pending
+                else "account_deactivated",
+                "message": "Your account is waiting for administrator approval."
+                if user.approval_pending
+                else "This account is deactivated. Contact the administrator.",
+            },
         )
 
+    user.last_login_at = datetime.now(UTC)
+    await db.commit()
     return Token(
         access_token=create_access_token(
             {"sub": user.id, "session_version": user.session_version}
@@ -111,6 +124,49 @@ async def setup(request: Request, data: UserSetup, db: AsyncSession = Depends(ge
         return await bootstrap_owner(db, data.email, data.password)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
+
+
+@router.post("/register", status_code=202)
+@limiter.limit("5/minute")
+async def register(
+    request: Request, data: UserSetup, db: AsyncSession = Depends(get_db)
+):
+    if await needs_owner_setup(db):
+        raise HTTPException(409, "Complete owner setup first")
+    # Hash on both paths. The response never confirms whether an email exists.
+    password_hash = get_password_hash(data.password)
+    if not await db.scalar(select(User.id).where(User.email == data.email)):
+        db.add(
+            User(
+                email=data.email,
+                password_hash=password_hash,
+                is_active=False,
+                is_admin=False,
+                approval_pending=True,
+            )
+        )
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+    return {"message": "Request sent"}
+
+
+from app.schemas.workspace import DeleteAccount
+from app.services.accounts import delete_account
+
+
+@router.delete("/me", status_code=204)
+async def self_delete(
+    data: DeleteAccount,
+    user: User = Depends(get_current_user_jwt),
+    db: AsyncSession = Depends(get_db),
+):
+    if not data.confirm:
+        raise HTTPException(400, "Confirm permanent account deletion")
+    if not verify_password(data.current_password, user.password_hash):
+        raise HTTPException(400, "Current password is incorrect")
+    await delete_account(db, user.id, expected_version=user.session_version)
 
 
 @router.get("/setup-status")

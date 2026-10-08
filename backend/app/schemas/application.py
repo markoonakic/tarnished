@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.evidence import ApplicationEvidence, Meaning, ResponseEvidenceInput
 from app.schemas.round import RoundResponse
+from app.schemas.workspace import JobFields, JobFieldsResponse
 
 
 class ApplicationExtractRequest(BaseModel):
@@ -24,10 +25,10 @@ class ApplicationExtractRequest(BaseModel):
         return value
 
 
-class ApplicationCreate(BaseModel):
+class ApplicationCreate(JobFields):
     response_evidence: ResponseEvidenceInput | None = None
-    company: str = Field(min_length=1, max_length=255, pattern=r"\S")
-    job_title: str = Field(min_length=1, max_length=255, pattern=r"\S")
+    company: str = Field("", max_length=255)
+    job_title: str = Field("", max_length=255)
     job_description: str | None = None
     job_url: str | None = None
     status_id: str = Field(min_length=1, max_length=36)
@@ -46,15 +47,20 @@ class ApplicationCreate(BaseModel):
     years_experience_max: int | None = None
     source: str | None = None
 
-    @field_validator("applied_at")
+
+class ApplicationUpdate(JobFields):
+    archived: bool | None = None
+    status_changed_at: datetime | None = None
+    status_comment: str | None = Field(None, max_length=2000)
+    status_reason: str | None = Field(None, max_length=2000)
+
+    @field_validator("status_changed_at")
     @classmethod
-    def reject_null(cls, value):
-        if value is None:
-            raise ValueError("Omit unchanged/defaulted fields; null is not allowed")
-        return value
+    def status_time(cls, value):
+        from app.schemas.evidence import HistoryCorrection
 
+        return HistoryCorrection.validate_timestamp(value) if value else value
 
-class ApplicationUpdate(BaseModel):
     expected_revision: int | None = Field(None, ge=0)
     response_evidence: ResponseEvidenceInput | None = None
     company: str | None = Field(None, min_length=1, max_length=255, pattern=r"\S")
@@ -77,7 +83,7 @@ class ApplicationUpdate(BaseModel):
     years_experience_max: int | None = None
     source: str | None = None
 
-    @field_validator("company", "job_title", "status_id", "applied_at")
+    @field_validator("company", "job_title", "status_id")
     @classmethod
     def reject_null(cls, value):
         if value is None:
@@ -95,7 +101,11 @@ class StatusResponse(BaseModel):
     meaning: Meaning = "unknown"
 
 
-class ApplicationListItem(ApplicationEvidence):
+class ApplicationListItem(ApplicationEvidence, JobFieldsResponse):
+    archived_at: datetime | None = None
+    outcome_reason: str | None = None
+    source_text: str | None = None
+    source_revision: int = 0
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -106,7 +116,7 @@ class ApplicationListItem(ApplicationEvidence):
     status: StatusResponse
     cv_path: str | None
     cover_letter_path: str | None
-    applied_at: date
+    applied_at: date | None
     created_at: datetime
     updated_at: datetime
     job_lead_id: str | None

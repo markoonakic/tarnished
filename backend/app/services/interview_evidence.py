@@ -12,13 +12,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import resolve_upload_path
 from app.models import Application, ApplicationStatusHistory, Round
-from app.models.user_profile import UserProfile
 from app.services.analytics_queries import (
     ACTIVE_MEANINGS,
     CLOSED_MEANINGS,
     get_pipeline_overview_data,
 )
 from app.services.media_intake import run_media_process
+from app.services.profile_items import legacy_ai_profile
 
 APP_FIELDS = (
     "company",
@@ -135,9 +135,7 @@ async def snapshot(db: AsyncSession, user_id: str, round_id: str):
             4_000_000,
         )
     )
-    profile = await bounded_row(
-        db, UserProfile, PROFILE_FIELDS, UserProfile.user_id == user_id, 64000
-    )
+    profile = await legacy_ai_profile(db, user_id)
     count, size = (
         await db.execute(
             select(
@@ -245,9 +243,7 @@ async def application_snapshot(db: AsyncSession, user_id: str, application_id: s
                 ),
             }
         )
-    profile = await bounded_row(
-        db, UserProfile, PROFILE_FIELDS, UserProfile.user_id == user_id, 64000
-    )
+    profile = await legacy_ai_profile(db, user_id)
     count, size = (
         await db.execute(
             select(
@@ -320,9 +316,7 @@ async def pipeline_snapshot(
     basis = dict(metrics.get("current_record_basis") or {})
     basis["observed_at"] = metrics.get("scope", {}).get("as_of")
     metrics = {**metrics, "current_record_basis": basis}
-    profile = await bounded_row(
-        db, UserProfile, PROFILE_FIELDS, UserProfile.user_id == user_id, 64000
-    )
+    profile = await legacy_ai_profile(db, user_id)
     data = {
         "period": period,
         "as_of": as_of.isoformat() if as_of is not None else None,

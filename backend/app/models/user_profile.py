@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import JSON, Boolean, ForeignKey, String
+from sqlalchemy import JSON, Boolean, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -20,6 +20,45 @@ class UserProfile(Base):
         nullable=False,
         unique=True,
         index=True,
+    )
+
+    revision: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    permission_revision: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0"
+    )
+    ai_permissions: Mapped[dict] = mapped_column(
+        JSON, default=dict, server_default="{}"
+    )
+    display_name: Mapped[str | None] = mapped_column(String(255))
+    desired_positions: Mapped[list[str]] = mapped_column(
+        JSON, default=list, server_default="[]"
+    )
+    fields_of_work: Mapped[list[str]] = mapped_column(
+        JSON, default=list, server_default="[]"
+    )
+    seniority: Mapped[str | None] = mapped_column(String(50))
+    work_modes: Mapped[list[str]] = mapped_column(
+        JSON, default=list, server_default="[]"
+    )
+    employment_types: Mapped[list[str]] = mapped_column(
+        JSON, default=list, server_default="[]"
+    )
+    years_experience: Mapped[float | None] = mapped_column(Float)
+    location_restrictions: Mapped[str | None] = mapped_column(Text)
+    skill_items: Mapped[list[dict]] = mapped_column(
+        JSON, default=list, server_default="[]"
+    )
+    technologies: Mapped[list[dict]] = mapped_column(
+        JSON, default=list, server_default="[]"
+    )
+    projects: Mapped[list[dict]] = mapped_column(
+        JSON, default=list, server_default="[]"
+    )
+    certificates: Mapped[list[dict]] = mapped_column(
+        JSON, default=list, server_default="[]"
+    )
+    languages: Mapped[list[dict]] = mapped_column(
+        JSON, default=list, server_default="[]"
     )
 
     # Personal info

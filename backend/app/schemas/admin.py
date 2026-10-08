@@ -8,6 +8,8 @@ from app.schemas.evidence import Meaning
 
 
 class AdminUserResponse(BaseModel):
+    approval_pending: bool = False
+    last_login_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -19,6 +21,7 @@ class AdminUserResponse(BaseModel):
 
 
 class AdminUserUpdate(BaseModel):
+    approval_pending: StrictBool | None = None
     is_active: StrictBool | None = None
     is_admin: StrictBool | None = None
     password: NewPassword | None = None
@@ -39,6 +42,7 @@ class AdminUserCreate(BaseModel):
 
 
 class AdminStatsResponse(BaseModel):
+    pending_users: int = 0
     total_users: int
     active_users: int
     total_applications: int

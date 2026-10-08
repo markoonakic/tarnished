@@ -10,6 +10,13 @@ from app.models.transfer_job import TransferJob
 from app.models.user import User
 from app.models.user_api_key import UserAPIKey
 from app.models.user_profile import UserProfile
+from app.models.workspace import ApplicationContact as ApplicationContact
+from app.models.workspace import ApplicationDocument as ApplicationDocument
+from app.models.workspace import Company as Company
+from app.models.workspace import Contact as Contact
+from app.models.workspace import Note as Note
+from app.models.workspace import Reminder as Reminder
+from app.models.workspace import RoundContact as RoundContact
 
 __all__ = [
     "User",

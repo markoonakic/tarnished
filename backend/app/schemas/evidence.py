@@ -13,6 +13,7 @@ from pydantic import (
 )
 
 Meaning = Literal[
+    "preparing",
     "unknown",
     "applied",
     "screening",

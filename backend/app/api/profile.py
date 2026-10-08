@@ -8,8 +8,8 @@ This module provides API endpoints for managing user profiles, including:
 All endpoints require authentication via Bearer token.
 """
 
-from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +27,7 @@ from app.schemas.user_profile import (
 )
 from app.services.ai_settings import lock_ai_settings
 from app.services.interview_jobs import invalidate_interviews
+from app.services.profile_items import ITEM_FIELDS, PROFILE_FIELDS, normalize_items
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
@@ -42,6 +43,7 @@ def _build_profile_response(profile: UserProfile, user: User) -> UserProfileResp
         A dict that matches UserProfileResponse schema
     """
     return {  # type: ignore[return-value]
+        **{field: getattr(profile, field) for field in PROFILE_FIELDS},
         "id": profile.id,
         "user_id": profile.user_id,
         "first_name": profile.first_name,
@@ -150,13 +152,59 @@ async def update_profile(
     # Extract only the fields that were provided in the request
     update_data = profile_update.model_dump(exclude_unset=True)
 
-    relevant = {
-        k: v
-        for k, v in update_data.items()
-        if k in ("work_history", "skills") and v != getattr(profile, k)
-    }
-    if relevant:
+    expected = update_data.pop("expected_revision", None)
+    revision = profile.revision
+    if expected is not None and expected != revision:
+        raise HTTPException(409, "Profile changed; reload and retry")
+    if "skills" in update_data and "skill_items" not in update_data:
+        update_data["skill_items"] = [
+            {"name": name} for name in update_data["skills"] or []
+        ]
+    try:
+        for field in ITEM_FIELDS:
+            if field in update_data:
+                update_data[field] = normalize_items(
+                    update_data[field], getattr(profile, field)
+                )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from None
+    if "skill_items" in update_data:
+        update_data["skills"] = [
+            item["name"]
+            for item in update_data["skill_items"]
+            if isinstance(item.get("name"), str)
+        ]
+    if "ai_permissions" in update_data:
+        update_data["ai_permissions"] = {
+            **(profile.ai_permissions or {}),
+            **update_data["ai_permissions"],
+        }
+    permission_changed = (
+        "ai_permissions" in update_data
+        and update_data["ai_permissions"] != profile.ai_permissions
+    )
+    if any(
+        value != getattr(profile, key, None)
+        for key, value in update_data.items()
+        if key not in ("city", "country")
+    ):
         await invalidate_interviews(db, user_id=user.id, removed=True)
+    changed = await db.scalar(
+        update(UserProfile)
+        .where(
+            UserProfile.id == profile.id,
+            UserProfile.user_id == user.id,
+            UserProfile.revision == revision,
+        )
+        .values(
+            revision=revision + 1,
+            permission_revision=profile.permission_revision + int(permission_changed),
+        )
+        .returning(UserProfile.id)
+        .execution_options(synchronize_session=False)
+    )
+    if changed is None:
+        raise HTTPException(409, "Profile changed; reload and retry")
     # Handle city and country separately (they're on the User model)
     if "city" in update_data:
         user.city = update_data.pop("city")

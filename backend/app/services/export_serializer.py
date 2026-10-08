@@ -183,6 +183,171 @@ EXPORT_FIELDS: dict[str, tuple[str, ...]] = {
     ),
 }
 
+
+EXPORT_FIELDS["Company"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "name",
+    "website",
+    "industry",
+    "location",
+    "size",
+    "description",
+    "culture_notes",
+)
+EXPORT_FIELDS["Contact"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "name",
+    "function",
+    "email",
+    "phone",
+    "profile_url",
+    "role",
+    "last_contact_on",
+    "communication_note",
+    "company_id",
+)
+EXPORT_FIELDS["Note"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "lead_id",
+    "application_id",
+    "company_id",
+    "contact_id",
+    "round_id",
+    "body",
+)
+EXPORT_FIELDS["Reminder"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "lead_id",
+    "application_id",
+    "company_id",
+    "contact_id",
+    "round_id",
+    "kind",
+    "title",
+    "note",
+    "due_at",
+    "time_zone",
+    "state",
+    "completed_at",
+    "intent_id",
+)
+EXPORT_FIELDS["ApplicationContact"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "application_id",
+    "contact_id",
+)
+EXPORT_FIELDS["RoundContact"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "round_id",
+    "contact_id",
+)
+EXPORT_FIELDS["ApplicationDocument"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "application_id",
+    "kind",
+    "file_path",
+    "original_filename",
+    "media_type",
+    "byte_count",
+    "sha256",
+    "uploaded_at",
+)
+EXPORT_FIELDS["Application"] += (
+    "company_id",
+    "recruiter_contact_id",
+    "work_mode",
+    "employment_type",
+    "seniority",
+    "deadline",
+    "pay_period",
+    "priority",
+    "tags",
+    "confirmed_requirements",
+    "requirements_revision",
+    "archived_at",
+    "outcome_reason",
+    "source_text",
+    "source_revision",
+)
+EXPORT_FIELDS["JobLead"] += (
+    "company_id",
+    "recruiter_contact_id",
+    "work_mode",
+    "employment_type",
+    "seniority",
+    "deadline",
+    "pay_period",
+    "priority",
+    "tags",
+    "confirmed_requirements",
+    "requirements_revision",
+    "decision",
+    "updated_at",
+)
+EXPORT_FIELDS["Round"] += (
+    "revision",
+    "updated_at",
+    "time_zone",
+    "duration_minutes",
+    "mode",
+    "location",
+    "meeting_url",
+    "preparation",
+    "questions_answers",
+    "impressions",
+    "task_description",
+    "task_deadline",
+    "next_steps",
+    "expected_reply_on",
+)
+EXPORT_FIELDS["UserProfile"] += (
+    "revision",
+    "permission_revision",
+    "ai_permissions",
+    "display_name",
+    "desired_positions",
+    "fields_of_work",
+    "seniority",
+    "work_modes",
+    "employment_types",
+    "years_experience",
+    "location_restrictions",
+    "skill_items",
+    "technologies",
+    "projects",
+    "certificates",
+    "languages",
+)
+EXPORT_FIELDS["ApplicationStatusHistory"] += ("reason",)
+
 # User.settings may retain legacy credentials and unknown internal state.
 EXPORT_SETTINGS_FIELDS = (
     "language",
@@ -217,7 +382,11 @@ def serialize_value(value: Any) -> Any:
         return None
     if isinstance(value, (str, int, float, bool)):
         return value
-    if isinstance(value, (datetime, date)):
+    if isinstance(value, datetime):
+        return (
+            value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+        ).isoformat()
+    if isinstance(value, date):
         return value.isoformat()
     if isinstance(value, UUID):
         return str(value)

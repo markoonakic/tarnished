@@ -8,7 +8,50 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
-class UserProfileUpdate(BaseModel):
+class ProfileFields(BaseModel):
+    display_name: str | None = Field(None, max_length=255)
+    desired_positions: list[str] = Field(default_factory=list, max_length=100)
+    fields_of_work: list[str] = Field(default_factory=list, max_length=100)
+    seniority: str | None = Field(None, max_length=50)
+    work_modes: list[str] = Field(default_factory=list, max_length=10)
+    employment_types: list[str] = Field(default_factory=list, max_length=10)
+    years_experience: float | None = Field(None, ge=0, le=100)
+    location_restrictions: str | None = Field(None, max_length=2000)
+    skill_items: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
+    technologies: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
+    projects: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
+    certificates: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
+    languages: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
+    ai_permissions: dict[str, bool] = Field(default_factory=dict)
+
+    @field_validator(
+        "desired_positions", "fields_of_work", "work_modes", "employment_types"
+    )
+    @classmethod
+    def bounded_labels(cls, value):
+        if any(not text.strip() or len(text) > 255 for text in value):
+            raise ValueError("Labels must have 1–255 characters")
+        return value
+
+    @field_validator(
+        "skill_items",
+        "technologies",
+        "projects",
+        "certificates",
+        "languages",
+        "ai_permissions",
+    )
+    @classmethod
+    def bounded_items(cls, value):
+        import json
+
+        if len(json.dumps(value)) > 100_000:
+            raise ValueError("Profile section exceeds 100000 characters")
+        return value
+
+
+class UserProfileUpdate(ProfileFields):
+    expected_revision: int | None = Field(None, ge=0)
     """Update supplied profile fields; ownership comes from authentication."""
 
     # Personal info
@@ -42,10 +85,12 @@ class UserProfileUpdate(BaseModel):
     work_history: list[dict[str, Any]] | None = Field(
         None,
         description="List of work history entries",
+        max_length=200,
     )
     education: list[dict[str, Any]] | None = Field(
         None,
         description="List of education entries",
+        max_length=200,
     )
     skills: list[str] | None = Field(
         None,
@@ -108,7 +153,9 @@ class UserProfileUpdate(BaseModel):
         return validated if validated else None
 
 
-class UserProfileResponse(BaseModel):
+class UserProfileResponse(ProfileFields):
+    revision: int = 0
+    permission_revision: int = 0
     model_config = ConfigDict(from_attributes=True)
 
     """Full response schema for a user profile.

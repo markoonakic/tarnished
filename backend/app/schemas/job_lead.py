@@ -18,8 +18,22 @@ from pydantic import (
     model_validator,
 )
 
+from app.schemas.workspace import JobFields, JobFieldsResponse
 
-class JobLeadCreate(BaseModel):
+
+class JobLeadCreate(JobFields):
+    title: str | None = Field(None, max_length=255)
+    company: str | None = Field(None, max_length=255)
+    location: str | None = Field(None, max_length=255)
+
+    @model_validator(mode="after")
+    def manual_requires_title(self):
+        if not (
+            self.url or self.text or self.html or (self.title and self.title.strip())
+        ):
+            raise ValueError("A manual lead requires a title")
+        return self
+
     """Request schema for creating a new job lead.
 
     Save never fetches or calls AI. Optional text/HTML becomes a bounded
@@ -27,8 +41,8 @@ class JobLeadCreate(BaseModel):
     Prefer plain page text; HTML is preprocessed locally, not sanitized.
     """
 
-    url: str = Field(
-        ...,
+    url: str | None = Field(
+        None,
         min_length=1,
         max_length=2048,
         description="The URL of the job posting",
@@ -84,7 +98,9 @@ class JobLeadCreate(BaseModel):
         return v
 
 
-class JobLeadResponse(BaseModel):
+class JobLeadResponse(JobFieldsResponse):
+    decision: Literal["interesting", "rejected", "archived"] | None = None
+    updated_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
 
     @computed_field
@@ -127,7 +143,7 @@ class JobLeadResponse(BaseModel):
     # Core job info
     title: str | None
     company: str | None
-    url: str
+    url: str | None
 
     # Rich extraction
     description: str | None
@@ -158,7 +174,10 @@ class JobLeadResponse(BaseModel):
     error_message: str | None
 
 
-class JobLeadListItem(BaseModel):
+class JobLeadListItem(JobFieldsResponse):
+    decision: Literal["interesting", "rejected", "archived"] | None = None
+    revision: int = 0
+    updated_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
 
     """Simplified job lead schema for list views.
@@ -170,7 +189,7 @@ class JobLeadListItem(BaseModel):
     status: str
     title: str | None
     company: str | None
-    url: str
+    url: str | None
     location: str | None
     salary_min: int | None
     salary_max: int | None
@@ -287,7 +306,8 @@ class JobLeadExtractionInput(BaseModel):
         return v
 
 
-class JobLeadEditable(JobLeadExtractionInput):
+class JobLeadEditable(JobLeadExtractionInput, JobFields):
+    decision: Literal["interesting", "rejected", "archived"] | None = None
     """Business-field allowlist; null clears scalar fields, [] clears lists."""
 
     model_config = ConfigDict(extra="forbid")
@@ -337,7 +357,7 @@ class JobLeadExtractRequest(BaseModel):
 class JobLeadCaptureArchive(BaseModel):
     """Optional additions to existing archives; no executable processing claim."""
 
-    source_text: str | None = Field(None, max_length=50_000)
+    source_text: str | None = Field(None, max_length=100_000)
     source_truncated: bool = False
     content_warning: str | None = Field(None, max_length=2000)
     revision: int = Field(0, ge=0)

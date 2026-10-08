@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr
@@ -34,6 +35,8 @@ class TokenRefresh(BaseModel):
 
 
 class UserResponse(BaseModel):
+    approval_pending: bool = False
+    last_login_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
 
     id: str

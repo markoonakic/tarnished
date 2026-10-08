@@ -459,6 +459,7 @@ async def create_zip_export_file(
         (applications, ("cv_path", "cover_letter_path")),
         (rounds, ("transcript_path",)),
         (round_media, ("file_path",)),
+        (models.get("ApplicationDocument", []), ("file_path",)),
     ):
         for row in rows:
             for field in fields:
@@ -615,6 +616,31 @@ async def create_zip_export_file(
                             "field": "file_path",
                         }
 
+    applications_by_id = {app["id"]: app for app in applications}
+    for document in models.get("ApplicationDocument", []):
+        parent = applications_by_id.get(document["application_id"])
+        if parent is None:
+            raise ValueError("Document parent is missing from archive")
+        path = resolve_export_file_path(document["file_path"], base_upload_path)
+        zip_path = build_application_path(
+            parent, document["id"] + "-" + document["original_filename"]
+        )
+        with path.open("rb") as source:
+            digest = hashlib.file_digest(source, "sha256").hexdigest()
+        size = path.stat().st_size
+        if digest != document["sha256"] or size != document["byte_count"]:
+            raise ValueError("Document integrity mismatch")
+        file_mappings.append((path, zip_path))
+        file_registry[zip_path] = {
+            "original_name": document["original_filename"],
+            "mime_type": document["media_type"],
+            "size_bytes": size,
+            "sha256": digest,
+            "entity_type": "ApplicationDocument",
+            "entity_id": document["id"],
+            "field": "file_path",
+        }
+
     # Build manifest
     export_timestamp = datetime.now(UTC).isoformat()
     manifest = {
@@ -627,6 +653,11 @@ async def create_zip_export_file(
             "applications": len(applications),
             "rounds": len(rounds),
             "round_media": len(round_media),
+            "documents": len(models.get("ApplicationDocument", [])),
+            "companies": len(models.get("Company", [])),
+            "contacts": len(models.get("Contact", [])),
+            "notes": len(models.get("Note", [])),
+            "reminders": len(models.get("Reminder", [])),
             "statuses": len(models.get("ApplicationStatus", [])),
             "round_types": len(models.get("RoundType", [])),
             "status_history": len(models.get("ApplicationStatusHistory", [])),
