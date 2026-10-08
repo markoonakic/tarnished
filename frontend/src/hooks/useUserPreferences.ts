@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -76,7 +77,7 @@ export function useUpdateUserPreferences(
       }
 
       if (options.showErrorToast ?? true) {
-        toast.error(options.errorMessage ?? 'Failed to update preferences');
+        toast.error(options.errorMessage ?? t('Failed to update preferences'));
       }
     },
     onSuccess: (preferences, updates) => {

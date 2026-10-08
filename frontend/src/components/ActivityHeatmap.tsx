@@ -1,3 +1,5 @@
+import { t, uiLabel, locale } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useCallback, useMemo, useState } from 'react';
 import { useHeatmapAnalytics } from '@/hooks/useAnalyticsData';
 import {
@@ -25,6 +27,10 @@ const MONTH_LABELS = [
   'Dec',
 ];
 
+function displayDate(day: string): string {
+  return new Date(day).toLocaleDateString(locale(), { timeZone: 'UTC' });
+}
+
 interface CellData {
   date: string;
   count: number;
@@ -33,6 +39,7 @@ interface CellData {
 }
 
 export default function ActivityHeatmap() {
+  useTranslation();
   const [viewMode, setViewMode] = useState<'rolling' | number>('rolling');
   const [hoveredCell, setHoveredCell] = useState<CellData | null>(null);
   const colors = useThemeColors();
@@ -177,13 +184,13 @@ export default function ActivityHeatmap() {
   }
 
   if (isLoading) {
-    return <Loading message="Loading chart data..." size="sm" />;
+    return <Loading message={t('Loading chart data...')} size="sm" />;
   }
 
   if (isError) {
     return (
       <div className="text-red-bright py-8 text-center">
-        Failed to load activity data
+        {t('Failed to load activity data')}
       </div>
     );
   }
@@ -201,20 +208,24 @@ export default function ActivityHeatmap() {
           <div className="flex items-center gap-2">
             <Dropdown
               options={[
-                { value: 'rolling', label: 'Last 12 months' },
+                { value: 'rolling', label: t('Last 12 months') },
                 ...years.map((y) => ({ value: String(y), label: String(y) })),
               ]}
               value={typeof viewMode === 'string' ? viewMode : String(viewMode)}
               onChange={(value) =>
                 setViewMode(value === 'rolling' ? 'rolling' : parseInt(value))
               }
-              placeholder="Select time range"
+              placeholder={t('Select time range')}
               size="sm"
               containerBackground="bg1"
             />
           </div>
         </div>
-        <EmptyState message="Not enough data for visualization. Add more applications with different statuses." />
+        <EmptyState
+          message={t(
+            'Not enough data for visualization. Add more applications with different statuses.'
+          )}
+        />
       </div>
     );
   }
@@ -225,20 +236,20 @@ export default function ActivityHeatmap() {
         <div className="flex items-center gap-2">
           <Dropdown
             options={[
-              { value: 'rolling', label: 'Last 12 months' },
+              { value: 'rolling', label: t('Last 12 months') },
               ...years.map((y) => ({ value: String(y), label: String(y) })),
             ]}
             value={typeof viewMode === 'string' ? viewMode : String(viewMode)}
             onChange={(value) =>
               setViewMode(value === 'rolling' ? 'rolling' : parseInt(value))
             }
-            placeholder="Select time range"
+            placeholder={t('Select time range')}
             size="sm"
             containerBackground="bg1"
           />
         </div>
         <div className="text-muted flex items-center gap-2 text-sm">
-          <span>Less</span>
+          <span>{t('Less')}</span>
           {[0, 1, 2, 3, 4].map((level) => (
             <div
               key={level}
@@ -246,7 +257,7 @@ export default function ActivityHeatmap() {
               style={{ backgroundColor: getLevelColor(level) }}
             />
           ))}
-          <span>More</span>
+          <span>{t('More')}</span>
         </div>
       </div>
 
@@ -258,13 +269,13 @@ export default function ActivityHeatmap() {
           <div className="text-muted mb-1 flex pl-8 text-xs">
             {monthLabels.map((m, i) => (
               <span
-                key={`${m.label}-${i}`}
+                key={`${uiLabel(m.label)}-${i}`}
                 style={{
                   position: 'absolute',
                   left: 30 + m.week * (cellSize + cellGap),
                 }}
               >
-                {m.label}
+                {uiLabel(m.label)}
               </span>
             ))}
           </div>
@@ -276,14 +287,14 @@ export default function ActivityHeatmap() {
             >
               {DAY_LABELS.map((label, i) => (
                 <div
-                  key={label}
+                  key={uiLabel(label)}
                   style={{
                     height: cellSize + cellGap,
                     lineHeight: `${cellSize}px`,
                   }}
                   className={i % 2 === 1 ? '' : 'invisible'}
                 >
-                  {label}
+                  {uiLabel(label)}
                 </div>
               ))}
             </div>
@@ -298,7 +309,13 @@ export default function ActivityHeatmap() {
                       aria-label={
                         cell.isPadding
                           ? undefined
-                          : `${cell.count} ${cell.count === 1 ? 'application' : 'applications'} on ${cell.date}`
+                          : t('{{count}} {{value0}} on {{date}}', {
+                              count: cell.count,
+                              value0: t('applicationNoun', {
+                                count: cell.count,
+                              }),
+                              date: displayDate(cell.date),
+                            })
                       }
                       className="cursor-pointer rounded-sm opacity-60 transition-all duration-200 ease-in-out hover:opacity-100"
                       style={{
@@ -324,16 +341,20 @@ export default function ActivityHeatmap() {
                 {hoveredCell.count}
               </span>
               <span className="text-muted ml-1">
-                {hoveredCell.count === 1 ? 'application' : 'applications'}{' '}
-                on{' '}
+                {t('applicationNoun', { count: hoveredCell.count })}{' '}
+                {t('on')}{' '}
               </span>
-              <span className="text-primary">{hoveredCell.date}</span>
+              <span className="text-primary">
+                {displayDate(hoveredCell.date)}
+              </span>
             </div>
           )}
         </div>
       </div>
       {scrollable && (
-        <p className="text-fg2 mt-2 text-xs">Scroll for earlier months</p>
+        <p className="text-fg2 mt-2 text-xs">
+          {t('Scroll for earlier months')}
+        </p>
       )}
     </div>
   );

@@ -1,15 +1,18 @@
+import { t, locale } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { PipelineMetrics } from '@/lib/analytics';
+import type { StatusMeaning } from '@/lib/types';
+import { historyStageLabels } from '@/lib/history';
 import HelpTip from '../HelpTip';
 
-const stageName = (value: string) =>
-  value.replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase());
+const stageName = (value: StatusMeaning) => historyStageLabels[value];
 function duration(hours: number) {
   if (hours > 0 && hours < 1 / 60) return '<1m';
   if (hours < 1) return `${Math.round(hours * 60)}m`;
   return hours < 24
-    ? `${hours.toLocaleString(undefined, { maximumFractionDigits: 1 })}h`
-    : `${(hours / 24).toLocaleString(undefined, { maximumFractionDigits: 1 })}d`;
+    ? `${hours.toLocaleString(locale(), { maximumFractionDigits: 1 })}h`
+    : `${(hours / 24).toLocaleString(locale(), { maximumFractionDigits: 1 })}d`;
 }
 
 export default function StageResidence({
@@ -17,7 +20,8 @@ export default function StageResidence({
 }: {
   metrics: PipelineMetrics;
 }) {
-  const completed = new Map<string, { hours: number; count: number }>();
+  useTranslation();
+  const completed = new Map<StatusMeaning, { hours: number; count: number }>();
   for (const visit of metrics.visits) {
     if (visit.kind !== 'completed' || visit.hours === null) continue;
     const stage = completed.get(visit.meaning) ?? { hours: 0, count: 0 };
@@ -36,11 +40,12 @@ export default function StageResidence({
       {completed.size > 0 && (
         <>
           <h3 className="text-fg1 flex items-center gap-2 font-semibold">
-            Time in Stage
-            <HelpTip label="About time in stage">
+            {t('Time in Stage')}
+            <HelpTip label={t('About time in stage')}>
               <p>
-                Average time for completed stage visits. Unfinished visits and
-                missing dates are excluded.
+                {t(
+                  'Average time for completed stage visits. Unfinished visits and missing dates are excluded.'
+                )}
               </p>
             </HelpTip>
           </h3>
@@ -48,9 +53,9 @@ export default function StageResidence({
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-tertiary border-b">
-                  <th className="px-3 py-2">Stage</th>
-                  <th className="px-3 py-2">Average time</th>
-                  <th className="px-3 py-2">Completed visits</th>
+                  <th className="px-3 py-2">{t('Stage')}</th>
+                  <th className="px-3 py-2">{t('Average time')}</th>
+                  <th className="px-3 py-2">{t('Completed visits')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -71,9 +76,11 @@ export default function StageResidence({
       {waiting.length > 0 && (
         <>
           <h3 className="text-fg1 flex items-center gap-2 font-semibold">
-            Longest Waits
-            <HelpTip label="About longest waits">
-              <p>Applications still open, by time in their current stage.</p>
+            {t('Longest Waits')}
+            <HelpTip label={t('About longest waits')}>
+              <p>
+                {t('Applications still open, by time in their current stage.')}
+              </p>
             </HelpTip>
           </h3>
           <ul className="space-y-2">

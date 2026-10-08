@@ -38,6 +38,7 @@ class TestUserPreferences:
 
         assert response.status_code == 200
         assert response.json() == {
+            "language": "en",
             "show_streak_stats": True,
             "show_needs_attention": True,
             "show_heatmap": True,
@@ -64,6 +65,7 @@ class TestUserPreferences:
 
         assert response.status_code == 200
         assert response.json() == {
+            "language": "en",
             "show_streak_stats": False,
             "show_needs_attention": True,
             "show_heatmap": True,
@@ -73,6 +75,7 @@ class TestUserPreferences:
 
         await db.refresh(test_user)
         assert test_user.settings == {
+            "language": "en",
             "show_streak_stats": False,
             "show_needs_attention": True,
             "show_heatmap": True,
@@ -122,6 +125,7 @@ class TestUserPreferences:
 
         assert response.status_code == 200
         assert response.json() == {
+            "language": "en",
             "show_streak_stats": True,
             "show_needs_attention": True,
             "show_heatmap": False,
@@ -131,6 +135,7 @@ class TestUserPreferences:
 
         await db.refresh(test_user)
         assert test_user.settings == {
+            "language": "en",
             "theme": "dracula",
             "accent": "purple",
             "show_streak_stats": True,

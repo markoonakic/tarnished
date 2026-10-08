@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import {
   createContext,
   useContext,
@@ -41,12 +43,16 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 const THEMES: Theme[] = [
   {
     id: 'gruvbox-dark',
-    name: 'Gruvbox Dark',
+    get name() {
+      return t('Gruvbox Dark');
+    },
     swatches: ['#282828', '#ebdbb2', '#8ec07c', '#b8bb26', '#fb4934'],
   },
   {
     id: 'gruvbox-light',
-    name: 'Gruvbox Light',
+    get name() {
+      return t('Gruvbox Light');
+    },
     swatches: ['#fbf1c7', '#3c3836', '#689d6a', '#98971a', '#cc241d'],
   },
   {
@@ -108,6 +114,7 @@ function initTheme() {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  useTranslation();
   const [currentTheme, setCurrentTheme] = useState(() => {
     return getStoredTheme();
   });

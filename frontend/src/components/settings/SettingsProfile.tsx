@@ -1,12 +1,14 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
 import { observeRead } from '@/lib/queryClient';
 import { useToast } from '@/hooks/useToast';
 import { getProfile, updateProfile } from '@/lib/profile';
 import type { UserProfile } from '@/lib/types';
 import Loading from '../Loading';
-import { SettingsBackLink } from './SettingsLayout';
 
 export default function SettingsProfile() {
+  useTranslation();
   const toast = useToast();
   const { error: showError } = toast;
   const [loading, setLoading] = useState(true);
@@ -19,7 +21,7 @@ export default function SettingsProfile() {
       const data = await getProfile();
       setProfile(data);
     } catch (error) {
-      showError('Failed to load profile');
+      showError(t('Failed to load profile'));
       return { error };
     } finally {
       setLoading(false);
@@ -46,9 +48,9 @@ export default function SettingsProfile() {
         city: profile.city,
         country: profile.country,
       });
-      toast.success('Profile saved successfully');
+      toast.success(t('Profile saved successfully'));
     } catch {
-      showError('Failed to save profile');
+      showError(t('Failed to save profile'));
     } finally {
       setSaving(false);
     }
@@ -61,31 +63,22 @@ export default function SettingsProfile() {
 
   if (loading) {
     return (
-      <>
-        <div className="md:hidden">
-          <SettingsBackLink />
-        </div>
-        <div className="bg-secondary rounded-lg p-4 md:p-6">
-          <Loading message="Loading profile..." />
-        </div>
-      </>
+      <div className="bg-secondary rounded-lg p-4 md:p-6">
+        <Loading message={t('Loading profile...')} />
+      </div>
     );
   }
 
   return (
     <>
-      <div className="md:hidden">
-        <SettingsBackLink />
-      </div>
-
       {!profile ? (
         <div
           role="alert"
           className="bg-secondary text-red-bright rounded-lg p-4 md:p-6"
         >
-          Failed to load profile.
+          {t('Failed to load profile.')}
           <button className="text-accent ml-3 underline" onClick={loadProfile}>
-            Retry
+            {t('Retry')}
           </button>
         </div>
       ) : (
@@ -93,9 +86,9 @@ export default function SettingsProfile() {
           onSubmit={handleSave}
           className="bg-secondary rounded-lg p-4 md:p-6"
         >
-          <h2 className="text-fg1 mb-4 text-xl font-bold">Profile</h2>
+          <h1 className="text-fg1 mb-4 text-2xl font-bold">{t('Profile')}</h1>
           <p className="text-muted mb-4 text-sm">
-            Your personal information for autofill and communications.
+            {t('Your personal information for autofill and communications.')}
           </p>
 
           <fieldset
@@ -108,7 +101,7 @@ export default function SettingsProfile() {
                 htmlFor="first-name"
                 className="text-muted mb-1.5 block text-sm"
               >
-                First Name
+                {t('First Name')}
               </label>
               <input
                 id="first-name"
@@ -117,7 +110,7 @@ export default function SettingsProfile() {
                 onChange={(e) =>
                   handleInputChange('first_name', e.target.value)
                 }
-                placeholder="John"
+                placeholder={t('John')}
                 className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
             </div>
@@ -128,14 +121,14 @@ export default function SettingsProfile() {
                 htmlFor="last-name"
                 className="text-muted mb-1.5 block text-sm"
               >
-                Last Name
+                {t('Last Name')}
               </label>
               <input
                 id="last-name"
                 type="text"
                 value={profile?.last_name || ''}
                 onChange={(e) => handleInputChange('last_name', e.target.value)}
-                placeholder="Doe"
+                placeholder={t('Doe')}
                 className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
             </div>
@@ -146,14 +139,14 @@ export default function SettingsProfile() {
                 htmlFor="profile-email"
                 className="text-muted mb-1.5 block text-sm"
               >
-                Email
+                {t('Email')}
               </label>
               <input
                 id="profile-email"
                 type="email"
                 value={profile?.email || ''}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                placeholder="john@example.com"
+                placeholder={t('john@example.com')}
                 className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
             </div>
@@ -164,7 +157,7 @@ export default function SettingsProfile() {
                 htmlFor="phone"
                 className="text-muted mb-1.5 block text-sm"
               >
-                Phone
+                {t('Phone')}
               </label>
               <input
                 id="phone"
@@ -179,14 +172,14 @@ export default function SettingsProfile() {
             {/* City */}
             <div>
               <label htmlFor="city" className="text-muted mb-1.5 block text-sm">
-                City
+                {t('City')}
               </label>
               <input
                 id="city"
                 type="text"
                 value={profile?.city || ''}
                 onChange={(e) => handleInputChange('city', e.target.value)}
-                placeholder="San Francisco"
+                placeholder={t('San Francisco')}
                 className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
             </div>
@@ -197,14 +190,14 @@ export default function SettingsProfile() {
                 htmlFor="country"
                 className="text-muted mb-1.5 block text-sm"
               >
-                Country
+                {t('Country')}
               </label>
               <input
                 id="country"
                 type="text"
                 value={profile?.country || ''}
                 onChange={(e) => handleInputChange('country', e.target.value)}
-                placeholder="United States"
+                placeholder={t('United States')}
                 className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
             </div>
@@ -215,7 +208,7 @@ export default function SettingsProfile() {
                 htmlFor="linkedin-url"
                 className="text-muted mb-1.5 block text-sm"
               >
-                LinkedIn URL
+                {t('LinkedIn URL')}
               </label>
               <input
                 id="linkedin-url"
@@ -240,12 +233,12 @@ export default function SettingsProfile() {
               {saving ? (
                 <>
                   <i className="bi-arrow-repeat icon-sm animate-spin" />
-                  Saving...
+                  {t('Saving...')}
                 </>
               ) : (
                 <>
                   <i className="bi-check-lg icon-sm" />
-                  Save
+                  {t('Save')}
                 </>
               )}
             </button>

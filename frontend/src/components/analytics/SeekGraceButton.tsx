@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 interface SeekGraceButtonProps {
   onSeekGrace: () => Promise<void>;
   loading: boolean;
@@ -9,8 +11,9 @@ export function SeekGraceButton({
   onSeekGrace,
   loading,
   disabled = false,
-  label = 'Seek Grace',
+  label = t('Seek Grace'),
 }: SeekGraceButtonProps) {
+  useTranslation();
   if (loading) return null;
   return (
     <button

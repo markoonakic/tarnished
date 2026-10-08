@@ -1,8 +1,11 @@
 import api from './api';
 
+export type Language = 'en' | 'sr-Latn';
+
 export type TimeZoneMode = 'device' | 'manual';
 
 export interface UserPreferences {
+  language: Language;
   show_streak_stats: boolean;
   show_needs_attention: boolean;
   show_heatmap: boolean;
@@ -11,6 +14,7 @@ export interface UserPreferences {
 }
 
 export interface UserPreferencesUpdate {
+  language?: Language;
   show_streak_stats?: boolean;
   show_needs_attention?: boolean;
   show_heatmap?: boolean;
@@ -19,6 +23,7 @@ export interface UserPreferencesUpdate {
 }
 
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
+  language: 'en',
   show_streak_stats: true,
   show_needs_attention: true,
   show_heatmap: true,

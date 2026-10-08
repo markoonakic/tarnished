@@ -1,9 +1,12 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 interface Props {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
 export default function Spinner({ size = 'md', className = '' }: Props) {
+  useTranslation();
   const sizes = {
     sm: 'w-4 h-4 border-2',
     md: 'w-6 h-6 border-2',
@@ -14,7 +17,7 @@ export default function Spinner({ size = 'md', className = '' }: Props) {
     <div
       className={`${sizes[size]} border-accent/30 border-t-accent animate-spin rounded-full ${className}`}
       role="status"
-      aria-label="Loading"
+      aria-label={t('Loading')}
     />
   );
 }

@@ -1,3 +1,5 @@
+import { t, locale } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import {
   useState,
   useEffect,
@@ -32,13 +34,22 @@ import EditUserModal from '../components/EditUserModal';
 import Pagination from '../components/Pagination';
 
 const configurationLabels = {
-  configured: 'Configured',
-  incomplete: 'Setup needed',
-  unsupported: 'Unsupported configuration',
-  disabled: 'Disabled',
+  get configured() {
+    return t('Configured');
+  },
+  get incomplete() {
+    return t('Setup needed');
+  },
+  get unsupported() {
+    return t('Unsupported configuration');
+  },
+  get disabled() {
+    return t('Disabled');
+  },
 };
 
 export default function Admin() {
+  useTranslation();
   const { user } = useAuth();
   const toast = useToast();
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -155,7 +166,9 @@ export default function Admin() {
       setError('');
     } catch (error) {
       if (ownedRequest !== requestId.current) return;
-      setError('Failed to load admin data. You may not have admin privileges.');
+      setError(
+        t('Failed to load admin data. You may not have admin privileges.')
+      );
       return { error };
     } finally {
       if (ownedRequest === requestId.current) {
@@ -186,12 +199,16 @@ export default function Admin() {
   }
 
   function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString();
+    return new Date(dateStr).toLocaleDateString(locale());
   }
 
   async function handleDeleteUser(user: AdminUser) {
     if (
-      !confirm(`Delete user "${user.email}"? This action cannot be undone.`)
+      !confirm(
+        t('Delete user "{{email}}"? This action cannot be undone.', {
+          email: user.email,
+        })
+      )
     ) {
       return;
     }
@@ -200,7 +217,7 @@ export default function Admin() {
       await deleteUser(user.id);
       await loadData();
     } catch {
-      setError('Failed to delete user');
+      setError(t('Failed to delete user'));
     }
   }
 
@@ -236,7 +253,7 @@ export default function Admin() {
       const updated = await updateAISettings(updateData);
       setAiSettings(updated);
       setLocalStatus('');
-      setAiNotice({ error: false, text: 'Settings saved.' });
+      setAiNotice({ error: false, text: t('Settings saved.') });
       // Keep the baseline tied to this form's submitted values.
       aiBaseline.current = submittedValues;
       setAiApiKey('');
@@ -250,13 +267,15 @@ export default function Admin() {
         clearKey: false,
         clearEndpoint: false,
       }));
-      toast.success('AI settings saved successfully');
+      toast.success(t('AI settings saved successfully'));
     } catch {
       setAiNotice({
         error: true,
-        text: 'Could not save settings. Check the model and endpoint, then try again. Your changes are kept.',
+        text: t(
+          'Could not save settings. Check the model and endpoint, then try again. Your changes are kept.'
+        ),
       });
-      toast.error('Could not save AI settings.');
+      toast.error(t('Could not save AI settings.'));
     } finally {
       setSavingAi(false);
     }
@@ -265,7 +284,9 @@ export default function Admin() {
   return (
     <Layout>
       <div className="mx-auto max-w-6xl px-4 py-8">
-        <h1 className="text-primary mb-6 text-2xl font-bold">Admin Panel</h1>
+        <h1 className="text-primary mb-6 text-2xl font-bold">
+          {t('Admin Panel')}
+        </h1>
 
         {error && (
           <div className="bg-red-bright/20 border-red-bright text-red-bright mb-6 rounded border px-4 py-3">
@@ -274,23 +295,25 @@ export default function Admin() {
         )}
 
         {loading ? (
-          <Loading message="Loading admin data..." />
+          <Loading message={t('Loading admin data...')} />
         ) : (
           <div className="space-y-12">
             <section>
               <h2 className="text-primary mb-6 text-xl font-bold">
-                Statistics
+                {t('Statistics')}
               </h2>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="bg-secondary rounded-lg p-6">
-                  <h3 className="text-muted mb-1 text-sm">Total Users</h3>
+                  <h3 className="text-muted mb-1 text-sm">
+                    {t('Total Users')}
+                  </h3>
                   <p className="text-primary text-3xl font-bold">
                     {stats?.total_users || 0}
                   </p>
                 </div>
                 <div className="bg-secondary rounded-lg p-6">
                   <h3 className="text-muted mb-1 text-sm">
-                    Total Applications
+                    {t('Total Applications')}
                   </h3>
                   <p className="text-primary text-3xl font-bold">
                     {stats?.total_applications || 0}
@@ -305,7 +328,7 @@ export default function Admin() {
                   id="ai-summary-heading"
                   className="text-primary text-xl font-bold"
                 >
-                  AI Configuration
+                  {t('AI Configuration')}
                 </h2>
                 <button
                   onClick={() => {
@@ -314,54 +337,54 @@ export default function Admin() {
                   }}
                   className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                 >
-                  Configure AI
+                  {t('Configure AI')}
                 </button>
               </div>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="bg-secondary space-y-2 rounded-lg p-6">
                   <h3 className="text-primary text-lg font-semibold">
-                    Text Analysis
+                    {t('Text Analysis')}
                   </h3>
                   <p className="text-muted text-sm break-words">
-                    {aiSettings?.litellm_model || 'No model selected'}
+                    {aiSettings?.litellm_model || t('No model selected')}
                   </p>
                   <p className="text-muted text-sm">
                     {aiSettings?.text_enabled
                       ? configurationLabels[
                           aiSettings.text.configuration_status
                         ]
-                      : 'Disabled'}
+                      : t('Disabled')}
                   </p>
                 </div>
                 <div className="bg-secondary space-y-2 rounded-lg p-6">
                   <h3 className="text-primary text-lg font-semibold">
-                    Interview Transcription
+                    {t('Interview Transcription')}
                   </h3>
                   <p className="text-muted text-sm break-words">
-                    {aiSettings?.speech_model || 'No model selected'}
+                    {aiSettings?.speech_model || t('No model selected')}
                   </p>
                   <p className="text-muted text-sm">
                     {aiSettings?.speech_enabled
                       ? configurationLabels[
                           aiSettings.speech.configuration_status
                         ]
-                      : 'Disabled'}
+                      : t('Disabled')}
                   </p>
                 </div>
               </div>
               {showAISettings && (
                 <Modal
-                  label="AI Configuration"
+                  label={t('AI Configuration')}
                   onClose={() => setShowAISettings(false)}
                   busy={savingAi}
                 >
                   <div className="bg-bg1 mx-4 max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg p-6">
                     <div className="mb-4 flex items-center justify-between gap-2">
                       <h2 className="text-primary text-xl font-bold">
-                        AI Configuration
+                        {t('AI Configuration')}
                       </h2>
                       <button
-                        aria-label="Close AI settings"
+                        aria-label={t('Close AI settings')}
                         disabled={savingAi}
                         onClick={() => setShowAISettings(false)}
                         className="text-fg1 hover:bg-bg2 cursor-pointer rounded p-2"
@@ -370,9 +393,9 @@ export default function Admin() {
                       </button>
                     </div>
                     <p className="text-muted mb-4 text-sm">
-                      These settings apply to all users. Leave stored keys and
-                      endpoints blank to keep them. Saving does not test the
-                      service.
+                      {t(
+                        'These settings apply to all users. Leave stored keys and endpoints blank to keep them. Saving does not test the service.'
+                      )}
                     </p>
                     {aiNotice && (
                       <p
@@ -395,7 +418,7 @@ export default function Admin() {
                       >
                         <div className="space-y-4">
                           <h3 className="text-primary text-lg font-bold">
-                            Text Analysis
+                            {t('Text Analysis')}
                           </h3>
                           <label className="flex min-h-11 items-center gap-2">
                             <input
@@ -403,7 +426,7 @@ export default function Admin() {
                               checked={textEnabled}
                               onChange={(e) => setTextEnabled(e.target.checked)}
                             />
-                            Enable text processing
+                            {t('Enable text processing')}
                           </label>
                           <label className="flex min-h-11 items-center gap-2">
                             <input
@@ -411,28 +434,31 @@ export default function Admin() {
                               checked={textKeyless}
                               onChange={(e) => setTextKeyless(e.target.checked)}
                             />
-                            Text service does not require an API key
+                            {t('Text service does not require an API key')}
                           </label>
                           <label className="block">
-                            Text model
+                            {t('Text model')}
                             <input
                               id="ai-model"
                               className="bg-bg2 text-fg1 mt-1 block w-full rounded px-4 py-2"
                               value={aiModel}
                               onChange={(e) => setAiModel(e.target.value)}
-                              placeholder="openai/gpt-4o-mini (default)"
+                              placeholder={t('openai/gpt-4o-mini (default)')}
                             />
                           </label>
                           <label className="block">
-                            Text protocol
+                            {t('Text protocol')}
                             <Dropdown
                               id="text-protocol"
                               options={[
                                 {
                                   value: 'chat_completions',
-                                  label: 'Chat Completions',
+                                  label: t('Chat Completions'),
                                 },
-                                { value: 'responses', label: 'Responses API' },
+                                {
+                                  value: 'responses',
+                                  label: t('Responses API'),
+                                },
                               ]}
                               value={textProtocol}
                               disabled={savingAi}
@@ -448,7 +474,7 @@ export default function Admin() {
                             />
                           </label>
                           <label className="block">
-                            Text credential
+                            {t('Text credential')}
                             <input
                               id="ai-api-key"
                               type="password"
@@ -459,8 +485,8 @@ export default function Admin() {
                               onChange={(e) => setAiApiKey(e.target.value)}
                               placeholder={
                                 aiSettings?.litellm_api_key_masked
-                                  ? 'Stored — leave blank to keep'
-                                  : 'Not stored'
+                                  ? t('Stored — leave blank to keep')
+                                  : t('Not stored')
                               }
                             />
                           </label>
@@ -472,10 +498,10 @@ export default function Admin() {
                                 setClearTextKey(e.target.checked)
                               }
                             />
-                            Clear text credential
+                            {t('Clear text credential')}
                           </label>
                           <label className="block">
-                            Text endpoint
+                            {t('Text endpoint')}
                             <input
                               id="ai-base-url"
                               type="password"
@@ -486,8 +512,8 @@ export default function Admin() {
                               onChange={(e) => setAiBaseUrl(e.target.value)}
                               placeholder={
                                 aiSettings?.litellm_endpoint_configured
-                                  ? 'Stored — leave blank to keep'
-                                  : 'Optional HTTP(S) endpoint'
+                                  ? t('Stored — leave blank to keep')
+                                  : t('Optional HTTP(S) endpoint')
                               }
                             />
                           </label>
@@ -499,30 +525,34 @@ export default function Admin() {
                                 setClearTextEndpoint(e.target.checked)
                               }
                             />
-                            Clear text endpoint
+                            {t('Clear text endpoint')}
                           </label>
                           <p className="text-muted text-sm">
-                            Job details, documents and transcripts may be sent
-                            to this service when feedback is requested.
+                            {t(
+                              'Job details, documents and transcripts may be sent to this service when feedback is requested.'
+                            )}
                           </p>
                         </div>
                         <div className="space-y-4">
                           <h3 className="text-primary text-lg font-bold">
-                            Interview Transcription
+                            {t('Interview Transcription')}
                           </h3>
                           <label className="block">
-                            Apply speech preset
+                            {t('Apply speech preset')}
                             <Dropdown
                               id="speech-preset"
                               value={speechPreset}
-                              placeholder="Choose a preset"
+                              placeholder={t('Choose a preset')}
                               disabled={savingAi}
                               containerBackground="bg1"
                               options={[
-                                { value: 'local', label: 'Local speech' },
+                                { value: 'local', label: t('Local speech') },
                                 { value: 'openai', label: 'OpenAI' },
                                 { value: 'groq', label: 'Groq' },
-                                { value: 'custom', label: 'Custom endpoint' },
+                                {
+                                  value: 'custom',
+                                  label: t('Custom endpoint'),
+                                },
                               ]}
                               onChange={(value) => {
                                 const name =
@@ -538,22 +568,24 @@ export default function Admin() {
                                   clearEndpoint: name === 'custom',
                                 });
                                 setLocalStatus(
-                                  'Preset applied to this form. Save to use these settings.'
+                                  t(
+                                    'Preset applied to this form. Save to use these settings.'
+                                  )
                                 );
                               }}
                             />
                           </label>
                           <p className="text-muted text-sm">
-                            Choosing a preset replaces the speech key when
-                            saved. Cloud services receive your audio and may
-                            charge for use.
+                            {t(
+                              'Choosing a preset replaces the speech key when saved. Cloud services receive your audio and may charge for use.'
+                            )}
                           </p>
                           {speech.provider === 'local' && (
                             <div className="space-y-2">
                               <p className="text-muted text-sm">
-                                Install the local speech service on the
-                                Tarnished server first. Selecting a model does
-                                not download it. Setup instructions:{' '}
+                                {t(
+                                  'Install the local speech service on the Tarnished server first. Selecting a model does not download it. Setup instructions:'
+                                )}{' '}
                                 <code>deploy/compose/LOCAL-SPEECH.md</code>.
                               </p>
                               <button
@@ -562,22 +594,35 @@ export default function Admin() {
                                 disabled={checkingLocal}
                                 onClick={async () => {
                                   setCheckingLocal(true);
-                                  setLocalStatus('Checking installed models…');
+                                  setLocalStatus(
+                                    t('Checking installed models…')
+                                  );
                                   try {
                                     const result = await getLocalSpeechStatus();
                                     setLocalStatus(
-                                      `${result.status}: ${result.message}`
+                                      t(
+                                        result.status ===
+                                          'installed_unvalidated'
+                                          ? 'Model listed in cache. Loading and inference are not verified.'
+                                          : result.status === 'not_installed'
+                                            ? 'No supported model is installed. Selecting a model does not download it.'
+                                            : result.status === 'not_local'
+                                              ? 'Save an enabled local configuration first.'
+                                              : 'Local service unavailable. Check the installation.'
+                                      )
                                     );
                                   } catch {
                                     setLocalStatus(
-                                      'Could not check the local service. No transcription was started.'
+                                      t(
+                                        'Could not check the local service. No transcription was started.'
+                                      )
                                     );
                                   } finally {
                                     setCheckingLocal(false);
                                   }
                                 }}
                               >
-                                Check saved local installation
+                                {t('Check saved local installation')}
                               </button>
                               <p role="status">{localStatus}</p>
                             </div>
@@ -593,7 +638,7 @@ export default function Admin() {
                                 })
                               }
                             />
-                            Enable speech configuration
+                            {t('Enable speech configuration')}
                           </label>
                           <label className="flex min-h-11 items-center gap-2">
                             <input
@@ -606,10 +651,10 @@ export default function Admin() {
                                 })
                               }
                             />
-                            Speech service does not require an API key
+                            {t('Speech service does not require an API key')}
                           </label>
                           <label className="block">
-                            Speech provider
+                            {t('Speech provider')}
                             <input
                               id="speech-provider"
                               className="bg-bg2 text-fg1 mt-1 block w-full rounded px-4 py-2"
@@ -623,7 +668,7 @@ export default function Admin() {
                             />
                           </label>
                           <label className="block">
-                            Speech model
+                            {t('Speech model')}
                             {speech.provider === 'local' ? (
                               <Dropdown
                                 id="speech-model"
@@ -654,7 +699,7 @@ export default function Admin() {
                             )}
                           </label>
                           <label className="block">
-                            Speech credential
+                            {t('Speech credential')}
                             <input
                               id="speech-api-key"
                               type="password"
@@ -671,8 +716,8 @@ export default function Admin() {
                               }
                               placeholder={
                                 aiSettings?.speech_api_key_configured
-                                  ? 'Stored — leave blank to keep'
-                                  : 'Not stored'
+                                  ? t('Stored — leave blank to keep')
+                                  : t('Not stored')
                               }
                             />
                           </label>
@@ -687,10 +732,10 @@ export default function Admin() {
                                 })
                               }
                             />
-                            Clear speech credential
+                            {t('Clear speech credential')}
                           </label>
                           <label className="block">
-                            Speech endpoint
+                            {t('Speech endpoint')}
                             <input
                               id="speech-endpoint"
                               type="password"
@@ -706,8 +751,8 @@ export default function Admin() {
                               }
                               placeholder={
                                 aiSettings?.speech_endpoint_configured
-                                  ? 'Stored — leave blank to keep'
-                                  : 'Optional HTTP(S) endpoint'
+                                  ? t('Stored — leave blank to keep')
+                                  : t('Optional HTTP(S) endpoint')
                               }
                             />
                           </label>
@@ -722,14 +767,14 @@ export default function Admin() {
                                 })
                               }
                             />
-                            Clear speech endpoint
+                            {t('Clear speech endpoint')}
                           </label>
                         </div>
                         <button
                           type="submit"
                           className="bg-accent text-bg0 hover:bg-accent-bright min-h-11 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50 md:col-span-2"
                         >
-                          {savingAi ? 'Saving...' : 'Save Settings'}
+                          {savingAi ? t('Saving...') : t('Save Settings')}
                         </button>
                       </fieldset>
                     </form>
@@ -741,16 +786,20 @@ export default function Admin() {
             <section>
               <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-primary text-xl font-bold">Users</h2>
+                  <h2 className="text-primary text-xl font-bold">
+                    {t('Users')}
+                  </h2>
                   {usersLoading && (
-                    <span className="text-muted text-xs">Updating...</span>
+                    <span className="text-muted text-xs">
+                      {t('Updating...')}
+                    </span>
                   )}
                 </div>
                 <button
                   onClick={() => setShowCreateModal(true)}
                   className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                 >
-                  Create User
+                  {t('Create User')}
                 </button>
               </div>
 
@@ -760,8 +809,8 @@ export default function Admin() {
                     <i className="bi-search icon-sm text-muted absolute top-1/2 left-3 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="Search by email..."
-                      aria-label="Search users"
+                      placeholder={t('Search by email...')}
+                      aria-label={t('Search users')}
                       value={searchQuery}
                       onChange={(e) => handleSearchQueryChange(e.target.value)}
                       className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
@@ -770,7 +819,7 @@ export default function Admin() {
                       <button
                         onClick={() => handleSearchQueryChange('')}
                         className="text-muted hover:text-fg1 absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
-                        aria-label="Clear search"
+                        aria-label={t('Clear search')}
                       >
                         <i className="bi-x icon-sm" />
                       </button>
@@ -779,14 +828,14 @@ export default function Admin() {
 
                   <Dropdown
                     options={[
-                      { value: '10', label: '10 / page' },
-                      { value: '25', label: '25 / page' },
-                      { value: '50', label: '50 / page' },
-                      { value: '100', label: '100 / page' },
+                      { value: '10', label: t('10 / page') },
+                      { value: '25', label: t('25 / page') },
+                      { value: '50', label: t('50 / page') },
+                      { value: '100', label: t('100 / page') },
                     ]}
                     value={String(perPage)}
                     onChange={(value) => handlePerPageChange(Number(value))}
-                    placeholder="25 / page"
+                    placeholder={t('25 / page')}
                     size="xs"
                     containerBackground="bg1"
                   />
@@ -805,19 +854,19 @@ export default function Admin() {
                   <thead>
                     <tr className="border-tertiary border-b">
                       <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                        Email
+                        {t('Email')}
                       </th>
                       <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                        Joined
+                        {t('Joined')}
                       </th>
                       <th className="text-muted px-4 py-3 text-center text-xs font-bold tracking-wide uppercase">
-                        Admin
+                        {t('Admin')}
                       </th>
                       <th className="text-muted px-4 py-3 text-center text-xs font-bold tracking-wide uppercase">
-                        Active
+                        {t('Active')}
                       </th>
                       <th className="text-muted px-4 py-3 text-right text-xs font-bold tracking-wide uppercase">
-                        Actions
+                        {t('Actions')}
                       </th>
                     </tr>
                   </thead>
@@ -829,8 +878,8 @@ export default function Admin() {
                           className="text-muted px-4 py-8 text-center text-sm"
                         >
                           {searchQuery.trim()
-                            ? 'No users match this search.'
-                            : 'No users found.'}
+                            ? t('No users match this search.')
+                            : t('No users found.')}
                         </td>
                       </tr>
                     ) : (
@@ -852,7 +901,7 @@ export default function Admin() {
                           <td className="px-4 py-3 text-center text-sm">
                             {u.is_admin ? (
                               <span className="bg-purple-bright/20 text-purple-bright inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold">
-                                Admin
+                                {t('Admin')}
                               </span>
                             ) : (
                               <span className="text-muted text-xs">—</span>
@@ -866,7 +915,7 @@ export default function Admin() {
                                   : 'bg-red-bright/20 text-red-bright'
                               }`}
                             >
-                              {u.is_active ? 'Active' : 'Inactive'}
+                              {u.is_active ? t('Active') : t('Inactive')}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right text-sm">
@@ -876,14 +925,14 @@ export default function Admin() {
                                 className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
                               >
                                 <i className="bi-pencil icon-xs"></i>
-                                Edit
+                                {t('Edit')}
                               </button>
                               <button
                                 onClick={() => handleDeleteUser(u)}
                                 className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
                               >
                                 <i className="bi-trash icon-xs"></i>
-                                Delete
+                                {t('Delete')}
                               </button>
                             </div>
                           </td>
@@ -898,8 +947,8 @@ export default function Admin() {
                 {users.length === 0 ? (
                   <div className="bg-secondary text-muted rounded-lg p-4 text-sm">
                     {searchQuery.trim()
-                      ? 'No users match this search.'
-                      : 'No users found.'}
+                      ? t('No users match this search.')
+                      : t('No users found.')}
                   </div>
                 ) : (
                   users.map((u) => (
@@ -911,7 +960,7 @@ export default function Admin() {
                         <div className="flex flex-shrink-0 items-center gap-1.5">
                           {u.is_admin && (
                             <span className="bg-purple-bright/20 text-purple-bright inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold">
-                              Admin
+                              {t('Admin')}
                             </span>
                           )}
                           <span
@@ -921,12 +970,12 @@ export default function Admin() {
                                 : 'bg-red-bright/20 text-red-bright'
                             }`}
                           >
-                            {u.is_active ? 'Active' : 'Inactive'}
+                            {u.is_active ? t('Active') : t('Inactive')}
                           </span>
                         </div>
                       </div>
                       <div className="text-secondary mb-3 text-xs">
-                        Joined {formatDate(u.created_at)}
+                        {t('Joined')} {formatDate(u.created_at)}
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -934,14 +983,14 @@ export default function Admin() {
                           className="text-fg1 hover:bg-bg2 hover:text-fg0 flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded bg-transparent px-3 py-2 text-xs transition-all duration-200 ease-in-out"
                         >
                           <i className="bi-pencil icon-xs"></i>
-                          Edit
+                          {t('Edit')}
                         </button>
                         <button
                           onClick={() => handleDeleteUser(u)}
                           className="text-red hover:bg-bg2 hover:text-red-bright flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded bg-transparent px-3 py-2 text-xs transition-all duration-200 ease-in-out"
                         >
                           <i className="bi-trash icon-xs"></i>
-                          Delete
+                          {t('Delete')}
                         </button>
                       </div>
                     </div>

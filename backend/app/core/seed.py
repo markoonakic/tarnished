@@ -37,13 +37,18 @@ async def seed_defaults(db: AsyncSession) -> None:
         .all()
     )
     existing_status_names = {status.normalized_name for status in existing_statuses}
+    existing_status_keys = {status.builtin_key for status in existing_statuses}
 
     for status_data in DEFAULT_STATUSES:
         normalized_name = normalized_reference_name(status_data["name"])
-        if normalized_name in existing_status_names:
+        if (
+            normalized_name in existing_status_names
+            or status_data["meaning"] in existing_status_keys
+        ):
             continue
 
         status = ApplicationStatus(
+            builtin_key=status_data["meaning"],
             name=status_data["name"],
             meaning=status_data["meaning"],
             color=status_data["color"],
@@ -63,12 +68,24 @@ async def seed_defaults(db: AsyncSession) -> None:
         round_type.normalized_name for round_type in existing_round_types
     }
 
+    existing_round_keys = {
+        round_type.builtin_key for round_type in existing_round_types
+    }
     for name in DEFAULT_ROUND_TYPES:
         normalized_name = normalized_reference_name(name)
-        if normalized_name in existing_round_type_names:
+        builtin_key = name.lower().replace(" ", "_").replace("-", "_")
+        if (
+            normalized_name in existing_round_type_names
+            or builtin_key in existing_round_keys
+        ):
             continue
 
-        round_type = RoundType(name=name, is_default=True, user_id=None)
+        round_type = RoundType(
+            name=name,
+            is_default=True,
+            user_id=None,
+            builtin_key=builtin_key,
+        )
         db.add(round_type)
         existing_round_type_names.add(normalized_name)
 

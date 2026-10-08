@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { isAxiosError } from 'axios';
 import { useEffect, useState } from 'react';
 import Modal from './Modal';
@@ -25,10 +27,18 @@ function getApiErrorMessage(error: unknown, fallback: string) {
 }
 
 const roleLabels = {
-  interviewer: 'Interviewer',
-  candidate: 'Candidate',
-  other: 'Other',
-  unknown: 'Unknown',
+  get interviewer() {
+    return t('Interviewer');
+  },
+  get candidate() {
+    return t('Candidate');
+  },
+  get other() {
+    return t('Other');
+  },
+  get unknown() {
+    return t('Unknown');
+  },
 };
 
 function timeRange(segment: TranscriptSegment) {
@@ -36,7 +46,7 @@ function timeRange(segment: TranscriptSegment) {
     `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
   return segment.start !== null && segment.end !== null
     ? `${time(segment.start)}–${time(segment.end)}`
-    : 'Timing unknown';
+    : t('Timing unknown');
 }
 
 export default function TranscriptEditor({
@@ -54,6 +64,7 @@ export default function TranscriptEditor({
   onFeedback?: () => void;
   returnToFeedback?: boolean;
 }) {
+  useTranslation();
   const [saved, setSaved] = useState<TranscriptState | null>(null);
   const [segments, setSegments] = useState<TranscriptSegment[]>([]);
   const [text, setText] = useState('');
@@ -83,7 +94,7 @@ export default function TranscriptEditor({
           })
           .catch((err: unknown) => {
             if (active)
-              setError(getApiErrorMessage(err, 'Failed to load transcript'));
+              setError(getApiErrorMessage(err, t('Failed to load transcript')));
             return { error: err };
           })
           .finally(() => {
@@ -104,7 +115,7 @@ export default function TranscriptEditor({
   }, [loading, citedSegmentId]);
 
   function close() {
-    if (!dirty || confirm('Discard unsaved transcript changes?')) onClose();
+    if (!dirty || confirm(t('Discard unsaved transcript changes?'))) onClose();
   }
 
   async function mutate(
@@ -126,7 +137,7 @@ export default function TranscriptEditor({
       }
       setDirty(!replace && Boolean(text || file));
       setSavedNotice(
-        action === 'delete' ? 'Transcript deleted.' : 'Transcript saved.'
+        action === 'delete' ? t('Transcript deleted.') : t('Transcript saved.')
       );
       if (replace || !(text || file)) setEditing(false);
       onChange();
@@ -134,7 +145,7 @@ export default function TranscriptEditor({
       setError(
         getApiErrorMessage(
           err,
-          'Transcript could not be saved. Your draft is retained.'
+          t('Transcript could not be saved. Your draft is retained.')
         )
       );
     } finally {
@@ -153,11 +164,11 @@ export default function TranscriptEditor({
   }
 
   return (
-    <Modal label="Interview transcript" onClose={close} busy={busy}>
+    <Modal label={t('Interview transcript')} onClose={close} busy={busy}>
       <section className="bg-bg1 mx-4 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg p-6">
         <div className="mb-4 flex items-center justify-between gap-4">
           <h2 className="text-primary text-xl font-semibold">
-            Interview transcript
+            {t('Interview transcript')}
           </h2>
           <button
             type="button"
@@ -165,20 +176,22 @@ export default function TranscriptEditor({
             disabled={busy}
             className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-3 py-2"
           >
-            {returnToFeedback ? 'Back to feedback' : 'Close'}
+            {returnToFeedback ? t('Back to feedback') : t('Close')}
           </button>
         </div>
         <p className="text-muted mb-4 text-sm">
-          Read the transcript or request feedback. You can edit the transcript
-          if needed.
+          {t(
+            'Read the transcript or request feedback. You can edit the transcript if needed.'
+          )}
         </p>
         <details className="text-muted mb-4 text-sm">
           <summary className="cursor-pointer">
-            Supported transcript files
+            {t('Supported transcript files')}
           </summary>
           <p>
-            English UTF-8 TXT, SRT or VTT, up to 2 MB. Subtitle times must be
-            within two hours. Timing is kept when supplied.
+            {t(
+              'English UTF-8 TXT, SRT or VTT, up to 2 MB. Subtitle times must be within two hours. Timing is kept when supplied.'
+            )}
           </p>
         </details>
         {savedNotice && (
@@ -192,7 +205,7 @@ export default function TranscriptEditor({
           </p>
         )}
         {loading ? (
-          <p role="status">Loading transcript…</p>
+          <p role="status">{t('Loading transcript…')}</p>
         ) : !saved ? (
           <button
             type="button"
@@ -203,7 +216,7 @@ export default function TranscriptEditor({
               setRetry((n) => n + 1);
             }}
           >
-            Retry loading
+            {t('Retry loading')}
           </button>
         ) : (
           <>
@@ -215,7 +228,7 @@ export default function TranscriptEditor({
                   onClick={() => setEditing(!editing)}
                   className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-3 py-2 transition-all duration-200 ease-in-out"
                 >
-                  {editing ? 'Read transcript' : 'Edit transcript'}
+                  {editing ? t('Read transcript') : t('Edit transcript')}
                 </button>
                 {onFeedback && !returnToFeedback && (
                   <button
@@ -225,13 +238,13 @@ export default function TranscriptEditor({
                     className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
                   >
                     {returnToFeedback
-                      ? 'Back to feedback'
-                      : 'Interview feedback'}
+                      ? t('Back to feedback')
+                      : t('Interview feedback')}
                   </button>
                 )}
                 {dirty && (
                   <span className="text-muted text-sm">
-                    Unsaved changes. Save before requesting feedback.
+                    {t('Unsaved changes. Save before requesting feedback.')}
                   </span>
                 )}
               </div>
@@ -241,28 +254,36 @@ export default function TranscriptEditor({
                 (segment) => segment.id === citedSegmentId
               ) && (
                 <p role="status" className="text-yellow-bright mb-3 text-sm">
-                  This passage is no longer in the current transcript. Review
-                  the changes, then update the feedback.
+                  {t(
+                    'This passage is no longer in the current transcript. Review the changes, then update the feedback.'
+                  )}
                 </p>
               )}
             {saved.transcript?.structure === 'automatic' && (
               <p className="text-muted mb-3 text-sm">
-                Parts and roles were assigned automatically. Edit only if
-                something is wrong.
+                {t(
+                  'Parts and roles were assigned automatically. Edit only if something is wrong.'
+                )}
               </p>
             )}
             {saved.transcript?.structure_status && (
               <p role="status" className="text-muted mb-3 text-sm">
-                {saved.transcript.structure_status}. The transcript is saved.
-                You can assign roles in Edit transcript.
+                {saved.transcript.structure_status}
+                {t(
+                  '. The transcript is saved. You can assign roles in Edit transcript.'
+                )}
               </p>
             )}
             {(saved.attachment_only ||
               saved.transcript?.provenance === 'upload') && (
               <p className="mb-3">
                 {saved.attachment_only
-                  ? 'An existing document is stored as an attachment, not editable text. Paste or upload TXT/SRT/VTT to replace it.'
-                  : 'The original upload is retained separately from your corrections.'}{' '}
+                  ? t(
+                      'An existing document is stored as an attachment, not editable text. Paste or upload TXT/SRT/VTT to replace it.'
+                    )
+                  : t(
+                      'The original upload is retained separately from your corrections.'
+                    )}{' '}
                 <button
                   type="button"
                   disabled={busy}
@@ -280,14 +301,17 @@ export default function TranscriptEditor({
                       );
                     } catch (err) {
                       setError(
-                        getApiErrorMessage(err, 'Failed to download attachment')
+                        getApiErrorMessage(
+                          err,
+                          t('Failed to download attachment')
+                        )
                       );
                     }
                   }}
                 >
                   {saved.attachment_only
-                    ? 'Download attachment'
-                    : 'Download original upload'}
+                    ? t('Download attachment')
+                    : t('Download original upload')}
                 </button>
               </p>
             )}
@@ -304,7 +328,8 @@ export default function TranscriptEditor({
                       {roleLabels[segment.role]}
                       {segment.speaker && ` · ${segment.speaker}`}
                       {` · ${timeRange(segment)}`}
-                      {segment.start === null && ` · Passage ${index + 1}`}
+                      {segment.start === null &&
+                        t(' · Passage {{value0}}', { value0: index + 1 })}
                     </p>
                     <p className="text-fg1 whitespace-pre-wrap">
                       {segment.text}
@@ -313,8 +338,9 @@ export default function TranscriptEditor({
                 ))}
                 {segments.some((segment) => segment.role === 'unknown') && (
                   <p className="text-muted text-sm">
-                    Some speakers are unidentified. Identify your answers in
-                    Edit transcript for personal feedback.
+                    {t(
+                      'Some speakers are unidentified. Identify your answers in Edit transcript for personal feedback.'
+                    )}
                   </p>
                 )}
               </div>
@@ -333,7 +359,7 @@ export default function TranscriptEditor({
                   >
                     <fieldset disabled={busy} className="space-y-4">
                       <legend className="text-primary mb-2 font-medium">
-                        Correct text and speaker roles
+                        {t('Correct text and speaker roles')}
                       </legend>
                       {segments.map((segment, index) => (
                         <div
@@ -343,13 +369,13 @@ export default function TranscriptEditor({
                           className="bg-bg2 rounded p-3"
                         >
                           <p className="text-muted text-sm">
-                            Passage {index + 1} ·{' '}
+                            {t('Passage')} {index + 1} ·{' '}
                             {segment.audio_channel &&
                               `${segment.audio_channel} · `}{' '}
                             {timeRange(segment)}
                           </p>
                           <label className="block">
-                            Text for passage {index + 1}
+                            {t('Text for passage')} {index + 1}
                             <textarea
                               required
                               maxLength={64000}
@@ -363,11 +389,11 @@ export default function TranscriptEditor({
                           </label>
                           <div className="mt-2 flex flex-wrap gap-3">
                             <label>
-                              Speaker for passage {index + 1}
+                              {t('Speaker for passage')} {index + 1}
                               <input
                                 maxLength={100}
                                 className="bg-bg3 text-fg1 focus:ring-accent-bright block rounded px-3 py-2 focus:ring-1 focus:outline-none"
-                                placeholder="Unknown"
+                                placeholder={t('Unknown')}
                                 value={segment.speaker ?? ''}
                                 onChange={(event) =>
                                   change(index, {
@@ -377,7 +403,7 @@ export default function TranscriptEditor({
                               />
                             </label>
                             <label>
-                              Role for passage {index + 1}
+                              {t('Role for passage')} {index + 1}
                               <select
                                 className="bg-bg3 text-fg1 focus:ring-accent-bright block rounded px-3 py-2 focus:ring-1 focus:outline-none"
                                 value={segment.role}
@@ -388,10 +414,14 @@ export default function TranscriptEditor({
                                   })
                                 }
                               >
-                                <option value="unknown">Unknown</option>
-                                <option value="candidate">Candidate</option>
-                                <option value="interviewer">Interviewer</option>
-                                <option value="other">Other</option>
+                                <option value="unknown">{t('Unknown')}</option>
+                                <option value="candidate">
+                                  {t('Candidate')}
+                                </option>
+                                <option value="interviewer">
+                                  {t('Interviewer')}
+                                </option>
+                                <option value="other">{t('Other')}</option>
                               </select>
                             </label>
                           </div>
@@ -401,13 +431,13 @@ export default function TranscriptEditor({
                         type="submit"
                         className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Save corrections
+                        {t('Save corrections')}
                       </button>
                     </fieldset>
                   </form>
                 )
               : !saved.attachment_only && (
-                  <p className="mb-4">No transcript yet.</p>
+                  <p className="mb-4">{t('No transcript yet.')}</p>
                 )}
             <details
               open={(!saved.transcript && !saved.attachment_only) || undefined}
@@ -415,8 +445,8 @@ export default function TranscriptEditor({
             >
               <summary className="text-fg1 cursor-pointer font-medium">
                 {saved.transcript || saved.attachment_only
-                  ? 'Replace transcript'
-                  : 'Add transcript'}
+                  ? t('Replace transcript')
+                  : t('Add transcript')}
               </summary>
               <form
                 className="mt-4"
@@ -425,7 +455,9 @@ export default function TranscriptEditor({
                   if (
                     (saved.transcript || saved.attachment_only) &&
                     !confirm(
-                      'Replace the current transcript and discard its corrections?'
+                      t(
+                        'Replace the current transcript and discard its corrections?'
+                      )
                     )
                   )
                     return;
@@ -436,13 +468,13 @@ export default function TranscriptEditor({
               >
                 <fieldset disabled={busy}>
                   <legend className="text-primary mb-2 font-medium">
-                    Paste{' '}
+                    {t('Paste')}{' '}
                     {saved.transcript || saved.attachment_only
-                      ? 'replacement'
-                      : 'transcript'}
+                      ? t('replacement')
+                      : t('transcript')}
                   </legend>
                   <label>
-                    Transcript format
+                    {t('Transcript format')}
                     <select
                       value={format}
                       onChange={(event) => {
@@ -457,7 +489,7 @@ export default function TranscriptEditor({
                     </select>
                   </label>
                   <label className="mt-2 block">
-                    Transcript text
+                    {t('Transcript text')}
                     <textarea
                       required
                       maxLength={2000000}
@@ -474,7 +506,7 @@ export default function TranscriptEditor({
                     type="submit"
                     className="bg-accent text-bg0 hover:bg-accent-bright mt-2 cursor-pointer rounded px-4 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Save pasted transcript
+                    {t('Save pasted transcript')}
                   </button>
                 </fieldset>
               </form>
@@ -488,7 +520,7 @@ export default function TranscriptEditor({
                   }}
                   className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-4 py-2 transition-colors disabled:opacity-50"
                 >
-                  Choose transcript file
+                  {t('Choose transcript file')}
                 </FileButton>
                 {file && (
                   <>
@@ -501,7 +533,9 @@ export default function TranscriptEditor({
                         if (
                           (saved.transcript || saved.attachment_only) &&
                           !confirm(
-                            'Replace the current transcript and discard its corrections?'
+                            t(
+                              'Replace the current transcript and discard its corrections?'
+                            )
                           )
                         )
                           return;
@@ -520,14 +554,16 @@ export default function TranscriptEditor({
                         );
                       }}
                     >
-                      Upload transcript
+                      {t('Upload transcript')}
                     </button>
                   </>
                 )}
               </div>
             </details>
             <details className="text-muted mt-4 text-sm">
-              <summary className="cursor-pointer">Transcript actions</summary>
+              <summary className="cursor-pointer">
+                {t('Transcript actions')}
+              </summary>
               <div className="mt-3 flex flex-wrap gap-3">
                 <button
                   type="button"
@@ -536,7 +572,9 @@ export default function TranscriptEditor({
                   onClick={() => {
                     if (
                       !confirm(
-                        'Reload current transcript and discard unsaved changes?'
+                        t(
+                          'Reload current transcript and discard unsaved changes?'
+                        )
                       )
                     )
                       return;
@@ -549,7 +587,7 @@ export default function TranscriptEditor({
                     setRetry((n) => n + 1);
                   }}
                 >
-                  Reload current transcript
+                  {t('Reload current transcript')}
                 </button>
                 {(saved.transcript || saved.attachment_only) && (
                   <button
@@ -559,7 +597,9 @@ export default function TranscriptEditor({
                     onClick={() => {
                       if (
                         !confirm(
-                          'Delete the transcript, its corrections and original attachment?'
+                          t(
+                            'Delete the transcript, its corrections and original attachment?'
+                          )
                         )
                       )
                         return;
@@ -580,7 +620,7 @@ export default function TranscriptEditor({
                       );
                     }}
                   >
-                    Delete transcript
+                    {t('Delete transcript')}
                   </button>
                 )}
               </div>
@@ -590,10 +630,10 @@ export default function TranscriptEditor({
         {busy && (
           <p role="status" className="mt-3">
             {operation === 'delete'
-              ? 'Deleting transcript…'
+              ? t('Deleting transcript…')
               : operation === 'upload'
-                ? 'Uploading transcript…'
-                : 'Saving transcript…'}
+                ? t('Uploading transcript…')
+                : t('Saving transcript…')}
           </p>
         )}
       </section>

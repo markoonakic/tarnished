@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { isAxiosError } from 'axios';
 import {
@@ -31,6 +33,7 @@ interface Props {
   editable: boolean;
 }
 export default function HistoryEvidenceDetails(props: Props) {
+  useTranslation();
   const [editing, setEditing] = useState(false);
   const preferences = useUserPreferences({ enabled: editing });
   const timeZone = preferences.data
@@ -46,7 +49,7 @@ export default function HistoryEvidenceDetails(props: Props) {
         onClick={() => setEditing(true)}
       >
         <i className="bi-pencil icon-xs mr-1" aria-hidden="true" />
-        Edit event
+        {t('Edit event')}
       </button>
       {editing &&
         (timeZone ? (
@@ -57,19 +60,22 @@ export default function HistoryEvidenceDetails(props: Props) {
             onClose={() => setEditing(false)}
           />
         ) : (
-          <Modal label="Edit history event" onClose={() => setEditing(false)}>
+          <Modal
+            label={t('Edit history event')}
+            onClose={() => setEditing(false)}
+          >
             <div className="bg-bg1 mx-4 w-full max-w-lg rounded-lg p-6">
               <p role={preferences.isError ? 'alert' : 'status'}>
                 {preferences.isError
-                  ? 'Could not load your time zone. Close and try again.'
-                  : 'Loading your time zone…'}
+                  ? t('Could not load your time zone. Close and try again.')
+                  : t('Loading your time zone…')}
               </p>
               <button
                 type="button"
                 className="text-fg1 hover:bg-bg2 mt-4 cursor-pointer rounded px-4 py-2 transition-colors"
                 onClick={() => setEditing(false)}
               >
-                Cancel
+                {t('Cancel')}
               </button>
             </div>
           </Modal>
@@ -86,6 +92,7 @@ function HistoryCorrectionForm({
   timeZone,
   onClose,
 }: Props & { revision: number; timeZone: string; onClose: () => void }) {
+  useTranslation();
   const [baseline, setBaseline] = useState({ entry, revision, timeZone });
   const [from, setFrom] = useState<StatusMeaning>(
     entry.from_meaning ?? 'unknown'
@@ -114,11 +121,11 @@ function HistoryCorrectionForm({
     'bg-bg2 text-fg1 focus:ring-accent-bright mt-1 w-full rounded px-3 py-2 focus:ring-1 focus:outline-none';
 
   function close() {
-    if ((!changed && !note) || confirm('Discard unsaved history changes?'))
+    if ((!changed && !note) || confirm(t('Discard unsaved history changes?')))
       onClose();
   }
   async function reload() {
-    if (!confirm('Reload the saved entry and discard this draft?')) return;
+    if (!confirm(t('Reload the saved entry and discard this draft?'))) return;
     setPending(true);
     try {
       const [application, history] = await Promise.all([
@@ -129,7 +136,9 @@ function HistoryCorrectionForm({
       if (!saved || saved.is_gap) {
         setRemoved(true);
         setError(
-          'This history entry was removed. Close the editor to return to history.'
+          t(
+            'This history entry was removed. Close the editor to return to history.'
+          )
         );
         return;
       }
@@ -146,7 +155,7 @@ function HistoryCorrectionForm({
       setError('');
       await onChanged?.();
     } catch {
-      setError('Could not reload the saved entry. Your draft is kept.');
+      setError(t('Could not reload the saved entry. Your draft is kept.'));
     } finally {
       setPending(false);
     }
@@ -169,11 +178,11 @@ function HistoryCorrectionForm({
       ) {
         data.changed_at = historyInstant(when, baseline.timeZone);
         if (Date.parse(data.changed_at) > Date.now())
-          throw new Error('The event cannot be in the future.');
+          throw new Error(t('The event cannot be in the future.'));
       }
     } catch (error) {
       setError(
-        error instanceof Error ? error.message : 'Check the date and time.'
+        error instanceof Error ? error.message : t('Check the date and time.')
       );
       return;
     }
@@ -188,10 +197,14 @@ function HistoryCorrectionForm({
       setConflict(status === 409);
       setError(
         status === 409
-          ? 'This entry changed elsewhere. Your draft is kept. Reload the saved entry before trying again.'
+          ? t(
+              'This entry changed elsewhere. Your draft is kept. Reload the saved entry before trying again.'
+            )
           : safeErrorMessage(
               isAxiosError(error) ? error.response?.data?.detail : null,
-              'Could not save the correction. Check the date is between neighbouring entries and try again. Your draft is kept.'
+              t(
+                'Could not save the correction. Check the date is between neighbouring entries and try again. Your draft is kept.'
+              )
             )
       );
     } finally {
@@ -199,17 +212,18 @@ function HistoryCorrectionForm({
     }
   }
   return (
-    <Modal label="Edit history event" onClose={close} busy={pending}>
+    <Modal label={t('Edit history event')} onClose={close} busy={pending}>
       <form
         onSubmit={save}
         className="bg-bg1 mx-4 max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-lg p-6"
       >
         <h3 className="text-primary text-lg font-semibold">
-          Edit history event
+          {t('Edit history event')}
         </h3>
         <p className="text-muted text-sm">
-          Correct the recorded stage or date. This does not change the
-          application's current status or the original note.
+          {t(
+            "Correct the recorded stage or date. This does not change the application's current status or the original note."
+          )}
         </p>
         {error && (
           <p role="alert" className="text-red-bright text-sm">
@@ -223,7 +237,7 @@ function HistoryCorrectionForm({
             className="text-accent hover:bg-bg2 hover:text-accent-bright cursor-pointer rounded px-3 py-2 transition-colors disabled:opacity-50"
             onClick={() => void reload()}
           >
-            Reload saved entry
+            {t('Reload saved entry')}
           </button>
         )}
         <fieldset
@@ -236,7 +250,7 @@ function HistoryCorrectionForm({
                 htmlFor={`history-from-${entry.id}`}
                 className="mb-1 block text-sm"
               >
-                Previous recorded stage
+                {t('Previous recorded stage')}
               </label>
               <Dropdown
                 id={`history-from-${entry.id}`}
@@ -252,7 +266,7 @@ function HistoryCorrectionForm({
               htmlFor={`history-to-${entry.id}`}
               className="mb-1 block text-sm"
             >
-              Recorded stage
+              {t('Recorded stage')}
             </label>
             <Dropdown
               id={`history-to-${entry.id}`}
@@ -263,7 +277,8 @@ function HistoryCorrectionForm({
             />
           </div>
           <label className="block text-sm">
-            Date and time ({baseline.timeZone})
+            {t('Date and time (')}
+            {baseline.timeZone})
             <input
               className={inputClass}
               type="datetime-local"
@@ -277,15 +292,18 @@ function HistoryCorrectionForm({
           </label>
           {baseline.entry.time_provenance !== 'recorded' && (
             <p className="text-muted text-sm">
-              The saved date is unconfirmed. Leaving it unchanged does not
-              confirm it.
+              {t(
+                'The saved date is unconfirmed. Leaving it unchanged does not confirm it.'
+              )}
             </p>
           )}
           <p className="text-muted text-xs">
-            Use a time between the neighbouring entries, not in the future.
+            {t(
+              'Use a time between the neighbouring entries, not in the future.'
+            )}
           </p>
           <label className="block text-sm">
-            Reason for correction (optional)
+            {t('Reason for correction (optional)')}
             <input
               className={inputClass}
               maxLength={2000}
@@ -301,14 +319,14 @@ function HistoryCorrectionForm({
             onClick={close}
             className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-4 py-2"
           >
-            Cancel
+            {t('Cancel')}
           </button>
           <button
             type="submit"
             disabled={pending || conflict || removed || !changed}
             className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 disabled:opacity-50"
           >
-            {pending ? 'Saving…' : 'Save changes'}
+            {pending ? t('Saving…') : t('Save changes')}
           </button>
         </div>
       </form>

@@ -1,3 +1,5 @@
+import { t, locale } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { observeRead } from '@/lib/queryClient';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -14,12 +16,42 @@ import Loading from '../Loading';
 import { SettingsBackLink } from './SettingsLayout';
 
 const API_KEY_PRESETS = [
-  { value: 'full_access', label: 'Full Access' },
-  { value: 'cli', label: 'CLI' },
-  { value: 'extension', label: 'Extension' },
-  { value: 'read_only', label: 'Read Only' },
-  { value: 'import_export', label: 'Import / Export' },
-  { value: 'custom', label: 'Custom' },
+  {
+    value: 'full_access',
+    get label() {
+      return t('Full Access');
+    },
+  },
+  {
+    value: 'cli',
+    get label() {
+      return t('CLI');
+    },
+  },
+  {
+    value: 'extension',
+    get label() {
+      return t('Extension');
+    },
+  },
+  {
+    value: 'read_only',
+    get label() {
+      return t('Read Only');
+    },
+  },
+  {
+    value: 'import_export',
+    get label() {
+      return t('Import / Export');
+    },
+  },
+  {
+    value: 'custom',
+    get label() {
+      return t('Custom');
+    },
+  },
 ] as const;
 
 const FULL_ACCESS_SCOPES = [
@@ -87,15 +119,15 @@ const ALL_SCOPES = Array.from(
 
 function formatDate(value: string | null): string {
   if (!value) {
-    return 'Never';
+    return t('Never');
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return 'Unknown';
+    return t('Unknown');
   }
 
-  return date.toLocaleString();
+  return date.toLocaleString(locale());
 }
 
 function formatMaskedKey(prefix: string): string {
@@ -103,6 +135,7 @@ function formatMaskedKey(prefix: string): string {
 }
 
 export default function SettingsAPIKey() {
+  useTranslation();
   const toast = useToast();
   const { error: showError } = toast;
   const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
@@ -127,7 +160,7 @@ export default function SettingsAPIKey() {
       const data = await listAPIKeys();
       setApiKeys(Array.isArray(data) ? data : []);
     } catch (error) {
-      showError('Failed to load API keys');
+      showError(t('Failed to load API keys'));
       return { error };
     } finally {
       setLoading(false);
@@ -139,7 +172,7 @@ export default function SettingsAPIKey() {
   async function handleCreateKey() {
     const label = newLabel.trim();
     if (!label) {
-      showError('Enter a label for the API key');
+      showError(t('Enter a label for the API key'));
       return;
     }
 
@@ -156,9 +189,9 @@ export default function SettingsAPIKey() {
       setNewPreset('full_access');
       setNewScopes(PRESET_SCOPES.full_access);
       setAdvancedScopesOpen(false);
-      toast.success('API key created');
+      toast.success(t('API key created'));
     } catch {
-      showError('Failed to create API key');
+      showError(t('Failed to create API key'));
     } finally {
       setSubmitting(false);
     }
@@ -194,16 +227,16 @@ export default function SettingsAPIKey() {
 
     try {
       await navigator.clipboard.writeText(revealedKey);
-      toast.success('API key copied to clipboard');
+      toast.success(t('API key copied to clipboard'));
     } catch {
-      showError('Failed to copy API key');
+      showError(t('Failed to copy API key'));
     }
   }
 
   async function handleRenameKey(id: string) {
     const label = editingLabel.trim();
     if (!label) {
-      showError('Enter a label for the API key');
+      showError(t('Enter a label for the API key'));
       return;
     }
 
@@ -222,16 +255,16 @@ export default function SettingsAPIKey() {
       setEditingPreset('full_access');
       setEditingScopes([]);
       setEditingAdvancedScopesOpen(false);
-      toast.success('API key updated');
+      toast.success(t('API key updated'));
     } catch {
-      showError('Failed to update API key');
+      showError(t('Failed to update API key'));
     } finally {
       setSubmitting(false);
     }
   }
 
   async function handleDeleteKey(id: string) {
-    if (!confirm('Revoke this API key? It will stop working immediately.')) {
+    if (!confirm(t('Revoke this API key? It will stop working immediately.'))) {
       return;
     }
 
@@ -239,9 +272,9 @@ export default function SettingsAPIKey() {
     try {
       await deleteAPIKey(id);
       setApiKeys((current) => current.filter((item) => item.id !== id));
-      toast.success('API key revoked');
+      toast.success(t('API key revoked'));
     } catch {
-      showError('Failed to revoke API key');
+      showError(t('Failed to revoke API key'));
     } finally {
       setSubmitting(false);
     }
@@ -254,19 +287,20 @@ export default function SettingsAPIKey() {
       </div>
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 mb-4 text-xl font-bold">API Keys</h2>
+        <h2 className="text-fg1 mb-4 text-xl font-bold">{t('API Keys')}</h2>
         <p className="text-muted mb-6 text-sm">
-          Create a separate API key for each CLI profile or browser extension.
-          Keys are shown in full only once when created.
+          {t(
+            'Create a separate API key for each CLI profile or browser extension. Keys are shown in full only once when created.'
+          )}
         </p>
 
         {loading ? (
-          <Loading message="Loading API keys..." />
+          <Loading message={t('Loading API keys...')} />
         ) : (
           <div className="space-y-6">
             <div className="bg-bg2 rounded-lg p-4">
               <h3 className="text-fg1 mb-4 text-base font-medium">
-                Create API Key
+                {t('Create API Key')}
               </h3>
 
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -275,13 +309,13 @@ export default function SettingsAPIKey() {
                     htmlFor="new-api-key-label"
                     className="text-muted mb-1.5 block text-sm"
                   >
-                    Label
+                    {t('Label')}
                   </label>
                   <input
                     id="new-api-key-label"
                     value={newLabel}
                     onChange={(event) => setNewLabel(event.target.value)}
-                    placeholder="MacBook CLI"
+                    placeholder={t('MacBook CLI')}
                     className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
                 </div>
@@ -291,7 +325,7 @@ export default function SettingsAPIKey() {
                     htmlFor="new-api-key-preset"
                     className="text-muted mb-1.5 block text-sm"
                   >
-                    Preset
+                    {t('Preset')}
                   </label>
                   <Dropdown
                     id="new-api-key-preset"
@@ -301,7 +335,7 @@ export default function SettingsAPIKey() {
                     }))}
                     value={newPreset}
                     onChange={handlePresetChange}
-                    placeholder="Select preset"
+                    placeholder={t('Select preset')}
                     containerBackground="bg2"
                   />
                 </div>
@@ -314,7 +348,7 @@ export default function SettingsAPIKey() {
                   className="text-fg1 hover:bg-bg3 flex cursor-pointer items-center justify-center gap-2 rounded-md bg-transparent px-4 py-2 text-sm transition-all duration-200 ease-in-out"
                 >
                   <i className="bi-sliders icon-sm" />
-                  Advanced Scopes
+                  {t('Advanced Scopes')}
                 </button>
                 <button
                   onClick={handleCreateKey}
@@ -322,15 +356,16 @@ export default function SettingsAPIKey() {
                   className="bg-accent text-bg0 hover:bg-accent-bright flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <i className="bi-key icon-sm" />
-                  Create API Key
+                  {t('Create API Key')}
                 </button>
               </div>
 
               {advancedScopesOpen && (
                 <div className="bg-bg3 mt-4 rounded-lg p-4">
                   <p className="text-muted mb-3 text-sm">
-                    Editing scopes directly will turn this key into a custom
-                    key.
+                    {t(
+                      'Editing scopes directly will turn this key into a custom key.'
+                    )}
                   </p>
                   <div className="grid gap-2 md:grid-cols-2">
                     {ALL_SCOPES.map((scope) => (
@@ -354,10 +389,10 @@ export default function SettingsAPIKey() {
             {revealedKey && (
               <div className="bg-bg2 rounded-lg p-4">
                 <h3 className="text-fg1 mb-2 text-sm font-medium">
-                  New API Key
+                  {t('New API Key')}
                 </h3>
                 <p className="text-muted mb-3 text-xs">
-                  Copy this now. You will not be able to view it again.
+                  {t('Copy this now. You will not be able to view it again.')}
                 </p>
                 <div className="flex items-center gap-2">
                   <div className="text-fg1 bg-bg3 flex-1 overflow-x-auto rounded px-3 py-2 font-mono text-sm break-all">
@@ -368,7 +403,7 @@ export default function SettingsAPIKey() {
                     className="text-fg1 hover:bg-bg3 flex cursor-pointer items-center gap-2 rounded px-3 py-2 transition-all duration-200 ease-in-out"
                   >
                     <i className="bi-clipboard icon-sm" />
-                    Copy
+                    {t('Copy')}
                   </button>
                 </div>
               </div>
@@ -377,7 +412,7 @@ export default function SettingsAPIKey() {
             {apiKeys.length === 0 ? (
               <div className="bg-bg2 rounded-lg p-4">
                 <p className="text-muted text-sm">
-                  You do not have any API keys yet.
+                  {t('You do not have any API keys yet.')}
                 </p>
               </div>
             ) : (
@@ -394,7 +429,7 @@ export default function SettingsAPIKey() {
                                   htmlFor={`edit-api-key-label-${apiKey.id}`}
                                   className="text-muted mb-1.5 block text-sm"
                                 >
-                                  Label
+                                  {t('Label')}
                                 </label>
                                 <input
                                   id={`edit-api-key-label-${apiKey.id}`}
@@ -411,7 +446,7 @@ export default function SettingsAPIKey() {
                                   htmlFor={`edit-api-key-preset-${apiKey.id}`}
                                   className="text-muted mb-1.5 block text-sm"
                                 >
-                                  Preset
+                                  {t('Preset')}
                                 </label>
                                 <Dropdown
                                   id={`edit-api-key-preset-${apiKey.id}`}
@@ -426,7 +461,7 @@ export default function SettingsAPIKey() {
                                       PRESET_SCOPES[value] ?? []
                                     );
                                   }}
-                                  placeholder="Select preset"
+                                  placeholder={t('Select preset')}
                                   containerBackground="bg2"
                                 />
                               </div>
@@ -443,14 +478,14 @@ export default function SettingsAPIKey() {
                                 className="text-fg1 hover:bg-bg3 flex cursor-pointer items-center justify-center gap-2 rounded-md bg-transparent px-4 py-2 text-sm transition-all duration-200 ease-in-out"
                               >
                                 <i className="bi-sliders icon-sm" />
-                                Advanced Scopes
+                                {t('Advanced Scopes')}
                               </button>
                               <button
                                 onClick={() => handleRenameKey(apiKey.id)}
                                 disabled={submitting}
                                 className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                Save
+                                {t('Save')}
                               </button>
                               <button
                                 onClick={() => {
@@ -462,7 +497,7 @@ export default function SettingsAPIKey() {
                                 }}
                                 className="text-fg1 hover:bg-bg3 cursor-pointer rounded-md bg-transparent px-4 py-2 text-sm transition-all duration-200 ease-in-out"
                               >
-                                Cancel
+                                {t('Cancel')}
                               </button>
                             </div>
 
@@ -495,18 +530,18 @@ export default function SettingsAPIKey() {
                           {formatMaskedKey(apiKey.key_prefix)}
                         </p>
                         <p className="text-muted text-xs">
-                          Preset: {apiKey.preset}
+                          {t('Preset:')} {apiKey.preset}
                         </p>
                         {apiKey.preset === 'custom' && (
                           <p className="text-muted text-xs">
-                            Scopes: {apiKey.scopes.join(', ')}
+                            {t('Scopes:')} {apiKey.scopes.join(', ')}
                           </p>
                         )}
                         <p className="text-muted text-xs">
-                          Created: {formatDate(apiKey.created_at)}
+                          {t('Created:')} {formatDate(apiKey.created_at)}
                         </p>
                         <p className="text-muted text-xs">
-                          Last used: {formatDate(apiKey.last_used_at)}
+                          {t('Last used:')} {formatDate(apiKey.last_used_at)}
                         </p>
                       </div>
 
@@ -522,14 +557,14 @@ export default function SettingsAPIKey() {
                             }}
                             className="text-fg1 hover:bg-bg3 cursor-pointer rounded-md bg-transparent px-3 py-2 text-sm transition-all duration-200 ease-in-out"
                           >
-                            Rename
+                            {t('Rename')}
                           </button>
                           <button
                             onClick={() => handleDeleteKey(apiKey.id)}
                             disabled={submitting}
                             className="text-red hover:bg-bg3 hover:text-red-bright cursor-pointer rounded-md bg-transparent px-3 py-2 text-sm transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            Revoke
+                            {t('Revoke')}
                           </button>
                         </div>
                       )}

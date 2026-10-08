@@ -21,6 +21,15 @@ TimeZoneMode = Literal["device", "manual"]
 
 
 class UserPreferencesUpdate(BaseModel):
+    language: Literal["en", "sr-Latn"] | None = None
+
+    @field_validator("language")
+    @classmethod
+    def validate_language(cls, value: str | None) -> str:
+        if value is None:
+            raise ValueError("Omit unchanged language; null is not allowed")
+        return value
+
     show_streak_stats: bool | None = None
     show_needs_attention: bool | None = None
     show_heatmap: bool | None = None
@@ -42,6 +51,7 @@ class UserPreferencesUpdate(BaseModel):
 
 
 class UserPreferencesResponse(BaseModel):
+    language: Literal["en", "sr-Latn"]
     show_streak_stats: bool
     show_needs_attention: bool
     show_heatmap: bool

@@ -1,3 +1,6 @@
+import { t, locale } from '@/lib/i18n';
+import { statusLabel } from '@/lib/referenceLabels';
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { observeRead } from '../lib/queryClient';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
@@ -17,14 +20,40 @@ import ApplicationModal from '../components/ApplicationModal';
 import Pagination from '../components/Pagination';
 
 const sortOptions = [
-  { value: 'applied_desc', label: 'Applied: newest first' },
-  { value: 'applied_asc', label: 'Applied: oldest first' },
-  { value: 'company', label: 'Company: A–Z' },
-  { value: 'status', label: 'Status: A–Z' },
-  { value: 'updated', label: 'Last updated' },
+  {
+    value: 'applied_desc',
+    get label() {
+      return t('Applied: newest first');
+    },
+  },
+  {
+    value: 'applied_asc',
+    get label() {
+      return t('Applied: oldest first');
+    },
+  },
+  {
+    value: 'company',
+    get label() {
+      return t('Company: A–Z');
+    },
+  },
+  {
+    value: 'status',
+    get label() {
+      return t('Status: A–Z');
+    },
+  },
+  {
+    value: 'updated',
+    get label() {
+      return t('Last updated');
+    },
+  },
 ];
 
 export default function Applications() {
+  useTranslation();
   const navigate = useNavigate();
   const colors = useThemeColors();
   const toast = useToastContext();
@@ -75,7 +104,7 @@ export default function Applications() {
       setTotal(data.total);
     } catch (error) {
       if (ownedRequest !== requestId.current) return;
-      const errorMsg = 'Failed to load applications';
+      const errorMsg = t('Failed to load applications');
       setError(errorMsg);
       showError(errorMsg);
       return { error };
@@ -131,19 +160,21 @@ export default function Applications() {
 
   function formatDate(dateStr: string) {
     // Applied dates are calendar dates, not instants in the device zone.
-    return new Date(dateStr).toLocaleDateString(undefined, { timeZone: 'UTC' });
+    return new Date(dateStr).toLocaleDateString(locale(), { timeZone: 'UTC' });
   }
 
   return (
     <Layout>
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <h1 className="text-primary text-2xl font-bold">Applications</h1>
+          <h1 className="text-primary text-2xl font-bold">
+            {t('Applications')}
+          </h1>
           <button
             onClick={() => setShowCreateModal(true)}
             className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
           >
-            New Application
+            {t('New Application')}
           </button>
         </div>
 
@@ -154,8 +185,8 @@ export default function Applications() {
               <i className="bi-search icon-sm text-muted absolute top-1/2 left-3 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search company or job title..."
-                aria-label="Search applications"
+                placeholder={t('Search company or job title...')}
+                aria-label={t('Search applications')}
                 value={search}
                 onChange={(e) => updateParams({ search: e.target.value })}
                 className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
@@ -164,7 +195,7 @@ export default function Applications() {
                 <button
                   onClick={() => updateParams({ search: '' })}
                   className="text-muted hover:text-fg1 absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
-                  aria-label="Clear search"
+                  aria-label={t('Clear search')}
                 >
                   <i className="bi-x icon-sm" />
                 </button>
@@ -175,21 +206,21 @@ export default function Applications() {
             <div className="flex flex-wrap items-center gap-3">
               <Dropdown
                 options={[
-                  { value: '', label: 'All Statuses' },
+                  { value: '', label: t('All Statuses') },
                   ...statuses.map((status) => ({
                     value: status.id,
-                    label: status.name,
+                    label: statusLabel(status),
                   })),
                 ]}
                 value={statusFilter}
                 onChange={(value) => updateParams({ status: value })}
-                placeholder="All Statuses"
+                placeholder={t('All Statuses')}
                 size="xs"
                 containerBackground="bg1"
               />
               <Dropdown
                 options={[
-                  { value: '', label: 'All Sources' },
+                  { value: '', label: t('All Sources') },
                   ...sources.map((source) => ({
                     value: source,
                     label: source,
@@ -197,7 +228,7 @@ export default function Applications() {
                 ]}
                 value={sourceFilter}
                 onChange={(value) => updateParams({ source: value })}
-                placeholder="All Sources"
+                placeholder={t('All Sources')}
                 size="xs"
                 containerBackground="bg1"
                 disabled={sources.length === 0}
@@ -206,23 +237,23 @@ export default function Applications() {
                 options={sortOptions}
                 value={sort}
                 onChange={(value) => updateParams({ sort: value })}
-                placeholder="Sort applications"
+                placeholder={t('Sort applications')}
                 size="xs"
                 containerBackground="bg1"
               />
               <Dropdown
                 options={[
-                  { value: '10', label: '10 / page' },
-                  { value: '25', label: '25 / page' },
-                  { value: '50', label: '50 / page' },
-                  { value: '100', label: '100 / page' },
+                  { value: '10', label: t('10 / page') },
+                  { value: '25', label: t('25 / page') },
+                  { value: '50', label: t('50 / page') },
+                  { value: '100', label: t('100 / page') },
                 ]}
                 value={String(perPage)}
                 onChange={(value) => {
                   setPerPage(Number(value));
                   updateParams({ page: '1' });
                 }}
-                placeholder="25 / page"
+                placeholder={t('25 / page')}
                 size="xs"
                 containerBackground="bg1"
               />
@@ -241,26 +272,28 @@ export default function Applications() {
               onClick={loadApplications}
               className="ml-3 underline"
             >
-              Retry
+              {t('Retry')}
             </button>
           </div>
         )}
 
         {loading ? (
-          <Loading message="Loading applications..." />
+          <Loading message={t('Loading applications...')} />
         ) : error ? null : applications.length === 0 ? (
           isFiltered ? (
             <EmptyState
-              message="No applications match your search or filters."
-              subMessage="Try different keywords or clear filters."
+              message={t('No applications match your search or filters.')}
+              subMessage={t('Try different keywords or clear filters.')}
               icon="bi-search"
             />
           ) : (
             <EmptyState
-              message="No applications yet. Add your first application to get started."
+              message={t(
+                'No applications yet. Add your first application to get started.'
+              )}
               icon="bi-inbox"
               action={{
-                label: 'Add Application',
+                label: t('Add Application'),
                 onClick: () => setShowCreateModal(true),
               }}
             />
@@ -273,19 +306,19 @@ export default function Applications() {
                 <thead>
                   <tr className="border-tertiary border-b">
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                      Company
+                      {t('Company')}
                     </th>
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                      Position
+                      {t('Position')}
                     </th>
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                      Status
+                      {t('Status')}
                     </th>
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                      Applied
+                      {t('Applied')}
                     </th>
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                      Rounds
+                      {t('Rounds')}
                     </th>
                   </tr>
                 </thead>
@@ -328,7 +361,7 @@ export default function Applications() {
                               ),
                             }}
                           />
-                          {app.status.name}
+                          {statusLabel(app.status)}
                         </span>
                       </td>
                       <td className="text-secondary px-4 py-3 text-sm">
@@ -376,15 +409,15 @@ export default function Applications() {
                           ),
                         }}
                       />
-                      {app.status.name}
+                      {statusLabel(app.status)}
                     </span>
                   </div>
                   <div className="text-primary mb-2 truncate text-sm">
                     {app.job_title}
                   </div>
                   <div className="text-secondary text-xs">
-                    {formatDate(app.applied_at)} · {app.round_count}{' '}
-                    {app.round_count === 1 ? 'round' : 'rounds'}
+                    {formatDate(app.applied_at)} ·{' '}
+                    {t('roundCount', { count: app.round_count })}
                   </div>
                 </Link>
               ))}

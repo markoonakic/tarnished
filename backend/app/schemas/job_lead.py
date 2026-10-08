@@ -6,9 +6,17 @@ and structured extraction with LiteLLM.
 
 import ipaddress
 from datetime import date, datetime
+from typing import Literal
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
 
 class JobLeadCreate(BaseModel):
@@ -78,6 +86,20 @@ class JobLeadCreate(BaseModel):
 
 class JobLeadResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def error_code(self) -> str | None:
+        return "AI_EXTRACTION_FAILED" if self.error_message else None
+
+    @computed_field
+    @property
+    def content_warning_code(self) -> str | None:
+        if not self.content_warning:
+            return None
+        if self.source_truncated:
+            return "source_incomplete"
+        return "source_normalized" if self.source_text else "source_missing"
 
     """Full response schema for a job lead.
 
@@ -299,6 +321,7 @@ class JobLeadUpdate(JobLeadEditable):
 
 
 class JobLeadExtractRequest(BaseModel):
+    language: Literal["en", "sr-Latn"] | None = None
     model_config = ConfigDict(extra="forbid")
     expected_revision: int = Field(ge=0)
     restart_processing: bool = Field(

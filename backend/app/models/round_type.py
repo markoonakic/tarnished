@@ -15,6 +15,7 @@ class RoundType(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
+    builtin_key: Mapped[str | None] = mapped_column(String(40), nullable=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     normalized_name: Mapped[str] = mapped_column(String(100), nullable=False)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)

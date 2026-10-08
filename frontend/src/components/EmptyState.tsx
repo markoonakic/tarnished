@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 interface Props {
   message: string;
   subMessage?: string;
@@ -14,6 +15,7 @@ export default function EmptyState({
   icon,
   action,
 }: Props) {
+  useTranslation();
   return (
     <div
       className="flex flex-col items-center justify-center px-4 py-12 text-center"

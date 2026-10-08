@@ -45,6 +45,7 @@ EXPORT_FIELDS: dict[str, tuple[str, ...]] = {
         "skills",
     ),
     "ApplicationStatus": (
+        "builtin_key",
         "id",
         "name",
         "normalized_name",
@@ -55,6 +56,7 @@ EXPORT_FIELDS: dict[str, tuple[str, ...]] = {
         "order",
     ),
     "RoundType": (
+        "builtin_key",
         "id",
         "name",
         "normalized_name",
@@ -183,6 +185,7 @@ EXPORT_FIELDS: dict[str, tuple[str, ...]] = {
 
 # User.settings may retain legacy credentials and unknown internal state.
 EXPORT_SETTINGS_FIELDS = (
+    "language",
     "theme",
     "accent",
     "show_streak_stats",

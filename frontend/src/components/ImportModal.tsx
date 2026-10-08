@@ -1,3 +1,6 @@
+import { t } from '@/lib/i18n';
+import FileButton from './FileButton';
+import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 import { useState, useRef, useEffect } from 'react';
 import {
@@ -27,7 +30,7 @@ export default function ImportModal({
   onClose,
   onSuccess,
 }: ImportModalProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  useTranslation();
   const progressConnection = useRef<EventSource | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -37,6 +40,7 @@ export default function ImportModal({
   const [validation, setValidation] = useState<{
     summary: Record<string, number>;
     warnings: string[];
+    warning_messages?: { code: string; count?: number; names?: string }[];
   } | null>(null);
   const [transferState, setTransferState] = useState<TransferState | null>(
     null
@@ -53,9 +57,6 @@ export default function ImportModal({
     setTransferState(null);
     setError('');
     setOverride(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
 
   useEffect(() => {
@@ -79,22 +80,18 @@ export default function ImportModal({
     setValidation(null);
     setOverride(false);
     if (!selected.name.toLowerCase().endsWith('.zip')) {
-      setError('Please select a ZIP file');
+      setError(t('Please select a ZIP file'));
       setFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
       return;
     }
 
     if (selected.size > MAX_FILE_SIZE) {
       setError(
-        `File too large (${(selected.size / 1024 / 1024).toFixed(1)}MB). Maximum archive size is 1GB.`
+        t('File too large ({{value0}}MB). Maximum archive size is 1GB.', {
+          value0: (selected.size / 1024 / 1024).toFixed(1),
+        })
       );
       setFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
       return;
     }
 
@@ -115,7 +112,7 @@ export default function ImportModal({
       setError(
         err instanceof Error
           ? err.message
-          : 'Validation failed. Please check your file.'
+          : t('Validation failed. Please check your file.')
       );
     } finally {
       setValidating(false);
@@ -162,7 +159,9 @@ export default function ImportModal({
       );
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Import failed. Please try again.'
+        err instanceof Error
+          ? err.message
+          : t('Import failed. Please try again.')
       );
       setImporting(false);
     }
@@ -170,16 +169,15 @@ export default function ImportModal({
 
   function finishImport(progress: ImportProgress) {
     setImporting(false);
-    setTransferState(createTransferStateFromJob(progress));
+    const state = createTransferStateFromJob(progress);
+    setTransferState(state);
     if (progress.status === 'complete') {
       onSuccess();
       reset();
       return;
     }
     setError(
-      progress.message ||
-        progress.error?.error ||
-        'Import failed. Please try again.'
+      state.error || state.message || t('Import failed. Please try again.')
     );
   }
 
@@ -194,7 +192,9 @@ export default function ImportModal({
         finishImport(progress);
     } catch {
       setError(
-        'Could not check import status. The import may still be running. Try checking again before starting another import.'
+        t(
+          'Could not check import status. The import may still be running. Try checking again before starting another import.'
+        )
       );
     } finally {
       setChecking(false);
@@ -215,12 +215,12 @@ export default function ImportModal({
       >
         <div className="border-tertiary flex flex-shrink-0 items-center justify-between border-b p-4">
           <h3 id="import-modal-title" className="text-primary font-medium">
-            Import Data
+            {t('Import Data')}
           </h3>
           <button
             onClick={handleClose}
             disabled={importing || validating || checking}
-            aria-label="Close modal"
+            aria-label={t('Close modal')}
             className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             <i className="bi bi-x-lg icon-xl" />
@@ -244,42 +244,44 @@ export default function ImportModal({
                   onClick={checkStatus}
                   className="text-accent mt-4 underline disabled:opacity-50"
                 >
-                  {checking ? 'Checking status...' : 'Check import status'}
+                  {checking
+                    ? t('Checking status...')
+                    : t('Check import status')}
                 </button>
               )}
             </div>
           ) : validation ? (
             <div>
               <h4 className="text-primary mb-3 text-lg font-semibold">
-                Import Summary
+                {t('Import Summary')}
               </h4>
               <div className="bg-tertiary mb-4 rounded-lg p-4 text-sm">
                 <div className="text-secondary grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <span>Applications:</span>
+                  <span>{t('Applications:')}</span>
                   <span className="text-primary text-right">
                     {validation.summary.applications}
                   </span>
-                  <span>Job Leads:</span>
+                  <span>{t('Job Leads:')}</span>
                   <span className="text-primary text-right">
                     {validation.summary.job_leads || 0}
                   </span>
-                  <span>Rounds:</span>
+                  <span>{t('Rounds:')}</span>
                   <span className="text-primary text-right">
                     {validation.summary.rounds}
                   </span>
-                  <span>Status Changes:</span>
+                  <span>{t('Status Changes:')}</span>
                   <span className="text-primary text-right">
                     {validation.summary.status_history}
                   </span>
-                  <span>Custom Statuses:</span>
+                  <span>{t('Custom Statuses:')}</span>
                   <span className="text-primary text-right">
                     {validation.summary.custom_statuses}
                   </span>
-                  <span>Custom Round Types:</span>
+                  <span>{t('Custom Round Types:')}</span>
                   <span className="text-primary text-right">
                     {validation.summary.custom_round_types}
                   </span>
-                  <span>Files:</span>
+                  <span>{t('Files:')}</span>
                   <span className="text-primary text-right">
                     {validation.summary.files}
                   </span>
@@ -288,15 +290,36 @@ export default function ImportModal({
 
               {validation.warnings.length > 0 && (
                 <div className="bg-yellow/20 border-yellow text-yellow mb-4 rounded border px-4 py-3 text-sm">
-                  {validation.warnings.map((w: string) => (
-                    <div key={w}>Warning: {w}</div>
+                  {(
+                    validation.warning_messages ??
+                    validation.warnings.map(() => ({ code: 'unknown' }))
+                  ).map((warning, index) => (
+                    <div key={index}>
+                      {t('Warning:')}{' '}
+                      {warning.code === 'existing_applications'
+                        ? t(
+                            'Existing applications: {{count}}. Import adds to these unless Replace is selected.',
+                            warning
+                          )
+                        : warning.code === 'new_statuses'
+                          ? t('New statuses: {{count}} · {{names}}', warning)
+                          : warning.code === 'new_round_types'
+                            ? t(
+                                'New round types: {{count}} · {{names}}',
+                                warning
+                              )
+                            : t('Review the archive before importing.')}
+                    </div>
                   ))}
                 </div>
               )}
 
-              {validation.warnings.some((w: string) =>
-                w.includes('existing applications')
-              ) && (
+              {(validation.warning_messages?.some(
+                (warning) => warning.code === 'existing_applications'
+              ) ??
+                validation.warnings.some((warning) =>
+                  warning.includes('existing applications')
+                )) && (
                 <label className="mb-4 flex cursor-pointer items-center gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -305,8 +328,9 @@ export default function ImportModal({
                     className="bg-bg2 border-tertiary text-accent focus:ring-accent-bright cursor-pointer rounded"
                   />
                   <span className="text-yellow">
-                    Replace existing data (warning: this deletes current
-                    applications, job leads, and custom statuses)
+                    {t(
+                      'Replace existing data (warning: this deletes current applications, job leads, and custom statuses)'
+                    )}
                   </span>
                 </label>
               )}
@@ -316,34 +340,36 @@ export default function ImportModal({
                   onClick={() => setValidation(null)}
                   className="text-fg1 hover:bg-bg2 hover:text-fg0 flex-1 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
                 <button
                   onClick={handleImport}
                   className="bg-accent text-bg0 hover:bg-accent-bright flex-1 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
                 >
-                  Import Data
+                  {t('Import Data')}
                 </button>
               </div>
             </div>
           ) : (
             <div>
               <p className="text-secondary mb-4 text-sm">
-                Select a ZIP export file to import your job application data.
-                Large archives can take a while to upload and process. Files
-                larger than 100MB inside the ZIP may still fail backend
-                validation.
+                {t(
+                  'Select a ZIP export file to import your job application data. Large archives can take a while to upload and process. Files larger than 100MB inside the ZIP may still fail backend validation.'
+                )}
               </p>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                aria-label="ZIP archive"
+              <FileButton
+                aria-label={t('ZIP archive')}
                 disabled={validating}
                 accept=".zip"
-                onChange={handleFileSelect}
-                className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out file:mr-3 focus:ring-1 focus:outline-none"
-              />
+                onChange={(event) => {
+                  handleFileSelect(event);
+                  event.currentTarget.value = '';
+                }}
+                className="bg-bg2 text-fg1 focus:ring-accent-bright w-full cursor-pointer rounded px-3 py-2 text-left transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+              >
+                {file?.name || t('Choose ZIP archive')}
+              </FileButton>
 
               {file && (
                 <div className="mt-4">
@@ -352,7 +378,7 @@ export default function ImportModal({
                     disabled={validating}
                     className="bg-accent text-bg0 hover:bg-accent-bright w-full cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
                   >
-                    {validating ? 'Validating...' : 'Validate'}
+                    {validating ? t('Validating...') : t('Validate')}
                   </button>
                 </div>
               )}

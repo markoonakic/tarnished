@@ -1,3 +1,5 @@
+import { t, locale } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import type { ApplicationStatusHistory } from '../../lib/types';
 import { historyStage } from '../../lib/history';
 import { getStatusColor } from '../../lib/statusColors';
@@ -8,8 +10,10 @@ export default function HistoryEntrySummary({
 }: {
   entry: ApplicationStatusHistory;
 }) {
+  useTranslation();
   const colors = useThemeColors();
-  if (entry.is_gap) return <p className="text-muted text-sm">History gap.</p>;
+  if (entry.is_gap)
+    return <p className="text-muted text-sm">{t('History gap.')}</p>;
   const from = historyStage(entry.from_status, entry.from_meaning);
   const to = historyStage(entry.to_status, entry.to_meaning);
   function badge(stage: typeof to) {
@@ -35,15 +39,15 @@ export default function HistoryEntrySummary({
             />
           </>
         ) : (
-          <span className="text-muted text-xs">Application added</span>
+          <span className="text-muted text-xs">{t('Application added')}</span>
         )}
         {badge(to)}
       </div>
       <p className="text-muted text-xs">
         {entry.time_provenance === 'recorded'
-          ? new Date(entry.changed_at).toLocaleString()
-          : 'Date not confirmed'}
-        {entry.corrected_at ? ' · Edited' : ''}
+          ? new Date(entry.changed_at).toLocaleString(locale())
+          : t('Date not confirmed')}
+        {entry.corrected_at ? t('· Edited') : ''}
       </p>
       {entry.note && (
         <p className="text-fg1 mt-2 text-sm whitespace-pre-wrap">
@@ -52,7 +56,7 @@ export default function HistoryEntrySummary({
       )}
       {entry.correction_note && (
         <p className="text-muted mt-1 text-sm whitespace-pre-wrap">
-          Correction: {entry.correction_note}
+          {t('Correction:')} {entry.correction_note}
         </p>
       )}
     </>

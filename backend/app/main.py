@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -37,6 +36,7 @@ from app.api.user_preferences import router as user_preferences_router
 from app.api.users import router as users_router
 from app.core.config import get_settings
 from app.core.database import async_session_maker
+from app.core.error_codes import error_code
 from app.core.logging_config import setup_logging
 from app.core.rate_limit import limiter
 from app.core.seed import seed_defaults
@@ -61,27 +61,36 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Tarnished API", version="0.2.5", lifespan=lifespan)
 
 
+@app.exception_handler(StarletteHTTPException)
+async def coded_http_error(request: Request, exc: StarletteHTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail, "code": error_code(exc.status_code, exc.detail)},
+        headers=exc.headers,
+    )
+
+
 @app.exception_handler(RequestValidationError)
 async def safe_account_validation(request: Request, exc: RequestValidationError):
     if request.url.path == "/api/admin/ai-settings":
         return JSONResponse(
             status_code=422,
             content={
-                "detail": "Invalid capability settings. Check field types, provider/model identifiers and absolute HTTP(S) endpoints."
+                "code": "validation_error",
+                "detail": "Invalid capability settings. Check field types, provider/model identifiers and absolute HTTP(S) endpoints.",
             },
         )
     # Pydantic includes raw input (possibly passwords) in its default API errors.
-    if request.url.path.startswith(("/api/auth/", "/api/admin/users")):
-        return JSONResponse(
-            status_code=422,
-            content={
-                "detail": [
-                    {"loc": error["loc"], "msg": error["msg"], "type": error["type"]}
-                    for error in exc.errors()
-                ]
-            },
-        )
-    return await request_validation_exception_handler(request, exc)
+    return JSONResponse(
+        status_code=422,
+        content={
+            "code": "validation_error",
+            "detail": [
+                {"loc": error["loc"], "msg": error["msg"], "type": error["type"]}
+                for error in exc.errors()
+            ],
+        },
+    )
 
 
 # Register rate limiter

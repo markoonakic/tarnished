@@ -1,3 +1,5 @@
+import { t, locale } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import {
   useFeedback,
   type FeedbackController,
@@ -18,16 +20,24 @@ interface ReportProps {
 }
 
 const periods: Record<string, string> = {
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
-  '3m': 'Last 3 months',
-  all: 'All time',
+  get '7d'() {
+    return t('Last 7 days');
+  },
+  get '30d'() {
+    return t('Last 30 days');
+  },
+  get '3m'() {
+    return t('Last 3 months');
+  },
+  get all() {
+    return t('All time');
+  },
 };
 
 function savedLabel(report: NonNullable<FeedbackState['report']>) {
   const parts = [
     report.period ? (periods[report.period] ?? report.period) : null,
-    new Date(report.as_of || report.run_at).toLocaleDateString(undefined, {
+    new Date(report.as_of || report.run_at).toLocaleDateString(locale(), {
       timeZone: report.time_zone ?? undefined,
     }),
   ].filter(Boolean);
@@ -43,6 +53,7 @@ export default function ScopedReport({
   endpoint: string;
   requestBody: (state: ScopedReportState) => Record<string, unknown>;
 }) {
+  useTranslation();
   const feedback = useFeedback(endpoint, requestBody);
   return <ScopedReportContent {...props} feedback={feedback} />;
 }
@@ -58,6 +69,7 @@ export function ScopedReportContent({
   hideAction = false,
   period,
 }: ReportProps & { feedback: FeedbackController; hideAction?: boolean }) {
+  useTranslation();
   const report = feedback.state?.report;
   const requestedPeriod = period ?? feedback.state?.period;
   const activePeriod = feedback.requestedPeriod;
@@ -70,20 +82,25 @@ export function ScopedReportContent({
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <h3 className="text-primary text-lg font-semibold">{title}</h3>
-          <HelpTip label={`About ${title.toLowerCase()}`}>
+          <HelpTip
+            label={t('About {{value0}}', { value0: title.toLowerCase() })}
+          >
             <p>
-              Uses your saved information and the configured AI service. Charges
-              may apply only when you request feedback.
+              {t(
+                'Uses your saved information and the configured AI service. Charges may apply only when you request feedback.'
+              )}
             </p>
             {scope === 'PIPELINE' && (
-              <p>Changing the chart period does not generate new feedback.</p>
+              <p>
+                {t('Changing the chart period does not generate new feedback.')}
+              </p>
             )}
           </HelpTip>
         </div>
         {onClose && (
           <button
             type="button"
-            aria-label={`Close ${title.toLowerCase()}`}
+            aria-label={t('Close {{value0}}', { value0: title.toLowerCase() })}
             onClick={onClose}
             className="text-fg1 hover:bg-bg2 cursor-pointer rounded p-2"
           >
@@ -114,10 +131,12 @@ export function ScopedReportContent({
         }
       />
       {report && (
-        <div className="max-w-3xl space-y-3" aria-label="Saved feedback">
+        <div className="max-w-3xl space-y-3" aria-label={t('Saved feedback')}>
           {!report.findings.length && (
             <p className="text-fg1">
-              No actionable feedback from the saved information this time.
+              {t(
+                'No actionable feedback from the saved information this time.'
+              )}
             </p>
           )}
           {report.findings.length > 0 && (

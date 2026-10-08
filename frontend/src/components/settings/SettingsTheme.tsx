@@ -1,8 +1,11 @@
+import { t, uiLabel } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeDropdown from '../ThemeDropdown';
 import { SettingsBackLink } from './SettingsLayout';
 
 export default function SettingsTheme() {
+  useTranslation();
   const {
     currentTheme,
     setTheme: handleThemeChange,
@@ -19,9 +22,9 @@ export default function SettingsTheme() {
       </div>
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 mb-4 text-xl font-bold">Theme</h2>
+        <h2 className="text-fg1 mb-4 text-xl font-bold">{t('Theme')}</h2>
         <p className="text-muted mb-4 text-sm">
-          Choose your preferred color theme for the application.
+          {t('Choose your preferred color theme for the application.')}
         </p>
         <ThemeDropdown
           themes={themes}
@@ -31,16 +34,20 @@ export default function SettingsTheme() {
       </div>
 
       <div className="bg-secondary mt-4 rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 mb-4 text-xl font-bold">Accent Color</h2>
+        <h2 className="text-fg1 mb-4 text-xl font-bold">{t('Accent Color')}</h2>
         <p className="text-muted mb-4 text-sm">
-          Choose the accent color for buttons, links, and focus indicators.
+          {t(
+            'Choose the accent color for buttons, links, and focus indicators.'
+          )}
         </p>
         <div className="flex flex-wrap gap-3">
           {accentOptions.map((option) => (
             <button
               key={option.name}
               type="button"
-              title={option.name.charAt(0).toUpperCase() + option.name.slice(1)}
+              title={uiLabel(
+                option.name.charAt(0).toUpperCase() + option.name.slice(1)
+              )}
               onClick={() => setAccentColor(option.name)}
               className={`h-8 w-8 cursor-pointer rounded-full transition-all duration-200 ease-in-out ${
                 currentAccent === option.name

@@ -72,6 +72,11 @@ async def get_insights(
             analytics.get("interview_analytics", {}),
             analytics.get("activity_tracking", {}),
             period,
+            **(
+                {"output_language": "sr-Latn"}
+                if (current_user.settings or {}).get("language") == "sr-Latn"
+                else {}
+            ),
         )
 
         return insights

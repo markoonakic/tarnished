@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useRef, type InputHTMLAttributes, type ReactNode } from 'react';
 
 export default function FileButton({
@@ -7,6 +8,7 @@ export default function FileButton({
 }: Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'children'> & {
   children: ReactNode;
 }) {
+  useTranslation();
   const input = useRef<HTMLInputElement>(null);
   return (
     <>

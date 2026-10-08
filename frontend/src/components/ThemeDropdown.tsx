@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import Dropdown from './Dropdown';
 
 interface Theme {
@@ -17,6 +19,7 @@ export default function ThemeDropdown({
   currentTheme,
   onChange,
 }: Props) {
+  useTranslation();
   return (
     <Dropdown
       options={themes.map((theme) => ({
@@ -25,7 +28,7 @@ export default function ThemeDropdown({
       }))}
       value={currentTheme}
       onChange={onChange}
-      placeholder="Select theme"
+      placeholder={t('Select theme')}
       containerBackground="bg1"
     />
   );

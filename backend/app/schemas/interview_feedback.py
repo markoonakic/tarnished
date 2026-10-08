@@ -231,6 +231,7 @@ class InputPipelineSection(PipelineSection):
 
 
 class InterviewRequest(BaseModel):
+    language: Literal["en", "sr-Latn"] = "en"
     model_config = ConfigDict(extra="forbid")
     intent_id: UUID
     generation: int = Field(ge=0)
@@ -238,6 +239,7 @@ class InterviewRequest(BaseModel):
 
 
 class ScopedReportRequest(BaseModel):
+    language: Literal["en", "sr-Latn"] = "en"
     """Application-scope request. Generation guards the application's report chain."""
 
     model_config = ConfigDict(extra="forbid")
@@ -247,6 +249,7 @@ class ScopedReportRequest(BaseModel):
 
 
 class PipelineReportRequest(BaseModel):
+    language: Literal["en", "sr-Latn"] = "en"
     """Pipeline-scope request. Period/as-of select the deterministic cohort."""
 
     model_config = ConfigDict(extra="forbid")

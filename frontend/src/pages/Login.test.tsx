@@ -46,9 +46,7 @@ it('renders a usable 422 error without validation objects, input or secrets', as
   });
   fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
   expect(
-    await screen.findByText(
-      'Login failed. Check your email and password and try again.'
-    )
+    await screen.findByText('Check the entered values and try again.')
   ).toBeVisible();
   expect(document.body.textContent).not.toContain('secret-canary');
   expect(screen.getByRole('button', { name: 'Sign In' })).toBeEnabled();

@@ -1,3 +1,6 @@
+import { t } from '@/lib/i18n';
+import LanguageSwitch from '@/components/LanguageSwitch';
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -9,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import PasswordInput from '../components/PasswordInput';
 
 export default function Register() {
+  useTranslation();
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState('');
@@ -27,7 +31,7 @@ export default function Register() {
       setNeedsSetup(response.data.needs_setup);
     } catch (error) {
       setNeedsSetup(null);
-      setError('Cannot check setup status. Try again.');
+      setError(t('Cannot check setup status. Try again.'));
       return { error };
     } finally {
       setChecking(false);
@@ -45,7 +49,7 @@ export default function Register() {
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('Passwords do not match.'));
       return;
     }
     setLoading(true);
@@ -59,7 +63,7 @@ export default function Register() {
     } catch (err: unknown) {
       if (created) {
         setNeedsSetup(false);
-        setError('Your account was created. Sign in to continue.');
+        setError(t('Your account was created. Sign in to continue.'));
       } else {
         if (axios.isAxiosError(err) && err.response?.status === 409) {
           setNeedsSetup(false);
@@ -68,9 +72,9 @@ export default function Register() {
           axios.isAxiosError(err)
             ? safeErrorMessage(
                 err.response?.data?.detail,
-                'Setup failed. Try again.'
+                t('Setup failed. Try again.')
               )
-            : 'Setup failed. Try again.'
+            : t('Setup failed. Try again.')
         );
       }
     } finally {
@@ -80,82 +84,92 @@ export default function Register() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="bg-secondary w-full max-w-md space-y-4 rounded-lg p-8">
-        <h1 className="text-accent-bright text-2xl font-bold">
-          {needsSetup ? 'Create the first admin account' : 'Account setup'}
-        </h1>
-        {checking && <p role="status">Checking setup status...</p>}
-        {error && (
-          <div
-            role="alert"
-            className="bg-red-bright/20 border-red-bright text-red-bright rounded border p-3"
-          >
-            {error}
-          </div>
-        )}
-        {!checking && needsSetup === true && (
-          <>
-            <p>Create an administrator account to start using Tarnished.</p>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="text-muted mb-1 block text-sm font-semibold"
-                >
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="username"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoFocus
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+      <div className="w-full max-w-md">
+        <div className="bg-secondary space-y-4 rounded-lg p-8">
+          <h1 className="text-accent-bright text-2xl font-bold">
+            {needsSetup
+              ? t('Create the first admin account')
+              : t('Account setup')}
+          </h1>
+          {checking && <p role="status">{t('Checking setup status...')}</p>}
+          {error && (
+            <div
+              role="alert"
+              className="bg-red-bright/20 border-red-bright text-red-bright rounded border p-3"
+            >
+              {error}
+            </div>
+          )}
+          {!checking && needsSetup === true && (
+            <>
+              <p>
+                {t('Create an administrator account to start using Tarnished.')}
+              </p>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="text-muted mb-1 block text-sm font-semibold"
+                  >
+                    {t('Email')}
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="username"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoFocus
+                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                    required
+                  />
+                </div>
+                <PasswordInput
+                  value={password}
+                  onChange={setPassword}
+                  label={t('Password')}
                   required
+                  autoComplete="new-password"
                 />
-              </div>
-              <PasswordInput
-                value={password}
-                onChange={setPassword}
-                label="Password"
-                required
-                autoComplete="new-password"
-              />
-              <PasswordInput
-                value={confirmPassword}
-                onChange={setConfirmPassword}
-                label="Confirm password"
-                required
-                autoComplete="new-password"
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-accent text-bg0 hover:bg-accent-bright w-full cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
-              >
-                {loading ? 'Creating account...' : 'Create admin account'}
-              </button>
-            </form>
-          </>
-        )}
-        {!checking && needsSetup === false && (
-          <p>
-            Accounts are managed by your administrator. There is no public
-            registration.
-          </p>
-        )}
-        {!checking && needsSetup === null && (
-          <button
-            className="touch-target bg-accent text-bg0 rounded px-4 py-2"
-            onClick={refreshStatus}
-          >
-            Retry setup check
-          </button>
-        )}
-        <Link className="text-accent block" to="/login">
-          Sign in
-        </Link>
+                <PasswordInput
+                  value={confirmPassword}
+                  onChange={setConfirmPassword}
+                  label={t('Confirm password')}
+                  required
+                  autoComplete="new-password"
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-accent text-bg0 hover:bg-accent-bright w-full cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
+                >
+                  {loading
+                    ? t('Creating account...')
+                    : t('Create admin account')}
+                </button>
+              </form>
+            </>
+          )}
+          {!checking && needsSetup === false && (
+            <p>
+              {t(
+                'Accounts are managed by your administrator. There is no public registration.'
+              )}
+            </p>
+          )}
+          {!checking && needsSetup === null && (
+            <button
+              className="touch-target bg-accent text-bg0 rounded px-4 py-2"
+              onClick={refreshStatus}
+            >
+              {t('Retry setup check')}
+            </button>
+          )}
+          <Link className="text-accent block" to="/login">
+            {t('Sign in')}
+          </Link>
+        </div>
+        <LanguageSwitch />
       </div>
     </div>
   );

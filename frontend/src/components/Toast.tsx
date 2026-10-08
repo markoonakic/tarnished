@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Toast as ToastType } from '@/contexts/ToastContext';
 
@@ -30,6 +32,7 @@ const toastConfig = {
 };
 
 export default function Toast({ toast, onDismiss }: Props) {
+  useTranslation();
   const config = toastConfig[toast.type];
 
   return (
@@ -55,7 +58,7 @@ export default function Toast({ toast, onDismiss }: Props) {
       <button
         onClick={() => onDismiss(toast.id)}
         className="text-fg4 hover:text-fg1 flex-shrink-0 cursor-pointer transition-colors duration-200 ease-in-out"
-        aria-label="Dismiss notification"
+        aria-label={t('Dismiss notification')}
       >
         <i className="bi-x-lg icon-sm" />
       </button>

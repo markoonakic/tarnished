@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -8,6 +9,7 @@ export default function HelpTip({
   label: string;
   children: ReactNode;
 }) {
+  useTranslation();
   const id = useId();
   const wrapper = useRef<HTMLSpanElement>(null);
   const tooltip = useRef<HTMLSpanElement>(null);

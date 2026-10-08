@@ -189,6 +189,7 @@ async def get_calculation_data(
                 {
                     "id": entry.id,
                     "name": entry.to_status.name,
+                    "builtin_key": entry.to_status.builtin_key,
                     "meaning": entry.to_meaning,
                     "application_id": app.id,
                     "entered_at": utc(entry.changed_at),
@@ -362,6 +363,7 @@ async def get_calculation_data(
                         "job_title": app.job_title,
                         "current_status": app.status.name,
                         "round_type": rnd.round_type.name,
+                        "round_builtin_key": rnd.round_type.builtin_key,
                         "scheduled_at": scheduled,
                         "completed_at": completed_at,
                         "outcome": rnd.outcome if completed_at else None,
@@ -455,6 +457,15 @@ async def get_interview_rounds_data(
         for row in data["rounds"]
         if round_type is None or row["round_type"] == round_type
     ]
+    builtin_keys = {}
+    for row in rounds:
+        builtin_keys.setdefault(row["round_type"], set()).add(
+            row.get("round_builtin_key")
+        )
+    identities = {
+        name: next(iter(keys)) if len(keys) == 1 else None
+        for name, keys in builtin_keys.items()
+    }
     outcomes: dict[str, Counter] = defaultdict(
         lambda: Counter(passed=0, failed=0, pending=0, withdrew=0)
     )
@@ -493,6 +504,7 @@ async def get_interview_rounds_data(
     funnel = [
         {
             "round": name,
+            "builtin_key": identities.get(name),
             "count": sum(counts.values()),
             "passed": counts["passed"],
             "conversion_rate": round(counts["passed"] / sum(counts.values()) * 100, 1),
@@ -502,6 +514,7 @@ async def get_interview_rounds_data(
     timeline = [
         {
             "round": name,
+            "builtin_key": identities.get(name),
             "avg_days": round(sum(values) / len(values), 1),
             "avg_hours": sum(values) / len(values) * 24,
         }
@@ -511,7 +524,8 @@ async def get_interview_rounds_data(
         "scope": data["scope"],
         "funnel_data": funnel,
         "outcome_data": [
-            {"round": name, **counts} for name, counts in sorted(outcomes.items())
+            {"round": name, "builtin_key": identities.get(name), **counts}
+            for name, counts in sorted(outcomes.items())
         ],
         "timeline_data": timeline,
         "candidate_progress": list(candidates.values()),

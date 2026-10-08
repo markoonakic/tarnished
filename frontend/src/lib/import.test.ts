@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { connectToImportProgress, validateImport } from './import';
-import { fetchWithAuth } from './api';
+import {
+  connectToImportProgress,
+  getImportStatus,
+  validateImport,
+} from './import';
+import api, { fetchWithAuth } from './api';
+import { queryClient } from './queryClient';
 
 vi.mock('./api', () => ({
   default: { get: vi.fn() },
@@ -12,7 +17,10 @@ vi.mock('./api', () => ({
   safeErrorMessage: (detail: unknown, fallback: string) =>
     typeof detail === 'string' ? detail : fallback,
 }));
-vi.mock('./queryClient', () => ({ invalidateEvidenceQueries: vi.fn() }));
+vi.mock('./queryClient', () => ({
+  invalidateEvidenceQueries: vi.fn(),
+  queryClient: { invalidateQueries: vi.fn() },
+}));
 class MockEventSource extends EventTarget {
   close = vi.fn();
   onerror: (() => void) | null = null;
@@ -74,4 +82,17 @@ it('closes progress when the import completes', () => {
   );
   expect(source.close).toHaveBeenCalledOnce();
   expect(terminal).toHaveBeenCalledWith({ status: 'complete', percent: 100 });
+  expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+    queryKey: ['user-preferences'],
+  });
+});
+
+it('refreshes the restored language after a completed import status read', async () => {
+  vi.mocked(api.get).mockResolvedValue({
+    data: { status: 'complete', percent: 100 },
+  });
+  await getImportStatus('job-1');
+  expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+    queryKey: ['user-preferences'],
+  });
 });

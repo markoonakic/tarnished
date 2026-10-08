@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createJobLead, jobLeadError } from '../lib/jobLeads';
@@ -9,6 +11,7 @@ export default function JobLeadCaptureForm({
 }: {
   onSaved?: () => Promise<void>;
 }) {
+  useTranslation();
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState('');
@@ -21,7 +24,9 @@ export default function JobLeadCaptureForm({
     event.preventDefault();
     if (Array.from(text).length > 100000 || Array.from(url).length > 2048) {
       setError(
-        'URL allows up to 2,048 characters; source text allows up to 100,000 characters. Shorten the input before saving.'
+        t(
+          'URL allows up to 2,048 characters; source text allows up to 100,000 characters. Shorten the input before saving.'
+        )
       );
       return;
     }
@@ -32,15 +37,15 @@ export default function JobLeadCaptureForm({
       setOpen(false);
       setUrl('');
       setText('');
-      toast.success('Job lead saved', {
-        label: 'Open',
+      toast.success(t('Job lead saved'), {
+        label: t('Open'),
         to: `/job-leads/${lead.id}`,
       });
       if (lead.content_warning) toast.warning(lead.content_warning);
       try {
         await onSaved?.();
       } catch {
-        toast.error('Lead saved, but the list could not be refreshed.');
+        toast.error(t('Lead saved, but the list could not be refreshed.'));
       }
     } catch (error) {
       const failure = jobLeadError(error);
@@ -61,18 +66,22 @@ export default function JobLeadCaptureForm({
         }}
         className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
       >
-        New Job Lead
+        {t('New Job Lead')}
       </button>
       {open && (
-        <Modal label="New Job Lead" onClose={() => setOpen(false)} busy={busy}>
+        <Modal
+          label={t('New Job Lead')}
+          onClose={() => setOpen(false)}
+          busy={busy}
+        >
           <div className="bg-bg1 mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg p-6">
             <div className="mb-4 flex items-center justify-between gap-2">
               <h2 className="text-primary text-xl font-semibold">
-                New Job Lead
+                {t('New Job Lead')}
               </h2>
               <button
                 type="button"
-                aria-label="Close new job lead"
+                aria-label={t('Close new job lead')}
                 disabled={busy}
                 onClick={() => setOpen(false)}
                 className="text-fg1 hover:bg-bg2 cursor-pointer rounded p-2"
@@ -82,8 +91,9 @@ export default function JobLeadCaptureForm({
             </div>
             <form onSubmit={save} className="space-y-4">
               <p className="text-muted text-sm">
-                Save the link now. You can fill in the details yourself or use
-                AI afterwards.
+                {t(
+                  'Save the link now. You can fill in the details yourself or use AI afterwards.'
+                )}
               </p>
               {error && (
                 <p role="alert" className="text-red-bright">
@@ -95,12 +105,12 @@ export default function JobLeadCaptureForm({
                   className="text-accent underline"
                   to={`/job-leads/${duplicateId}`}
                 >
-                  Open saved lead
+                  {t('Open saved lead')}
                 </Link>
               ) : (
                 <>
                   <label className="block text-sm">
-                    Job URL
+                    {t('Job URL')}
                     <input
                       className="bg-bg2 text-fg1 focus:ring-accent-bright mt-1 w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                       type="url"
@@ -111,7 +121,7 @@ export default function JobLeadCaptureForm({
                     />
                   </label>
                   <label className="block text-sm">
-                    Job description (optional)
+                    {t('Job description (optional)')}
                     <textarea
                       className="bg-bg2 text-fg1 focus:ring-accent-bright mt-1 w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                       rows={5}
@@ -124,7 +134,7 @@ export default function JobLeadCaptureForm({
                     className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
                     disabled={busy}
                   >
-                    {busy ? 'Saving…' : 'Save Lead'}
+                    {busy ? t('Saving…') : t('Save Lead')}
                   </button>
                 </>
               )}

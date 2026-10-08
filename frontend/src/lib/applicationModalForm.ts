@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n';
 import type {
   Application,
   ApplicationCreate,
@@ -66,11 +67,15 @@ function parseSalary(value: string): number | null {
     !digits ||
     (significantDigits && significantDigits.length > decimalPoint)
   ) {
-    throw new Error('Salary must be a whole amount in the selected currency.');
+    throw new Error(
+      t('Salary must be a whole amount in the selected currency.')
+    );
   }
   const salary = Number(value);
   if (!Number.isSafeInteger(salary)) {
-    throw new Error('Salary must be a whole amount in the selected currency.');
+    throw new Error(
+      t('Salary must be a whole amount in the selected currency.')
+    );
   }
   return salary;
 }

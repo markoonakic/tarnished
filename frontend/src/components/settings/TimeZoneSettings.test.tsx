@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from '@/lib/i18n';
 
 const { useUserPreferences, useUpdateUserPreferences, getBrowserTimeZone } =
   vi.hoisted(() => ({
@@ -27,45 +28,53 @@ describe('TimeZoneSettings', () => {
     getBrowserTimeZone.mockReturnValue('Europe/Belgrade');
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup();
+    await i18n.changeLanguage('en');
   });
 
-  it('shows the browser timezone in device mode and can switch to manual', async () => {
-    const mutate = vi.fn();
-    useUserPreferences.mockReturnValue({
-      data: {
-        show_streak_stats: true,
-        show_needs_attention: true,
-        show_heatmap: true,
-        time_zone_mode: 'device',
-        time_zone: null,
-      },
-      isLoading: false,
-      isError: false,
-      refetch: vi.fn(),
-    });
-    useUpdateUserPreferences.mockReturnValue({
-      mutate,
-      isPending: false,
-    });
+  it.each([
+    ['en', 'Europe/Belgrade (device)'],
+    ['sr-Latn', 'Europe/Belgrade (uređaj)'],
+  ])(
+    'shows a compact device label in %s and can switch to manual',
+    async (language, label) => {
+      await i18n.changeLanguage(language);
+      const mutate = vi.fn();
+      useUserPreferences.mockReturnValue({
+        data: {
+          show_streak_stats: true,
+          show_needs_attention: true,
+          show_heatmap: true,
+          time_zone_mode: 'device',
+          time_zone: null,
+        },
+        isLoading: false,
+        isError: false,
+        refetch: vi.fn(),
+      });
+      useUpdateUserPreferences.mockReturnValue({
+        mutate,
+        isPending: false,
+      });
 
-    const { default: TimeZoneSettings } = await import('./TimeZoneSettings');
-    render(<TimeZoneSettings />);
+      const { default: TimeZoneSettings } = await import('./TimeZoneSettings');
+      render(<TimeZoneSettings />);
 
-    expect(screen.getByText('Current device time zone')).toBeInTheDocument();
-    expect(screen.getByText('Europe/Belgrade')).toBeInTheDocument();
+      const input = screen.getByRole('combobox', {
+        name: /time zone|vremenska zona/i,
+      });
+      expect(input).toHaveValue(label);
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: 'Belgrade' } });
+      fireEvent.click(screen.getByRole('option', { name: 'Europe/Belgrade' }));
 
-    fireEvent.click(
-      screen.getByRole('combobox', { name: /time zone source/i })
-    );
-    fireEvent.click(screen.getByRole('option', { name: /set manually/i }));
-
-    expect(mutate).toHaveBeenCalledWith({
-      time_zone_mode: 'manual',
-      time_zone: 'Europe/Belgrade',
-    });
-  });
+      expect(mutate).toHaveBeenCalledWith({
+        time_zone_mode: 'manual',
+        time_zone: 'Europe/Belgrade',
+      });
+    }
+  );
 
   it('updates the manual time zone when selected', async () => {
     const mutate = vi.fn();
@@ -89,7 +98,9 @@ describe('TimeZoneSettings', () => {
     const { default: TimeZoneSettings } = await import('./TimeZoneSettings');
     render(<TimeZoneSettings />);
 
-    const manualTimeZoneInput = screen.getAllByRole('combobox')[1]!;
+    const manualTimeZoneInput = screen.getByRole('combobox', {
+      name: /time zone/i,
+    });
     fireEvent.focus(manualTimeZoneInput);
     fireEvent.change(manualTimeZoneInput, {
       target: { value: 'los' },

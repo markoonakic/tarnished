@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 import { newPasswordError } from '../lib/password';
 import { useState, useEffect } from 'react';
@@ -17,6 +19,7 @@ export default function EditUserModal({
   onSuccess,
   currentUserId,
 }: Props) {
+  useTranslation();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [password, setPassword] = useState('');
@@ -56,7 +59,7 @@ export default function EditUserModal({
       onSuccess();
       onClose();
     } catch {
-      setError('Failed to update user');
+      setError(t('Failed to update user'));
     } finally {
       setLoading(false);
     }
@@ -65,7 +68,11 @@ export default function EditUserModal({
   async function handleDelete() {
     if (loading) return;
     if (
-      !confirm(`Delete user "${user!.email}"? This action cannot be undone.`)
+      !confirm(
+        t('Delete user "{{email}}"? This action cannot be undone.', {
+          email: user!.email,
+        })
+      )
     ) {
       return;
     }
@@ -78,7 +85,7 @@ export default function EditUserModal({
       onSuccess();
       onClose();
     } catch {
-      setError('Failed to delete user');
+      setError(t('Failed to delete user'));
     } finally {
       setLoading(false);
     }
@@ -92,12 +99,12 @@ export default function EditUserModal({
       >
         <div className="border-tertiary flex flex-shrink-0 items-center justify-between border-b p-4">
           <h3 id="edit-modal-title" className="text-primary font-medium">
-            Edit User
+            {t('Edit User')}
           </h3>
           <button
             onClick={onClose}
             disabled={loading}
-            aria-label="Close modal"
+            aria-label={t('Close modal')}
             className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
           >
             <i className="bi bi-x-lg icon-xl" />
@@ -109,7 +116,7 @@ export default function EditUserModal({
           className="flex-1 space-y-4 overflow-y-auto p-6"
         >
           <div className="border-tertiary border-b pb-4">
-            <p className="text-muted text-sm">Email</p>
+            <p className="text-muted text-sm">{t('Email')}</p>
             <p className="text-primary font-medium">{user.email}</p>
           </div>
 
@@ -128,11 +135,11 @@ export default function EditUserModal({
                 disabled={isCurrentUser || loading}
                 className="border-tertiary h-4 w-4 rounded"
               />
-              <span className="text-primary text-sm">Admin</span>
+              <span className="text-primary text-sm">{t('Admin')}</span>
             </label>
             {isCurrentUser && (
               <p className="text-muted mt-1 ml-7 text-xs">
-                You cannot change your own admin status
+                {t('You cannot change your own admin status')}
               </p>
             )}
           </div>
@@ -146,11 +153,11 @@ export default function EditUserModal({
                 disabled={isCurrentUser || loading}
                 className="border-tertiary h-4 w-4 rounded"
               />
-              <span className="text-primary text-sm">Active</span>
+              <span className="text-primary text-sm">{t('Active')}</span>
             </label>
             {isCurrentUser && (
               <p className="text-muted mt-1 ml-7 text-xs">
-                You cannot change your own active status
+                {t('You cannot change your own active status')}
               </p>
             )}
           </div>
@@ -160,7 +167,7 @@ export default function EditUserModal({
               htmlFor="new-password"
               className="text-muted mb-1 block text-sm font-semibold"
             >
-              New Password (optional)
+              {t('New Password (optional)')}
             </label>
             <input
               id="new-password"
@@ -169,18 +176,20 @@ export default function EditUserModal({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-              placeholder="Leave blank to keep current password"
+              placeholder={t('Leave blank to keep current password')}
               autoComplete="new-password"
             />
             {isCurrentUser && (
               <p className="text-muted mt-1 text-xs">
-                Change your own password in Settings → Security.
+                {t('Change your own password in Settings → Security.')}
               </p>
             )}
           </div>
 
           <p className="text-muted text-sm">
-            A password reset signs out browser sessions. API keys stay active.
+            {t(
+              'A password reset signs out browser sessions. API keys stay active.'
+            )}
           </p>
 
           <div className="border-tertiary flex flex-col-reverse justify-between gap-3 border-t pt-4 sm:flex-row sm:items-center">
@@ -191,7 +200,7 @@ export default function EditUserModal({
               className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center justify-center gap-1.5 rounded-md bg-transparent px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
             >
               <i className="bi-trash icon-sm" />
-              Delete
+              {t('Delete')}
             </button>
             <div className="flex gap-3">
               <button
@@ -200,14 +209,14 @@ export default function EditUserModal({
                 disabled={loading}
                 className="text-fg1 hover:bg-bg2 hover:text-fg0 flex-1 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50 sm:flex-initial"
               >
-                Cancel
+                {t('Cancel')}
               </button>
               <button
                 type="submit"
                 disabled={loading || isCurrentUser}
                 className="bg-accent text-bg0 hover:bg-accent-bright flex-1 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50 sm:flex-initial"
               >
-                {loading ? 'Saving...' : 'Save'}
+                {loading ? t('Saving...') : t('Save')}
               </button>
             </div>
           </div>

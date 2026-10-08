@@ -1,3 +1,6 @@
+import { t, locale } from '@/lib/i18n';
+import { errorMessage } from '@/lib/errorMessage';
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { observeRead } from '../lib/queryClient';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -21,11 +24,13 @@ import Layout from '../components/Layout';
 import ConvertToApplicationModal from '../components/ConvertToApplicationModal';
 
 export default function JobLeadDetail() {
+  useTranslation();
   const { id } = useParams<{ id: string }>();
   return <JobLeadDetailContent key={id} id={id!} />;
 }
 
 function JobLeadDetailContent({ id }: { id: string }) {
+  useTranslation();
   const requestId = useRef(0);
   const navigate = useNavigate();
   const toast = useToastContext();
@@ -50,8 +55,9 @@ function JobLeadDetailContent({ id }: { id: string }) {
     } catch (error) {
       if (ownedRequest !== requestId.current) return;
       setStale(true);
-      const errorMsg =
-        'Failed to load current job lead. Any displayed data may be stale; reload before making changes.';
+      const errorMsg = t(
+        'Failed to load current job lead. Any displayed data may be stale; reload before making changes.'
+      );
       setError(errorMsg);
       showError(errorMsg);
       return { error };
@@ -70,13 +76,13 @@ function JobLeadDetailContent({ id }: { id: string }) {
   }, [loadJobLead]);
 
   async function handleDelete() {
-    if (!confirm('Are you sure you want to delete this job lead?')) return;
+    if (!confirm(t('Are you sure you want to delete this job lead?'))) return;
     try {
       await deleteJobLead(id!);
-      toast.success('Job lead deleted');
+      toast.success(t('Job lead deleted'));
       navigate('/job-leads');
     } catch {
-      const errorMsg = 'Failed to delete job lead';
+      const errorMsg = t('Failed to delete job lead');
       setError(errorMsg);
       showError(errorMsg);
     }
@@ -88,8 +94,12 @@ function JobLeadDetailContent({ id }: { id: string }) {
     if (
       !confirm(
         restarting
-          ? 'The previous request may still be running or have been billed. Restarting may repeat paid work. Explicitly replace it?'
-          : 'Send this job posting to the configured AI service to fill in its details? Charges may apply.'
+          ? t(
+              'The previous request may still be running or have been billed. Restarting may repeat paid work. Explicitly replace it?'
+            )
+          : t(
+              'Send this job posting to the configured AI service to fill in its details? Charges may apply.'
+            )
       )
     )
       return;
@@ -105,11 +115,13 @@ function JobLeadDetailContent({ id }: { id: string }) {
         restart_processing: restarting,
       });
       setJobLead(updated);
-      toast.success('Extraction completed');
+      toast.success(t('Extraction completed'));
     } catch (error) {
       const failure = jobLeadError(error);
       setError(
-        `Your job lead is saved. ${failure.message} Reload before trying again.`
+        t('Your job lead is saved. {{message}} Reload before trying again.', {
+          message: failure.message,
+        })
       );
       setStale(true);
       // A failed/uncertain request may have advanced the revision. Never replay it.
@@ -125,13 +137,13 @@ function JobLeadDetailContent({ id }: { id: string }) {
   }
 
   async function handleConverted(applicationId: string) {
-    toast.success('Job lead converted to application');
+    toast.success(t('Job lead converted to application'));
     navigate(`/applications/${applicationId}`);
   }
 
   function formatDateTime(dateStr: string | null) {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString();
+    return new Date(dateStr).toLocaleString(locale());
   }
 
   function getSourceBadge(source: string | null) {
@@ -148,7 +160,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
     return (
       <Layout>
         <div className="flex items-center justify-center py-20">
-          <div className="text-muted">Loading...</div>
+          <div className="text-muted">{t('Loading...')}</div>
         </div>
       </Layout>
     );
@@ -159,15 +171,15 @@ function JobLeadDetailContent({ id }: { id: string }) {
       <Layout>
         <div className="flex items-center justify-center py-20">
           <div role="alert" className="text-red-bright">
-            {error || 'Job lead not found'}
+            {error || t('Job lead not found')}
             <button
               className="text-accent ml-3 underline"
               onClick={loadJobLead}
             >
-              Reload saved lead
+              {t('Reload saved lead')}
             </button>
             <Link className="text-accent ml-3 underline" to="/job-leads">
-              Back to Job Leads
+              {t('Back to Job Leads')}
             </Link>
           </div>
         </div>
@@ -189,7 +201,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
             to="/job-leads"
             className="text-accent hover:text-accent-bright cursor-pointer transition-all duration-200 ease-in-out"
           >
-            &larr; Back to Job Leads
+            {t('← Back to Job Leads')}
           </Link>
         </div>
 
@@ -209,14 +221,16 @@ function JobLeadDetailContent({ id }: { id: string }) {
             className="text-accent mb-4 underline"
             onClick={loadJobLead}
           >
-            Reload saved lead
+            {t('Reload saved lead')}
           </button>
         )}
         {(extracting || jobLead.status === 'processing') && (
           <p role="status" className="text-yellow mb-4">
             {extracting
-              ? 'Filling in job details…'
-              : 'Extraction has not finished. Reload to check before trying again.'}
+              ? t('Filling in job details…')
+              : t(
+                  'Extraction has not finished. Reload to check before trying again.'
+                )}
           </p>
         )}
         {editing && (
@@ -238,12 +252,12 @@ function JobLeadDetailContent({ id }: { id: string }) {
             <div className="flex-1">
               <div className="mb-1 flex flex-wrap items-center gap-2">
                 <h1 className="text-primary text-2xl font-bold">
-                  {jobLead.company || 'Unknown Company'}
+                  {jobLead.company || t('Unknown Company')}
                 </h1>
                 {getSourceBadge(jobLead.source)}
               </div>
               <p className="text-secondary text-xl">
-                {jobLead.title || 'Untitled Position'}
+                {jobLead.title || t('Untitled Position')}
               </p>
               {jobLead.location && (
                 <p className="text-muted mt-1 flex items-center gap-1 text-sm">
@@ -257,7 +271,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
                 className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${getJobLeadStatusBadgeClass(jobLead.status)}`}
               >
                 <span className="h-2 w-2 rounded-full bg-current" />
-                {extracting ? 'Last saved status: ' : ''}
+                {extracting ? `${t('Last saved status:')} ` : ''}
                 {getJobLeadStatusLabel(jobLead.status)}
               </span>
               {isConverted && (
@@ -265,7 +279,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
                   to={`/applications/${jobLead.converted_to_application_id}`}
                   className="text-accent hover:text-accent-bright cursor-pointer text-sm transition-all duration-200 ease-in-out"
                 >
-                  View Application &rarr;
+                  {t('View Application →')}
                 </Link>
               )}
             </div>
@@ -273,16 +287,16 @@ function JobLeadDetailContent({ id }: { id: string }) {
 
           <div className="mb-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
             <div>
-              <span className="text-muted">Saved:</span>
+              <span className="text-muted">{t('Saved:')}</span>
               <span className="text-primary ml-2">
                 {formatDateTime(jobLead.scraped_at)}
               </span>
             </div>
             {jobLead.posted_date && (
               <div>
-                <span className="text-muted">Posted:</span>
+                <span className="text-muted">{t('Posted:')}</span>
                 <span className="text-primary ml-2">
-                  {new Date(jobLead.posted_date).toLocaleDateString(undefined, {
+                  {new Date(jobLead.posted_date).toLocaleDateString(locale(), {
                     timeZone: 'UTC',
                   })}
                 </span>
@@ -298,7 +312,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
                 rel="noopener noreferrer"
                 className="text-accent hover:text-accent-bright cursor-pointer text-sm transition-all duration-200 ease-in-out"
               >
-                Open Job Page &rarr;
+                {t('Open Job Page →')}
               </a>
             </div>
           )}
@@ -307,24 +321,36 @@ function JobLeadDetailContent({ id }: { id: string }) {
             <div className="bg-red-bright/10 border-red-bright/30 mb-4 rounded-lg border p-4">
               <h3 className="text-red-bright mb-2 flex items-center gap-1.5 text-sm">
                 <i className="bi-exclamation-triangle icon-sm"></i>
-                {extracting ? 'Previous extraction error' : 'Extraction Error'}
+                {extracting
+                  ? t('Previous extraction error')
+                  : t('Extraction Error')}
               </h3>
-              <p className="text-red-bright text-sm">{jobLead.error_message}</p>
+              <p className="text-red-bright text-sm">
+                {errorMessage({ code: jobLead.error_code })}
+              </p>
             </div>
           )}
 
           {(jobLead.source_text || jobLead.content_warning) && (
             <details className="bg-bg2 mb-4 rounded-lg p-4">
               <summary className="text-primary cursor-pointer">
-                Saved posting
+                {t('Saved posting')}
               </summary>
               {jobLead.source_truncated && (
                 <p className="text-muted my-2 text-sm">
-                  Only part of the posting was saved.
+                  {t('Only part of the posting was saved.')}
                 </p>
               )}
               {jobLead.content_warning && (
-                <p className="text-yellow mb-2">{jobLead.content_warning}</p>
+                <p className="text-yellow mb-2">
+                  {t(
+                    jobLead.content_warning_code === 'source_missing'
+                      ? 'No useful source text was captured. Explicit extraction will attempt to fetch the URL.'
+                      : jobLead.content_warning_code === 'source_normalized'
+                        ? 'Source text was normalized for storage. Check the saved posting.'
+                        : 'The saved source may be incomplete. Check the posting text.'
+                  )}
+                </p>
               )}
               <pre className="text-primary max-h-96 overflow-auto text-sm break-words whitespace-pre-wrap">
                 {jobLead.source_text}
@@ -337,7 +363,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
             <div className="bg-bg2 mb-4 rounded-lg p-4">
               <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                 <i className="bi-file-text icon-sm"></i>
-                Description
+                {t('Description')}
               </h3>
               <div className="text-primary text-sm break-words whitespace-pre-wrap">
                 {jobLead.description}
@@ -350,7 +376,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
             <div className="bg-bg2 mb-4 rounded-lg p-4">
               <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                 <i className="bi-currency-dollar icon-sm"></i>
-                Salary Range
+                {t('Salary Range')}
               </h3>
               <p className="text-primary font-medium">
                 {formatSalaryRange(
@@ -369,7 +395,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
             <div className="bg-bg2 mb-4 rounded-lg p-4">
               <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                 <i className="bi-person icon-sm"></i>
-                Recruiter
+                {t('Recruiter')}
               </h3>
               <div className="space-y-1">
                 {jobLead.recruiter_name && (
@@ -394,7 +420,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
                     className="text-accent hover:text-accent-bright flex cursor-pointer items-center gap-1 text-sm transition-all duration-200 ease-in-out"
                   >
                     <i className="bi-linkedin icon-sm"></i>
-                    LinkedIn Profile
+                    {t('LinkedIn Profile')}
                   </a>
                 )}
               </div>
@@ -407,7 +433,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
               <div className="bg-bg2 mb-4 rounded-lg p-4">
                 <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                   <i className="bi-check-circle icon-sm"></i>
-                  Must-Have Requirements
+                  {t('Must-Have Requirements')}
                 </h3>
                 <ul className="text-primary list-inside list-disc space-y-1">
                   {jobLead.requirements_must_have.map((req) => (
@@ -425,7 +451,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
               <div className="bg-bg2 mb-4 rounded-lg p-4">
                 <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                   <i className="bi-star icon-sm"></i>
-                  Nice-to-Have Requirements
+                  {t('Nice-to-Have Requirements')}
                 </h3>
                 <ul className="text-primary list-inside list-disc space-y-1">
                   {jobLead.requirements_nice_to_have.map((req) => (
@@ -442,7 +468,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
             <div className="bg-bg2 mb-4 rounded-lg p-4">
               <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                 <i className="bi-lightning icon-sm"></i>
-                Skills
+                {t('Skills')}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {jobLead.skills.map((skill) => (
@@ -463,7 +489,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
             <div className="bg-bg2 mb-4 rounded-lg p-4">
               <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
                 <i className="bi-clock-history icon-sm"></i>
-                Experience Required
+                {t('Experience Required')}
               </h3>
               <p className="text-primary font-medium">
                 {formatExperienceRange(
@@ -482,12 +508,12 @@ function JobLeadDetailContent({ id }: { id: string }) {
                 onClick={() => setEditing(true)}
               >
                 <i className="bi-pencil icon-sm" aria-hidden="true" />
-                Edit
+                {t('Edit')}
               </button>
             )}
             {!canConvert && !isConverted && (
               <p className="text-muted text-sm">
-                Add a company and job title to convert this lead.
+                {t('Add a company and job title to convert this lead.')}
               </p>
             )}
             {canConvert && (
@@ -497,7 +523,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
                 className="bg-aqua text-bg0 hover:bg-aqua-bright flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <i className="bi-arrow-repeat icon-sm"></i>
-                Convert to Application
+                {t('Convert to Application')}
               </button>
             )}
             {!isConverted && (
@@ -508,12 +534,12 @@ function JobLeadDetailContent({ id }: { id: string }) {
               >
                 <i className="bi-arrow-clockwise icon-sm"></i>
                 {extracting
-                  ? 'Extracting…'
+                  ? t('Extracting…')
                   : jobLead.status === 'processing'
-                    ? 'Restart interrupted extraction'
+                    ? t('Restart interrupted extraction')
                     : jobLead.status === 'failed'
-                      ? 'Retry Extraction'
-                      : 'Extract with AI'}
+                      ? t('Retry Extraction')
+                      : t('Extract with AI')}
               </button>
             )}
             <button
@@ -521,7 +547,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
               className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
             >
               <i className="bi-trash icon-sm"></i>
-              Delete
+              {t('Delete')}
             </button>
           </div>
         </div>

@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 import { newPasswordError } from '../lib/password';
 import { useState, useEffect } from 'react';
@@ -10,6 +12,7 @@ interface Props {
 }
 
 export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
+  useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -42,7 +45,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
       onSuccess();
       onClose();
     } catch {
-      setError('Failed to create user. Email may already be in use.');
+      setError(t('Failed to create user. Email may already be in use.'));
     } finally {
       setLoading(false);
     }
@@ -56,12 +59,12 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
       >
         <div className="border-tertiary flex flex-shrink-0 items-center justify-between border-b p-4">
           <h3 id="modal-title" className="text-primary font-medium">
-            Create User
+            {t('Create User')}
           </h3>
           <button
             onClick={onClose}
             disabled={loading}
-            aria-label="Close modal"
+            aria-label={t('Close modal')}
             className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
           >
             <i className="bi bi-x-lg icon-xl" />
@@ -83,7 +86,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
               htmlFor="create-email"
               className="text-muted mb-1 block text-sm font-semibold"
             >
-              Email <span className="text-red-bright">*</span>
+              {t('Email')} <span className="text-red-bright">*</span>
             </label>
             <input
               id="create-email"
@@ -101,7 +104,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
               htmlFor="create-password"
               className="text-muted mb-1 block text-sm font-semibold"
             >
-              Password <span className="text-red-bright">*</span>
+              {t('Password')} <span className="text-red-bright">*</span>
             </label>
             <input
               id="create-password"
@@ -116,8 +119,9 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
           </div>
 
           <p className="text-muted text-sm">
-            Password resets invalidate all browser sessions and signed links,
-            not API keys.
+            {t(
+              'Password resets invalidate all browser sessions and signed links, not API keys.'
+            )}
           </p>
 
           <div className="border-tertiary flex justify-end gap-3 border-t pt-4">
@@ -127,14 +131,14 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
               disabled={loading}
               className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
             >
-              Cancel
+              {t('Cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
               className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
             >
-              {loading ? 'Creating...' : 'Create'}
+              {loading ? t('Creating...') : t('Create')}
             </button>
           </div>
         </form>

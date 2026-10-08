@@ -1,3 +1,5 @@
+import { t, locale } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import SankeyChart from '../components/SankeyChart';
@@ -15,6 +17,7 @@ import { ScopedReportContent } from '../components/ScopedReport';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 export default function Analytics() {
+  useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const period = searchParams.get('period') || '7d';
   const asOf = searchParams.get('as_of') || undefined;
@@ -36,7 +39,7 @@ export default function Analytics() {
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex flex-wrap items-center gap-4">
-            <h1 className="text-fg1 text-2xl font-bold">Analytics</h1>
+            <h1 className="text-fg1 text-2xl font-bold">{t('Analytics')}</h1>
             <SeekGraceButton
               loading={feedback.starting || feedback.running}
               disabled={feedback.disabled}
@@ -55,7 +58,7 @@ export default function Analytics() {
         </div>
         {asOf && (
           <p className="text-muted mb-4 text-sm">
-            History through {new Date(asOf).toLocaleString()}.
+            {t('History through')} {new Date(asOf).toLocaleString(locale())}.
             <button
               className="text-accent hover:text-accent-bright ml-2 cursor-pointer rounded px-3 py-1.5 transition-all duration-200 ease-in-out"
               onClick={() => {
@@ -64,7 +67,7 @@ export default function Analytics() {
                 setSearchParams(next);
               }}
             >
-              Show current data
+              {t('Show current data')}
             </button>
           </p>
         )}
@@ -75,28 +78,30 @@ export default function Analytics() {
             onClick={() => setShowFeedback(true)}
           >
             {feedback.running || feedback.starting
-              ? 'View feedback progress'
-              : 'View saved feedback'}
+              ? t('View feedback progress')
+              : t('View saved feedback')}
           </button>
         )}
         {showFeedback && (
           <div className="mb-6">
             <ScopedReportContent
-              title="Pipeline feedback"
+              title={t('Pipeline feedback')}
               scope="PIPELINE"
               period={period}
               feedback={feedback}
               hideAction
               onClose={() => setShowFeedback(false)}
               requestLabel="pipeline feedback"
-              emptyHint="No feedback yet. Choose a period, then Seek Grace for suggestions from your saved job-search records."
+              emptyHint={t(
+                'No feedback yet. Choose a period, then Seek Grace for suggestions from your saved job-search records.'
+              )}
             />
           </div>
         )}
         <div className="space-y-6">
           <section>
             <h2 className="text-fg1 mb-4 text-lg font-semibold">
-              Pipeline Overview
+              {t('Pipeline Overview')}
             </h2>
             <div className="bg-bg1 mb-4 rounded-lg p-6">
               <AnalyticsKPIs period={period} asOf={asOf} />
@@ -107,7 +112,7 @@ export default function Analytics() {
           </section>
           <section>
             <h2 className="text-fg1 mb-4 text-lg font-semibold">
-              Interview Analytics
+              {t('Interview Analytics')}
             </h2>
             <div className="space-y-6">
               <div className="bg-bg1 rounded-lg p-6">
@@ -123,7 +128,7 @@ export default function Analytics() {
           </section>
           <section>
             <h2 className="text-fg1 mb-4 text-lg font-semibold">
-              Activity Tracking
+              {t('Activity Tracking')}
             </h2>
             <div className="bg-bg1 mb-4 rounded-lg p-6">
               <WeeklyActivityChart period={period} asOf={asOf} />

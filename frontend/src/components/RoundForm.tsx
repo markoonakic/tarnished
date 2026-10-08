@@ -1,3 +1,6 @@
+import { t } from '@/lib/i18n';
+import { roundTypeLabel } from '@/lib/referenceLabels';
+import { useTranslation } from 'react-i18next';
 import FileButton from './FileButton';
 import { observeRead } from '../lib/queryClient';
 import { useState, useEffect, useCallback } from 'react';
@@ -28,19 +31,20 @@ interface Props {
 }
 
 export default function RoundForm(props: Props) {
+  useTranslation();
   const preferences = useUserPreferences();
   if (!preferences.data) {
     return (
       <div role="status">
         {preferences.isError
-          ? 'Failed to load time zone preferences. Reopen the form to retry.'
-          : 'Loading time zone preferences...'}
+          ? t('Failed to load time zone preferences. Reopen the form to retry.')
+          : t('Loading time zone preferences...')}
         <button
           type="button"
           className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-3 py-2"
           onClick={props.onCancel}
         >
-          Cancel
+          {t('Cancel')}
         </button>
       </div>
     );
@@ -49,13 +53,13 @@ export default function RoundForm(props: Props) {
   if (!timeZone)
     return (
       <div role="alert">
-        Set a time zone in Settings before editing round dates.
+        {t('Set a time zone in Settings before editing round dates.')}
         <button
           type="button"
           className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-3 py-2"
           onClick={props.onCancel}
         >
-          Cancel
+          {t('Cancel')}
         </button>
       </div>
     );
@@ -79,6 +83,7 @@ function RoundFormFields({
   timeZone,
   onTimeZoneConflict,
 }: Props & { timeZone: string; onTimeZoneConflict: () => void }) {
+  useTranslation();
   const isEditing = Boolean(round);
   const [roundTypes, setRoundTypes] = useState<RoundType[]>([]);
   const [loading, setLoading] = useState(false);
@@ -130,7 +135,7 @@ function RoundFormFields({
         setRoundTypeId(defaultType.id);
       }
     } catch (error) {
-      setError('Failed to load round types');
+      setError(t('Failed to load round types'));
       return { error };
     }
   }, [isEditing]);
@@ -161,13 +166,15 @@ function RoundFormFields({
     e.preventDefault();
     if (timeZoneChanged) return;
     if (!roundTypeId) {
-      setError('Please select a round type');
+      setError(t('Please select a round type'));
       return;
     }
 
     if (mediaFile && mediaFile.size > 1_000_000_000) {
       setError(
-        'Recording exceeds 1,000,000,000 bytes. Choose a smaller recording; your draft is kept.'
+        t(
+          'Recording exceeds 1,000,000,000 bytes. Choose a smaller recording; your draft is kept.'
+        )
       );
       return;
     }
@@ -248,8 +255,12 @@ function RoundFormFields({
           setUploadProgress(0);
           setError(
             isAxiosError(error) && error.response?.status === 409
-              ? 'Round saved, but transcript upload conflicted. Retrying cannot resolve this conflict. Close and reopen the round, then review the current transcript before selecting a file and saving again.'
-              : 'Round saved, but transcript upload failed. Retry to upload to this same round, or close and keep the saved round.'
+              ? t(
+                  'Round saved, but transcript upload conflicted. Retrying cannot resolve this conflict. Close and reopen the round, then review the current transcript before selecting a file and saving again.'
+                )
+              : t(
+                  'Round saved, but transcript upload failed. Retry to upload to this same round, or close and keep the saved round.'
+                )
           );
           return;
         }
@@ -272,8 +283,20 @@ function RoundFormFields({
             : null;
           setError(
             isAxiosError(error) && error.response?.status === 409
-              ? 'Round saved, but recordings changed. Retrying cannot resolve this conflict. Close and review recordings before reopening and selecting a file again. Your pending file and draft are kept while this form stays open.'
-              : `Round saved, but recording upload failed. ${typeof detail === 'string' ? detail : 'Check current recordings before retrying; a lost response may mean the upload succeeded.'} Retry uses this same round. Selected file and other draft fields are kept.`
+              ? t(
+                  'Round saved, but recordings changed. Retrying cannot resolve this conflict. Close and review recordings before reopening and selecting a file again. Your pending file and draft are kept while this form stays open.'
+                )
+              : t(
+                  'Round saved, but recording upload failed. {{value0}} Retry uses this same round. Selected file and other draft fields are kept.',
+                  {
+                    value0:
+                      typeof detail === 'string'
+                        ? detail
+                        : t(
+                            'Check current recordings before retrying; a lost response may mean the upload succeeded.'
+                          ),
+                  }
+                )
           );
           return;
         }
@@ -289,7 +312,7 @@ function RoundFormFields({
           ? detail
           : error instanceof Error
             ? error.message
-            : 'Failed to save round. Please check your inputs.'
+            : t('Failed to save round. Please check your inputs.')
       );
     } finally {
       setLoading(false);
@@ -299,36 +322,39 @@ function RoundFormFields({
   return (
     <form onSubmit={handleSubmit} className="bg-bg2 rounded-lg p-4">
       <h3 className="text-primary mb-4 font-medium">
-        {round ? 'Edit Round' : 'New Round'}
+        {round ? t('Edit Round') : t('New Round')}
       </h3>
 
       <p className="text-muted mb-2 text-sm">
-        Dates and times use {dateTimeBaseline.timeZone}.
+        {t('Dates and times use')} {dateTimeBaseline.timeZone}.
       </p>
       <details className="text-muted mb-4 text-xs">
-        <summary className="cursor-pointer">Clock changes</summary>
-        During a repeated daylight-saving hour, an edited time uses the first
-        occurrence.
+        <summary className="cursor-pointer">{t('Clock changes')}</summary>
+        {t(
+          'During a repeated daylight-saving hour, an edited time uses the first occurrence.'
+        )}
       </details>
       {timeZoneChanged && (
         <div role="alert" className="text-muted mb-4 text-sm">
-          Your time zone changed to {timeZone}. Before saving, reload saved
-          dates in this zone. This discards unsaved date/time edits only; other
-          edits and any saved round are kept.
+          {t('Your time zone changed to')} {timeZone}
+          {t(
+            '. Before saving, reload saved dates in this zone. This discards unsaved date/time edits only; other edits and any saved round are kept.'
+          )}
           <button
             type="button"
             disabled={loading}
             onClick={reloadDates}
             className="text-fg1 hover:bg-bg3 cursor-pointer rounded px-3 py-2 transition-colors disabled:opacity-50"
           >
-            Reload saved dates in {timeZone}
+            {t('Reload saved dates in')} {timeZone}
           </button>
         </div>
       )}
       {persistedRound && (
         <p role="status" className="text-muted mb-4 text-sm">
-          Round saved. Closing keeps this record; any unsaved changes or pending
-          transcript or recording are not saved.
+          {t(
+            'Round saved. Closing keeps this record; any unsaved changes or pending transcript or recording are not saved.'
+          )}
         </p>
       )}
       {error && (
@@ -349,20 +375,20 @@ function RoundFormFields({
             htmlFor="round-type"
             className="text-muted mb-1 block text-sm font-semibold"
           >
-            Round Type
+            {t('Round Type')}
           </label>
           <Dropdown
             id="round-type"
             options={[
-              { value: '', label: 'Select type' },
+              { value: '', label: t('Select type') },
               ...roundTypes.map((type) => ({
                 value: type.id,
-                label: type.name,
+                label: roundTypeLabel(type),
               })),
             ]}
             value={roundTypeId}
             onChange={(value) => setRoundTypeId(value)}
-            placeholder="Select type"
+            placeholder={t('Select type')}
             containerBackground="bg2"
           />
         </div>
@@ -372,7 +398,7 @@ function RoundFormFields({
             htmlFor="scheduled-date"
             className="text-muted mb-1 block text-sm font-semibold"
           >
-            Scheduled Date
+            {t('Scheduled Date')}
           </label>
           <input
             id="scheduled-date"
@@ -388,14 +414,14 @@ function RoundFormFields({
             htmlFor="scheduled-time"
             className="text-muted mb-1 block text-sm font-semibold"
           >
-            Time (optional)
+            {t('Time (optional)')}
           </label>
           <input
             id="scheduled-time"
             type="text"
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
-            placeholder="e.g. 2:30 PM"
+            placeholder={t('e.g. 2:30 PM')}
             className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
           />
         </div>
@@ -407,19 +433,19 @@ function RoundFormFields({
                 htmlFor="round-outcome"
                 className="text-muted mb-1 block text-sm font-semibold"
               >
-                Outcome
+                {t('Outcome')}
               </label>
               <Dropdown
                 id="round-outcome"
                 options={[
-                  { value: '', label: 'Pending' },
-                  { value: 'passed', label: 'Passed' },
-                  { value: 'failed', label: 'Failed' },
-                  { value: 'cancelled', label: 'Cancelled' },
+                  { value: '', label: t('Pending') },
+                  { value: 'passed', label: t('Passed') },
+                  { value: 'failed', label: t('Failed') },
+                  { value: 'cancelled', label: t('Cancelled') },
                 ]}
                 value={outcome}
                 onChange={(value) => setOutcome(value)}
-                placeholder="Pending"
+                placeholder={t('Pending')}
                 containerBackground="bg2"
               />
             </div>
@@ -429,7 +455,7 @@ function RoundFormFields({
                 htmlFor="completed-date"
                 className="text-muted mb-1 block text-sm font-semibold"
               >
-                Completed Date
+                {t('Completed Date')}
               </label>
               <input
                 id="completed-date"
@@ -445,14 +471,14 @@ function RoundFormFields({
                 htmlFor="completed-time"
                 className="text-muted mb-1 block text-sm font-semibold"
               >
-                Time (optional)
+                {t('Time (optional)')}
               </label>
               <input
                 id="completed-time"
                 type="text"
                 value={completedTime}
                 onChange={(e) => setCompletedTime(e.target.value)}
-                placeholder="e.g. 2:30 PM"
+                placeholder={t('e.g. 2:30 PM')}
                 className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
             </div>
@@ -464,21 +490,21 @@ function RoundFormFields({
             htmlFor="round-notes"
             className="text-muted mb-1 block text-sm font-semibold"
           >
-            Notes
+            {t('Notes')}
           </label>
           <textarea
             id="round-notes"
             value={notesSummary}
             onChange={(e) => setNotesSummary(e.target.value)}
             rows={3}
-            placeholder="Key points, questions asked, feedback..."
+            placeholder={t('Key points, questions asked, feedback...')}
             className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
           />
         </div>
 
         <div className="sm:col-span-2">
           <span className="text-muted mb-1 block text-sm font-semibold">
-            Transcript (TXT/SRT/VTT or document attachment)
+            {t('Transcript (TXT/SRT/VTT or document attachment)')}
           </span>
           <FileButton
             accept=".pdf,.docx,.doc,.txt,.md,.rtf,.srt,.vtt"
@@ -486,7 +512,7 @@ function RoundFormFields({
             className="text-fg1 hover:bg-bg3 hover:text-fg0 flex w-fit cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
           >
             <i className="bi-upload icon-sm"></i>
-            {transcriptFile ? transcriptFile.name : 'Choose transcript...'}
+            {transcriptFile ? transcriptFile.name : t('Choose transcript...')}
           </FileButton>
           {uploadProgress > 0 && uploadProgress < 100 && (
             <div className="mt-2">
@@ -500,7 +526,7 @@ function RoundFormFields({
             <div className="bg-secondary border-tertiary mt-2 flex items-center gap-2 rounded border p-2">
               <i className="bi-file-text icon-md text-red-bright"></i>
               <span className="text-primary truncate text-sm">
-                Current:{' '}
+                {t('Current:')}{' '}
                 {round.transcript_original_filename ||
                   round.transcript_path.split('/').pop()}
               </span>
@@ -510,12 +536,12 @@ function RoundFormFields({
 
         <div className="sm:col-span-2">
           <span className="text-muted mb-1 block text-sm font-semibold">
-            Recording
+            {t('Recording')}
           </span>
           <p className="text-muted text-sm">
-            Audio or video, up to 1 GB and two hours. Uploading does not start
-            transcription; choose Transcribe when ready. MP4/WebM/MOV with audio
-            or MP3/M4A/WAV/OGG.
+            {t(
+              'Audio or video, up to 1 GB and two hours. Uploading does not start transcription; choose Transcribe when ready. MP4/WebM/MOV with audio or MP3/M4A/WAV/OGG.'
+            )}
           </p>
           <FileButton
             accept=".mp4,.webm,.mov,.mp3,.m4a,.wav,.ogg"
@@ -528,7 +554,7 @@ function RoundFormFields({
             }}
             className="text-fg1 hover:bg-bg3 cursor-pointer rounded px-3 py-2 transition-colors disabled:opacity-50"
           >
-            {mediaFile ? mediaFile.name : 'Choose recording...'}
+            {mediaFile ? mediaFile.name : t('Choose recording...')}
           </FileButton>
           {mediaFile && (
             <button
@@ -536,7 +562,7 @@ function RoundFormFields({
               onClick={() => setMediaFile(null)}
               className="text-fg1 hover:bg-bg3 cursor-pointer rounded px-3 py-2 transition-colors"
             >
-              Remove pending recording
+              {t('Remove pending recording')}
             </button>
           )}
         </div>
@@ -546,14 +572,16 @@ function RoundFormFields({
             htmlFor="transcript-summary"
             className="text-muted mb-1 block text-sm font-semibold"
           >
-            Transcript Summary
+            {t('Transcript Summary')}
           </label>
           <textarea
             id="transcript-summary"
             value={transcriptSummary}
             onChange={(e) => setTranscriptSummary(e.target.value)}
             rows={3}
-            placeholder="Summary of key discussion points from transcript..."
+            placeholder={t(
+              'Summary of key discussion points from transcript...'
+            )}
             className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
           />
         </div>
@@ -566,7 +594,7 @@ function RoundFormFields({
           onClick={() => (persistedRound ? onSave(persistedRound) : onCancel())}
           className="text-fg1 hover:bg-bg3 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
         >
-          {persistedRound ? 'Close (round saved)' : 'Cancel'}
+          {persistedRound ? t('Close (round saved)') : t('Cancel')}
         </button>
         <button
           type="submit"
@@ -574,12 +602,12 @@ function RoundFormFields({
           className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
         >
           {loading
-            ? 'Saving...'
+            ? t('Saving...')
             : persistedRound && (transcriptFile || mediaFile)
-              ? 'Retry save and upload'
+              ? t('Retry save and upload')
               : isEditing || persistedRound
-                ? 'Save'
-                : 'Add Round'}
+                ? t('Save')
+                : t('Add Round')}
         </button>
       </div>
     </form>

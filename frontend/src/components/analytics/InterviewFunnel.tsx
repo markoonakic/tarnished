@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { roundTypeLabel } from '@/lib/referenceLabels';
 import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
@@ -22,6 +24,7 @@ export default function InterviewFunnel({
   roundType,
   asOf,
 }: InterviewFunnelProps) {
+  const { t } = useTranslation();
   const {
     data: analytics,
     isLoading,
@@ -41,7 +44,18 @@ export default function InterviewFunnel({
       const dataIndex = p.dataIndex as number;
       const item = data[dataIndex];
       if (!item) return '';
-      return `${item.round}\nCount: ${item.count}\nPassed: ${item.passed}\nPassed / recorded rounds: ${item.conversion_rate}%`;
+      return t(
+        '{{round}}\nCount: {{count}}\nPassed: {{passed}}\nPassed / recorded rounds: {{conversion_rate}}%',
+        {
+          round: roundTypeLabel({
+            name: item.round,
+            builtin_key: item.builtin_key,
+          }),
+          count: item.count,
+          passed: item.passed,
+          conversion_rate: item.conversion_rate,
+        }
+      );
     };
 
     const labelFormatter = (
@@ -52,7 +66,18 @@ export default function InterviewFunnel({
       const dataIndex = p.dataIndex as number;
       const item = data[dataIndex];
       if (!item) return `${p.name}: ${p.value}`;
-      return `${item.round}: ${item.count}\n(${item.passed} passed - ${item.conversion_rate}%)`;
+      return t(
+        '{{round}}: {{count}}\n({{passed}} passed - {{conversion_rate}}%)',
+        {
+          round: roundTypeLabel({
+            name: item.round,
+            builtin_key: item.builtin_key,
+          }),
+          count: item.count,
+          passed: item.passed,
+          conversion_rate: item.conversion_rate,
+        }
+      );
     };
 
     return {
@@ -105,23 +130,26 @@ export default function InterviewFunnel({
 
             return {
               value: d.count,
-              name: d.round,
+              name: roundTypeLabel({
+                name: d.round,
+                builtin_key: d.builtin_key,
+              }),
               itemStyle: { color },
             };
           }),
         },
       ],
     };
-  }, [data, colors]);
+  }, [data, colors, t]);
 
   if (isLoading) {
-    return <Loading message="Loading interview funnel..." size="sm" />;
+    return <Loading message={t('Loading interview funnel...')} size="sm" />;
   }
 
   if (isError) {
     return (
       <div className="text-red-bright py-8 text-center">
-        Failed to load interview funnel data
+        {t('Failed to load interview funnel data')}
       </div>
     );
   }
@@ -129,8 +157,10 @@ export default function InterviewFunnel({
   if (data.length === 0) {
     return (
       <EmptyState
-        message="No interview data available"
-        subMessage="Add interview rounds to your applications to see conversion funnel analytics"
+        message={t('No interview data available')}
+        subMessage={t(
+          'Add interview rounds to your applications to see conversion funnel analytics'
+        )}
         icon="bi-funnel"
       />
     );
@@ -139,9 +169,11 @@ export default function InterviewFunnel({
   return (
     <div className="w-full overflow-x-auto">
       <p className="text-fg4 mb-4 flex items-center gap-2 text-sm">
-        Interview rounds by type
-        <HelpTip label="About interview rounds">
-          <p>Percentages show the share of recorded rounds that passed.</p>
+        {t('Interview rounds by type')}
+        <HelpTip label={t('About interview rounds')}>
+          <p>
+            {t('Percentages show the share of recorded rounds that passed.')}
+          </p>
         </HelpTip>
       </p>
       <ReactECharts

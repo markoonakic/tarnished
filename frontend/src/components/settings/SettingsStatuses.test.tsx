@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -8,6 +9,7 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import SettingsStatuses from './SettingsStatuses';
+import i18n from '@/lib/i18n';
 import { createStatus, updateStatus } from '@/lib/settings';
 vi.mock('@/hooks/useThemeColors', () => ({ useThemeColors: () => ({}) }));
 vi.mock('@/lib/settings', () => ({
@@ -24,8 +26,28 @@ vi.mock('@/lib/settings', () => ({
   updateStatus: vi.fn().mockResolvedValue({}),
   deleteStatus: vi.fn(),
 }));
-afterEach(cleanup);
+afterEach(async () => {
+  cleanup();
+  await i18n.changeLanguage('en');
+});
 beforeEach(() => vi.clearAllMocks());
+it('translates stage options on language changes without translating custom names', async () => {
+  await i18n.changeLanguage('sr-Latn');
+  render(
+    <MemoryRouter>
+      <SettingsStatuses />
+    </MemoryRouter>
+  );
+  await screen.findByText('Custom');
+  expect(screen.getByText('Faza: Odbijena')).toBeVisible();
+  fireEvent.click(screen.getByRole('combobox', { name: 'Faza' }));
+  expect(screen.getByRole('option', { name: 'Ponuda' })).toBeVisible();
+  await act(async () => {
+    await i18n.changeLanguage('en');
+  });
+  expect(screen.getByRole('option', { name: 'Offer' })).toBeVisible();
+  expect(screen.getByText('Custom')).toBeVisible();
+});
 it('exposes stable meaning and sends explicitly selected semantics for a custom label', async () => {
   render(
     <MemoryRouter>

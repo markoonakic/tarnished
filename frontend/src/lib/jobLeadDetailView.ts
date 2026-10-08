@@ -1,3 +1,4 @@
+import { t, locale } from '@/lib/i18n';
 import type { JobLead } from './types';
 
 export function getJobLeadStatusBadgeClass(status: JobLead['status']): string {
@@ -13,9 +14,14 @@ export function getJobLeadStatusBadgeClass(status: JobLead['status']): string {
 }
 
 export function getJobLeadStatusLabel(status: JobLead['status']): string {
-  return status === 'pending'
-    ? 'Saved'
-    : status.charAt(0).toUpperCase() + status.slice(1);
+  const labels = {
+    pending: 'Saved',
+    processing: 'Processing',
+    extracted: 'Extracted',
+    failed: 'Failed',
+    converted: 'Converted',
+  } as const;
+  return t(labels[status]);
 }
 
 export function formatSalaryRange(
@@ -23,12 +29,15 @@ export function formatSalaryRange(
   salaryMin: number | null,
   salaryMax: number | null
 ): string {
-  return `${currency || 'USD'} ${salaryMin?.toLocaleString() || '???'} - ${salaryMax?.toLocaleString() || '???'}`;
+  return `${currency || 'USD'} ${salaryMin?.toLocaleString(locale()) || '???'} - ${salaryMax?.toLocaleString(locale()) || '???'}`;
 }
 
 export function formatExperienceRange(
   yearsMin: number | null,
   yearsMax: number | null
 ): string {
-  return `${yearsMin ?? '?'}-${yearsMax ?? '?'} years`;
+  return t('{{value0}}-{{value1}} years', {
+    value0: yearsMin ?? '?',
+    value1: yearsMax ?? '?',
+  });
 }

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   createContext,
   useContext,
@@ -35,6 +36,7 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 let toastId = 0;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  useTranslation();
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = useCallback(

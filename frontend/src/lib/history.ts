@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { statusLabel } from '@/lib/referenceLabels';
 import { invalidateEvidenceQueries } from './queryClient';
 import api from './api';
 import type {
@@ -8,15 +10,33 @@ import type {
 } from './types';
 
 export const historyStageLabels: Record<StatusMeaning, string> = {
-  unknown: 'Not recorded',
-  applied: 'Applied',
-  screening: 'Screening',
-  interviewing: 'Interviewing',
-  offer: 'Offer',
-  accepted: 'Accepted',
-  rejected: 'Rejected',
-  withdrawn: 'Withdrawn',
-  no_reply: 'No reply',
+  get unknown() {
+    return t('Not recorded');
+  },
+  get applied() {
+    return t('Applied');
+  },
+  get screening() {
+    return t('Screening');
+  },
+  get interviewing() {
+    return t('Interviewing');
+  },
+  get offer() {
+    return t('Offer');
+  },
+  get accepted() {
+    return t('Accepted');
+  },
+  get rejected() {
+    return t('Rejected');
+  },
+  get withdrawn() {
+    return t('Withdrawn');
+  },
+  get no_reply() {
+    return t('No reply');
+  },
 };
 
 export function historyStage(
@@ -24,7 +44,7 @@ export function historyStage(
   meaning: StatusMeaning | null
 ) {
   return meaning && meaning !== 'unknown' && status?.meaning === meaning
-    ? { name: status.name, color: status.color }
+    ? { name: statusLabel(status), color: status.color }
     : { name: historyStageLabels[meaning ?? 'unknown'], color: undefined };
 }
 

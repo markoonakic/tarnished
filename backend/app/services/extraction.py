@@ -12,6 +12,7 @@ from readability import Document
 from starlette.concurrency import run_in_threadpool
 
 from app.schemas.job_lead import JobLeadExtractionInput
+from app.services.output_language import output_language_instruction
 
 logger = logging.getLogger(__name__)
 
@@ -288,6 +289,7 @@ def extract_with_llm(
     api_base: str | None = None,
     timeout: int = 60,
     retry_invalid_response: bool = True,
+    output_language: str = "en",
 ) -> JobLeadExtractionInput:
     """Extract structured job data using LiteLLM.
 
@@ -326,8 +328,11 @@ def extract_with_llm(
 Job Posting Content:
 {content}"""
 
+    system_prompt = EXTRACTION_SYSTEM_PROMPT + output_language_instruction(
+        output_language
+    )
     messages = [
-        {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_message},
     ]
 
@@ -392,7 +397,7 @@ Job Posting Content:
                         original_response=raw_content[:500],
                     )
                     messages = [
-                        {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
+                        {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_message},
                         {"role": "assistant", "content": raw_content},
                         {"role": "user", "content": correction_prompt},
@@ -418,7 +423,7 @@ Job Posting Content:
                         original_response=raw_content[:500],
                     )
                     messages = [
-                        {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
+                        {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_message},
                         {"role": "assistant", "content": raw_content},
                         {"role": "user", "content": correction_prompt},
@@ -511,6 +516,7 @@ async def extract_with_llm_async(
     api_base: str | None = None,
     timeout: int = 60,
     retry_invalid_response: bool = True,
+    output_language: str = "en",
 ) -> JobLeadExtractionInput:
     """Run blocking LLM extraction off the event loop."""
     return await run_in_threadpool(
@@ -522,6 +528,7 @@ async def extract_with_llm_async(
         api_base,
         timeout,
         retry_invalid_response,
+        output_language,
     )
 
 
@@ -534,6 +541,7 @@ async def extract_job_data(
     api_base: str | None = None,
     timeout: int = 60,
     retry_invalid_response: bool = True,
+    output_language: str = "en",
 ) -> JobLeadExtractionInput:
     """Main entry point for job data extraction.
 
@@ -601,6 +609,7 @@ async def extract_job_data(
         api_base=api_base,
         timeout=timeout,
         retry_invalid_response=retry_invalid_response,
+        output_language=output_language,
     )
 
     logger.info("Job extraction completed")

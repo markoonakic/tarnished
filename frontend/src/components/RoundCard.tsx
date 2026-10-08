@@ -1,3 +1,6 @@
+import { t, locale } from '@/lib/i18n';
+import { roundTypeLabel } from '@/lib/referenceLabels';
+import { useTranslation } from 'react-i18next';
 import InterviewFeedback from './InterviewFeedback';
 import TranscriptEditor from './TranscriptEditor';
 import TranscriptionPanel from './TranscriptionPanel';
@@ -28,6 +31,7 @@ export default function RoundCard({
   onDelete,
   onMediaChange,
 }: Props) {
+  useTranslation();
   const toast = useToast();
   const preferences = useUserPreferences();
   const timeZone = preferences.data
@@ -56,11 +60,11 @@ export default function RoundCard({
   function formatDateTime(dateStr: string | null) {
     if (!dateStr) return '-';
     return timeZone
-      ? new Date(dateStr).toLocaleString(undefined, {
+      ? new Date(dateStr).toLocaleString(locale(), {
           timeZone,
           timeZoneName: 'short',
         })
-      : 'Time zone unavailable';
+      : t('Time zone unavailable');
   }
 
   function getOutcomeStyle(outcome: string | null) {
@@ -77,8 +81,17 @@ export default function RoundCard({
   }
 
   function getOutcomeLabel(outcome: string | null) {
-    if (!outcome) return 'Pending';
-    return outcome.charAt(0).toUpperCase() + outcome.slice(1);
+    if (!outcome) return t('Pending');
+    const labels = {
+      passed: 'Passed',
+      failed: 'Failed',
+      pending: 'Pending',
+      cancelled: 'Cancelled',
+      withdrew: 'Withdrawn',
+    } as const;
+    return Object.hasOwn(labels, outcome)
+      ? t(labels[outcome as keyof typeof labels])
+      : t('Unknown');
   }
 
   async function handleMediaUpload(
@@ -102,7 +115,7 @@ export default function RoundCard({
   async function sendMedia(pending: NonNullable<typeof pendingMedia>) {
     if (pending.file.size > 1_000_000_000) {
       setMediaError(
-        'Recording exceeds 1,000,000,000 bytes. Choose a smaller recording.'
+        t('Recording exceeds 1,000,000,000 bytes. Choose a smaller recording.')
       );
       return;
     }
@@ -128,10 +141,14 @@ export default function RoundCard({
       const detail = isAxiosError(error) ? error.response?.data?.detail : null;
       setMediaError(
         isAxiosError(error) && error.response?.status === 409
-          ? 'Recordings changed. Retrying cannot resolve this conflict. Reload and review recordings, then discard this pending upload and select the file and replacement again.'
+          ? t(
+              'Recordings changed. Retrying cannot resolve this conflict. Reload and review recordings, then discard this pending upload and select the file and replacement again.'
+            )
           : typeof detail === 'string'
             ? detail
-            : 'Recording upload failed. Check current recordings before retrying; your selected file is kept.'
+            : t(
+                'Recording upload failed. Check current recordings before retrying; your selected file is kept.'
+              )
       );
     } finally {
       setUploading(false);
@@ -144,7 +161,9 @@ export default function RoundCard({
     e.stopPropagation();
     if (
       !confirm(
-        'Delete this recording and the transcript/corrections created from it? Separately pasted or uploaded transcripts are kept.'
+        t(
+          'Delete this recording and the transcript/corrections created from it? Separately pasted or uploaded transcripts are kept.'
+        )
       )
     )
       return;
@@ -156,7 +175,7 @@ export default function RoundCard({
       if (isAxiosError(error) && error.response?.status === 409) {
         setDeleteConflict(true);
       } else {
-        toast.error('Failed to delete media');
+        toast.error(t('Failed to delete media'));
       }
     }
   }
@@ -169,7 +188,7 @@ export default function RoundCard({
       // Let the browser stream the attachment; never buffer a 1-GB Blob in JS.
       downloadFile(`${apiBase}${url}`, media.original_filename || 'recording');
     } catch {
-      toast.error('Failed to download media');
+      toast.error(t('Failed to download media'));
     }
   }
 
@@ -184,13 +203,15 @@ export default function RoundCard({
 
       <div className="mb-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
         <div>
-          <h4 className="text-primary font-medium">{round.round_type.name}</h4>
+          <h4 className="text-primary font-medium">
+            {roundTypeLabel(round.round_type)}
+          </h4>
           <p className="text-muted text-sm">
-            Scheduled: {formatDateTime(round.scheduled_at)}
+            {t('Scheduled:')} {formatDateTime(round.scheduled_at)}
           </p>
           {round.completed_at && (
             <p className="text-muted text-sm">
-              Completed: {formatDateTime(round.completed_at)}
+              {t('Completed:')} {formatDateTime(round.completed_at)}
             </p>
           )}
         </div>
@@ -209,21 +230,21 @@ export default function RoundCard({
               className="text-fg1 hover:bg-bg3 cursor-pointer rounded px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
             >
               <i className="bi-stars icon-sm mr-1" aria-hidden="true" />
-              Interview feedback
+              {t('Interview feedback')}
             </button>
             <button
               onClick={onEdit}
               className="text-fg1 hover:bg-bg3 hover:text-fg0 flex cursor-pointer items-center justify-center rounded bg-transparent p-2 transition-all duration-200 ease-in-out"
-              aria-label="Edit round"
-              title="Edit"
+              aria-label={t('Edit round')}
+              title={t('Edit')}
             >
               <i className="bi-pencil icon-md" />
             </button>
             <button
               onClick={onDelete}
               className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center justify-center rounded bg-transparent p-2 transition-all duration-200 ease-in-out"
-              aria-label="Delete round"
-              title="Delete"
+              aria-label={t('Delete round')}
+              title={t('Delete')}
             >
               <i className="bi-trash icon-md" />
             </button>
@@ -241,7 +262,7 @@ export default function RoundCard({
 
       <div className="border-tertiary border-t pt-3">
         <div className="mb-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-          <span className="text-muted text-sm">Media Files</span>
+          <span className="text-muted text-sm">{t('Media Files')}</span>
           <FileButton
             accept=".mp4,.webm,.mov,.mp3,.m4a,.wav,.ogg"
             onChange={(e) => void handleMediaUpload(e)}
@@ -249,12 +270,12 @@ export default function RoundCard({
             className={`bg-accent text-bg0 hover:bg-accent-bright flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium transition-all duration-200 ease-in-out ${uploading ? 'opacity-50' : ''} cursor-pointer`}
           >
             <i className="bi-plus-circle icon-sm"></i>
-            {uploading ? 'Uploading...' : 'Add Media'}
+            {uploading ? t('Uploading...') : t('Add Media')}
           </FileButton>
         </div>
 
         <p className="text-muted mb-2 text-xs">
-          Audio or video · up to 1 GB / 2 hours
+          {t('Audio or video · up to 1 GB / 2 hours')}
         </p>
         {mediaError && (
           <div role="alert" className="text-red-bright mb-2 text-sm">
@@ -263,8 +284,9 @@ export default function RoundCard({
         )}
         {deleteConflict && (
           <div role="alert" className="text-red-bright mb-2 text-sm">
-            Recordings changed. Nothing was deleted. Reload and review
-            recordings before deciding to delete again.
+            {t(
+              'Recordings changed. Nothing was deleted. Reload and review recordings before deciding to delete again.'
+            )}
           </div>
         )}
         {(pendingMedia || deleteConflict) && !uploading && (
@@ -273,22 +295,23 @@ export default function RoundCard({
             onClick={onMediaChange}
             className="text-fg1 hover:bg-bg3 cursor-pointer rounded px-3 py-2 transition-colors"
           >
-            Reload recordings
+            {t('Reload recordings')}
           </button>
         )}
         {pendingMedia && !uploading && (
           <div className="mb-2 text-sm">
             <p>
-              Pending: {pendingMedia.file.name}. Existing media/transcripts
-              remain available. A lost response may mean the upload succeeded;
-              review before retrying.
+              {t('Pending:')} {pendingMedia.file.name}
+              {t(
+                '. Existing media/transcripts remain available. A lost response may mean the upload succeeded; review before retrying.'
+              )}
             </p>
             <button
               type="button"
               onClick={() => void sendMedia(pendingMedia)}
               className="text-fg1 hover:bg-bg3 cursor-pointer rounded px-3 py-2 transition-colors"
             >
-              Retry recording upload
+              {t('Retry recording upload')}
             </button>
             <button
               type="button"
@@ -298,15 +321,15 @@ export default function RoundCard({
               }}
               className="text-fg1 hover:bg-bg3 cursor-pointer rounded px-3 py-2 transition-colors"
             >
-              Discard pending upload
+              {t('Discard pending upload')}
             </button>
           </div>
         )}
         {uploading && (
           <p role="status" className="text-muted text-sm">
             {uploadingMediaProgress >= 100
-              ? 'Recording sent. Checking the file…'
-              : 'Uploading recording...'}
+              ? t('Recording sent. Checking the file…')
+              : t('Uploading recording...')}
           </p>
         )}
         {uploadingMediaProgress > 0 && uploadingMediaProgress < 100 && (
@@ -339,7 +362,9 @@ export default function RoundCard({
                     m.validation === 'audio_decode_check' &&
                     ` · ${Math.ceil(m.probed_duration_seconds / 60)} min`}
                   {m.validation !== 'audio_decode_check' &&
-                    ' · Duration unverified. Transcribe to check this recording and enable playback.'}
+                    t(
+                      '· Duration unverified. Transcribe to check this recording and enable playback.'
+                    )}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -350,7 +375,7 @@ export default function RoundCard({
                       className="bi-file-text icon-sm mr-1"
                       aria-hidden="true"
                     />
-                    Transcribe
+                    {t('Transcribe')}
                   </button>
                   <FileButton
                     accept=".mp4,.webm,.mov,.mp3,.m4a,.wav,.ogg"
@@ -358,55 +383,55 @@ export default function RoundCard({
                     onChange={(e) => void handleMediaUpload(e, m.id)}
                     className="text-fg1 hover:bg-bg4 cursor-pointer rounded px-3 py-2 transition-colors disabled:opacity-50"
                   >
-                    Replace recording
+                    {t('Replace recording')}
                   </FileButton>
                   <button
                     disabled={m.validation !== 'audio_decode_check'}
                     onClick={() => setPlayingMedia(m)}
                     className="text-fg1 hover:bg-bg4 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
-                    title="Play"
+                    title={t('Play')}
                   >
                     <i className="bi-play-fill icon-md" />
-                    Play
+                    {t('Play')}
                   </button>
                   <button
                     onClick={(e) => handleMediaDownload(m, e)}
                     className="text-fg1 hover:bg-bg4 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
-                    title="Download"
+                    title={t('Download')}
                   >
                     <i className="bi-download icon-sm" />
-                    Download
+                    {t('Download')}
                   </button>
                   <button
                     disabled={uploading}
                     onClick={(e) => handleMediaDelete(m.id, e)}
                     className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
-                    title="Delete"
+                    title={t('Delete')}
                   >
                     <i className="bi-trash icon-sm text-red-bright" />
-                    Delete
+                    {t('Delete')}
                   </button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-muted text-sm">No media files</p>
+          <p className="text-muted text-sm">{t('No media files')}</p>
         )}
       </div>
 
       {transcribingMedia && (
         <Modal
-          label="Transcribe recording"
+          label={t('Transcribe recording')}
           onClose={() => setTranscribingMedia(null)}
         >
           <div className="bg-bg1 mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg p-6">
             <div className="mb-4 flex items-center justify-between gap-2">
               <h2 className="text-primary text-xl font-semibold">
-                Transcribe recording
+                {t('Transcribe recording')}
               </h2>
               <button
-                aria-label="Close transcription"
+                aria-label={t('Close transcription')}
                 onClick={() => setTranscribingMedia(null)}
                 className="text-fg1 hover:bg-bg2 cursor-pointer rounded p-2"
               >
@@ -429,10 +454,10 @@ export default function RoundCard({
       <div className="border-tertiary mt-3 border-t pt-3">
         <p className="text-muted mb-2 text-sm">
           {round.has_current_transcript
-            ? 'Editable transcript available'
+            ? t('Editable transcript available')
             : round.transcript_path
-              ? 'Transcript attachment available'
-              : 'No transcript yet'}
+              ? t('Transcript attachment available')
+              : t('No transcript yet')}
         </p>
         <button
           type="button"
@@ -440,12 +465,12 @@ export default function RoundCard({
           className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 transition-colors disabled:opacity-50"
         >
           {round.has_current_transcript || round.transcript_path
-            ? 'Read transcript'
-            : 'Add transcript'}
+            ? t('Read transcript')
+            : t('Add transcript')}
         </button>
         {round.transcript_summary && (
           <p className="text-secondary mt-2 text-sm whitespace-pre-wrap">
-            Round transcript summary: {round.transcript_summary}
+            {t('Round transcript summary:')} {round.transcript_summary}
           </p>
         )}
         {editingTranscript && (

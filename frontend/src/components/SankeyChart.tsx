@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
@@ -6,6 +7,7 @@ import { useSankeyAnalytics } from '@/hooks/useAnalyticsData';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { getSankeyNodeColor } from '@/lib/statusColors';
 import { groupSankey } from '@/lib/sankey';
+import { statusLabel } from '@/lib/referenceLabels';
 import Loading from './Loading';
 import EmptyState from './EmptyState';
 import HelpTip from './HelpTip';
@@ -17,6 +19,7 @@ export default function SankeyChart({
   period?: string;
   asOf?: string;
 }) {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useSankeyAnalytics(period, asOf);
   const colors = useThemeColors();
   const grouped = useMemo(
@@ -25,7 +28,12 @@ export default function SankeyChart({
   );
   const option = useMemo((): EChartsOption => {
     const byId = new Map(grouped.nodes.map((node) => [node.id, node]));
-    const label = (id: string) => byId.get(id)?.label ?? 'Unknown';
+    const label = (id: string) => {
+      const node = byId.get(id);
+      return node
+        ? statusLabel({ name: node.label, builtin_key: node.builtin_key })
+        : t('Unknown');
+    };
     return {
       tooltip: {
         trigger: 'item',
@@ -41,9 +49,16 @@ export default function SankeyChart({
               target: string;
               value: number;
             };
-            return `${label(edge.source)} → ${label(edge.target)}: ${edge.value} recorded changes`;
+            return t('{{value0}} → {{value1}}: {{value}} recorded changes', {
+              value0: label(edge.source),
+              value1: label(edge.target),
+              value: edge.value,
+            });
           }
-          return `${label(p.name)}: ${byId.get(p.name)?.value ?? 0} recorded visits`;
+          return t('{{value0}}: {{value1}} recorded visits', {
+            value0: label(p.name),
+            value1: byId.get(p.name)?.value ?? 0,
+          });
         },
       },
       series: [
@@ -74,17 +89,22 @@ export default function SankeyChart({
         },
       ],
     };
-  }, [grouped, colors]);
-  if (isLoading) return <Loading message="Loading chart data..." size="sm" />;
+  }, [grouped, colors, t]);
+  if (isLoading)
+    return <Loading message={t('Loading chart data...')} size="sm" />;
   if (isError || !data)
-    return <p className="text-red-bright">Failed to load pipeline chart</p>;
+    return (
+      <p className="text-red-bright">{t('Failed to load pipeline chart')}</p>
+    );
   if (!data.nodes.length)
-    return <EmptyState message="No application history for this period" />;
+    return <EmptyState message={t('No application history for this period')} />;
   if (!grouped.links.length)
     return (
       <EmptyState
-        message="No status changes to plot yet"
-        subMessage="The chart will appear as applications move between stages."
+        message={t('No status changes to plot yet')}
+        subMessage={t(
+          'The chart will appear as applications move between stages.'
+        )}
       />
     );
   const columns = grouped.nodes.reduce(
@@ -98,18 +118,19 @@ export default function SankeyChart({
   return (
     <div className="min-w-0">
       <p className="text-muted mb-4 flex items-center gap-2 text-sm">
-        Application pipeline
-        <HelpTip label="About the pipeline chart">
+        {t('Application pipeline')}
+        <HelpTip label={t('About the pipeline chart')}>
           <p>
-            Paths through application stages. Returning to a stage appears as a
-            separate step.
+            {t(
+              'Paths through application stages. Returning to a stage appears as a separate step.'
+            )}
           </p>
         </HelpTip>
       </p>
       <div
         className="w-full overflow-x-auto"
         role="region"
-        aria-label="Application pipeline chart"
+        aria-label={t('Application pipeline chart')}
         tabIndex={0}
       >
         <ReactECharts

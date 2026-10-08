@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +20,7 @@ export default function ConvertToApplicationModal({
   lead,
   onConverted,
 }: ConvertToApplicationModalProps) {
+  useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
   const [isConverting, setIsConverting] = useState(false);
@@ -48,7 +51,10 @@ export default function ConvertToApplicationModal({
       }
     } catch (err) {
       const failure = jobLeadError(err);
-      const errorMessage = `Your job lead is still saved. ${failure.message} Reload the lead before trying again.`;
+      const errorMessage = t(
+        'Your job lead is still saved. {{message}} Reload the lead before trying again.',
+        { message: failure.message }
+      );
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -56,8 +62,8 @@ export default function ConvertToApplicationModal({
     }
   };
 
-  const jobTitle = lead.title || 'Untitled Position';
-  const company = lead.company || 'Unknown Company';
+  const jobTitle = lead.title || t('Untitled Position');
+  const company = lead.company || t('Unknown Company');
 
   return (
     <Modal
@@ -75,12 +81,12 @@ export default function ConvertToApplicationModal({
             className="text-primary flex items-center gap-2 font-medium"
           >
             <i className="bi bi-arrow-repeat icon-md text-aqua" />
-            Convert to Application
+            {t('Convert to Application')}
           </h3>
           <button
             onClick={onClose}
             disabled={isConverting}
-            aria-label="Close modal"
+            aria-label={t('Close modal')}
             className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             <i className="bi bi-x-lg icon-lg" />
@@ -94,14 +100,16 @@ export default function ConvertToApplicationModal({
             </p>
           )}
           <p className="text-fg1 mb-2">
-            Are you sure you want to convert this job lead to an application?
+            {t(
+              'Are you sure you want to convert this job lead to an application?'
+            )}
           </p>
           <div className="bg-bg2 mt-4 rounded-lg p-4">
             <p className="text-primary font-medium">{jobTitle}</p>
             <p className="text-fg1 text-sm">{company}</p>
           </div>
           <p className="text-muted mt-4 text-sm">
-            Your saved job details will be copied into the application.
+            {t('Your saved job details will be copied into the application.')}
           </p>
         </div>
 
@@ -111,7 +119,7 @@ export default function ConvertToApplicationModal({
             disabled={isConverting}
             className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded bg-transparent px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
           >
-            Cancel
+            {t('Cancel')}
           </button>
           <button
             onClick={handleConvert}
@@ -126,12 +134,12 @@ export default function ConvertToApplicationModal({
             {isConverting ? (
               <>
                 <i className="bi bi-arrow-repeat icon-sm animate-spin" />
-                Converting...
+                {t('Converting...')}
               </>
             ) : (
               <>
                 <i className="bi bi-arrow-repeat icon-sm" />
-                Convert to Application
+                {t('Convert to Application')}
               </>
             )}
           </button>

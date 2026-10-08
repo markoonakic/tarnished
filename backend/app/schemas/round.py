@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class RoundTypeResponse(BaseModel):
+    builtin_key: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
     id: str

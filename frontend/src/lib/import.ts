@@ -1,5 +1,7 @@
+import { t, language } from '@/lib/i18n';
+import { errorMessage } from './errorMessage';
 import api, { safeErrorMessage } from './api';
-import { invalidateEvidenceQueries } from './queryClient';
+import { invalidateEvidenceQueries, queryClient } from './queryClient';
 import {
   API_BASE,
   buildAuthenticatedEventSourceUrl,
@@ -7,6 +9,12 @@ import {
   getAccessToken,
   refreshAuthTokens,
 } from './api';
+
+export interface ImportWarning {
+  code: string;
+  count?: number;
+  names?: string;
+}
 
 interface ImportValidation {
   valid: boolean;
@@ -19,6 +27,7 @@ interface ImportValidation {
     files: number;
   };
   warnings: string[];
+  warning_messages?: ImportWarning[];
   errors: string[];
 }
 
@@ -58,18 +67,25 @@ export async function validateImport(file: File): Promise<ImportValidation> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(safeErrorMessage(errorData.detail, 'Validation failed'));
+    throw new Error(errorMessage(errorData, response.status));
   }
 
   const validation: ImportValidation = await response.json();
   if (!validation.valid) {
     throw new Error(
-      validation.errors
-        .filter((error) => typeof error === 'string')
-        .join('\n') || 'Validation failed'
+      language() === 'en'
+        ? validation.errors
+            .filter((error) => typeof error === 'string')
+            .join('\n') || t('Validation failed')
+        : t('Validation failed')
     );
   }
   return validation;
+}
+
+function refreshImportedData() {
+  invalidateEvidenceQueries();
+  void queryClient.invalidateQueries({ queryKey: ['user-preferences'] });
 }
 
 export async function getImportStatus(
@@ -78,7 +94,7 @@ export async function getImportStatus(
   const { data } = await api.get<ImportProgress>(
     `/api/import/status/${importId}`
   );
-  if (data.status === 'complete') invalidateEvidenceQueries();
+  if (data.status === 'complete') refreshImportedData();
   return data;
 }
 
@@ -122,18 +138,20 @@ export async function importData(
         if (xhr.status === 401) {
           const refreshedToken = await refreshAuthTokens();
           if (refreshedToken) {
-            reject(new Error('Import authentication expired. Please retry.'));
+            reject(
+              new Error(t('Import authentication expired. Please retry.'))
+            );
             return;
           }
         }
 
-        reject(new Error(safeErrorMessage(payload.detail, 'Import failed')));
+        reject(new Error(safeErrorMessage(payload.detail, t('Import failed'))));
       } catch {
-        reject(new Error('Import failed'));
+        reject(new Error(t('Import failed')));
       }
     };
 
-    xhr.onerror = () => reject(new Error('Import failed'));
+    xhr.onerror = () => reject(new Error(t('Import failed')));
     xhr.send(formData);
   });
 }
@@ -153,7 +171,7 @@ export function connectToImportProgress(
 
     if (['complete', 'failed', 'cancelled'].includes(progress.status)) {
       eventSource.close();
-      if (progress.status === 'complete') invalidateEvidenceQueries();
+      if (progress.status === 'complete') refreshImportedData();
       onTerminal(progress);
     }
   });
@@ -163,8 +181,9 @@ export function connectToImportProgress(
     onTerminal({
       status: 'unknown',
       percent: 0,
-      message:
-        'Progress connection lost. The import may still be running. Check its status before starting another import.',
+      message: t(
+        'Progress connection lost. The import may still be running. Check its status before starting another import.'
+      ),
     });
   }
 

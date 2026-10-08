@@ -300,6 +300,9 @@ async def create_application_from_url(
             model=ai_settings.effective_model,
             api_key=ai_settings.dispatch_api_key,
             api_base=ai_settings.base_url,
+            output_language="sr-Latn"
+            if (user.settings or {}).get("language") == "sr-Latn"
+            else "en",
         )
     except ExtractionAuthError as e:
         raise HTTPException(

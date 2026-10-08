@@ -442,6 +442,7 @@ def job_status(job: ProcessingJob):
         "model": job.model,
         "uncertain": job.uncertain,
         "error": job.error,
+        "error_code": "request_failed" if job.error else None,
         "completed_chunks": len(job.coverage)
         if job.state == "complete" or job.stage == "structuring"
         else len(job.checkpoints),
