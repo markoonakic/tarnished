@@ -31,6 +31,12 @@ it('opens the default settings page when a mobile root becomes desktop-sized', (
     </MemoryRouter>
   );
   expect(screen.queryByText('Theme settings loaded')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('link', { name: 'Profile' })
+  ).not.toBeInTheDocument();
+  expect(screen.getAllByRole('link', { name: 'Language & time' })).toHaveLength(
+    2
+  );
   act(() => {
     media.matches = true;
     media.dispatchEvent(new Event('change'));

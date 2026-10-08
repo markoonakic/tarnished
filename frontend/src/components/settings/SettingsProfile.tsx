@@ -6,7 +6,6 @@ import { useToast } from '@/hooks/useToast';
 import { getProfile, updateProfile } from '@/lib/profile';
 import type { UserProfile } from '@/lib/types';
 import Loading from '../Loading';
-import { SettingsBackLink } from './SettingsLayout';
 
 export default function SettingsProfile() {
   useTranslation();
@@ -64,23 +63,14 @@ export default function SettingsProfile() {
 
   if (loading) {
     return (
-      <>
-        <div className="md:hidden">
-          <SettingsBackLink />
-        </div>
-        <div className="bg-secondary rounded-lg p-4 md:p-6">
-          <Loading message={t('Loading profile...')} />
-        </div>
-      </>
+      <div className="bg-secondary rounded-lg p-4 md:p-6">
+        <Loading message={t('Loading profile...')} />
+      </div>
     );
   }
 
   return (
     <>
-      <div className="md:hidden">
-        <SettingsBackLink />
-      </div>
-
       {!profile ? (
         <div
           role="alert"
@@ -96,7 +86,7 @@ export default function SettingsProfile() {
           onSubmit={handleSave}
           className="bg-secondary rounded-lg p-4 md:p-6"
         >
-          <h2 className="text-fg1 mb-4 text-xl font-bold">{t('Profile')}</h2>
+          <h1 className="text-fg1 mb-4 text-2xl font-bold">{t('Profile')}</h1>
           <p className="text-muted mb-4 text-sm">
             {t('Your personal information for autofill and communications.')}
           </p>

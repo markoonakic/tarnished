@@ -23,6 +23,7 @@ export default function Layout({ children }: Props) {
     { path: '/analytics', label: t('Analytics') },
   ];
   const accountItems = [
+    { path: '/profile', label: t('Profile'), icon: 'bi-person' },
     { path: '/settings', label: t('Settings'), icon: 'bi-gear' },
     ...(user?.is_admin
       ? [{ path: '/admin', label: t('Admin'), icon: 'bi-shield-lock' }]

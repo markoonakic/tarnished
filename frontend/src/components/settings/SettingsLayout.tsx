@@ -56,13 +56,6 @@ const settingsCategories: SettingsCategory[] = [
     },
     sections: [
       {
-        path: 'profile',
-        get label() {
-          return t('Profile');
-        },
-        icon: 'bi-person',
-      },
-      {
         path: 'security',
         get label() {
           return t('Security');

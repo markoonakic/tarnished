@@ -26,6 +26,7 @@ import SettingsImport from './components/settings/SettingsImport';
 import SettingsAPIKey from './components/settings/SettingsAPIKey';
 import SettingsSecurity from './components/settings/SettingsSecurity';
 import SettingsProfile from './components/settings/SettingsProfile';
+import Layout from './components/Layout';
 import SettingsLanguage from './components/settings/SettingsLanguage';
 import LanguagePreference from './components/LanguagePreference';
 
@@ -138,6 +139,18 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <div className="mx-auto max-w-4xl p-4 md:px-6 md:py-8">
+                <SettingsProfile />
+              </div>
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/settings"
         element={
           <ProtectedRoute>
@@ -148,7 +161,7 @@ function AppRoutes() {
         <Route path="theme" element={<SettingsTheme />} />
         <Route path="features" element={<SettingsFeatures />} />
         <Route path="language" element={<SettingsLanguage />} />
-        <Route path="profile" element={<SettingsProfile />} />
+        <Route path="profile" element={<Navigate to="/profile" replace />} />
         <Route path="security" element={<SettingsSecurity />} />
         <Route path="api-key" element={<SettingsAPIKey />} />
         <Route path="statuses" element={<SettingsStatuses />} />
