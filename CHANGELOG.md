@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.0] - 2026-10-08
+
+### Added
+
+- Account requests with administrator approval, last-login information and account deletion.
+- Professional profiles with per-section and per-item AI permissions.
+- Companies and contacts linked to leads, applications and interviews.
+- Private notes, seven reminder kinds and a Tasks page.
+- Interview detail pages, preparation lists and a month/week calendar.
+- Application boards, Preparing records, archives, status reasons and expanded filters.
+- Lead decisions, priorities, tags, deadlines and additional document attachments.
+- Dashboard pipeline, upcoming interviews, tasks and recent activity.
+- Response and stage statistics, source outcomes, activity history and requirement summaries.
+- Reviewed AI extraction, profile evidence comparisons and selected preparation drafts.
+- English and Serbian (Latin script) interface languages.
+
 ## [0.2.5] - 2026-10-05
 
 ### Fixed

@@ -4,7 +4,7 @@ sidebar_position: 3
 description: Understand Tarnished authentication modes and API key scope design.
 ---
 
-This page describes authentication in Tarnished 0.2.5. See
+This page describes authentication in Tarnished 0.3.0. See
 [account setup](../get-started/create-admin-account.md) for owner setup and recovery.
 
 Tarnished uses two different authentication styles depending on the client.
@@ -20,7 +20,7 @@ These routes live under `/api/auth` and include:
 - current-user identity
 - JWT-only password change and all-session signout
 
-Account creation is administrator-managed after [browser first-run setup](../get-started/create-admin-account.md). That guide documents recovery, legacy-token invalidation and the independent API-key lifecycle. Ordinary browser logout only clears local tokens.
+After [browser first-run setup](../get-started/create-admin-account.md), users can request an account for administrator approval. Administrators can also create accounts directly. That guide documents recovery, legacy-token invalidation and the independent API-key lifecycle. Ordinary browser logout only clears local tokens.
 
 ## API keys for machine clients
 
