@@ -343,15 +343,15 @@ export default function ApplicationModal({
             </button>
           </div>
 
-        {!isEditing && (
-          <ApplicationPostingCapture
-            statusId={statusId}
-            onCreated={(id) => {
-              onSuccess(id);
-              onClose();
-            }}
-          />
-        )}
+          {!isEditing && (
+            <ApplicationPostingCapture
+              statusId={statusId}
+              onCreated={(id) => {
+                onSuccess(id);
+                onClose();
+              }}
+            />
+          )}
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
             <fieldset disabled={loading} className="space-y-4">
               {error && (

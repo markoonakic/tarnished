@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import String, cast, func, or_, select, union_all
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -68,6 +68,52 @@ async def saved(db, user, row, event):
     return record_dict(row)
 
 
+def company_activity(user_id):
+    """Related activity, not the date the address book was migrated."""
+    sources = [
+        select(
+            model.company_id.label("company_id"), cast(field, String).label("at")
+        ).where(model.user_id == user_id)
+        for model, fields in (
+            (
+                Application,
+                (
+                    Application.created_at,
+                    Application.updated_at,
+                    Application.applied_at,
+                ),
+            ),
+            (JobLead, (JobLead.scraped_at, JobLead.updated_at)),
+            (
+                Contact,
+                (Contact.created_at, Contact.updated_at, Contact.last_contact_on),
+            ),
+        )
+        for field in fields
+    ]
+    sources.append(
+        select(Note.company_id, cast(Note.updated_at, String)).where(
+            Note.user_id == user_id
+        )
+    )
+    for model, foreign_key in (
+        (Application, Note.application_id),
+        (JobLead, Note.lead_id),
+        (Contact, Note.contact_id),
+    ):
+        sources.append(
+            select(model.company_id, cast(Note.updated_at, String))
+            .join(Note, foreign_key == model.id)
+            .where(model.user_id == user_id, Note.user_id == user_id)
+        )
+    events = union_all(*sources).subquery()
+    return (
+        select(events.c.company_id, func.max(events.c.at).label("last_activity_at"))
+        .group_by(events.c.company_id)
+        .subquery()
+    )
+
+
 @router.get("/companies")
 async def companies(
     db: DB,
@@ -78,7 +124,12 @@ async def companies(
     page: Page = 1,
     per_page: PerPage = 25,
 ):
-    statement = select(Company).where(Company.user_id == user.id)
+    activity = company_activity(user.id)
+    statement = (
+        select(Company)
+        .outerjoin(activity, activity.c.company_id == Company.id)
+        .where(Company.user_id == user.id)
+    )
     if query:
         statement = statement.where(Company.name.ilike(f"%{query}%"))
     if industry:
@@ -93,7 +144,7 @@ async def companies(
     statement = statement.order_by(
         {
             "name": func.lower(Company.name),
-            "activity": Company.updated_at.desc(),
+            "activity": activity.c.last_activity_at.desc().nulls_last(),
             "applications": app_count.desc(),
         }[sort],
         Company.id,
@@ -105,7 +156,14 @@ async def companies(
 
 
 async def company_counts(db, user_id, company_id):
-    result = {}
+    activity = company_activity(user_id)
+    result = {
+        "last_activity_at": await db.scalar(
+            select(activity.c.last_activity_at).where(
+                activity.c.company_id == company_id
+            )
+        )
+    }
     for key, model in (
         ("lead_count", JobLead),
         ("application_count", Application),

@@ -24,6 +24,12 @@ vi.mock('@/components/Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
 }));
 vi.mock('@/components/DocumentSection', () => ({ default: () => null }));
+vi.mock('@/components/slots/ApplicationReminders', () => ({
+  default: () => null,
+}));
+vi.mock('@/hooks/useEffectiveDayKey', () => ({
+  useEffectiveDayKey: () => '2026-10-08',
+}));
 vi.mock('@/components/application/HistoryViewer', () => ({
   default: () => null,
 }));

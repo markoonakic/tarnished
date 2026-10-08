@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import CollapsibleCard from '../CollapsibleCard';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useJobAnalysis } from '@/hooks/useJobAnalysis';
@@ -11,11 +12,15 @@ export default function PreparationDraft({
   roundId,
   revision,
   onUpdated,
+  actions,
+  children,
 }: {
   applicationId: string;
   roundId: string;
   revision: number;
   onUpdated?: () => void;
+  actions?: ReactNode;
+  children?: ReactNode;
 }) {
   const { t } = useTranslation();
   const controller = useJobAnalysis(
@@ -56,22 +61,29 @@ export default function PreparationDraft({
     }
   }
   return (
-    <div className="mt-4">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <button
-          type="button"
-          className="text-accent hover:bg-bg3 cursor-pointer rounded px-2 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={disabled || !!hint}
-          title={hint ? t(hint) : undefined}
-          onClick={() => {
-            setSelected(new Set());
-            void controller.run();
-          }}
-        >
-          <i className="bi-stars mr-1" aria-hidden="true" />
-          {t('ai.draftWithAi')}
-        </button>
-      </div>
+    <CollapsibleCard
+      title={t('tasks.preparation')}
+      icon="bi-book"
+      actions={
+        <>
+          <button
+            type="button"
+            className="text-accent hover:bg-bg3 cursor-pointer rounded px-2 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={disabled || !!hint}
+            title={hint ? t(hint) : undefined}
+            onClick={() => {
+              setSelected(new Set());
+              void controller.run();
+            }}
+          >
+            <i className="bi-stars mr-1" aria-hidden="true" />
+            {t('ai.draftWithAi')}
+          </button>
+          {actions}
+        </>
+      }
+    >
+      {children}
       {hint && <p className="text-muted text-xs">{t(hint)}</p>}
       <AnalysisStatus controller={controller} />
       {show && (
@@ -136,7 +148,7 @@ export default function PreparationDraft({
                     <label className="flex items-start gap-2">
                       <input
                         type="checkbox"
-                        className="accent-accent mt-1"
+                        className="accent-accent focus:ring-accent bg-bg2 border-muted checked:border-accent checked:bg-accent checked:after:text-bg0 mt-1 h-4 w-4 shrink-0 appearance-none rounded border checked:after:block checked:after:text-center checked:after:content-['✓'] focus:ring-2"
                         checked={selected.has(item.id)}
                         disabled={disabled || analysis.stale}
                         onChange={(event) =>
@@ -181,6 +193,6 @@ export default function PreparationDraft({
           </div>
         </div>
       )}
-    </div>
+    </CollapsibleCard>
   );
 }

@@ -46,6 +46,7 @@ export interface CompanyInput {
   culture_notes?: string | null;
 }
 export interface Company extends OwnedRecord, CompanyInput {
+  last_activity_at?: ISODateTime | null;
   lead_count?: number;
   application_count?: number;
   contact_count?: number;
@@ -535,6 +536,8 @@ export interface Breakdown {
   as_of: ISODateTime;
 }
 export interface Activity {
+  from_status?: { name: string; builtin_key?: string | null } | null;
+  to_status?: { name: string; builtin_key?: string | null } | null;
   target_label?: string | null;
   id: string;
   event: string;

@@ -442,6 +442,7 @@ function InterviewPage({ id }: { id?: string }) {
               onSaved={refresh}
               actions={
                 <button className={ghost} onClick={() => edit('preparation')}>
+                  <i className="bi bi-pencil mr-2" aria-hidden="true" />
                   {t('Edit')}
                 </button>
               }
@@ -597,6 +598,7 @@ function InterviewPage({ id }: { id?: string }) {
                 icon="bi-file-code"
                 actions={
                   <button className={ghost} onClick={() => edit('task')}>
+                    <i className="bi bi-pencil mr-2" aria-hidden="true" />
                     {t('Edit')}
                   </button>
                 }
@@ -633,6 +635,7 @@ function InterviewPage({ id }: { id?: string }) {
               icon="bi-signpost"
               actions={
                 <button className={ghost} onClick={() => edit('next')}>
+                  <i className="bi bi-pencil mr-2" aria-hidden="true" />
                   {t('Edit')}
                 </button>
               }
@@ -688,6 +691,7 @@ function InterviewPage({ id }: { id?: string }) {
               icon="bi-card-text"
               actions={
                 <button className={ghost} onClick={() => edit('summary')}>
+                  <i className="bi bi-pencil mr-2" aria-hidden="true" />
                   {t('Edit')}
                 </button>
               }

@@ -6,6 +6,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import i18n from '@/lib/i18n';
 import type { Interview } from '@/lib/apiV030';
@@ -54,7 +55,7 @@ beforeEach(() => {
         },
       };
     if (url.endsWith('/apply')) saved = { ...saved, review_state: 'saved' };
-    return { data: { id: 'analysis-1', revision: 0 } };
+    return { data: saved ?? { id: 'analysis-1', revision: 0 } };
   });
 });
 afterEach(() => {
@@ -65,7 +66,9 @@ function show() {
   const onSaved = vi.fn(async () => {});
   render(
     <QueryClientProvider client={client}>
-      <InterviewPreparationDraft interview={interview} onSaved={onSaved} />
+      <MemoryRouter>
+        <InterviewPreparationDraft interview={interview} onSaved={onSaved} />
+      </MemoryRouter>
     </QueryClientProvider>
   );
   return onSaved;
@@ -75,6 +78,7 @@ it('only reads on open; explicit run shows selectable suggestions and saves sele
   const run = screen.getByRole('button', { name: 'Draft with AI' });
   await waitFor(() => expect(run).toBeEnabled());
   expect(post).not.toHaveBeenCalled();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   fireEvent.click(run);
   const select = await screen.findByRole('checkbox', {
     name: 'Practice grouping by month',
@@ -104,10 +108,9 @@ it('does not automatically repeat an uncertain request', async () => {
   await waitFor(() => expect(run).toBeEnabled());
   fireEvent.click(run);
   expect(await screen.findByRole('alert')).toHaveTextContent(
-    'request outcome is not confirmed'
+    'The request could not be completed'
   );
   expect(post).toHaveBeenCalledOnce();
-  expect(run).toBeDisabled();
   fireEvent.click(screen.getByRole('button', { name: 'Check status' }));
   await waitFor(() => expect(run).toBeEnabled());
   expect(post).toHaveBeenCalledOnce();

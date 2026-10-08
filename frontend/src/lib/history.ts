@@ -16,9 +16,6 @@ export const historyStageLabels: Record<StatusMeaning, string> = {
   get unknown() {
     return t('Not recorded');
   },
-  get preparing() {
-    return t('tasks.status.preparing');
-  },
   get applied() {
     return t('Applied');
   },

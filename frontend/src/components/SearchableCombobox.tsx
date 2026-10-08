@@ -341,7 +341,7 @@ export default function SearchableCombobox({
         role="listbox"
         aria-hidden={!isOpen}
         inert={!isOpen || disabled}
-        className={`bg-bg0 ring-accent-bright absolute z-10 mt-1 w-full overflow-hidden rounded-lg ring-1 transition-all duration-200 ease-in-out ${
+        className={`bg-secondary border-tertiary ring-accent-bright absolute z-50 mt-1 w-full overflow-hidden rounded-lg border shadow-lg ring-1 transition-all duration-200 ease-in-out ${
           isOpen
             ? 'translate-y-0 opacity-100'
             : 'pointer-events-none -translate-y-2 opacity-0'

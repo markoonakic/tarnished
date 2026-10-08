@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import String, cast, func, literal, select, union_all
+from sqlalchemy.orm import selectinload
 
 from app.api.workspace import DB, Owner, Page, PerPage
 from app.core.deps import get_request_time_zone
@@ -160,6 +161,32 @@ async def history(
                 .where(Application.user_id == user.id, Round.id.in_(round_ids))
             )
         )
+    status_ids = [item["id"] for item in items if item["event"] == "status.changed"]
+    transitions = {}
+    if status_ids:
+        for transition in await db.scalars(
+            select(ApplicationStatusHistory)
+            .join(Application)
+            .where(
+                Application.user_id == user.id,
+                ApplicationStatusHistory.id.in_(status_ids),
+            )
+            .options(
+                selectinload(ApplicationStatusHistory.from_status),
+                selectinload(ApplicationStatusHistory.to_status),
+            )
+        ):
+            transitions[transition.id] = {
+                field: {"name": value.name, "builtin_key": value.builtin_key}
+                if value and value.user_id in (None, user.id)
+                else None
+                for field, value in (
+                    ("from_status", transition.from_status),
+                    ("to_status", transition.to_status),
+                )
+            }
     for item in items:
         item["target_label"] = labels.get((item["target_type"], item["target_id"]))
+        if item["event"] == "status.changed":
+            item.update(transitions.get(item["id"], {}))
     return {"items": items, "total": total, "page": page, "per_page": per_page}

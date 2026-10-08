@@ -620,7 +620,11 @@ def _data():
     for name in ("job_leads", "applications"):
         table = tables[name]
         for row in bind.execute(sa.select(table)).mappings().all():
-            values = {}
+            recorded_at = (
+                row["scraped_at"] if name == "job_leads" else row["created_at"]
+            )
+            activity_at = recorded_at if name == "job_leads" else row["updated_at"]
+            values = {"updated_at": activity_at} if name == "job_leads" else {}
             company = (row["company"] or "").strip()
             if company:
                 key = (row["user_id"], company)
@@ -666,8 +670,8 @@ def _data():
                             profile_url=row["recruiter_linkedin_url"],
                             role="Recruiter",
                             company_id=values.get("company_id"),
-                            created_at=now,
-                            updated_at=now,
+                            created_at=recorded_at,
+                            updated_at=activity_at,
                         )
                     )
                 values["recruiter_contact_id"] = recruiters[key]

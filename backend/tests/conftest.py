@@ -2,6 +2,7 @@
 
 # Configure the database and authentication before importing the application.
 import os
+import shutil
 import tempfile
 from pathlib import Path
 from uuid import uuid4
@@ -72,10 +73,19 @@ def _run_alembic_upgrade(connection, database_url: str, revision: str = "head") 
     command.upgrade(cfg, revision)
 
 
+@pytest.fixture(scope="session")
+def migrated_sqlite_template(tmp_path_factory):
+    return tmp_path_factory.mktemp("schema") / "head.db"
+
+
 @pytest.fixture(scope="function")
-async def db_engine(request):
+async def db_engine(request, migrated_sqlite_template):
     """Migrate a disposable database to head, or an indirect historical revision."""
     database_url, sqlite_path = _build_database_url()
+    cache_schema = sqlite_path is not None and not hasattr(request, "param")
+    cached = cache_schema and migrated_sqlite_template.exists()
+    if cached:
+        shutil.copyfile(migrated_sqlite_template, sqlite_path)
     engine = create_async_engine(database_url, echo=False)
     is_sqlite = "sqlite" in database_url
 
@@ -95,9 +105,15 @@ async def db_engine(request):
             await conn.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
             if is_sqlite:
                 await conn.exec_driver_sql("PRAGMA foreign_keys=ON")
-        await conn.run_sync(
-            _run_alembic_upgrade, database_url, getattr(request, "param", "head")
-        )
+        if not cached:
+            await conn.run_sync(
+                _run_alembic_upgrade, database_url, getattr(request, "param", "head")
+            )
+
+    # Copy the empty Alembic-built schema, never test data. Historical upgrades
+    # always run their real migration path. Each test still owns a fresh file.
+    if cache_schema and not cached:
+        shutil.copyfile(sqlite_path, migrated_sqlite_template)
 
     yield engine
 

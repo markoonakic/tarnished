@@ -6,7 +6,7 @@ import { createJobLead, jobLeadError } from '../lib/jobLeads';
 import { useToast } from '../hooks/useToast';
 import Modal from './Modal';
 import SegmentedControl from './SegmentedControl';
-import CompanyPicker from './records/CompanyPicker';
+import CompanyPicker from './CompanyPicker';
 import Dropdown from './Dropdown';
 import { recordInput, workModes } from '@/lib/records';
 import type { WorkMode } from '@/lib/apiV030';

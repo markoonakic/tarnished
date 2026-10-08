@@ -128,6 +128,21 @@ describe('deterministic analytics additions', () => {
     });
   });
 
+  it('shows translated status transitions and event-specific icons', async () => {
+    activity.mockResolvedValue({ ...firstPage, items: [
+      { ...event, from_status: { name: 'Applied', builtin_key: 'applied' }, to_status: { name: 'Rejected', builtin_key: 'rejected' } },
+      { ...event, id: 'note', event: 'workspace.note.created' },
+      { ...event, id: 'reminder', event: 'workspace.reminder.created' },
+    ] });
+    const { container } = renderAdditions();
+    expect(await screen.findByText('Applied → Rejected')).toBeVisible();
+    expect(container.querySelector('.bi-arrow-right')).toBeInTheDocument();
+    expect(container.querySelector('.bi-journal-text')).toBeInTheDocument();
+    expect(container.querySelector('.bi-bell')).toBeInTheDocument();
+    await act(() => i18n.changeLanguage('sr-Latn'));
+    expect(await screen.findByText('Poslata → Odbijena')).toBeVisible();
+  });
+
   it('does not turn missing dates into zero and shows empty data without invented results', async () => {
     breakdowns.mockResolvedValue({
       ...breakdown,

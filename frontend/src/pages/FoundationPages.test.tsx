@@ -5,7 +5,6 @@ import { apiV030 } from '@/lib/apiV030';
 import { afterEach, expect, it, vi } from 'vitest';
 import Companies from './Companies';
 import Tasks from './Tasks';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 vi.mock('@/hooks/useToast', () => ({ useToast: () => ({ error: vi.fn() }) }));
 vi.mock('@/hooks/useUserPreferences', () => ({
   useUserPreferences: () => ({
@@ -14,6 +13,8 @@ vi.mock('@/hooks/useUserPreferences', () => ({
 }));
 vi.mock('@/lib/apiV030', () => ({
   apiV030: {
+    companies: vi.fn(),
+    contacts: vi.fn(),
     tasks: async () => ({
       items: [],
       total: 0,

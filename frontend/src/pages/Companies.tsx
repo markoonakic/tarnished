@@ -103,7 +103,7 @@ export default function Companies() {
         company.size?.replaceAll('-', '–') || '—',
         company.lead_count ?? 0,
         company.application_count ?? 0,
-        dateLabel(company.updated_at),
+        dateLabel(company.last_activity_at),
       ];
     }
     const contact = row as import('@/lib/apiV030').Contact;

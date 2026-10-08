@@ -96,17 +96,51 @@ async def test_populated_workspace_upgrade(db_engine):
                     .where(leads.c.id == f"lead-{user_id}")
                     .values(converted_to_application_id=f"app-{user_id}")
                 )
+            # Similar names must never merge; the same trimmed name must reuse its row.
+            names = (
+                "north",
+                "North Labs",
+                "Cornflower Logic",
+                "e-Intelligence",
+                "Orbis Ledger",
+            )
+            for index, name in enumerate(names):
+                conn.execute(
+                    leads.insert().values(
+                        id=f"extra-lead-{index}",
+                        user_id="one",
+                        url=f"https://example.org/extra/{index}",
+                        title="Engineer",
+                        company=f" {name} ",
+                        status="pending",
+                        scraped_at=now,
+                        requirements_must_have=[],
+                        requirements_nice_to_have=[],
+                        skills=[],
+                    )
+                )
+                conn.execute(
+                    apps.insert().values(
+                        id=f"extra-app-{index}",
+                        user_id="one",
+                        company=name,
+                        job_title="Engineer",
+                        status_id="applied",
+                        applied_at=date(2026, 1, 1),
+                        created_at=now,
+                        updated_at=now,
+                        requirements_must_have=[],
+                        requirements_nice_to_have=[],
+                    )
+                )
             config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
             config.attributes["connection"] = conn
             command.upgrade(config, "head")
             migrated = sa.MetaData()
             migrated.reflect(conn)
-            assert (
-                conn.scalar(
-                    sa.select(sa.func.count()).select_from(migrated.tables["companies"])
-                )
-                == 2
-            )
+            assert conn.scalar(
+                sa.select(sa.func.count()).select_from(migrated.tables["companies"])
+            ) == 2 + len(names)
             assert (
                 conn.scalar(
                     sa.select(sa.func.count()).select_from(migrated.tables["contacts"])
@@ -121,6 +155,22 @@ async def test_populated_workspace_upgrade(db_engine):
                 )
                 == 2
             )
+            company_rows = {
+                row["id"]: row
+                for row in conn.execute(
+                    sa.select(migrated.tables["companies"])
+                ).mappings()
+            }
+            assert len(
+                {(row["user_id"], row["name"]) for row in company_rows.values()}
+            ) == len(company_rows)
+            for table_name in ("job_leads", "applications"):
+                for row in conn.execute(
+                    sa.select(migrated.tables[table_name])
+                ).mappings():
+                    company = company_rows[row["company_id"]]
+                    assert company["name"] == row["company"].strip()
+                    assert company["user_id"] == row["user_id"]
             for user_id in ("one", "two"):
                 assert (
                     conn.scalar(
@@ -151,6 +201,7 @@ async def test_populated_workspace_upgrade(db_engine):
                 assert app["company_id"] == lead["company_id"]
                 assert app["recruiter_contact_id"] == lead["recruiter_contact_id"]
                 assert lead["company"] == " North "
+                assert lead["updated_at"].replace(tzinfo=UTC) == now
                 profile = (
                     conn.execute(
                         sa.select(migrated.tables["user_profiles"]).where(

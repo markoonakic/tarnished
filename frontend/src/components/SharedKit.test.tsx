@@ -339,7 +339,7 @@ it.each(['reject', 'withdraw'])(
     expect(screen.getByLabelText('Reason')).toBeInTheDocument();
     expect(document.querySelectorAll('datalist option')).toHaveLength(7);
     fireEvent.change(screen.getByLabelText('Reason'), {
-      target: { value: 'Position filled' },
+      target: { value: 'Custom reason: moving abroad' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
@@ -347,7 +347,7 @@ it.each(['reject', 'withdraw'])(
         status_id: statusId,
         changed_at: '2026-10-08T12:00:00.000Z',
         comment: '',
-        reason: 'Position filled',
+        reason: 'Custom reason: moving abroad',
       })
     );
   }

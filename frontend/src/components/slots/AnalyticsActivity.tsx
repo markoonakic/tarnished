@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import Card from '@/components/Card';
 import { apiV030, type Activity } from '@/lib/apiV030';
 import { locale } from '@/lib/i18n';
+import { statusLabel } from '@/lib/referenceLabels';
 import { queryClient } from '@/lib/queryClient';
 import { useEffectiveDayKey } from '@/hooks/useEffectiveDayKey';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
@@ -41,6 +42,19 @@ const events: Record<string, string> = {
   'workspace.document.created': 'analytics.documentAdded',
   'workspace.document.deleted': 'analytics.documentDeleted',
 };
+
+function activityIcon(event: string): string {
+  if (event === 'status.changed') return 'bi-arrow-right';
+  if (event.includes('round'))
+    return event.endsWith('completed') ? 'bi-people' : 'bi-calendar-event';
+  if (event.includes('note')) return 'bi-journal-text';
+  if (event.includes('reminder')) return 'bi-bell';
+  if (event.includes('match')) return 'bi-person-check';
+  if (event.includes('contact')) return 'bi-person';
+  if (event.includes('company')) return 'bi-buildings';
+  if (event.includes('document')) return 'bi-file-earmark';
+  return 'bi-pencil-square';
+}
 
 function activityHref(item: Activity): string | undefined {
   if (
@@ -111,7 +125,12 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
         <ul>
           {items.map((item) => {
             const href = activityHref(item);
-            const label = t(events[item.event] ?? 'analytics.recordUpdated');
+            const label =
+              item.event === 'status.changed' &&
+              item.from_status &&
+              item.to_status
+                ? `${statusLabel(item.from_status)} → ${statusLabel(item.to_status)}`
+                : t(events[item.event] ?? 'analytics.recordUpdated');
             return (
               <li
                 key={`${item.id}:${item.event}`}
@@ -135,7 +154,7 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
                 </time>
                 <span className="text-fg1 flex min-w-0 items-center gap-3">
                   <i
-                    className="bi bi-clock-history text-accent"
+                    className={`bi ${activityIcon(item.event)} text-accent`}
                     aria-hidden="true"
                   />
                   <span>

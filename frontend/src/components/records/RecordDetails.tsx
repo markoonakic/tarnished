@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffectiveDayKey } from '@/hooks/useEffectiveDayKey';
 import { useTranslation } from 'react-i18next';
 import { locale } from '@/lib/i18n';
 import type { JobFields } from '@/lib/apiV030';
@@ -26,10 +26,14 @@ export default function RecordDetails({
     value
       ? new Date(value).toLocaleDateString(locale(), { timeZone: 'UTC' })
       : '—';
-  const [now] = useState(Date.now);
-  const urgent =
-    record.deadline &&
-    Date.parse(record.deadline + 'T23:59:59') - now <= 3 * 86400000;
+  const today = useEffectiveDayKey();
+  const days = record.deadline
+    ? Math.round((Date.parse(record.deadline) - Date.parse(today)) / 86400000)
+    : null;
+  const urgent = days !== null && days <= 3;
+  const deadlineLabel = record.deadline
+    ? `${date(record.deadline)} · ${new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' }).format(days!, 'day')}`
+    : '—';
   const pay =
     record.salary_min != null || record.salary_max != null
       ? `${record.salary_min?.toLocaleString(locale()) ?? '—'}–${record.salary_max?.toLocaleString(locale()) ?? '—'} ${record.salary_currency || ''}${record.pay_period ? ' / ' + t('records.' + record.pay_period) : ''}`
@@ -48,8 +52,10 @@ export default function RecordDetails({
       <dl className="mb-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
         <div className="flex items-center">
           <dt className="text-muted mr-2">{t('records.deadline')}:</dt>
-          <dd className={urgent ? 'text-red font-medium' : 'text-primary'}>
-            {date(record.deadline)}
+          <dd
+            className={urgent ? 'text-red-bright font-medium' : 'text-primary'}
+          >
+            {deadlineLabel}
             {record.deadline && (
               <DeadlineReminder
                 id={record.id}
@@ -86,8 +92,10 @@ export default function RecordDetails({
         </div>
         <div>
           <dt className="text-muted mb-1 text-xs">{t('records.deadline')}</dt>
-          <dd className={urgent ? 'text-red font-medium' : 'text-primary'}>
-            {date(record.deadline)}
+          <dd
+            className={urgent ? 'text-red-bright font-medium' : 'text-primary'}
+          >
+            {deadlineLabel}
             {record.deadline && (
               <DeadlineReminder
                 id={record.id}

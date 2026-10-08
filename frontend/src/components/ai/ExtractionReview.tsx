@@ -333,7 +333,7 @@ export default function ExtractionReview({
                     {choice && editing !== item.id ? (
                       <>
                         <span
-                          className={`rounded px-2 py-1 text-xs ${choice.decision === 'rejected' ? 'bg-red-dim text-red-bright' : 'bg-bg3 text-accent'}`}
+                          className={`rounded px-2 py-1 text-xs ${choice.decision === 'accepted' ? 'bg-green-bright/10 text-green-bright' : choice.decision === 'edited' ? 'bg-blue-bright/10 text-blue-bright' : 'bg-red-bright/10 text-red-bright'}`}
                         >
                           {t(`ai.${choice.decision}`)}
                         </span>

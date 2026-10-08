@@ -1,3 +1,4 @@
+vi.mock('@/hooks/useEffectiveDayKey', () => ({ useEffectiveDayKey: () => '2026-10-08' }));
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
