@@ -32,7 +32,7 @@ export const dateLabel = (date?: string | null) =>
         date.length === 10 ? date + 'T12:00:00' : date
       ).toLocaleDateString(locale(), {
         day: 'numeric',
-        month: 'short',
+        month: locale().startsWith('sr') ? 'numeric' : 'short',
         year: 'numeric',
       })
     : '—';

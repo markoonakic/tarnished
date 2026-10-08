@@ -24,6 +24,7 @@ import {
   CompanyModal,
   ContactModal,
 } from '@/components/companies/RecordModals';
+import { dateLabel } from '@/components/companies/addressBook';
 import en from '@/locales/areas/companies.en.json';
 import sr from '@/locales/areas/companies.sr-Latn.json';
 vi.mock('@/hooks/useThemeColors', () => ({
@@ -284,6 +285,12 @@ it('creates a company reminder in the user zone and completes it with its revisi
         intent_id: expect.any(String),
       })
     )
+  );
+});
+it('uses the Serbian numeric date format', async () => {
+  await i18n.changeLanguage('sr-Latn');
+  expect(dateLabel('2026-10-08').replaceAll('\u00a0', ' ')).toBe(
+    '8. 10. 2026.'
   );
 });
 it('keeps every area string in both languages', () => {
