@@ -199,7 +199,9 @@ async def update_profile(
     }
     prospective.update(update_data)
     if allowed_profile(profile) != allowed_profile(prospective):
-        await invalidate_interviews(db, user_id=user.id, removed=True)
+        await invalidate_interviews(
+            db, user_id=user.id, removed=True, analysis_removed=permission_changed
+        )
     changed = await db.scalar(
         update(UserProfile)
         .where(

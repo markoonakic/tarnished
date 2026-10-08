@@ -288,10 +288,31 @@ async def test_match_permission_stale_counts_and_preparation_append(
     ).status_code == 200
     await db.refresh(interview)
     assert interview.preparation["plan"] == ["Keep existing", "Practice Python"]
-    profile.ai_permissions = {"projects": False}
-    profile.permission_revision += 1
-    await db.commit()
+    response = await client.put(
+        "/api/profile",
+        headers=h,
+        json={
+            "expected_revision": profile.revision,
+            "projects": [
+                {**profile.projects[0], "description": "A changed Python service"}
+            ],
+        },
+    )
+    assert response.status_code == 200, response.text
+    await db.refresh(row)
+    stale = await service.view(db, row)
+    assert stale["stale"] and stale["draft"]["rows"]
     assert not await service.current_matches(db, user.id, [record])
+    response = await client.put(
+        "/api/profile",
+        headers=h,
+        json={
+            "expected_revision": response.json()["revision"],
+            "ai_permissions": {"projects": False},
+        },
+    )
+    assert response.status_code == 200, response.text
+    await db.refresh(row)
     assert (await service.view(db, row))["draft"] == {}
 
 

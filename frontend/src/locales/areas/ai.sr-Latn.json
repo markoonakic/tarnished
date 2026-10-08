@@ -112,5 +112,9 @@
   "ai.value.day": "po danu",
   "ai.value.week": "nedeljno",
   "ai.value.month": "mesečno",
-  "ai.value.year": "godišnje"
+  "ai.value.year": "godišnje",
+  "ai.reviewedDenominator_one": "Broj pregledanih oglasa: {{count}}.",
+  "ai.reviewedDenominator_other": "Broj pregledanih oglasa: {{count}}.",
+  "ai.matchDenominator_one": "Rezultati „Nedostaje dokaz” u aktuelnim poređenjima: {{count}}.",
+  "ai.matchDenominator_other": "Rezultati „Nedostaje dokaz” u aktuelnim poređenjima: {{count}}."
 }

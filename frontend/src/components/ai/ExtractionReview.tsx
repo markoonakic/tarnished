@@ -60,10 +60,25 @@ export default function ExtractionReview({
   const hasCompany = items.some((item) => item.field === 'company');
   useEffect(() => {
     if (!hasCompany) return;
-    void apiV030
-      .companies({ per_page: 100 })
-      .then((value) => setCompanies(value.items))
-      .catch(() => controller.setError(true));
+    let active = true;
+    async function loadCompanies() {
+      const first = await apiV030.companies({ page: 1, per_page: 100 });
+      const items = [...first.items];
+      for (
+        let page = 2;
+        active && page <= Math.ceil(first.total / 100);
+        page++
+      ) {
+        items.push(...(await apiV030.companies({ page, per_page: 100 })).items);
+      }
+      if (active) setCompanies(items);
+    }
+    void loadCompanies().catch(() => {
+      if (active) controller.setError(true);
+    });
+    return () => {
+      active = false;
+    };
     // Company options do not change on every polling read.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasCompany]);
@@ -71,7 +86,7 @@ export default function ExtractionReview({
     setChoices({});
     setEditing(null);
     setCompanyId('');
-  }, [analysis?.id]);
+  }, [analysis?.id, analysis?.revision]);
   const disabled = busy || running || saving || loading;
   const reviewed = Object.values(choices);
   const companyNeeded =
@@ -343,7 +358,9 @@ export default function ExtractionReview({
                           type="button"
                           className={`${ghost} text-green-bright`}
                           disabled={disabled || analysis?.stale}
-                          aria-label={t('ai.acceptRow', { value: item.value })}
+                          aria-label={t('ai.acceptRow', {
+                            value: displayValue(item.field, item.value),
+                          })}
                           title={t('ai.accept')}
                           onClick={() => decide(item, 'accepted')}
                         >
@@ -353,7 +370,9 @@ export default function ExtractionReview({
                           type="button"
                           className={ghost}
                           disabled={disabled || analysis?.stale}
-                          aria-label={t('ai.editRow', { value: item.value })}
+                          aria-label={t('ai.editRow', {
+                            value: displayValue(item.field, item.value),
+                          })}
                           title={t('ai.edit')}
                           onClick={() => {
                             decide(item, 'edited');
@@ -366,7 +385,9 @@ export default function ExtractionReview({
                           type="button"
                           className={`${ghost} text-red-bright`}
                           disabled={disabled || analysis?.stale}
-                          aria-label={t('ai.rejectRow', { value: item.value })}
+                          aria-label={t('ai.rejectRow', {
+                            value: displayValue(item.field, item.value),
+                          })}
                           title={t('ai.reject')}
                           onClick={() => decide(item, 'rejected')}
                         >

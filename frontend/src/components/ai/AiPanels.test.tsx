@@ -30,6 +30,7 @@ vi.mock('@/lib/apiAnalyses', async (importOriginal) => ({
     run: vi.fn(),
     review: vi.fn(),
     apply: vi.fn(),
+    discard: vi.fn(),
     read: vi.fn(),
   },
 }));
@@ -80,6 +81,36 @@ beforeEach(async () => {
   });
 });
 afterEach(cleanup);
+
+it('reuses an uncertain intent only after an explicit retry', async () => {
+  const pending = { ...base, revision: 0, state: 'pending', draft: {} };
+  latest(null);
+  vi.mocked(analysesApi.create).mockResolvedValue(pending);
+  vi.mocked(analysesApi.run)
+    .mockRejectedValueOnce(new Error('Connection lost'))
+    .mockResolvedValueOnce({ ...pending, state: 'queued' });
+  render(
+    <ExtractionReview
+      target={{ application_id: 'app' }}
+      source="Python required"
+    />
+  );
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Extract with AI' })
+    ).toBeEnabled()
+  );
+  latest(pending);
+  fireEvent.click(screen.getByRole('button', { name: 'Extract with AI' }));
+  await screen.findByRole('alert');
+  expect(analysesApi.run).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Run again' }));
+  await waitFor(() => expect(analysesApi.run).toHaveBeenCalledTimes(2));
+  expect(analysesApi.create).toHaveBeenCalledOnce();
+  expect(vi.mocked(analysesApi.run).mock.calls[0][1]).toBe(
+    vi.mocked(analysesApi.run).mock.calls[1][1]
+  );
+});
 
 it('has complete natural Serbian area strings', () => {
   expect(Object.keys(en).sort()).toEqual(Object.keys(sr).sort());

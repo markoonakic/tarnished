@@ -281,7 +281,8 @@ async def start(db, auth, row, request):
         "configuration": settings.revision,
     }
     row.source_text = data.get("posting", "")
-    row.draft, row.reviewed, row.review_state = {}, [], "pending"
+    # Keep the prior result during an explicit retry; publication replaces it.
+    row.review_state = "pending"
     job = InterviewJob(
         user_id=row.user_id,
         scope=row.kind,
@@ -343,6 +344,7 @@ async def execute(executor, job_id, claim):
         job, _, _ = await guarded(db, job_id, claim, ("analyzing",))
         row = await owned(db, job.user_id, job.analysis_id)
         row.draft = output
+        row.reviewed = []
         row.review_state = "ready"
         row.revision += 1
         job.state, job.uncertain, job.checkpoints = "complete", False, []
@@ -388,6 +390,7 @@ async def review(db, row, request):
     data, _ = await inputs(db, row)
     if (
         row.kind != "EXTRACTION"
+        or row.review_state != "ready"
         or not row.draft
         or row.review_state == "saved"
         or row.revision != request.expected_revision
@@ -534,6 +537,7 @@ async def apply(db, row, request):
         return row
     if (
         row.kind != "PREPARATION"
+        or row.review_state not in ("ready", "saved")
         or not row.draft
         or row.revision != request.expected_revision
         or interview is None

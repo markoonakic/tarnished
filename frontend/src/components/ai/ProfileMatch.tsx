@@ -9,9 +9,11 @@ import AnalysisStatus from './AnalysisStatus';
 export default function ProfileMatch({
   target,
   refreshKey,
+  legacy = [],
 }: {
   target: AnalysisTarget;
   refreshKey?: string | number;
+  legacy?: string[];
 }) {
   const { t } = useTranslation();
   const controller = useJobAnalysis('PROFILE_MATCH', target, refreshKey);
@@ -43,6 +45,11 @@ export default function ProfileMatch({
     >
       <AnalysisStatus controller={controller} />
       {hint && <p className="text-muted mb-4 text-sm">{t(hint)}</p>}
+      {legacy.length > 0 && (
+        <p className="text-muted mb-4 text-xs">
+          {t('ai.notReviewed')}: {legacy.join(' · ')}
+        </p>
+      )}
       {analysis?.stale && (
         <p
           role="status"

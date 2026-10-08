@@ -112,5 +112,9 @@
   "ai.value.day": "per day",
   "ai.value.week": "per week",
   "ai.value.month": "per month",
-  "ai.value.year": "per year"
+  "ai.value.year": "per year",
+  "ai.reviewedDenominator_one": "From {{count}} reviewed posting.",
+  "ai.reviewedDenominator_other": "From {{count}} reviewed postings.",
+  "ai.matchDenominator_one": "“No evidence” results in {{count}} current profile comparison.",
+  "ai.matchDenominator_other": "“No evidence” results in {{count}} current profile comparisons."
 }

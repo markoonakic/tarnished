@@ -110,7 +110,13 @@ async def _affected_user(db, *, application_id=None, round_id=None, user_id=None
 
 
 async def invalidate_reports(
-    db, *, application_id=None, round_id=None, user_id=None, removed=False
+    db,
+    *,
+    application_id=None,
+    round_id=None,
+    user_id=None,
+    removed=False,
+    analysis_removed=True,
 ):
     """Invalidate affected reports while the caller holds the settings write lock."""
     owner = await _affected_user(
@@ -130,11 +136,12 @@ async def invalidate_reports(
     if removed and user_id and not application_id and not round_id:
         from app.models.job_analysis import JobAnalysis
 
-        await db.execute(
-            update(JobAnalysis)
-            .where(JobAnalysis.user_id == owner, JobAnalysis.kind != "EXTRACTION")
-            .values(draft={}, fingerprint="")
-        )
+        if analysis_removed:
+            await db.execute(
+                update(JobAnalysis)
+                .where(JobAnalysis.user_id == owner, JobAnalysis.kind != "EXTRACTION")
+                .values(draft={}, fingerprint="")
+            )
         await db.execute(
             update(InterviewJob)
             .where(
