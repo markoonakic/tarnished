@@ -10,7 +10,7 @@ export default function Profile() {
           {t('kit.profile')}
         </h1>
         <p className="text-fg4 mb-6 text-sm">{t('kit.profileSubtitle')}</p>
-        <SettingsProfile />
+        <SettingsProfile section />
       </div>
     </Layout>
   );

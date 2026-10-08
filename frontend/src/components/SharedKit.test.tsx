@@ -41,6 +41,9 @@ afterEach(async () => {
 
 it('loads area files and keeps complete English and Serbian keys', async () => {
   expect(Object.keys(sr).sort()).toEqual(Object.keys(en).sort());
+  expect(Object.keys(dictionaries.en).sort()).toEqual(
+    Object.keys(dictionaries['sr-Latn']).sort()
+  );
   for (const key of Object.keys(en)) {
     expect(dictionaries.en[key]).toBe(en[key as keyof typeof en]);
     expect(sr[key as keyof typeof sr].trim()).not.toBe('');
@@ -494,6 +497,34 @@ it('starts the month grid on Monday, links events, highlights today and opens hi
   fireEvent.click(screen.getByRole('button', { name: 'Next month' }));
   expect(onMonthChange).toHaveBeenCalledWith(new Date(2026, 10, 1));
 });
+it('offers Show more for text that wraps beyond six lines at the current width', () => {
+  const height = vi
+    .spyOn(HTMLElement.prototype, 'scrollHeight', 'get')
+    .mockReturnValue(140);
+  const visible = vi
+    .spyOn(HTMLElement.prototype, 'clientHeight', 'get')
+    .mockReturnValue(120);
+  try {
+    render(
+      <NotesPanel
+        notes={[
+          {
+            id: 'wrapped',
+            body: 'A short text on a narrow screen.',
+            created_at: '2026-10-08T09:00:00Z',
+          },
+        ]}
+      />
+    );
+    expect(
+      screen.getByRole('button', { name: 'Show more' })
+    ).toBeInTheDocument();
+  } finally {
+    height.mockRestore();
+    visible.mockRestore();
+  }
+});
+
 it('renders six calendar weeks when required and has Serbian weekday labels', async () => {
   await act(async () => {
     await i18n.changeLanguage('sr-Latn');

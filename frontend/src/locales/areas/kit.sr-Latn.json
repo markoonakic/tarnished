@@ -1,5 +1,9 @@
 {
   "kit.ai": "AI",
+  "kit.personalDetails": "Lični podaci",
+  "kit.notUsedByAi": "AI ne koristi ove podatke",
+  "kit.allCompanies": "Sve kompanije",
+  "kit.allRoles": "Sve uloge",
   "kit.calendarLegend": "Narandžasto = predstoji · zeleno = uspešno · crveno = neuspešno · žute tačke = podsetnici za taj dan.",
   "kit.addTag": "Dodaj oznaku…",
   "kit.removeTag": "Ukloni {{tag}}",

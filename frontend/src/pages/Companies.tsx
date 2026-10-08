@@ -46,13 +46,23 @@ export default function Companies() {
             className="bg-bg2 text-fg1 placeholder:text-fg4 focus:ring-accent w-full max-w-sm rounded-md px-3 py-2 text-sm outline-none focus:ring-2"
           />
           <Dropdown
-            options={[{ value: '', label: t('kit.allIndustries') }]}
+            options={[
+              {
+                value: '',
+                label: t(contacts ? 'kit.allCompanies' : 'kit.allIndustries'),
+              },
+            ]}
             value=""
             onChange={() => {}}
             disabled
           />
           <Dropdown
-            options={[{ value: 'name', label: t('kit.sortName') }]}
+            options={[
+              {
+                value: 'name',
+                label: t(contacts ? 'kit.allRoles' : 'kit.sortName'),
+              },
+            ]}
             value="name"
             onChange={() => {}}
             disabled

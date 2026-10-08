@@ -1,5 +1,9 @@
 {
   "kit.ai": "AI",
+  "kit.personalDetails": "Personal details",
+  "kit.notUsedByAi": "Not used by AI",
+  "kit.allCompanies": "All companies",
+  "kit.allRoles": "All roles",
   "kit.calendarLegend": "Orange = upcoming · green = passed · red = not passed · yellow dots = reminders due that day.",
   "kit.addTag": "Add a tag…",
   "kit.removeTag": "Remove {{tag}}",
