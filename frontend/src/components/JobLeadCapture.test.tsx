@@ -50,6 +50,8 @@ const toast = vi.hoisted(() => ({
 vi.mock('../contexts/ToastContext', () => ({ useToastContext: () => toast }));
 vi.mock('../hooks/useToast', () => ({ useToast: () => toast }));
 vi.mock('./slots/LeadReminders', () => ({ default: () => null }));
+vi.mock('./slots/LeadExtractionReview', () => ({default: () => null}));
+vi.mock('./slots/LeadProfileMatch', () => ({default: () => null}));
 vi.mock('./Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
 }));

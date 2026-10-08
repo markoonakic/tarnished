@@ -155,7 +155,7 @@ def test_unchecked_vertex_route_reaches_blocked_ambient_resolver(offline_adapter
 @pytest.mark.parametrize("model", [None, "openai/synthetic-local-model"])
 @pytest.mark.parametrize("keyless", [True, False])
 async def test_installation_extraction_consumers_dispatch_validated_effective_model(
-    client, db, monkeypatch, offline_adapter, caplog, caller, model, keyless
+    client, db, db_engine, monkeypatch, offline_adapter, caplog, caller, model, keyless
 ):
     """Persist settings via API; keep extraction, completion and SDK construction real."""
     requests, auth, _ = offline_adapter
@@ -197,6 +197,9 @@ async def test_installation_extraction_consumers_dispatch_validated_effective_mo
     assert disclosed.json()["text"]["model"] == expected_model
     assert disclosed.json()["text"]["available"]
 
+    from app.core.seed import seed_defaults
+
+    await seed_defaults(db)
     data = {"url": "https://jobs.invalid/one", "text": "Synthetic job posting"}
     if caller == "application":
         status = ApplicationStatus(
@@ -214,7 +217,39 @@ async def test_installation_extraction_consumers_dispatch_validated_effective_mo
         data = {"expected_revision": lead.json()["revision"]}
 
     response = await client.post(path, headers=headers(user), json=data)
-    assert response.status_code == 502, response.text
+    assert response.status_code in (200, 201), response.text
+    from types import SimpleNamespace
+    from uuid import uuid4
+
+    from sqlalchemy import select
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    from app.models import InterviewJob
+    from app.services.interview_text import ReportFailure
+    from app.services.job_analyses import execute
+
+    async def async_transport(_self, request):
+        requests.append(request)
+        raise httpx.ConnectError("offline transport blocked", request=request)
+
+    monkeypatch.setattr(
+        httpx.AsyncHTTPTransport, "handle_async_request", async_transport
+    )
+    job = await db.scalar(
+        select(InterviewJob).where(
+            InterviewJob.analysis_id == response.json()["pending_analysis_id"]
+        )
+    )
+    job.state, job.claim_id = "analyzing", str(uuid4())
+    await db.commit()
+    with pytest.raises(ReportFailure):
+        await execute(
+            SimpleNamespace(
+                sessions=async_sessionmaker(db_engine, expire_on_commit=False)
+            ),
+            job.id,
+            job.claim_id,
+        )
     for public_response in (saved, disclosed, response):
         assert "canary" not in public_response.text
         assert "offline" not in public_response.text
@@ -224,11 +259,12 @@ async def test_installation_extraction_consumers_dispatch_validated_effective_mo
     assert "offline transport blocked" not in caplog.text
     auth.assert_not_called()
     assert requests, "Must reach the installed OpenAI SDK transport boundary"
-    expected_key = "tarnished-keyless" if keyless else "stored-key-canary"
     for request in requests:
         assert str(request.url) == endpoint + "/chat/completions"
         assert json.loads(request.content)["model"] == expected_model.split("/", 1)[1]
-        assert request.headers["authorization"] == "Bearer " + expected_key
+        assert request.headers.get("authorization") == (
+            None if keyless else "Bearer stored-key-canary"
+        )
         assert "ambient-" not in str(request.headers)
 
 

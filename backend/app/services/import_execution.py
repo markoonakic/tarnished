@@ -426,6 +426,7 @@ async def clear_existing_import_data(db: AsyncSession, user_id: str) -> None:
     await lock_ai_settings(db)
     from sqlalchemy import delete
 
+    from app.models.job_analysis import JobAnalysis
     from app.models.workspace import (
         ApplicationContact,
         ApplicationDocument,
@@ -436,6 +437,7 @@ async def clear_existing_import_data(db: AsyncSession, user_id: str) -> None:
         RoundContact,
     )
 
+    await db.execute(delete(JobAnalysis).where(JobAnalysis.user_id == user_id))
     for model in (
         Note,
         Reminder,

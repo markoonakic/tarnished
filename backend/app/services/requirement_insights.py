@@ -3,6 +3,32 @@
 from collections import Counter
 
 
+def source_hash(application):
+    from app.services.interview_evidence import fingerprint
+
+    return fingerprint(getattr(application, "source_text", None) or "")
+
+
+def current_requirements(record):
+    digest = source_hash(record)
+    items = []
+    for item in record.confirmed_requirements or []:
+        if not isinstance(item, dict) or item.get("source_hash", digest) != digest:
+            continue
+        projection = {
+            "must_have": "requirements_must_have",
+            "nice_to_have": "requirements_nice_to_have",
+        }.get(str(item.get("type", "")))
+        if (
+            item.get("analysis_id")
+            and projection
+            and item.get("text") not in (getattr(record, projection, None) or [])
+        ):
+            continue
+        items.append(item)
+    return items
+
+
 def requirement_insights(applications, matches_by_application=None):
     """The analysis publisher supplies current, permission-checked saved matrices.
 
@@ -15,7 +41,7 @@ def requirement_insights(applications, matches_by_application=None):
     labels = {}
     reviewed_count = matched_count = 0
     for application in applications:
-        items = application.confirmed_requirements or []
+        items = current_requirements(application)
         requirements = {
             item["id"]: item["text"].strip()
             for item in items

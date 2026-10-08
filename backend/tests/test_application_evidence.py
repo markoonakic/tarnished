@@ -296,7 +296,19 @@ async def test_extracted_and_lead_creation_snapshot_without_inference(
             keyless=True,
         )
 
-    monkeypatch.setattr(applications, "get_ai_settings", fake_settings)
+    from app.models import ApplicationStatus
+
+    db.add(
+        ApplicationStatus(
+            name="Preparing",
+            meaning="preparing",
+            user_id=owner.id,
+            is_default=False,
+            order=99,
+        )
+    )
+    await db.commit()
+    monkeypatch.setattr("app.services.job_analyses.get_ai_settings", fake_settings)
     monkeypatch.setattr(applications, "extract_job_data", fake_extract)
     result = await client.post(
         "/api/applications/extract",
@@ -309,9 +321,10 @@ async def test_extracted_and_lead_creation_snapshot_without_inference(
     )
     assert result.status_code == 201, result.text
     assert result.json()["response_state"] == "recorded"
-    assert result.json()["status_meaning"] == "interviewing"
-    assert extracted_at is not None
-    assert datetime.fromisoformat(result.json()["response_recorded_at"]) >= extracted_at
+    assert result.json()["status_meaning"] == "preparing"
+    assert extracted_at is None
+    assert result.json()["response_recorded_at"] is not None
+    assert result.json()["pending_analysis_id"]
     lead = JobLead(
         user_id=owner.id,
         company="Synthetic",

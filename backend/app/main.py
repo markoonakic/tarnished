@@ -159,6 +159,9 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 
+from app.api.job_analyses import router as job_analyses_router
+
+app.include_router(job_analyses_router)
 app.include_router(planning_router)
 app.include_router(attachments_router)
 app.include_router(source_capture_router)

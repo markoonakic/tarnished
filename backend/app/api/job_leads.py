@@ -11,7 +11,7 @@ The API supports both web app authentication (Bearer token) and
 browser extension authentication (API token).
 """
 
-from datetime import UTC, date, datetime
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import ValidationError
@@ -43,17 +43,11 @@ from app.schemas.job_lead import (
     JobLeadResponse,
     JobLeadUpdate,
 )
-from app.services.ai_settings import CapabilityUnavailableError, get_ai_settings
-from app.services.extraction import (
-    ExtractionAuthError,
-    ExtractionError,
-    ExtractionTimeoutError,
-    NoJobFoundError,
-    extract_job_data,
-)
+from app.services.ai_settings import get_ai_settings as get_ai_settings
+from app.services.extraction import extract_job_data as extract_job_data
 from app.services.job_fetch import fetch_job_posting_html
 from app.services.job_filters import JobFilters, apply_filters, filter_params
-from app.services.lead_capture import capture_complete_source, capture_source
+from app.services.lead_capture import capture_complete_source
 from app.services.reference_data import get_initial_application_status
 from app.services.user_time import get_user_local_today
 from app.services.workspace import JOB_FIELDS, audit, job_links
@@ -331,162 +325,73 @@ async def update_job_lead(
     return lead
 
 
-async def _extract_lead(
-    job_lead_id: str, data: JobLeadExtractRequest | None, user: User, db: AsyncSession
-):
-    user_id = user.id
-    lead = await _owned_lead(db, job_lead_id, user_id)
-    revision = lead.revision
-    if lead.converted_to_application_id or lead.status == "converted":
-        raise _conflict(job_lead_id)
-    if data is None:
-        if lead.status != "failed":
-            raise HTTPException(
-                400, "Job lead must have status 'failed' for a bodyless retry"
-            )
-    elif data.expected_revision != revision:
-        raise _conflict(job_lead_id)
-    if lead.status == "processing" and not (data and data.restart_processing):
+async def _extract_lead(job_lead_id, data, auth, db):
+    from uuid import UUID, uuid4
+
+    from app.schemas.job_analysis import CreateAnalysis, RunAnalysis
+    from app.services import job_analyses
+    from app.services.ai_settings import lock_ai_settings
+
+    await lock_ai_settings(db)
+    lead = await _owned_lead(db, job_lead_id, auth.user.id)
+    if data is None and lead.status != "failed":
         raise HTTPException(
-            409,
-            {
-                "id": job_lead_id,
-                "message": "Processing may still be running or interrupted. Explicit restart_processing acknowledgement is required; restarting may repeat billed work.",
-            },
+            400,
+            "A bodyless retry requires a failed lead; otherwise provide the current revision",
         )
-    restarting = lead.status == "processing"
-    claim = revision + 1
-    manual_fields = set(lead.manual_fields)
-    business = {name: getattr(lead, name) for name in JobLeadEditable.model_fields}
-    url, source_text = lead.url, lead.source_text
-    changed = await db.scalar(
-        update(JobLead)
-        .where(
-            JobLead.id == job_lead_id,
-            JobLead.user_id == user_id,
-            JobLead.revision == revision,
-            JobLead.converted_to_application_id.is_(None),
-        )
-        .values(
-            revision=claim,
-            status="processing",
-            processing_started_at=datetime.now(UTC),
-            error_message="Previous request outcome is uncertain; this explicit restart may repeat billed work."
-            if restarting
-            else None,
-        )
-        .returning(JobLead.id)
-        .execution_options(synchronize_session=False)
-    )
-    if changed is None:
-        await db.rollback()
+    if lead.status == "processing" and not (data and data.restart_processing):
         raise _conflict(job_lead_id)
-    await db.commit()
-
-    def current_claim():
-        return update(JobLead).where(
-            JobLead.id == job_lead_id,
-            JobLead.user_id == user_id,
-            JobLead.revision == claim,
-            JobLead.status == "processing",
-            JobLead.converted_to_application_id.is_(None),
-        )
-
-    error = None
-    try:
-        if not source_text:
-            if not url:
-                raise ExtractionError("Add source text or a URL before extraction")
-            html = await fetch_job_posting_html(url)
-            captured = await run_in_threadpool(capture_source, None, html)
-            source_text = captured["source_text"]
-            # Retain fetched evidence even if the subsequent provider fails.
-            changed = await db.scalar(
-                current_claim()
-                .values(**captured)
-                .returning(JobLead.id)
-                .execution_options(synchronize_session=False)
+    if data and data.expected_revision != lead.revision:
+        raise _conflict(job_lead_id)
+    if lead.converted_to_application_id:
+        raise _conflict(job_lead_id)
+    if not lead.source_text and lead.url:
+        try:
+            html = await fetch_job_posting_html(lead.url)
+        except HTTPException as exc:
+            lead.status = "failed"
+            lead.error_message = (
+                "Posting fetch failed; saved source and manual edits are retained."
             )
+            lead.revision += 1
             await db.commit()
-            if changed is None:
-                raise _conflict(job_lead_id)
-            if not source_text:
-                raise ExtractionError("No useful source content available")
-        ai_settings = await get_ai_settings(db)
-        await db.commit()  # No open database transaction across a provider request.
-        extracted = await extract_job_data(
-            text=source_text,
-            url=url or "",
-            model=ai_settings.effective_model,
-            api_key=ai_settings.dispatch_api_key,
-            api_base=ai_settings.base_url,
-            retry_invalid_response=False,
-            output_language=(data.language if data else None)
-            or (
-                "sr-Latn"
-                if (user.settings or {}).get("language") == "sr-Latn"
-                else "en"
-            ),
-        )
-        values = {
-            name: value
-            for name, value in extracted.model_dump().items()
-            if name not in manual_fields
-        }
-        JobLeadEditable.model_validate({**business, **values})
-        values.update(status="extracted", error_message=None)
-    except Exception as exc:
-        if isinstance(exc, HTTPException) and exc.status_code == 409:
-            raise
-        if isinstance(exc, HTTPException):
-            error = HTTPException(
+            raise HTTPException(
                 exc.status_code,
                 {
-                    "id": job_lead_id,
-                    "message": "The lead is saved, but source fetching failed.",
-                    "detail": exc.detail,
-                },
-            )
-        else:
-            code = ErrorCode.AI_SERVICE_ERROR
-            http_status = 502
-            if isinstance(exc, (ExtractionAuthError, CapabilityUnavailableError)):
-                code = ErrorCode.AI_KEY_NOT_CONFIGURED
-            elif isinstance(exc, ExtractionTimeoutError):
-                code, http_status = ErrorCode.AI_TIMEOUT, 504
-            elif isinstance(exc, NoJobFoundError):
-                code, http_status = ErrorCode.AI_EXTRACTION_FAILED, 400
-            elif isinstance(exc, ValueError):
-                http_status = 400
-            error = HTTPException(
-                http_status,
-                {
-                    **make_error_response(code),
-                    "id": job_lead_id,
-                    **(
-                        {"message": str(exc)}
-                        if isinstance(exc, CapabilityUnavailableError)
-                        else {}
+                    **make_error_response(
+                        ErrorCode.AI_EXTRACTION_FAILED, detail=str(exc.detail)
                     ),
+                    "id": lead.id,
                 },
-            )
-        values = {
-            "status": "failed",
-            "error_message": "Extraction failed; saved source and manual edits are retained. Retry is explicit and may repeat billed work.",
-        }
-    changed = await db.scalar(
-        current_claim()
-        .values(**values, revision=claim + 1, processing_started_at=None)
-        .returning(JobLead.id)
-        .execution_options(synchronize_session=False)
+            ) from None
+        captured = await run_in_threadpool(capture_complete_source, None, html)
+        lead.source_text = captured["source_text"]
+        lead.source_truncated = captured["source_truncated"]
+        lead.content_warning = captured["content_warning"]
+        lead.revision += 1
+    analysis = await job_analyses.create(
+        db,
+        auth.user.id,
+        CreateAnalysis(
+            kind="EXTRACTION",
+            lead_id=UUID(lead.id),
+            language=(data.language if data else None)
+            or (auth.user.settings or {}).get("language", "en"),
+        ),
     )
-    if changed is None:
-        await db.rollback()
-        raise _conflict(job_lead_id)
+    await job_analyses.start(
+        db,
+        auth,
+        analysis,
+        RunAnalysis(intent_id=uuid4(), expected_revision=analysis.revision),
+    )
+    lead.revision += 1
+    lead.status, lead.processing_started_at, lead.error_message = "pending", None, None
     await db.commit()
-    if error:
-        raise error
-    return await _owned_lead(db, job_lead_id, user_id)
+    await db.refresh(lead)
+    return JobLeadResponse.model_validate(lead).model_copy(
+        update={"pending_analysis_id": analysis.id}
+    )
 
 
 @router.post("/{job_lead_id}/extract", response_model=JobLeadResponse)
@@ -497,8 +402,8 @@ async def extract_job_lead(
     _: object = Depends(require_api_key_scope("job_leads:write")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Explicit request-bound extraction; never automatically retry after restart."""
-    return await _extract_lead(job_lead_id, data, user, db)
+    """Queue proposals without publishing extracted fields."""
+    return await _extract_lead(job_lead_id, data, _, db)
 
 
 @router.post("/{job_lead_id}/retry", response_model=JobLeadResponse)
@@ -509,12 +414,8 @@ async def retry_job_lead_extraction(
     _: object = Depends(require_api_key_scope("job_leads:write")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Compatible failed-lead retry; active replacement requires explicit acknowledgement.
-
-    An interrupted provider outcome is uncertain and retry can repeat paid work.
-    No durable/background execution or automatic retry is implied by processing.
-    """
-    return await _extract_lead(job_lead_id, data, user, db)
+    """Explicit retry of the same reviewed proposal workflow."""
+    return await _extract_lead(job_lead_id, data, _, db)
 
 
 @router.delete("/{job_lead_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -680,6 +581,7 @@ async def convert_job_lead_to_application(
         salary_min=job_lead.salary_min,
         salary_max=job_lead.salary_max,
         salary_currency=job_lead.salary_currency,
+        posted_date=job_lead.posted_date,
         recruiter_name=job_lead.recruiter_name,
         recruiter_title=job_lead.recruiter_title,
         recruiter_linkedin_url=job_lead.recruiter_linkedin_url,

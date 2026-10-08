@@ -1,5 +1,6 @@
 from app.models.application import Application, ApplicationStatusHistory
 from app.models.audit_log import AuditLog
+from app.models.job_analysis import JobAnalysis as JobAnalysis
 from app.models.job_lead import JobLead
 from app.models.processing_job import ProcessingJob
 from app.models.round import MediaType, Round, RoundMedia

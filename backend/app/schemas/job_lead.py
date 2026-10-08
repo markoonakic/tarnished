@@ -99,6 +99,7 @@ class JobLeadCreate(JobFields):
 
 
 class JobLeadResponse(JobFieldsResponse):
+    pending_analysis_id: str | None = None
     decision: Literal["interesting", "rejected", "archived"] | None = None
     updated_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
