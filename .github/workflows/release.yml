@@ -293,8 +293,14 @@ jobs:
           test "${#sources[@]}" -eq 2
           docker buildx imagetools create "${tags[@]}" "${sources[@]}"
           docker buildx imagetools inspect "$IMAGE:${{ needs.release-meta.outputs.version }}"
+      - name: Apply the reviewed JWT audit exception
+        # Match the CI audit policy: every JWT reader pins its algorithm.
+        # HS256 uses a private secret, not the DER public key in CVE-2026-85394.
+        # See backend/tests/test_jwt_algorithm_policy.py for all four readers.
+        run: printf 'CVE-2026-85394\n' > "$RUNNER_TEMP/tarnished-trivy.ignore"
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
+          trivyignores: ${{ runner.temp }}/tarnished-trivy.ignore
           image-ref: ghcr.io/${{ github.repository_owner }}/tarnished:${{ needs.release-meta.outputs.version }}
           format: table
           exit-code: '1'
