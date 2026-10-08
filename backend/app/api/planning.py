@@ -308,6 +308,13 @@ async def board(
         )
         items = []
         for row in rows:
+            next_interview = await db.scalar(
+                select(func.min(Round.scheduled_at)).where(
+                    Round.application_id == row.id,
+                    Round.scheduled_at >= datetime.now(UTC),
+                    Round.completed_at.is_(None),
+                )
+            )
             items.append(
                 {
                     **ApplicationListItem.model_validate(row).model_dump(),
@@ -317,13 +324,9 @@ async def board(
                         .where(Round.application_id == row.id)
                     )
                     or 0,
-                    "next_interview_at": await db.scalar(
-                        select(func.min(Round.scheduled_at)).where(
-                            Round.application_id == row.id,
-                            Round.scheduled_at >= datetime.now(UTC),
-                            Round.completed_at.is_(None),
-                        )
-                    ),
+                    "next_interview_at": utc(next_interview)
+                    if next_interview is not None
+                    else None,
                     "open_reminder_count": await db.scalar(
                         select(func.count())
                         .select_from(Reminder)

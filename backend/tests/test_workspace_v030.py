@@ -49,6 +49,57 @@ async def post(client, path, data, headers):
     return response.json()
 
 
+async def test_application_responses_keep_sqlite_instants_in_utc(client, workspace):
+    _, headers, _, _, statuses = workspace
+    company = await post(client, "/companies", {"name": "North"}, headers)
+    app = await post(
+        client,
+        "/applications",
+        {
+            "company": "North",
+            "company_id": company["id"],
+            "job_title": "Engineer",
+            "status_id": statuses["applied"],
+        },
+        headers,
+    )
+    types = (await client.get("/api/round-types", headers=headers)).json()
+    await post(
+        client,
+        f"/applications/{app['id']}/rounds",
+        {
+            "round_type_id": types[0]["id"],
+            "scheduled_at": (datetime.now(UTC) + timedelta(days=1)).isoformat(),
+        },
+        headers,
+    )
+    overview = (await client.get("/api/dashboard/overview", headers=headers)).json()
+    recent = overview["recent_applications"][0]
+    board = (await client.get("/api/applications/board", headers=headers)).json()
+    card = next(item for col in board["columns"] for item in col["items"])
+    company = (
+        await client.get(f"/api/companies/{company['id']}", headers=headers)
+    ).json()
+    archived = await client.patch(
+        f"/api/applications/{app['id']}",
+        json={"archived": True, "expected_revision": app["evidence_revision"]},
+        headers=headers,
+    )
+    assert archived.status_code == 200
+    for row in (app, recent, archived.json(), card, company):
+        for field in (
+            "created_at",
+            "updated_at",
+            "archived_at",
+            "next_interview_at",
+            "last_activity_at",
+        ):
+            if row.get(field):
+                instant = datetime.fromisoformat(row[field].replace("Z", "+00:00"))
+                assert instant.tzinfo is not None, field
+                assert instant.utcoffset() == timedelta(0), field
+
+
 async def test_companies_contacts_notes_and_owner_isolation(client, db, workspace):
     user, h, other, oh, statuses = workspace
     company = await post(client, "/companies", {"name": " North "}, h)
