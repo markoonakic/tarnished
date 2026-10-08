@@ -36,7 +36,7 @@ export default function RemindersCard({
 }: RemindersCardProps) {
   const { t } = useTranslation();
   const [showDone, setShowDone] = useState(false);
-  const done = reminders.filter((r) => r.state !== 'open');
+  const done = reminders.filter((r) => r.state === 'done');
   const visible = reminders
     .filter((r) => r.state === 'open')
     .sort((a, b) => a.due_at.localeCompare(b.due_at));

@@ -71,7 +71,7 @@ export default function MonthGrid({
           >
             <i className="bi bi-chevron-left" aria-hidden="true" />
           </button>
-          <h3 className="text-fg1 font-semibold">
+          <h3 className="text-fg1 text-lg font-semibold">
             {month.toLocaleDateString(locale(), {
               month: 'long',
               year: 'numeric',
@@ -132,7 +132,7 @@ export default function MonthGrid({
                   role="cell"
                   key={key}
                   aria-label={key}
-                  className={`bg-secondary min-h-24 min-w-0 rounded-md p-1.5 ${day.getMonth() !== month.getMonth() ? 'opacity-50' : ''} ${key === dateKey(today) ? 'ring-accent ring-2 ring-inset' : ''}`}
+                  className={`bg-secondary min-h-24 min-w-0 rounded-md p-1.5 ${key === dateKey(today) ? 'ring-accent ring-2 ring-inset' : ''}`}
                 >
                   <button
                     type="button"
@@ -142,7 +142,7 @@ export default function MonthGrid({
                     })}
                     disabled={!onDayClick}
                     onClick={() => onDayClick?.(key)}
-                    className="text-fg4 focus:ring-accent mb-2 cursor-pointer rounded px-1 text-xs focus:ring-2 disabled:cursor-default"
+                    className={`${day.getMonth() === month.getMonth() ? 'text-fg1' : 'text-bg4'} focus:ring-accent mb-1 cursor-pointer rounded text-xs focus:ring-2 disabled:cursor-default`}
                   >
                     {day.getDate()}
                   </button>

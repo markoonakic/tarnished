@@ -89,7 +89,11 @@ export default function SettingsProfile({
       ) : (
         <form
           onSubmit={handleSave}
-          className="bg-secondary rounded-lg p-4 md:p-6"
+          className={
+            section
+              ? 'bg-secondary rounded-lg p-6'
+              : 'bg-secondary rounded-lg p-4 md:p-6'
+          }
         >
           {section ? (
             <CardHeader

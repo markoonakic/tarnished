@@ -233,6 +233,13 @@ const reminders: ReminderItem[] = [
     state: 'done',
     due_at: '2026-10-06T09:00:00Z',
   },
+  {
+    id: 'dismissed',
+    title: 'Old reminder',
+    kind: 'expected_feedback',
+    state: 'dismissed',
+    due_at: '2026-10-06T09:00:00Z',
+  },
 ];
 it('marks overdue reminders, completes, opens actions and hides done rows initially', () => {
   const onToggle = vi.fn();
@@ -263,6 +270,7 @@ it('marks overdue reminders, completes, opens actions and hides done rows initia
   expect(onDelete).toHaveBeenCalledWith(reminders[0]);
   fireEvent.click(screen.getByRole('button', { name: 'Show done (1)' }));
   expect(screen.getByText('Send reply')).toHaveClass('line-through');
+  expect(screen.queryByText('Old reminder')).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Reopen Send reply' }));
   expect(onToggle).toHaveBeenLastCalledWith(reminders[1]);
 });
