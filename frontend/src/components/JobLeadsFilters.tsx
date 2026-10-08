@@ -4,6 +4,7 @@ import Dropdown, { type DropdownOption } from './Dropdown';
 
 export interface JobLeadsFiltersValue {
   status: string;
+  decision?: string;
   source: string;
   sort: string;
   perPage: number;
@@ -14,45 +15,6 @@ interface JobLeadsFiltersProps {
   onChange: (value: JobLeadsFiltersValue) => void;
   sources: string[];
 }
-
-const statusOptions: DropdownOption[] = [
-  {
-    value: '',
-    get label() {
-      return t('All Statuses');
-    },
-  },
-  {
-    value: 'pending',
-    get label() {
-      return t('Saved / not extracted');
-    },
-  },
-  {
-    value: 'processing',
-    get label() {
-      return t('Processing / possibly interrupted');
-    },
-  },
-  {
-    value: 'converted',
-    get label() {
-      return t('Converted');
-    },
-  },
-  {
-    value: 'extracted',
-    get label() {
-      return t('Extracted');
-    },
-  },
-  {
-    value: 'failed',
-    get label() {
-      return t('Failed');
-    },
-  },
-];
 
 const sortOptions: DropdownOption[] = [
   {
@@ -107,10 +69,6 @@ export default function JobLeadsFilters({
     ...sources.map((source) => ({ value: source, label: source })),
   ];
 
-  function handleStatusChange(status: string) {
-    onChange({ ...value, status });
-  }
-
   function handleSourceChange(source: string) {
     onChange({ ...value, source });
   }
@@ -124,12 +82,19 @@ export default function JobLeadsFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="order-1 flex flex-wrap items-center gap-3">
       <Dropdown
-        options={statusOptions}
-        value={value.status}
-        onChange={handleStatusChange}
-        placeholder={t('All Statuses')}
+        options={[
+          { value: '', label: t('records.allDecisions') },
+          { value: 'undecided', label: t('records.undecided') },
+          ...['interesting', 'rejected', 'archived'].map((value) => ({
+            value,
+            label: t('records.decision.' + value),
+          })),
+        ]}
+        value={value.decision || ''}
+        onChange={(decision) => onChange({ ...value, decision })}
+        placeholder={t('records.allDecisions')}
         size="xs"
         containerBackground="bg1"
       />

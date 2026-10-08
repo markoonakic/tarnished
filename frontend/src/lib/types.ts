@@ -1,4 +1,7 @@
+import type { JobFields } from './apiV030';
+
 export const statusMeanings = [
+  'preparing',
   'unknown',
   'applied',
   'screening',
@@ -78,7 +81,11 @@ export interface Round {
   created_at: string;
 }
 
-export interface Application {
+export interface Application extends JobFields {
+  archived_at?: string | null;
+  outcome_reason?: string | null;
+  source_text?: string | null;
+  source_revision?: number;
   status_meaning: StatusMeaning;
   status_meaning_provenance: EvidenceProvenance;
   evidence_revision: number;
@@ -94,7 +101,7 @@ export interface Application {
   status: Status;
   cv_path: string | null;
   cover_letter_path: string | null;
-  applied_at: string;
+  applied_at: string | null;
   created_at: string;
   updated_at: string;
   rounds?: Round[];
@@ -125,14 +132,14 @@ export interface ApplicationListResponse {
   per_page: number;
 }
 
-export interface ApplicationCreate {
+export interface ApplicationCreate extends JobFields {
   response_evidence?: ResponseEvidenceInput | null;
   company: string;
   job_title: string;
   job_description?: string;
   job_url?: string;
   status_id: string;
-  applied_at?: string;
+  applied_at?: string | null;
   location?: string | null;
   salary_min?: number;
   salary_max?: number;
@@ -148,7 +155,11 @@ export interface ApplicationCreate {
   source?: string;
 }
 
-export interface ApplicationUpdate {
+export interface ApplicationUpdate extends JobFields {
+  archived?: boolean;
+  status_changed_at?: string;
+  status_comment?: string | null;
+  status_reason?: string | null;
   expected_revision?: number;
   response_evidence?: ResponseEvidenceInput | null;
   company?: string;
@@ -156,7 +167,7 @@ export interface ApplicationUpdate {
   job_description?: string | null;
   job_url?: string | null;
   status_id?: string;
-  applied_at?: string;
+  applied_at?: string | null;
   location?: string | null;
   salary_min?: number | null;
   salary_max?: number | null;
@@ -202,12 +213,15 @@ export interface ApplicationStatusHistory {
   is_gap: boolean;
   changed_at: string;
   note: string | null;
+  reason?: string | null;
 }
 
 type JobLeadStatus =
   'pending' | 'processing' | 'extracted' | 'failed' | 'converted';
 
-export interface JobLead {
+export interface JobLead extends JobFields {
+  decision?: 'interesting' | 'rejected' | 'archived' | null;
+  updated_at?: string;
   content_warning_code?: string | null;
   error_code?: string | null;
   id: string;
@@ -219,7 +233,7 @@ export interface JobLead {
   manual_fields: string[];
   title: string | null;
   company: string | null;
-  url: string;
+  url: string | null;
   status: JobLeadStatus;
   description: string | null;
   location: string | null;

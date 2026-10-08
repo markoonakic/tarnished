@@ -4,12 +4,13 @@ import { isAxiosError } from 'axios';
 import { invalidateEvidenceQueries } from './queryClient';
 import api, { withAxiosTimeZoneHeaders } from './api';
 import type { Application, JobLead } from './types';
+import { queryParams, type JobQuery, type JobFields } from './apiV030';
 
-interface JobLeadsParams {
+interface JobLeadsParams extends JobQuery {
   page?: number;
   per_page?: number;
   search?: string;
-  status?: JobLead['status'];
+  status?: string;
   source?: string;
   sort?: 'newest' | 'oldest';
 }
@@ -31,7 +32,9 @@ interface JobLeadSourcesResponse {
 export async function getJobLeads(
   params: JobLeadsParams = {}
 ): Promise<JobLeadsListResponse> {
-  const response = await api.get('/api/job-leads', { params });
+  const response = await api.get('/api/job-leads', {
+    params: queryParams(params),
+  });
   return response.data;
 }
 
@@ -60,6 +63,9 @@ export async function deleteJobLead(id: string): Promise<void> {
 export type JobLeadListItem = Pick<
   JobLead,
   | 'id'
+  | 'decision'
+  | 'priority'
+  | 'deadline'
   | 'status'
   | 'title'
   | 'company'
@@ -74,8 +80,11 @@ export type JobLeadListItem = Pick<
   | 'error_message'
 >;
 
-export interface JobLeadCreate {
-  url: string;
+export interface JobLeadCreate extends JobFields {
+  url?: string | null;
+  title?: string;
+  company?: string | null;
+  location?: string | null;
   text?: string;
   html?: string;
 }
@@ -101,7 +110,8 @@ export type JobLeadUpdate = Partial<
     | 'source'
     | 'posted_date'
   >
-> & { expected_revision: number };
+> &
+  JobFields & { decision?: JobLead['decision']; expected_revision: number };
 
 export interface JobLeadExtractRequest {
   expected_revision: number;

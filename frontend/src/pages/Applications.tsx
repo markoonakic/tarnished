@@ -19,6 +19,12 @@ import Loading from '../components/Loading';
 import EmptyState from '../components/EmptyState';
 import ApplicationModal from '../components/ApplicationModal';
 import Pagination from '../components/Pagination';
+import MoreFilters from '../components/records/MoreFilters';
+import {
+  recordFilters,
+  recordFilterKeys,
+  changeRecordFilters,
+} from '@/lib/recordFilters';
 
 const sortOptions = [
   {
@@ -77,7 +83,8 @@ export default function Applications() {
   const sort =
     sortOptions.find((option) => option.value === searchParams.get('sort'))
       ?.value ?? 'applied_desc';
-  const isFiltered = search || statusFilter || sourceFilter;
+  const filterKey = searchParams.toString();
+  const isFiltered = recordFilterKeys.some((key) => searchParams.has(key));
 
   const loadStatuses = useCallback(async () => {
     try {
@@ -93,7 +100,11 @@ export default function Applications() {
     setLoading(true);
     setError('');
     try {
-      const params: ListParams = { page, per_page: perPage };
+      const params: ListParams = {
+        ...recordFilters(new URLSearchParams(filterKey)),
+        page,
+        per_page: perPage,
+      };
       if (statusFilter) params.status_id = statusFilter;
       if (sourceFilter) params.source = sourceFilter;
       if (search) params.search = search;
@@ -112,7 +123,16 @@ export default function Applications() {
     } finally {
       if (ownedRequest === requestId.current) setLoading(false);
     }
-  }, [page, perPage, statusFilter, sourceFilter, search, sort, showError]);
+  }, [
+    page,
+    perPage,
+    statusFilter,
+    sourceFilter,
+    search,
+    sort,
+    showError,
+    filterKey,
+  ]);
 
   const loadSources = useCallback(async () => {
     try {
@@ -137,29 +157,14 @@ export default function Applications() {
 
   useEffect(() => observeRead(loadSources), [loadSources]);
 
-  function updateParams(updates: Record<string, string>) {
-    const newParams = new URLSearchParams(searchParams);
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value) {
-        newParams.set(key, value);
-      } else {
-        newParams.delete(key);
-      }
-    });
-    if (
-      updates.status !== undefined ||
-      updates.search !== undefined ||
-      updates.source !== undefined ||
-      updates.sort !== undefined
-    ) {
-      newParams.set('page', '1');
-    }
-    setSearchParams(newParams);
+  function updateParams(updates: Record<string, string | string[]>) {
+    setSearchParams(changeRecordFilters(searchParams, updates));
   }
 
   const totalPages = Math.ceil(total / perPage);
 
-  function formatDate(dateStr: string) {
+  function formatDate(dateStr: string | null) {
+    if (!dateStr) return '—';
     // Applied dates are calendar dates, not instants in the device zone.
     return new Date(dateStr).toLocaleDateString(locale(), { timeZone: 'UTC' });
   }
@@ -186,7 +191,7 @@ export default function Applications() {
         </div>
 
         <div className="bg-bg1 mb-6 rounded-lg p-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+          <div className="flex flex-wrap items-center gap-4">
             {/* Search Input */}
             <div className="relative min-w-0 flex-1">
               <i className="bi-search icon-sm text-muted absolute top-1/2 left-3 -translate-y-1/2" />
@@ -209,8 +214,16 @@ export default function Applications() {
               )}
             </div>
 
+            <MoreFilters
+              params={searchParams}
+              type="application"
+              onChange={updateParams}
+              statusLabels={Object.fromEntries(
+                statuses.map((status) => [status.id, statusLabel(status)])
+              )}
+            />
             {/* Filters */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="order-1 flex flex-wrap items-center gap-3">
               <Dropdown
                 options={[
                   { value: '', label: t('All Statuses') },
@@ -325,6 +338,9 @@ export default function Applications() {
                       {t('Applied')}
                     </th>
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
+                      {t('records.priority')}
+                    </th>
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
                       {t('Rounds')}
                     </th>
                   </tr>
@@ -333,7 +349,8 @@ export default function Applications() {
                   {applications.map((app, index) => (
                     <tr
                       key={app.id}
-                      className={`transition-colors duration-200 ${index < applications.length - 1 ? 'border-tertiary border-b' : ''}`}
+                      onClick={() => navigate(`/applications/${app.id}`)}
+                      className={`hover:bg-bg2 cursor-pointer transition-colors duration-200 ${index < applications.length - 1 ? 'border-tertiary border-b' : ''}`}
                     >
                       <td className="px-4 py-3 text-sm">
                         <Link
@@ -373,6 +390,13 @@ export default function Applications() {
                       </td>
                       <td className="text-secondary px-4 py-3 text-sm">
                         {formatDate(app.applied_at)}
+                      </td>
+                      <td className="text-secondary px-4 py-3 text-sm">
+                        <span
+                          className={`rounded px-2 py-1 text-xs ${app.priority === 'high' ? 'bg-orange/15 text-orange' : 'bg-bg2 text-muted'}`}
+                        >
+                          {t('records.' + (app.priority || 'normal'))}
+                        </span>
                       </td>
                       <td className="text-secondary px-4 py-3 text-sm">
                         {app.round_count}

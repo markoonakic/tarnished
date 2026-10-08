@@ -10,6 +10,9 @@ import type {
 } from './types';
 
 export const historyStageLabels: Record<StatusMeaning, string> = {
+  get preparing() {
+    return t('records.preparing');
+  },
   get unknown() {
     return t('Not recorded');
   },

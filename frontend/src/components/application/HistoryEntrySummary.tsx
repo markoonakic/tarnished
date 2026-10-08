@@ -54,6 +54,11 @@ export default function HistoryEntrySummary({
           {entry.note}
         </p>
       )}
+      {entry.reason && (
+        <p className="text-muted mt-1 text-sm whitespace-pre-wrap">
+          {t('records.reason')}: {entry.reason}
+        </p>
+      )}
       {entry.correction_note && (
         <p className="text-muted mt-1 text-sm whitespace-pre-wrap">
           {t('Correction:')} {entry.correction_note}

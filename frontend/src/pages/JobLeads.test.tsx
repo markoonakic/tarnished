@@ -56,8 +56,8 @@ function mount() {
   );
 }
 function filter() {
-  fireEvent.click(screen.getByRole('combobox', { name: 'All Statuses' }));
-  fireEvent.click(screen.getByRole('option', { name: 'Failed' }));
+  fireEvent.click(screen.getByRole('combobox', { name: 'All Decisions' }));
+  fireEvent.click(screen.getByRole('option', { name: 'Interesting' }));
 }
 beforeEach(() => {
   vi.mocked(getJobLeads).mockReset();

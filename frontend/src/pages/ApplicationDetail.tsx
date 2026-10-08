@@ -30,6 +30,16 @@ import ApplicationContacts from '../components/slots/ApplicationContacts';
 import ApplicationReminders from '../components/slots/ApplicationReminders';
 import ApplicationNotes from '../components/slots/ApplicationNotes';
 import ApplicationOtherFiles from '../components/slots/ApplicationOtherFiles';
+import StatusChangeDialog from '../components/StatusChangeDialog';
+import RecordTags from '../components/records/RecordTags';
+import RecordDetails from '../components/records/RecordDetails';
+import SavedPosting from '../components/records/SavedPosting';
+import { apiV030 } from '@/lib/apiV030';
+import { updateApplication } from '@/lib/applications';
+import { listStatuses } from '@/lib/settings';
+import { getPreferences } from '@/lib/userPreferences';
+import { historyLocalTime } from '@/lib/historyDateTime';
+import type { Status } from '@/lib/types';
 
 export default function ApplicationDetail() {
   useTranslation();
@@ -52,6 +62,44 @@ function ApplicationDetailContent({ id }: { id: string }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackOpened, setFeedbackOpened] = useState(false);
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [statuses, setStatuses] = useState<Status[]>([]);
+  const [timeZone, setTimeZone] = useState(
+    Intl.DateTimeFormat().resolvedOptions().timeZone
+  );
+  useEffect(() => {
+    listStatuses()
+      .then(setStatuses)
+      .catch(() => {
+        /* Read retries when the dialog opens. */
+      });
+    getPreferences()
+      .then((preferences) => {
+        if (preferences.time_zone_mode === 'manual' && preferences.time_zone)
+          setTimeZone(preferences.time_zone);
+      })
+      .catch(() => {
+        /* Device zone fallback. */
+      });
+  }, []);
+  async function archive(archived: boolean) {
+    if (
+      !application ||
+      !confirm(
+        t(archived ? 'records.confirmArchive' : 'records.confirmUnarchive')
+      )
+    )
+      return;
+    try {
+      await apiV030.updateApplication(application.id, {
+        archived,
+        expected_revision: application.evidence_revision,
+      });
+      await loadApplication();
+    } catch {
+      showError(t('records.saveFailed'));
+    }
+  }
 
   const loadApplication = useCallback(async () => {
     const ownedRequest = ++requestId.current;
@@ -202,12 +250,32 @@ function ApplicationDetailContent({ id }: { id: string }) {
           </div>
         )}
 
+        {application.archived_at && (
+          <div className="bg-bg2 text-muted mb-4 flex items-center justify-between gap-2 rounded-lg px-4 py-3 text-sm">
+            <span>{t('records.archived')}</span>
+            <button
+              className="text-accent focus:ring-accent rounded px-2 py-1 focus:ring-2"
+              onClick={() => archive(false)}
+            >
+              {t('records.unarchive')}
+            </button>
+          </div>
+        )}
         <div className="bg-secondary mb-6 rounded-lg p-6">
           <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
             <div className="flex-1">
               <div className="mb-1 flex items-center gap-2">
                 <h1 className="text-primary text-2xl font-bold">
-                  {application.company}
+                  {application.company_id ? (
+                    <Link
+                      className="hover:text-accent"
+                      to={`/companies/${application.company_id}`}
+                    >
+                      {application.company}
+                    </Link>
+                  ) : (
+                    application.company
+                  )}
                 </h1>
                 {application.source && (
                   <span className="bg-bg2 text-fg1 inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium">
@@ -217,16 +285,36 @@ function ApplicationDetailContent({ id }: { id: string }) {
                 )}
               </div>
               <p className="text-secondary text-xl">{application.job_title}</p>
-              {application.location && (
-                <p className="text-muted mt-1 flex items-center gap-1 text-sm">
-                  <i className="bi-geo-alt icon-sm"></i>
-                  {application.location}
-                </p>
-              )}
+              <p className="text-muted mt-1 flex flex-wrap items-center gap-1 text-sm">
+                {application.location && (
+                  <>
+                    <i className="bi-geo-alt icon-sm" />
+                    {application.location}
+                  </>
+                )}
+                {[application.work_mode, application.employment_type]
+                  .filter(Boolean)
+                  .map((value) => (
+                    <span key={value}> · {t('records.' + value)}</span>
+                  ))}
+                {application.seniority && (
+                  <span> · {application.seniority}</span>
+                )}
+              </p>
             </div>
             <div className="flex flex-col items-end gap-2">
-              <span
-                className="inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold"
+              <button
+                type="button"
+                aria-label={t('records.changeStatus')}
+                onClick={async () => {
+                  try {
+                    setStatuses(await listStatuses());
+                    setShowStatusDialog(true);
+                  } catch {
+                    showError(t('Failed to load statuses'));
+                  }
+                }}
+                className="focus:ring-accent inline-flex cursor-pointer items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold focus:ring-2"
                 style={{
                   backgroundColor: `${getStatusColor(application.status.name, colors, application.status.color)}20`,
                   color: getStatusColor(
@@ -246,11 +334,23 @@ function ApplicationDetailContent({ id }: { id: string }) {
                     ),
                   }}
                 />
-                {statusLabel(application.status)}
-              </span>
+                {statusLabel(application.status)}{' '}
+                <i className="bi-chevron-down ml-1" aria-hidden="true" />
+              </button>
+              {application.outcome_reason && (
+                <p className="text-muted max-w-xs text-right text-xs">
+                  {application.outcome_reason}
+                </p>
+              )}
             </div>
           </div>
 
+          <RecordTags
+            record={application}
+            type="application"
+            revision={application.evidence_revision}
+            onUpdated={loadApplication}
+          />
           <div className="mb-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
             <div>
               <span className="text-muted">{t('Applied:')}</span>
@@ -266,6 +366,12 @@ function ApplicationDetailContent({ id }: { id: string }) {
             </div>
           </div>
 
+          <RecordDetails
+            record={application}
+            type="application"
+            title={`${application.company} — ${application.job_title}`}
+            onUpdated={loadApplication}
+          />
           {application.job_url && (
             <div className="mb-4">
               <a
@@ -416,7 +522,24 @@ function ApplicationDetailContent({ id }: { id: string }) {
             </div>
           )}
 
+          <SavedPosting
+            id={application.id}
+            type="application"
+            revision={application.evidence_revision}
+            text={application.source_text || application.job_description}
+            url={application.job_url}
+            onUpdated={loadApplication}
+          />
           <div className="border-tertiary flex flex-wrap items-center justify-end gap-2 border-t pt-4">
+            {!application.archived_at && (
+              <button
+                className="text-muted hover:bg-bg2 focus:ring-accent rounded px-3 py-1.5 text-sm focus:ring-2"
+                onClick={() => archive(true)}
+              >
+                <i className="bi-archive mr-1" aria-hidden="true" />
+                {t('records.archive')}
+              </button>
+            )}
             <button
               onClick={() => {
                 setFeedbackOpened(true);
@@ -444,6 +567,37 @@ function ApplicationDetailContent({ id }: { id: string }) {
           </div>
         </div>
 
+        <StatusChangeDialog
+          isOpen={showStatusDialog}
+          statusId={application.status.id}
+          timeZone={timeZone}
+          options={statuses.map((status) => ({
+            value: status.id,
+            label: statusLabel(status),
+            meaning: status.meaning,
+          }))}
+          onClose={() => setShowStatusDialog(false)}
+          onSave={async (draft) => {
+            await updateApplication(application.id, {
+              status_id: draft.status_id,
+              expected_revision: application.evidence_revision,
+              status_changed_at: draft.changed_at,
+              status_comment: draft.comment || null,
+              status_reason: draft.reason,
+              ...(!application.applied_at &&
+              statuses.find((status) => status.id === draft.status_id)
+                ?.meaning !== 'preparing'
+                ? {
+                    applied_at: historyLocalTime(
+                      draft.changed_at,
+                      timeZone
+                    ).slice(0, 10),
+                  }
+                : {}),
+            });
+            await loadApplication();
+          }}
+        />
         <ApplicationExtractionReview
           application={application}
           onUpdated={loadApplication}

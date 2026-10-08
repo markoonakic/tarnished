@@ -1,5 +1,6 @@
 import { invalidateEvidenceQueries } from './queryClient';
 import api, { withAxiosTimeZoneHeaders } from './api';
+import { queryParams, type JobQuery } from './apiV030';
 import type {
   Application,
   ApplicationCreate,
@@ -7,7 +8,7 @@ import type {
   ApplicationListResponse,
 } from './types';
 
-export interface ListParams {
+export interface ListParams extends JobQuery {
   page?: number;
   per_page?: number;
   status_id?: string;
@@ -25,7 +26,9 @@ interface ApplicationSourcesResponse {
 export async function listApplications(
   params: ListParams = {}
 ): Promise<ApplicationListResponse> {
-  const response = await api.get('/api/applications', { params });
+  const response = await api.get('/api/applications', {
+    params: queryParams(params),
+  });
   return response.data;
 }
 
