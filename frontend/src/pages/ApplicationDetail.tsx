@@ -24,6 +24,12 @@ import ScopedReport from '../components/ScopedReport';
 import Layout from '../components/Layout';
 import EmptyState from '../components/EmptyState';
 import ApplicationModal from '../components/ApplicationModal';
+import ApplicationExtractionReview from '../components/slots/ApplicationExtractionReview';
+import ApplicationProfileMatch from '../components/slots/ApplicationProfileMatch';
+import ApplicationContacts from '../components/slots/ApplicationContacts';
+import ApplicationReminders from '../components/slots/ApplicationReminders';
+import ApplicationNotes from '../components/slots/ApplicationNotes';
+import ApplicationOtherFiles from '../components/slots/ApplicationOtherFiles';
 
 export default function ApplicationDetail() {
   useTranslation();
@@ -438,6 +444,15 @@ function ApplicationDetailContent({ id }: { id: string }) {
           </div>
         </div>
 
+        <ApplicationExtractionReview
+          application={application}
+          onUpdated={loadApplication}
+        />
+        <ApplicationProfileMatch
+          application={application}
+          onUpdated={loadApplication}
+        />
+
         {feedbackOpened && (
           <div hidden={!showFeedback} className="mb-6">
             <ScopedReport
@@ -457,24 +472,6 @@ function ApplicationDetailContent({ id }: { id: string }) {
             />
           </div>
         )}
-
-        <div className="mb-6">
-          <DocumentSection
-            application={application}
-            onUpdate={handleDocumentUpdate}
-          />
-        </div>
-
-        <div className="mb-6 space-y-4">
-          <HistoryViewer
-            application={application}
-            applicationId={id!}
-            revision={application.evidence_revision}
-            onChanged={async () => {
-              await loadApplication();
-            }}
-          />
-        </div>
 
         <div className="bg-secondary rounded-lg p-6">
           <div className="mb-4 flex items-center justify-between">
@@ -535,6 +532,39 @@ function ApplicationDetailContent({ id }: { id: string }) {
               }}
             />
           ) : null}
+        </div>
+        <ApplicationContacts
+          application={application}
+          onUpdated={loadApplication}
+        />
+        <ApplicationReminders
+          application={application}
+          onUpdated={loadApplication}
+        />
+        <ApplicationNotes
+          application={application}
+          onUpdated={loadApplication}
+        />
+        <div className="my-6">
+          <DocumentSection
+            application={application}
+            onUpdate={handleDocumentUpdate}
+          >
+            <ApplicationOtherFiles
+              application={application}
+              onUpdated={loadApplication}
+            />
+          </DocumentSection>
+        </div>
+        <div className="mb-6 space-y-4">
+          <HistoryViewer
+            application={application}
+            applicationId={id}
+            revision={application.evidence_revision}
+            onChanged={async () => {
+              await loadApplication();
+            }}
+          />
         </div>
       </div>
       {application && (

@@ -4,6 +4,21 @@ import en from '../locales/en.json';
 import sr from '../locales/sr-Latn.json';
 import type { Language } from './userPreferences';
 
+// Area files use flat translation keys, as do the existing dictionaries.
+// Each feature owns areas/<feature>.{en,sr-Latn}.json.
+const areas = import.meta.glob<Record<string, string>>(
+  '../locales/areas/*.{en,sr-Latn}.json',
+  { eager: true, import: 'default' }
+);
+export const dictionaries: Record<Language, Record<string, string>> = {
+  en: { ...en },
+  'sr-Latn': { ...sr },
+};
+for (const path of Object.keys(areas).sort()) {
+  const language = path.endsWith('.sr-Latn.json') ? 'sr-Latn' : 'en';
+  Object.assign(dictionaries[language], areas[path]);
+}
+
 export const LANGUAGE_STORAGE_KEY = 'tarnished-language';
 
 export function browserLanguage(): Language {
@@ -20,7 +35,10 @@ export function browserLanguage(): Language {
 }
 
 void i18n.use(initReactI18next).init({
-  resources: { en: { translation: en }, 'sr-Latn': { translation: sr } },
+  resources: {
+    en: { translation: dictionaries.en },
+    'sr-Latn': { translation: dictionaries['sr-Latn'] },
+  },
   lng: browserLanguage(),
   fallbackLng: 'en',
   supportedLngs: ['en', 'sr-Latn'],
@@ -43,9 +61,9 @@ i18n.on('languageChanged', rememberLanguage);
 
 export function isInterfaceText(value: string): boolean {
   return (
-    Object.hasOwn(en, value) ||
-    Object.values(en).includes(value) ||
-    Object.values(sr).includes(value)
+    Object.hasOwn(dictionaries.en, value) ||
+    Object.values(dictionaries.en).includes(value) ||
+    Object.values(dictionaries['sr-Latn']).includes(value)
   );
 }
 
@@ -60,7 +78,7 @@ export default i18n;
 
 // For fixed labels supplied by a local option table, never user content.
 export function uiLabel(key: string): string {
-  return Object.hasOwn(en, key) ? t(key as keyof typeof en) : key;
+  return Object.hasOwn(dictionaries.en, key) ? t(key) : key;
 }
 
 declare module 'i18next' {
@@ -68,6 +86,6 @@ declare module 'i18next' {
     defaultNS: 'translation';
     keySeparator: false;
     nsSeparator: false;
-    resources: { translation: typeof en };
+    resources: { translation: typeof en & Record<string, string> };
   }
 }

@@ -20,6 +20,7 @@ interface SearchableComboboxProps {
   containerBackground?: 'bg0' | 'bg1' | 'bg2' | 'bg3' | 'bg4';
   id?: string;
   noResultsText?: string;
+  onCreate?: (name: string) => void;
 }
 
 const triggerClasses = {
@@ -91,8 +92,9 @@ export default function SearchableCombobox({
   containerBackground = 'bg1',
   id,
   noResultsText = t('No matches found.'),
+  onCreate,
 }: SearchableComboboxProps) {
-  useTranslation();
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -106,9 +108,24 @@ export default function SearchableCombobox({
   const [inputValue, setInputValue] = useState(selectedOption?.label ?? '');
   const [focusedIndex, setFocusedIndex] = useState(-1);
 
+  const query = inputValue.trim();
+  const createOption = useMemo(
+    () =>
+      onCreate &&
+      query &&
+      !options.some(
+        (option) => option.label.trim().toLowerCase() === query.toLowerCase()
+      )
+        ? { value: '\u0000create', label: t('kit.createName', { name: query }) }
+        : null,
+    [onCreate, options, query, t]
+  );
   const filteredOptions = useMemo(
-    () => filterOptions(options, inputValue),
-    [options, inputValue]
+    () => [
+      ...filterOptions(options, inputValue),
+      ...(createOption ? [createOption] : []),
+    ],
+    [options, inputValue, createOption]
   );
 
   useEffect(() => {
@@ -170,8 +187,9 @@ export default function SearchableCombobox({
 
   function handleSelect(option: DropdownOption) {
     if (disabled) return;
-    onChange(option.value);
-    setInputValue(option.label);
+    if (option === createOption) onCreate?.(query);
+    else onChange(option.value);
+    setInputValue(option === createOption ? query : option.label);
     setIsOpen(false);
     setFocusedIndex(-1);
   }

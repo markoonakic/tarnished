@@ -1,4 +1,5 @@
 import { t, locale } from '@/lib/i18n';
+import ApplicationsViewSwitch from '../components/slots/ApplicationsViewSwitch';
 import { statusLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -170,12 +171,18 @@ export default function Applications() {
           <h1 className="text-primary text-2xl font-bold">
             {t('Applications')}
           </h1>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
-          >
-            {t('New Application')}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <ApplicationsViewSwitch
+              view={searchParams.get('view') === 'board' ? 'board' : 'list'}
+              onChange={(view) => updateParams({ view })}
+            />
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
+            >
+              {t('New Application')}
+            </button>
+          </div>
         </div>
 
         <div className="bg-bg1 mb-6 rounded-lg p-4">

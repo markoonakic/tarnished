@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { t } from '@/lib/i18n';
+import TasksBadge from './TasksBadge';
 
 interface Props {
   children: ReactNode;
@@ -20,6 +21,8 @@ export default function Layout({ children }: Props) {
   const navigation = [
     { path: '/job-leads', label: t('Job Leads') },
     { path: '/applications', label: t('Applications') },
+    { path: '/companies', label: t('kit.companies') },
+    { path: '/tasks', label: t('kit.tasks') },
     { path: '/analytics', label: t('Analytics') },
   ];
   const accountItems = [
@@ -58,7 +61,10 @@ export default function Layout({ children }: Props) {
     };
   }, [menuOpen, accountOpen]);
   function linkClass(path: string) {
-    return location.pathname === path ||
+    return (path === '/companies' &&
+      location.pathname.startsWith('/contacts')) ||
+      (path === '/tasks' && location.pathname.startsWith('/interviews/')) ||
+      location.pathname === path ||
       location.pathname.startsWith(path + '/')
       ? 'text-accent-bright'
       : 'text-accent hover:text-accent-bright transition-all duration-200 ease-in-out';
@@ -86,9 +92,10 @@ export default function Layout({ children }: Props) {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={linkClass(item.path)}
+                  className={`flex items-center ${linkClass(item.path)}`}
                 >
                   {item.label}
+                  {item.path === '/tasks' && <TasksBadge />}
                 </Link>
               ))}
             </div>
@@ -158,9 +165,10 @@ export default function Layout({ children }: Props) {
             <Link
               key={item.path}
               to={item.path}
-              className={`block py-3 ${linkClass(item.path)}`}
+              className={`flex items-center py-3 ${linkClass(item.path)}`}
             >
               {item.label}
+              {item.path === '/tasks' && <TasksBadge />}
             </Link>
           ))}
           <div className="border-tertiary mt-2 border-t pt-3">
