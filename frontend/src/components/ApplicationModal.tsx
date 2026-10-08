@@ -78,6 +78,8 @@ export default function ApplicationModal({
   const [jobUrl, setJobUrl] = useState('');
   const [jobUrlError, setJobUrlError] = useState('');
   const [statusId, setStatusId] = useState('');
+  const isPreparing =
+    statuses.find((status) => status.id === statusId)?.meaning === 'preparing';
   const [appliedAt, setAppliedAt] = useState('');
   const [salaryMin, setSalaryMin] = useState('');
   const [salaryMax, setSalaryMax] = useState('');
@@ -191,7 +193,7 @@ export default function ApplicationModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
-    if (!company.trim() || !jobTitle.trim() || !statusId) {
+    if (!statusId || (!isPreparing && (!company.trim() || !jobTitle.trim()))) {
       setError(t('Please fill in required fields'));
       return;
     }
@@ -234,6 +236,10 @@ export default function ApplicationModal({
 
       if (isEditing && formApplication) {
         const data: ApplicationUpdate = buildUpdateApplicationPayload(values);
+        if (isPreparing) {
+          data.company = company.trim() || null;
+          data.job_title = jobTitle.trim() || null;
+        }
         Object.assign(data, metadata, { location: location || null });
         if (
           statuses.find((status) => status.id === statusId)?.meaning ===
@@ -366,7 +372,8 @@ export default function ApplicationModal({
                     htmlFor="company"
                     className="text-muted mb-1 block text-sm font-semibold"
                   >
-                    {t('Company')} <span className="text-red-bright">*</span>
+                    {t('Company')}{' '}
+                    {!isPreparing && <span className="text-red-bright">*</span>}
                   </label>
                   <CompanyPicker
                     id="company"
@@ -385,7 +392,8 @@ export default function ApplicationModal({
                     htmlFor="job-title"
                     className="text-muted mb-1 block text-sm font-semibold"
                   >
-                    {t('Job Title')} <span className="text-red-bright">*</span>
+                    {t('Job Title')}{' '}
+                    {!isPreparing && <span className="text-red-bright">*</span>}
                   </label>
                   <input
                     id="job-title"
@@ -393,7 +401,7 @@ export default function ApplicationModal({
                     value={jobTitle}
                     onChange={(e) => setJobTitle(e.target.value)}
                     className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-                    required
+                    required={!isPreparing}
                   />
                 </div>
 
@@ -431,6 +439,12 @@ export default function ApplicationModal({
                       } else {
                         setStatusId(value);
                         setStatusDraft(undefined);
+                        if (
+                          !isEditing &&
+                          statuses.find((status) => status.id === value)
+                            ?.meaning === 'preparing'
+                        )
+                          setAppliedAt('');
                       }
                     }}
                     placeholder={t('Select status')}

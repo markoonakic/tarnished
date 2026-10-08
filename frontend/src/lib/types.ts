@@ -164,8 +164,8 @@ export interface ApplicationUpdate extends JobFields {
   status_reason?: string | null;
   expected_revision?: number;
   response_evidence?: ResponseEvidenceInput | null;
-  company?: string;
-  job_title?: string;
+  company?: string | null;
+  job_title?: string | null;
   job_description?: string | null;
   job_url?: string | null;
   status_id?: string;

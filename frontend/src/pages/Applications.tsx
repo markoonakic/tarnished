@@ -370,11 +370,11 @@ export default function Applications() {
                           to={`/applications/${app.id}`}
                           className="text-fg1 hover:text-accent-bright font-medium transition-all duration-200 ease-in-out"
                         >
-                          {app.company}
+                          {app.company || t('companies.notSet')}
                         </Link>
                       </td>
                       <td className="text-primary px-4 py-3 text-sm">
-                        {app.job_title}
+                        {app.job_title || t('companies.notSet')}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span
@@ -430,7 +430,7 @@ export default function Applications() {
                 >
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <span className="text-fg1 truncate font-medium">
-                      {app.company}
+                      {app.company || t('companies.notSet')}
                     </span>
                     <span
                       className="inline-flex flex-shrink-0 items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold"
@@ -457,7 +457,7 @@ export default function Applications() {
                     </span>
                   </div>
                   <div className="text-primary mb-2 truncate text-sm">
-                    {app.job_title}
+                    {app.job_title || t('companies.notSet')}
                   </div>
                   <div className="text-secondary text-xs">
                     {formatDate(app.applied_at)} ·{' '}

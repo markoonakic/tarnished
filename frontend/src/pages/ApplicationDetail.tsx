@@ -271,10 +271,10 @@ function ApplicationDetailContent({ id }: { id: string }) {
                       to={'/companies/' + application.company_id}
                       className="hover:text-accent focus:ring-accent rounded focus:ring-2"
                     >
-                      {application.company}
+                      {application.company || t('companies.notSet')}
                     </Link>
                   ) : (
-                    application.company
+                    application.company || t('companies.notSet')
                   )}
                 </h1>
                 {application.source && (
@@ -284,7 +284,9 @@ function ApplicationDetailContent({ id }: { id: string }) {
                   </span>
                 )}
               </div>
-              <p className="text-secondary text-xl">{application.job_title}</p>
+              <p className="text-secondary text-xl">
+                {application.job_title || t('companies.notSet')}
+              </p>
               <p className="text-muted mt-1 flex flex-wrap items-center gap-1 text-sm">
                 {application.location && (
                   <>

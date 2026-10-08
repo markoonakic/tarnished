@@ -208,13 +208,13 @@ export default function ApplicationBoard({
                             className="focus:ring-accent block rounded pr-5 text-sm focus:ring-2"
                           >
                             <strong className="text-primary block">
-                              {card.company}
+                              {card.company || t('companies.notSet')}
                             </strong>
                             <span
                               className="text-primary block truncate"
                               title={card.job_title}
                             >
-                              {card.job_title}
+                              {card.job_title || t('companies.notSet')}
                             </span>
                             <span
                               className="text-muted block truncate text-xs"

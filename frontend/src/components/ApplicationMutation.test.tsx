@@ -79,27 +79,6 @@ function createApplication(rounds: Round[] = []): Application {
   };
 }
 
-vi.mock('./records/CompanyPicker', () => ({
-  default: ({
-    id,
-    name,
-    disabled,
-    onChange,
-  }: {
-    id?: string;
-    name?: string;
-    disabled?: boolean;
-    onChange: (id: string | null, name: string) => void;
-  }) => (
-    <input
-      id={id}
-      value={name || ''}
-      disabled={disabled}
-      onChange={(event) => onChange(null, event.target.value)}
-    />
-  ),
-}));
-
 const originalAdapter = api.defaults.adapter;
 const nextStatus = {
   id: 'status-2',
@@ -232,9 +211,11 @@ it('keeps the draft revision when newer application props arrive', async () => {
   });
 });
 
-it('saves preparation without an applied date and retains all record metadata', async () => {
+it('saves incomplete preparation without an applied date and retains all record metadata', async () => {
   application = {
     ...application,
+    company: '',
+    job_title: '',
     applied_at: null,
     status: {
       id: 'preparing',
@@ -270,6 +251,8 @@ it('saves preparation without an applied date and retains all record metadata', 
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() => expect(onSuccess).toHaveBeenCalled());
   expect(patches[0]).toMatchObject({
+    company: null,
+    job_title: null,
     applied_at: null,
     status_id: 'preparing',
     expected_revision: 0,

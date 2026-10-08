@@ -105,26 +105,6 @@ function reject(
     config,
   });
 }
-vi.mock('./records/CompanyPicker', () => ({
-  default: ({
-    id,
-    name,
-    disabled,
-    onChange,
-  }: {
-    id?: string;
-    name?: string;
-    disabled?: boolean;
-    onChange: (id: string | null, name: string) => void;
-  }) => (
-    <input
-      id={id}
-      value={name || ''}
-      disabled={disabled}
-      onChange={(event) => onChange(null, event.target.value)}
-    />
-  ),
-}));
 
 const original = api.defaults.adapter;
 let saved: JobLead;
