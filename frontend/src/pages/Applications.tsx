@@ -167,7 +167,13 @@ export default function Applications() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-6xl px-4 py-8">
+      <div
+        className={
+          searchParams.get('view') === 'board'
+            ? 'mx-auto px-4 py-8'
+            : 'mx-auto max-w-6xl px-4 py-8'
+        }
+      >
         <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <h1 className="text-primary text-2xl font-bold">
             {t('Applications')}

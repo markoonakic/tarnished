@@ -23,6 +23,7 @@ import {
   taskGroups,
   taskGroup,
   dayKey,
+  dueText,
   reminderDraft,
   reminderTargetFields,
 } from '@/lib/taskDates';
@@ -36,7 +37,7 @@ import { useReminderActions } from '@/hooks/useReminderActions';
 export default function Tasks() {
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
-  const [month, setMonth] = useState(new Date());
+  const [selectedMonth, setMonth] = useState<Date | null>(null);
   const interviews = params.get('view') === 'interviews';
   const week = params.get('calendar') === 'week';
   const filter = ['open', 'done', 'all'].includes(params.get('state') ?? '')
@@ -47,6 +48,8 @@ export default function Tasks() {
   const preferences = useUserPreferences();
   const zone = preferences.data ? getEffectiveTimeZone(preferences.data) : null;
   const actions = useReminderActions();
+  const today = new Date(`${dayKey(new Date(), zone || 'UTC')}T12:00:00`);
+  const month = selectedMonth || today;
   const [modal, setModal] = useState<{
     item?: Reminder;
     draft?: Partial<ReminderDraft>;
@@ -65,7 +68,14 @@ export default function Tasks() {
       }),
     enabled: !interviews,
   });
-  const chosenDate = params.get('date') || dayKey(new Date(), zone || 'UTC');
+  const dateParam = params.get('date') || '';
+  const parsedDate = new Date(`${dateParam}T12:00:00Z`);
+  const chosenDate =
+    /^\d{4}-\d{2}-\d{2}$/.test(dateParam) &&
+    Number.isFinite(parsedDate.getTime()) &&
+    parsedDate.toISOString().slice(0, 10) === dateParam
+      ? dateParam
+      : dayKey(new Date(), zone || 'UTC');
   const weekStart = new Date(`${chosenDate}T12:00:00Z`);
   weekStart.setUTCDate(
     weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7)
@@ -139,7 +149,7 @@ export default function Tasks() {
         ? {
             kind: deadline.kind ?? 'application_deadline',
             title: deadline.title,
-            due_date: deadline.due_at.slice(0, 10),
+            due_date: dayKey(deadline.due_at, zone!),
             due_time: '09:00',
           }
         : undefined,
@@ -167,7 +177,7 @@ export default function Tasks() {
     <Layout>
       <div
         className={
-          interviews
+          interviews && !week
             ? 'mx-auto max-w-6xl px-4 py-8'
             : 'mx-auto max-w-4xl px-4 py-8'
         }
@@ -215,6 +225,7 @@ export default function Tasks() {
               {!week && zone && (
                 <MonthGrid
                   month={month}
+                  today={today}
                   events={events}
                   reminderDates={calendarReminders.data?.items.map((r) =>
                     dayKey(r.due_at, zone)
@@ -294,70 +305,72 @@ export default function Tasks() {
                   />
                 </div>
               </div>
-              {days.map((day) => (
-                <section key={day} className="mb-6">
-                  <h2 className="text-muted mb-3 text-sm font-semibold uppercase">
-                    {new Date(`${day}T12:00Z`).toLocaleDateString(locale(), {
-                      weekday: 'long',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </h2>
-                  <div className="space-y-2">
-                    {zone &&
-                      rounds.data
-                        ?.filter(
-                          (r) =>
-                            r.scheduled_at &&
-                            dayKey(r.scheduled_at, zone) === day
-                        )
-                        .map((r) => (
-                          <Link
-                            key={r.id}
-                            to={`/interviews/${r.id}`}
-                            className="bg-secondary hover:bg-bg2 flex flex-wrap gap-3 rounded-lg p-4 text-sm"
-                          >
-                            <span className="text-orange-bright">
-                              {new Date(r.scheduled_at!).toLocaleTimeString(
-                                locale(),
-                                {
-                                  timeZone: zone,
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  hourCycle: 'h23',
-                                }
-                              )}
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              {r.company} — {r.job_title}
-                              <span className="text-muted block text-xs">
-                                {roundTypeLabel(r.round_type)} ·{' '}
-                                {t('tasks.mode.' + (r.mode || 'other'))}
-                              </span>
-                            </span>
-                            <span
-                              className={
-                                r.outcome === 'passed'
-                                  ? 'text-green-bright'
-                                  : r.outcome === 'failed'
-                                    ? 'text-red-bright'
-                                    : 'text-orange-bright'
-                              }
+              {days
+                .filter((day) => events.some((event) => event.date === day))
+                .map((day) => (
+                  <section key={day} className="mb-6">
+                    <h2 className="text-muted mb-3 text-sm font-semibold uppercase">
+                      {new Date(`${day}T12:00Z`).toLocaleDateString(locale(), {
+                        weekday: 'long',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </h2>
+                    <div className="space-y-2">
+                      {zone &&
+                        rounds.data
+                          ?.filter(
+                            (r) =>
+                              r.scheduled_at &&
+                              dayKey(r.scheduled_at, zone) === day
+                          )
+                          .map((r) => (
+                            <Link
+                              key={r.id}
+                              to={`/interviews/${r.id}`}
+                              className="bg-secondary hover:bg-bg2 flex flex-wrap gap-3 rounded-lg p-4 text-sm"
                             >
-                              {t('tasks.outcome.' + (r.outcome || 'pending'))}
-                            </span>
-                          </Link>
-                        ))}
-                  </div>
-                  {!rounds.isPending && !events.some((e) => e.date === day) && (
-                    <p className="text-muted text-sm">
-                      {t('kit.noInterviews')}
-                    </p>
-                  )}
-                </section>
-              ))}
+                              <span className="text-orange-bright">
+                                {new Date(r.scheduled_at!).toLocaleTimeString(
+                                  locale(),
+                                  {
+                                    timeZone: zone,
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hourCycle: 'h23',
+                                  }
+                                )}
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                {r.company} — {r.job_title}
+                              </span>
+                              <span className="text-muted text-xs">
+                                <i
+                                  className={`bi ${r.mode === 'video' ? 'bi-camera-video' : r.mode === 'phone' ? 'bi-telephone' : 'bi-geo-alt'} mr-2`}
+                                  aria-hidden="true"
+                                />
+                                {roundTypeLabel(r.round_type)}
+                              </span>
+                              <span
+                                className={`rounded px-2 py-1 text-xs ${r.outcome === 'passed' ? 'bg-green-bright/10 text-green-bright' : r.outcome === 'failed' ? 'bg-red-bright/10 text-red-bright' : 'bg-orange-bright/10 text-orange-bright'}`}
+                              >
+                                ●{' '}
+                                {t('tasks.outcome.' + (r.outcome || 'pending'))}
+                              </span>
+                            </Link>
+                          ))}
+                    </div>
+                  </section>
+                ))}
+              {!rounds.isPending &&
+                !events.some((event) => days.includes(event.date)) && (
+                  <EmptyState
+                    message={t('kit.noInterviews')}
+                    icon="bi-calendar"
+                  />
+                )}
             </div>
-            {rounds.isPending && <p role="status">{t('Loading…')}</p>}
+            {rounds.isPending && <p role="status">{t('tasks.loading')}</p>}
           </>
         ) : (
           <>
@@ -384,7 +397,7 @@ export default function Tasks() {
               />
             </div>
             {tasks.isPending ? (
-              <p role="status">{t('Loading…')}</p>
+              <p role="status">{t('tasks.loading')}</p>
             ) : (
               zone && (
                 <>
@@ -394,7 +407,7 @@ export default function Tasks() {
                         (r) => taskGroup(r.due_at, zone) === group
                       ) ?? [];
                     const deadlines =
-                      filter === 'open' &&
+                      filter !== 'done' &&
                       (!kind || kind === 'application_deadline')
                         ? (tasks.data?.deadlines.filter(
                             (d) => taskGroup(d.due_at, zone) === group
@@ -424,11 +437,14 @@ export default function Tasks() {
                             >
                               <Link
                                 className="min-w-0 flex-1"
-                                to={`/${d.target_type === 'lead' ? 'job-leads' : 'applications'}/${d.id}`}
+                                to={`/${d.target_type === 'lead' ? 'job-leads' : d.target_type === 'round' ? 'interviews' : 'applications'}/${d.id}`}
                               >
                                 <i className="bi bi-calendar-x mr-2" />
                                 {t('tasks.deadline', { title: d.title })}
                               </Link>
+                              <span className="text-muted text-xs">
+                                {dueText(d.due_at, zone, new Date(), true)}
+                              </span>
                               <button
                                 className="text-primary focus:ring-accent rounded px-2 py-1 focus:ring-2"
                                 onClick={() => openNew(d)}

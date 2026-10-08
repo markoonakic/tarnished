@@ -1,6 +1,7 @@
 import { t } from './i18n';
 
 const statusKeys = {
+  preparing: 'tasks.status.preparing',
   applied: 'Applied',
   screening: 'Screening',
   interviewing: 'Interviewing',

@@ -51,7 +51,9 @@ export default function InterviewParticipants({
             >
               <Link to={`/contacts/${id}`}>
                 {item?.name ?? t('tasks.openContact')}
-                {item?.role ? ` · ${item.role}` : ''}
+                {item?.role
+                  ? ` · ${t('tasks.role.' + item.role, { defaultValue: item.role })}`
+                  : ''}
               </Link>
               {!readOnly && (
                 <button

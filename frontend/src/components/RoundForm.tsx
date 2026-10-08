@@ -28,7 +28,7 @@ export default function RoundForm(props: Props) {
     <RoundFields {...props} userZone={zone} />
   ) : (
     <p role="status">
-      {preferences.isError ? t('tasks.loadFailed') : t('Loading…')}{' '}
+      {preferences.isError ? t('tasks.loadFailed') : t('tasks.loading')}{' '}
       <button className="underline" onClick={props.onCancel}>
         {t('Cancel')}
       </button>
@@ -37,13 +37,14 @@ export default function RoundForm(props: Props) {
 }
 function RoundFields({
   applicationId,
-  round,
+  round: currentRound,
   onSave,
   onPersist,
   onCancel,
   userZone,
 }: Props & { userZone: string }) {
   const { t } = useTranslation();
+  const [round] = useState(currentRound);
   const types = useQuery({
     queryKey: ['round-types'],
     queryFn: listRoundTypes,

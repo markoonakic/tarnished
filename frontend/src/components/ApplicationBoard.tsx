@@ -108,7 +108,7 @@ export default function ApplicationBoard({
       </p>
     );
   if (board.isPending || statuses.isPending)
-    return <p role="status">{t('Loading…')}</p>;
+    return <p role="status">{t('tasks.loading')}</p>;
   return (
     <>
       <div
@@ -146,7 +146,7 @@ export default function ApplicationBoard({
                   setDragging(null);
                   setHover('');
                 }}
-                className={`bg-secondary shrink-0 rounded-lg p-3 ${collapsed ? 'w-12' : compact ? 'w-60' : 'w-72'} ${hover === status.id ? 'ring-accent ring-2' : ''}`}
+                className={`bg-secondary flex shrink-0 flex-col rounded-lg p-3 ${compact ? 'h-80' : 'h-[calc(100dvh-18rem)] min-h-80'} ${collapsed ? 'w-12' : compact ? 'w-60' : 'w-72'} ${hover === status.id ? 'ring-accent ring-2' : ''}`}
               >
                 {collapsed ? (
                   <button
@@ -187,7 +187,7 @@ export default function ApplicationBoard({
                         </button>
                       )}
                     </div>
-                    <div className="space-y-2">
+                    <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
                       {cards.map((card) => (
                         <article
                           key={card.id}
@@ -210,10 +210,16 @@ export default function ApplicationBoard({
                             <strong className="text-primary block">
                               {card.company}
                             </strong>
-                            <span className="text-primary block">
+                            <span
+                              className="text-primary block truncate"
+                              title={card.job_title}
+                            >
                               {card.job_title}
                             </span>
-                            <span className="text-muted block text-xs">
+                            <span
+                              className="text-muted block truncate text-xs"
+                              title={card.location ?? undefined}
+                            >
                               {[
                                 card.location,
                                 card.work_mode

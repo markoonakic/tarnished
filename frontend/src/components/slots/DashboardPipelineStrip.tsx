@@ -11,7 +11,7 @@ export default function DashboardPipelineStrip() {
   const pipeline = query.data?.pipeline ?? [];
   return (
     <section
-      className="bg-secondary mb-6 rounded-lg p-4"
+      className="bg-secondary mb-6 rounded-lg p-6"
       aria-label={t('tasks.pipeline')}
     >
       {query.isError && (
@@ -22,7 +22,17 @@ export default function DashboardPipelineStrip() {
           </button>
         </p>
       )}
-      <div className="mb-3 flex h-2 overflow-hidden rounded-full">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-primary text-lg font-semibold">
+          {t('tasks.pipeline')}
+        </h2>
+        <span className="text-muted text-xs">
+          {t('tasks.pipelineTotal', {
+            count: pipeline.reduce((total, status) => total + status.count, 0),
+          })}
+        </span>
+      </div>
+      <div className="mb-3 flex h-3 overflow-hidden rounded-full">
         {pipeline
           .filter((s) => s.count > 0)
           .map((s) => (
@@ -43,9 +53,15 @@ export default function DashboardPipelineStrip() {
           <Link
             key={s.status_id}
             to={'/applications?status=' + s.status_id}
-            className="focus:ring-accent rounded text-xs focus:ring-2"
+            className="focus:ring-accent inline-flex items-center gap-1.5 rounded text-xs focus:ring-2"
             style={{ color: getStatusColor(s.name, colors, s.color) }}
           >
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{
+                backgroundColor: getStatusColor(s.name, colors, s.color),
+              }}
+            />
             {statusLabel(s)}{' '}
             <span className="text-primary font-semibold">{s.count}</span>
           </Link>

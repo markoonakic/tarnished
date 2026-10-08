@@ -7,7 +7,7 @@ import {
   type ReminderKind,
   type TargetType,
 } from '@/lib/apiV030';
-import { reminderDraft, reminderTargetFields } from '@/lib/taskDates';
+import { dueText, reminderDraft, reminderTargetFields } from '@/lib/taskDates';
 import { parseRoundDateTime, getEffectiveTimeZone } from '@/lib/roundDateTime';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { useReminderActions } from '@/hooks/useReminderActions';
@@ -88,7 +88,13 @@ export default function TargetReminders({
   return (
     <>
       {shortcuts.length > 0 && (
-        <span className={shortcutsOnly ? 'inline-flex flex-wrap gap-2' : 'mb-3 flex flex-wrap gap-2'}>
+        <span
+          className={
+            shortcutsOnly
+              ? 'inline-flex flex-wrap gap-2'
+              : 'mb-3 flex flex-wrap gap-2'
+          }
+        >
           {shortcuts.map((shortcut) => (
             <button
               key={shortcut.kind}
@@ -97,13 +103,18 @@ export default function TargetReminders({
               title={t('kit.kind.' + shortcut.kind)}
               disabled={!zone || query.isPending}
               onClick={() => openShortcut(shortcut)}
-              className="text-accent hover:bg-bg2 focus:ring-accent rounded px-3 py-1.5 text-sm focus:ring-2 disabled:opacity-50"
+              className={`text-accent hover:bg-bg2 focus:ring-accent rounded py-1.5 text-sm whitespace-nowrap focus:ring-2 disabled:opacity-50 ${shortcutsOnly ? 'px-1' : 'px-3'}`}
             >
               <i
                 className={`bi ${query.data?.items.some((r) => r.kind === shortcut.kind && r.state === 'open') ? 'bi-bell-fill' : 'bi-bell-plus'} mr-2`}
                 aria-hidden="true"
               />
-              {!iconOnly && <>{t('tasks.remindMe')}{!shortcutsOnly && <> · {t('kit.kind.' + shortcut.kind)}</>}</>}
+              {!iconOnly && (
+                <>
+                  {t('tasks.remindMe')}
+                  {!shortcutsOnly && <> · {t('kit.kind.' + shortcut.kind)}</>}
+                </>
+              )}
             </button>
           ))}
         </span>
@@ -116,32 +127,41 @@ export default function TargetReminders({
           </button>
         </p>
       )}
-      {!shortcutsOnly && <RemindersCard
-        reminders={query.data?.items ?? []}
-        timeZone={zone ?? undefined}
-        onAdd={
-          zone
-            ? () =>
-                setModal({
-                  intent: crypto.randomUUID(),
-                  draft: { title: t('tasks.followUp', { name: label }) },
-                })
-            : undefined
-        }
-        onEdit={edit}
-        onToggle={(row) => {
-          const item = query.data?.items.find((i) => i.id === row.id);
-          if (item) void actions.toggle(item);
-        }}
-        onDismiss={(row) => {
-          const item = query.data?.items.find((i) => i.id === row.id);
-          if (item) void actions.dismiss(item);
-        }}
-        onDelete={(row) => {
-          const item = query.data?.items.find((i) => i.id === row.id);
-          if (item) void actions.remove(item);
-        }}
-      />}
+      {!shortcutsOnly && (
+        <RemindersCard
+          reminders={
+            query.data?.items.map((item) => ({
+              ...item,
+              dueText: zone
+                ? dueText(item.due_at, zone, new Date(), true)
+                : undefined,
+            })) ?? []
+          }
+          timeZone={zone ?? undefined}
+          onAdd={
+            zone
+              ? () =>
+                  setModal({
+                    intent: crypto.randomUUID(),
+                    draft: { title: t('tasks.followUp', { name: label }) },
+                  })
+              : undefined
+          }
+          onEdit={edit}
+          onToggle={(row) => {
+            const item = query.data?.items.find((i) => i.id === row.id);
+            if (item) void actions.toggle(item);
+          }}
+          onDismiss={(row) => {
+            const item = query.data?.items.find((i) => i.id === row.id);
+            if (item) void actions.dismiss(item);
+          }}
+          onDelete={(row) => {
+            const item = query.data?.items.find((i) => i.id === row.id);
+            if (item) void actions.remove(item);
+          }}
+        />
+      )}
       {modal && zone && (
         <ReminderModal
           initial={modal.draft}

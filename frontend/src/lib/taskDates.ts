@@ -1,4 +1,4 @@
-import { locale } from './i18n';
+import { locale, t } from './i18n';
 import type { Reminder, Target, TargetType } from './apiV030';
 import { parseRoundDateTime } from './roundDateTime';
 
@@ -29,15 +29,40 @@ export function taskGroup(
   date.setUTCDate(date.getUTCDate() + 6 - ((date.getUTCDay() + 6) % 7));
   return key <= date.toISOString().slice(0, 10) ? 'thisWeek' : 'later';
 }
-export function dueText(due: string, zone: string, now = new Date()) {
+export function dueText(
+  due: string,
+  zone: string,
+  now = new Date(),
+  includeDay = false
+) {
   const group = taskGroup(due, zone, now);
-  return new Date(due).toLocaleString(locale(), {
+  const date = new Date(due);
+  if (group === 'overdue') {
+    const minutes = Math.max(
+      1,
+      Math.floor((now.getTime() - date.getTime()) / 60_000)
+    );
+    if (minutes >= 1440)
+      return t('tasks.daysAgo', { count: Math.floor(minutes / 1440) });
+    if (minutes >= 60)
+      return t('tasks.hoursAgo', { count: Math.floor(minutes / 60) });
+    return t('tasks.minutesAgo', { count: minutes });
+  }
+  const time = date.toLocaleTimeString(locale(), {
     timeZone: zone,
-    ...(group === 'today' ? {} : { month: 'short', day: 'numeric' }),
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
   });
+  if (group === 'today' || group === 'tomorrow')
+    return includeDay ? t('tasks.' + group + 'At', { time }) : time;
+  const day = date.toLocaleDateString(locale(), {
+    timeZone: zone,
+    ...(group === 'thisWeek'
+      ? { weekday: 'short' }
+      : { month: 'short', day: 'numeric' }),
+  });
+  return `${day}, ${time}`;
 }
 export function reminderTarget(
   item: Target

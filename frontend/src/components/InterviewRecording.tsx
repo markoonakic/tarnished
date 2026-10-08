@@ -1,5 +1,4 @@
-import { t, locale } from '@/lib/i18n';
-import { roundTypeLabel } from '@/lib/referenceLabels';
+import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import InterviewFeedback from './InterviewFeedback';
 import TranscriptEditor from './TranscriptEditor';
@@ -8,8 +7,6 @@ import FileButton from './FileButton';
 import Modal from './Modal';
 import { useState } from 'react';
 import { isAxiosError } from 'axios';
-import { useUserPreferences } from '../hooks/useUserPreferences';
-import { getEffectiveTimeZone } from '../lib/roundDateTime';
 import { uploadMedia, deleteMedia, getMediaSignedUrl } from '../lib/rounds';
 import type { Round, RoundMedia } from '../lib/types';
 import { API_BASE } from '../lib/api';
@@ -25,18 +22,9 @@ interface Props {
   onMediaChange: () => void;
 }
 
-export default function InterviewRecording({
-  round,
-  onEdit,
-  onDelete,
-  onMediaChange,
-}: Props) {
+export default function InterviewRecording({ round, onMediaChange }: Props) {
   useTranslation();
   const toast = useToast();
-  const preferences = useUserPreferences();
-  const timeZone = preferences.data
-    ? getEffectiveTimeZone(preferences.data)
-    : null;
   const [uploading, setUploading] = useState(false);
   const [uploadingMediaFile, setUploadingMediaFile] = useState<File | null>(
     null
@@ -56,43 +44,6 @@ export default function InterviewRecording({
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackOpened, setFeedbackOpened] = useState(false);
   const [playingMedia, setPlayingMedia] = useState<RoundMedia | null>(null);
-
-  function formatDateTime(dateStr: string | null) {
-    if (!dateStr) return '-';
-    return timeZone
-      ? new Date(dateStr).toLocaleString(locale(), {
-          timeZone,
-          timeZoneName: 'short',
-        })
-      : t('Time zone unavailable');
-  }
-
-  function getOutcomeStyle(outcome: string | null) {
-    switch (outcome) {
-      case 'passed':
-        return 'text-green-bright';
-      case 'failed':
-        return 'text-red-bright';
-      case 'cancelled':
-        return 'text-muted';
-      default:
-        return 'text-yellow-bright';
-    }
-  }
-
-  function getOutcomeLabel(outcome: string | null) {
-    if (!outcome) return t('Pending');
-    const labels = {
-      passed: 'Passed',
-      failed: 'Failed',
-      pending: 'Pending',
-      cancelled: 'Cancelled',
-      withdrew: 'Withdrawn',
-    } as const;
-    return Object.hasOwn(labels, outcome)
-      ? t(labels[outcome as keyof typeof labels])
-      : t('Unknown');
-  }
 
   async function handleMediaUpload(
     e: React.ChangeEvent<HTMLInputElement>,
@@ -193,7 +144,7 @@ export default function InterviewRecording({
   }
 
   return (
-    <div id={`round-${round.id}`} className="bg-bg2 rounded-lg p-4">
+    <div id={`round-${round.id}`}>
       {playingMedia && (
         <MediaPlayer
           media={playingMedia}
@@ -201,65 +152,18 @@ export default function InterviewRecording({
         />
       )}
 
-      <div className="mb-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div>
-          <h4 className="text-primary font-medium">
-            {roundTypeLabel(round.round_type)}
-          </h4>
-          <p className="text-muted text-sm">
-            {t('Scheduled:')} {formatDateTime(round.scheduled_at)}
-          </p>
-          {round.completed_at && (
-            <p className="text-muted text-sm">
-              {t('Completed:')} {formatDateTime(round.completed_at)}
-            </p>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <span
-            className={`text-sm font-medium ${getOutcomeStyle(round.outcome)}`}
-          >
-            {getOutcomeLabel(round.outcome)}
-          </span>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              onClick={() => {
-                setFeedbackOpened(true);
-                setShowFeedback(true);
-              }}
-              className="text-fg1 hover:bg-bg3 cursor-pointer rounded px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
-            >
-              <i className="bi-stars icon-sm mr-1" aria-hidden="true" />
-              {t('Interview feedback')}
-            </button>
-            <button
-              onClick={onEdit}
-              className="text-fg1 hover:bg-bg3 hover:text-fg0 flex cursor-pointer items-center justify-center rounded bg-transparent p-2 transition-all duration-200 ease-in-out"
-              aria-label={t('Edit round')}
-              title={t('Edit')}
-            >
-              <i className="bi-pencil icon-md" />
-            </button>
-            <button
-              onClick={onDelete}
-              className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center justify-center rounded bg-transparent p-2 transition-all duration-200 ease-in-out"
-              aria-label={t('Delete round')}
-              title={t('Delete')}
-            >
-              <i className="bi-trash icon-md" />
-            </button>
-          </div>
-        </div>
+      <div className="mb-3 flex justify-end">
+        <button
+          onClick={() => {
+            setFeedbackOpened(true);
+            setShowFeedback(true);
+          }}
+          className="text-fg1 hover:bg-bg3 cursor-pointer rounded px-3 py-1.5 text-sm"
+        >
+          <i className="bi-stars icon-sm mr-1" aria-hidden="true" />
+          {t('Interview feedback')}
+        </button>
       </div>
-
-      {round.notes_summary && (
-        <div className="mb-3">
-          <p className="text-secondary text-sm whitespace-pre-wrap">
-            {round.notes_summary}
-          </p>
-        </div>
-      )}
-
       <div className="border-tertiary border-t pt-3">
         <div className="mb-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
           <span className="text-muted text-sm">{t('Media Files')}</span>

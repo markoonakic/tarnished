@@ -1,4 +1,5 @@
 import api, { withAxiosTimeZoneHeaders } from './api';
+import { queryClient } from './queryClient';
 
 export type ID = string;
 export type ISODate = string;
@@ -583,6 +584,20 @@ const remove = async (path: string, revision?: number): Promise<void> => {
     params: queryParams({ expected_revision: revision }),
   });
 };
+async function reminderWrite<T>(request: Promise<T>): Promise<T> {
+  const saved = await request;
+  await queryClient.invalidateQueries({
+    predicate: ({ queryKey }) =>
+      [
+        'reminders',
+        'tasks',
+        'tasks-badge',
+        'dashboard-overview',
+        'application-board',
+      ].includes(String(queryKey[0])),
+  });
+  return saved;
+}
 export const apiV030 = {
   register: (email: string, password: string) =>
     post<{ message: string }>('/auth/register', { email, password }),
@@ -627,11 +642,12 @@ export const apiV030 = {
   deleteNote: (id: ID, revision: number) => remove(`/notes/${id}`, revision),
   reminders: (query?: ReminderQuery) =>
     get<Page<Reminder>>('/reminders', query),
-  createReminder: (data: ReminderInput) => post<Reminder>('/reminders', data),
+  createReminder: (data: ReminderInput) =>
+    reminderWrite(post<Reminder>('/reminders', data)),
   updateReminder: (id: ID, data: ReminderUpdate) =>
-    patch<Reminder>(`/reminders/${id}`, data),
+    reminderWrite(patch<Reminder>(`/reminders/${id}`, data)),
   deleteReminder: (id: ID, revision: number) =>
-    remove(`/reminders/${id}`, revision),
+    reminderWrite(remove(`/reminders/${id}`, revision)),
   tasks: (query?: TasksQuery) => get<Tasks>('/tasks', query),
   interviews: (query?: InterviewQuery) =>
     get<Page<Interview>>('/rounds', query),

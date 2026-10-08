@@ -1,6 +1,7 @@
 import type { InterviewInput } from './apiV030';
 export const statusMeanings = [
   'unknown',
+  'preparing',
   'applied',
   'screening',
   'interviewing',

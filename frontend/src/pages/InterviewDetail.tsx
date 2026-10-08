@@ -10,6 +10,7 @@ import TargetReminders from '@/components/TargetReminders';
 import RoundForm from '@/components/RoundForm';
 import InterviewRecording from '@/components/InterviewRecording';
 import InterviewParticipants from '@/components/InterviewParticipants';
+import InterviewPreparationDraft from '@/components/InterviewPreparationDraft';
 import {
   apiV030,
   type Interview,
@@ -41,6 +42,9 @@ const ghost =
   'text-primary hover:bg-bg2 focus:ring-accent rounded px-3 py-1.5 text-sm focus:ring-2';
 export default function InterviewDetail() {
   const { id } = useParams<{ id: string }>();
+  return <InterviewPage key={id} id={id} />;
+}
+function InterviewPage({ id }: { id?: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const client = useQueryClient();
@@ -54,6 +58,7 @@ export default function InterviewDetail() {
   });
   const [editing, setEditing] = useState(false);
   const [section, setSection] = useState<string | null>(null);
+  const [draftRevision, setDraftRevision] = useState(0);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [questions, setQuestions] = useState<QuestionAnswer[]>([]);
   const [busy, setBusy] = useState(false);
@@ -69,7 +74,7 @@ export default function InterviewDetail() {
     if (!interview) return;
     const saved = await apiV030.updateInterview(interview.id, {
       ...data,
-      expected_revision: interview.revision,
+      expected_revision: section ? draftRevision : interview.revision,
     });
     client.setQueryData(['interview', id], { ...interview, ...saved });
     await refresh();
@@ -77,6 +82,7 @@ export default function InterviewDetail() {
   function edit(which: string) {
     if (!interview) return;
     setSection(which);
+    setDraftRevision(interview.revision);
     setError('');
     setDraft(
       which === 'preparation'
@@ -241,11 +247,21 @@ export default function InterviewDetail() {
           : []),
       ]
     : [];
+  const shortcut = (kind: string, iconOnly = false) => (
+    <TargetReminders
+      targetType="round"
+      targetId={interview!.id}
+      label={`${interview!.company} — ${roundTypeLabel(interview!.round_type)}`}
+      shortcuts={reminders.filter((r) => r.kind === kind)}
+      shortcutsOnly
+      iconOnly={iconOnly}
+    />
+  );
   return (
     <Layout>
       <div className="mx-auto max-w-4xl px-4 py-8">
         {query.isPending ? (
-          <p role="status">{t('Loading…')}</p>
+          <p role="status">{t('tasks.loading')}</p>
         ) : query.isError || !interview ? (
           <p role="alert">
             {t('tasks.loadFailed')}{' '}
@@ -318,6 +334,7 @@ export default function InterviewDetail() {
                           )
                         : '—'}{' '}
                       {interview.time_zone && `(${interview.time_zone})`}
+                      {interview.scheduled_at && shortcut('interview', true)}
                     </dd>
                     {interview.time_zone &&
                       zone &&
@@ -391,10 +408,7 @@ export default function InterviewDetail() {
                   </div>
                 </dl>
                 <div className="border-tertiary mt-6 flex justify-end gap-2 border-t pt-4">
-                  <a href="#interview-reminders" className={ghost}>
-                    <i className="bi bi-bell-plus mr-2" />
-                    {t('tasks.remindMe')}
-                  </a>
+                  {interview.scheduled_at && shortcut('interview')}
                   <button className={ghost} onClick={() => setEditing(true)}>
                     <i className="bi bi-pencil mr-2" />
                     {t('Edit')}
@@ -423,9 +437,9 @@ export default function InterviewDetail() {
                 {error}
               </p>
             )}
-            <CollapsibleCard
-              title={t('tasks.preparation')}
-              icon="bi-book"
+            <InterviewPreparationDraft
+              interview={interview}
+              onSaved={refresh}
               actions={
                 <button className={ghost} onClick={() => edit('preparation')}>
                   {t('Edit')}
@@ -464,7 +478,7 @@ export default function InterviewDetail() {
                   )}
                 </div>
               )}
-            </CollapsibleCard>
+            </InterviewPreparationDraft>
             <CollapsibleCard
               title={t('tasks.questionsAnswers')}
               icon="bi-chat-left-text"
@@ -604,6 +618,7 @@ export default function InterviewDetail() {
                       <p className="text-muted mt-3 text-sm">
                         {t('tasks.field.task_deadline')}:{' '}
                         {formatDate(interview.task_deadline, zone)}
+                        {shortcut('task_submission', true)}
                       </p>
                     )}
                     <p className="text-muted mt-3 text-xs">
@@ -651,6 +666,8 @@ export default function InterviewDetail() {
                             dateStyle: 'medium',
                           })
                         : '—'}
+                      {interview.expected_reply_on &&
+                        shortcut('expected_feedback', true)}
                     </p>
                   </div>
                 </div>
@@ -691,7 +708,6 @@ export default function InterviewDetail() {
                 targetType="round"
                 targetId={interview.id}
                 label={`${interview.company} — ${roundTypeLabel(interview.round_type)}`}
-                shortcuts={reminders}
               />
             </div>
             <InterviewNotes interview={interview} />

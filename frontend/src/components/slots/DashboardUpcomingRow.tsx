@@ -4,8 +4,11 @@ import { useDashboardOverview } from '@/hooks/useDashboardOverview';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { getEffectiveTimeZone } from '@/lib/roundDateTime';
 import { locale } from '@/lib/i18n';
+import { dueText } from '@/lib/taskDates';
 import { roundTypeLabel, statusLabel } from '@/lib/referenceLabels';
 import { useReminderActions } from '@/hooks/useReminderActions';
+import { useThemeColors } from '@/hooks/useThemeColors';
+import { getStatusColor } from '@/lib/statusColors';
 import Card from '../Card';
 
 export default function DashboardUpcomingRow() {
@@ -14,6 +17,16 @@ export default function DashboardUpcomingRow() {
   const preferences = useUserPreferences();
   const zone = preferences.data ? getEffectiveTimeZone(preferences.data) : null;
   const actions = useReminderActions();
+  const colors = useThemeColors();
+  const updatedText = (value: string) => {
+    const hours = Math.max(
+      0,
+      Math.floor((new Date().getTime() - Date.parse(value)) / 3_600_000)
+    );
+    return t(hours >= 24 ? 'tasks.daysAgo' : 'tasks.hoursAgo', {
+      count: hours >= 24 ? Math.floor(hours / 24) : hours,
+    });
+  };
   const date = (value: string) =>
     new Date(value).toLocaleString(locale(), {
       timeZone: zone ?? undefined,
@@ -28,6 +41,7 @@ export default function DashboardUpcomingRow() {
       <Card
         title={t('tasks.upcomingInterviews')}
         icon="bi-calendar-event"
+        count={query.data?.upcoming_interviews.length}
         className="mb-0"
       >
         <div className="space-y-3">
@@ -35,7 +49,7 @@ export default function DashboardUpcomingRow() {
             <Link
               key={r.id}
               to={`/interviews/${r.id}`}
-              className="focus:ring-accent block rounded text-sm focus:ring-2"
+              className="bg-bg2 hover:bg-bg3 focus:ring-accent block rounded-lg p-3 text-sm focus:ring-2"
             >
               <span className="text-orange-bright text-xs">
                 {r.scheduled_at ? date(r.scheduled_at) : '—'}
@@ -61,10 +75,22 @@ export default function DashboardUpcomingRow() {
           {t('tasks.openCalendar')} →
         </Link>
       </Card>
-      <Card title={t('tasks.tasksDeadlines')} icon="bi-bell" className="mb-0">
+      <Card
+        title={t('tasks.tasksDeadlines')}
+        icon="bi-check2-square"
+        count={
+          query.data
+            ? Math.min(5, query.data.tasks.length + query.data.deadlines.length)
+            : undefined
+        }
+        className="mb-0"
+      >
         <div className="space-y-3">
           {query.data?.tasks.slice(0, 5).map((r) => (
-            <div key={r.id} className="flex items-start gap-2">
+            <div
+              key={r.id}
+              className="bg-bg2 flex items-start gap-3 rounded-lg p-3"
+            >
               <button
                 aria-label={t('kit.completeReminder', { title: r.title })}
                 onClick={() => void actions.toggle(r)}
@@ -75,7 +101,11 @@ export default function DashboardUpcomingRow() {
                 <span
                   className={`text-xs ${new Date(r.due_at) < new Date() ? 'text-red-bright' : 'text-muted'}`}
                 >
-                  {date(r.due_at)}
+                  {new Date(r.due_at) < new Date() &&
+                    `${t('tasks.overdue')} · `}
+                  {zone
+                    ? dueText(r.due_at, zone, new Date(), true)
+                    : date(r.due_at)}
                 </span>
               </Link>
             </div>
@@ -83,7 +113,11 @@ export default function DashboardUpcomingRow() {
           {query.data?.deadlines
             .slice(0, Math.max(0, 5 - query.data.tasks.length))
             .map((d) => (
-              <Link key={d.id} to="/tasks" className="text-muted block text-sm">
+              <Link
+                key={d.id}
+                to="/tasks"
+                className="bg-bg2 text-muted block rounded-lg p-3 text-sm"
+              >
                 {t('tasks.deadline', { title: d.title })}
                 <span className="block text-xs">{date(d.due_at)}</span>
               </Link>
@@ -99,6 +133,7 @@ export default function DashboardUpcomingRow() {
       <Card
         title={t('tasks.recentlyUpdated')}
         icon="bi-clock-history"
+        count={query.data?.recent_applications.length}
         className="mb-0"
       >
         <div className="space-y-3">
@@ -106,26 +141,38 @@ export default function DashboardUpcomingRow() {
             <Link
               key={a.id}
               to={`/applications/${a.id}`}
-              className="focus:ring-accent block rounded text-sm focus:ring-2"
+              className="bg-bg2 hover:bg-bg3 focus:ring-accent block rounded-lg p-3 text-sm focus:ring-2"
             >
               <span className="text-primary block">{a.company}</span>
               <span className="text-muted block truncate text-xs">
                 {a.job_title}
               </span>
               <div className="mt-1 flex items-center gap-2">
-                <span className="bg-bg2 rounded px-2 py-0.5 text-xs">
+                <span
+                  className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs"
+                  style={{
+                    color: getStatusColor(
+                      a.status.name,
+                      colors,
+                      a.status.color
+                    ),
+                    backgroundColor: `${getStatusColor(a.status.name, colors, a.status.color)}20`,
+                  }}
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{
+                      backgroundColor: getStatusColor(
+                        a.status.name,
+                        colors,
+                        a.status.color
+                      ),
+                    }}
+                  />
                   {statusLabel(a.status)}
                 </span>
                 <span className="text-muted text-xs">
-                  {t('tasks.hoursAgo', {
-                    count: Math.max(
-                      0,
-                      Math.floor(
-                        (new Date().getTime() - new Date(a.updated_at).getTime()) /
-                          3_600_000
-                      )
-                    ),
-                  })}
+                  {updatedText(a.updated_at)}
                 </span>
               </div>
             </Link>
@@ -134,6 +181,9 @@ export default function DashboardUpcomingRow() {
         {!query.data?.recent_applications.length && (
           <p className="text-muted text-sm">{t('tasks.noRecent')}</p>
         )}
+        <Link to="/applications" className="text-accent mt-4 block text-xs">
+          {t('tasks.viewApplications')} →
+        </Link>
       </Card>
       {query.isError && (
         <p role="alert" className="text-red-bright lg:col-span-3">
