@@ -13,6 +13,19 @@ from pydantic import (
     model_validator,
 )
 
+SCALAR_OPTIONS = {
+    "work_mode": ("office", "hybrid", "remote", "other"),
+    "employment_type": (
+        "full_time",
+        "part_time",
+        "contract",
+        "internship",
+        "temporary",
+        "other",
+    ),
+    "pay_period": ("hour", "day", "week", "month", "year", "other"),
+}
+
 Kind = Literal["EXTRACTION", "PROFILE_MATCH", "PREPARATION"]
 FieldName = Literal[
     "title",
@@ -100,19 +113,10 @@ class Proposal(Strict):
             or len(self.value) > 4000
         ):
             raise ValueError("Invalid proposal")
-        enums = {
-            "work_mode": ("office", "hybrid", "remote", "other"),
-            "employment_type": (
-                "full_time",
-                "part_time",
-                "contract",
-                "internship",
-                "temporary",
-                "other",
-            ),
-            "pay_period": ("hour", "day", "week", "month", "year", "other"),
-        }
-        if self.field in enums and self.value not in enums[self.field]:
+        if (
+            self.field in SCALAR_OPTIONS
+            and self.value not in SCALAR_OPTIONS[self.field]
+        ):
             raise ValueError("Invalid option")
         if (
             self.field

@@ -1,5 +1,6 @@
 """Reviewed AI: migrated storage, fake execution, ownership and quote guards."""
 
+import json
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -14,7 +15,12 @@ from app.core.deps import AuthContext
 from app.models import Application, JobLead, Round, RoundType, UserProfile
 from app.models.job_analysis import JobAnalysis
 from app.schemas.ai_settings import AISettingsUpdate
-from app.schemas.job_analysis import CATEGORIES, CreateAnalysis, RunAnalysis
+from app.schemas.job_analysis import (
+    CATEGORIES,
+    SCALAR_OPTIONS,
+    CreateAnalysis,
+    RunAnalysis,
+)
 from app.services import job_analyses as service
 from app.services.ai_settings import update_ai_settings
 from app.services.export_registry import default_registry
@@ -23,7 +29,7 @@ from app.services.import_id_mapper import IDMapper
 from app.services.import_service import ImportService
 from app.services.interview_evidence import fingerprint
 from app.services.interview_jobs import guard
-from app.services.interview_text import validate_section
+from app.services.interview_text import _localized_system_prompt, validate_section
 
 POSTING = "Junior Python developer. Work remotely. Python and SQL required."
 
@@ -71,6 +77,26 @@ async def saved_analysis(db, user, record, kind="EXTRACTION", round_id=None):
     row.draft = extraction() if kind == "EXTRACTION" else {}
     await db.commit()
     return row
+
+
+@pytest.mark.parametrize(
+    ("field", "canonical", "wording"),
+    [
+        ("work_mode", "hybrid", "Hybrid work with two office days per week"),
+        ("employment_type", "full_time", "Full-time employment"),
+        ("pay_period", "month", "per month"),
+    ],
+)
+def test_extraction_prompt_exposes_the_same_scalar_options_as_validation(
+    field, canonical, wording
+):
+    prompt = _localized_system_prompt("EXTRACTION", "en")
+    assert json.dumps(SCALAR_OPTIONS) in prompt
+    sources = [{"data": {"posting": wording}}]
+    item = {"id": field, "field": field, "value": canonical, "quote": wording}
+    assert validate_section({"items": [item]}, sources, "EXTRACTION")["items"]
+    with pytest.raises(ValueError, match="Invalid option"):
+        validate_section({"items": [{**item, "value": wording}]}, sources, "EXTRACTION")
 
 
 def test_exact_quotes_complete_matrix_and_preparation():
