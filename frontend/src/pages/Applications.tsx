@@ -1,4 +1,5 @@
 import { t, locale } from '@/lib/i18n';
+import ApplicationBoard from '@/components/ApplicationBoard';
 import ApplicationsViewSwitch from '../components/slots/ApplicationsViewSwitch';
 import { statusLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
@@ -175,7 +176,13 @@ export default function Applications() {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-6xl px-4 py-8">
+      <div
+        className={
+          searchParams.get('view') === 'board'
+            ? 'mx-auto px-4 py-8'
+            : 'mx-auto max-w-6xl px-4 py-8'
+        }
+      >
         <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <h1 className="text-primary text-2xl font-bold">
             {t('Applications')}
@@ -301,7 +308,9 @@ export default function Applications() {
           </div>
         )}
 
-        {loading ? (
+        {searchParams.get('view') === 'board' ? (
+          <ApplicationBoard params={searchParams} />
+        ) : loading ? (
           <Loading message={t('Loading applications...')} />
         ) : error ? null : applications.length === 0 ? (
           isFiltered ? (

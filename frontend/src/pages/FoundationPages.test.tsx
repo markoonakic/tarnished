@@ -5,6 +5,25 @@ import { apiV030 } from '@/lib/apiV030';
 import { afterEach, expect, it, vi } from 'vitest';
 import Companies from './Companies';
 import Tasks from './Tasks';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+vi.mock('@/hooks/useToast', () => ({ useToast: () => ({ error: vi.fn() }) }));
+vi.mock('@/hooks/useUserPreferences', () => ({
+  useUserPreferences: () => ({
+    data: { time_zone_mode: 'manual', time_zone: 'UTC' },
+  }),
+}));
+vi.mock('@/lib/apiV030', () => ({
+  apiV030: {
+    tasks: async () => ({
+      items: [],
+      total: 0,
+      deadlines: [],
+      badge: { total: 0, overdue: 0, due_today: 0 },
+    }),
+    interviews: async () => ({ items: [], total: 0 }),
+    reminders: async () => ({ items: [] }),
+  },
+}));
 vi.mock('@/components/Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -43,9 +62,11 @@ it('switches Companies to Contacts using the shared selector', () => {
 });
 it('switches Tasks to the month grid and opens the selected week', () => {
   render(
-    <MemoryRouter initialEntries={['/tasks']}>
-      <Tasks />
-    </MemoryRouter>
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={['/tasks']}>
+        <Tasks />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
   expect(screen.getByRole('radio', { name: 'Open' })).toBeChecked();
   fireEvent.click(screen.getByRole('radio', { name: 'Interviews' }));
