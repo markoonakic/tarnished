@@ -23,6 +23,8 @@ import { useToastContext } from '../contexts/ToastContext';
 import Layout from '../components/Layout';
 import ConvertToApplicationModal from '../components/ConvertToApplicationModal';
 import LeadDetails from '../components/slots/LeadDetails';
+import RecordTags from '../components/records/RecordTags';
+import SavedPosting from '../components/records/SavedPosting';
 import LeadDecision from '../components/slots/LeadDecision';
 import LeadContacts from '../components/slots/LeadContacts';
 import LeadReminders from '../components/slots/LeadReminders';
@@ -282,8 +284,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
                 </p>
               )}
             </div>
-            <div className="flex flex-col items-end gap-2">
-              <LeadDecision lead={jobLead} onUpdated={loadJobLead} />
+            <div className="flex max-w-full flex-col items-end gap-2">
               <span
                 className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${getJobLeadStatusBadgeClass(jobLead.status)}`}
               >
@@ -291,6 +292,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
                 {extracting ? `${t('Last saved status:')} ` : ''}
                 {getJobLeadStatusLabel(jobLead.status)}
               </span>
+              <LeadDecision lead={jobLead} onUpdated={loadJobLead} />
               {isConverted && (
                 <Link
                   to={`/applications/${jobLead.converted_to_application_id}`}
@@ -302,6 +304,22 @@ function JobLeadDetailContent({ id }: { id: string }) {
             </div>
           </div>
 
+          <RecordTags
+            record={jobLead}
+            type="lead"
+            revision={jobLead.revision}
+            onUpdated={loadJobLead}
+          />
+          <LeadDetails lead={jobLead} onUpdated={loadJobLead} />
+          <SavedPosting
+            id={jobLead.id}
+            type="lead"
+            revision={jobLead.revision}
+            text={jobLead.source_text}
+            url={jobLead.url}
+            truncated={jobLead.source_truncated}
+            onUpdated={loadJobLead}
+          />
           <div className="mb-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
             <div>
               <span className="text-muted">{t('Saved:')}</span>
@@ -502,34 +520,6 @@ function JobLeadDetailContent({ id }: { id: string }) {
             </button>
           </div>
         </div>
-        <LeadDetails lead={jobLead} onUpdated={loadJobLead} />
-        {(jobLead.source_text || jobLead.content_warning) && (
-          <details className="bg-bg2 mb-4 rounded-lg p-4">
-            <summary className="text-primary cursor-pointer">
-              {t('Saved posting')}
-            </summary>
-            {jobLead.source_truncated && (
-              <p className="text-muted my-2 text-sm">
-                {t('Only part of the posting was saved.')}
-              </p>
-            )}
-            {jobLead.content_warning && (
-              <p className="text-yellow mb-2">
-                {t(
-                  jobLead.content_warning_code === 'source_missing'
-                    ? 'No useful source text was captured. Explicit extraction will attempt to fetch the URL.'
-                    : jobLead.content_warning_code === 'source_normalized'
-                      ? 'Source text was normalized for storage. Check the saved posting.'
-                      : 'The saved source may be incomplete. Check the posting text.'
-                )}
-              </p>
-            )}
-            <pre className="text-primary max-h-96 overflow-auto text-sm break-words whitespace-pre-wrap">
-              {jobLead.source_text}
-            </pre>
-          </details>
-        )}
-
         <LeadExtractionReview lead={jobLead} onUpdated={loadJobLead} />
         <LeadProfileMatch lead={jobLead} onUpdated={loadJobLead} />
         <LeadContacts lead={jobLead} onUpdated={loadJobLead} />

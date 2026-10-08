@@ -142,7 +142,12 @@ export function getApplicationModalDefaults(
   statuses: Status[]
 ): ApplicationModalFormValues {
   const defaultStatus =
-    statuses.find((status) => status.is_default) || statuses[0];
+    statuses.find(
+      (status) =>
+        status.builtin_key === 'applied' || status.meaning === 'applied'
+    ) ||
+    statuses.find((status) => status.is_default) ||
+    statuses[0];
 
   return {
     company: '',
@@ -172,7 +177,7 @@ export function getApplicationModalValues(
     jobDescription: application.job_description || '',
     jobUrl: application.job_url || '',
     statusId: application.status.id,
-    appliedAt: application.applied_at.split('T')[0],
+    appliedAt: application.applied_at?.split('T')[0] || '',
     salaryMin:
       application.salary_min !== null ? String(application.salary_min) : '',
     salaryMax:

@@ -80,6 +80,7 @@ it('loads sorting from the URL and resets the page while keeping filters', async
   mount(
     '/applications?sort=company&page=3&status=own&source=Referral&search=engineer'
   );
+  fireEvent.click(screen.getByRole('button', { name: 'More filters (0)' }));
   expect(
     await screen.findByRole('combobox', { name: 'Sort applications' })
   ).toBeVisible();
@@ -105,7 +106,7 @@ it('loads sorting from the URL and resets the page while keeping filters', async
     })
   );
   const params = new URLSearchParams(
-    screen.getByLabelText('Location').textContent!
+    screen.getByLabelText('Location', { selector: 'output' }).textContent!
   );
   expect(params.get('sort')).toBe('applied_asc');
   expect(params.get('page')).toBe('1');

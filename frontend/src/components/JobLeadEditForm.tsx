@@ -9,6 +9,8 @@ import {
 import type { JobLead } from '../lib/types';
 import Modal from './Modal';
 import CompanyPicker from './CompanyPicker';
+import JobMetadataFields from './records/JobMetadataFields';
+import { jobMetadata } from '@/lib/records';
 
 const textFields = [
   ['company', 'Company', 255],
@@ -48,7 +50,7 @@ export default function JobLeadEditForm({
   useTranslation();
   // Freeze the revision and baseline for this draft; a newer read must not rebase it silently.
   const [baseline] = useState(lead);
-  const [companyId, setCompanyId] = useState(lead.company_id ?? null);
+  const [metadata, setMetadata] = useState(() => jobMetadata(lead));
   const [fields, setFields] = useState<Record<string, string>>(() =>
     Object.fromEntries([
       ...textFields.map(([key]) => [key, lead[key] ?? '']),
@@ -66,8 +68,6 @@ export default function JobLeadEditForm({
     event.preventDefault();
     setError('');
     const body: JobLeadUpdate = { expected_revision: baseline.revision };
-    if (companyId !== (baseline.company_id ?? null))
-      body.company_id = companyId;
     for (const [key, label, limit] of textFields) {
       if (
         Array.from(fields[key]).length > limit ||
@@ -105,6 +105,13 @@ export default function JobLeadEditForm({
         }
         body[key] = values;
       }
+    }
+    const initialMetadata = jobMetadata(baseline);
+    for (const key of Object.keys(metadata) as (keyof typeof metadata)[]) {
+      if (
+        JSON.stringify(metadata[key]) !== JSON.stringify(initialMetadata[key])
+      )
+        Object.assign(body, { [key]: metadata[key] });
     }
     if (Object.keys(body).length === 1) {
       onCancel();
@@ -175,10 +182,11 @@ export default function JobLeadEditForm({
               {uiLabel(label)}
               {key === 'company' ? (
                 <CompanyPicker
-                  value={companyId}
+                  value={metadata.company_id}
                   name={fields.company}
+                  disabled={busy || stale}
                   onChange={(id, name) => {
-                    setCompanyId(id);
+                    setMetadata({ ...metadata, company_id: id });
                     setFields({ ...fields, company: name });
                   }}
                 />
@@ -238,6 +246,9 @@ export default function JobLeadEditForm({
               />
             </label>
           ))}
+        </fieldset>
+        <fieldset disabled={busy || stale}>
+          <JobMetadataFields value={metadata} onChange={setMetadata} />
         </fieldset>
         <div className="flex justify-end gap-2">
           <button

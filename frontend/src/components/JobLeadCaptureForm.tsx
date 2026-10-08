@@ -5,6 +5,11 @@ import { Link } from 'react-router-dom';
 import { createJobLead, jobLeadError } from '../lib/jobLeads';
 import { useToast } from '../hooks/useToast';
 import Modal from './Modal';
+import SegmentedControl from './SegmentedControl';
+import CompanyPicker from './records/CompanyPicker';
+import Dropdown from './Dropdown';
+import { recordInput, workModes } from '@/lib/records';
+import type { WorkMode } from '@/lib/apiV030';
 
 export default function JobLeadCaptureForm({
   onSaved,
@@ -14,6 +19,12 @@ export default function JobLeadCaptureForm({
   useTranslation();
   const toast = useToast();
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState('url');
+  const [title, setTitle] = useState('');
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [company, setCompany] = useState('');
+  const [location, setLocation] = useState('');
+  const [workMode, setWorkMode] = useState<WorkMode | null>(null);
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -22,7 +33,10 @@ export default function JobLeadCaptureForm({
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
-    if (Array.from(text).length > 100000 || Array.from(url).length > 2048) {
+    if (
+      mode !== 'manual' &&
+      (Array.from(text).length > 100000 || Array.from(url).length > 2048)
+    ) {
       setError(
         t(
           'URL allows up to 2,048 characters; source text allows up to 100,000 characters. Shorten the input before saving.'
@@ -33,10 +47,25 @@ export default function JobLeadCaptureForm({
     setBusy(true);
     setError('');
     try {
-      const lead = await createJobLead({ url, ...(text ? { text } : {}) });
+      const lead = await createJobLead(
+        mode === 'manual'
+          ? {
+              title: title.trim(),
+              company: company || null,
+              company_id: companyId,
+              location: location || null,
+              work_mode: workMode,
+            }
+          : { ...(url ? { url } : {}), ...(text ? { text } : {}) }
+      );
       setOpen(false);
       setUrl('');
       setText('');
+      setTitle('');
+      setCompany('');
+      setCompanyId(null);
+      setLocation('');
+      setWorkMode(null);
       toast.success(t('Job lead saved'), {
         label: t('Open'),
         to: `/job-leads/${lead.id}`,
@@ -74,7 +103,7 @@ export default function JobLeadCaptureForm({
           onClose={() => setOpen(false)}
           busy={busy}
         >
-          <div className="bg-bg1 mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg p-6">
+          <div className="bg-secondary mx-4 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg p-6">
             <div className="mb-4 flex items-center justify-between gap-2">
               <h2 className="text-primary text-xl font-semibold">
                 {t('New Job Lead')}
@@ -90,11 +119,20 @@ export default function JobLeadCaptureForm({
               </button>
             </div>
             <form onSubmit={save} className="space-y-4">
-              <p className="text-muted text-sm">
-                {t(
-                  'Save the link now. You can fill in the details yourself or use AI afterwards.'
-                )}
-              </p>
+              <SegmentedControl
+                label={t('records.captureMode')}
+                value={mode}
+                onChange={(value) => {
+                  setMode(value);
+                  setError('');
+                  setDuplicateId(undefined);
+                }}
+                options={['url', 'text', 'manual'].map((value) => ({
+                  value,
+                  label: t('records.capture.' + value),
+                  disabled: busy,
+                }))}
+              />
               {error && (
                 <p role="alert" className="text-red-bright">
                   {error}
@@ -109,33 +147,129 @@ export default function JobLeadCaptureForm({
                 </Link>
               ) : (
                 <>
-                  <label className="block text-sm">
-                    {t('Job URL')}
-                    <input
-                      className="bg-bg2 text-fg1 focus:ring-accent-bright mt-1 w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-                      type="url"
-                      required
-                      value={url}
-                      onChange={(event) => setUrl(event.target.value)}
+                  {mode === 'manual' ? (
+                    <>
+                      <label className="text-muted block text-sm">
+                        {t('records.position')}
+                        <input
+                          required
+                          maxLength={255}
+                          className={recordInput}
+                          value={title}
+                          disabled={busy}
+                          onChange={(event) => setTitle(event.target.value)}
+                        />
+                      </label>
+                      <div>
+                        <label
+                          htmlFor="lead-company"
+                          className="text-muted mb-1 block text-sm"
+                        >
+                          {t('records.company')}
+                        </label>
+                        <CompanyPicker
+                          id="lead-company"
+                          value={companyId}
+                          name={company}
+                          disabled={busy}
+                          onChange={(id, name) => {
+                            setCompanyId(id);
+                            setCompany(name);
+                          }}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <label className="text-muted block text-sm">
+                          {t('records.location')}
+                          <input
+                            className={recordInput}
+                            value={location}
+                            maxLength={255}
+                            disabled={busy}
+                            onChange={(event) =>
+                              setLocation(event.target.value)
+                            }
+                          />
+                        </label>
+                        <div>
+                          <label
+                            htmlFor="lead-work-mode"
+                            className="text-muted mb-1 block text-sm"
+                          >
+                            {t('records.work_mode')}
+                          </label>
+                          <Dropdown
+                            id="lead-work-mode"
+                            value={workMode || ''}
+                            disabled={busy}
+                            options={[
+                              { value: '', label: t('records.unspecified') },
+                              ...workModes.map((value) => ({
+                                value,
+                                label: t('records.' + value),
+                              })),
+                            ]}
+                            onChange={(value) =>
+                              setWorkMode((value || null) as WorkMode | null)
+                            }
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <label className="block text-sm">
+                        {t(mode === 'url' ? 'Job URL' : 'records.urlOptional')}
+                        <input
+                          className="bg-bg2 text-fg1 focus:ring-accent-bright mt-1 w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                          type="url"
+                          required={mode === 'url'}
+                          value={url}
+                          onChange={(event) => setUrl(event.target.value)}
+                          disabled={busy}
+                        />
+                      </label>
+                      <label className="block text-sm">
+                        {t(
+                          mode === 'text'
+                            ? 'records.postingText'
+                            : 'Job description (optional)'
+                        )}
+                        <textarea
+                          className="bg-bg2 text-fg1 focus:ring-accent-bright mt-1 w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                          rows={5}
+                          required={mode === 'text'}
+                          value={text}
+                          onChange={(event) => setText(event.target.value)}
+                          disabled={busy}
+                        />
+                      </label>
+                      {Array.from(text).length > 100000 && (
+                        <p role="alert" className="text-red">
+                          {t('records.sourceLimit')}
+                        </p>
+                      )}
+                    </>
+                  )}
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      className="text-fg1 hover:bg-bg2 rounded px-4 py-2"
                       disabled={busy}
-                    />
-                  </label>
-                  <label className="block text-sm">
-                    {t('Job description (optional)')}
-                    <textarea
-                      className="bg-bg2 text-fg1 focus:ring-accent-bright mt-1 w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-                      rows={5}
-                      value={text}
-                      onChange={(event) => setText(event.target.value)}
-                      disabled={busy}
-                    />
-                  </label>
-                  <button
-                    className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
-                    disabled={busy}
-                  >
-                    {busy ? t('Saving…') : t('Save Lead')}
-                  </button>
+                      onClick={() => setOpen(false)}
+                    >
+                      {t('Cancel')}
+                    </button>
+                    <button
+                      className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
+                      disabled={
+                        busy ||
+                        (mode !== 'manual' && Array.from(text).length > 100000)
+                      }
+                    >
+                      {busy ? t('Saving…') : t('Save Lead')}
+                    </button>
+                  </div>
                 </>
               )}
             </form>

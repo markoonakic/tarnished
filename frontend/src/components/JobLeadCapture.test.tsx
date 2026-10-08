@@ -99,6 +99,27 @@ function reject(
     config,
   });
 }
+vi.mock('./records/CompanyPicker', () => ({
+  default: ({
+    id,
+    name,
+    disabled,
+    onChange,
+  }: {
+    id?: string;
+    name?: string;
+    disabled?: boolean;
+    onChange: (id: string | null, name: string) => void;
+  }) => (
+    <input
+      id={id}
+      value={name || ''}
+      disabled={disabled}
+      onChange={(event) => onChange(null, event.target.value)}
+    />
+  ),
+}));
+
 const original = api.defaults.adapter;
 let saved: JobLead;
 let requests: {
@@ -340,7 +361,7 @@ it('validates source by Unicode characters without silently clipping the input',
   fireEvent.change(source, { target: { value: '😀'.repeat(100001) } });
   fireEvent.click(screen.getByRole('button', { name: 'Save Lead' }));
   expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Shorten the input'
+    'Shorten the text'
   );
   expect(requests).toHaveLength(0);
   expect(source).toHaveValue('😀'.repeat(100001));

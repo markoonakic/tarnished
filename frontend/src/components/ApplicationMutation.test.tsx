@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
@@ -77,6 +78,27 @@ function createApplication(rounds: Round[] = []): Application {
     source: null,
   };
 }
+
+vi.mock('./records/CompanyPicker', () => ({
+  default: ({
+    id,
+    name,
+    disabled,
+    onChange,
+  }: {
+    id?: string;
+    name?: string;
+    disabled?: boolean;
+    onChange: (id: string | null, name: string) => void;
+  }) => (
+    <input
+      id={id}
+      value={name || ''}
+      disabled={disabled}
+      onChange={(event) => onChange(null, event.target.value)}
+    />
+  ),
+}));
 
 const originalAdapter = api.defaults.adapter;
 const nextStatus = {
@@ -152,6 +174,17 @@ it('saves 85,500 unchanged via the native number control and refreshes mounted h
   expect(salary.checkValidity()).toBe(true);
   fireEvent.click(screen.getByRole('combobox', { name: /Status/ }));
   fireEvent.click(screen.getByRole('option', { name: 'Interviewing' }));
+  fireEvent.click(
+    within(screen.getByRole('dialog', { name: 'Change status' })).getByRole(
+      'button',
+      { name: 'Save' }
+    )
+  );
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('dialog', { name: 'Change status' })
+    ).not.toBeInTheDocument()
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() => expect(onSuccess).toHaveBeenCalledWith('app-1'));
   await waitFor(() =>
@@ -196,6 +229,57 @@ it('keeps the draft revision when newer application props arrive', async () => {
   expect(patches[0]).toMatchObject({
     expected_revision: 0,
     company: 'Draft company',
+  });
+});
+
+it('saves preparation without an applied date and retains all record metadata', async () => {
+  application = {
+    ...application,
+    applied_at: null,
+    status: {
+      id: 'preparing',
+      name: 'Preparing',
+      builtin_key: 'preparing',
+      meaning: 'preparing',
+      color: 'blue',
+    },
+    work_mode: 'remote',
+    employment_type: 'contract',
+    seniority: 'Junior',
+    deadline: '2026-10-20',
+    pay_period: 'month',
+    priority: 'high',
+    tags: ['python'],
+  };
+  const onSuccess = vi.fn();
+  render(
+    <ApplicationModal
+      isOpen
+      application={application}
+      onClose={vi.fn()}
+      onSuccess={onSuccess}
+    />
+  );
+  await waitFor(() =>
+    expect(screen.getByRole('combobox', { name: /Status/ })).toHaveTextContent(
+      'Preparing'
+    )
+  );
+  expect(screen.getByLabelText('Applied Date')).toHaveValue('');
+  expect(screen.getByLabelText('Applied Date')).not.toBeRequired();
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+  expect(patches[0]).toMatchObject({
+    applied_at: null,
+    status_id: 'preparing',
+    expected_revision: 0,
+    work_mode: 'remote',
+    employment_type: 'contract',
+    seniority: 'Junior',
+    deadline: '2026-10-20',
+    pay_period: 'month',
+    priority: 'high',
+    tags: ['python'],
   });
 });
 
