@@ -177,6 +177,8 @@ async def invalidate_reports(
     }
     if removed:
         interview_values["interview_report"] = None
+    if user_id and not application_id and not round_id:
+        interview_values["updated_at"] = Round.updated_at
     await db.execute(
         update(Round)
         .where(round_condition)
@@ -222,6 +224,9 @@ async def invalidate_reports(
     }
     if removed:
         application_values["report"] = None
+    if user_id and not application_id and not round_id:
+        # Profile/privacy changes are not activity on every application.
+        application_values["updated_at"] = Application.updated_at
     await db.execute(
         update(Application)
         .where(*app_condition)

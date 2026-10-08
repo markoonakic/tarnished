@@ -72,6 +72,22 @@ async def test_company_last_activity_uses_related_records_and_owner_scope(db, cl
     assert rows[0]["last_activity_at"].startswith("2026-01-05")
     assert rows[1]["last_activity_at"] is None
     assert "Foreign" not in response.text
+    profile = (await client.get("/api/profile", headers=headers)).json()
+    changed = await client.put(
+        "/api/profile",
+        headers=headers,
+        json={
+            "expected_revision": profile["revision"],
+            "desired_positions": ["Developer"],
+        },
+    )
+    assert changed.status_code == 200, changed.text
+    await db.refresh(app)
+    assert app.updated_at.replace(tzinfo=UTC) == datetime(2026, 1, 2, tzinfo=UTC)
+    rows = (await client.get("/api/companies?sort=activity", headers=headers)).json()[
+        "items"
+    ]
+    assert rows[0]["last_activity_at"].startswith("2026-01-05")
 
 
 async def test_activity_status_transition_keeps_builtin_identity_and_custom_name(
