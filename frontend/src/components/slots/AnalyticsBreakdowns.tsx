@@ -27,9 +27,12 @@ function Frequencies({
           {items.map((item) => (
             <li
               key={item.label}
-              className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)_3ch] items-center gap-3 text-sm"
+              className="grid grid-cols-[minmax(0,1fr)_3ch] items-center gap-x-3 gap-y-2 text-sm sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_3ch]"
             >
-              <span className="text-fg1 truncate" title={item.label}>
+              <span
+                className="text-fg1 col-span-2 sm:col-span-1 sm:truncate"
+                title={item.label}
+              >
                 {item.label}
               </span>
               <span
@@ -85,7 +88,7 @@ export default function AnalyticsBreakdowns(props: AnalyticsSlotProps) {
       </Card>
     );
   return (
-    <div className="space-y-6">
+    <div className="grid gap-6">
       <Card
         title={t('analytics.bySource')}
         icon="bi-signpost-split"

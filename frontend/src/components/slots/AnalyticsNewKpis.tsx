@@ -41,6 +41,7 @@ export default function AnalyticsNewKpis(props: AnalyticsSlotProps) {
           {response.mean_days === null
             ? '—'
             : t('analytics.days', {
+                count: response.mean_days,
                 value: response.mean_days.toLocaleString(locale(), {
                   maximumFractionDigits: 1,
                 }),
