@@ -75,7 +75,11 @@ export default function JobMetadataFields({
         />
       </label>
       <div className="sm:col-span-2">
+        <label htmlFor={id + '-tags'} className="text-muted mb-1 block text-sm">
+          {t('records.tags')}
+        </label>
         <TagInput
+          id={id + '-tags'}
           label={t('records.tags')}
           value={value.tags || []}
           onChange={(tags) => onChange({ ...value, tags })}

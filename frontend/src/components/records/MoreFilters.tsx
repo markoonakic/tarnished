@@ -176,11 +176,20 @@ export default function MoreFilters({
                 onChange={(value) => onChange({ priority: value })}
               />
             </div>
-            <TagInput
-              label={t('records.tags')}
-              value={params.getAll('tags')}
-              onChange={(tags) => onChange({ tags })}
-            />
+            <div>
+              <label
+                htmlFor={id + '-tags'}
+                className="text-muted mb-1 block text-sm"
+              >
+                {t('records.tags')}
+              </label>
+              <TagInput
+                id={id + '-tags'}
+                label={t('records.tags')}
+                value={params.getAll('tags')}
+                onChange={(tags) => onChange({ tags })}
+              />
+            </div>
             <div>
               <label
                 htmlFor={id + '-date'}

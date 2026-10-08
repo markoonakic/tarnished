@@ -34,7 +34,7 @@ export default function RecordTags({
     setOpen(true);
   }
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
+    <div className="mt-2 mb-4 flex flex-wrap items-center gap-2">
       <button
         type="button"
         onClick={edit}

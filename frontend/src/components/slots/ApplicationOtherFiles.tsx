@@ -75,7 +75,7 @@ export default function ApplicationOtherFiles({
               >
                 {t('records.file.' + item.kind)}
               </span>
-              <span className="text-primary min-w-0 flex-1 text-sm break-all">
+              <span className="text-primary min-w-32 flex-1 text-sm break-words">
                 {item.original_filename}
               </span>
               <span className="text-muted text-xs">
