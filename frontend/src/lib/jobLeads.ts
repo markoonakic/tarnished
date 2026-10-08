@@ -101,7 +101,11 @@ export type JobLeadUpdate = Partial<
     | 'source'
     | 'posted_date'
   >
-> & { expected_revision: number };
+> & {
+  expected_revision: number;
+  company_id?: string | null;
+  recruiter_contact_id?: string | null;
+};
 
 export interface JobLeadExtractRequest {
   expected_revision: number;

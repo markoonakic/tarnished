@@ -25,7 +25,7 @@ export default function ContactRow({
   const { t } = useTranslation();
   return (
     <div className="bg-tertiary flex flex-wrap items-center gap-3 rounded-lg px-4 py-3">
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 basis-full sm:basis-auto">
         <div className="flex flex-wrap items-center gap-2">
           {href ? (
             <Link

@@ -8,6 +8,7 @@ import {
 } from '../lib/jobLeads';
 import type { JobLead } from '../lib/types';
 import Modal from './Modal';
+import CompanyPicker from './CompanyPicker';
 
 const textFields = [
   ['company', 'Company', 255],
@@ -47,6 +48,7 @@ export default function JobLeadEditForm({
   useTranslation();
   // Freeze the revision and baseline for this draft; a newer read must not rebase it silently.
   const [baseline] = useState(lead);
+  const [companyId, setCompanyId] = useState(lead.company_id ?? null);
   const [fields, setFields] = useState<Record<string, string>>(() =>
     Object.fromEntries([
       ...textFields.map(([key]) => [key, lead[key] ?? '']),
@@ -64,6 +66,8 @@ export default function JobLeadEditForm({
     event.preventDefault();
     setError('');
     const body: JobLeadUpdate = { expected_revision: baseline.revision };
+    if (companyId !== (baseline.company_id ?? null))
+      body.company_id = companyId;
     for (const [key, label, limit] of textFields) {
       if (
         Array.from(fields[key]).length > limit ||
@@ -169,7 +173,16 @@ export default function JobLeadEditForm({
               className={`text-muted block text-sm font-semibold ${key === 'description' ? 'sm:col-span-2' : ''}`}
             >
               {uiLabel(label)}
-              {key === 'description' ? (
+              {key === 'company' ? (
+                <CompanyPicker
+                  value={companyId}
+                  name={fields.company}
+                  onChange={(id, name) => {
+                    setCompanyId(id);
+                    setFields({ ...fields, company: name });
+                  }}
+                />
+              ) : key === 'description' ? (
                 <textarea
                   rows={5}
                   className={inputClass}

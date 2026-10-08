@@ -1,7 +1,10 @@
 import type { JobLead } from '@/lib/types';
-export default function LeadNotes(_props: {
+import TargetNotes from '../TargetNotes';
+export default function LeadNotes({
+  lead,
+}: {
   lead: JobLead;
   onUpdated?: () => void;
 }) {
-  return null;
+  return <TargetNotes targetType="lead" targetId={lead.id} />;
 }
