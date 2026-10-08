@@ -70,7 +70,7 @@ Dashboard slots take no props. Analytics slots receive `{period, asOf?}`. Applic
 - ReminderModal: isOpen, initial {kind,title,due_date,due_time,note}, editing, relatedLabel or relatedPicker, onSave(draft), onClose. Time defaults to 09:00; the feature supplies the user's zone to the API. No zone field.
 - StatusChangeDialog: isOpen, options {value,label,meaning}, statusId, timeZone, initial, onSave, onClose. Saves {status_id,changed_at,comment,reason}; changed_at is an offset-bearing UTC instant. Only rejected/withdrawn meanings display a reason. Existing time helpers reject nonexistent and ambiguous local times.
 - SearchableCombobox: existing props plus onCreate(name). Create is last, appears only for a non-empty new name, and calls onCreate instead of onChange. Caller creates and selects the returned record.
-- ContactRow: name/href/subtitle/role/email/phone/lastContact/onUnlink. EntryRow: title/subtitle/aiAllowed/aiDisabled/onAiChange/onEdit/onDelete. Callers translate built-in roles, never user content.
+- ContactRow: name/href/subtitle/role/roleColor/email/phone/lastContact/onUnlink. EntryRow: title/subtitle/aiAllowed/aiDisabled/onAiChange/onEdit/onDelete. Callers translate built-in roles, never user content.
 - MonthGrid: month:Date, events {id,date:YYYY-MM-DD,label,href?,outcome?}, reminderDates:string[], onMonthChange, onDayClick, optional onEventClick/headerActions/today/maxEvents. Monday first with real calendar dates; limit chips with a more link. Hide it on mobile and use a week list.
 - TasksBadge: optional count/overdue props; defaults to hooks/useTasksBadge.ts. The reminders worker replaces that no-request hook with the live count. Zero is hidden.
 
