@@ -19,6 +19,7 @@ from app.schemas.job_analysis import (
     CATEGORIES,
     SCALAR_OPTIONS,
     CreateAnalysis,
+    Preparation,
     RunAnalysis,
 )
 from app.services import job_analyses as service
@@ -97,6 +98,65 @@ def test_extraction_prompt_exposes_the_same_scalar_options_as_validation(
     assert validate_section({"items": [item]}, sources, "EXTRACTION")["items"]
     with pytest.raises(ValueError, match="Invalid option"):
         validate_section({"items": [{**item, "value": wording}]}, sources, "EXTRACTION")
+
+
+@pytest.mark.parametrize(
+    ("category", "field"),
+    [
+        ("review_topics", "requirement_ids"),
+        ("technical_topics", "requirement_ids"),
+        ("practice_questions", "requirement_ids"),
+        ("profile_gaps", "requirement_ids"),
+        ("examples", "evidence"),
+    ],
+)
+def test_preparation_prompt_schema_requires_grounding(category, field):
+    schema = Preparation.model_json_schema()
+    assert json.dumps(schema) in _localized_system_prompt("PREPARATION", "en")
+    reference = schema["properties"][category]["items"]["$ref"].split("/")[-1]
+    item_schema = schema["$defs"][reference]
+    assert field in item_schema["required"]
+    assert item_schema["properties"][field]["minItems"] == 1
+    sources = [
+        {
+            "data": {
+                "requirements": [{"id": "r1", "text": "SQL joins"}],
+                "profile": [{"id": "p1", "text": "Built SQL queries"}],
+            }
+        }
+    ]
+    item = {
+        "id": "one",
+        "text": "Review SQL joins",
+        "requirement_ids": ["r1"],
+        "evidence": [{"profile_id": "p1", "quote": "SQL queries"}],
+    }
+    draft = {name: [] for name in CATEGORIES}
+    draft[category] = [item]
+    assert validate_section(draft, sources, "PREPARATION")[category]
+    for missing in (None, []):
+        invalid = dict(item)
+        if missing is None:
+            invalid.pop(field)
+        else:
+            invalid[field] = missing
+        with pytest.raises(ValueError):
+            validate_section({**draft, category: [invalid]}, sources, "PREPARATION")
+    invalid = {
+        **item,
+        field: ["unknown"]
+        if field == "requirement_ids"
+        else [{"profile_id": "p1", "quote": "Invented evidence"}],
+    }
+    with pytest.raises(ValueError):
+        validate_section({**draft, category: [invalid]}, sources, "PREPARATION")
+
+
+def test_preparation_general_suggestions_need_no_invented_citations():
+    draft = {name: [] for name in CATEGORIES}
+    for category in ("company_questions", "plan"):
+        draft[category] = [{"id": category, "text": "Ask about the next steps"}]
+    assert validate_section(draft, [{"data": {}}], "PREPARATION")
 
 
 def test_exact_quotes_complete_matrix_and_preparation():

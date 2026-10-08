@@ -171,13 +171,29 @@ class DraftItem(Strict):
     evidence: list[Citation] = Field(default_factory=list, max_length=5)
 
 
+class RequirementDraftItem(DraftItem):
+    requirement_ids: list[str] = Field(
+        min_length=1,
+        max_length=20,
+        description="Cite at least one confirmed requirement ID from the input.",
+    )
+
+
+class ExampleDraftItem(DraftItem):
+    evidence: list[Citation] = Field(
+        min_length=1,
+        max_length=5,
+        description="Cite an allowed profile item and an exact quote from its text.",
+    )
+
+
 class Preparation(Strict):
-    review_topics: list[DraftItem] = Field(max_length=20)
-    technical_topics: list[DraftItem] = Field(max_length=20)
-    practice_questions: list[DraftItem] = Field(max_length=20)
+    review_topics: list[RequirementDraftItem] = Field(max_length=20)
+    technical_topics: list[RequirementDraftItem] = Field(max_length=20)
+    practice_questions: list[RequirementDraftItem] = Field(max_length=20)
     company_questions: list[DraftItem] = Field(max_length=20)
-    examples: list[DraftItem] = Field(max_length=20)
-    profile_gaps: list[DraftItem] = Field(max_length=20)
+    examples: list[ExampleDraftItem] = Field(max_length=20)
+    profile_gaps: list[RequirementDraftItem] = Field(max_length=20)
     plan: list[DraftItem] = Field(max_length=20)
 
 
