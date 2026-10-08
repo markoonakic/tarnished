@@ -17,6 +17,7 @@ export default function AnalyticsAiInsights({
   useEffect(() => {
     let active = true;
     setError(false);
+    setData(null);
     void apiV030
       .breakdowns({ period: period as AnalyticsQuery['period'], as_of: asOf })
       .then((value) => {

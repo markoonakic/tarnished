@@ -118,7 +118,15 @@ export default function ExtractionReview({
           ? { ...choice, company_id: companyId || undefined }
           : choice
       );
-      controller.setAnalysis(await analysesApi.review(analysis, payload));
+      const revision = current.evidence_revision ?? current.revision;
+      controller.setAnalysis(
+        await analysesApi.review(
+          typeof revision === 'number'
+            ? { ...analysis, target_revision: revision }
+            : analysis,
+          payload
+        )
+      );
       setChoices({});
       onUpdated?.();
     } catch {

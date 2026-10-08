@@ -156,7 +156,11 @@ async def inputs(db, row):
         ),
     }
     if row.kind == "EXTRACTION":
-        return {"posting": record.source_text or ""}, {}
+        return {"posting": record.source_text or ""}, {
+            "source": record.revision
+            if isinstance(record, JobLead)
+            else record.source_revision
+        }
     profile = await db.scalar(
         select(UserProfile)
         .where(UserProfile.user_id == row.user_id)
@@ -432,6 +436,8 @@ async def review(db, row, request):
             if company is None:
                 raise HTTPException(404, "Company not found")
             record.company_id, record.company = company.id, company.name
+            if company.name != str(value):
+                entry["decision"] = "edited"
             entry["value"], entry["company_id"] = company.name, company.id
         elif field in REQUIREMENTS:
             requirement = {
@@ -442,6 +448,8 @@ async def review(db, row, request):
                 "source": "posting",
                 "source_hash": fingerprint(row.source_text),
                 "start": row.source_text.index(proposal["quote"]),
+                "end": row.source_text.index(proposal["quote"])
+                + len(proposal["quote"]),
                 "analysis_id": row.id,
                 "authorship": "user" if choice.decision == "edited" else "posting",
                 "review_state": choice.decision,

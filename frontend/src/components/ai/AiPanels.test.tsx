@@ -260,6 +260,39 @@ it('selects preparation suggestions and appends only selected IDs', async () => 
   );
   expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 });
+it('persists Discard without changing interview preparation', async () => {
+  const draft: Analysis = {
+    ...base,
+    kind: 'PREPARATION',
+    draft: {
+      plan: [
+        {
+          id: 'p',
+          text: 'Practice SQL',
+          requirement_ids: ['r1'],
+          evidence: [],
+        },
+      ],
+    },
+  };
+  latest(draft);
+  vi.mocked(analysesApi.discard).mockResolvedValue({
+    ...draft,
+    review_state: 'discarded',
+  });
+  render(
+    <MemoryRouter>
+      <PreparationDraft applicationId="app" roundId="round" revision={3} />
+    </MemoryRouter>
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Discard' }));
+  await waitFor(() => expect(analysesApi.discard).toHaveBeenCalledWith(draft));
+  expect(analysesApi.apply).not.toHaveBeenCalled();
+  await waitFor(() =>
+    expect(screen.queryByText('Draft — not saved')).not.toBeInTheDocument()
+  );
+});
+
 it('shows five insight rows, coverage denominators, and expands all', async () => {
   vi.mocked(apiV030.breakdowns).mockResolvedValue({
     first_response: { mean_days: null, n: 0, unknown_count: 0 },

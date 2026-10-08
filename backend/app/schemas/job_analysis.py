@@ -3,7 +3,15 @@
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictInt,
+    StrictStr,
+    field_validator,
+    model_validator,
+)
 
 Kind = Literal["EXTRACTION", "PROFILE_MATCH", "PREPARATION"]
 FieldName = Literal[
@@ -62,6 +70,13 @@ REQUIREMENTS = (
 class Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    @field_validator("*")
+    @classmethod
+    def meaningful_text(cls, value):
+        if isinstance(value, str) and (not value.strip() or "\x00" in value):
+            raise ValueError("Text must be non-empty and cannot contain NUL")
+        return value
+
 
 class Proposal(Strict):
     id: str = Field(min_length=1, max_length=80)
@@ -71,10 +86,6 @@ class Proposal(Strict):
 
     @model_validator(mode="after")
     def value_type(self):
-        if "\x00" in str(self.value) or "\x00" in self.quote:
-            raise ValueError("NUL characters are not supported")
-        if not self.quote.strip():
-            raise ValueError("A non-empty source quote is required")
         if self.field in ("salary_min", "salary_max"):
             if (
                 isinstance(self.value, bool)
