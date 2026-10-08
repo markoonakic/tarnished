@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.2] - 2026-10-09
+
+### Fixed
+
+- Interview preparation schemas now require confirmed requirement references for
+  review topics, technical topics, practice questions and profile gaps, and profile
+  evidence for personal examples. Prompts use these same constraints, so missing
+  citations are not presented as valid output. Source checks stay strict.
+
 ## [0.3.1] - 2026-10-08
 
 ### Fixed
