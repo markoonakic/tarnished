@@ -199,7 +199,9 @@ it('keeps edited drafts after conflict, supports reject and undo', async () => {
   render(
     <ExtractionReview target={{ lead_id: 'lead' }} source="Python required" />
   );
-  fireEvent.click(await screen.findByRole('button', { name: 'Edit Python' }));
+  const edit = await screen.findByRole('button', { name: 'Edit Python' });
+  await waitFor(() => expect(edit).toBeEnabled());
+  fireEvent.click(edit);
   fireEvent.change(
     screen.getByRole('textbox', { name: 'Edit proposed value' }),
     { target: { value: 'Python services' } }
@@ -222,7 +224,9 @@ it('requires an explicit company picker selection before Accept all can save', a
     },
   });
   render(<ExtractionReview target={{ lead_id: 'lead' }} source="North" />);
-  fireEvent.click(await screen.findByRole('button', { name: 'Accept all' }));
+  const accept = await screen.findByRole('button', { name: 'Accept all' });
+  await waitFor(() => expect(accept).toBeEnabled());
+  fireEvent.click(accept);
   expect(screen.getByRole('button', { name: 'Save reviewed' })).toBeDisabled();
   expect(screen.getByText('Choose or create a company')).toBeInTheDocument();
 });
@@ -299,7 +303,9 @@ it('selects preparation suggestions and appends only selected IDs', async () => 
       <PreparationDraft applicationId="app" roundId="round" revision={3} />
     </MemoryRouter>
   );
-  fireEvent.click(await screen.findByRole('checkbox'));
+  const checkbox = await screen.findByRole('checkbox');
+  await waitFor(() => expect(checkbox).toBeEnabled());
+  fireEvent.click(checkbox);
   expect(screen.getByText('suggestion', { exact: false })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Save selected (1)' }));
   await waitFor(() =>
@@ -332,7 +338,9 @@ it('persists Discard without changing interview preparation', async () => {
       <PreparationDraft applicationId="app" roundId="round" revision={3} />
     </MemoryRouter>
   );
-  fireEvent.click(await screen.findByRole('button', { name: 'Discard' }));
+  const discard = await screen.findByRole('button', { name: 'Discard' });
+  await waitFor(() => expect(discard).toBeEnabled());
+  fireEvent.click(discard);
   await waitFor(() => expect(analysesApi.discard).toHaveBeenCalledWith(draft));
   expect(analysesApi.apply).not.toHaveBeenCalled();
   await waitFor(() =>
