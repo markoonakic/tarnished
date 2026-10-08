@@ -26,6 +26,14 @@ export function useJobAnalysis(
   const [error, setError] = useState(false);
   const attempt = useRef<{ analysis: Analysis; intent: string } | null>(null);
   const { lead_id, application_id, round_id } = target;
+  const scope = `${kind}:${lead_id ?? ''}:${application_id ?? ''}:${round_id ?? ''}`;
+  const currentScope = useRef(scope);
+  useEffect(() => {
+    currentScope.current = scope;
+    attempt.current = null;
+    setBusy(false);
+    setData({ analysis: null, requirements: [], profile: [] });
+  }, [scope]);
   const readId = useRef(0);
   const read = useCallback(async () => {
     const id = ++readId.current;
@@ -81,20 +89,23 @@ export function useJobAnalysis(
           { lead_id, application_id, round_id },
           i18n.language === 'sr-Latn' ? 'sr-Latn' : 'en'
         );
+        if (currentScope.current !== scope) return;
         attempt.current = { analysis: created, intent: crypto.randomUUID() };
       }
       const value = await analysesApi.run(
         attempt.current.analysis,
         attempt.current.intent
       );
+      if (currentScope.current !== scope) return;
       setAnalysis(value);
       attempt.current = null;
     } catch (error) {
+      if (currentScope.current !== scope) return;
       if (isAxiosError(error) && error.response) attempt.current = null;
       await read();
-      setError(true);
+      if (currentScope.current === scope) setError(true);
     } finally {
-      setBusy(false);
+      if (currentScope.current === scope) setBusy(false);
     }
   }
   return {

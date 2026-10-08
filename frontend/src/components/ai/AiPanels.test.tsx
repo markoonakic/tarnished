@@ -112,6 +112,47 @@ it('reuses an uncertain intent only after an explicit retry', async () => {
   );
 });
 
+it('does not replay an uncertain request after navigation to another record', async () => {
+  latest(null);
+  vi.mocked(analysesApi.create).mockResolvedValue({
+    ...base,
+    state: 'pending',
+    draft: {},
+  });
+  vi.mocked(analysesApi.run).mockRejectedValue(new Error('Connection lost'));
+  const view = render(
+    <ExtractionReview
+      target={{ application_id: 'first' }}
+      source="Python required"
+    />
+  );
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Extract with AI' })
+    ).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Extract with AI' }));
+  await screen.findByRole('alert');
+  view.rerender(
+    <ExtractionReview
+      target={{ application_id: 'second' }}
+      source="SQL required"
+    />
+  );
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Extract with AI' })
+    ).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Extract with AI' }));
+  await waitFor(() => expect(analysesApi.create).toHaveBeenCalledTimes(2));
+  expect(analysesApi.create).toHaveBeenLastCalledWith(
+    'EXTRACTION',
+    { lead_id: undefined, application_id: 'second', round_id: undefined },
+    'en'
+  );
+});
+
 it('has complete natural Serbian area strings', () => {
   expect(Object.keys(en).sort()).toEqual(Object.keys(sr).sort());
   expect(sr['ai.profileMatch']).toBe('Poređenje sa profilom');
