@@ -38,6 +38,19 @@ class ReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("needs.docker.result == 'success' || needs.docker.result == 'skipped'", helm)
         self.assertIn("needs.docker-merge.result == 'success' || needs.docker.result == 'skipped'", helm)
 
+    def test_image_scan_uses_only_the_reviewed_jwt_exception(self) -> None:
+        content = WORKFLOW_PATH.read_text()
+        merge = content.split("\n  docker-merge:\n", 1)[1].split("\n  helm:\n", 1)[0]
+        self.assertIn(
+            'run: printf \'CVE-2026-85394\\n\' > "$RUNNER_TEMP/tarnished-trivy.ignore"',
+            merge,
+        )
+        self.assertIn("trivyignores: ${{ runner.temp }}/tarnished-trivy.ignore", merge)
+        self.assertIn("exit-code: '1'", merge)
+        self.assertIn("severity: CRITICAL", merge)
+        self.assertNotIn("ignore-unfixed", merge)
+        self.assertIn("CVE-2026-85394", (ROOT / ".github/workflows/ci.yml").read_text())
+
     def test_existing_tag_recovery_does_not_change_release_or_cli(self) -> None:
         content = WORKFLOW_PATH.read_text()
         self.assertIn('gh release view "$INPUT_TAG" --repo "$GITHUB_REPOSITORY"', content)
