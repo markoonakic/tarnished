@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Company } from '@/lib/apiV030';
 import { advancedFilterKeys, recordFilterKeys } from '@/lib/recordFilters';
@@ -18,11 +18,13 @@ export default function MoreFilters({
   type,
   onChange,
   statusLabels = {},
+  children,
 }: {
   params: URLSearchParams;
   type: 'lead' | 'application';
   onChange: (updates: Record<string, string | string[]>) => void;
   statusLabels?: Record<string, string>;
+  children?: ReactNode;
 }) {
   const { t } = useTranslation();
   const id = useId();
@@ -235,6 +237,11 @@ export default function MoreFilters({
             />
             {t('records.showArchived')}
           </label>
+          {children && (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              {children}
+            </div>
+          )}
           {error && (
             <p role="alert" className="text-red mt-2 text-sm">
               {error}

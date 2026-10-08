@@ -76,7 +76,11 @@ export default function Applications() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const page = parsePositivePageParam(searchParams.get('page'));
-  const [perPage, setPerPage] = useState(25);
+  const perPage = [10, 25, 50, 100].includes(
+    Number(searchParams.get('per_page'))
+  )
+    ? Number(searchParams.get('per_page'))
+    : 25;
   const statusFilter = searchParams.get('status') || '';
   const sourceFilter = searchParams.get('source') || '';
   const search = searchParams.get('search') || '';
@@ -221,7 +225,31 @@ export default function Applications() {
               statusLabels={Object.fromEntries(
                 statuses.map((status) => [status.id, statusLabel(status)])
               )}
-            />
+            >
+              <Dropdown
+                options={sortOptions}
+                value={sort}
+                onChange={(value) => updateParams({ sort: value })}
+                placeholder={t('Sort applications')}
+                size="xs"
+                containerBackground="bg1"
+              />
+              <Dropdown
+                options={[
+                  { value: '10', label: t('10 / page') },
+                  { value: '25', label: t('25 / page') },
+                  { value: '50', label: t('50 / page') },
+                  { value: '100', label: t('100 / page') },
+                ]}
+                value={String(perPage)}
+                onChange={(value) => {
+                  updateParams({ per_page: value });
+                }}
+                placeholder={t('25 / page')}
+                size="xs"
+                containerBackground="bg1"
+              />
+            </MoreFilters>
             {/* Filters */}
             <div className="order-1 flex flex-wrap items-center gap-3">
               <Dropdown
@@ -252,30 +280,6 @@ export default function Applications() {
                 size="xs"
                 containerBackground="bg1"
                 disabled={sources.length === 0}
-              />
-              <Dropdown
-                options={sortOptions}
-                value={sort}
-                onChange={(value) => updateParams({ sort: value })}
-                placeholder={t('Sort applications')}
-                size="xs"
-                containerBackground="bg1"
-              />
-              <Dropdown
-                options={[
-                  { value: '10', label: t('10 / page') },
-                  { value: '25', label: t('25 / page') },
-                  { value: '50', label: t('50 / page') },
-                  { value: '100', label: t('100 / page') },
-                ]}
-                value={String(perPage)}
-                onChange={(value) => {
-                  setPerPage(Number(value));
-                  updateParams({ page: '1' });
-                }}
-                placeholder={t('25 / page')}
-                size="xs"
-                containerBackground="bg1"
               />
             </div>
           </div>

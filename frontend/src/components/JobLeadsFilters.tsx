@@ -14,6 +14,7 @@ interface JobLeadsFiltersProps {
   value: JobLeadsFiltersValue;
   onChange: (value: JobLeadsFiltersValue) => void;
   sources: string[];
+  advanced?: boolean;
 }
 
 const sortOptions: DropdownOption[] = [
@@ -62,6 +63,7 @@ export default function JobLeadsFilters({
   value,
   onChange,
   sources,
+  advanced = false,
 }: JobLeadsFiltersProps) {
   useTranslation();
   const sourceOptions: DropdownOption[] = [
@@ -83,46 +85,54 @@ export default function JobLeadsFilters({
 
   return (
     <div className="order-1 flex flex-wrap items-center gap-3">
-      <Dropdown
-        options={[
-          { value: '', label: t('records.allDecisions') },
-          { value: 'undecided', label: t('records.undecided') },
-          ...['interesting', 'rejected', 'archived'].map((value) => ({
-            value,
-            label: t('records.decision.' + value),
-          })),
-        ]}
-        value={value.decision || ''}
-        onChange={(decision) => onChange({ ...value, decision })}
-        placeholder={t('records.allDecisions')}
-        size="xs"
-        containerBackground="bg1"
-      />
-      <Dropdown
-        options={sourceOptions}
-        value={value.source}
-        onChange={handleSourceChange}
-        placeholder={t('All Sources')}
-        size="xs"
-        containerBackground="bg1"
-        disabled={sources.length === 0}
-      />
-      <Dropdown
-        options={sortOptions}
-        value={value.sort}
-        onChange={handleSortChange}
-        placeholder={t('Newest First')}
-        size="xs"
-        containerBackground="bg1"
-      />
-      <Dropdown
-        options={perPageOptions}
-        value={String(value.perPage)}
-        onChange={handlePerPageChange}
-        placeholder={t('25 / page')}
-        size="xs"
-        containerBackground="bg1"
-      />
+      {!advanced && (
+        <>
+          <Dropdown
+            options={[
+              { value: '', label: t('records.allDecisions') },
+              { value: 'undecided', label: t('records.undecided') },
+              ...['interesting', 'rejected', 'archived'].map((value) => ({
+                value,
+                label: t('records.decision.' + value),
+              })),
+            ]}
+            value={value.decision || ''}
+            onChange={(decision) => onChange({ ...value, decision })}
+            placeholder={t('records.allDecisions')}
+            size="xs"
+            containerBackground="bg1"
+          />
+          <Dropdown
+            options={sourceOptions}
+            value={value.source}
+            onChange={handleSourceChange}
+            placeholder={t('All Sources')}
+            size="xs"
+            containerBackground="bg1"
+            disabled={sources.length === 0}
+          />
+        </>
+      )}
+      {advanced && (
+        <>
+          <Dropdown
+            options={sortOptions}
+            value={value.sort}
+            onChange={handleSortChange}
+            placeholder={t('Newest First')}
+            size="xs"
+            containerBackground="bg1"
+          />
+          <Dropdown
+            options={perPageOptions}
+            value={String(value.perPage)}
+            onChange={handlePerPageChange}
+            placeholder={t('25 / page')}
+            size="xs"
+            containerBackground="bg1"
+          />
+        </>
+      )}
     </div>
   );
 }

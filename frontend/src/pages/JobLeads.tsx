@@ -53,7 +53,11 @@ export default function JobLeads() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState(false);
-  const [perPage, setPerPage] = useState(25);
+  const perPage = [10, 25, 50, 100].includes(
+    Number(searchParams.get('per_page'))
+  )
+    ? Number(searchParams.get('per_page'))
+    : 25;
 
   const page = parsePositivePageParam(searchParams.get('page'));
   const search = searchParams.get('search') || '';
@@ -151,8 +155,8 @@ export default function JobLeads() {
         decision: filters.decision || '',
         source: filters.source,
         sort: filters.sort,
+        per_page: String(filters.perPage),
       });
-      setPerPage(filters.perPage);
     },
     [updateParams]
   );
@@ -220,7 +224,20 @@ export default function JobLeads() {
               params={searchParams}
               type="lead"
               onChange={updateParams}
-            />
+            >
+              <JobLeadsFilters
+                advanced
+                value={{
+                  status: statusFilter,
+                  decision: decisionFilter,
+                  source: sourceFilter,
+                  sort: sortFilter,
+                  perPage,
+                }}
+                onChange={handleFiltersChange}
+                sources={sources}
+              />
+            </MoreFilters>
           </div>
         </div>
 
