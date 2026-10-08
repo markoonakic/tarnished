@@ -139,6 +139,39 @@ it('edits an entry in a modal without resetting its excluded permission', async 
   expect(profile.projects[0].id).toBe('excluded');
   expect(profile.ai_permissions.excluded).toBe(false);
 });
+it('edits an entry section in place and retains stable IDs and permissions', async () => {
+  await open();
+  fireEvent.click(
+    within(card('Projects')).getAllByRole('button', { name: 'Edit' })[0]
+  );
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Name'), {
+    target: { value: 'Inline project' },
+  });
+  fireEvent.click(
+    within(card('Projects')).getByRole('button', { name: 'Save' })
+  );
+  await screen.findByText(/Inline project/);
+  expect(profile.projects[0].id).toBe('excluded');
+  expect(profile.ai_permissions.excluded).toBe(false);
+  expect(apiV030.updateProfile).toHaveBeenCalledWith(
+    expect.objectContaining({
+      expected_revision: 7,
+      projects: [
+        expect.objectContaining({ id: 'excluded', name: 'Inline project' }),
+      ],
+    })
+  );
+});
+it('reviews the first excluded entry', async () => {
+  await open();
+  const scroll = vi.fn();
+  document.getElementById('excluded')!.scrollIntoView = scroll;
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Review excluded items' })
+  );
+  expect(scroll).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+});
 it('adds a stable-ID entry allowed by default and does not run AI', async () => {
   await open();
   fireEvent.click(screen.getByRole('button', { name: /Add language/ }));

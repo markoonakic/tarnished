@@ -83,7 +83,7 @@ export default function DeleteAccountCard() {
           }}
         >
           <form
-            className="bg-secondary mx-4 w-full max-w-xl space-y-4 rounded-lg p-6"
+            className="bg-secondary mx-4 w-full max-w-lg space-y-4 rounded-lg p-6"
             onSubmit={(event) => {
               event.preventDefault();
               void remove();

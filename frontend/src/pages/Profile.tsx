@@ -277,17 +277,19 @@ function Fields({
   value,
   onChange,
   entry = false,
+  prefix = '',
 }: {
   fields: Field[];
   value: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
   entry?: boolean;
+  prefix?: string;
 }) {
   return (
     <div className={`grid gap-4 ${entry ? '' : 'sm:grid-cols-2'}`}>
       {fields.map((field) => {
         const current = value[field.key];
-        const id = `profile-${entry ? 'entry-' : ''}${field.key}`;
+        const id = `profile-${entry ? 'entry-' : ''}${prefix}${field.key}`;
         if (field.type === 'current')
           return (
             <label
@@ -491,7 +493,21 @@ export default function Profile() {
   }
   function edit(section: Section) {
     if (!profile) return;
-    setDraft({ ...profile });
+    const items = ['work_history', 'education'].includes(section)
+      ? (profile[section as EntrySection] ?? []).map((item) => ({
+          ...item,
+          start_date: item.start_date
+            ? String(item.start_date).slice(0, 7)
+            : '',
+          end_date: item.end_date ? String(item.end_date).slice(0, 7) : '',
+        }))
+      : profile[section as EntrySection];
+    setDraft({
+      ...profile,
+      ...(sections.find((item) => item.key === section)?.entry
+        ? { [section]: items }
+        : {}),
+    });
     setEditing(section);
     setError('');
   }
@@ -550,21 +566,36 @@ export default function Profile() {
   async function saveSection(section: (typeof sections)[number]) {
     if (!profile) return;
     const data: Record<string, unknown> = {};
-    for (const field of section.fields) {
-      const value = draft[field.key];
-      if (section.key === 'skills') {
-        const previous = profile[field.key as 'skill_items' | 'technologies'];
-        data[field.key] = tags(value).map(
-          (name) =>
-            previous.find((item) => item.name === name) ?? {
-              id: crypto.randomUUID(),
-              name,
-            }
-        );
-      } else
-        data[field.key] =
-          typeof value === 'string' && !value.trim() ? null : value;
-    }
+    if (section.entry) {
+      data[section.key] = ((draft[section.key] as ProfileItem[]) ?? []).map(
+        (item) => {
+          const value = { ...item };
+          if (section.key === 'work_history' || section.key === 'education')
+            for (const key of ['start_date', 'end_date'])
+              value[key] = value[key]
+                ? `${String(value[key]).slice(0, 7)}-01`
+                : null;
+          if (section.key === 'work_history' && value.current)
+            value.end_date = null;
+          return value;
+        }
+      );
+    } else
+      for (const field of section.fields) {
+        const value = draft[field.key];
+        if (section.key === 'skills') {
+          const previous = profile[field.key as 'skill_items' | 'technologies'];
+          data[field.key] = tags(value).map(
+            (name) =>
+              previous.find((item) => item.name === name) ?? {
+                id: crypto.randomUUID(),
+                name,
+              }
+          );
+        } else
+          data[field.key] =
+            typeof value === 'string' && !value.trim() ? null : value;
+      }
     if (await save(data as ProfileUpdate)) setEditing(null);
   }
   function review() {
@@ -777,14 +808,7 @@ export default function Profile() {
                           <button
                             className={ghostClass}
                             disabled={busy}
-                            onClick={() =>
-                              section.entry
-                                ? newEntry(
-                                    section.key as EntrySection,
-                                    items[0]
-                                  )
-                                : edit(section.key)
-                            }
+                            onClick={() => edit(section.key)}
                           >
                             <i className="bi-pencil mr-1" aria-hidden="true" />
                             {label('edit')}
@@ -793,7 +817,78 @@ export default function Profile() {
                       </>
                     }
                   >
-                    {section.entry ? (
+                    {section.entry && isEditing ? (
+                      <form
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void saveSection(section);
+                        }}
+                      >
+                        <fieldset disabled={busy} className="space-y-6">
+                          {((draft[section.key] as ProfileItem[]) ?? []).map(
+                            (item) => (
+                              <div
+                                key={item.id}
+                                className="bg-bg2 space-y-4 rounded-lg p-4"
+                              >
+                                <Fields
+                                  fields={section.fields}
+                                  value={item}
+                                  entry
+                                  prefix={item.id + '-'}
+                                  onChange={(key, value) =>
+                                    setDraft((previous) => ({
+                                      ...previous,
+                                      [section.key]: (
+                                        previous[section.key] as ProfileItem[]
+                                      ).map((row) =>
+                                        row.id === item.id
+                                          ? { ...row, [key]: value }
+                                          : row
+                                      ),
+                                    }))
+                                  }
+                                />
+                                <AiCheckbox
+                                  checked={
+                                    profile.ai_permissions[item.id] !== false
+                                  }
+                                  disabled={
+                                    !enabled || Boolean(item.needs_repair)
+                                  }
+                                  label={label('aiMayUseEntry')}
+                                  onChange={(checked) =>
+                                    void save({
+                                      ai_permissions: {
+                                        ...profile.ai_permissions,
+                                        [item.id]: checked,
+                                      },
+                                    })
+                                  }
+                                />
+                              </div>
+                            )
+                          )}
+                          {!items.length && (
+                            <p className="text-muted text-sm">
+                              {label('noEntries')}
+                            </p>
+                          )}
+                          <div className="flex justify-end gap-3">
+                            <button
+                              type="button"
+                              className={ghostClass}
+                              onClick={() => setEditing(null)}
+                            >
+                              {label('cancel')}
+                            </button>
+                            <button className={saveClass}>
+                              {label('save')}
+                            </button>
+                          </div>
+                        </fieldset>
+                      </form>
+                    ) : section.entry ? (
                       <div className="space-y-2">
                         {items.map((item) => (
                           <div
@@ -952,7 +1047,7 @@ export default function Profile() {
                 e.preventDefault();
                 void saveEntry();
               }}
-              className="bg-secondary mx-4 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg p-6"
+              className="bg-secondary mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg p-6"
             >
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-fg1 text-xl font-bold">

@@ -12,7 +12,10 @@ import api from '../../lib/api';
 
 const signOut = vi.fn();
 vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => ({ signOut }) }));
-vi.mock('../../lib/api', () => ({ default: { post: vi.fn(), get: vi.fn() } }));
+vi.mock('../../lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/api')>()),
+  default: { post: vi.fn(), get: vi.fn() },
+}));
 
 function form(password = 'synthetic new password') {
   render(
