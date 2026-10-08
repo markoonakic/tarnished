@@ -188,7 +188,7 @@ export default function JobLeads() {
 
         <div className="bg-bg1 mb-6 rounded-lg p-4">
           <div className="flex flex-wrap items-center gap-4">
-            <div className="relative min-w-0 flex-1">
+            <div className="relative w-full sm:min-w-0 sm:flex-1">
               <i className="bi-search icon-sm text-muted absolute top-1/2 left-3 -translate-y-1/2" />
               <input
                 type="text"
