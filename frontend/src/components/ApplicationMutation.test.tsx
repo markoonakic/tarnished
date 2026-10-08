@@ -213,6 +213,57 @@ it('keeps the draft revision when newer application props arrive', async () => {
   });
 });
 
+it('saves preparation without an applied date and retains all record metadata', async () => {
+  application = {
+    ...application,
+    applied_at: null,
+    status: {
+      id: 'preparing',
+      name: 'Preparing',
+      builtin_key: 'preparing',
+      meaning: 'preparing',
+      color: 'blue',
+    },
+    work_mode: 'remote',
+    employment_type: 'contract',
+    seniority: 'Junior',
+    deadline: '2026-10-20',
+    pay_period: 'month',
+    priority: 'high',
+    tags: ['python'],
+  };
+  const onSuccess = vi.fn();
+  render(
+    <ApplicationModal
+      isOpen
+      application={application}
+      onClose={vi.fn()}
+      onSuccess={onSuccess}
+    />
+  );
+  await waitFor(() =>
+    expect(screen.getByRole('combobox', { name: /Status/ })).toHaveTextContent(
+      'Preparing'
+    )
+  );
+  expect(screen.getByLabelText('Applied Date')).toHaveValue('');
+  expect(screen.getByLabelText('Applied Date')).not.toBeRequired();
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+  expect(patches[0]).toMatchObject({
+    applied_at: null,
+    status_id: 'preparing',
+    expected_revision: 0,
+    work_mode: 'remote',
+    employment_type: 'contract',
+    seniority: 'Junior',
+    deadline: '2026-10-20',
+    pay_period: 'month',
+    priority: 'high',
+    tags: ['python'],
+  });
+});
+
 it('prevents editing or closing the modal during a save', async () => {
   const adapter = api.defaults.adapter as import('axios').AxiosAdapter;
   let release!: () => void;

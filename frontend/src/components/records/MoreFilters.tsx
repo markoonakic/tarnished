@@ -31,8 +31,9 @@ export default function MoreFilters({
   const [open, setOpen] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [error, setError] = useState('');
+  const selectedCompany = params.get('company_id');
   useEffect(() => {
-    if (!open) return;
+    if (!open && !selectedCompany) return;
     let current = true;
     recordCompanies()
       .then((data) => {
@@ -47,7 +48,7 @@ export default function MoreFilters({
     return () => {
       current = false;
     };
-  }, [open, t]);
+  }, [open, selectedCompany, t]);
   const count = advancedFilterKeys.filter(
     (key) => key !== 'date_field' && params.has(key)
   ).length;
