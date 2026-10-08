@@ -68,18 +68,34 @@ it('shows the first admin form only when setup is needed', async () => {
   expect(screen.queryByText(/Use at (least|most)/)).not.toBeInTheDocument();
 });
 
-it('shows the managed accounts message without a form or command after setup', async () => {
+it('requests an account after setup without signing in', async () => {
   vi.mocked(api.get).mockResolvedValue({ data: { needs_setup: false } });
+  vi.mocked(api.post).mockResolvedValue({ data: { message: 'Request sent' } });
   renderSetup();
+  fireEvent.change(await screen.findByLabelText('Email'), {
+    target: { value: 'new@example.com' },
+  });
+  fireEvent.change(screen.getByLabelText('Password'), {
+    target: { value: 'password' },
+  });
+  fireEvent.change(screen.getByLabelText('Confirm password'), {
+    target: { value: 'password' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Request account' }));
   expect(
-    await screen.findByText(/Accounts are managed by your administrator/)
+    await screen.findByRole('heading', { name: 'Request sent' })
   ).toBeInTheDocument();
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-  expect(screen.queryByText(/bootstrap-owner/)).not.toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute(
+  expect(screen.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute(
     'href',
     '/login'
   );
+  expect(api.post).toHaveBeenCalledWith(
+    '/api/auth/register',
+    { email: 'new@example.com', password: 'password' },
+    expect.any(Object)
+  );
+  expect(login).not.toHaveBeenCalled();
 });
 
 it.each(['x'.repeat(65), '😀'.repeat(65)])(
@@ -145,9 +161,7 @@ it('handles a concurrent setup winner without offering another account', async (
   });
   renderSetup();
   await fill();
-  expect(
-    await screen.findByText(/Accounts are managed by your administrator/)
-  ).toBeInTheDocument();
+  expect(await screen.findByRole('alert')).toBeInTheDocument();
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   expect(login).not.toHaveBeenCalled();
 });

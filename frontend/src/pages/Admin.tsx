@@ -32,6 +32,8 @@ import Loading from '../components/Loading';
 import CreateUserModal from '../components/CreateUserModal';
 import EditUserModal from '../components/EditUserModal';
 import Pagination from '../components/Pagination';
+import SegmentedControl from '../components/SegmentedControl';
+import { apiV030 } from '@/lib/apiV030';
 
 const configurationLabels = {
   get configured() {
@@ -54,11 +56,16 @@ export default function Admin() {
   const toast = useToast();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [now, setNow] = useState(Date.now);
   const [aiSettings, setAiSettings] = useState<AISettingsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [usersLoading, setUsersLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [state, setState] = useState<'all' | 'pending' | 'active' | 'inactive'>(
+    'all'
+  );
+  const [accountBusy, setAccountBusy] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAISettings, setShowAISettings] = useState(false);
   const [aiNotice, setAiNotice] = useState<{
@@ -130,6 +137,7 @@ export default function Admin() {
           page,
           per_page: perPage,
           query: normalizedSearchQuery,
+          ...(state !== 'all' ? { state } : {}),
         }),
         getAdminStats(),
         getAISettings(),
@@ -139,6 +147,7 @@ export default function Admin() {
       setTotalUsers(usersData.total);
       setTotalPages(usersData.total_pages);
       setStats(statsData);
+      setNow(Date.now());
 
       setAiSettings(aiSettingsData);
 
@@ -177,7 +186,7 @@ export default function Admin() {
         hasLoadedData.current = true;
       }
     }
-  }, [deferredSearchQuery, page, perPage]);
+  }, [deferredSearchQuery, page, perPage, state]);
 
   useEffect(() => {
     const stop = observeRead(loadData);
@@ -202,22 +211,58 @@ export default function Admin() {
     return new Date(dateStr).toLocaleDateString(locale());
   }
 
+  function lastLogin(value?: string | null) {
+    if (!value) return t('accounts.never');
+    const seconds = Math.round((new Date(value).getTime() - now) / 1000);
+    const format = new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' });
+    if (Math.abs(seconds) < 60) return t('accounts.justNow');
+    if (Math.abs(seconds) < 3600)
+      return format.format(Math.round(seconds / 60), 'minute');
+    if (Math.abs(seconds) < 86400)
+      return format.format(Math.round(seconds / 3600), 'hour');
+    return format.format(Math.round(seconds / 86400), 'day');
+  }
+
+  async function handleApprove(id: string) {
+    if (accountBusy) return;
+    setAccountBusy(id);
+    try {
+      await apiV030.approveUser(id);
+      window.dispatchEvent(new Event('accounts-updated'));
+      await loadData();
+    } catch {
+      setError(t('accounts.approveError'));
+    } finally {
+      setAccountBusy(null);
+    }
+  }
+
   async function handleDeleteUser(user: AdminUser) {
+    if (accountBusy) return;
     if (
       !confirm(
-        t('Delete user "{{email}}"? This action cannot be undone.', {
-          email: user.email,
-        })
+        t(
+          user.approval_pending
+            ? 'accounts.rejectConfirmation'
+            : 'Delete user "{{email}}"? This action cannot be undone.',
+          {
+            email: user.email,
+          }
+        )
       )
     ) {
       return;
     }
 
+    setAccountBusy(user.id);
     try {
       await deleteUser(user.id);
+      window.dispatchEvent(new Event('accounts-updated'));
       await loadData();
     } catch {
       setError(t('Failed to delete user'));
+    } finally {
+      setAccountBusy(null);
     }
   }
 
@@ -302,7 +347,9 @@ export default function Admin() {
               <h2 className="text-primary mb-6 text-xl font-bold">
                 {t('Statistics')}
               </h2>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div
+                className={`grid grid-cols-1 gap-6 ${(stats?.pending_users ?? 0) > 0 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}
+              >
                 <div className="bg-secondary rounded-lg p-6">
                   <h3 className="text-muted mb-1 text-sm">
                     {t('Total Users')}
@@ -319,9 +366,293 @@ export default function Admin() {
                     {stats?.total_applications || 0}
                   </p>
                 </div>
+                {(stats?.pending_users ?? 0) > 0 && (
+                  <div className="bg-secondary border-yellow rounded-lg border p-6">
+                    <h3 className="text-muted mb-1 text-sm">
+                      {t('accounts.signupRequests')}
+                    </h3>
+                    <p className="text-yellow text-3xl font-bold">
+                      {stats?.pending_users}
+                    </p>
+                  </div>
+                )}
               </div>
             </section>
 
+            <section>
+              <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-primary text-xl font-bold">
+                    {t('Users')}
+                  </h2>
+                  {usersLoading && (
+                    <span className="text-muted text-xs">
+                      {t('Updating...')}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
+                >
+                  {t('Create User')}
+                </button>
+              </div>
+
+              <div className="bg-bg1 mb-6 rounded-lg p-4">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+                  <div className="relative min-w-0 flex-1">
+                    <i className="bi-search icon-sm text-muted absolute top-1/2 left-3 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder={t('Search by email...')}
+                      aria-label={t('Search users')}
+                      value={searchQuery}
+                      onChange={(e) => handleSearchQueryChange(e.target.value)}
+                      className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => handleSearchQueryChange('')}
+                        className="text-muted hover:text-fg1 absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
+                        aria-label={t('Clear search')}
+                      >
+                        <i className="bi-x icon-sm" />
+                      </button>
+                    )}
+                  </div>
+
+                  <Dropdown
+                    options={[
+                      { value: '10', label: t('10 / page') },
+                      { value: '25', label: t('25 / page') },
+                      { value: '50', label: t('50 / page') },
+                      { value: '100', label: t('100 / page') },
+                    ]}
+                    value={String(perPage)}
+                    onChange={(value) => handlePerPageChange(Number(value))}
+                    placeholder={t('25 / page')}
+                    size="xs"
+                    containerBackground="bg1"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-secondary mt-4 flex flex-wrap gap-3 rounded-lg p-4">
+                <SegmentedControl
+                  label={t('accounts.userState')}
+                  value={state}
+                  options={(
+                    ['all', 'pending', 'active', 'inactive'] as const
+                  ).map((value) => ({
+                    value,
+                    label:
+                      value === 'pending'
+                        ? `${t('accounts.pending')} (${stats?.pending_users ?? 0})`
+                        : t(`accounts.${value}`),
+                  }))}
+                  onChange={(value) => {
+                    setState(value);
+                    setPage(1);
+                  }}
+                />
+              </div>
+              <div className="bg-secondary mt-4 hidden overflow-hidden rounded-lg md:block">
+                <table className="w-full table-fixed border-collapse">
+                  <thead>
+                    <tr className="border-tertiary border-b">
+                      {[
+                        'Email',
+                        'accounts.role',
+                        'accounts.userState',
+                        'Joined',
+                        'accounts.lastLogin',
+                        'Actions',
+                      ].map((key) => (
+                        <th
+                          key={key}
+                          className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase"
+                        >
+                          {t(key)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="text-muted px-4 py-8 text-center text-sm"
+                        >
+                          {searchQuery.trim()
+                            ? t('No users match this search.')
+                            : t('No users found.')}
+                        </td>
+                      </tr>
+                    ) : (
+                      users.map((u) => (
+                        <tr
+                          key={u.id}
+                          className="border-tertiary hover:bg-bg2 border-b"
+                        >
+                          <td className="text-fg1 px-4 py-3 text-sm break-words">
+                            {u.email}
+                          </td>
+                          <td className="text-muted px-4 py-3 text-sm">
+                            {u.is_admin ? t('Admin') : t('accounts.user')}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${u.approval_pending ? 'bg-yellow/20 text-yellow' : u.is_active ? 'bg-green-bright/20 text-green-bright' : 'bg-red-bright/20 text-red-bright'}`}
+                            >
+                              <span
+                                className="h-1.5 w-1.5 rounded-full bg-current"
+                                aria-hidden="true"
+                              />
+                              {u.approval_pending
+                                ? t('accounts.pending')
+                                : u.is_active
+                                  ? t('Active')
+                                  : t('Inactive')}
+                            </span>
+                          </td>
+                          <td className="text-muted px-4 py-3 text-sm">
+                            {formatDate(u.created_at)}
+                          </td>
+                          <td
+                            className="text-muted px-4 py-3 text-sm"
+                            title={
+                              u.last_login_at
+                                ? new Date(u.last_login_at).toLocaleString(
+                                    locale()
+                                  )
+                                : undefined
+                            }
+                          >
+                            {lastLogin(u.last_login_at)}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              {u.approval_pending ? (
+                                <button
+                                  disabled={Boolean(accountBusy)}
+                                  onClick={() => void handleApprove(u.id)}
+                                  className="bg-accent text-bg0 cursor-pointer rounded px-3 py-1.5 text-xs disabled:opacity-50"
+                                >
+                                  {t('accounts.approve')}
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => setEditingUser(u)}
+                                  className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-2 py-1.5 text-xs"
+                                >
+                                  <i
+                                    className="bi-pencil mr-1"
+                                    aria-hidden="true"
+                                  />
+                                  {t('Edit')}
+                                </button>
+                              )}
+                              <button
+                                disabled={Boolean(accountBusy)}
+                                onClick={() => void handleDeleteUser(u)}
+                                className="text-red hover:bg-bg2 cursor-pointer rounded px-2 py-1.5 text-xs disabled:opacity-50"
+                              >
+                                {u.approval_pending
+                                  ? t('accounts.reject')
+                                  : t('Delete')}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 space-y-3 md:hidden">
+                {!users.length && (
+                  <p className="bg-secondary text-muted rounded-lg p-4 text-sm">
+                    {searchQuery.trim()
+                      ? t('No users match this search.')
+                      : t('No users found.')}
+                  </p>
+                )}
+                {users.map((u) => (
+                  <div
+                    key={u.id}
+                    className="bg-secondary space-y-3 rounded-lg p-4"
+                  >
+                    <p className="text-fg1 text-sm break-words">{u.email}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-muted text-xs">
+                        {u.is_admin ? t('Admin') : t('accounts.user')}
+                      </span>
+                      <span
+                        className={`rounded px-2 py-1 text-xs ${u.approval_pending ? 'bg-yellow/20 text-yellow' : u.is_active ? 'bg-green-bright/20 text-green-bright' : 'bg-red-bright/20 text-red-bright'}`}
+                      >
+                        {u.approval_pending
+                          ? t('accounts.pending')
+                          : u.is_active
+                            ? t('Active')
+                            : t('Inactive')}
+                      </span>
+                    </div>
+                    <p className="text-muted text-xs">
+                      {t('Joined')} {formatDate(u.created_at)}
+                    </p>
+                    <p
+                      className="text-muted text-xs"
+                      title={
+                        u.last_login_at
+                          ? new Date(u.last_login_at).toLocaleString(locale())
+                          : undefined
+                      }
+                    >
+                      {t('accounts.lastLogin')}: {lastLogin(u.last_login_at)}
+                    </p>
+                    <div className="flex gap-3">
+                      {u.approval_pending ? (
+                        <button
+                          disabled={Boolean(accountBusy)}
+                          onClick={() => void handleApprove(u.id)}
+                          className="bg-accent text-bg0 cursor-pointer rounded px-3 py-2 text-xs disabled:opacity-50"
+                        >
+                          {t('accounts.approve')}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setEditingUser(u)}
+                          className="text-fg1 cursor-pointer rounded px-3 py-2 text-xs"
+                        >
+                          {t('Edit')}
+                        </button>
+                      )}
+                      <button
+                        disabled={Boolean(accountBusy)}
+                        onClick={() => void handleDeleteUser(u)}
+                        className="text-red cursor-pointer rounded px-3 py-2 text-xs disabled:opacity-50"
+                      >
+                        {u.approval_pending
+                          ? t('accounts.reject')
+                          : t('Delete')}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4">
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  perPage={perPage}
+                  totalItems={totalUsers}
+                  onPageChange={setPage}
+                />
+              </div>
+            </section>
             <section aria-labelledby="ai-summary-heading">
               <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <h2
@@ -781,232 +1112,6 @@ export default function Admin() {
                   </div>
                 </Modal>
               )}
-            </section>
-
-            <section>
-              <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-primary text-xl font-bold">
-                    {t('Users')}
-                  </h2>
-                  {usersLoading && (
-                    <span className="text-muted text-xs">
-                      {t('Updating...')}
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
-                >
-                  {t('Create User')}
-                </button>
-              </div>
-
-              <div className="bg-bg1 mb-6 rounded-lg p-4">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-                  <div className="relative min-w-0 flex-1">
-                    <i className="bi-search icon-sm text-muted absolute top-1/2 left-3 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder={t('Search by email...')}
-                      aria-label={t('Search users')}
-                      value={searchQuery}
-                      onChange={(e) => handleSearchQueryChange(e.target.value)}
-                      className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => handleSearchQueryChange('')}
-                        className="text-muted hover:text-fg1 absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
-                        aria-label={t('Clear search')}
-                      >
-                        <i className="bi-x icon-sm" />
-                      </button>
-                    )}
-                  </div>
-
-                  <Dropdown
-                    options={[
-                      { value: '10', label: t('10 / page') },
-                      { value: '25', label: t('25 / page') },
-                      { value: '50', label: t('50 / page') },
-                      { value: '100', label: t('100 / page') },
-                    ]}
-                    value={String(perPage)}
-                    onChange={(value) => handlePerPageChange(Number(value))}
-                    placeholder={t('25 / page')}
-                    size="xs"
-                    containerBackground="bg1"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-secondary mt-4 hidden overflow-hidden rounded-lg md:block">
-                <table className="w-full border-collapse">
-                  <colgroup>
-                    <col style={{ width: '40%' }} />
-                    <col style={{ width: '15%' }} />
-                    <col style={{ width: '10%' }} />
-                    <col style={{ width: '15%' }} />
-                    <col style={{ width: '20%' }} />
-                  </colgroup>
-                  <thead>
-                    <tr className="border-tertiary border-b">
-                      <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                        {t('Email')}
-                      </th>
-                      <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                        {t('Joined')}
-                      </th>
-                      <th className="text-muted px-4 py-3 text-center text-xs font-bold tracking-wide uppercase">
-                        {t('Admin')}
-                      </th>
-                      <th className="text-muted px-4 py-3 text-center text-xs font-bold tracking-wide uppercase">
-                        {t('Active')}
-                      </th>
-                      <th className="text-muted px-4 py-3 text-right text-xs font-bold tracking-wide uppercase">
-                        {t('Actions')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="text-muted px-4 py-8 text-center text-sm"
-                        >
-                          {searchQuery.trim()
-                            ? t('No users match this search.')
-                            : t('No users found.')}
-                        </td>
-                      </tr>
-                    ) : (
-                      users.map((u, index) => (
-                        <tr
-                          key={u.id}
-                          className={`transition-colors duration-200 ${index < users.length - 1 ? 'border-tertiary border-b' : ''}`}
-                        >
-                          <td className="text-primary px-4 py-3 text-sm">
-                            {u.email.slice(0, u.email.indexOf('@'))}
-                            <wbr />
-                            <span className="whitespace-nowrap">
-                              {u.email.slice(u.email.indexOf('@'))}
-                            </span>
-                          </td>
-                          <td className="text-secondary px-4 py-3 text-sm">
-                            {formatDate(u.created_at)}
-                          </td>
-                          <td className="px-4 py-3 text-center text-sm">
-                            {u.is_admin ? (
-                              <span className="bg-purple-bright/20 text-purple-bright inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold">
-                                {t('Admin')}
-                              </span>
-                            ) : (
-                              <span className="text-muted text-xs">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-center text-sm">
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${
-                                u.is_active
-                                  ? 'bg-green-bright/20 text-green-bright'
-                                  : 'bg-red-bright/20 text-red-bright'
-                              }`}
-                            >
-                              {u.is_active ? t('Active') : t('Inactive')}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right text-sm">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => setEditingUser(u)}
-                                className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
-                              >
-                                <i className="bi-pencil icon-xs"></i>
-                                {t('Edit')}
-                              </button>
-                              <button
-                                onClick={() => handleDeleteUser(u)}
-                                className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
-                              >
-                                <i className="bi-trash icon-xs"></i>
-                                {t('Delete')}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-4 space-y-3 md:hidden">
-                {users.length === 0 ? (
-                  <div className="bg-secondary text-muted rounded-lg p-4 text-sm">
-                    {searchQuery.trim()
-                      ? t('No users match this search.')
-                      : t('No users found.')}
-                  </div>
-                ) : (
-                  users.map((u) => (
-                    <div key={u.id} className="bg-secondary rounded-lg p-4">
-                      <div className="mb-2 flex items-start justify-between gap-2">
-                        <span className="text-primary truncate text-sm font-medium">
-                          {u.email}
-                        </span>
-                        <div className="flex flex-shrink-0 items-center gap-1.5">
-                          {u.is_admin && (
-                            <span className="bg-purple-bright/20 text-purple-bright inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold">
-                              {t('Admin')}
-                            </span>
-                          )}
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${
-                              u.is_active
-                                ? 'bg-green-bright/20 text-green-bright'
-                                : 'bg-red-bright/20 text-red-bright'
-                            }`}
-                          >
-                            {u.is_active ? t('Active') : t('Inactive')}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-secondary mb-3 text-xs">
-                        {t('Joined')} {formatDate(u.created_at)}
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setEditingUser(u)}
-                          className="text-fg1 hover:bg-bg2 hover:text-fg0 flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded bg-transparent px-3 py-2 text-xs transition-all duration-200 ease-in-out"
-                        >
-                          <i className="bi-pencil icon-xs"></i>
-                          {t('Edit')}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(u)}
-                          className="text-red hover:bg-bg2 hover:text-red-bright flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded bg-transparent px-3 py-2 text-xs transition-all duration-200 ease-in-out"
-                        >
-                          <i className="bi-trash icon-xs"></i>
-                          {t('Delete')}
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="mt-4">
-                <Pagination
-                  currentPage={page}
-                  totalPages={totalPages}
-                  perPage={perPage}
-                  totalItems={totalUsers}
-                  onPageChange={setPage}
-                />
-              </div>
             </section>
           </div>
         )}

@@ -10,6 +10,7 @@ import { login } from '../lib/auth';
 import { newPasswordError } from '../lib/password';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordInput from '../components/PasswordInput';
+import { apiV030 } from '@/lib/apiV030';
 
 export default function Register() {
   useTranslation();
@@ -20,6 +21,8 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [setupComplete, setSetupComplete] = useState(false);
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
 
@@ -55,6 +58,13 @@ export default function Register() {
     setLoading(true);
     let created = false;
     try {
+      if (!needsSetup) {
+        await apiV030.register(email, password);
+        setSent(true);
+        setPassword('');
+        setConfirmPassword('');
+        return;
+      }
       await api.post('/api/auth/setup', { email, password });
       created = true;
       await login({ email, password });
@@ -63,18 +73,24 @@ export default function Register() {
     } catch (err: unknown) {
       if (created) {
         setNeedsSetup(false);
+        setSetupComplete(true);
         setError(t('Your account was created. Sign in to continue.'));
       } else {
         if (axios.isAxiosError(err) && err.response?.status === 409) {
           setNeedsSetup(false);
+          setSetupComplete(true);
         }
         setError(
           axios.isAxiosError(err)
             ? safeErrorMessage(
                 err.response?.data?.detail,
-                t('Setup failed. Try again.')
+                needsSetup
+                  ? t('Setup failed. Try again.')
+                  : t('accounts.registerError')
               )
-            : t('Setup failed. Try again.')
+            : needsSetup
+              ? t('Setup failed. Try again.')
+              : t('accounts.registerError')
         );
       }
     } finally {
@@ -86,10 +102,22 @@ export default function Register() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-secondary space-y-4 rounded-lg p-8">
-          <h1 className="text-accent-bright text-2xl font-bold">
-            {needsSetup
-              ? t('Create the first admin account')
-              : t('Account setup')}
+          {sent ? (
+            <i
+              className="bi-hourglass text-yellow mx-auto block text-center text-4xl"
+              aria-hidden="true"
+            />
+          ) : (
+            !needsSetup && (
+              <div className="text-fg1 mx-auto h-12 w-12 bg-current [mask-image:url('/tree.svg')] [mask-size:contain] [mask-position:center] [mask-repeat:no-repeat]" />
+            )
+          )}
+          <h1 className="text-fg1 text-center text-2xl font-bold">
+            {sent
+              ? t('accounts.requestSent')
+              : needsSetup
+                ? t('Create the first admin account')
+                : t('accounts.createAccount')}
           </h1>
           {checking && <p role="status">{t('Checking setup status...')}</p>}
           {error && (
@@ -100,10 +128,14 @@ export default function Register() {
               {error}
             </div>
           )}
-          {!checking && needsSetup === true && (
+          {!checking && needsSetup !== null && !sent && !setupComplete && (
             <>
               <p>
-                {t('Create an administrator account to start using Tarnished.')}
+                {needsSetup
+                  ? t(
+                      'Create an administrator account to start using Tarnished.'
+                    )
+                  : t('accounts.approvalIntro')}
               </p>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -145,16 +177,16 @@ export default function Register() {
                 >
                   {loading
                     ? t('Creating account...')
-                    : t('Create admin account')}
+                    : needsSetup
+                      ? t('Create admin account')
+                      : t('accounts.requestAccount')}
                 </button>
               </form>
             </>
           )}
-          {!checking && needsSetup === false && (
-            <p>
-              {t(
-                'Accounts are managed by your administrator. There is no public registration.'
-              )}
+          {sent && (
+            <p className="text-muted text-center">
+              {t('accounts.requestSentBody')}
             </p>
           )}
           {!checking && needsSetup === null && (
@@ -165,9 +197,12 @@ export default function Register() {
               {t('Retry setup check')}
             </button>
           )}
-          <Link className="text-accent block" to="/login">
-            {t('Sign in')}
-          </Link>
+          <p className="text-muted text-center">
+            {!sent && t('accounts.alreadyHaveAccount')}{' '}
+            <Link className="text-accent" to="/login">
+              {sent ? t('accounts.backToSignIn') : t('Sign in')}
+            </Link>
+          </p>
         </div>
         <LanguageSwitch />
       </div>

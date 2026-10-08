@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { t } from '@/lib/i18n';
 import TasksBadge from './TasksBadge';
+import SignupRequestDot from './accounts/SignupRequestDot';
 
 interface Props {
   children: ReactNode;
@@ -111,6 +112,7 @@ export default function Layout({ children }: Props) {
               <span className="truncate" title={accountName}>
                 {accountName}
               </span>
+              {user?.is_admin && <SignupRequestDot />}
               <i className="bi-chevron-down icon-sm" aria-hidden="true" />
             </button>
             {accountOpen && (
@@ -127,6 +129,7 @@ export default function Layout({ children }: Props) {
                   >
                     <i className={item.icon} aria-hidden="true" />
                     {item.label}
+                    {item.path === '/admin' && <SignupRequestDot />}
                   </Link>
                 ))}
                 <hr className="border-tertiary my-2" />
@@ -185,6 +188,7 @@ export default function Layout({ children }: Props) {
                 className={`block py-3 ${linkClass(item.path)}`}
               >
                 {item.label}
+                {item.path === '/admin' && <SignupRequestDot />}
               </Link>
             ))}
             <hr className="border-tertiary my-2" />

@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import PasswordInput from '../PasswordInput';
 import { newPasswordError } from '../../lib/password';
 import { SettingsBackLink } from './SettingsLayout';
+import DeleteAccountCard from '../accounts/DeleteAccountCard';
 
 export default function SettingsSecurity() {
   useTranslation();
@@ -105,6 +106,7 @@ export default function SettingsSecurity() {
           {t('Sign out all sessions')}
         </button>
       </div>
+      <DeleteAccountCard />
     </section>
   );
 }
