@@ -38,6 +38,15 @@ vi.mock('@/hooks/useAnalyticsData', () => ({
   useWeeklyActivityData: () => ({ isLoading: true }),
   useInterviewRoundsAnalytics: () => ({ isLoading: true }),
 }));
+vi.mock('../components/slots/AnalyticsNewKpis', () => ({
+  default: () => null,
+}));
+vi.mock('../components/slots/AnalyticsBreakdowns', () => ({
+  default: () => null,
+}));
+vi.mock('../components/slots/AnalyticsActivity', () => ({
+  default: () => null,
+}));
 vi.mock('../components/ActivityHeatmap', () => ({
   default: () => <div>ActivityHeatmap</div>,
 }));

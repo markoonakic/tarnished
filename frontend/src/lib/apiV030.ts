@@ -535,6 +535,7 @@ export interface Breakdown {
   as_of: ISODateTime;
 }
 export interface Activity {
+  target_label?: string | null;
   id: string;
   event: string;
   occurred_at: ISODateTime;

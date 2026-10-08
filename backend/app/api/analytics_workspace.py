@@ -9,7 +9,8 @@ from sqlalchemy import String, cast, func, literal, select, union_all
 
 from app.api.workspace import DB, Owner, Page, PerPage
 from app.core.deps import get_request_time_zone
-from app.models import Application, ApplicationStatusHistory, AuditLog, Round
+from app.models import Application, ApplicationStatusHistory, AuditLog, JobLead, Round
+from app.models.workspace import Company, Contact
 from app.services.analytics_queries import (
     analytics_clock,
     get_period_start_date,
@@ -131,4 +132,34 @@ async def history(
                     if isinstance(saved.get(field), str):
                         item[field] = saved[field]
         items.append(item)
+    # Labels are read from current owned records, never private audit payload text.
+    labels = {}
+    for kind, model, field in (
+        ("application", Application, Application.company),
+        ("company", Company, Company.name),
+        ("contact", Contact, Contact.name),
+        ("lead", JobLead, JobLead.company),
+    ):
+        ids = {item["target_id"] for item in items if item["target_type"] == kind}
+        if ids:
+            labels.update(
+                ((kind, record_id), label)
+                for record_id, label in await db.execute(
+                    select(model.id, field).where(
+                        model.user_id == user.id, model.id.in_(ids)
+                    )
+                )
+            )
+    round_ids = {item["target_id"] for item in items if item["target_type"] == "round"}
+    if round_ids:
+        labels.update(
+            (("round", record_id), label)
+            for record_id, label in await db.execute(
+                select(Round.id, Application.company)
+                .join(Application)
+                .where(Application.user_id == user.id, Round.id.in_(round_ids))
+            )
+        )
+    for item in items:
+        item["target_label"] = labels.get((item["target_type"], item["target_id"]))
     return {"items": items, "total": total, "page": page, "per_page": per_page}
