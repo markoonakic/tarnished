@@ -417,6 +417,22 @@ it('shows interview sections and recording controls only on its detail page; man
     },
   });
 });
+it.each(['UTC', 'offset'])(
+  'uses the actual update instant for %s timestamps',
+  async (format) => {
+    const updated = Date.now() - (3 * 60 + 5) * 60_000;
+    card.updated_at =
+      format === 'UTC'
+        ? new Date(updated).toISOString()
+        : new Date(updated + 2 * 3_600_000)
+            .toISOString()
+            .replace('Z', '+02:00');
+    show(<DashboardUpcomingRow />, '/');
+    expect(await screen.findByText('3h ago')).toBeVisible();
+    expect(writes()).toHaveLength(0);
+  }
+);
+
 it('shows the new dashboard row and pipeline status links without starting any work', async () => {
   show(
     <>

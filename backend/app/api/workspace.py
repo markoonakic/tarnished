@@ -157,13 +157,13 @@ async def companies(
 
 async def company_counts(db, user_id, company_id):
     activity = company_activity(user_id)
-    result = {
-        "last_activity_at": await db.scalar(
-            select(activity.c.last_activity_at).where(
-                activity.c.company_id == company_id
-            )
-        )
-    }
+    last_activity = await db.scalar(
+        select(activity.c.last_activity_at).where(activity.c.company_id == company_id)
+    )
+    # Keep date-only activity as a date; timestamp aggregates retain their offset.
+    if last_activity and len(last_activity) > 10:
+        last_activity = utc(datetime.fromisoformat(last_activity))
+    result = {"last_activity_at": last_activity}
     for key, model in (
         ("lead_count", JobLead),
         ("application_count", Application),

@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -135,6 +135,12 @@ class ApplicationListItem(ApplicationEvidence, JobFieldsResponse):
     years_experience_min: int | None
     years_experience_max: int | None
     source: str | None
+
+    @field_validator("created_at", "updated_at", "archived_at")
+    @classmethod
+    def application_dates_are_utc(cls, value: datetime | None) -> datetime | None:
+        # SQLite drops the offset from UTC-normalized storage.
+        return value.replace(tzinfo=UTC) if value and value.tzinfo is None else value
 
     @field_validator(
         "requirements_must_have", "requirements_nice_to_have", "skills", mode="before"
