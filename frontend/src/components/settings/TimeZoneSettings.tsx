@@ -43,7 +43,7 @@ export default function TimeZoneSettings() {
         options={[
           {
             value: 'device',
-            label: `${deviceZone} · ${t('Use device time zone')}`,
+            label: t('{{timeZone}} (device)', { timeZone: deviceZone }),
           },
           ...getSupportedTimeZones(deviceZone).map((value) => ({
             value,

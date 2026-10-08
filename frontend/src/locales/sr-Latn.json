@@ -720,6 +720,7 @@
   "Current device time zone": "Trenutna vremenska zona uređaja",
   "Unavailable in this browser": "Nije dostupno u ovom pregledaču",
   "Manual time zone": "Ručna vremenska zona",
+  "{{timeZone}} (device)": "{{timeZone}} (uređaj)",
   "Search time zones": "Pretraga vremenskih zona",
   "Gruvbox Dark": "Gruvbox tamna",
   "Gruvbox Light": "Gruvbox svetla",

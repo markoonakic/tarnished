@@ -720,6 +720,7 @@
   "Current device time zone": "Current device time zone",
   "Unavailable in this browser": "Unavailable in this browser",
   "Manual time zone": "Manual time zone",
+  "{{timeZone}} (device)": "{{timeZone}} (device)",
   "Search time zones": "Search time zones",
   "Gruvbox Dark": "Gruvbox Dark",
   "Gruvbox Light": "Gruvbox Light",
