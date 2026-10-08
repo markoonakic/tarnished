@@ -1,7 +1,21 @@
 import type { JobLead } from '@/lib/types';
-export default function LeadContacts(_props: {
+import LinkedContacts from '../companies/LinkedContacts';
+export default function LeadContacts({
+  lead,
+  onUpdated,
+}: {
   lead: JobLead;
   onUpdated?: () => void;
 }) {
-  return null;
+  return (
+    <LinkedContacts
+      kind="lead"
+      id={lead.id}
+      companyId={lead.company_id}
+      companyName={lead.company}
+      contactId={lead.recruiter_contact_id}
+      revision={lead.revision}
+      onUpdated={onUpdated}
+    />
+  );
 }

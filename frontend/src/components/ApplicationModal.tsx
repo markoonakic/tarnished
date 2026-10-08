@@ -2,6 +2,7 @@ import { t } from '@/lib/i18n';
 import { statusLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
+import CompanyPicker from './CompanyPicker';
 import { observeRead } from '../lib/queryClient';
 import { useEffect, useRef, useState } from 'react';
 import { createApplication, updateApplication } from '../lib/applications';
@@ -46,6 +47,7 @@ export default function ApplicationModal({
   const [error, setError] = useState('');
 
   const [company, setCompany] = useState('');
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [jobTitle, setJobTitle] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [jobUrl, setJobUrl] = useState('');
@@ -125,6 +127,7 @@ export default function ApplicationModal({
     }
 
     setFormApplication(application);
+    setCompanyId(application?.company_id ?? null);
     setError('');
     setJobUrlError('');
     setResponseAction('unchanged');
@@ -189,6 +192,7 @@ export default function ApplicationModal({
       if (isEditing && formApplication) {
         const data: ApplicationUpdate = buildUpdateApplicationPayload(values);
         data.expected_revision = formApplication.evidence_revision;
+        data.company_id = companyId;
         if (responseAction === 'record')
           data.response_evidence = {
             occurred_on: responseDate || null,
@@ -200,6 +204,7 @@ export default function ApplicationModal({
         onClose();
       } else {
         const data: ApplicationCreate = buildCreateApplicationPayload(values);
+        data.company_id = companyId;
         if (responseAction === 'record')
           data.response_evidence = {
             occurred_on: responseDate || null,
@@ -254,13 +259,15 @@ export default function ApplicationModal({
                 >
                   {t('Company')} <span className="text-red-bright">*</span>
                 </label>
-                <input
+                <CompanyPicker
                   id="company"
-                  type="text"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-                  required
+                  value={companyId}
+                  name={company}
+                  disabled={loading}
+                  onChange={(id, name) => {
+                    setCompanyId(id);
+                    setCompany(name);
+                  }}
                 />
               </div>
 

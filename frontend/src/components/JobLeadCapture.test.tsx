@@ -19,6 +19,26 @@ import {
 import type { JobLead } from '../lib/types';
 import JobLeadCaptureForm from './JobLeadCaptureForm';
 import JobLeadEditForm from './JobLeadEditForm';
+vi.mock('./CompanyPicker', () => ({
+  default: ({
+    id,
+    name,
+    onChange,
+  }: {
+    id?: string;
+    name?: string;
+    onChange: (id: null, name: string) => void;
+  }) => (
+    <input
+      id={id}
+      aria-label={id ? undefined : 'Company'}
+      value={name ?? ''}
+      onChange={(event) => onChange(null, event.target.value)}
+    />
+  ),
+}));
+vi.mock('./slots/LeadContacts', () => ({ default: () => null }));
+vi.mock('./slots/LeadNotes', () => ({ default: () => null }));
 import JobLeadDetail from '../pages/JobLeadDetail';
 import JobLeads from '../pages/JobLeads';
 

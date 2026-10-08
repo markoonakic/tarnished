@@ -13,6 +13,25 @@ import { queryClient } from '../lib/queryClient';
 import { updateApplication } from '../lib/applications';
 import type { Application, Round } from '../lib/types';
 import ApplicationModal from './ApplicationModal';
+vi.mock('./CompanyPicker', () => ({
+  default: ({
+    id,
+    name,
+    onChange,
+  }: {
+    id?: string;
+    name?: string;
+    onChange: (id: null, name: string) => void;
+  }) => (
+    <input
+      id={id}
+      aria-label={id ? undefined : 'Company'}
+      value={name ?? ''}
+      onChange={(event) => onChange(null, event.target.value)}
+    />
+  ),
+}));
+
 import HistoryViewer from './application/HistoryViewer';
 
 vi.mock('../hooks/useThemeColors', () => ({ useThemeColors: () => ({}) }));

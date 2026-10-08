@@ -1,77 +1,331 @@
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
 import Layout from '@/components/Layout';
 import SegmentedControl from '@/components/SegmentedControl';
 import EmptyState from '@/components/EmptyState';
+import Loading from '@/components/Loading';
 import Dropdown from '@/components/Dropdown';
+import Pagination from '@/components/Pagination';
+import {
+  CompanyModal,
+  ContactModal,
+} from '@/components/companies/RecordModals';
+import { apiV030, type CompanyQuery } from '@/lib/apiV030';
+import {
+  allCompanies,
+  inputClass,
+  primaryClass,
+  actionClass,
+  roles,
+  roleLabel,
+  dateLabel,
+  failureMessage,
+} from '@/components/companies/addressBook';
+
 export default function Companies() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const [creating, setCreating] = useState(false);
   const contacts = location.pathname === '/contacts';
+  const page = Math.max(1, Number(params.get('page')) || 1);
+  const search = params.get('query') ?? '';
+  const industry = params.get('industry') ?? '';
+  const companyId = params.get('company_id') ?? '';
+  const role = params.get('role') ?? '';
+  const sort = (params.get('sort') || 'activity') as CompanyQuery['sort'];
+  const companies = useQuery({
+    queryKey: ['companies', 'picker'],
+    queryFn: allCompanies,
+  });
+  const list = useQuery({
+    queryKey: [contacts ? 'contacts' : 'companies', 'list', params.toString()],
+    queryFn: () =>
+      contacts
+        ? apiV030.contacts({
+            query: search,
+            company_id: companyId,
+            role,
+            page,
+            per_page: 25,
+          })
+        : apiV030.companies({
+            query: search,
+            industry,
+            sort,
+            page,
+            per_page: 25,
+          }),
+  });
+  function filter(key: string, value: string) {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    if (key !== 'page') next.delete('page');
+    setParams(next, { replace: true });
+  }
+  const companyNames = new Map(
+    (companies.data ?? []).map((company) => [company.id, company.name])
+  );
+  const headings = contacts
+    ? ['name', 'function', 'company', 'role', 'last_contact_on', 'email']
+    : [
+        'company',
+        'industry',
+        'location',
+        'size',
+        'leads',
+        'applications',
+        'lastActivity',
+      ];
+  function rowCells(row: NonNullable<typeof list.data>['items'][number]) {
+    if ('lead_count' in row || !contacts) {
+      const company = row as import('@/lib/apiV030').Company;
+      return [
+        <Link
+          className="text-fg1 hover:text-accent focus:ring-accent rounded focus:ring-2"
+          to={'/companies/' + row.id}
+        >
+          {row.name}
+        </Link>,
+        company.industry || '—',
+        company.location || '—',
+        company.size?.replaceAll('-', '–') || '—',
+        company.lead_count ?? 0,
+        company.application_count ?? 0,
+        dateLabel(company.updated_at),
+      ];
+    }
+    const contact = row as import('@/lib/apiV030').Contact;
+    return [
+      <Link
+        className="text-fg1 hover:text-accent focus:ring-accent rounded focus:ring-2"
+        to={'/contacts/' + row.id}
+      >
+        {row.name}
+      </Link>,
+      contact.function || '—',
+      contact.company_id ? companyNames.get(contact.company_id) || '—' : '—',
+      roleLabel(contact.role) || '—',
+      dateLabel(contact.last_contact_on),
+      contact.email ? (
+        <a
+          href={'mailto:' + contact.email}
+          className="text-accent"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {contact.email}
+        </a>
+      ) : (
+        '—'
+      ),
+    ];
+  }
   return (
     <Layout>
       <div className="mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="mb-6 flex items-center justify-between gap-4">
           <h1 className="text-primary text-2xl font-bold">
-            {t('kit.companies')}
+            {t('companies.companies')}
           </h1>
-          <button
-            type="button"
-            disabled
-            className="bg-accent text-bg0 rounded-md px-4 py-2 font-medium opacity-50"
-          >
-            {t(contacts ? 'kit.newContact' : 'kit.newCompany')}
+          <button className={primaryClass} onClick={() => setCreating(true)}>
+            {t(contacts ? 'companies.newContact' : 'companies.newCompany')}
           </button>
         </div>
-        <div className="-mt-2 mb-6">
+        <div className="mb-6">
           <SegmentedControl
-            label={t('kit.companies')}
+            label={t('companies.companies')}
             options={[
-              { value: 'companies', label: t('kit.companies') },
-              { value: 'contacts', label: t('kit.contacts') },
+              { value: 'companies', label: t('companies.companies') },
+              { value: 'contacts', label: t('companies.contacts') },
             ]}
             value={contacts ? 'contacts' : 'companies'}
             onChange={(tab) => navigate('/' + tab)}
           />
         </div>
-        <div className="bg-bg1 mb-6 flex flex-wrap items-center gap-3 rounded-lg p-4">
+        <div className="bg-secondary mb-6 flex flex-wrap gap-3 rounded-lg p-4">
           <input
+            className={inputClass + ' w-full sm:max-w-sm'}
             aria-label={t(
-              contacts ? 'kit.searchContacts' : 'kit.searchCompanies'
+              contacts
+                ? 'companies.searchContacts'
+                : 'companies.searchCompanies'
             )}
             placeholder={t(
-              contacts ? 'kit.searchContacts' : 'kit.searchCompanies'
+              contacts
+                ? 'companies.searchContacts'
+                : 'companies.searchCompanies'
             )}
-            className="bg-bg2 text-fg1 placeholder:text-fg4 focus:ring-accent w-full max-w-sm rounded-md px-3 py-2 text-sm outline-none focus:ring-2"
+            value={search}
+            onChange={(e) => filter('query', e.target.value)}
           />
           <Dropdown
+            value={contacts ? companyId : industry}
             options={[
               {
                 value: '',
-                label: t(contacts ? 'kit.allCompanies' : 'kit.allIndustries'),
+                label: t(
+                  contacts
+                    ? 'companies.allCompanies'
+                    : 'companies.allIndustries'
+                ),
               },
+              ...(contacts
+                ? (companies.data ?? []).map((company) => ({
+                    value: company.id,
+                    label: company.name,
+                  }))
+                : [
+                    ...new Set(
+                      (companies.data ?? [])
+                        .map((company) => company.industry)
+                        .filter((value): value is string => !!value)
+                    ),
+                  ]
+                    .sort()
+                    .map((value) => ({ value, label: value }))),
             ]}
-            value=""
-            onChange={() => {}}
-            disabled
+            onChange={(value) =>
+              filter(contacts ? 'company_id' : 'industry', value)
+            }
           />
           <Dropdown
-            options={[
-              {
-                value: 'name',
-                label: t(contacts ? 'kit.allRoles' : 'kit.sortName'),
-              },
-            ]}
-            value="name"
-            onChange={() => {}}
-            disabled
+            value={contacts ? role : (sort ?? 'activity')}
+            options={
+              contacts
+                ? [
+                    { value: '', label: t('companies.allRoles') },
+                    ...roles.map((value) => ({
+                      value,
+                      label: roleLabel(value),
+                    })),
+                  ]
+                : ['name', 'activity', 'applications'].map((value) => ({
+                    value,
+                    label: t('companies.sort.' + value),
+                  }))
+            }
+            onChange={(value) => filter(contacts ? 'role' : 'sort', value)}
           />
         </div>
-        <EmptyState
-          message={t(contacts ? 'kit.noContacts' : 'kit.noCompanies')}
-          icon="bi-buildings"
-        />
+        {list.isPending ? (
+          <Loading />
+        ) : list.isError ? (
+          <p role="alert" className="text-red">
+            {failureMessage(list.error)}
+            <button className={actionClass} onClick={() => void list.refetch()}>
+              {t('companies.reload')}
+            </button>
+          </p>
+        ) : !list.data.items.length ? (
+          <div>
+            <EmptyState
+              message={t(
+                contacts ? 'companies.noContacts' : 'companies.noCompanies'
+              )}
+              icon={contacts ? 'bi-person-lines-fill' : 'bi-buildings'}
+            />
+            <div className="mt-4 text-center">
+              <button
+                className={primaryClass}
+                onClick={() => setCreating(true)}
+              >
+                {t(contacts ? 'companies.newContact' : 'companies.newCompany')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="bg-secondary mb-6 hidden overflow-hidden rounded-lg md:block">
+              <table className="w-full table-fixed">
+                <thead>
+                  <tr className="border-tertiary text-muted border-b text-left text-xs uppercase">
+                    {headings.map((key) => (
+                      <th key={key} className="px-4 py-3 font-semibold">
+                        {t('companies.' + key)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.data.items.map((row) => (
+                    <tr
+                      key={row.id}
+                      className="border-tertiary hover:bg-bg2 cursor-pointer border-b last:border-b-0"
+                      onClick={() =>
+                        navigate(
+                          '/' +
+                            (contacts ? 'contacts' : 'companies') +
+                            '/' +
+                            row.id
+                        )
+                      }
+                    >
+                      {rowCells(row).map((cell, index) => (
+                        <td
+                          key={index}
+                          className="text-muted px-4 py-4 text-sm break-words"
+                        >
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mb-6 space-y-3 md:hidden">
+              {list.data.items.map((row) => (
+                <div key={row.id} className="bg-secondary rounded-lg p-4">
+                  {rowCells(row).map((cell, index) => (
+                    <div
+                      key={index}
+                      className={
+                        index === 0
+                          ? 'text-primary mb-2 font-semibold'
+                          : 'text-muted flex flex-wrap gap-2 text-sm'
+                      }
+                    >
+                      {index > 0 && (
+                        <span>{t('companies.' + headings[index])}:</span>
+                      )}
+                      {cell}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        {list.data && (
+          <Pagination
+            currentPage={page}
+            totalPages={Math.ceil(list.data.total / 25)}
+            totalItems={list.data.total}
+            perPage={25}
+            onPageChange={(page) => filter('page', String(page))}
+          />
+        )}
+        {creating &&
+          (contacts ? (
+            <ContactModal
+              onClose={() => setCreating(false)}
+              onSaved={(contact) => navigate('/contacts/' + contact.id)}
+            />
+          ) : (
+            <CompanyModal
+              onClose={() => setCreating(false)}
+              onSaved={(company) => navigate('/companies/' + company.id)}
+            />
+          ))}
       </div>
     </Layout>
   );

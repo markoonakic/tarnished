@@ -259,7 +259,16 @@ function JobLeadDetailContent({ id }: { id: string }) {
             <div className="flex-1">
               <div className="mb-1 flex flex-wrap items-center gap-2">
                 <h1 className="text-primary text-2xl font-bold">
-                  {jobLead.company || t('Unknown Company')}
+                  {jobLead.company_id ? (
+                    <Link
+                      to={'/companies/' + jobLead.company_id}
+                      className="hover:text-accent focus:ring-accent rounded focus:ring-2"
+                    >
+                      {jobLead.company || t('Unknown Company')}
+                    </Link>
+                  ) : (
+                    jobLead.company || t('Unknown Company')
+                  )}
                 </h1>
                 {getSourceBadge(jobLead.source)}
               </div>
@@ -366,45 +375,6 @@ function JobLeadDetailContent({ id }: { id: string }) {
                   jobLead.salary_max
                 )}
               </p>
-            </div>
-          )}
-
-          {/* Recruiter Information */}
-          {(jobLead.recruiter_name ||
-            jobLead.recruiter_title ||
-            jobLead.recruiter_linkedin_url) && (
-            <div className="bg-bg2 mb-4 rounded-lg p-4">
-              <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
-                <i className="bi-person icon-sm"></i>
-                {t('Recruiter')}
-              </h3>
-              <div className="space-y-1">
-                {jobLead.recruiter_name && (
-                  <p className="text-primary font-medium">
-                    {jobLead.recruiter_name}
-                  </p>
-                )}
-                {jobLead.recruiter_title && (
-                  <p className="text-secondary text-sm">
-                    {jobLead.recruiter_title}
-                  </p>
-                )}
-                {jobLead.recruiter_linkedin_url && (
-                  <a
-                    href={
-                      /^https?:\/\//i.test(jobLead.recruiter_linkedin_url)
-                        ? jobLead.recruiter_linkedin_url
-                        : undefined
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-accent hover:text-accent-bright flex cursor-pointer items-center gap-1 text-sm transition-all duration-200 ease-in-out"
-                  >
-                    <i className="bi-linkedin icon-sm"></i>
-                    {t('LinkedIn Profile')}
-                  </a>
-                )}
-              </div>
             </div>
           )}
 

@@ -207,7 +207,16 @@ function ApplicationDetailContent({ id }: { id: string }) {
             <div className="flex-1">
               <div className="mb-1 flex items-center gap-2">
                 <h1 className="text-primary text-2xl font-bold">
-                  {application.company}
+                  {application.company_id ? (
+                    <Link
+                      to={'/companies/' + application.company_id}
+                      className="hover:text-accent focus:ring-accent rounded focus:ring-2"
+                    >
+                      {application.company}
+                    </Link>
+                  ) : (
+                    application.company
+                  )}
                 </h1>
                 {application.source && (
                   <span className="bg-bg2 text-fg1 inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium">
@@ -306,41 +315,6 @@ function ApplicationDetailContent({ id }: { id: string }) {
                 {' - '}
                 {application.salary_max?.toLocaleString(locale()) || '???'}
               </p>
-            </div>
-          )}
-
-          {/* Recruiter Information */}
-          {(application.recruiter_name ||
-            application.recruiter_title ||
-            application.recruiter_linkedin_url) && (
-            <div className="bg-bg2 mb-4 rounded-lg p-4">
-              <h3 className="text-muted mb-2 flex items-center gap-1.5 text-sm">
-                <i className="bi-person icon-sm"></i>
-                {t('Recruiter')}
-              </h3>
-              <div className="space-y-1">
-                {application.recruiter_name && (
-                  <p className="text-primary font-medium">
-                    {application.recruiter_name}
-                  </p>
-                )}
-                {application.recruiter_title && (
-                  <p className="text-secondary text-sm">
-                    {application.recruiter_title}
-                  </p>
-                )}
-                {application.recruiter_linkedin_url && (
-                  <a
-                    href={application.recruiter_linkedin_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-accent hover:text-accent-bright flex cursor-pointer items-center gap-1 text-sm transition-all duration-200 ease-in-out"
-                  >
-                    <i className="bi-linkedin icon-sm"></i>
-                    {t('LinkedIn Profile')}
-                  </a>
-                )}
-              </div>
             </div>
           )}
 

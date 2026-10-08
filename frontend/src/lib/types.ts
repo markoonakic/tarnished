@@ -1,3 +1,5 @@
+import type { JobFields } from './apiV030';
+
 export const statusMeanings = [
   'unknown',
   'applied',
@@ -78,7 +80,7 @@ export interface Round {
   created_at: string;
 }
 
-export interface Application {
+export interface Application extends JobFields {
   status_meaning: StatusMeaning;
   status_meaning_provenance: EvidenceProvenance;
   evidence_revision: number;
@@ -125,7 +127,7 @@ export interface ApplicationListResponse {
   per_page: number;
 }
 
-export interface ApplicationCreate {
+export interface ApplicationCreate extends JobFields {
   response_evidence?: ResponseEvidenceInput | null;
   company: string;
   job_title: string;
@@ -148,7 +150,7 @@ export interface ApplicationCreate {
   source?: string;
 }
 
-export interface ApplicationUpdate {
+export interface ApplicationUpdate extends JobFields {
   expected_revision?: number;
   response_evidence?: ResponseEvidenceInput | null;
   company?: string;
@@ -207,7 +209,7 @@ export interface ApplicationStatusHistory {
 type JobLeadStatus =
   'pending' | 'processing' | 'extracted' | 'failed' | 'converted';
 
-export interface JobLead {
+export interface JobLead extends JobFields {
   content_warning_code?: string | null;
   error_code?: string | null;
   id: string;

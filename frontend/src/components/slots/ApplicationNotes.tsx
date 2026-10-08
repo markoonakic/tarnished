@@ -1,7 +1,10 @@
 import type { Application } from '@/lib/types';
-export default function ApplicationNotes(_props: {
+import TargetNotes from '../TargetNotes';
+export default function ApplicationNotes({
+  application,
+}: {
   application: Application;
   onUpdated?: () => void;
 }) {
-  return null;
+  return <TargetNotes targetType="application" targetId={application.id} />;
 }
