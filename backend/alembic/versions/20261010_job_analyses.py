@@ -10,6 +10,7 @@ depends_on = None
 
 
 def upgrade():
+    op.add_column("applications", sa.Column("posted_date", sa.Date(), nullable=True))
     op.create_table(
         "job_analyses",
         sa.Column("id", sa.String(36), primary_key=True),
@@ -74,3 +75,5 @@ def downgrade():
         batch.drop_constraint("fk_interview_job_analysis", type_="foreignkey")
         batch.drop_column("analysis_id")
     op.drop_table("job_analyses")
+    with op.batch_alter_table("applications") as batch:
+        batch.drop_column("posted_date")

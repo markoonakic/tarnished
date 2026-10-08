@@ -22,6 +22,7 @@ from app.services.ai_settings import get_ai_settings, lock_ai_settings
 from app.services.interview_evidence import fingerprint
 from app.services.interview_text import analyze_section, supported
 from app.services.profile_items import allowed_profile
+from app.services.requirement_insights import current_requirements
 
 KINDS = ("EXTRACTION", "PROFILE_MATCH", "PREPARATION")
 PROMPT_VERSION = "reviewed-1"
@@ -91,6 +92,19 @@ def validate_output(output, sources, kind):
             ids.add(item["id"])
             if category == "examples" and not item["evidence"]:
                 raise ValueError("Examples require profile evidence")
+            if (
+                category
+                in (
+                    "review_topics",
+                    "technical_topics",
+                    "practice_questions",
+                    "profile_gaps",
+                )
+                and not item["requirement_ids"]
+            ):
+                raise ValueError(
+                    "Requirement-based suggestions need a confirmed requirement"
+                )
             citations(item["evidence"])
     return value
 
@@ -135,7 +149,12 @@ def target_revision(record):
 
 async def inputs(db, row):
     record = await target(db, row)
-    revisions = {"requirements": record.requirements_revision}
+    revisions = {
+        "requirements": record.requirements_revision,
+        "legacy_requirements": fingerprint(
+            [record.requirements_must_have, record.requirements_nice_to_have]
+        ),
+    }
     if row.kind == "EXTRACTION":
         return {"posting": record.source_text or ""}, {}
     profile = await db.scalar(
@@ -149,7 +168,12 @@ async def inputs(db, row):
     )
     entries = []
     for field, value in allowed_profile(profile).items():
-        for item in value if isinstance(value, list) else [value]:
+        for item in (
+            value
+            if isinstance(value, list)
+            and all(isinstance(entry, dict) for entry in value)
+            else [value]
+        ):
             if isinstance(item, dict):
                 item_id = item.get("id")
                 if not item_id:
@@ -167,7 +191,8 @@ async def inputs(db, row):
                 item_id, name, text = field, field, str(item)
             entries.append({"id": item_id, "name": name, "text": text})
     data = {
-        "requirements": record.confirmed_requirements or [],
+        "requirements": current_requirements(record),
+        "posting_fingerprint": fingerprint(record.source_text or ""),
         "profile": entries,
         "revisions": revisions,
     }
@@ -203,6 +228,8 @@ async def start(db, auth, row, request):
     from app.services.interview_jobs import ACTIVE, authority, queue_count
 
     scopes = ["job_leads:write"] if row.lead_id else ["applications:write"]
+    if row.kind != "EXTRACTION":
+        scopes.append("profile:read")
     await lock_ai_settings(db)
     await authority(
         db,
@@ -244,9 +271,15 @@ async def start(db, auth, row, request):
         raise HTTPException(503, "Text service is not configured")
     if await queue_count(db) >= 16:
         raise HTTPException(503, "Processing queue is full")
+    if row.fingerprint and row.fingerprint != fingerprint(data):
+        raise HTTPException(409, "Inputs changed; create a new analysis")
     row.revision += 1
     row.fingerprint = fingerprint(data)
-    row.input_revisions = revisions
+    row.input_revisions = {
+        **revisions,
+        "prompt": PROMPT_VERSION,
+        "configuration": settings.revision,
+    }
     row.source_text = data.get("posting", "")
     row.draft, row.reviewed, row.review_state = {}, [], "pending"
     job = InterviewJob(
@@ -340,7 +373,7 @@ async def view(db, row):
         "draft": {} if revoked else row.draft,
         "reviewed": row.reviewed,
         "updated_at": row.updated_at,
-        "requirements": data.get("requirements", []),
+        "requirements": record.confirmed_requirements or [],
         "profile": data.get("profile", []),
         "error": "analysis_failed"
         if job and job.state in ("failed", "invalidated", "interrupted")
@@ -386,13 +419,15 @@ async def review(db, row, request):
                 raise HTTPException(422, "Invalid edited value") from None
         field, value = entry["field"], entry["value"]
         if field == "company":
+            if choice.company_id is None:
+                raise HTTPException(422, "Choose a company")
             company = await db.scalar(
                 select(Company).where(
                     Company.id == str(choice.company_id), Company.user_id == row.user_id
                 )
             )
             if company is None:
-                raise HTTPException(422, "Choose a company")
+                raise HTTPException(404, "Company not found")
             record.company_id, record.company = company.id, company.name
             entry["value"], entry["company_id"] = company.name, company.id
         elif field in REQUIREMENTS:
@@ -402,6 +437,7 @@ async def review(db, row, request):
                 "text": str(value),
                 "quote": proposal["quote"],
                 "source": "posting",
+                "source_hash": fingerprint(row.source_text),
                 "start": row.source_text.index(proposal["quote"]),
                 "analysis_id": row.id,
                 "authorship": "user" if choice.decision == "edited" else "posting",
@@ -452,6 +488,14 @@ async def review(db, row, request):
                     )
                 ),
             )
+    if (
+        record.salary_min is not None
+        and record.salary_max is not None
+        and record.salary_min > record.salary_max
+    ):
+        raise HTTPException(422, "Minimum pay cannot exceed maximum pay")
+    if len(requirements) > 100:
+        raise HTTPException(422, "At most 100 confirmed requirements are supported")
     if isinstance(record, JobLead):
         record.revision += 1
         record.status = "extracted"
@@ -481,6 +525,13 @@ async def apply(db, row, request):
         )
         .execution_options(populate_existing=True)
     )
+    selected = set(request.selected_ids)
+    if (
+        row.kind == "PREPARATION"
+        and row.review_state == "saved"
+        and selected <= {item["id"] for item in row.reviewed}
+    ):
+        return row
     if (
         row.kind != "PREPARATION"
         or not row.draft
@@ -490,7 +541,6 @@ async def apply(db, row, request):
         or fingerprint(data) != row.fingerprint
     ):
         raise HTTPException(409, "Draft or interview changed")
-    selected = set(request.selected_ids)
     all_ids = {item["id"] for items in row.draft.values() for item in items}
     if not selected <= all_ids:
         raise HTTPException(422, "Unknown draft item")
@@ -508,8 +558,24 @@ async def apply(db, row, request):
                 ]
             )
         )
+    from app.schemas.workspace import InterviewFields
+
+    try:
+        InterviewFields.model_validate({"preparation": preparation})
+    except ValueError:
+        raise HTTPException(422, "Preparation lists exceed the saved limits") from None
     interview.preparation = preparation
     interview.revision += 1
+    row.reviewed = [
+        *row.reviewed,
+        *(
+            {"id": item["id"], "category": category, "text": item["text"]}
+            for category in CATEGORIES
+            for item in row.draft[category]
+            if item["id"] in selected
+            and item["id"] not in {saved["id"] for saved in row.reviewed}
+        ),
+    ]
     row.review_state = "saved"
     row.revision += 1
     await db.flush()
@@ -527,6 +593,7 @@ async def current_matches(db, owner, applications):
                 JobAnalysis.user_id == owner,
                 JobAnalysis.application_id.in_(ids),
                 JobAnalysis.kind == "PROFILE_MATCH",
+                JobAnalysis.review_state == "ready",
             )
             .order_by(JobAnalysis.created_at.desc())
         )

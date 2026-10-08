@@ -43,9 +43,11 @@ from app.schemas.job_lead import (
     JobLeadResponse,
     JobLeadUpdate,
 )
+from app.services.ai_settings import get_ai_settings as get_ai_settings
+from app.services.extraction import extract_job_data as extract_job_data
 from app.services.job_fetch import fetch_job_posting_html
 from app.services.job_filters import JobFilters, apply_filters, filter_params
-from app.services.lead_capture import capture_complete_source, capture_source
+from app.services.lead_capture import capture_complete_source
 from app.services.reference_data import get_initial_application_status
 from app.services.user_time import get_user_local_today
 from app.services.workspace import JOB_FIELDS, audit, job_links
@@ -324,7 +326,7 @@ async def update_job_lead(
 
 
 async def _extract_lead(job_lead_id, data, auth, db):
-    from uuid import uuid4
+    from uuid import UUID, uuid4
 
     from app.schemas.job_analysis import CreateAnalysis, RunAnalysis
     from app.services import job_analyses
@@ -332,13 +334,37 @@ async def _extract_lead(job_lead_id, data, auth, db):
 
     await lock_ai_settings(db)
     lead = await _owned_lead(db, job_lead_id, auth.user.id)
+    if data is None and lead.status != "failed":
+        raise HTTPException(
+            400,
+            "A bodyless retry requires a failed lead; otherwise provide the current revision",
+        )
+    if lead.status == "processing" and not (data and data.restart_processing):
+        raise _conflict(job_lead_id)
     if data and data.expected_revision != lead.revision:
         raise _conflict(job_lead_id)
     if lead.converted_to_application_id:
         raise _conflict(job_lead_id)
     if not lead.source_text and lead.url:
-        html = await fetch_job_posting_html(lead.url)
-        captured = await run_in_threadpool(capture_source, None, html)
+        try:
+            html = await fetch_job_posting_html(lead.url)
+        except HTTPException as exc:
+            lead.status = "failed"
+            lead.error_message = (
+                "Posting fetch failed; saved source and manual edits are retained."
+            )
+            lead.revision += 1
+            await db.commit()
+            raise HTTPException(
+                exc.status_code,
+                {
+                    **make_error_response(
+                        ErrorCode.AI_EXTRACTION_FAILED, detail=str(exc.detail)
+                    ),
+                    "id": lead.id,
+                },
+            ) from None
+        captured = await run_in_threadpool(capture_complete_source, None, html)
         lead.source_text = captured["source_text"]
         lead.source_truncated = captured["source_truncated"]
         lead.content_warning = captured["content_warning"]
@@ -348,7 +374,7 @@ async def _extract_lead(job_lead_id, data, auth, db):
         auth.user.id,
         CreateAnalysis(
             kind="EXTRACTION",
-            lead_id=lead.id,
+            lead_id=UUID(lead.id),
             language=(data.language if data else None)
             or (auth.user.settings or {}).get("language", "en"),
         ),
@@ -359,10 +385,13 @@ async def _extract_lead(job_lead_id, data, auth, db):
         analysis,
         RunAnalysis(intent_id=uuid4(), expected_revision=analysis.revision),
     )
+    lead.revision += 1
+    lead.status, lead.processing_started_at, lead.error_message = "pending", None, None
     await db.commit()
     await db.refresh(lead)
-    lead.pending_analysis_id = analysis.id
-    return lead
+    return JobLeadResponse.model_validate(lead).model_copy(
+        update={"pending_analysis_id": analysis.id}
+    )
 
 
 @router.post("/{job_lead_id}/extract", response_model=JobLeadResponse)
@@ -552,6 +581,7 @@ async def convert_job_lead_to_application(
         salary_min=job_lead.salary_min,
         salary_max=job_lead.salary_max,
         salary_currency=job_lead.salary_currency,
+        posted_date=job_lead.posted_date,
         recruiter_name=job_lead.recruiter_name,
         recruiter_title=job_lead.recruiter_title,
         recruiter_linkedin_url=job_lead.recruiter_linkedin_url,

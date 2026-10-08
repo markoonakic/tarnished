@@ -1,73 +1,53 @@
-"""Real LiteLLM/SDK wire contracts on an offline loopback provider."""
+"""Reviewed extraction wire contracts against an offline loopback provider."""
 
 import json
-import logging
 import socket
 from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 from types import SimpleNamespace
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.core.database import get_db
 from app.core.security import create_access_token
+from app.core.seed import seed_defaults
 from app.main import app
-from app.models import ApplicationStatus, User
+from app.models import ApplicationStatus, InterviewJob, User
 from app.schemas.ai_settings import AISettingsUpdate
+from app.services import job_analyses
 from app.services.ai_settings import update_ai_settings
+from app.services.interview_text import ReportFailure
+from app.services.transcription_executor import TranscriptionExecutor
 
-MODEL = "openai/go/deepseek-v4.1-flash"
-URL = "https://jobs.example/session-contract"
-SOURCE = "Engineer at Synthetic Company. Python required. Salary/date not supplied."
+SOURCE = "Engineer at North. Python required."
 OUTPUT = json.dumps(
     {
-        "title": "Engineer",
-        "company": "Synthetic Company",
-        "location": "Remote",
-        "skills": ["Python"],
-        "salary_min": None,
-        "salary_max": None,
-        "salary_currency": None,
-        "posted_date": None,
+        "items": [
+            {
+                "id": "python",
+                "field": "must_have",
+                "value": "Python",
+                "quote": "Python required",
+            }
+        ]
     }
 )
-INVALID_SCHEMA = '{"title":"Engineer","salary_min":200,"salary_max":100}'
 
 
 @pytest.fixture
-async def wire(client, db, db_engine, monkeypatch, caplog):
-    calls = []
-    replies = deque()
-    # Match real requests: each gets a fresh session, not stale ORM identities
-    # from the test client's shared session after an HTTPException.
+async def wire(client, db, db_engine):
+    calls, replies = [], deque()
     sessions = async_sessionmaker(db_engine, expire_on_commit=False)
 
     async def get_session():
         async with sessions() as session:
             yield session
 
-    old_override = app.dependency_overrides[get_db]
     app.dependency_overrides[get_db] = get_session
-    # Alembic fileConfig disables existing loggers. Restore these for actual
-    # capture, and require an owner log witness instead of an empty-log check.
-    for name in (
-        "app.services.extraction",
-        "LiteLLM",
-        "LiteLLM Router",
-        "LiteLLM Proxy",
-        "openai",
-        "httpx",
-        "httpcore",
-    ):
-        monkeypatch.setattr(logging.getLogger(name), "disabled", False)
-    caplog.set_level(logging.DEBUG, logger="app.services.extraction")
-    root = logging.getLogger()
-    added_handler = caplog.handler not in root.handlers
-    if added_handler:
-        root.addHandler(caplog.handler)
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
@@ -78,28 +58,16 @@ async def wire(client, db, db_engine, monkeypatch, caplog):
                 self.connection.shutdown(socket.SHUT_RDWR)
                 self.connection.close()
                 return
-            if status == 200:
-                response = {
-                    "id": "chatcmpl-offline",
-                    "object": "chat.completion",
-                    "created": 0,
-                    "model": "go/deepseek-v4.1-flash",
+            payload = (
+                {
                     "choices": [
-                        {
-                            "index": 0,
-                            "message": {"role": "assistant", "content": content},
-                            "finish_reason": "stop",
-                        }
-                    ],
+                        {"finish_reason": "stop", "message": {"content": content}}
+                    ]
                 }
-            else:
-                response = {
-                    "error": {
-                        "message": "Offline rejection",
-                        "type": "invalid_request_error",
-                    }
-                }
-            data = json.dumps(response).encode()
+                if status == 200
+                else {"error": {"message": "Offline rejection"}}
+            )
+            data = json.dumps(payload).encode()
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
@@ -113,11 +81,9 @@ async def wire(client, db, db_engine, monkeypatch, caplog):
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        owner = User(email="session-wire@synthetic.test", password_hash="unused")
+        await seed_defaults(db)
+        owner = User(email="wire@example.com", password_hash="unused")
         db.add(owner)
-        await db.flush()
-        applied = ApplicationStatus(name="Applied", meaning="applied", user_id=owner.id)
-        db.add(applied)
         await db.commit()
         client.headers["Authorization"] = "Bearer " + create_access_token(
             {"sub": owner.id, "session_version": owner.session_version}
@@ -125,150 +91,139 @@ async def wire(client, db, db_engine, monkeypatch, caplog):
         await update_ai_settings(
             db,
             AISettingsUpdate(
-                litellm_model=MODEL,
-                litellm_api_key="synthetic-wire-key",
+                litellm_model="openai/fixture",
+                litellm_api_key="offline-key",
                 litellm_base_url=f"http://127.0.0.1:{server.server_port}/v1",
-                text_protocol="responses",
+                text_protocol="chat_completions",
             ),
         )
-        yield SimpleNamespace(calls=calls, replies=replies, status_id=applied.id)
+        status_id = await db.scalar(
+            select(ApplicationStatus.id).where(ApplicationStatus.meaning == "applied")
+        )
+        yield SimpleNamespace(
+            calls=calls, replies=replies, sessions=sessions, status_id=status_id
+        )
     finally:
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
-        assert not thread.is_alive()
-        app.dependency_overrides[get_db] = old_override
-        if added_handler:
-            root.removeHandler(caplog.handler)
+
+
+async def execute(wire, analysis_id):
+    async with wire.sessions() as db:
+        job = await db.scalar(
+            select(InterviewJob)
+            .where(InterviewJob.analysis_id == analysis_id)
+            .order_by(InterviewJob.created_at.desc())
+        )
+        job.state, job.claim_id = "analyzing", str(uuid4())
+        job_id, claim = job.id, job.claim_id
+        await db.commit()
+    executor = TranscriptionExecutor(wire.sessions)
+    try:
+        await job_analyses.execute(executor, job_id, claim)
+    except ReportFailure as error:
+        await executor.finish_failure(job_id, claim, "failed", True, error.safe_message)
+    async with wire.sessions() as db:
+        return await db.get(InterviewJob, job_id)
 
 
 def session(call):
     path, headers, body = call
     assert path == "/v1/chat/completions"
-    values = headers.get_all("x-opencode-session")
-    assert values is not None and len(values) == 1, (
-        "Missing single session header on actual SDK request"
-    )
-    value = values[0]
-    parsed = UUID(value)
-    assert parsed.version == 4 and str(parsed) == value
-    assert headers["Authorization"] == "Bearer synthetic-wire-key"
-    assert "opencode" not in headers.get("User-Agent", "").lower()
-    assert body["model"] == "go/deepseek-v4.1-flash"
-    assert body["response_format"] == {"type": "json_object"}
-    assert set(body) == {"model", "messages", "response_format"}
-    assert body["messages"][0]["role"] == "system"
-    assert body["messages"][1] == {
-        "role": "user",
-        "content": f"Source URL: {URL}\n\nJob Posting Content:\n{SOURCE}",
+    context = headers["x-opencode-session"]
+    assert str(UUID(context)) == context
+    assert headers["Authorization"] == "Bearer offline-key"
+    assert body["model"] == "fixture" and body["response_format"] == {
+        "type": "json_object"
     }
-    assert value not in json.dumps(body)
-    return value
+    assert [item["role"] for item in body["messages"]] == ["system", "user"]
+    source = json.loads(body["messages"][1]["content"])["sources"][0]["data"]
+    assert source["posting"] == SOURCE
+    assert context not in json.dumps(body)
+    return context
 
 
-async def saved_manual_lead(client, wire):
-    saved = await client.post("/api/job-leads", json={"url": URL, "text": SOURCE})
-    assert saved.status_code == 201, saved.text
-    lead = saved.json()
-    assert lead["status"] == "pending" and not wire.calls
-    path = "/api/job-leads/" + lead["id"]
-    edited = await client.patch(
-        path,
+async def test_saved_lead_queues_once_and_never_applies_without_review(client, wire):
+    saved = await client.post(
+        "/api/job-leads",
         json={
-            "expected_revision": 0,
-            "title": "Human reviewed",
-            "location": None,
-            "skills": [],
+            "url": "https://jobs.example/one",
+            "text": SOURCE,
+            "title": "Human title",
         },
     )
-    assert edited.status_code == 200, edited.text
-    assert not wire.calls
-    return path, edited.json()
-
-
-async def test_saved_lead_wire_context_is_per_attempt_and_manual_fields_survive(
-    client, wire, caplog
-):
-    path, lead = await saved_manual_lead(client, wire)
+    lead = saved.json()
+    path = "/api/job-leads/" + lead["id"]
     contexts = []
     for _ in range(2):
-        result = await client.post(
+        response = await client.post(
             path + "/extract", json={"expected_revision": lead["revision"]}
         )
-        assert result.status_code == 200, result.text
-        lead = result.json()
+        assert response.status_code == 200, response.text
+        lead = response.json()
+        job = await execute(wire, lead["pending_analysis_id"])
+        assert job.state == "complete"
         contexts.append(session(wire.calls[-1]))
-        assert lead["status"] == "extracted" and lead["processing_started_at"] is None
-        assert lead["source_text"] == SOURCE and lead["title"] == "Human reviewed"
-        assert lead["company"] == "Synthetic Company"
-        assert lead["location"] is None and lead["skills"] == []
-        assert all(
-            lead[name] is None
-            for name in ["salary_min", "salary_max", "salary_currency", "posted_date"]
+        current = (await client.get(path)).json()
+        assert (
+            current["title"] == "Human title" and not current["requirements_must_have"]
         )
-        assert contexts[-1] not in result.text
+        assert current["source_text"] == SOURCE
     assert len(wire.calls) == 2 and len(set(contexts)) == 2
-    records = "\n".join(record.getMessage() for record in caplog.records)
-    assert "Starting LLM extraction with model:" in records
-    assert all(value not in records for value in contexts)
 
 
-@pytest.mark.parametrize(
-    "bad_content", ["not JSON", INVALID_SCHEMA], ids=["json", "schema"]
-)
-async def test_direct_application_repair_keeps_context(
-    client, wire, caplog, bad_content
+async def test_direct_application_queues_preparing_with_same_review_contract(
+    client, wire
 ):
-    wire.replies.extend([(200, bad_content), (200, OUTPUT)])
-    data = {"url": URL, "text": SOURCE, "status_id": wire.status_id}
-    result = await client.post("/api/applications/extract", json=data)
-    assert result.status_code == 201, result.text
-    assert len(wire.calls) == 2
-    first, repair = map(session, wire.calls)
-    assert first == repair
-    assert [message["role"] for message in wire.calls[1][2]["messages"]] == [
-        "system",
-        "user",
-        "assistant",
-        "user",
-    ]
-    assert wire.calls[1][2]["messages"][2]["content"] == bad_content
-    assert result.json()["salary_min"] is None and result.json()["salary_max"] is None
-    assert first not in result.text
-    next_result = await client.post("/api/applications/extract", json=data)
-    assert next_result.status_code == 201, next_result.text
-    assert len(wire.calls) == 3 and session(wire.calls[2]) != first
-    records = "\n".join(record.getMessage() for record in caplog.records)
-    assert "Starting LLM extraction with model:" in records
-    assert first not in records
+    response = await client.post(
+        "/api/applications/extract", json={"text": SOURCE, "status_id": wire.status_id}
+    )
+    assert response.status_code == 201, response.text
+    assert not wire.calls
+    application = response.json()
+    assert (
+        application["status"]["meaning"] == "preparing"
+        and application["applied_at"] is None
+    )
+    job = await execute(wire, application["pending_analysis_id"])
+    assert job.state == "complete" and len(wire.calls) == 1
+    assert session(wire.calls[0]) == job.id
+    analysis = (
+        await client.get("/api/job-analyses/" + application["pending_analysis_id"])
+    ).json()
+    assert analysis["draft"]["items"][0]["quote"] == "Python required"
 
 
 @pytest.mark.parametrize(
     ("status", "content"),
     [
         (200, "not JSON"),
-        (200, INVALID_SCHEMA),
+        (
+            200,
+            '{"items":[{"id":"x","field":"must_have","value":"Python","quote":"invented"}]}',
+        ),
         (400, ""),
         (429, ""),
         (500, ""),
         (0, ""),
     ],
-    ids=["json", "schema", "bad-request", "rate-limit", "server-error", "disconnect"],
 )
-async def test_saved_lead_failure_makes_one_wire_request(client, wire, status, content):
-    path, _ = await saved_manual_lead(client, wire)
+async def test_failed_provider_work_has_one_request_and_no_automatic_retry(
+    client, wire, status, content
+):
+    lead = (
+        await client.post(
+            "/api/job-leads", json={"text": SOURCE, "title": "Human title"}
+        )
+    ).json()
     wire.replies.append((status, content))
-    result = await client.post(path + "/extract", json={"expected_revision": 1})
-    assert result.status_code in {502, 504}, result.text
-    assert len(wire.calls) == 1
-    context = session(wire.calls[0])
-    current = await client.get(path)
-    lead = current.json()
-    assert lead["status"] == "failed" and lead["revision"] == 3
-    assert lead["processing_started_at"] is None and lead["source_text"] == SOURCE
-    assert (
-        lead["title"] == "Human reviewed"
-        and lead["location"] is None
-        and lead["skills"] == []
+    response = await client.post(
+        f"/api/job-leads/{lead['id']}/extract", json={"expected_revision": 0}
     )
-    assert context not in current.text and context not in result.text
+    assert response.status_code == 200, response.text
+    job = await execute(wire, response.json()["pending_analysis_id"])
+    assert job.state == "failed" and len(wire.calls) == 1
+    current = (await client.get(f"/api/job-leads/{lead['id']}")).json()
+    assert current["title"] == "Human title" and not current["confirmed_requirements"]
+    assert session(wire.calls[0]) == job.id

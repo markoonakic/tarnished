@@ -3,7 +3,7 @@
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, model_validator
 
 Kind = Literal["EXTRACTION", "PROFILE_MATCH", "PREPARATION"]
 FieldName = Literal[
@@ -66,11 +66,15 @@ class Strict(BaseModel):
 class Proposal(Strict):
     id: str = Field(min_length=1, max_length=80)
     field: FieldName
-    value: str | int = Field(union_mode="left_to_right")
+    value: StrictStr | StrictInt
     quote: str = Field(min_length=1, max_length=2000)
 
     @model_validator(mode="after")
     def value_type(self):
+        if "\x00" in str(self.value) or "\x00" in self.quote:
+            raise ValueError("NUL characters are not supported")
+        if not self.quote.strip():
+            raise ValueError("A non-empty source quote is required")
         if self.field in ("salary_min", "salary_max"):
             if (
                 isinstance(self.value, bool)
@@ -114,6 +118,10 @@ class Proposal(Strict):
             raise ValueError("Value too long")
         if self.field == "salary_currency" and len(str(self.value)) > 10:
             raise ValueError("Currency too long")
+        if self.field == "seniority" and len(str(self.value)) > 50:
+            raise ValueError("Seniority too long")
+        if self.field == "recruiter_linkedin_url" and len(str(self.value)) > 512:
+            raise ValueError("Profile URL too long")
         if self.field == "posted_date":
             from datetime import date
 
@@ -187,4 +195,8 @@ class ReviewAnalysis(Strict):
 class ApplyAnalysis(Strict):
     expected_revision: int = Field(ge=0)
     target_revision: int = Field(ge=0)
-    selected_ids: list[str] = Field(max_length=140)
+    selected_ids: list[str] = Field(min_length=1, max_length=140)
+
+
+class DiscardAnalysis(Strict):
+    expected_revision: int = Field(ge=0)

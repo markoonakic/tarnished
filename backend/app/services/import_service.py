@@ -1,5 +1,6 @@
 """Import service using introspective deserialization."""
 
+import json
 import math
 import re
 from datetime import UTC, date, datetime
@@ -134,6 +135,23 @@ class ImportService:
             from app.services.interview_archive import validate_interview_archive
 
             validate_interview_archive(data["models"])
+            from app.schemas.job_analysis import Extraction, Match, Preparation
+
+            for row in data["models"].get("JobAnalysis", []):
+                schema = {
+                    "EXTRACTION": Extraction,
+                    "PROFILE_MATCH": Match,
+                    "PREPARATION": Preparation,
+                }.get(row.get("kind"))
+                if schema is None or len(json.dumps(row)) > 750000:
+                    raise ValueError("Invalid archived analysis")
+                if row.get("draft"):
+                    parsed = schema.model_validate(row["draft"]).model_dump()
+                    if row["kind"] == "EXTRACTION" and any(
+                        item["quote"] not in (row.get("source_text") or "")
+                        for item in parsed["items"]
+                    ):
+                        raise ValueError("Invalid archived posting quote")
             from app.schemas.workspace import (
                 CompanyCreate,
                 ContactCreate,
@@ -314,6 +332,50 @@ class ImportService:
             counts[model_name] = imported
 
         self._resolve_deferred_foreign_keys(session)
+        from app.models import Application, JobLead, Round
+        from app.models.job_analysis import JobAnalysis
+
+        for model in (Application, JobLead):
+            for record in export_data["models"].get(model.__name__, []):
+                restored = session.get(
+                    model, self.id_mapper.get(model.__name__, record["id"])
+                )
+                if restored is not None:
+                    restored.confirmed_requirements = [
+                        {
+                            **item,
+                            "analysis_id": self.id_mapper.get(
+                                "JobAnalysis", item["analysis_id"]
+                            ),
+                        }
+                        if item.get("analysis_id")
+                        else item
+                        for item in (restored.confirmed_requirements or [])
+                    ]
+        for record in export_data["models"].get("JobAnalysis", []):
+            restored_analysis = session.get(
+                JobAnalysis, self.id_mapper.get("JobAnalysis", record["id"])
+            )
+            if restored_analysis is None:
+                raise ValueError("Missing restored analysis")
+            if restored_analysis.round_id:
+                interview = session.get(Round, restored_analysis.round_id)
+                if (
+                    interview is None
+                    or interview.application_id != restored_analysis.application_id
+                ):
+                    raise ValueError(
+                        "Analysis interview belongs to a different application"
+                    )
+            restored_analysis.reviewed = [
+                {
+                    **item,
+                    "company_id": self.id_mapper.get("Company", item["company_id"]),
+                }
+                if item.get("company_id")
+                else item
+                for item in (restored_analysis.reviewed or [])
+            ]
         # JSON provenance is not a SQL FK: remap only to this archive's imported
         # media in the same round. Archives never restore jobs or actor authority.
         from app.models import Application, Round, RoundMedia

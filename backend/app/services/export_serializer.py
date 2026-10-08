@@ -281,6 +281,7 @@ EXPORT_FIELDS["ApplicationDocument"] = (
     "uploaded_at",
 )
 EXPORT_FIELDS["Application"] += (
+    "posted_date",
     "company_id",
     "recruiter_contact_id",
     "work_mode",

@@ -103,6 +103,7 @@ class StatusResponse(BaseModel):
 
 class ApplicationListItem(ApplicationEvidence, JobFieldsResponse):
     pending_analysis_id: str | None = None
+    posted_date: date | None = None
     archived_at: datetime | None = None
     outcome_reason: str | None = None
     source_text: str | None = None

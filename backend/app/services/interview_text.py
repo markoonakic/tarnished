@@ -501,6 +501,7 @@ def validate_section(
 ) -> dict:
     if scope in ("EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
         from app.services.job_analyses import validate_output
+
         return validate_output(value, sources, scope)
     try:
         return _validate_section(
@@ -940,6 +941,7 @@ def _localized_system_prompt(scope, language):
 def _system_prompt(scope, *, current_date=None):
     if scope in ("EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
         from app.services.job_analyses import prompt
+
         return prompt(scope)
     common = (
         f"The current UTC date is {current_date or datetime.now(UTC).date().isoformat()}. "

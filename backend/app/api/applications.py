@@ -40,12 +40,15 @@ from app.schemas.application import (
     ApplicationSummary,
     ApplicationUpdate,
 )
+from app.services.ai_settings import get_ai_settings as get_ai_settings
 from app.services.ai_settings import lock_ai_settings
 from app.services.application_evidence import (
     compare_and_set_application,
     initial_evidence,
     response_values,
+    validate_response_date,
 )
+from app.services.extraction import extract_job_data as extract_job_data
 from app.services.interview_jobs import invalidate_interviews
 from app.services.job_fetch import fetch_job_posting_html
 from app.services.job_filters import JobFilters, apply_filters, filter_params
@@ -281,12 +284,33 @@ async def create_application_from_url(
     db: AsyncSession = Depends(get_db),
 ):
     """Compatibility adapter: create Preparing and queue reviewable proposals."""
-    from uuid import uuid4
+    from uuid import UUID, uuid4
 
     from app.schemas.job_analysis import CreateAnalysis, RunAnalysis
     from app.services import job_analyses
-    from app.services.lead_capture import capture_source
+    from app.services.lead_capture import capture_complete_source
 
+    requested_status = await db.scalar(
+        select(ApplicationStatus).where(
+            ApplicationStatus.id == data.status_id,
+            or_(
+                ApplicationStatus.user_id == user.id,
+                ApplicationStatus.user_id.is_(None),
+            ),
+        )
+    )
+    if requested_status is None:
+        raise HTTPException(400, "Invalid status")
+    today = get_user_local_today(user, x_timezone=x_timezone)
+    validate_response_date(data.response_evidence, today)
+    if data.text:
+        text = capture_complete_source(data.text)["source_text"]
+    else:
+        text = capture_complete_source(html=await fetch_job_posting_html(data.url))[
+            "source_text"
+        ]
+    if not text or len(text) > 100000:
+        raise HTTPException(422, "Posting text must contain 1–100000 characters")
     selected_status = await db.scalar(
         select(ApplicationStatus)
         .where(
@@ -301,14 +325,6 @@ async def create_application_from_url(
     )
     if selected_status is None:
         raise HTTPException(409, "Preparing status is unavailable")
-    if data.text:
-        text = data.text
-    else:
-        text = capture_source(None, await fetch_job_posting_html(data.url))[
-            "source_text"
-        ]
-    if not text or len(text) > 100000:
-        raise HTTPException(422, "Posting text must contain 1–100000 characters")
     application = Application(
         user_id=user.id,
         company="",
@@ -324,12 +340,14 @@ async def create_application_from_url(
     db.add(application)
     await db.flush()
     db.add(initial_evidence(application, selected_status, applied_at_provided=False))
+    for key, value in response_values(data.response_evidence, today).items():
+        setattr(application, key, value)
     analysis = await job_analyses.create(
         db,
         user.id,
         CreateAnalysis(
             kind="EXTRACTION",
-            application_id=application.id,
+            application_id=UUID(application.id),
             language=(user.settings or {}).get("language", "en"),
         ),
     )
@@ -341,8 +359,9 @@ async def create_application_from_url(
     )
     await db.commit()
     await db.refresh(application, ["status"])
-    application.pending_analysis_id = analysis.id
-    return application
+    return ApplicationListItem.model_validate(application).model_copy(
+        update={"pending_analysis_id": analysis.id}
+    )
 
 
 @router.get("/{application_id}", response_model=ApplicationResponse)

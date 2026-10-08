@@ -11,6 +11,7 @@ from app.models.job_analysis import JobAnalysis
 from app.schemas.job_analysis import (
     ApplyAnalysis,
     CreateAnalysis,
+    DiscardAnalysis,
     Kind,
     ReviewAnalysis,
     RunAnalysis,
@@ -20,11 +21,26 @@ from app.services import job_analyses as service
 router = APIRouter(prefix="/api/job-analyses", tags=["job-analyses"])
 
 
-def permit(auth, row, write=False):
+async def permit(db, auth, row, write=False):
     prefix = "job_leads" if row.lead_id else "applications"
     check_api_key_scope(auth, prefix + (":write" if write else ":read"))
     if row.kind != "EXTRACTION":
         check_api_key_scope(auth, "profile:read")
+    if write:
+        from app.services.ai_settings import lock_ai_settings
+        from app.services.interview_jobs import authority
+
+        await lock_ai_settings(db)
+        await authority(
+            db,
+            auth.user.id,
+            auth.user.session_version,
+            auth.api_key.id if auth.api_key else None,
+            scopes=[
+                prefix + ":write",
+                *(["profile:read"] if row.kind != "EXTRACTION" else []),
+            ],
+        )
 
 
 @router.get("")
@@ -47,7 +63,7 @@ async def latest(
         application_id=application_id,
         round_id=round_id,
     )
-    permit(auth, probe)
+    await permit(db, auth, probe)
     await service.target(db, probe)
     row = await db.scalar(
         select(JobAnalysis)
@@ -75,7 +91,7 @@ async def create(
     auth: AuthContext = Depends(get_current_auth_context),
     db: AsyncSession = Depends(get_db),
 ):
-    permit(auth, data, True)
+    await permit(db, auth, data, True)
     row = await service.create(db, auth.user.id, data)
     await db.commit()
     return await service.view(db, row)
@@ -88,7 +104,7 @@ async def read(
     db: AsyncSession = Depends(get_db),
 ):
     row = await service.owned(db, auth.user.id, analysis_id)
-    permit(auth, row)
+    await permit(db, auth, row)
     return await service.view(db, row)
 
 
@@ -102,7 +118,7 @@ async def run(
 ):
     require_executor(request)
     row = await service.owned(db, auth.user.id, analysis_id)
-    permit(auth, row, True)
+    await permit(db, auth, row, True)
     await service.start(db, auth, row, data)
     await db.commit()
     return await service.view(db, row)
@@ -116,7 +132,7 @@ async def review(
     db: AsyncSession = Depends(get_db),
 ):
     row = await service.owned(db, auth.user.id, analysis_id)
-    permit(auth, row, True)
+    await permit(db, auth, row, True)
     row = await service.review(db, row, data)
     await db.commit()
     return await service.view(db, row)
@@ -130,7 +146,29 @@ async def apply(
     db: AsyncSession = Depends(get_db),
 ):
     row = await service.owned(db, auth.user.id, analysis_id)
-    permit(auth, row, True)
+    await permit(db, auth, row, True)
     row = await service.apply(db, row, data)
+    await db.commit()
+    return await service.view(db, row)
+
+
+@router.post("/{analysis_id}/discard")
+async def discard(
+    analysis_id: str,
+    data: DiscardAnalysis,
+    auth: AuthContext = Depends(get_current_auth_context),
+    db: AsyncSession = Depends(get_db),
+):
+    from fastapi import HTTPException
+
+    from app.services.ai_settings import lock_ai_settings
+
+    await lock_ai_settings(db)
+    row = await service.owned(db, auth.user.id, analysis_id)
+    await permit(db, auth, row, True)
+    if row.kind != "PREPARATION" or row.revision != data.expected_revision:
+        raise HTTPException(409, "Draft changed")
+    row.review_state = "discarded"
+    row.revision += 1
     await db.commit()
     return await service.view(db, row)

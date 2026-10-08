@@ -213,6 +213,7 @@ class Application(JobDetails, Base):
     salary_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
     salary_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
     salary_currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    posted_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     recruiter_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     recruiter_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     recruiter_linkedin_url: Mapped[str | None] = mapped_column(
