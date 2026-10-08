@@ -16,11 +16,12 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.models.workspace import JobDetails
 from app.services.export_registry import exportable
 
 
 @exportable(order=8)
-class JobLead(Base):
+class JobLead(JobDetails, Base):
     __tablename__ = "job_leads"
 
     id: Mapped[str] = mapped_column(
@@ -55,7 +56,13 @@ class JobLead(Base):
     # Core job info
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     company: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    url: Mapped[str] = mapped_column(String(2048), nullable=False)
+    url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    decision: Mapped[str | None] = mapped_column(String(20))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
 
     # Rich extraction
     description: Mapped[str | None] = mapped_column(Text, nullable=True)

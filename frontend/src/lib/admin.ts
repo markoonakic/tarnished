@@ -3,9 +3,12 @@ import type { User } from './types';
 
 export interface AdminUser extends User {
   created_at: string;
+  approval_pending?: boolean;
+  last_login_at?: string | null;
 }
 
 export interface AdminStats {
+  pending_users?: number;
   total_users: number;
   total_applications: number;
   applications_by_status: { status: string; count: number }[];
@@ -23,6 +26,7 @@ export async function listUsers(params?: {
   page?: number;
   per_page?: number;
   query?: string;
+  state?: 'all' | 'pending' | 'active' | 'inactive';
 }): Promise<AdminUserListResponse> {
   const response = await api.get('/api/admin/users', { params });
   return response.data;

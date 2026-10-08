@@ -6,8 +6,13 @@ import { useToast } from '@/hooks/useToast';
 import { getProfile, updateProfile } from '@/lib/profile';
 import type { UserProfile } from '@/lib/types';
 import Loading from '../Loading';
+import { CardHeader } from '../Card';
 
-export default function SettingsProfile() {
+export default function SettingsProfile({
+  section = false,
+}: {
+  section?: boolean;
+}) {
   useTranslation();
   const toast = useToast();
   const { error: showError } = toast;
@@ -84,12 +89,35 @@ export default function SettingsProfile() {
       ) : (
         <form
           onSubmit={handleSave}
-          className="bg-secondary rounded-lg p-4 md:p-6"
+          className={
+            section
+              ? 'bg-secondary rounded-lg p-6'
+              : 'bg-secondary rounded-lg p-4 md:p-6'
+          }
         >
-          <h1 className="text-fg1 mb-4 text-2xl font-bold">{t('Profile')}</h1>
-          <p className="text-muted mb-4 text-sm">
-            {t('Your personal information for autofill and communications.')}
-          </p>
+          {section ? (
+            <CardHeader
+              title={t('kit.personalDetails')}
+              icon="bi-person"
+              actions={
+                <span className="text-fg4 flex items-center gap-1.5 text-xs">
+                  <i className="bi bi-lock" aria-hidden="true" />
+                  {t('kit.notUsedByAi')}
+                </span>
+              }
+            />
+          ) : (
+            <>
+              <h1 className="text-fg1 mb-4 text-2xl font-bold">
+                {t('Profile')}
+              </h1>
+              <p className="text-muted mb-4 text-sm">
+                {t(
+                  'Your personal information for autofill and communications.'
+                )}
+              </p>
+            </>
+          )}
 
           <fieldset
             disabled={saving}

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.models import Application, Round, RoundMedia
+from app.models.workspace import ApplicationDocument
 
 CAS_BLOB_NAME_RE = re.compile(r"^[0-9a-f]{64}(?:\.[A-Za-z0-9]+)?$")
 
@@ -79,6 +80,7 @@ async def collect_referenced_paths(
     root = (upload_root or Path(get_settings().upload_dir)).resolve()
     stored_paths = await _collect_application_file_references(session)
     stored_paths.update(await _collect_round_file_references(session))
+    stored_paths.update(await session.scalars(select(ApplicationDocument.file_path)))
 
     resolved_paths: set[Path] = set()
     for stored_path in stored_paths:

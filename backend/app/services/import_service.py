@@ -1,5 +1,6 @@
 """Import service using introspective deserialization."""
 
+import json
 import math
 import re
 from datetime import UTC, date, datetime
@@ -71,6 +72,22 @@ class ImportService:
         "skills",
     )
 
+    PROFILE_RESTORE_FIELDS += (
+        "display_name",
+        "desired_positions",
+        "fields_of_work",
+        "seniority",
+        "work_modes",
+        "employment_types",
+        "years_experience",
+        "location_restrictions",
+        "skill_items",
+        "technologies",
+        "projects",
+        "certificates",
+        "languages",
+    )
+
     def __init__(self, registry: ExportRegistry, id_mapper: IDMapper):
         """
         Initialize the import service.
@@ -118,6 +135,49 @@ class ImportService:
             from app.services.interview_archive import validate_interview_archive
 
             validate_interview_archive(data["models"])
+            from app.schemas.job_analysis import Extraction, Match, Preparation
+
+            for row in data["models"].get("JobAnalysis", []):
+                schema = {
+                    "EXTRACTION": Extraction,
+                    "PROFILE_MATCH": Match,
+                    "PREPARATION": Preparation,
+                }.get(row.get("kind"))
+                if schema is None or len(json.dumps(row)) > 750000:
+                    raise ValueError("Invalid archived analysis")
+                if row.get("draft"):
+                    parsed = schema.model_validate(row["draft"]).model_dump()
+                    if row["kind"] == "EXTRACTION" and any(
+                        item["quote"] not in (row.get("source_text") or "")
+                        for item in parsed["items"]
+                    ):
+                        raise ValueError("Invalid archived posting quote")
+            from app.schemas.workspace import (
+                CompanyCreate,
+                ContactCreate,
+                InterviewFields,
+                JobFields,
+                NoteCreate,
+                ReminderCreate,
+            )
+
+            for model_name, schema in (
+                ("Company", CompanyCreate),
+                ("Contact", ContactCreate),
+                ("Note", NoteCreate),
+                ("Reminder", ReminderCreate),
+                ("Round", InterviewFields),
+                ("Application", JobFields),
+                ("JobLead", JobFields),
+            ):
+                for record in data["models"].get(model_name, []):
+                    schema.model_validate(
+                        {
+                            key: value
+                            for key, value in record.items()
+                            if key in schema.model_fields
+                        }
+                    )
             for row in data["models"].get("Round", []):
                 if row.get("current_transcript") is not None:
                     try:
@@ -272,6 +332,50 @@ class ImportService:
             counts[model_name] = imported
 
         self._resolve_deferred_foreign_keys(session)
+        from app.models import Application, JobLead, Round
+        from app.models.job_analysis import JobAnalysis
+
+        for model in (Application, JobLead):
+            for record in export_data["models"].get(model.__name__, []):
+                restored = session.get(
+                    model, self.id_mapper.get(model.__name__, record["id"])
+                )
+                if restored is not None:
+                    restored.confirmed_requirements = [
+                        {
+                            **item,
+                            "analysis_id": self.id_mapper.get(
+                                "JobAnalysis", item["analysis_id"]
+                            ),
+                        }
+                        if item.get("analysis_id")
+                        else item
+                        for item in (restored.confirmed_requirements or [])
+                    ]
+        for record in export_data["models"].get("JobAnalysis", []):
+            restored_analysis = session.get(
+                JobAnalysis, self.id_mapper.get("JobAnalysis", record["id"])
+            )
+            if restored_analysis is None:
+                raise ValueError("Missing restored analysis")
+            if restored_analysis.round_id:
+                interview = session.get(Round, restored_analysis.round_id)
+                if (
+                    interview is None
+                    or interview.application_id != restored_analysis.application_id
+                ):
+                    raise ValueError(
+                        "Analysis interview belongs to a different application"
+                    )
+            restored_analysis.reviewed = [
+                {
+                    **item,
+                    "company_id": self.id_mapper.get("Company", item["company_id"]),
+                }
+                if item.get("company_id")
+                else item
+                for item in (restored_analysis.reviewed or [])
+            ]
         # JSON provenance is not a SQL FK: remap only to this archive's imported
         # media in the same round. Archives never restore jobs or actor authority.
         from app.models import Application, Round, RoundMedia
@@ -285,6 +389,7 @@ class ImportService:
             media = session.get(RoundMedia, media_id) if media_id else None
             if (
                 round is None
+                or round.current_transcript is None
                 or media is None
                 or media.round_id != round.id
                 or media.sha256 != transcript["source_hash"]
@@ -376,6 +481,20 @@ class ImportService:
             profile.__setattr__(
                 field, self._deserialize_value(record_data[field], column)
             )
+        from app.services.profile_items import ITEM_FIELDS, SECTIONS, normalize_items
+
+        for field in ITEM_FIELDS:
+            setattr(profile, field, normalize_items(getattr(profile, field)))
+        if not profile.skill_items and profile.skills:
+            profile.skill_items = normalize_items(profile.skills)
+        profile.skills = [
+            item["name"]
+            for item in profile.skill_items
+            if isinstance(item.get("name"), str)
+        ]
+        profile.ai_permissions = dict.fromkeys(SECTIONS, False)
+        profile.revision = (profile.revision or 0) + 1
+        profile.permission_revision = (profile.permission_revision or 0) + 1
         session.flush()
         original_id = record_data.get("__original_id__")
         if original_id:
@@ -597,7 +716,7 @@ class ImportService:
                 value = remapped
 
             # Remap foreign keys if this looks like an FK field
-            if target_key.endswith("_id") and target_key != "id":
+            if target_key.endswith("_id") and target_key not in ("id", "intent_id"):
                 # Try to remap this FK
                 ref_model = self._guess_referenced_model(target_key)
                 if ref_model and value:
@@ -624,6 +743,13 @@ class ImportService:
             # Deserialize value based on column type
             value = self._deserialize_value(value, columns[target_key])
             if target_key in {
+                "due_at",
+                "task_deadline",
+                "scheduled_at",
+                "completed_at",
+                "created_at",
+                "updated_at",
+                "archived_at",
                 "changed_at",
                 "corrected_at",
                 "response_recorded_at",
@@ -678,6 +804,13 @@ class ImportService:
             # processing request must validate these bytes before dispatch.
             new_data["validation"] = "imported_unverified"
 
+        if model_class.__name__ == "JobAnalysis":
+            # Imported proposals are inert, never execution or permission authority.
+            new_data["fingerprint"] = ""
+            new_data["review_state"] = "imported"
+            new_data["input_revisions"] = {}
+        if model_class.__name__ == "Reminder":
+            new_data["intent_id"] = str(uuid4())
         # Create instance
         instance = model_class(**new_data)
         session.add(instance)
@@ -735,6 +868,10 @@ class ImportService:
         # Special cases for FK fields that don't follow simple naming conventions
         if fk_field in ("status_id", "from_status_id", "to_status_id"):
             return "ApplicationStatus"
+        if fk_field == "lead_id":
+            return "JobLead"
+        if fk_field == "recruiter_contact_id":
+            return "Contact"
         if fk_field == "round_type_id":
             return "RoundType"
         if fk_field == "converted_to_application_id":

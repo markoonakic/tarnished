@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models import Application, ApplicationStatusHistory, Round, User
 from app.services import user_time
+from app.services.requirement_insights import requirement_insights
 
 ACTIVE_MEANINGS = {"applied", "screening", "interviewing", "offer"}
 CLOSED_MEANINGS = {"accepted", "rejected", "withdrawn", "no_reply"}
@@ -95,7 +96,11 @@ async def get_calculation_data(
     today = as_of.astimezone(zone).date()
     period = period if period in {"7d", "30d", "3m", "all"} else "30d"
     start = get_period_start_date(period, today=today)
-    filters = [Application.user_id == user_id, Application.applied_at <= today]
+    filters = [
+        Application.user_id == user_id,
+        Application.applied_at <= today,
+        Application.status_meaning != "preparing",
+    ]
     if start is not None:
         filters.append(Application.applied_at >= start)
     apps = (
@@ -134,13 +139,15 @@ async def get_calculation_data(
     )
     responded = undated = unknown_response = interviewed = offered = 0
     for app in apps:
+        assert app.applied_at is not None  # The sent-date SQL cohort excludes NULL.
         current = (
             app.status_meaning
             if app.status_meaning_provenance == "recorded"
             else "unknown"
         )
-        stage_counts[current] += 1
-        stage_labels[app.status.name] += 1
+        if app.archived_at is None:
+            stage_counts[current] += 1
+            stage_labels[app.status.name] += 1
         response_available = (
             app.response_state == "recorded"
             and app.response_recorded_at is not None
@@ -370,6 +377,100 @@ async def get_calculation_data(
                     }
                 )
     n = len(apps)
+    response_days = [
+        (app.response_occurred_on - app.applied_at).days
+        for app in apps
+        if app.applied_at is not None
+        and app.response_state == "recorded"
+        and app.response_recorded_at is not None
+        and utc(app.response_recorded_at) <= as_of
+        and app.response_occurred_on is not None
+        and app.applied_at <= app.response_occurred_on <= today
+    ]
+    source_outcomes = {}
+    rejected = set()
+    positions = Counter()
+    technologies = Counter()
+    labels = {}
+    for app in apps:
+        source = (app.source or "").strip()
+        bucket = source_outcomes.setdefault(
+            source,
+            {
+                "source": source or None,
+                "sent": 0,
+                "interview": 0,
+                "offer": 0,
+                "rejected": 0,
+                "withdrawn": 0,
+            },
+        )
+        bucket["sent"] += 1
+        reached = {
+            entry.to_meaning
+            for entry in app.status_history
+            if _recorded_entry(entry) and utc(entry.changed_at) <= as_of
+        }
+        for meaning, key in (
+            ("interviewing", "interview"),
+            ("offer", "offer"),
+            ("rejected", "rejected"),
+            ("withdrawn", "withdrawn"),
+        ):
+            bucket[key] += meaning in reached
+        if "rejected" in reached:
+            rejected.add(app.id)
+        title = app.job_title.strip()
+        if title:
+            positions[title.casefold()] += 1
+            key = ("position", title.casefold())
+            labels[key] = min(title, labels.get(key, title))
+        unique = set()
+        for technology in app.skills or []:
+            if isinstance(technology, str) and technology.strip():
+                label = technology.strip()
+                unique.add(label.casefold())
+                key = ("technology", label.casefold())
+                labels[key] = min(label, labels.get(key, label))
+        technologies.update(unique)
+
+    def frequencies(counter, kind):
+        return [
+            {"label": labels[(kind, key)], "count": count}
+            for key, count in sorted(
+                counter.items(), key=lambda pair: (-pair[1], pair[0])
+            )
+        ]
+
+    stage_hours = defaultdict(list)
+    for visit in visits:
+        if visit["kind"] == "completed" and visit["hours"] is not None:
+            stage_hours[visit["meaning"]].append(visit["hours"])
+    stage_averages = [
+        {
+            "meaning": meaning,
+            "mean_days": sum(hours) / len(hours) / 24,
+            "mean_hours": sum(hours) / len(hours),
+            "n": len(hours),
+        }
+        for meaning, hours in sorted(stage_hours.items())
+    ]
+    from sqlalchemy import func
+
+    current_phases = [
+        {"meaning": meaning, "count": count}
+        for meaning, count in (
+            await db.execute(
+                select(Application.status_meaning, func.count())
+                .where(
+                    Application.user_id == user_id, Application.archived_at.is_(None)
+                )
+                .group_by(Application.status_meaning)
+            )
+        ).all()
+    ]
+
+    from app.services.job_analyses import current_matches
 
     def rate(value: int) -> float | None:
         return round(value / n * 100, 1) if n else None
@@ -388,6 +489,20 @@ async def get_calculation_data(
             "observed_at": observed_at,
             "basis": "live_current_records_not_historical_as_of",
         },
+        **requirement_insights(apps, await current_matches(db, user_id, apps)),
+        "first_response": {
+            "mean_days": sum(response_days) / len(response_days)
+            if response_days
+            else None,
+            "n": len(response_days),
+            "unknown_count": n - len(response_days),
+        },
+        "rejected_count": len(rejected),
+        "outcomes_by_source": list(source_outcomes.values()),
+        "top_positions": frequencies(positions, "position"),
+        "top_technologies": frequencies(technologies, "technology"),
+        "stage_averages": stage_averages,
+        "current_phases": current_phases,
         "total_applications": n,
         "responded": responded,
         "response_rate": rate(responded),

@@ -13,6 +13,7 @@ from pydantic import (
 )
 
 Meaning = Literal[
+    "preparing",
     "unknown",
     "applied",
     "screening",
@@ -123,6 +124,7 @@ class HistoryEvidence(BaseModel):
 
 
 class HistoryArchiveEvidence(HistoryEvidence):
+    reason: str | None = Field(None, max_length=2000)
     from_status_id: str | None
     to_status_id: str | None
     changed_at: datetime
@@ -139,6 +141,7 @@ class HistoryArchiveEvidence(HistoryEvidence):
                     self.from_meaning,
                     self.to_meaning,
                     self.note,
+                    self.reason,
                     self.corrected_at,
                     self.correction_note,
                 )

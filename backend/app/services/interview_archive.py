@@ -497,6 +497,22 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
     )
 
     models = export_data.get("models", {})
+    from app.models import UserProfile
+
+    # Local archive verification is not an AI input. Verify old passages against
+    # restored content even though import resets every profile permission.
+    # Imported reports keep empty fingerprints and cannot become AI evidence.
+    profile = await db.scalar(select(UserProfile).where(UserProfile.user_id == user_id))
+    verification_profile = {
+        "work_history": [
+            {key: value for key, value in item.items() if key != "id"}
+            for item in (profile.work_history or [])
+            if isinstance(item, dict)
+        ]
+        if profile
+        else None,
+        "skills": profile.skills if profile else None,
+    }
     # Regenerated ids embed the IMPORTED identities, so every remapped identity
     # must be mapped back before comparing ids and text.
     inverse: dict[str, str] = {}
@@ -519,6 +535,7 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
                 continue
             new_round = id_mapper.get("Round", row["id"])
             data, _ = await snapshot(db, user_id, new_round)
+            data["profile"] = verification_profile
             expected, _ = await evidence_sources(data)
             restored = await db.scalar(
                 select(Round.interview_report).where(Round.id == new_round)
@@ -529,10 +546,11 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
                 continue
             new_app = id_mapper.get("Application", row["id"])
             data, _ = await application_snapshot(db, user_id, new_app)
+            data["profile"] = verification_profile
             variants = []
             for include in (True, False):
                 expected, _ = await application_evidence_sources(
-                    data, include_round_reports=include
+                    data, include_round_reports=include, include_imported_reports=True
                 )
                 variants.append(_expected_index(expected, inverse))
             restored = await db.scalar(
@@ -556,7 +574,11 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
                 as_of,
                 report.get("time_zone") or "UTC",
             )
+            data["profile"] = verification_profile
             expected, _ = await pipeline_evidence_sources(data)
+            legacy_metrics, _ = await pipeline_evidence_sources(
+                data, include_workspace_metrics=False
+            )
             # Older archives can cite unfiltered profile data; verify it locally only.
             legacy_profile = []
             _append_source(
@@ -569,6 +591,7 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
                 report,
                 [
                     _expected_index(expected, inverse),
+                    _expected_index(legacy_metrics, inverse),
                     _expected_index(legacy_profile, inverse),
                 ],
             )

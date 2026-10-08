@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -19,7 +20,6 @@ from app.schemas.admin import (
     AdminUserUpdate,
 )
 from app.services.accounts import update_account
-from app.services.import_execution import clear_existing_import_data
 from app.services.reference_data import (
     find_global_round_type_by_name,
     find_global_status_by_name,
@@ -33,6 +33,7 @@ async def list_users(
     page: int = Query(1, ge=1),
     per_page: int = Query(25, ge=1, le=100),
     query: str | None = Query(None, min_length=1),
+    state: Literal["all", "pending", "active", "inactive"] = "all",
     _: User = Depends(get_current_admin),
     __: object = Depends(require_api_key_scope("admin:read")),
     db: AsyncSession = Depends(get_db),
@@ -55,6 +56,19 @@ async def list_users(
         count_query = count_query.where(email_filter)
         users_query = users_query.where(email_filter)
 
+    if state != "all":
+        predicate = (
+            User.approval_pending.is_(True)
+            if state == "pending"
+            else (
+                User.is_active.is_(True)
+                if state == "active"
+                else (User.is_active.is_(False) & User.approval_pending.is_(False))
+            )
+        )
+        count_query = count_query.where(predicate)
+        users_query = users_query.where(predicate)
+
     # Get total count
     count_result = await db.execute(count_query)
     total = count_result.scalar() or 0
@@ -75,6 +89,8 @@ async def list_users(
             is_active=user.is_active,
             created_at=user.created_at,
             application_count=app_count,
+            approval_pending=user.approval_pending,
+            last_login_at=user.last_login_at,
         )
         for user, app_count in rows
     ]
@@ -129,6 +145,8 @@ async def update_user(
         is_active=user.is_active,
         created_at=user.created_at,
         application_count=app_count,
+        approval_pending=user.approval_pending,
+        last_login_at=user.last_login_at,
     )
 
 
@@ -194,9 +212,9 @@ async def delete_user(
     try:
         # Reuse the owner-scoped workspace clearing order, including converted leads.
         # CAS blobs remain for reference-aware maintenance, never unlinked here.
-        await clear_existing_import_data(db, user_id)
-        await db.delete(user)
-        await db.commit()
+        from app.services.accounts import delete_account
+
+        await delete_account(db, user_id)
     except IntegrityError:
         await db.rollback()
         raise HTTPException(
@@ -224,6 +242,10 @@ async def get_stats(
     )
 
     return AdminStatsResponse(
+        pending_users=await db.scalar(
+            select(func.count(User.id)).where(User.approval_pending.is_(True))
+        )
+        or 0,
         total_users=total_users.scalar() or 0,
         active_users=active_users.scalar() or 0,
         total_applications=total_apps.scalar() or 0,

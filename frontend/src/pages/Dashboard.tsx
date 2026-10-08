@@ -1,4 +1,7 @@
 import { t } from '@/lib/i18n';
+import DashboardPipelineStrip from '../components/slots/DashboardPipelineStrip';
+import DashboardUpcomingRow from '../components/slots/DashboardUpcomingRow';
+import DashboardBoard from '../components/slots/DashboardBoard';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +16,7 @@ import KPICards from '../components/dashboard/KPICards';
 import NeedsAttention from '../components/dashboard/NeedsAttention';
 import ImportModal from '../components/ImportModal';
 import ApplicationModal from '../components/ApplicationModal';
+import JobLeadCaptureForm from '../components/JobLeadCaptureForm';
 import {
   hasSeenImportPrompt,
   markImportPromptSeen,
@@ -145,16 +149,21 @@ export default function Dashboard() {
           </div>
         )}
         {totalApplications === 0 ? (
-          <EmptyState
-            message={t(
-              'Welcome! Add your first job application to get started.'
-            )}
-            icon="bi-plus-circle"
-            action={{
-              label: t('Add Application'),
-              onClick: () => setShowCreateModal(true),
-            }}
-          />
+          <>
+            <EmptyState
+              message={t(
+                'Welcome! Add your first job application to get started.'
+              )}
+              icon="bi-plus-circle"
+              action={{
+                label: t('Add Application'),
+                onClick: () => setShowCreateModal(true),
+              }}
+            />
+            <DashboardPipelineStrip />
+            <DashboardUpcomingRow />
+            <DashboardBoard />
+          </>
         ) : (
           <>
             <h1 className="text-primary mb-6 text-2xl font-bold">
@@ -164,6 +173,7 @@ export default function Dashboard() {
             {showStreakStats && <FlameEmblem />}
 
             <KPICards />
+            <DashboardPipelineStrip />
 
             {/* Quick Actions - single layer cards using inline-block (no flex) to avoid Firefox animation bug */}
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -176,27 +186,27 @@ export default function Dashboard() {
                   {t('New Application')}
                 </span>
               </button>
+              <div className="bg-secondary hover:bg-bg2 [&>button]:text-fg1 relative rounded-lg [&>button]:w-full [&>button]:bg-transparent [&>button]:py-4 [&>button]:pl-12 [&>button]:text-left">
+                <i
+                  className="bi bi-link-45deg text-accent icon-xl pointer-events-none absolute top-4 left-4"
+                  aria-hidden="true"
+                />
+                <JobLeadCaptureForm />
+              </div>
               <button
-                onClick={() => navigate('/analytics')}
+                onClick={() => navigate('/applications?view=board')}
                 className="bg-secondary hover:bg-bg2 cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5"
               >
-                <i className="bi bi-graph-up text-accent icon-xl align-middle"></i>
+                <i className="bi bi-kanban text-accent icon-xl align-middle"></i>
                 <span className="text-fg1 ml-3 align-middle font-medium">
-                  {t('View Analytics')}
-                </span>
-              </button>
-              <button
-                onClick={() => navigate('/applications')}
-                className="bg-secondary hover:bg-bg2 cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5"
-              >
-                <i className="bi bi-list-ul text-accent icon-xl align-middle"></i>
-                <span className="text-fg1 ml-3 align-middle font-medium">
-                  {t('View Applications')}
+                  {t('tasks.openBoard')}
                 </span>
               </button>
             </div>
 
+            <DashboardUpcomingRow />
             {showNeedsAttention && <NeedsAttention />}
+            <DashboardBoard />
 
             {showHeatmap && (
               <div className="bg-secondary rounded-lg p-6">

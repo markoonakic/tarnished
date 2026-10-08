@@ -201,16 +201,30 @@ async def test_new_report_pins_language_without_translating_quotes(
 
 @pytest.mark.parametrize("db_engine", ["20260419_report_scopes"], indirect=True)
 async def test_migration_backfills_only_builtin_definitions(db, db_engine):
+    from datetime import UTC, datetime
+
+    from sqlalchemy import MetaData, Table
     from tests.conftest import _run_alembic_upgrade
 
-    owner = User(
-        email="migration-language@example.com",
-        password_hash="unused",
-        settings={"theme": "dracula"},
+    owner_id = str(uuid4())
+    # Historical-schema fixtures must not insert columns from a newer ORM model.
+    await db.run_sync(
+        lambda session: session.execute(
+            Table("users", MetaData(), autoload_with=session.connection())
+            .insert()
+            .values(
+                id=owner_id,
+                email="migration-language@example.com",
+                password_hash="unused",
+                is_admin=False,
+                is_active=True,
+                created_at=datetime.now(UTC),
+                settings={"theme": "dracula"},
+            )
+        )
     )
-    db.add(owner)
     await db.commit()
-    for identity, user_id in (("global", None), ("custom", owner.id)):
+    for identity, user_id in (("global", None), ("custom", owner_id)):
         await db.execute(
             text(
                 'INSERT INTO application_statuses (id,name,normalized_name,color,is_default,user_id,"order",meaning) VALUES (:id,'
@@ -227,7 +241,7 @@ async def test_migration_backfills_only_builtin_definitions(db, db_engine):
     await db.commit()
     async with db_engine.begin() as connection:
         await connection.run_sync(_run_alembic_upgrade, str(db_engine.url))
-    await db.refresh(owner)
+    owner = await db.get(User, owner_id)
     assert owner.settings == {"theme": "dracula", "language": "en"}
     assert (await db.get(ApplicationStatus, "global")).builtin_key == "applied"
     assert (await db.get(ApplicationStatus, "custom")).builtin_key is None
@@ -265,13 +279,8 @@ async def test_serbian_prompt_preserves_source_text_in_both_protocols(protocol):
     assert submitted["sources"] == sources
 
 
-async def test_explicit_lead_extraction_uses_request_language(
-    client, db, workspace, monkeypatch
-):
-    from unittest.mock import AsyncMock
-
-    from app.api import job_leads
-    from app.schemas.job_lead import JobLeadExtractionInput
+async def test_explicit_lead_extraction_uses_request_language(client, db, workspace):
+    from app.models import JobAnalysis
 
     async with responses_fixture() as (endpoint, calls):
         await setup_round(client, db, workspace, endpoint)
@@ -284,14 +293,18 @@ async def test_explicit_lead_extraction_uses_request_language(
                 },
             )
         ).json()
-        extract = AsyncMock(
-            return_value=JobLeadExtractionInput(title="Role", company="Company")
-        )
-        monkeypatch.setattr(job_leads, "extract_job_data", extract)
         response = await client.post(
             f"/api/job-leads/{lead['id']}/extract",
             json={"expected_revision": lead["revision"], "language": "sr-Latn"},
         )
         assert response.status_code == 200, response.text
-        assert extract.call_args.kwargs["output_language"] == "sr-Latn"
+        analysis = await db.scalar(
+            select(JobAnalysis).where(JobAnalysis.lead_id == lead["id"])
+        )
+        assert analysis is not None and analysis.language == "sr-Latn"
+        job = await db.scalar(
+            select(InterviewJob).where(InterviewJob.analysis_id == analysis.id)
+        )
+        assert job is not None and job.state == "queued"
+        assert response.json()["title"] is None
         assert calls == []

@@ -73,6 +73,7 @@ async def get_application_history(
                 ).model_dump(),
                 "changed_at": entry.changed_at,
                 "note": entry.note,
+                "reason": entry.reason,
             }
         )
 

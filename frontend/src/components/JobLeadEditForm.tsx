@@ -8,6 +8,9 @@ import {
 } from '../lib/jobLeads';
 import type { JobLead } from '../lib/types';
 import Modal from './Modal';
+import CompanyPicker from './CompanyPicker';
+import JobMetadataFields from './records/JobMetadataFields';
+import { jobMetadata } from '@/lib/records';
 
 const textFields = [
   ['company', 'Company', 255],
@@ -47,6 +50,7 @@ export default function JobLeadEditForm({
   useTranslation();
   // Freeze the revision and baseline for this draft; a newer read must not rebase it silently.
   const [baseline] = useState(lead);
+  const [metadata, setMetadata] = useState(() => jobMetadata(lead));
   const [fields, setFields] = useState<Record<string, string>>(() =>
     Object.fromEntries([
       ...textFields.map(([key]) => [key, lead[key] ?? '']),
@@ -101,6 +105,13 @@ export default function JobLeadEditForm({
         }
         body[key] = values;
       }
+    }
+    const initialMetadata = jobMetadata(baseline);
+    for (const key of Object.keys(metadata) as (keyof typeof metadata)[]) {
+      if (
+        JSON.stringify(metadata[key]) !== JSON.stringify(initialMetadata[key])
+      )
+        Object.assign(body, { [key]: metadata[key] });
     }
     if (Object.keys(body).length === 1) {
       onCancel();
@@ -169,7 +180,17 @@ export default function JobLeadEditForm({
               className={`text-muted block text-sm font-semibold ${key === 'description' ? 'sm:col-span-2' : ''}`}
             >
               {uiLabel(label)}
-              {key === 'description' ? (
+              {key === 'company' ? (
+                <CompanyPicker
+                  value={metadata.company_id}
+                  name={fields.company}
+                  disabled={busy || stale}
+                  onChange={(id, name) => {
+                    setMetadata({ ...metadata, company_id: id });
+                    setFields({ ...fields, company: name });
+                  }}
+                />
+              ) : key === 'description' ? (
                 <textarea
                   rows={5}
                   className={inputClass}
@@ -225,6 +246,9 @@ export default function JobLeadEditForm({
               />
             </label>
           ))}
+        </fieldset>
+        <fieldset disabled={busy || stale}>
+          <JobMetadataFields value={metadata} onChange={setMetadata} />
         </fieldset>
         <div className="flex justify-end gap-2">
           <button

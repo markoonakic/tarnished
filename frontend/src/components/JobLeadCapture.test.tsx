@@ -1,3 +1,6 @@
+vi.mock('@/hooks/useEffectiveDayKey', () => ({
+  useEffectiveDayKey: () => '2026-10-08',
+}));
 import {
   cleanup,
   fireEvent,
@@ -19,6 +22,26 @@ import {
 import type { JobLead } from '../lib/types';
 import JobLeadCaptureForm from './JobLeadCaptureForm';
 import JobLeadEditForm from './JobLeadEditForm';
+vi.mock('./CompanyPicker', () => ({
+  default: ({
+    id,
+    name,
+    onChange,
+  }: {
+    id?: string;
+    name?: string;
+    onChange: (id: null, name: string) => void;
+  }) => (
+    <input
+      id={id}
+      aria-label={id ? undefined : 'Company'}
+      value={name ?? ''}
+      onChange={(event) => onChange(null, event.target.value)}
+    />
+  ),
+}));
+vi.mock('./slots/LeadContacts', () => ({ default: () => null }));
+vi.mock('./slots/LeadNotes', () => ({ default: () => null }));
 import JobLeadDetail from '../pages/JobLeadDetail';
 import JobLeads from '../pages/JobLeads';
 
@@ -29,6 +52,9 @@ const toast = vi.hoisted(() => ({
 }));
 vi.mock('../contexts/ToastContext', () => ({ useToastContext: () => toast }));
 vi.mock('../hooks/useToast', () => ({ useToast: () => toast }));
+vi.mock('./slots/LeadReminders', () => ({ default: () => null }));
+vi.mock('./slots/LeadExtractionReview', () => ({ default: () => null }));
+vi.mock('./slots/LeadProfileMatch', () => ({ default: () => null }));
 vi.mock('./Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -79,6 +105,7 @@ function reject(
     config,
   });
 }
+
 const original = api.defaults.adapter;
 let saved: JobLead;
 let requests: {
@@ -320,7 +347,7 @@ it('validates source by Unicode characters without silently clipping the input',
   fireEvent.change(source, { target: { value: '😀'.repeat(100001) } });
   fireEvent.click(screen.getByRole('button', { name: 'Save Lead' }));
   expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Shorten the input'
+    'Shorten the text'
   );
   expect(requests).toHaveLength(0);
   expect(source).toHaveValue('😀'.repeat(100001));

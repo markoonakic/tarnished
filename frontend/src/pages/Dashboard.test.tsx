@@ -31,6 +31,13 @@ vi.mock('../contexts/AuthContext', () => ({
   }),
 }));
 
+vi.mock('../components/slots/DashboardPipelineStrip', () => ({
+  default: () => null,
+}));
+vi.mock('../components/slots/DashboardUpcomingRow', () => ({
+  default: () => null,
+}));
+vi.mock('../components/slots/DashboardBoard', () => ({ default: () => null }));
 vi.mock('../components/Layout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
@@ -58,6 +65,7 @@ vi.mock('../components/ImportModal', () => ({
 vi.mock('../components/ApplicationModal', () => ({
   default: () => null,
 }));
+vi.mock('../components/JobLeadCaptureForm', () => ({ default: () => null }));
 
 vi.mock('../lib/dashboardPrompt', () => ({
   hasSeenImportPrompt: () => true,

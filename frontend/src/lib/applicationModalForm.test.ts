@@ -55,6 +55,27 @@ function createApplication(rounds: Round[] = []): Application {
 }
 
 describe('application modal form helpers', () => {
+  it('keeps Applied as the new-application default when Preparing is first', () => {
+    expect(
+      getApplicationModalDefaults([
+        {
+          id: 'preparing',
+          name: 'Preparing',
+          meaning: 'preparing',
+          builtin_key: 'preparing',
+          color: 'blue',
+          is_default: true,
+        },
+        {
+          id: 'applied',
+          name: 'Applied',
+          meaning: 'applied',
+          builtin_key: 'applied',
+          color: 'aqua',
+        },
+      ]).statusId
+    ).toBe('applied');
+  });
   it('adds https to bare application urls', () => {
     expect(normalizeApplicationUrl('example.com/job')).toBe(
       'https://example.com/job'

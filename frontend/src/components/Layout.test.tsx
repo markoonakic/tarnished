@@ -59,6 +59,46 @@ it.each(['en', 'sr-Latn'])(
   }
 );
 
+it('keeps the five product links in order on desktop and mobile', () => {
+  render(
+    <MemoryRouter>
+      <Layout>Page</Layout>
+    </MemoryRouter>
+  );
+  const desktop = screen
+    .getAllByRole('link')
+    .filter((link) =>
+      [
+        '/job-leads',
+        '/applications',
+        '/companies',
+        '/tasks',
+        '/analytics',
+      ].includes(link.getAttribute('href') ?? '')
+    );
+  expect(desktop.map((link) => link.getAttribute('href'))).toEqual([
+    '/job-leads',
+    '/applications',
+    '/companies',
+    '/tasks',
+    '/analytics',
+  ]);
+  fireEvent.click(screen.getByRole('button', { name: 'Toggle menu' }));
+  const mobile = document.getElementById('mobile-navigation')!;
+  expect(
+    within(mobile)
+      .getAllByRole('link')
+      .slice(0, 5)
+      .map((link) => link.getAttribute('href'))
+  ).toEqual([
+    '/job-leads',
+    '/applications',
+    '/companies',
+    '/tasks',
+    '/analytics',
+  ]);
+});
+
 it('uses the email fallback and keeps the same account links on mobile without Admin for non-admins', () => {
   auth.user.display_name = '';
   auth.user.is_admin = false;

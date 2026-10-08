@@ -183,6 +183,192 @@ EXPORT_FIELDS: dict[str, tuple[str, ...]] = {
     ),
 }
 
+
+EXPORT_FIELDS["Company"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "name",
+    "website",
+    "industry",
+    "location",
+    "size",
+    "description",
+    "culture_notes",
+)
+EXPORT_FIELDS["Contact"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "name",
+    "function",
+    "email",
+    "phone",
+    "profile_url",
+    "role",
+    "last_contact_on",
+    "communication_note",
+    "company_id",
+)
+EXPORT_FIELDS["Note"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "lead_id",
+    "application_id",
+    "company_id",
+    "contact_id",
+    "round_id",
+    "body",
+)
+EXPORT_FIELDS["Reminder"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "lead_id",
+    "application_id",
+    "company_id",
+    "contact_id",
+    "round_id",
+    "kind",
+    "title",
+    "note",
+    "due_at",
+    "time_zone",
+    "state",
+    "completed_at",
+    "intent_id",
+)
+EXPORT_FIELDS["ApplicationContact"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "application_id",
+    "contact_id",
+)
+EXPORT_FIELDS["RoundContact"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "round_id",
+    "contact_id",
+)
+EXPORT_FIELDS["ApplicationDocument"] = (
+    "id",
+    "user_id",
+    "revision",
+    "created_at",
+    "updated_at",
+    "application_id",
+    "kind",
+    "file_path",
+    "original_filename",
+    "media_type",
+    "byte_count",
+    "sha256",
+    "uploaded_at",
+)
+EXPORT_FIELDS["Application"] += (
+    "posted_date",
+    "company_id",
+    "recruiter_contact_id",
+    "work_mode",
+    "employment_type",
+    "seniority",
+    "deadline",
+    "pay_period",
+    "priority",
+    "tags",
+    "confirmed_requirements",
+    "requirements_revision",
+    "archived_at",
+    "outcome_reason",
+    "source_text",
+    "source_revision",
+)
+EXPORT_FIELDS["JobLead"] += (
+    "company_id",
+    "recruiter_contact_id",
+    "work_mode",
+    "employment_type",
+    "seniority",
+    "deadline",
+    "pay_period",
+    "priority",
+    "tags",
+    "confirmed_requirements",
+    "requirements_revision",
+    "decision",
+    "updated_at",
+)
+EXPORT_FIELDS["Round"] += (
+    "revision",
+    "updated_at",
+    "time_zone",
+    "duration_minutes",
+    "mode",
+    "location",
+    "meeting_url",
+    "preparation",
+    "questions_answers",
+    "impressions",
+    "task_description",
+    "task_deadline",
+    "next_steps",
+    "expected_reply_on",
+)
+EXPORT_FIELDS["UserProfile"] += (
+    "revision",
+    "permission_revision",
+    "ai_permissions",
+    "display_name",
+    "desired_positions",
+    "fields_of_work",
+    "seniority",
+    "work_modes",
+    "employment_types",
+    "years_experience",
+    "location_restrictions",
+    "skill_items",
+    "technologies",
+    "projects",
+    "certificates",
+    "languages",
+)
+EXPORT_FIELDS["ApplicationStatusHistory"] += ("reason",)
+EXPORT_FIELDS["User"] += ("approval_pending", "last_login_at")
+
+EXPORT_FIELDS["JobAnalysis"] = (
+    "id",
+    "user_id",
+    "lead_id",
+    "application_id",
+    "round_id",
+    "kind",
+    "revision",
+    "fingerprint",
+    "source_text",
+    "input_revisions",
+    "language",
+    "draft",
+    "reviewed",
+    "review_state",
+    "created_at",
+    "updated_at",
+)
+
 # User.settings may retain legacy credentials and unknown internal state.
 EXPORT_SETTINGS_FIELDS = (
     "language",
@@ -240,7 +426,15 @@ def serialize_model_instance(instance: Any) -> dict[str, Any] | None:
         field: serialize_value(getattr(instance, field))
         for field in EXPORT_FIELDS[model_name]
     }
-    for field in ("response_recorded_at", "corrected_at", "changed_at"):
+    for field in (
+        "response_recorded_at",
+        "corrected_at",
+        "changed_at",
+        "due_at",
+        "task_deadline",
+        "archived_at",
+        "last_login_at",
+    ):
         if field in result and (value := getattr(instance, field)) is not None:
             # SQLite drops the timezone of our UTC-normalized evidence writes.
             result[field] = (

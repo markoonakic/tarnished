@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, StrictBool, field_validator
 
@@ -8,6 +8,8 @@ from app.schemas.evidence import Meaning
 
 
 class AdminUserResponse(BaseModel):
+    approval_pending: bool = False
+    last_login_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -17,13 +19,19 @@ class AdminUserResponse(BaseModel):
     created_at: datetime
     application_count: int = 0
 
+    @field_validator("last_login_at")
+    @classmethod
+    def utc_last_login(cls, value):
+        return value.replace(tzinfo=UTC) if value and value.tzinfo is None else value
+
 
 class AdminUserUpdate(BaseModel):
+    approval_pending: StrictBool | None = None
     is_active: StrictBool | None = None
     is_admin: StrictBool | None = None
     password: NewPassword | None = None
 
-    @field_validator("password", "is_active", "is_admin")
+    @field_validator("password", "is_active", "is_admin", "approval_pending")
     @classmethod
     def reject_null(cls, value):
         if value is None:
@@ -39,6 +47,7 @@ class AdminUserCreate(BaseModel):
 
 
 class AdminStatsResponse(BaseModel):
+    pending_users: int = 0
     total_users: int
     active_users: int
     total_applications: int

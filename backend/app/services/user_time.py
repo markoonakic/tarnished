@@ -54,6 +54,26 @@ def get_user_local_today(
     return _utc_now().astimezone(ZoneInfo(time_zone_name)).date()
 
 
+def normalize_in_zone(value: datetime | None, zone: str | None):
+    from fastapi import HTTPException
+
+    if value is None:
+        return None
+    if value.tzinfo is not None:
+        return value.astimezone(UTC)
+    if not zone:
+        raise HTTPException(422, "A time zone or offset is required")
+    local = value.replace(tzinfo=ZoneInfo(zone))
+    instant = local.astimezone(UTC)
+    if instant.astimezone(local.tzinfo).replace(tzinfo=None) != value:
+        raise HTTPException(422, "This local time does not exist")
+    if local.utcoffset() != local.replace(fold=1).utcoffset():
+        raise HTTPException(
+            422, "This local time is ambiguous; provide an explicit offset"
+        )
+    return instant
+
+
 class RoundTimeZoneConflict(ValueError):
     """The submitted wall time was edited under a different effective zone."""
 

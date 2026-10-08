@@ -200,7 +200,8 @@ def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]
                 file_field = file_info.get("field", "")
                 allowed_types = (
                     ALLOWED_DOCUMENT_TYPES
-                    if file_field in ("cv_path", "cover_letter_path", "transcript_path")
+                    if file_info.get("entity_type") == "ApplicationDocument"
+                    or file_field in ("cv_path", "cover_letter_path", "transcript_path")
                     else ALLOWED_DOCUMENT_TYPES | ALLOWED_MEDIA_TYPES
                 )
                 # A normalized transcript may contain literal markup or VTT that
@@ -227,6 +228,18 @@ def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]
                         f"Invalid MIME type for {zip_path_str}: {detected_mime}"
                     )
 
+                if file_info.get("entity_type") == "ApplicationDocument":
+                    records = [
+                        record
+                        for record in models.get("ApplicationDocument", [])
+                        if record.get("id") == file_info.get("entity_id")
+                    ]
+                    if (
+                        len(records) != 1
+                        or records[0].get("sha256") != file_hash
+                        or records[0].get("byte_count") != len(content)
+                    ):
+                        raise ValueError("Document archive integrity mismatch")
                 new_cas_path = store_file(
                     content, upload_root, ".txt" if normalized_source else None
                 )
@@ -236,6 +249,7 @@ def extract_files_from_new_format(zip_path: str, user_id: str) -> dict[str, str]
                     "Application": {"cv_path", "cover_letter_path"},
                     "Round": {"transcript_path"},
                     "RoundMedia": {"file_path"},
+                    "ApplicationDocument": {"file_path"},
                 }
                 if file_field in allowed_fields.get(entity_type, set()):
                     for record in models.get(entity_type, []):
@@ -410,6 +424,28 @@ async def clear_existing_import_data(db: AsyncSession, user_id: str) -> None:
     from app.services.ai_settings import lock_ai_settings
 
     await lock_ai_settings(db)
+    from sqlalchemy import delete
+
+    from app.models.job_analysis import JobAnalysis
+    from app.models.workspace import (
+        ApplicationContact,
+        ApplicationDocument,
+        Company,
+        Contact,
+        Note,
+        Reminder,
+        RoundContact,
+    )
+
+    await db.execute(delete(JobAnalysis).where(JobAnalysis.user_id == user_id))
+    for model in (
+        Note,
+        Reminder,
+        ApplicationContact,
+        RoundContact,
+        ApplicationDocument,
+    ):
+        await db.execute(delete(model).where(model.user_id == user_id))
     for model in (Application,):
         result = await db.execute(select(model).where(model.user_id == user_id))
         for row in result.scalars().all():
@@ -417,6 +453,8 @@ async def clear_existing_import_data(db: AsyncSession, user_id: str) -> None:
     result = await db.execute(select(JobLead).where(JobLead.user_id == user_id))
     for row in result.scalars().all():
         await db.delete(row)
+    for model in (Contact, Company):
+        await db.execute(delete(model).where(model.user_id == user_id))
     result = await db.execute(
         select(ApplicationStatus).where(ApplicationStatus.user_id == user_id)
     )
@@ -435,6 +473,10 @@ async def import_payload_data(
         from app.services.ai_settings import lock_ai_settings
 
         await lock_ai_settings(db)
+        from app.services.interview_jobs import invalidate_interviews
+
+        if data.get("models", {}).get("UserProfile"):
+            await invalidate_interviews(db, user_id=user_id, removed=True)
         result = await db.run_sync(_run_import_user_data, data, user_id, file_mapping)
         # Verify cited evidence before committing the import.
         from app.services.interview_archive import verify_restored_report_text

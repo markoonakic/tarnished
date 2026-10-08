@@ -22,6 +22,9 @@ vi.mock('../lib/api', () => ({
   safeErrorMessage: (_: unknown, fallback: string) => fallback,
 }));
 vi.mock('@/hooks/useUserPreferences', () => ({ useUserPreferences }));
+vi.mock('@/hooks/useTasksBadge', () => ({
+  useTasksBadge: () => ({ count: 0, overdue: false }),
+}));
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({
     user: { id: 'owner', email: 'review@example.test' },
@@ -34,6 +37,15 @@ vi.mock('@/hooks/useAnalyticsData', () => ({
   useSankeyAnalytics: () => ({ isLoading: true }),
   useWeeklyActivityData: () => ({ isLoading: true }),
   useInterviewRoundsAnalytics: () => ({ isLoading: true }),
+}));
+vi.mock('../components/slots/AnalyticsNewKpis', () => ({
+  default: () => null,
+}));
+vi.mock('../components/slots/AnalyticsBreakdowns', () => ({
+  default: () => null,
+}));
+vi.mock('../components/slots/AnalyticsActivity', () => ({
+  default: () => null,
 }));
 vi.mock('../components/ActivityHeatmap', () => ({
   default: () => <div>ActivityHeatmap</div>,
@@ -90,8 +102,12 @@ it.each([true, false])(
         <Analytics />
       </MemoryRouter>
     );
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Seek Grace' })).toBeEnabled()
+    await waitFor(
+      () =>
+        expect(
+          screen.getByRole('button', { name: 'Seek Grace' })
+        ).toBeEnabled(),
+      { timeout: 5000 }
     );
     if (show_heatmap) expect(screen.getByText('ActivityHeatmap')).toBeVisible();
     else expect(screen.queryByText('ActivityHeatmap')).not.toBeInTheDocument();

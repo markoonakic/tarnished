@@ -17,6 +17,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.models.workspace import JobDetails
 from app.services.export_registry import exportable
 
 
@@ -42,6 +43,7 @@ class ApplicationStatusHistory(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text)
 
     from_meaning: Mapped[str | None] = mapped_column(String(20))
     to_meaning: Mapped[str | None] = mapped_column(String(20))
@@ -75,11 +77,11 @@ class ApplicationStatusHistory(Base):
             name="ck_history_recorded_meaning",
         ),
         CheckConstraint(
-            "from_meaning IS NULL OR from_meaning IN ('unknown','applied','screening','interviewing','offer','accepted','rejected','withdrawn','no_reply')",
+            "from_meaning IS NULL OR from_meaning IN ('unknown','preparing','applied','screening','interviewing','offer','accepted','rejected','withdrawn','no_reply')",
             name="ck_history_from_meaning",
         ),
         CheckConstraint(
-            "to_meaning IS NULL OR to_meaning IN ('unknown','applied','screening','interviewing','offer','accepted','rejected','withdrawn','no_reply')",
+            "to_meaning IS NULL OR to_meaning IN ('unknown','preparing','applied','screening','interviewing','offer','accepted','rejected','withdrawn','no_reply')",
             name="ck_history_to_meaning",
         ),
         CheckConstraint(
@@ -95,7 +97,7 @@ class ApplicationStatusHistory(Base):
             name="ck_history_time_provenance",
         ),
         CheckConstraint(
-            "(is_gap AND from_status_id IS NULL AND to_status_id IS NULL AND from_meaning IS NULL AND to_meaning IS NULL AND note IS NULL AND corrected_at IS NULL AND correction_note IS NULL) OR (NOT is_gap AND to_status_id IS NOT NULL)",
+            "(is_gap AND from_status_id IS NULL AND to_status_id IS NULL AND from_meaning IS NULL AND to_meaning IS NULL AND note IS NULL AND reason IS NULL AND corrected_at IS NULL AND correction_note IS NULL) OR (NOT is_gap AND to_status_id IS NOT NULL)",
             name="ck_history_gap",
         ),
     )
@@ -109,7 +111,7 @@ class ApplicationStatusHistory(Base):
 
 
 @exportable(order=4)
-class Application(Base):
+class Application(JobDetails, Base):
     __tablename__ = "applications"
 
     id: Mapped[str] = mapped_column(
@@ -151,7 +153,7 @@ class Application(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "status_meaning IN ('unknown','applied','screening','interviewing','offer','accepted','rejected','withdrawn','no_reply')",
+            "status_meaning IN ('unknown','preparing','applied','screening','interviewing','offer','accepted','rejected','withdrawn','no_reply')",
             name="ck_application_status_meaning",
         ),
         CheckConstraint(
@@ -182,7 +184,13 @@ class Application(Base):
     cover_letter_original_filename: Mapped[str | None] = mapped_column(
         String(255), nullable=True
     )
-    applied_at: Mapped[date] = mapped_column(Date, default=date.today)
+    applied_at: Mapped[date | None] = mapped_column(
+        Date, default=date.today, nullable=True
+    )
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    outcome_reason: Mapped[str | None] = mapped_column(Text)
+    source_text: Mapped[str | None] = mapped_column(Text)
+    source_revision: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
@@ -205,6 +213,7 @@ class Application(Base):
     salary_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
     salary_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
     salary_currency: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    posted_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     recruiter_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     recruiter_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     recruiter_linkedin_url: Mapped[str | None] = mapped_column(

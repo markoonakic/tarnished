@@ -1,8 +1,18 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from enum import Enum
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import (
+    JSON,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -61,6 +71,38 @@ class Round(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
+
+    revision: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+    time_zone: Mapped[str | None] = mapped_column(String(100))
+    duration_minutes: Mapped[int | None] = mapped_column(Integer)
+    mode: Mapped[str | None] = mapped_column(String(20))
+    location: Mapped[str | None] = mapped_column(String(500))
+    meeting_url: Mapped[str | None] = mapped_column(String(2048))
+    preparation: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    questions_answers: Mapped[list[dict]] = mapped_column(
+        JSON, default=list, server_default="[]"
+    )
+    impressions: Mapped[str | None] = mapped_column(Text)
+    task_description: Mapped[str | None] = mapped_column(Text)
+    task_deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    next_steps: Mapped[str | None] = mapped_column(Text)
+    expected_reply_on: Mapped[date | None] = mapped_column(Date)
+
+    contact_links = relationship(
+        "RoundContact",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    @property
+    def contact_ids(self) -> list[str]:
+        return [link.contact_id for link in self.contact_links]
 
     @property
     def has_current_transcript(self) -> bool:

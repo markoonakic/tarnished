@@ -66,6 +66,10 @@ router = APIRouter(tags=["rounds"], route_class=TranscriptBodyLimitRoute)
 settings = get_settings()
 
 
+from app.services.user_time import get_effective_time_zone_name, normalize_in_zone
+from app.services.workspace import audit, change_record, link_contacts
+
+
 async def get_user_application(
     application_id: str, user: User, db: AsyncSession
 ) -> Application:
@@ -106,18 +110,36 @@ async def create_round(
         raise HTTPException(status_code=400, detail="Invalid round type")
 
     try:
-        scheduled_at = normalize_round_datetime(
-            data.scheduled_at,
-            user,
-            x_timezone=x_timezone,
-            expected_time_zone=expected_round_time_zone,
+        scheduled_at = (
+            normalize_in_zone(data.scheduled_at, data.time_zone)
+            if data.time_zone
+            else normalize_round_datetime(
+                data.scheduled_at,
+                user,
+                x_timezone=x_timezone,
+                expected_time_zone=expected_round_time_zone,
+            )
         )
     except RoundTimeZoneConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+    extra = data.model_dump(
+        exclude={
+            "round_type_id",
+            "scheduled_at",
+            "notes_summary",
+            "transcript_summary",
+            "contact_ids",
+        }
+    )
+    extra["time_zone"] = data.time_zone or get_effective_time_zone_name(
+        user, x_timezone=x_timezone
+    )
+    extra["completed_at"] = normalize_in_zone(data.completed_at, extra["time_zone"])
     round = Round(
+        **extra,
         application_id=application_id,
         round_type_id=data.round_type_id,
         scheduled_at=scheduled_at,
@@ -125,7 +147,12 @@ async def create_round(
         transcript_summary=data.transcript_summary,
     )
     db.add(round)
+    await db.flush()
+    if data.contact_ids is not None:
+        await link_contacts(db, round, user.id, data.contact_ids)
+    await audit(db, user.id, "round.created", round)
     await db.commit()
+    await db.refresh(round, attribute_names=["contact_links"])
     await record_streak_activity(user=user, db=db, x_timezone=x_timezone)
 
     result = await db.execute(
@@ -167,15 +194,21 @@ async def update_round(
         if not result.scalars().first():
             raise HTTPException(status_code=400, detail="Invalid round type")
 
-    update_data = data.model_dump(exclude_unset=True)
+    update_data = data.model_dump(
+        exclude_unset=True, exclude={"expected_revision", "contact_ids"}
+    )
     try:
         for field in ("scheduled_at", "completed_at"):
             if field in update_data:
-                update_data[field] = normalize_round_datetime(
-                    update_data[field],
-                    user,
-                    x_timezone=x_timezone,
-                    expected_time_zone=expected_round_time_zone,
+                update_data[field] = (
+                    normalize_in_zone(update_data[field], data.time_zone)
+                    if data.time_zone
+                    else normalize_round_datetime(
+                        update_data[field],
+                        user,
+                        x_timezone=x_timezone,
+                        expected_time_zone=expected_round_time_zone,
+                    )
                 )
     except RoundTimeZoneConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -194,10 +227,20 @@ async def update_round(
             round_id=round_id,
             removed=any(v is None or v == "" for v in relevant.values()),
         )
-    for key, value in update_data.items():
-        setattr(round, key, value)
-
+    await change_record(
+        db,
+        round,
+        user.id,
+        data.expected_revision
+        if data.expected_revision is not None
+        else round.revision,
+        update_data,
+    )
+    if data.contact_ids is not None:
+        await link_contacts(db, round, user.id, data.contact_ids)
+    await audit(db, user.id, "round.updated", round)
     await db.commit()
+    await db.refresh(round, attribute_names=["contact_links"])
     await record_streak_activity(user=user, db=db, x_timezone=x_timezone)
 
     result = await db.execute(

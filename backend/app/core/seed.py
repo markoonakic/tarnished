@@ -5,6 +5,7 @@ from app.core.reference_names import normalized_reference_name
 from app.models import ApplicationStatus, RoundType
 
 DEFAULT_STATUSES = [
+    {"name": "Preparing", "meaning": "preparing", "color": "#7c8996", "order": -1},
     {"name": "Applied", "meaning": "applied", "color": "#83a598", "order": 0},
     {"name": "Screening", "meaning": "screening", "color": "#fabd2f", "order": 1},
     {"name": "Interviewing", "meaning": "interviewing", "color": "#fe8019", "order": 2},

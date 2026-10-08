@@ -2,6 +2,7 @@
 
 # Configure the database and authentication before importing the application.
 import os
+import shutil
 import tempfile
 from pathlib import Path
 from uuid import uuid4
@@ -24,7 +25,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import event
+from sqlalchemy import event, inspect, select, text
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -72,12 +73,22 @@ def _run_alembic_upgrade(connection, database_url: str, revision: str = "head") 
     command.upgrade(cfg, revision)
 
 
+@pytest.fixture(scope="session")
+def migrated_sqlite_template(tmp_path_factory):
+    return tmp_path_factory.mktemp("schema") / "head.db"
+
+
 @pytest.fixture(scope="function")
-async def db_engine(request):
+async def db_engine(request, migrated_sqlite_template):
     """Migrate a disposable database to head, or an indirect historical revision."""
     database_url, sqlite_path = _build_database_url()
+    cache_schema = sqlite_path is not None and not hasattr(request, "param")
+    cached = cache_schema and migrated_sqlite_template.exists()
+    if cached:
+        shutil.copyfile(migrated_sqlite_template, sqlite_path)
     engine = create_async_engine(database_url, echo=False)
     is_sqlite = "sqlite" in database_url
+    reuse_postgres_schema = not is_sqlite and not hasattr(request, "param")
 
     if is_sqlite:
 
@@ -88,16 +99,33 @@ async def db_engine(request):
             cursor.close()
 
     async with engine.begin() as conn:
-        if TEST_DATABASE_URL:
+        if TEST_DATABASE_URL and not reuse_postgres_schema:
             if is_sqlite:
                 await conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
             await conn.run_sync(Base.metadata.drop_all)
             await conn.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
             if is_sqlite:
                 await conn.exec_driver_sql("PRAGMA foreign_keys=ON")
-        await conn.run_sync(
-            _run_alembic_upgrade, database_url, getattr(request, "param", "head")
-        )
+        if not cached:
+            await conn.run_sync(
+                _run_alembic_upgrade, database_url, getattr(request, "param", "head")
+            )
+
+    # Copy the empty Alembic-built schema, never test data. Historical upgrades
+    # always run their real migration path. Each test still owns a fresh file.
+    if cache_schema and not cached:
+        shutil.copyfile(sqlite_path, migrated_sqlite_template)
+
+    seed_rows = {}
+    if reuse_postgres_schema:
+        async with engine.connect() as conn:
+            starting_revision = await conn.scalar(
+                text("SELECT version_num FROM alembic_version")
+            )
+            for table in Base.metadata.sorted_tables:
+                rows = (await conn.execute(select(table))).mappings().all()
+                if rows:
+                    seed_rows[table] = [dict(row) for row in rows]
 
     yield engine
 
@@ -105,7 +133,26 @@ async def db_engine(request):
         async with engine.begin() as conn:
             if is_sqlite:
                 await conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
-            await conn.run_sync(Base.metadata.drop_all)
+            has_revision = await conn.run_sync(
+                lambda connection: inspect(connection).has_table("alembic_version")
+            )
+            current_revision = (
+                await conn.scalar(text("SELECT version_num FROM alembic_version"))
+                if has_revision
+                else None
+            )
+            # A migration test can replace or downgrade the schema itself.
+            if reuse_postgres_schema and current_revision == starting_revision:
+                names = ", ".join(
+                    conn.dialect.identifier_preparer.quote(table.name)
+                    for table in Base.metadata.sorted_tables
+                )
+                await conn.exec_driver_sql(f"TRUNCATE {names} RESTART IDENTITY CASCADE")
+                for table, rows in seed_rows.items():
+                    await conn.execute(table.insert(), rows)
+            else:
+                await conn.run_sync(Base.metadata.drop_all)
+                await conn.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
             if is_sqlite:
                 await conn.exec_driver_sql("PRAGMA foreign_keys=ON")
     await engine.dispose()

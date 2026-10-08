@@ -73,7 +73,7 @@ it('links to the first admin form when setup is needed', async () => {
   ).not.toBeInTheDocument();
 });
 
-it('keeps administrator guidance when setup is complete', async () => {
+it('links to public registration when setup is complete', async () => {
   api.defaults.adapter = async (config) => ({
     config,
     headers: {},
@@ -87,9 +87,48 @@ it('keeps administrator guidance when setup is complete', async () => {
     </MemoryRouter>
   );
   expect(
-    await screen.findByRole('link', { name: 'Account setup' })
+    await screen.findByRole('link', { name: 'Create one' })
   ).toHaveAttribute('href', '/register');
-  expect(screen.getByText(/Contact your administrator/)).toBeInTheDocument();
+  expect(screen.getByText(/No account/)).toBeInTheDocument();
+});
+
+it.each([
+  ['account_pending', 'Your account is waiting for administrator approval.'],
+  [
+    'account_deactivated',
+    'This account is deactivated. Contact the administrator.',
+  ],
+])('shows the safe sign-in message for %s', async (code, message) => {
+  api.defaults.adapter = async (config) => {
+    if (config.url?.endsWith('setup-status'))
+      return {
+        config,
+        headers: {},
+        status: 200,
+        statusText: 'OK',
+        data: { needs_setup: false },
+      };
+    throw new AxiosError('Request failed', undefined, config, undefined, {
+      config,
+      headers: {},
+      status: 403,
+      statusText: 'Forbidden',
+      data: { code, detail: { code } },
+    });
+  };
+  render(
+    <MemoryRouter>
+      <Login />
+    </MemoryRouter>
+  );
+  fireEvent.change(screen.getByLabelText('Email'), {
+    target: { value: 'new@example.com' },
+  });
+  fireEvent.change(screen.getByLabelText('Password'), {
+    target: { value: 'local-password' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent(message);
 });
 
 it('accepts only nonempty string details, never stringifies objects', () => {

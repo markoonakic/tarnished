@@ -18,6 +18,7 @@ class UploadLimitRoute(APIRoute):
         document = self.path in (
             "/api/applications/{application_id}/cv",
             "/api/applications/{application_id}/cover-letter",
+            "/api/applications/{application_id}/attachments",
         )
         if not archive and not document:
             return handler

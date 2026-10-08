@@ -697,74 +697,38 @@ class TestApplicationsWrite:
         assert response.json()["detail"] == "Upstream fetch failed"
 
     async def test_extract_application_accepts_jwt_session(
-        self,
-        client: AsyncClient,
-        auth_headers: dict[str, str],
-        db: AsyncSession,
-        test_user: User,
+        self, client, auth_headers, db, test_user
     ):
-        status = ApplicationStatus(
-            name="Applied",
-            color="#83a598",
-            is_default=False,
-            user_id=test_user.id,
-            order=1,
-        )
-        db.add(status)
-        await db.commit()
-        await db.refresh(status)
+        from app.core.seed import seed_defaults
+        from app.schemas.ai_settings import AISettingsUpdate
+        from app.services.ai_settings import update_ai_settings
 
-        with (
-            patch(
-                "app.api.applications.get_ai_settings",
-                AsyncMock(
-                    return_value=AISettingsState(
-                        model="test-model",
-                        api_key="test-key",
-                        base_url="https://example.test",
-                    )
-                ),
+        await seed_defaults(db)
+        await update_ai_settings(
+            db,
+            AISettingsUpdate(
+                litellm_model="openai/fixture",
+                litellm_base_url="http://127.0.0.1:1/v1",
+                text_keyless=True,
             ),
-            patch(
-                "app.api.applications.extract_job_data", new_callable=AsyncMock
-            ) as mock_extract,
-        ):
-            from app.schemas.job_lead import JobLeadExtractionInput
-
-            mock_extract.return_value = JobLeadExtractionInput(
-                title="JWT Extracted Role",
-                company="JWT Company",
-                description="Created via JWT session",
-                location="Remote",
-                salary_min=None,
-                salary_max=None,
-                salary_currency=None,
-                recruiter_name=None,
-                recruiter_title=None,
-                recruiter_linkedin_url=None,
-                years_experience_min=None,
-                years_experience_max=None,
-                source="LinkedIn",
-                posted_date=None,
-                requirements_must_have=[],
-                requirements_nice_to_have=[],
-                skills=["Python"],
-            )
-
+        )
+        status = await db.scalar(
+            select(ApplicationStatus).where(ApplicationStatus.meaning == "applied")
+        )
+        with patch(
+            "app.services.job_analyses.analyze_section", new_callable=AsyncMock
+        ) as provider:
             response = await client.post(
                 "/api/applications/extract",
                 headers=auth_headers,
-                json={
-                    "url": "https://example.com/jobs/jwt-app",
-                    "status_id": status.id,
-                    "text": "JWT-authenticated extraction source text",
-                },
+                json={"text": "Python required", "status_id": status.id},
             )
-
-        assert response.status_code == 201
+        assert response.status_code == 201, response.text
         data = response.json()
-        assert data["company"] == "JWT Company"
-        assert data["job_title"] == "JWT Extracted Role"
+        assert data["status"]["meaning"] == "preparing"
+        assert data["pending_analysis_id"] and data["source_text"] == "Python required"
+        assert data["company"] == data["job_title"] == ""
+        provider.assert_not_awaited()
 
 
 class TestJobLeadConversion:
@@ -1240,102 +1204,52 @@ class TestJobLeadsRetry:
         assert "failed" in response.json()["detail"].lower()
 
     async def test_retry_job_lead_success(
-        self,
-        client: AsyncClient,
-        auth_headers: dict,
-        failed_job_lead: JobLead,
+        self, client, auth_headers, failed_job_lead, db
     ):
-        """Test successfully retrying a failed job lead."""
+        from app.schemas.ai_settings import AISettingsUpdate
+        from app.services.ai_settings import update_ai_settings
+
+        await update_ai_settings(
+            db,
+            AISettingsUpdate(
+                litellm_model="openai/fixture",
+                litellm_base_url="http://127.0.0.1:1/v1",
+                text_keyless=True,
+            ),
+        )
         with (
             patch(
-                "app.api.job_leads.get_ai_settings",
-                AsyncMock(
-                    return_value=AISettingsState(
-                        model="synthetic", api_key="synthetic-key", base_url=None
-                    )
-                ),
+                "app.api.job_leads.fetch_job_posting_html",
+                AsyncMock(return_value="<p>Python required</p>"),
             ),
-            patch("app.api.job_leads.fetch_job_posting_html") as mock_fetch,
-            patch("app.api.job_leads.extract_job_data") as mock_extract,
-        ):
-            from app.schemas.job_lead import JobLeadExtractionInput
-
-            mock_fetch.return_value = "<html><body>Job content</body></html>"
-            mock_extract.return_value = JobLeadExtractionInput(
-                title="Retried Job",
-                company="Retried Company",
-                description=None,
-                location="Nowhere",
-                salary_min=None,
-                salary_max=None,
-                salary_currency=None,
-                recruiter_name=None,
-                recruiter_title=None,
-                recruiter_linkedin_url=None,
-                years_experience_min=None,
-                years_experience_max=None,
-                source=None,
-                posted_date=None,
-                requirements_must_have=["Python"],
-                requirements_nice_to_have=[],
-                skills=["Python"],
-            )
-
-            response = await client.post(
-                f"/api/job-leads/{failed_job_lead.id}/retry",
-                headers=auth_headers,
-            )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "extracted"
-        assert data["title"] == "Retried Job"
-        assert data["error_message"] is None
-
-        assert mock_extract.await_count == 1
-        await_args = mock_extract.await_args
-        assert await_args is not None
-        assert await_args.args == ()
-        assert await_args.kwargs["text"] == "Job content"
-        assert await_args.kwargs["retry_invalid_response"] is False
-        assert await_args.kwargs["url"] == failed_job_lead.url
-
-    async def test_retry_job_lead_returns_400_for_value_errors(
-        self,
-        client: AsyncClient,
-        auth_headers: dict,
-        failed_job_lead: JobLead,
-        db: AsyncSession,
-    ):
-        with (
             patch(
-                "app.api.job_leads.get_ai_settings",
-                AsyncMock(
-                    return_value=AISettingsState(
-                        model="synthetic", api_key="synthetic-key", base_url=None
-                    )
-                ),
-            ),
-            patch("app.api.job_leads.fetch_job_posting_html") as mock_fetch,
-            patch("app.api.job_leads.extract_job_data") as mock_extract,
+                "app.services.job_analyses.analyze_section", new_callable=AsyncMock
+            ) as provider,
         ):
-            mock_fetch.return_value = "<html><body>Job content</body></html>"
-            mock_extract.side_effect = ValueError("Invalid extracted payload")
-
             response = await client.post(
-                f"/api/job-leads/{failed_job_lead.id}/retry",
-                headers=auth_headers,
+                f"/api/job-leads/{failed_job_lead.id}/retry", headers=auth_headers
             )
+        assert response.status_code == 200, response.text
+        assert (
+            response.json()["pending_analysis_id"]
+            and response.json()["status"] == "pending"
+        )
+        assert response.json()["title"] == failed_job_lead.title
+        provider.assert_not_awaited()
 
-        assert response.status_code == 400
-        assert response.json()["detail"]["id"] == failed_job_lead.id
-
+    async def test_retry_unconfigured_preserves_saved_fields(
+        self, client, auth_headers, failed_job_lead, db
+    ):
+        with patch(
+            "app.api.job_leads.fetch_job_posting_html",
+            AsyncMock(return_value="<p>Python required</p>"),
+        ):
+            response = await client.post(
+                f"/api/job-leads/{failed_job_lead.id}/retry", headers=auth_headers
+            )
+        assert response.status_code == 503, response.text
         await db.refresh(failed_job_lead)
         assert failed_job_lead.status == "failed"
-        assert (
-            "saved source and manual edits are retained"
-            in failed_job_lead.error_message
-        )
 
 
 # ============================================================================
@@ -2087,45 +2001,33 @@ async def test_job_fetch_callers_enforce_resolved_destination(
 async def test_supplied_job_content_does_not_fetch(
     client, db, auth_headers, test_user, denied_job_network, caller, content_field
 ):
-    from app.schemas.job_lead import JobLeadExtractionInput
+    from app.core.seed import seed_defaults
+    from app.schemas.ai_settings import AISettingsUpdate
+    from app.services.ai_settings import update_ai_settings
 
-    dns, transport = denied_job_network
-    status = ApplicationStatus(
-        name="Applied", color="#83a598", user_id=test_user.id, order=1
+    await seed_defaults(db)
+    await update_ai_settings(
+        db,
+        AISettingsUpdate(
+            litellm_model="openai/fixture",
+            litellm_base_url="http://127.0.0.1:1/v1",
+            text_keyless=True,
+        ),
     )
-    db.add(status)
-    await db.commit()
-    module = "app.api.applications" if caller == "application" else "app.api.job_leads"
+    dns, transport = denied_job_network
+    status = await db.scalar(
+        select(ApplicationStatus).where(ApplicationStatus.meaning == "applied")
+    )
     path = "/api/applications/extract" if caller == "application" else "/api/job-leads"
     data = {"url": "https://jobs.example/open", content_field: "Supplied job content"}
     if caller == "application":
         data["status_id"] = status.id
-    with (
-        patch(
-            f"{module}.get_ai_settings",
-            AsyncMock(
-                return_value=AISettingsState(
-                    model="synthetic", api_key="synthetic-key", base_url=None
-                )
-            ),
-        ),
-        patch(
-            f"{module}.extract_job_data",
-            AsyncMock(
-                return_value=JobLeadExtractionInput.model_validate(
-                    {"title": "Job", "company": "Company"}
-                )
-            ),
-        ) as extract,
-    ):
+    with patch(
+        "app.services.job_analyses.analyze_section", new_callable=AsyncMock
+    ) as provider:
         response = await client.post(path, headers=auth_headers, json=data)
-    assert response.status_code == 201
+    assert response.status_code == 201, response.text
     dns.assert_not_awaited()
     transport.assert_not_awaited()
-    if caller == "application":
-        extract.assert_awaited_once()
-        assert extract.await_args is not None
-        assert extract.await_args.kwargs[content_field] == "Supplied job content"
-    else:
-        extract.assert_not_awaited()
-        assert response.json()["source_text"] == "Supplied job content"
+    provider.assert_not_awaited()
+    assert response.json()["source_text"] == "Supplied job content"

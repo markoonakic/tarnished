@@ -7,7 +7,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
@@ -22,7 +21,6 @@ from app.models import (
     JobLead,
     User,
 )
-from app.schemas.job_lead import JobLeadExtractionInput
 from app.services.ai_settings import AISettingsState
 from app.services.export_registry import default_registry
 from app.services.export_service import ExportService
@@ -50,14 +48,16 @@ async def capture_workspace(client, db, db_engine, monkeypatch):
     app.dependency_overrides[get_db] = get_session
     ai = AsyncMock(
         return_value=AISettingsState(
-            model="synthetic", api_key="synthetic", base_url=None
+            model="openai/synthetic",
+            api_key="synthetic",
+            base_url="http://127.0.0.1:1/v1",
         )
     )
     fetch = AsyncMock(side_effect=AssertionError("Unapproved network fetch"))
     extract = AsyncMock(side_effect=AssertionError("Unapproved provider call"))
-    monkeypatch.setattr(job_leads, "get_ai_settings", ai)
+    monkeypatch.setattr("app.services.job_analyses.get_ai_settings", ai)
     monkeypatch.setattr(job_leads, "fetch_job_posting_html", fetch)
-    monkeypatch.setattr(job_leads, "extract_job_data", extract)
+    monkeypatch.setattr("app.services.job_analyses.analyze_section", extract)
     return SimpleNamespace(
         owner=owner, other=other, ai=ai, fetch=fetch, extract=extract
     )
@@ -81,15 +81,17 @@ async def test_plain_save_without_ai_source_bounds_and_partial_failure(
     lead = await save(
         client, url="https://jobs.example/text", text="useful text " * 8000
     )
-    assert len(lead["source_text"]) <= 50_000 and lead["source_truncated"]
-    assert "partial" in lead["content_warning"] and lead["source"] is None
-    lead = await save(
-        client,
-        url="https://jobs.example/html",
-        html="<article><h1>Engineer</h1><p>Useful posting.</p></article>"
-        + " " * 110_000,
+    assert lead["source_text"] == "useful text " * 8000 and not lead["source_truncated"]
+    assert lead["content_warning"] is None and lead["source"] is None
+    response = await client.post(
+        "/api/job-leads",
+        json={
+            "url": "https://jobs.example/html",
+            "html": "<article><h1>Engineer</h1><p>Useful posting.</p></article>"
+            + " " * 110_000,
+        },
     )
-    assert "Engineer" in lead["source_text"] and lead["source_truncated"]
+    assert response.status_code == 422 and "limit" in response.text
     lead = await save(
         client,
         url="https://jobs.example/prefer",
@@ -119,8 +121,9 @@ async def test_plain_save_without_ai_source_bounds_and_partial_failure(
     [
         ("Engineer\x00Company", "Engineer Company", False),
         ("\x00", None, False),
-        ("Useful source " * 5000 + "\x00", None, True),
+        ("Useful source " * 5000 + "\x00", ("Useful source " * 5000).strip(), False),
     ],
+    ids=["embedded", "empty", "long"],
 )
 async def test_nul_source_saves_identity_with_honest_warning(
     client, capture_workspace, text, expected, truncated
@@ -167,33 +170,23 @@ async def test_nul_scalar_rejected_before_edit_or_extraction_publication(
     response = await client.patch(path, json={"expected_revision": 0, **invalid})
     assert response.status_code == 422, response.text
     assert (await client.get(path)).json() == lead
-    capture_workspace.extract.side_effect = None
-    capture_workspace.extract.return_value = JobLeadExtractionInput.model_validate(
-        invalid
-    )
-    response = await client.post(path + "/extract", json={"expected_revision": 0})
-    assert response.status_code == 400, response.text
-    assert response.json()["detail"]["id"] == lead["id"]
-    current = (await client.get(path)).json()
-    assert current["id"] == lead["id"] and current["url"] == lead["url"]
-    assert current["source_text"] == "Retained source" and current[field] is None
-    assert current["status"] == "failed" and current["revision"] == 2
-    assert current["processing_started_at"] is None
-    capture_workspace.extract.return_value = JobLeadExtractionInput.model_validate(
-        {field: "Valid"}
-    )
-    retry = await client.post(path + "/retry")
-    assert retry.status_code == 200, retry.text
-    assert retry.json()[field] == "Valid" and retry.json()["revision"] == 4
-    assert retry.json()["processing_started_at"] is None
+    from app.schemas.job_analysis import Proposal
+
+    with pytest.raises(ValueError):
+        Proposal.model_validate(
+            {
+                "id": "bad",
+                "field": field,
+                "value": "Bad\x00text",
+                "quote": "Retained source",
+            }
+        )
     capture_workspace.fetch.assert_not_awaited()
 
 
-async def test_failed_extraction_retains_identity_fetched_source_and_manual_intent(
+async def test_queued_extraction_retains_identity_fetched_source_and_manual_intent(
     client, capture_workspace
 ):
-    from app.services.extraction import ExtractionAuthError
-
     workspace = capture_workspace
     lead = await save(client)
     path = "/api/job-leads/" + lead["id"]
@@ -207,40 +200,24 @@ async def test_failed_extraction_retains_identity_fetched_source_and_manual_inte
             "skills": [],
         },
     )
-    assert edit.status_code == 200, edit.text
+    assert edit.status_code == 200
     workspace.fetch.side_effect = None
     workspace.fetch.return_value = (
-        "<article><p>Useful source fetched before AI fails</p></article>"
+        "<article><p>Useful source fetched before analysis</p></article>"
     )
-    workspace.extract.side_effect = ExtractionAuthError("No key")
-    failed = await client.post(path + "/extract", json={"expected_revision": 1})
-    assert failed.status_code == 502 and failed.json()["detail"]["id"] == lead["id"]
-    current = (await client.get(path)).json()
-    assert current["status"] == "failed" and current["processing_started_at"] is None
-    assert "Useful source" in current["source_text"] and current["title"] == "Corrected"
-    workspace.extract.side_effect = None
-    workspace.extract.return_value = JobLeadExtractionInput.model_validate(
-        {
-            "title": "AI title",
-            "company": "AI company",
-            "location": "AI location",
-            "skills": ["AI skill"],
-            "description": "AI description",
-        }
-    )
-    result = await client.post(path + "/retry")
+    result = await client.post(path + "/extract", json={"expected_revision": 1})
     assert result.status_code == 200, result.text
     current = result.json()
+    assert current["pending_analysis_id"]
     assert (
         current["title"],
         current["company"],
         current["location"],
         current["skills"],
     ) == ("Corrected", "Manual", None, [])
-    assert current["description"] == "AI description"
+    assert "Useful source" in current["source_text"]
     workspace.fetch.assert_awaited_once()
-    assert workspace.extract.await_args.kwargs["retry_invalid_response"] is False
-    assert workspace.extract.await_args.kwargs["text"] == current["source_text"]
+    workspace.extract.assert_not_awaited()
 
 
 async def test_manual_patch_merged_validation_omission_null_and_internal_denials(
@@ -290,122 +267,43 @@ async def test_manual_patch_merged_validation_omission_null_and_internal_denials
     assert current["revision"] == 2 and "salary_max" in current["manual_fields"]
 
 
-@pytest.mark.parametrize("mutation", ["edit", "delete"])
-@pytest.mark.parametrize("failure", [False, True])
-async def test_manual_edit_or_deletion_during_extraction_discards_late_outcome(
-    client, capture_workspace, mutation, failure
+@pytest.mark.parametrize("mutation", ["source", "delete"])
+async def test_source_edit_or_deletion_invalidates_queued_proposals(
+    client, db, capture_workspace, mutation
 ):
+    from fastapi import HTTPException
+
+    from app.models import InterviewJob
+    from app.services.interview_jobs import guard
+
     lead = await save(client, text="Source")
     path = "/api/job-leads/" + lead["id"]
-    entered, release = asyncio.Event(), asyncio.Event()
-
-    async def extract(**kwargs):
-        entered.set()
-        await release.wait()
-        if failure:
-            raise ValueError("Late failure")
-        return JobLeadExtractionInput.model_validate(
-            {"title": "Late title", "company": "Late company"}
+    response = await client.post(path + "/extract", json={"expected_revision": 0})
+    assert response.status_code == 200, response.text
+    row = await db.scalar(
+        select(InterviewJob).where(
+            InterviewJob.analysis_id == response.json()["pending_analysis_id"]
         )
-
-    capture_workspace.extract.side_effect = extract
-    task = asyncio.create_task(
-        client.post(path + "/extract", json={"expected_revision": 0})
     )
-    await asyncio.wait_for(entered.wait(), 10)
-    current = (await client.get(path)).json()
-    assert current["status"] == "processing" and current["revision"] == 1
-    if mutation == "edit":
-        response = await client.patch(
-            path, json={"expected_revision": 1, "title": "Human"}
+    job_id = row.id
+    await db.commit()
+    if mutation == "source":
+        changed = await client.put(
+            path + "/source",
+            json={
+                "text": "Changed posting",
+                "expected_revision": response.json()["revision"],
+            },
         )
-        assert response.status_code == 200, response.text
-        assert (
-            response.json()["status"] == "pending"
-            and response.json()["processing_started_at"] is None
-        )
+        assert changed.status_code == 200, changed.text
     else:
         assert (await client.delete(path)).status_code == 204
-    release.set()
-    assert (await asyncio.wait_for(task, 10)).status_code == 409
-    current = await client.get(path)
-    if mutation == "delete":
-        assert current.status_code == 404
-    else:
-        assert (
-            current.json()["title"] == "Human" and current.json()["status"] == "pending"
-        )
+    with pytest.raises(HTTPException):
+        await guard(db, job_id, None, ("queued",))
+    capture_workspace.extract.assert_not_awaited()
 
 
-@pytest.mark.parametrize("old_failure", [False, True])
-@pytest.mark.parametrize("new_finishes_first", [False, True])
-async def test_explicit_replacement_under_frozen_clock_rejects_old_outcomes(
-    client, capture_workspace, monkeypatch, old_failure, new_finishes_first
-):
-    class FrozenDatetime:
-        @staticmethod
-        def now(tz):
-            return datetime(2026, 1, 1, tzinfo=UTC)
-
-    monkeypatch.setattr(job_leads, "datetime", FrozenDatetime)
-    lead = await save(client, text="Source")
-    path = "/api/job-leads/" + lead["id"]
-    entered = [asyncio.Event(), asyncio.Event()]
-    release = [asyncio.Event(), asyncio.Event()]
-    calls = 0
-
-    async def extract(**kwargs):
-        nonlocal calls
-        index = calls
-        calls += 1
-        entered[index].set()
-        await release[index].wait()
-        if index == 0 and old_failure:
-            raise ValueError("Old failure")
-        return JobLeadExtractionInput.model_validate(
-            {"title": "Old" if index == 0 else "New", "company": "Company"}
-        )
-
-    capture_workspace.extract.side_effect = extract
-    old = asyncio.create_task(
-        client.post(path + "/extract", json={"expected_revision": 0})
-    )
-    await asyncio.wait_for(entered[0].wait(), 10)
-    first = (await client.get(path)).json()
-    denied = await client.post(path + "/retry", json={"expected_revision": 1})
-    assert denied.status_code == 409 and "billed" in denied.json()["detail"]["message"]
-    assert (
-        await client.post(
-            path + "/retry", json={"expected_revision": 0, "restart_processing": True}
-        )
-    ).status_code == 409
-    new = asyncio.create_task(
-        client.post(
-            path + "/retry", json={"expected_revision": 1, "restart_processing": True}
-        )
-    )
-    await asyncio.wait_for(entered[1].wait(), 10)
-    second = (await client.get(path)).json()
-    assert second["processing_started_at"] == first["processing_started_at"]
-    assert second["revision"] == 2 and "uncertain" in second["error_message"]
-    if new_finishes_first:
-        release[1].set()
-        result = await asyncio.wait_for(new, 10)
-        second = result.json()
-    release[0].set()
-    assert (await asyncio.wait_for(old, 10)).status_code == 409
-    assert (await client.get(path)).json() == second
-    if not new_finishes_first:
-        release[1].set()
-        result = await asyncio.wait_for(new, 10)
-    assert result.status_code == 200 and result.json()["title"] == "New"
-    assert (
-        result.json()["revision"] == 3
-        and result.json()["processing_started_at"] is None
-    )
-
-
-async def test_saved_interrupted_claim_survives_new_request_and_explicit_restart(
+async def test_saved_interrupted_claim_requires_explicit_restart(
     client, db, capture_workspace
 ):
     lead = await save(client, text="Source")
@@ -420,20 +318,16 @@ async def test_saved_interrupted_claim_survives_new_request_and_explicit_restart
     )
     await db.commit()
     path = "/api/job-leads/" + lead["id"]
-    # A new HTTP client/session has no in-memory task, but persistence is truthful.
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test", headers=client.headers
-    ) as fresh:
-        assert (await fresh.get(path)).json()["status"] == "processing"
-        assert (await fresh.post(path + "/retry")).status_code == 400
-        capture_workspace.extract.side_effect = None
-        capture_workspace.extract.return_value = JobLeadExtractionInput.model_validate(
-            {"title": "Restarted"}
-        )
-        result = await fresh.post(
-            path + "/extract", json={"expected_revision": 7, "restart_processing": True}
-        )
-        assert result.status_code == 200 and result.json()["revision"] == 9
+    assert (await client.post(path + "/retry")).status_code == 400
+    assert (
+        await client.post(path + "/extract", json={"expected_revision": 7})
+    ).status_code == 409
+    result = await client.post(
+        path + "/extract", json={"expected_revision": 7, "restart_processing": True}
+    )
+    assert result.status_code == 200, result.text
+    assert result.json()["pending_analysis_id"] and result.json()["revision"] == 8
+    assert result.json()["processing_started_at"] is None
 
 
 async def test_duplicate_race_returns_owned_identity(
@@ -714,17 +608,13 @@ async def test_actual_unconfigured_extraction_never_calls_completion(
     capture_workspace.ai.return_value = AISettingsState(
         model="synthetic", api_key=None, base_url=None
     )
-    monkeypatch.setattr(job_leads, "extract_job_data", extraction.extract_job_data)
     lead = await save(client, text="Useful source")
     path = "/api/job-leads/" + lead["id"]
     response = await client.post(path + "/extract", json={"expected_revision": 0})
-    assert (
-        response.status_code == 502
-        and response.json()["detail"]["code"] == "AI_KEY_NOT_CONFIGURED"
-    )
+    assert response.status_code == 503
     current = (await client.get(path)).json()
     assert current["id"] == lead["id"] and current["source_text"] == "Useful source"
-    assert current["status"] == "failed" and current["processing_started_at"] is None
+    assert current["status"] == "pending" and current["processing_started_at"] is None
     completion.assert_not_called()
 
 

@@ -12,13 +12,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import resolve_upload_path
 from app.models import Application, ApplicationStatusHistory, Round
-from app.models.user_profile import UserProfile
 from app.services.analytics_queries import (
     ACTIVE_MEANINGS,
     CLOSED_MEANINGS,
     get_pipeline_overview_data,
 )
 from app.services.media_intake import run_media_process
+from app.services.profile_items import legacy_ai_profile
 
 APP_FIELDS = (
     "company",
@@ -135,9 +135,7 @@ async def snapshot(db: AsyncSession, user_id: str, round_id: str):
             4_000_000,
         )
     )
-    profile = await bounded_row(
-        db, UserProfile, PROFILE_FIELDS, UserProfile.user_id == user_id, 64000
-    )
+    profile = await legacy_ai_profile(db, user_id)
     count, size = (
         await db.execute(
             select(
@@ -245,9 +243,7 @@ async def application_snapshot(db: AsyncSession, user_id: str, application_id: s
                 ),
             }
         )
-    profile = await bounded_row(
-        db, UserProfile, PROFILE_FIELDS, UserProfile.user_id == user_id, 64000
-    )
+    profile = await legacy_ai_profile(db, user_id)
     count, size = (
         await db.execute(
             select(
@@ -320,9 +316,7 @@ async def pipeline_snapshot(
     basis = dict(metrics.get("current_record_basis") or {})
     basis["observed_at"] = metrics.get("scope", {}).get("as_of")
     metrics = {**metrics, "current_record_basis": basis}
-    profile = await bounded_row(
-        db, UserProfile, PROFILE_FIELDS, UserProfile.user_id == user_id, 64000
-    )
+    profile = await legacy_ai_profile(db, user_id)
     data = {
         "period": period,
         "as_of": as_of.isoformat() if as_of is not None else None,
@@ -412,7 +406,9 @@ def _append_source(sources, source_id, kind, text, **metadata):
         )
 
 
-async def application_evidence_sources(data, *, include_round_reports=True):
+async def application_evidence_sources(
+    data, *, include_round_reports=True, include_imported_reports=False
+):
     sources = []
     limits = [
         "One application, not a causal explanation of an employer decision. Current documents are not historical submission evidence.",
@@ -435,7 +431,11 @@ async def application_evidence_sources(data, *, include_round_reports=True):
         for field in ROUND_FIELDS:
             add(f"round:{round_id}:{field}", "round", round_row[field])
         report = round_row.get("interview_report")
-        if include_round_reports and report:
+        if (
+            include_round_reports
+            and report
+            and (include_imported_reports or report.get("fingerprint") != "")
+        ):
             limits.append(
                 "Round interview findings are prior model output, not verified fact."
             )
@@ -471,7 +471,7 @@ async def application_evidence_sources(data, *, include_round_reports=True):
     return sources, limits
 
 
-async def pipeline_evidence_sources(data):
+async def pipeline_evidence_sources(data, *, include_workspace_metrics=True):
     metrics = data["metrics"]
     sources = []
     limits = [
@@ -501,9 +501,29 @@ async def pipeline_evidence_sources(data):
             "unknown_applications",
             "current_stage_breakdown",
             "stage_breakdown",
+            "first_response",
+            "repeated_requirements",
+            "missing_evidence",
+            "rejected_count",
+            "stage_averages",
+            "outcomes_by_source",
+            "top_positions",
+            "top_technologies",
             "coverage",
         )
     }
+    if not include_workspace_metrics:
+        for field in (
+            "first_response",
+            "repeated_requirements",
+            "missing_evidence",
+            "rejected_count",
+            "stage_averages",
+            "outcomes_by_source",
+            "top_positions",
+            "top_technologies",
+        ):
+            summary.pop(field, None)
     summary["active_stages"] = sorted(ACTIVE_MEANINGS)
     summary["closed_stages"] = sorted(CLOSED_MEANINGS)
     add("pipeline:metrics", "pipeline_metrics", summary)

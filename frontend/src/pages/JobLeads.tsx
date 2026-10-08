@@ -2,16 +2,13 @@ import { t, locale } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { observeRead } from '../lib/queryClient';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   getJobLeads,
   getJobLeadSources,
   type JobLeadListItem,
 } from '../lib/jobLeads';
-import {
-  getJobLeadStatusBadgeClass,
-  getJobLeadStatusLabel,
-} from '../lib/jobLeadDetailView';
+
 import JobLeadCaptureForm from '../components/JobLeadCaptureForm';
 import { parsePositivePageParam } from '../lib/paginationParams';
 import Layout from '../components/Layout';
@@ -22,6 +19,12 @@ import JobLeadsFilters, {
 } from '../components/JobLeadsFilters';
 import { useToastContext } from '../contexts/ToastContext';
 import Pagination from '../components/Pagination';
+import MoreFilters from '../components/records/MoreFilters';
+import {
+  recordFilters,
+  recordFilterKeys,
+  changeRecordFilters,
+} from '@/lib/recordFilters';
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -41,6 +44,7 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function JobLeads() {
   useTranslation();
+  const navigate = useNavigate();
   const { error: showError } = useToastContext();
   const requestId = useRef(0);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -49,31 +53,48 @@ export default function JobLeads() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState(false);
-  const [perPage, setPerPage] = useState(25);
+  const perPage = [10, 25, 50, 100].includes(
+    Number(searchParams.get('per_page'))
+  )
+    ? Number(searchParams.get('per_page'))
+    : 25;
 
   const page = parsePositivePageParam(searchParams.get('page'));
   const search = searchParams.get('search') || '';
   const statusFilter = searchParams.get('status') || '';
+  const decisionFilter = searchParams.get('decision') || '';
+  const extraParams = new URLSearchParams(searchParams);
+  extraParams.delete('search');
+  const filterKey = extraParams.toString();
   const sourceFilter = searchParams.get('source') || '';
   const sortFilter = searchParams.get('sort') || 'newest';
 
   const debouncedSearch = useDebounce(search, 300);
 
-  const isFiltered = search || statusFilter || sourceFilter;
+  const isFiltered = recordFilterKeys.some((key) => searchParams.has(key));
 
   const loadJobLeads = useCallback(async () => {
     const ownedRequest = ++requestId.current;
     setLoading(true);
     setListError(false);
     try {
-      const params: Record<string, string | number> = {
+      const params = {
+        ...recordFilters(new URLSearchParams(filterKey)),
+        ...(statusFilter
+          ? { status: statusFilter as JobLeadListItem['status'] }
+          : {}),
+        ...(decisionFilter
+          ? {
+              decision: decisionFilter as
+                'interesting' | 'rejected' | 'archived' | 'undecided',
+            }
+          : {}),
+        search: debouncedSearch || undefined,
+        source: sourceFilter || undefined,
+        sort: sortFilter as 'newest' | 'oldest',
         page,
         per_page: perPage,
       };
-      if (statusFilter) params.status = statusFilter;
-      if (debouncedSearch) params.search = debouncedSearch;
-      if (sourceFilter) params.source = sourceFilter;
-      if (sortFilter) params.sort = sortFilter;
 
       const data = await getJobLeads(params);
       if (ownedRequest !== requestId.current) return;
@@ -95,6 +116,8 @@ export default function JobLeads() {
     sourceFilter,
     sortFilter,
     showError,
+    filterKey,
+    decisionFilter,
   ]);
 
   const loadSources = useCallback(async () => {
@@ -119,24 +142,8 @@ export default function JobLeads() {
   useEffect(() => observeRead(loadSources), [loadSources]);
 
   const updateParams = useCallback(
-    (updates: Record<string, string>) => {
-      const newParams = new URLSearchParams(searchParams);
-      Object.entries(updates).forEach(([key, value]) => {
-        if (value) {
-          newParams.set(key, value);
-        } else {
-          newParams.delete(key);
-        }
-      });
-      if (
-        updates.search !== undefined ||
-        updates.status !== undefined ||
-        updates.source !== undefined ||
-        updates.sort !== undefined
-      ) {
-        newParams.set('page', '1');
-      }
-      setSearchParams(newParams);
+    (updates: Record<string, string | string[]>) => {
+      setSearchParams(changeRecordFilters(searchParams, updates));
     },
     [searchParams, setSearchParams]
   );
@@ -145,10 +152,11 @@ export default function JobLeads() {
     (filters: JobLeadsFiltersValue) => {
       updateParams({
         status: filters.status,
+        decision: filters.decision || '',
         source: filters.source,
         sort: filters.sort,
+        per_page: String(filters.perPage),
       });
-      setPerPage(filters.perPage);
     },
     [updateParams]
   );
@@ -158,9 +166,9 @@ export default function JobLeads() {
     return new Date(dateStr).toLocaleDateString(locale());
   }
 
-  function domain(url: string) {
+  function domain(url: string | null) {
     try {
-      return new URL(url).hostname;
+      return url ? new URL(url).hostname : '';
     } catch {
       return '';
     }
@@ -179,8 +187,8 @@ export default function JobLeads() {
         </div>
 
         <div className="bg-bg1 mb-6 rounded-lg p-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-            <div className="relative min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="relative w-full sm:min-w-0 sm:flex-1">
               <i className="bi-search icon-sm text-muted absolute top-1/2 left-3 -translate-y-1/2" />
               <input
                 type="text"
@@ -204,6 +212,7 @@ export default function JobLeads() {
             <JobLeadsFilters
               value={{
                 status: statusFilter,
+                decision: decisionFilter,
                 source: sourceFilter,
                 sort: sortFilter,
                 perPage: perPage,
@@ -211,6 +220,24 @@ export default function JobLeads() {
               onChange={handleFiltersChange}
               sources={sources}
             />
+            <MoreFilters
+              params={searchParams}
+              type="lead"
+              onChange={updateParams}
+            >
+              <JobLeadsFilters
+                advanced
+                value={{
+                  status: statusFilter,
+                  decision: decisionFilter,
+                  source: sourceFilter,
+                  sort: sortFilter,
+                  perPage,
+                }}
+                onChange={handleFiltersChange}
+                sources={sources}
+              />
+            </MoreFilters>
           </div>
         </div>
 
@@ -257,7 +284,13 @@ export default function JobLeads() {
                       {t('Position')}
                     </th>
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
-                      {t('Status')}
+                      {t('records.decision')}
+                    </th>
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
+                      {t('records.priority')}
+                    </th>
+                    <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
+                      {t('records.deadline')}
                     </th>
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
                       {t('Source')}
@@ -269,11 +302,17 @@ export default function JobLeads() {
                 </thead>
                 <tbody>
                   {jobLeads.map((lead, index) => {
-                    const statusClass = getJobLeadStatusBadgeClass(lead.status);
+                    const statusClass =
+                      lead.decision === 'interesting'
+                        ? 'bg-green/15 text-green'
+                        : lead.decision === 'rejected'
+                          ? 'bg-red/15 text-red'
+                          : 'bg-bg2 text-muted';
                     return (
                       <tr
                         key={lead.id}
-                        className={`transition-all duration-200 ease-in-out ${
+                        onClick={() => navigate(`/job-leads/${lead.id}`)}
+                        className={`hover:bg-bg2 cursor-pointer transition-all duration-200 ease-in-out ${
                           index < jobLeads.length - 1
                             ? 'border-tertiary border-b'
                             : ''
@@ -302,8 +341,25 @@ export default function JobLeads() {
                             className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${statusClass}`}
                           >
                             <span className="h-2 w-2 rounded-full bg-current" />
-                            {getJobLeadStatusLabel(lead.status)}
+                            {t(
+                              'records.decision.' +
+                                (lead.decision || 'undecided')
+                            )}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <span
+                            className={
+                              lead.priority === 'high'
+                                ? 'text-orange'
+                                : 'text-muted'
+                            }
+                          >
+                            {t('records.' + (lead.priority || 'normal'))}
+                          </span>
+                        </td>
+                        <td className="text-secondary px-4 py-3 text-sm">
+                          {formatDate(lead.deadline || null)}
                         </td>
                         <td className="text-secondary px-4 py-3 text-sm">
                           {lead.source || '-'}
@@ -320,7 +376,12 @@ export default function JobLeads() {
 
             <div className="space-y-3 md:hidden">
               {jobLeads.map((lead) => {
-                const statusClass = getJobLeadStatusBadgeClass(lead.status);
+                const statusClass =
+                  lead.decision === 'interesting'
+                    ? 'bg-green/15 text-green'
+                    : lead.decision === 'rejected'
+                      ? 'bg-red/15 text-red'
+                      : 'bg-bg2 text-muted';
                 return (
                   <Link
                     key={lead.id}
@@ -344,13 +405,27 @@ export default function JobLeads() {
                         className={`inline-flex flex-shrink-0 items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ${statusClass}`}
                       >
                         <span className="h-2 w-2 rounded-full bg-current" />
-                        {getJobLeadStatusLabel(lead.status)}
+                        {t(
+                          'records.decision.' + (lead.decision || 'undecided')
+                        )}
                       </span>
                     </div>
                     <div className="text-primary mb-2 truncate text-sm">
                       {lead.title || <span className="text-muted">—</span>}
                     </div>
                     <div className="text-secondary text-xs">
+                      <span
+                        className={
+                          lead.priority === 'high' ? 'text-orange mr-2' : 'mr-2'
+                        }
+                      >
+                        {t('records.' + (lead.priority || 'normal'))}
+                      </span>
+                      {lead.deadline && (
+                        <span className="mr-2">
+                          {t('records.deadline')}: {formatDate(lead.deadline)}
+                        </span>
+                      )}
                       {formatDate(lead.scraped_at)}
                       {lead.source && ` · ${lead.source}`}
                     </div>

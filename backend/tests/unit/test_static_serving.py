@@ -58,7 +58,7 @@ async def test_static_paths_cannot_escape(static_client, path):
         ("/assets/missing.js", 404, None),
         ("/api", 404, None),
         ("/api/not-a-route", 404, None),
-        ("/api/rounds/missing", 404, None),
+        ("/api/rounds/missing", 401, None),
         ("/health", 200, '{"status":"healthy"}'),
     ],
 )
@@ -69,6 +69,13 @@ async def test_static_navigation_and_assets(static_client, path, code, body):
         assert response.text == body
     if path.startswith("/api"):
         assert response.headers["content-type"].startswith("application/json")
+
+
+@pytest.mark.parametrize("method", ["POST", "PATCH", "DELETE"])
+async def test_missing_api_mutations_never_reach_static_files(static_client, method):
+    response = await static_client.request(method, "/api/not-a-route")
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/json")
 
 
 async def test_static_absolute_decoded_path_cannot_escape(static_client, tmp_path):

@@ -17,8 +17,10 @@ from starlette.types import Scope
 from app.api.admin import router as admin_router
 from app.api.ai_settings import router as ai_settings_router
 from app.api.analytics import router as analytics_router
+from app.api.analytics_workspace import router as analytics_workspace_router
 from app.api.application_history import router as application_history_router
 from app.api.applications import router as applications_router
+from app.api.attachments import router as attachments_router
 from app.api.auth import router as auth_router
 from app.api.dashboard import router as dashboard_router
 from app.api.export import router as export_router
@@ -27,13 +29,16 @@ from app.api.import_router import router as import_router
 from app.api.insights import router as insights_router
 from app.api.interview_feedback import router as interview_feedback_router
 from app.api.job_leads import router as job_leads_router
+from app.api.planning import router as planning_router
 from app.api.profile import router as profile_router
 from app.api.rounds import router as rounds_router
 from app.api.settings import router as settings_router
+from app.api.source_capture import router as source_capture_router
 from app.api.streak import router as streak_router
 from app.api.transcriptions import router as transcriptions_router
 from app.api.user_preferences import router as user_preferences_router
 from app.api.users import router as users_router
+from app.api.workspace import router as workspace_router
 from app.core.config import get_settings
 from app.core.database import async_session_maker
 from app.core.error_codes import error_code
@@ -154,6 +159,14 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 
+from app.api.job_analyses import router as job_analyses_router
+
+app.include_router(job_analyses_router)
+app.include_router(planning_router)
+app.include_router(attachments_router)
+app.include_router(source_capture_router)
+app.include_router(analytics_workspace_router)
+app.include_router(workspace_router)
 app.include_router(auth_router)
 app.include_router(applications_router)
 app.include_router(application_history_router)
@@ -183,6 +196,8 @@ async def health_check():
 
 class SPAStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope: Scope) -> Response:
+        if path == "api" or path.startswith("api/"):
+            raise StarletteHTTPException(status_code=404)
         try:
             return await super().get_response(path, scope)
         except StarletteHTTPException as exc:

@@ -59,6 +59,15 @@ class ApplicationEvidenceMetrics(BaseModel):
 
 
 class PipelineMetrics(BaseModel):
+    repeated_requirements: dict = {}
+    missing_evidence: dict = {}
+    first_response: dict = {}
+    rejected_count: int = 0
+    outcomes_by_source: list[dict] = []
+    top_positions: list[dict] = []
+    top_technologies: list[dict] = []
+    stage_averages: list[dict] = []
+    current_phases: list[dict] = []
     scope: CalculationScope
     current_record_basis: CurrentRecordBasis
     total_applications: int

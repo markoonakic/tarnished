@@ -110,7 +110,13 @@ async def _affected_user(db, *, application_id=None, round_id=None, user_id=None
 
 
 async def invalidate_reports(
-    db, *, application_id=None, round_id=None, user_id=None, removed=False
+    db,
+    *,
+    application_id=None,
+    round_id=None,
+    user_id=None,
+    removed=False,
+    analysis_removed=True,
 ):
     """Invalidate affected reports while the caller holds the settings write lock."""
     owner = await _affected_user(
@@ -127,6 +133,25 @@ async def invalidate_reports(
             select(Application.id).where(Application.user_id == owner)
         )
     )
+    if removed and user_id and not application_id and not round_id:
+        from app.models.job_analysis import JobAnalysis
+
+        if analysis_removed:
+            await db.execute(
+                update(JobAnalysis)
+                .where(JobAnalysis.user_id == owner, JobAnalysis.kind != "EXTRACTION")
+                .values(draft={}, fingerprint="")
+            )
+        await db.execute(
+            update(InterviewJob)
+            .where(
+                InterviewJob.user_id == owner,
+                InterviewJob.analysis_id.is_not(None),
+                InterviewJob.scope != "EXTRACTION",
+                InterviewJob.state.in_(ACTIVE),
+            )
+            .values(state="invalidated", manifest={}, checkpoints=[], claim_id=None)
+        )
     # INTERVIEW reports live per round.
     await db.execute(
         update(InterviewJob)
@@ -152,6 +177,8 @@ async def invalidate_reports(
     }
     if removed:
         interview_values["interview_report"] = None
+    if user_id and not application_id and not round_id:
+        interview_values["updated_at"] = Round.updated_at
     await db.execute(
         update(Round)
         .where(round_condition)
@@ -197,6 +224,9 @@ async def invalidate_reports(
     }
     if removed:
         application_values["report"] = None
+    if user_id and not application_id and not round_id:
+        # Profile/privacy changes are not activity on every application.
+        application_values["updated_at"] = Application.updated_at
     await db.execute(
         update(Application)
         .where(*app_condition)
@@ -335,6 +365,10 @@ async def guard(db, job_id, claim, states=ACTIVE):
         .where(InterviewJob.id == job_id)
         .execution_options(populate_existing=True)
     )
+    if job is not None and job.analysis_id:
+        from app.services.job_analyses import guard as analysis_guard
+
+        return await analysis_guard(db, job, claim, states)
     if (
         job is None
         or job.claim_id != claim
@@ -624,6 +658,14 @@ async def _scope_evidence(scope, data):
 
 
 async def execute(executor, job_id, claim):
+    async with executor.sessions() as db:
+        analysis_id = await db.scalar(
+            select(InterviewJob.analysis_id).where(InterviewJob.id == job_id)
+        )
+    if analysis_id:
+        from app.services.job_analyses import execute as analysis_execute
+
+        return await analysis_execute(executor, job_id, claim)
     async with executor.sessions() as db:
         job, data, _ = await guard(db, job_id, claim, ("analyzing",))
         scope = job.scope

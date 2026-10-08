@@ -15,6 +15,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setPending(false);
     setLoading(true);
 
     try {
@@ -39,13 +41,23 @@ export default function Login() {
       await refreshUser();
       navigate('/');
     } catch (err: unknown) {
+      const code = axios.isAxiosError(err)
+        ? (err.response?.data?.code ?? err.response?.data?.detail?.code)
+        : undefined;
+      setPending(code === 'account_pending');
       setError(
-        axios.isAxiosError(err)
-          ? safeErrorMessage(
-              err.response?.data?.detail,
-              t('Login failed. Check your email and password and try again.')
-            )
-          : t('Login failed')
+        code === 'account_pending'
+          ? t('accounts.pendingMessage')
+          : code === 'account_deactivated'
+            ? t('accounts.deactivatedMessage')
+            : axios.isAxiosError(err)
+              ? safeErrorMessage(
+                  err.response?.data?.detail,
+                  t(
+                    'Login failed. Check your email and password and try again.'
+                  )
+                )
+              : t('Login failed')
       );
     } finally {
       setLoading(false);
@@ -56,14 +68,15 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-secondary rounded-lg p-8">
-          <h1 className="text-accent-bright mb-6 text-2xl font-bold">
+          <div className="text-fg1 mx-auto mb-4 h-12 w-12 bg-current [mask-image:url('/tree.svg')] [mask-size:contain] [mask-position:center] [mask-repeat:no-repeat]" />
+          <h1 className="text-fg1 mb-6 text-center text-2xl font-bold">
             {t('Sign In')}
           </h1>
 
           {error && (
             <div
               role="alert"
-              className="bg-red-bright/20 border-red-bright text-red-bright mb-4 rounded border p-3"
+              className={`mb-4 rounded border p-3 ${pending ? 'bg-yellow/10 border-yellow text-yellow' : 'bg-red-bright/20 border-red-bright text-red-bright'}`}
             >
               {error}
             </div>
@@ -107,14 +120,14 @@ export default function Login() {
           </form>
 
           <p className="text-muted mt-4 text-center">
-            {!needsSetup && t('Contact your administrator for an account.')}{' '}
+            {!needsSetup && t('accounts.noAccount')}{' '}
             <Link
               to="/register"
               className="text-accent hover:text-accent-bright transition-all duration-200 ease-in-out"
             >
               {needsSetup
                 ? t('Create the first admin account')
-                : t('Account setup')}
+                : t('accounts.createOne')}
             </Link>
           </p>
         </div>

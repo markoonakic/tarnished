@@ -12,6 +12,7 @@ import {
 export interface DropdownOption {
   value: string;
   label: string;
+  icon?: string;
 }
 
 interface DropdownProps {
@@ -337,6 +338,12 @@ export default function Dropdown({
         className={`flex w-full items-center justify-between gap-3 ${nonSelectedBg} text-fg1 hover:border-accent-bright focus:ring-accent-bright rounded border-0 focus:ring-1 focus:outline-none ${isOpen ? 'ring-accent-bright ring-1' : ''} ${sizeClasses[size]} transition-all duration-200 ease-in-out ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} `}
       >
         <span className={selectedOption ? 'text-fg1' : 'text-fg4'}>
+          {selectedOption?.icon && (
+            <i
+              className={`bi ${selectedOption.icon} mr-2`}
+              aria-hidden="true"
+            />
+          )}
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <i
@@ -381,7 +388,15 @@ export default function Dropdown({
                       : `${nonSelectedBg} text-fg1 ${hoverClass}`
                   } ${isFocused ? 'bg-bg4' : ''} `}
                 >
-                  {option.label}
+                  <span>
+                    {option.icon && (
+                      <i
+                        className={`bi ${option.icon} mr-2`}
+                        aria-hidden="true"
+                      />
+                    )}
+                    {option.label}
+                  </span>
                   {isSelected && (
                     <i
                       className={`bi-check ${iconSizeClasses[size]} ${isFocused ? 'text-green-bright' : 'text-green'}`}

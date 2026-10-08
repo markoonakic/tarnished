@@ -25,8 +25,12 @@ import SettingsExport from './components/settings/SettingsExport';
 import SettingsImport from './components/settings/SettingsImport';
 import SettingsAPIKey from './components/settings/SettingsAPIKey';
 import SettingsSecurity from './components/settings/SettingsSecurity';
-import SettingsProfile from './components/settings/SettingsProfile';
-import Layout from './components/Layout';
+import Profile from './pages/Profile';
+import Companies from './pages/Companies';
+import CompanyDetail from './pages/CompanyDetail';
+import ContactDetail from './pages/ContactDetail';
+import Tasks from './pages/Tasks';
+import InterviewDetail from './pages/InterviewDetail';
 import SettingsLanguage from './components/settings/SettingsLanguage';
 import LanguagePreference from './components/LanguagePreference';
 
@@ -142,14 +146,26 @@ function AppRoutes() {
         path="/profile"
         element={
           <ProtectedRoute>
-            <Layout>
-              <div className="mx-auto max-w-4xl p-4 md:px-6 md:py-8">
-                <SettingsProfile />
-              </div>
-            </Layout>
+            <Profile />
           </ProtectedRoute>
         }
       />
+      {(
+        [
+          ['/companies', <Companies />],
+          ['/contacts', <Companies />],
+          ['/companies/:id', <CompanyDetail />],
+          ['/contacts/:id', <ContactDetail />],
+          ['/tasks', <Tasks />],
+          ['/interviews/:id', <InterviewDetail />],
+        ] as const
+      ).map(([path, page]) => (
+        <Route
+          key={path}
+          path={path}
+          element={<ProtectedRoute>{page}</ProtectedRoute>}
+        />
+      ))}
       <Route
         path="/settings"
         element={

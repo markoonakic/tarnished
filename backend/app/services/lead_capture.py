@@ -9,6 +9,31 @@ from app.services.extraction import (
 )
 
 
+def capture_complete_source(text: str | None = None, html: str | None = None) -> dict:
+    from fastapi import HTTPException
+
+    if text is not None:
+        if len(text) > 100_000:
+            raise HTTPException(422, "Source text limit is 100000 characters")
+        warning = None
+        if "\x00" in text:
+            text = _clean_markdown(text.replace("\x00", " "))
+            warning = "NUL characters in source text were replaced with spaces."
+            if not text:
+                warning += " No useful source text was captured."
+        return {
+            "source_text": text or None,
+            "source_truncated": False,
+            "content_warning": warning,
+        }
+    result = capture_source(None, html)
+    if result["source_truncated"]:
+        raise HTTPException(
+            422, "Source exceeds storage limit; paste up to 100000 characters instead"
+        )
+    return result
+
+
 def capture_source(text: str | None = None, html: str | None = None) -> dict:
     """Local only. These strings are data, not sanitized/trusted HTML."""
     truncated = False
