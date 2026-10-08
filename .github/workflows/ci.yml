@@ -81,7 +81,10 @@ jobs:
         run: |
           uv export --locked --no-dev --no-hashes --no-emit-project -o requirements.txt
           # JWTs use HS256, not the vulnerable ecdsa algorithm.
-          uv tool run pip-audit -r requirements.txt --no-deps --disable-pip --ignore-vuln CVE-2024-23342
+          # CVE-2026-85394 requires algorithm confusion with a DER public key.
+          # All four JWT readers pin the configured algorithm; HS256 uses a secret,
+          # not a public key. See tests/test_jwt_algorithm_policy.py.
+          uv tool run pip-audit -r requirements.txt --no-deps --disable-pip --ignore-vuln CVE-2024-23342 --ignore-vuln CVE-2026-85394
 
   cli:
     runs-on: ubuntu-latest
