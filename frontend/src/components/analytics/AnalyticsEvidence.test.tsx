@@ -305,6 +305,7 @@ it('shows short durations with precise values and keeps the axis name below the 
   await waitFor(() => expect(chart).toHaveBeenCalled());
   const option = chart.mock.lastCall![0].option;
   expect(option.series[0].data[0]).toBeCloseTo(25 / 1440);
+  expect(chart.mock.lastCall![0].style.minWidth).toBe('36rem');
   expect(option.xAxis.nameLocation).toBe('middle');
   expect(option.xAxis.nameGap).toBe(35);
   expect(option.grid.bottom).toBe(65);
@@ -334,6 +335,7 @@ it('hides inside labels that do not fit their segments and keeps the Withdrawn d
   mount(<InterviewOutcomes />);
   await waitFor(() => expect(chart).toHaveBeenCalled());
   const option = chart.mock.lastCall![0].option;
+  expect(chart.mock.lastCall![0].style.minWidth).toBe('36rem');
   expect(option.legend.data).toContain('Withdrawn');
   for (const series of option.series) {
     expect(

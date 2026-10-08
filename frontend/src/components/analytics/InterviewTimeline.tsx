@@ -185,7 +185,7 @@ export default function InterviewTimeline({
         <div className="w-full overflow-x-auto">
           <ReactECharts
             option={option}
-            style={{ width: '100%', height: '31.25rem' }}
+            style={{ width: '100%', minWidth: '36rem', height: '31.25rem' }}
             opts={{ renderer: 'svg' }}
           />
         </div>
