@@ -6,6 +6,7 @@ import TextLink from './TextLink';
 import RecordLink from './RecordLink';
 import Dropdown from '../Dropdown';
 import FileButton from '../FileButton';
+import QuickAction from '../dashboard/QuickAction';
 
 afterEach(cleanup);
 it.each(['primary', 'ghost', 'danger', 'icon'] as const)(
@@ -95,6 +96,28 @@ it('mobile record cards keep their surface outside the navigation link', () => {
   expect(link.parentElement).toHaveClass('bg-secondary', 'rounded-lg', 'p-4');
   expect(link).toHaveClass('text-accent', 'hover:text-accent-bright');
   expect(link.className).not.toMatch(/\bbg-|hover:bg-/);
+});
+it('select options do not gain an action arrow that changes label alignment', () => {
+  render(<Button role="option">Alpha</Button>);
+  expect(screen.getByRole('option').querySelector('i')).toBeNull();
+});
+it('dashboard quick actions show exactly one supplied icon', () => {
+  render(
+    <MemoryRouter>
+      <QuickAction icon="bi-plus" onClick={vi.fn()}>
+        New
+      </QuickAction>
+      <QuickAction icon="bi-kanban" to="/applications">
+        Board
+      </QuickAction>
+    </MemoryRouter>
+  );
+  expect(
+    screen.getByRole('button', { name: 'New' }).querySelectorAll('i')
+  ).toHaveLength(1);
+  expect(
+    screen.getByRole('link', { name: 'Board' }).querySelectorAll('i')
+  ).toHaveLength(1);
 });
 it('the shared option layer is opaque, bordered and above cards', () => {
   render(

@@ -27,7 +27,8 @@ export default function QuickAction({
         </TextLink>
       ) : (
         <Button type="button" onClick={onClick} className="w-full text-left">
-          {content}
+          <i className={`${icon} icon-md`} aria-hidden="true" />
+          {children}
         </Button>
       )}
     </div>

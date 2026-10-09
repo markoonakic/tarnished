@@ -35,14 +35,18 @@ export default function Button({
       data-variant={variant}
       className={`${variants[variant]} focus:ring-accent aria-pressed:ring-accent aria-selected:ring-accent font-mono text-sm focus:ring-2 aria-pressed:ring-1 aria-selected:ring-1 ${variant === 'primary' ? 'flex items-center justify-center gap-1.5' : ''} ${className}`}
     >
-      {!hasIcon && (variant === 'ghost' || variant === 'danger') && (
-        <i
-          className={
-            variant === 'danger' ? 'bi-trash icon-sm' : 'bi-arrow-right icon-sm'
-          }
-          aria-hidden="true"
-        />
-      )}
+      {!hasIcon &&
+        props.role !== 'option' &&
+        (variant === 'ghost' || variant === 'danger') && (
+          <i
+            className={
+              variant === 'danger'
+                ? 'bi-trash icon-sm'
+                : 'bi-arrow-right icon-sm'
+            }
+            aria-hidden="true"
+          />
+        )}
       {children}
     </button>
   );
