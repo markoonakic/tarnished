@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useTranslation } from 'react-i18next';
 import HelpTip from '@/components/HelpTip';
 import { locale } from '@/lib/i18n';
@@ -19,14 +20,14 @@ export default function AnalyticsNewKpis(props: AnalyticsSlotProps) {
     return (
       <div className="bg-secondary mb-4 rounded-lg p-6" role="alert">
         <p className="text-red-bright">{t('analytics.loadError')}</p>
-        <button
+        <Button
           type="button"
-          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent mt-2 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          className="mt-2 flex items-center gap-1.5"
           onClick={() => void refetch()}
         >
           <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
           {t('analytics.retry')}
-        </button>
+        </Button>
       </div>
     );
   const { first_response: response } = data;

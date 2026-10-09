@@ -1,7 +1,9 @@
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, type ReactNode } from 'react';
+
 import { createJobLead, jobLeadError } from '../lib/jobLeads';
 import { useToast } from '../hooks/useToast';
 import Modal from './Modal';
@@ -13,7 +15,9 @@ import type { WorkMode } from '@/lib/apiV030';
 
 export default function JobLeadCaptureForm({
   onSaved,
+  trigger,
 }: {
+  trigger?: (open: () => void) => ReactNode;
   onSaved?: () => Promise<void>;
 }) {
   useTranslation();
@@ -87,17 +91,27 @@ export default function JobLeadCaptureForm({
 
   return (
     <>
-      <button
-        onClick={() => {
+      {trigger ? (
+        trigger(() => {
           setError('');
           setDuplicateId(undefined);
           setOpen(true);
-        }}
-        className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
-      >
-        <i className="bi-plus-lg icon-sm" aria-hidden="true" />
-        {t('New Job Lead')}
-      </button>
+        })
+      ) : (
+        <Button
+          type="button"
+          variant="primary"
+          onClick={() => {
+            setError('');
+            setDuplicateId(undefined);
+            setOpen(true);
+          }}
+          className="flex items-center gap-1.5"
+        >
+          <i className="bi-plus-lg icon-sm" aria-hidden="true" />
+          {t('New Job Lead')}
+        </Button>
+      )}
       {open && (
         <Modal
           label={t('New Job Lead')}
@@ -109,16 +123,17 @@ export default function JobLeadCaptureForm({
               <h2 className="text-primary text-xl font-semibold">
                 {t('New Job Lead')}
               </h2>
-              <button
+              <Button
+                variant="icon"
                 type="button"
                 aria-label={t('Close new job lead')}
                 disabled={busy}
                 onClick={() => setOpen(false)}
-                className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+
                 title={t('Close new job lead')}
               >
                 <i className="bi-x-lg icon-lg" aria-hidden="true" />
-              </button>
+              </Button>
             </div>
             <form onSubmit={save} className="space-y-4">
               <SegmentedControl
@@ -141,12 +156,9 @@ export default function JobLeadCaptureForm({
                 </p>
               )}
               {duplicateId ? (
-                <Link
-                  className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-                  to={`/job-leads/${duplicateId}`}
-                >
+                <TextLink to={`/job-leads/${duplicateId}`}>
                   {t('Open saved lead')}
-                </Link>
+                </TextLink>
               ) : (
                 <>
                   {mode === 'manual' ? (
@@ -254,17 +266,19 @@ export default function JobLeadCaptureForm({
                     </>
                   )}
                   <div className="flex justify-end gap-2">
-                    <button
+                    <Button
                       type="button"
-                      className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                      className="flex items-center gap-1.5"
                       disabled={busy}
                       onClick={() => setOpen(false)}
                     >
                       <i className="bi-x-lg icon-sm" aria-hidden="true" />
                       {t('Cancel')}
-                    </button>
-                    <button
-                      className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      className="flex items-center gap-1.5"
                       disabled={
                         busy ||
                         (mode !== 'manual' && Array.from(text).length > 100000)
@@ -272,7 +286,7 @@ export default function JobLeadCaptureForm({
                     >
                       <i className="bi-check2 icon-sm" aria-hidden="true" />
                       {busy ? t('Saving…') : t('Save Lead')}
-                    </button>
+                    </Button>
                   </div>
                 </>
               )}

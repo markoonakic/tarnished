@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { formatDateTime } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
@@ -343,22 +344,23 @@ export default function SettingsAPIKey() {
               </div>
 
               <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                <button
+                <Button
                   type="button"
                   onClick={() => setAdvancedScopesOpen((current) => !current)}
-                  className="text-fg1 hover:bg-bg3 flex cursor-pointer items-center justify-center gap-2 rounded-md bg-transparent px-4 py-2 text-sm transition-all duration-200 ease-in-out"
+                  className="flex items-center justify-center gap-2"
                 >
                   <i className="bi-sliders icon-sm" />
                   {t('Advanced Scopes')}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
                   onClick={handleCreateKey}
                   disabled={submitting}
-                  className="bg-accent text-bg0 hover:bg-accent-bright flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex items-center justify-center gap-2"
                 >
                   <i className="bi-key icon-sm" />
                   {t('Create API Key')}
-                </button>
+                </Button>
               </div>
 
               {advancedScopesOpen && (
@@ -399,13 +401,13 @@ export default function SettingsAPIKey() {
                   <div className="text-fg1 bg-bg3 flex-1 overflow-x-auto rounded px-3 py-2 font-mono text-sm break-all">
                     {revealedKey}
                   </div>
-                  <button
+                  <Button
                     onClick={handleCopyRevealedKey}
-                    className="text-fg1 hover:bg-bg3 flex cursor-pointer items-center gap-2 rounded px-3 py-2 transition-all duration-200 ease-in-out"
+                    className="flex items-center gap-2"
                   >
                     <i className="bi-clipboard icon-sm" />
                     {t('Copy')}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -469,26 +471,26 @@ export default function SettingsAPIKey() {
                             </div>
 
                             <div className="flex flex-col gap-3 sm:flex-row">
-                              <button
+                              <Button
                                 type="button"
                                 onClick={() =>
                                   setEditingAdvancedScopesOpen(
                                     (current) => !current
                                   )
                                 }
-                                className="text-fg1 hover:bg-bg3 flex cursor-pointer items-center justify-center gap-2 rounded-md bg-transparent px-4 py-2 text-sm transition-all duration-200 ease-in-out"
+                                className="flex items-center justify-center gap-2"
                               >
                                 <i className="bi-sliders icon-sm" />
                                 {t('Advanced Scopes')}
-                              </button>
-                              <button
+                              </Button>
+                              <Button
+                                variant="primary"
                                 onClick={() => handleRenameKey(apiKey.id)}
                                 disabled={submitting}
-                                className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {t('Save')}
-                              </button>
-                              <button
+                              </Button>
+                              <Button
                                 onClick={() => {
                                   setEditingId(null);
                                   setEditingLabel('');
@@ -496,10 +498,9 @@ export default function SettingsAPIKey() {
                                   setEditingScopes([]);
                                   setEditingAdvancedScopesOpen(false);
                                 }}
-                                className="text-fg1 hover:bg-bg3 cursor-pointer rounded-md bg-transparent px-4 py-2 text-sm transition-all duration-200 ease-in-out"
                               >
                                 {t('Cancel')}
-                              </button>
+                              </Button>
                             </div>
 
                             {editingAdvancedScopesOpen && (
@@ -551,7 +552,7 @@ export default function SettingsAPIKey() {
 
                       {editingId !== apiKey.id && (
                         <div className="flex gap-2">
-                          <button
+                          <Button
                             onClick={() => {
                               setEditingId(apiKey.id);
                               setEditingLabel(apiKey.label);
@@ -559,17 +560,16 @@ export default function SettingsAPIKey() {
                               setEditingScopes(apiKey.scopes);
                               setEditingAdvancedScopesOpen(false);
                             }}
-                            className="text-fg1 hover:bg-bg3 cursor-pointer rounded-md bg-transparent px-3 py-2 text-sm transition-all duration-200 ease-in-out"
                           >
                             {t('Rename')}
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="danger"
                             onClick={() => handleDeleteKey(apiKey.id)}
                             disabled={submitting}
-                            className="text-red hover:bg-bg3 hover:text-red-bright cursor-pointer rounded-md bg-transparent px-3 py-2 text-sm transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {t('Revoke')}
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>

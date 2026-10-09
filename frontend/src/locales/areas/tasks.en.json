@@ -1,4 +1,5 @@
 {
+  "tasks.interviewDetails": "Interview details",
   "tasks.deadlinesWithoutReminder": "Deadlines without a reminder ({{count}})",
   "tasks.browserNotifications": "Browser notifications for reminders",
   "tasks.notificationsHelp": "This browser checks due reminders each minute while the app is open. Notifications are off on other browsers unless you turn them on there.",

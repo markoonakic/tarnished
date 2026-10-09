@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { historyLocalTime, historyInstant } from '@/lib/historyDateTime';
@@ -13,11 +14,13 @@ export interface StatusChangeDraft {
   changed_at: string;
   comment: string;
   reason: string | null;
+  applied_at?: string;
 }
 export interface StatusChangeDialogProps {
   isOpen?: boolean;
   options: StatusChangeOption[];
   statusId: string;
+  appliedAt?: string | null;
   timeZone?: string;
   initial?: Partial<StatusChangeDraft>;
   onSave: (draft: StatusChangeDraft) => void | Promise<void>;
@@ -41,6 +44,7 @@ export default function StatusChangeDialog({
 function StatusChangeForm({
   options,
   statusId,
+  appliedAt,
   initial,
   onSave,
   onClose,
@@ -55,6 +59,14 @@ function StatusChangeForm({
       timeZone
     ).slice(0, 16)
   );
+  const [sentDate, setSentDate] = useState(
+    initial?.applied_at ??
+      appliedAt ??
+      historyLocalTime(new Date().toISOString(), timeZone).slice(0, 10)
+  );
+  const needsSentDate =
+    appliedAt === null &&
+    options.find((option) => option.value === status)?.meaning !== 'preparing';
   const [comment, setComment] = useState(initial?.comment ?? '');
   const [reason, setReason] = useState(initial?.reason ?? '');
   const [busy, setBusy] = useState(false);
@@ -84,6 +96,7 @@ function StatusChangeForm({
           try {
             await onSave({
               status_id: status,
+              ...(needsSentDate ? { applied_at: sentDate } : {}),
               changed_at: instant,
               comment: comment.trim(),
               reason: terminal ? reason.trim() || null : null,
@@ -100,16 +113,17 @@ function StatusChangeForm({
           <h2 id={id} className="text-fg1 text-xl font-semibold">
             {t('kit.changeStatus')}
           </h2>
-          <button
+          <Button
+            variant="icon"
             type="button"
             disabled={busy}
             aria-label={t('kit.close')}
             onClick={onClose}
-            className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+
             title={t('kit.close')}
           >
             <i className="bi bi-x-lg" aria-hidden="true" />
-          </button>
+          </Button>
         </div>
         <fieldset disabled={busy} className="space-y-4">
           <div>
@@ -123,6 +137,21 @@ function StatusChangeForm({
               onChange={setStatus}
             />
           </div>
+          {needsSentDate && (
+            <div>
+              <label htmlFor={id + '-sent'} className={label}>
+                {t('records.sentDate')}
+              </label>
+              <input
+                id={id + '-sent'}
+                type="date"
+                required
+                className={input}
+                value={sentDate}
+                onChange={(e) => setSentDate(e.target.value)}
+              />
+            </div>
+          )}
           <div>
             <label htmlFor={id + '-time'} className={label}>
               {t('kit.dateTime')}
@@ -174,27 +203,29 @@ function StatusChangeForm({
           </p>
         )}
         <div className="mt-6 flex justify-end gap-2">
-          <button
+          <Button
             type="button"
             disabled={busy}
             onClick={onClose}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
           >
             <i className="bi-x-lg icon-sm" aria-hidden="true" />
             {t('kit.cancel')}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             type="submit"
             disabled={
               busy ||
               !options.some((option) => option.value === status) ||
-              !time
+              !time ||
+              (needsSentDate && !sentDate)
             }
-            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
           >
             <i className="bi-check2 icon-sm" aria-hidden="true" />
             {t('kit.save')}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

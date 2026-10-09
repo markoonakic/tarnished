@@ -1,7 +1,10 @@
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
+import PopoverLayer from '@/components/ui/PopoverLayer';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { apiV030, type BoardCard, type JobQuery } from '@/lib/apiV030';
 import { listStatuses } from '@/lib/settings';
@@ -41,6 +44,7 @@ export default function ApplicationBoard({
 }) {
   const { t } = useTranslation();
   const toast = useToast();
+  const navigate = useNavigate();
   const colors = useThemeColors();
   const preferences = useUserPreferences();
   const zone = preferences.data ? getEffectiveTimeZone(preferences.data) : null;
@@ -97,16 +101,16 @@ export default function ApplicationBoard({
     return (
       <p role="alert" className="text-red-bright">
         {t('tasks.loadFailed')}{' '}
-        <button
+        <Button
           onClick={() => {
             void board.refetch();
             void statuses.refetch();
           }}
-          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          className="flex items-center gap-1.5"
         >
           <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
           {t('Retry')}
-        </button>
+        </Button>
       </p>
     );
   if (board.isPending || statuses.isPending)
@@ -120,7 +124,7 @@ export default function ApplicationBoard({
         <HelpTip label={t('tasks.board')}>{t('tasks.boardHint')}</HelpTip>
       </div>
       <div
-        className="flex items-stretch gap-3 overflow-x-auto pb-3"
+        className="flex items-stretch gap-4 overflow-x-auto pb-3"
         aria-label={t('tasks.board')}
       >
         {statuses.data
@@ -157,14 +161,14 @@ export default function ApplicationBoard({
                 className={`bg-secondary flex shrink-0 flex-col rounded-lg p-3 ${compact ? 'h-80' : 'h-[calc(100dvh-18rem)] min-h-80'} ${collapsed ? 'w-12' : compact ? 'w-60' : 'w-72'} ${hover === status.id ? 'ring-accent ring-2' : ''}`}
               >
                 {collapsed ? (
-                  <button
-                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex h-full min-h-48 w-full cursor-pointer items-center gap-3 rounded p-1 text-sm transition-all duration-200 ease-in-out [writing-mode:vertical-rl] focus:ring-2 disabled:opacity-50"
+                  <Button
+                    className="flex h-full min-h-48 w-full items-center gap-3 [writing-mode:vertical-rl]"
                     onClick={() => setExpanded([...expanded, status.id])}
                   >
                     <i className="bi-arrow-right icon-sm" aria-hidden="true" />
                     <span style={{ color }}>{statusLabel(status)}</span>
                     <span className="text-muted">{column?.count ?? 0}</span>
-                  </button>
+                  </Button>
                 ) : (
                   <>
                     <div className="mb-3 flex items-center justify-between gap-2">
@@ -182,7 +186,8 @@ export default function ApplicationBoard({
                         {column?.count ?? 0}
                       </span>
                       {terminal && (
-                        <button
+                        <Button
+                          variant="icon"
                           onClick={() =>
                             setExpanded(
                               expanded.filter((id) => id !== status.id)
@@ -191,10 +196,10 @@ export default function ApplicationBoard({
                           aria-label={t('tasks.collapseColumn', {
                             name: statusLabel(status),
                           })}
-                          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                          className="flex items-center gap-1.5"
                         >
                           ‹
-                        </button>
+                        </Button>
                       )}
                     </div>
                     <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
@@ -202,6 +207,23 @@ export default function ApplicationBoard({
                         <article
                           key={card.id}
                           draggable
+                          role="link"
+                          tabIndex={0}
+                          onClick={(event) => {
+                            if (
+                              !(event.target as Element).closest(
+                                'a, button, details'
+                              )
+                            )
+                              navigate(`/applications/${card.id}`);
+                          }}
+                          onKeyDown={(event) => {
+                            if (
+                              event.target === event.currentTarget &&
+                              event.key === 'Enter'
+                            )
+                              navigate(`/applications/${card.id}`);
+                          }}
                           onDragStart={(e) => {
                             e.dataTransfer.setData('text/plain', card.id);
                             e.dataTransfer.effectAllowed = 'move';
@@ -211,12 +233,9 @@ export default function ApplicationBoard({
                             setDragging(null);
                             setHover('');
                           }}
-                          className="bg-bg2 hover:bg-bg3 relative rounded-lg p-3"
+                          className="bg-bg2 hover:bg-bg3 focus:ring-accent relative cursor-pointer rounded-lg p-3 focus:ring-2"
                         >
-                          <Link
-                            to={`/applications/${card.id}`}
-                            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-                          >
+                          <TextLink to={`/applications/${card.id}`}>
                             <strong className="text-primary block">
                               {card.company || t('companies.notSet')}
                             </strong>
@@ -239,7 +258,7 @@ export default function ApplicationBoard({
                                 .filter(Boolean)
                                 .join(' · ')}
                             </span>
-                          </Link>
+                          </TextLink>
                           <details className="absolute top-3 right-2">
                             <summary
                               aria-label={t('tasks.cardActions', {
@@ -255,16 +274,16 @@ export default function ApplicationBoard({
                                 aria-hidden="true"
                               />
                             </summary>
-                            <div className="bg-secondary border-tertiary absolute right-0 z-10 w-48 rounded-lg border p-1 shadow-xl">
+                            <PopoverLayer className="p-2">
                               <p className="text-muted px-3 py-2 text-xs">
                                 {t('tasks.moveTo')}
                               </p>
                               {statuses.data
                                 ?.filter((s) => s.id !== card.status.id)
                                 .map((s) => (
-                                  <button
+                                  <Button
                                     key={s.id}
-                                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                                    className="flex w-full items-center gap-1.5 text-left"
                                     disabled={!zone}
                                     onClick={(e) => {
                                       e.currentTarget
@@ -278,9 +297,9 @@ export default function ApplicationBoard({
                                       aria-hidden="true"
                                     />
                                     {statusLabel(s)}
-                                  </button>
+                                  </Button>
                                 ))}
-                            </div>
+                            </PopoverLayer>
                           </details>
                           <div className="text-muted mt-2 flex flex-wrap items-center gap-3 text-xs">
                             <span title={t('Applied')}>
@@ -333,17 +352,17 @@ export default function ApplicationBoard({
                       ))}
                     </div>
                     {cards.length < (column?.count ?? 0) && (
-                      <button
+                      <Button
                         disabled={Boolean(loadingColumn)}
                         onClick={() => void loadMore(status.id)}
-                        className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent mt-3 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                        className="mt-3 flex items-center gap-1.5"
                       >
                         <i
                           className="bi-arrow-right icon-sm"
                           aria-hidden="true"
                         />
                         {t('tasks.loadMore')}
-                      </button>
+                      </Button>
                     )}
                     {!cards.length && (
                       <p className="text-muted py-6 text-xs">
@@ -367,6 +386,7 @@ export default function ApplicationBoard({
             })) ?? []
           }
           statusId={move.status}
+          appliedAt={move.card.applied_at}
           timeZone={zone}
           onClose={() => setMove(null)}
           onSave={async (draft) => {
@@ -374,6 +394,7 @@ export default function ApplicationBoard({
               await apiV030.updateApplication(move.card.id, {
                 expected_revision: move.card.evidence_revision,
                 status_id: draft.status_id,
+                ...(draft.applied_at ? { applied_at: draft.applied_at } : {}),
                 status_changed_at: draft.changed_at,
                 status_comment: draft.comment || null,
                 status_reason: draft.reason,

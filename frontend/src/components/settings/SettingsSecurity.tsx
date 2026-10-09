@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
@@ -94,20 +95,22 @@ export default function SettingsSecurity() {
             required
             autoComplete="new-password"
           />
-          <button
-            className="touch-target bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
+          <Button
+            type="submit"
+            variant="primary"
+            className="touch-target"
             disabled={busy}
           >
             {t('Change password and sign out')}
-          </button>
+          </Button>
         </form>
-        <button
-          className="touch-target text-fg1 hover:bg-bg2 cursor-pointer rounded-md px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
+        <Button
+          className="touch-target"
           disabled={busy}
           onClick={() => void invalidate(false)}
         >
           {t('Sign out all sessions')}
-        </button>
+        </Button>
       </div>
       <DeleteAccountCard />
     </section>

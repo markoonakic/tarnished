@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { roundTypeLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
@@ -128,20 +129,21 @@ export default function SettingsRoundTypes() {
                     )}
                     {!type.is_default && (
                       <>
-                        <button
+                        <Button
                           onClick={() => startEditRoundType(type)}
-                          className="text-fg1 hover:bg-bg3 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
+                          className="flex items-center gap-1.5"
                         >
                           <i className="bi-pencil icon-xs"></i>
                           {t('Edit')}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="danger"
                           onClick={() => handleDeleteRoundType(type)}
-                          className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
+                          className="flex items-center gap-1.5"
                         >
                           <i className="bi-trash icon-xs"></i>
                           {t('Delete')}
-                        </button>
+                        </Button>
                       </>
                     )}
                   </div>
@@ -166,19 +168,15 @@ export default function SettingsRoundTypes() {
                     aria-label={t('Round type name')}
                     className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
-                  <button
-                    type="submit"
-                    className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
-                  >
+                  <Button variant="primary" type="submit">
                     {t('Save')}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={() => setEditingRoundType(null)}
-                    className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out"
                   >
                     {t('Cancel')}
-                  </button>
+                  </Button>
                 </div>
               </form>
             ) : (
@@ -191,12 +189,9 @@ export default function SettingsRoundTypes() {
                   aria-label={t('New round type name')}
                   className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
-                <button
-                  type="submit"
-                  className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
-                >
+                <Button variant="primary" type="submit">
                   {t('Add')}
-                </button>
+                </Button>
               </form>
             )}
           </>

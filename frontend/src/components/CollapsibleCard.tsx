@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useId, useState, type ReactNode } from 'react';
 import type { CardHeaderProps } from './Card';
 
@@ -27,7 +28,7 @@ export default function CollapsibleCard({
         className={`flex flex-wrap items-center justify-between gap-3 ${isOpen ? 'mb-4' : ''}`}
       >
         <div className="flex items-center gap-2">
-          <button
+          <Button
             type="button"
             aria-expanded={isOpen}
             aria-controls={id}
@@ -35,7 +36,7 @@ export default function CollapsibleCard({
               setExpanded(!isOpen);
               onOpenChange?.(!isOpen);
             }}
-            className="text-fg1 hover:text-accent-bright hover:bg-bg2 focus:ring-accent flex cursor-pointer items-center gap-2 rounded text-lg font-semibold transition-all duration-200 ease-in-out focus:ring-2"
+            className="flex items-center gap-2"
           >
             <i
               className={`bi ${isOpen ? 'bi-chevron-down' : 'bi-chevron-right'} text-muted icon-sm`}
@@ -53,7 +54,7 @@ export default function CollapsibleCard({
                 {count}
               </span>
             )}
-          </button>
+          </Button>
           {help}
         </div>
         {actions && (

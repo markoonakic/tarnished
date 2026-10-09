@@ -2,6 +2,7 @@ import type { JobLead } from '@/lib/types';
 import ProfileMatch from '@/components/ai/ProfileMatch';
 export default function LeadProfileMatch({
   lead,
+  onUpdated,
 }: {
   lead: JobLead;
   onUpdated?: () => void;
@@ -14,17 +15,13 @@ export default function LeadProfileMatch({
   };
   return (
     <ProfileMatch
+      onUpdated={onUpdated}
       target={{ lead_id: record.id }}
       refreshKey={record.revision}
       legacy={[
         ...(record.requirements_must_have ?? []),
         ...(record.requirements_nice_to_have ?? []),
-      ].filter(
-        (text) =>
-          !(record.confirmed_requirements ?? []).some(
-            (item) => item.text === text
-          )
-      )}
+      ]}
     />
   );
 }

@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { queryClient } from '@/lib/queryClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,7 +10,6 @@ import { ContactModal } from './RecordModals';
 import { apiV030, type Contact } from '@/lib/apiV030';
 import {
   allContacts,
-  actionClass,
   failureMessage,
   roleLabel,
   roleColor,
@@ -111,15 +111,15 @@ export default function LinkedContacts({
       icon="bi-person-lines-fill"
       count={ids.length}
       actions={
-        <button
+        <Button
           type="button"
           disabled={busy || (kind === 'application' && links.isPending)}
-          className={actionClass}
+
           onClick={() => setPicker(!picker)}
         >
           <i className="bi-arrow-right icon-sm" aria-hidden="true" />
           {t('companies.linkContact')}
-        </button>
+        </Button>
       }
     >
       <div className="space-y-2">
@@ -180,8 +180,7 @@ export default function LinkedContacts({
       {(error || contacts.isError || links.isError) && (
         <p role="alert" className="text-red mt-3 text-sm">
           {error || failureMessage(contacts.error || links.error)}{' '}
-          <button
-            className={actionClass}
+          <Button
             onClick={() => {
               void contacts.refetch();
               if (kind === 'application') void links.refetch();
@@ -190,7 +189,7 @@ export default function LinkedContacts({
           >
             <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('companies.reload')}
-          </button>
+          </Button>
         </p>
       )}
       {createName !== null && (

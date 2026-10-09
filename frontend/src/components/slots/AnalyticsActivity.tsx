@@ -1,7 +1,9 @@
+import TextLink from '@/components/ui/TextLink';
+import Button from '@/components/ui/Button';
 import { formatDateTime } from '@/lib/displayDate';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+
 import Card from '@/components/Card';
 import HelpTip from '@/components/HelpTip';
 import { apiV030, type Activity } from '@/lib/apiV030';
@@ -137,10 +139,8 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
           {items.map((item) => {
             const href = activityHref(item);
             const label =
-              item.event === 'status.changed' &&
-              item.from_status &&
-              item.to_status
-                ? `${statusLabel(item.from_status)} → ${statusLabel(item.to_status)}`
+              item.event === 'status.changed' && item.to_status
+                ? `${item.from_status ? statusLabel(item.from_status) + ' ' : ''}→ ${statusLabel(item.to_status)}`
                 : t(events[item.event] ?? 'analytics.recordUpdated');
             return (
               <li
@@ -172,13 +172,13 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
                   </span>
                 </span>
                 {href && (
-                  <Link
+                  <TextLink
                     to={href}
-                    className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+
                     aria-label={t('analytics.openEvent', { event: label })}
                   >
                     {t('analytics.open')}
-                  </Link>
+                  </TextLink>
                 )}
               </li>
             );
@@ -190,9 +190,9 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
           <p className="text-red-bright text-sm">
             {t('analytics.activityError')}
           </p>
-          <button
+          <Button
             type="button"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent mt-2 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="mt-2 flex items-center gap-1.5"
             onClick={() =>
               void (history.isFetchNextPageError
                 ? history.fetchNextPage()
@@ -201,13 +201,13 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
           >
             <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('analytics.retry')}
-          </button>
+          </Button>
         </div>
       )}
       {history.hasNextPage && !history.isFetchNextPageError && (
-        <button
+        <Button
           type="button"
-          className="text-accent hover:text-accent-bright focus:ring-accent mt-4 cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          className="mt-4"
           disabled={history.isFetchingNextPage}
           onClick={() => void history.fetchNextPage()}
         >
@@ -217,7 +217,7 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
               ? 'analytics.loading'
               : 'analytics.loadMore'
           )}
-        </button>
+        </Button>
       )}
     </Card>
   );

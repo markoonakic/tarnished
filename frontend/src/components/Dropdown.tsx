@@ -1,3 +1,5 @@
+import Button from '@/components/ui/Button';
+import PopoverLayer from './ui/PopoverLayer';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import {
@@ -25,44 +27,6 @@ interface DropdownProps {
   containerBackground?: 'bg0' | 'bg1' | 'bg2' | 'bg3' | 'bg4';
   id?: string;
 }
-
-const sizeClasses = {
-  xs: 'px-3 py-2 text-sm',
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-base',
-  lg: 'px-5 py-2.5 text-lg',
-};
-
-const iconSizeClasses = {
-  xs: 'icon-xs',
-  sm: 'icon-sm',
-  md: 'icon-md',
-  lg: 'icon-lg',
-};
-
-const nonSelectedClasses = {
-  bg0: 'bg-bg1',
-  bg1: 'bg-bg2',
-  bg2: 'bg-bg3',
-  bg3: 'bg-bg4',
-  bg4: 'bg-bg-h',
-} as const;
-
-const hoverClasses = {
-  bg0: 'hover:bg-bg3',
-  bg1: 'hover:bg-bg4',
-  bg2: 'hover:bg-bg-h',
-  bg3: 'hover:bg-bg0',
-  bg4: 'hover:bg-bg1',
-} as const;
-
-const selectedClasses = {
-  bg0: 'bg-bg2',
-  bg1: 'bg-bg3',
-  bg2: 'bg-bg4',
-  bg3: 'bg-bg-h',
-  bg4: 'bg-bg0',
-} as const;
 
 const TYPEAHEAD_RESET_MS = 500;
 const PAGE_JUMP_SIZE = 10;
@@ -100,8 +64,6 @@ export default function Dropdown({
   onChange,
   placeholder = t('Select...'),
   disabled = false,
-  size = 'md',
-  containerBackground = 'bg1',
   id,
 }: DropdownProps) {
   useTranslation();
@@ -121,10 +83,6 @@ export default function Dropdown({
     () => options.findIndex((opt) => opt.value === value),
     [options, value]
   );
-
-  const nonSelectedBg = nonSelectedClasses[containerBackground];
-  const selectedBg = selectedClasses[containerBackground];
-  const hoverClass = hoverClasses[containerBackground];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -314,7 +272,7 @@ export default function Dropdown({
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button
+      <Button
         ref={triggerRef}
         type="button"
         id={id}
@@ -335,7 +293,7 @@ export default function Dropdown({
             : undefined
         }
         aria-disabled={disabled}
-        className={`flex w-full items-center justify-between gap-3 ${nonSelectedBg} text-fg1 hover:border-accent-bright focus:ring-accent-bright rounded border-0 focus:ring-1 focus:outline-none ${isOpen ? 'ring-accent-bright ring-1' : ''} ${sizeClasses[size]} transition-all duration-200 ease-in-out ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} `}
+        className="w-full justify-between text-left"
       >
         <span className={selectedOption ? 'text-fg1' : 'text-fg4'}>
           {selectedOption?.icon && (
@@ -347,22 +305,11 @@ export default function Dropdown({
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <i
-          className={`bi-chevron-down ${iconSizeClasses[size]} text-fg4 transition-transform duration-200 ease-in-out ${isOpen ? 'rotate-180' : ''} `}
+          className={`bi-chevron-down icon-sm text-fg4 transition-transform duration-200 ease-in-out ${isOpen ? 'rotate-180' : ''} `}
         />
-      </button>
+      </Button>
 
-      <div
-        id={listboxId}
-        className={`bg-bg0 absolute z-10 mt-1 w-full overflow-hidden rounded-lg border-0 transition-all duration-200 ease-in-out ${isOpen ? 'ring-accent-bright ring-1' : ''} `}
-        style={{
-          display: 'grid',
-          gridTemplateRows: isOpen ? '1fr' : '0fr',
-          opacity: isOpen ? 1 : 0,
-          transform: isOpen ? 'translateY(0)' : 'translateY(-0.5rem)',
-        }}
-        role="listbox"
-        aria-hidden={!isOpen}
-      >
+      <PopoverLayer id={listboxId} open={isOpen} role="listbox">
         <div className="max-h-64 overflow-y-auto overscroll-contain">
           {isOpen &&
             options.map((option, index) => {
@@ -370,7 +317,7 @@ export default function Dropdown({
               const isFocused = focusedIndex === index;
 
               return (
-                <button
+                <Button
                   key={option.value}
                   id={`${listboxId}-option-${index}`}
                   ref={(element) => {
@@ -382,11 +329,7 @@ export default function Dropdown({
                   tabIndex={-1}
                   role="option"
                   aria-selected={isSelected}
-                  className={`flex w-full cursor-pointer items-center justify-between text-left transition-all duration-200 ease-in-out ${sizeClasses[size]} ${
-                    isSelected
-                      ? `${selectedBg} text-fg0`
-                      : `${nonSelectedBg} text-fg1 ${hoverClass}`
-                  } ${isFocused ? 'bg-bg4' : ''} `}
+                  className={`w-full justify-between text-left ${isFocused ? '' : ''} `}
                 >
                   <span>
                     {option.icon && (
@@ -399,14 +342,14 @@ export default function Dropdown({
                   </span>
                   {isSelected && (
                     <i
-                      className={`bi-check ${iconSizeClasses[size]} ${isFocused ? 'text-green-bright' : 'text-green'}`}
+                      className={`bi-check icon-sm ${isFocused ? 'text-green-bright' : 'text-green'}`}
                     />
                   )}
-                </button>
+                </Button>
               );
             })}
         </div>
-      </div>
+      </PopoverLayer>
     </div>
   );
 }

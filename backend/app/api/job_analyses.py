@@ -10,6 +10,7 @@ from app.core.deps import AuthContext, check_api_key_scope, get_current_auth_con
 from app.models.job_analysis import JobAnalysis
 from app.schemas.job_analysis import (
     ApplyAnalysis,
+    ConfirmRequirements,
     CreateAnalysis,
     DiscardAnalysis,
     Kind,
@@ -95,6 +96,24 @@ async def create(
     row = await service.create(db, auth.user.id, data)
     await db.commit()
     return await service.view(db, row)
+
+
+@router.post("/confirm-requirements")
+async def confirm_requirements(
+    data: ConfirmRequirements,
+    auth: AuthContext = Depends(get_current_auth_context),
+    db: AsyncSession = Depends(get_db),
+):
+    probe = JobAnalysis(
+        user_id=auth.user.id,
+        kind="EXTRACTION",
+        lead_id=str(data.lead_id) if data.lead_id else None,
+        application_id=str(data.application_id) if data.application_id else None,
+    )
+    await permit(db, auth, probe, True)
+    result = await service.confirm_requirements(db, probe, data.expected_revision)
+    await db.commit()
+    return result
 
 
 @router.get("/{analysis_id}")

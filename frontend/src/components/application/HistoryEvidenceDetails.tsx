@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
@@ -43,14 +44,10 @@ export default function HistoryEvidenceDetails(props: Props) {
     return null;
   return (
     <>
-      <button
-        type="button"
-        className="text-fg1 hover:bg-bg2 hover:text-fg0 mt-2 cursor-pointer rounded px-2 py-1.5 text-sm"
-        onClick={() => setEditing(true)}
-      >
+      <Button type="button" className="mt-2" onClick={() => setEditing(true)}>
         <i className="bi-pencil icon-xs mr-1" aria-hidden="true" />
         {t('Edit event')}
-      </button>
+      </Button>
       {editing &&
         (timeZone ? (
           <HistoryCorrectionForm
@@ -70,13 +67,13 @@ export default function HistoryEvidenceDetails(props: Props) {
                   ? t('Could not load your time zone. Close and try again.')
                   : t('Loading your time zone…')}
               </p>
-              <button
+              <Button
                 type="button"
-                className="text-fg1 hover:bg-bg2 mt-4 cursor-pointer rounded px-4 py-2 transition-colors"
+                className="mt-4"
                 onClick={() => setEditing(false)}
               >
                 {t('Cancel')}
-              </button>
+              </Button>
             </div>
           </Modal>
         ))}
@@ -231,14 +228,14 @@ function HistoryCorrectionForm({
           </p>
         )}
         {conflict && !removed && (
-          <button
+          <Button
             type="button"
             disabled={pending}
-            className="text-accent hover:bg-bg2 hover:text-accent-bright cursor-pointer rounded px-3 py-2 transition-colors disabled:opacity-50"
+
             onClick={() => void reload()}
           >
             {t('Reload saved entry')}
-          </button>
+          </Button>
         )}
         <fieldset
           disabled={pending || conflict || removed}
@@ -313,21 +310,16 @@ function HistoryCorrectionForm({
           </label>
         </fieldset>
         <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            disabled={pending}
-            onClick={close}
-            className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-4 py-2"
-          >
+          <Button type="button" disabled={pending} onClick={close}>
             {t('Cancel')}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             type="submit"
             disabled={pending || conflict || removed || !changed}
-            className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 disabled:opacity-50"
           >
             {pending ? t('Saving…') : t('Save changes')}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

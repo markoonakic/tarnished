@@ -1,9 +1,11 @@
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
 import { formatDateTime, formatDate as displayDate } from '@/lib/displayDate';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import HelpTip from '@/components/HelpTip';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import Card from '@/components/Card';
 import CollapsibleCard from '@/components/CollapsibleCard';
@@ -40,8 +42,6 @@ const preparationKeys: PreparationKey[] = [
 ];
 const input =
   'bg-bg2 text-primary focus:ring-accent w-full rounded px-3 py-2 text-sm focus:ring-2 focus:outline-none';
-const ghost =
-  'text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50 focus:ring-2 focus:ring-accent';
 export default function InterviewDetail() {
   const { id } = useParams<{ id: string }>();
   return <InterviewPage key={id} id={id} />;
@@ -168,22 +168,23 @@ function InterviewPage({ id }: { id?: string }) {
   }
   const controls = (
     <div className="mt-4 flex justify-end gap-2">
-      <button
+      <Button
         disabled={busy}
-        className={ghost}
+
         onClick={() => setSection(null)}
       >
         <i className="bi-x-lg icon-sm" aria-hidden="true" />
         {t('Cancel')}
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="primary"
         disabled={busy}
-        className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+        className="flex items-center gap-1.5"
         onClick={() => void saveSection()}
       >
         <i className="bi-check2 icon-sm" aria-hidden="true" />
         {t('Save')}
-      </button>
+      </Button>
     </div>
   );
   function field(key: string, type = 'textarea') {
@@ -266,13 +267,13 @@ function InterviewPage({ id }: { id?: string }) {
         ) : query.isError || !interview ? (
           <p role="alert">
             {t('tasks.loadFailed')}{' '}
-            <button
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            <Button
+              className="flex items-center gap-1.5"
               onClick={() => void query.refetch()}
             >
               <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('Retry')}
-            </button>
+            </Button>
           </p>
         ) : (
           <>
@@ -280,19 +281,11 @@ function InterviewPage({ id }: { id?: string }) {
               aria-label={t('tasks.breadcrumb')}
               className="text-muted mb-6 flex flex-wrap items-center gap-2 text-sm"
             >
-              <Link
-                to="/applications"
-                className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-              >
-                {t('Applications')}
-              </Link>
+              <TextLink to="/applications">{t('Applications')}</TextLink>
               <span>›</span>
-              <Link
-                to={`/applications/${interview.application_id}`}
-                className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-              >
+              <TextLink to={`/applications/${interview.application_id}`}>
                 {interview.company} — {interview.job_title}
-              </Link>
+              </TextLink>
               <span>›</span>
               <span>{roundTypeLabel(interview.round_type)}</span>
             </nav>
@@ -321,16 +314,15 @@ function InterviewPage({ id }: { id?: string }) {
                     ● {t('tasks.outcome.' + (interview.outcome || 'pending'))}
                   </span>
                 </div>
-                <Link
+                <TextLink
                   to={
                     interview.company_id
                       ? `/companies/${interview.company_id}`
                       : `/applications/${interview.application_id}`
                   }
-                  className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
                 >
                   {interview.company}
-                </Link>
+                </TextLink>
                 <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <dt className="text-muted text-xs">{t('tasks.when')}</dt>
@@ -381,15 +373,15 @@ function InterviewPage({ id }: { id?: string }) {
                     <dd className="text-primary mt-1 text-sm">
                       {interview.meeting_url &&
                       /^https?:\/\//i.test(interview.meeting_url) ? (
-                        <a
+                        <TextLink
                           href={interview.meeting_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="bg-accent text-bg0 hover:bg-bg2 focus:ring-accent inline-flex cursor-pointer items-center gap-2 rounded px-3 py-2 text-xs transition-all duration-200 ease-in-out focus:ring-2"
+                          className="inline-flex items-center gap-2"
                         >
                           <i className="bi bi-box-arrow-up-right" />
                           {t('tasks.joinMeeting')}
-                        </a>
+                        </TextLink>
                       ) : (
                         interview.location || '—'
                       )}
@@ -417,12 +409,13 @@ function InterviewPage({ id }: { id?: string }) {
                 </dl>
                 <div className="border-tertiary mt-6 flex justify-end gap-2 border-t pt-4">
                   {interview.scheduled_at && shortcut('interview')}
-                  <button className={ghost} onClick={() => setEditing(true)}>
+                  <Button onClick={() => setEditing(true)}>
                     <i className="bi bi-pencil mr-2" />
                     {t('Edit')}
-                  </button>
-                  <button
-                    className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                  </Button>
+                  <Button
+                    variant="danger"
+                    className="flex items-center gap-1.5"
                     onClick={async () => {
                       if (!confirm(t('tasks.deleteInterview'))) return;
                       try {
@@ -436,7 +429,7 @@ function InterviewPage({ id }: { id?: string }) {
                   >
                     <i className="bi bi-trash mr-2" />
                     {t('Delete')}
-                  </button>
+                  </Button>
                 </div>
               </section>
             )}
@@ -449,10 +442,10 @@ function InterviewPage({ id }: { id?: string }) {
               interview={interview}
               onSaved={refresh}
               actions={
-                <button className={ghost} onClick={() => edit('preparation')}>
+                <Button onClick={() => edit('preparation')}>
                   <i className="bi bi-pencil mr-2" aria-hidden="true" />
                   {t('Edit')}
-                </button>
+                </Button>
               }
             >
               {section === 'preparation' ? (
@@ -494,8 +487,7 @@ function InterviewPage({ id }: { id?: string }) {
               open={questionsOpen}
               onOpenChange={setQuestionsOpen}
               actions={
-                <button
-                  className={ghost}
+                <Button
                   onClick={() => {
                     setQuestionsOpen(true);
                     edit('questions');
@@ -503,7 +495,7 @@ function InterviewPage({ id }: { id?: string }) {
                 >
                   <i className="bi-plus-lg icon-sm" aria-hidden="true" />
                   {t('tasks.add')}
-                </button>
+                </Button>
               }
             >
               {section === 'questions' ? (
@@ -551,8 +543,9 @@ function InterviewPage({ id }: { id?: string }) {
                             )
                           }
                         />
-                        <button
-                          className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                        <Button
+                          variant="danger"
+                          className="flex items-center gap-1.5"
                           onClick={() =>
                             setQuestions(
                               questions.filter((_, index) => index !== i)
@@ -561,11 +554,10 @@ function InterviewPage({ id }: { id?: string }) {
                         >
                           <i className="bi-trash icon-sm" aria-hidden="true" />
                           {t('Delete')}
-                        </button>
+                        </Button>
                       </div>
                     ))}
-                    <button
-                      className={ghost}
+                    <Button
                       onClick={() =>
                         setQuestions([
                           ...questions,
@@ -575,7 +567,7 @@ function InterviewPage({ id }: { id?: string }) {
                     >
                       <i className="bi-plus-lg icon-sm" aria-hidden="true" />
                       {t('tasks.add')}
-                    </button>
+                    </Button>
                     {field('impressions')}
                   </div>
                   {controls}
@@ -598,12 +590,9 @@ function InterviewPage({ id }: { id?: string }) {
                     </p>
                   )}
                   {interview.has_current_transcript && (
-                    <a
-                      href="#interview-recording"
-                      className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-                    >
+                    <TextLink href="#interview-recording">
                       {t('tasks.openTranscript')} ↓
-                    </a>
+                    </TextLink>
                   )}
                 </div>
               )}
@@ -620,10 +609,10 @@ function InterviewPage({ id }: { id?: string }) {
                 }
                 icon="bi-file-code"
                 actions={
-                  <button className={ghost} onClick={() => edit('task')}>
+                  <Button onClick={() => edit('task')}>
                     <i className="bi bi-pencil mr-2" aria-hidden="true" />
                     {t('Edit')}
-                  </button>
+                  </Button>
                 }
               >
                 {section === 'task' ? (
@@ -654,10 +643,10 @@ function InterviewPage({ id }: { id?: string }) {
               title={t('tasks.nextSteps')}
               icon="bi-signpost"
               actions={
-                <button className={ghost} onClick={() => edit('next')}>
+                <Button onClick={() => edit('next')}>
                   <i className="bi bi-pencil mr-2" aria-hidden="true" />
                   {t('Edit')}
-                </button>
+                </Button>
               }
             >
               {section === 'next' ? (
@@ -705,10 +694,10 @@ function InterviewPage({ id }: { id?: string }) {
               title={t('tasks.summary')}
               icon="bi-card-text"
               actions={
-                <button className={ghost} onClick={() => edit('summary')}>
+                <Button onClick={() => edit('summary')}>
                   <i className="bi bi-pencil mr-2" aria-hidden="true" />
                   {t('Edit')}
-                </button>
+                </Button>
               }
             >
               {section === 'summary' ? (

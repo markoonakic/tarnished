@@ -1,4 +1,5 @@
 {
+  "ai.useRequirements": "Use these requirements",
   "ai.reviewTitle": "Review extracted data",
   "ai.proposalCount": "{{count}} proposals · {{reviewed}} reviewed",
   "ai.proposalCount_one": "{{count}} proposal · {{reviewed}} reviewed",

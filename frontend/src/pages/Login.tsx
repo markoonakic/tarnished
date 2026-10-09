@@ -1,8 +1,10 @@
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
 import { t } from '@/lib/i18n';
 import LanguageSwitch from '@/components/LanguageSwitch';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import api, { safeErrorMessage } from '../lib/api';
 import { observeRead } from '../lib/queryClient';
@@ -110,25 +112,23 @@ export default function Login() {
               autoComplete="current-password"
             />
 
-            <button
+            <Button
+              variant="primary"
               type="submit"
               disabled={loading}
-              className="bg-accent text-bg0 hover:bg-accent-bright w-full cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
+              className="w-full"
             >
               {loading ? t('Signing in...') : t('Sign In')}
-            </button>
+            </Button>
           </form>
 
           <p className="text-muted mt-4 text-center">
             {!needsSetup && t('accounts.noAccount')}{' '}
-            <Link
-              to="/register"
-              className="text-accent hover:text-accent-bright transition-all duration-200 ease-in-out"
-            >
+            <TextLink to="/register">
               {needsSetup
                 ? t('Create the first admin account')
                 : t('accounts.createOne')}
-            </Link>
+            </TextLink>
           </p>
         </div>
         <LanguageSwitch />

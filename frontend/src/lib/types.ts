@@ -185,14 +185,25 @@ export interface ApplicationUpdate extends JobFields {
   source?: string | null;
 }
 
-export interface RoundCreate {
+export interface RoundCreate extends Pick<
+  import('./apiV030').InterviewInput,
+  | 'time_zone'
+  | 'duration_minutes'
+  | 'mode'
+  | 'location'
+  | 'meeting_url'
+  | 'contact_ids'
+> {
   round_type_id: string;
   scheduled_at?: string;
   notes_summary?: string;
   transcript_summary?: string;
 }
 
-export interface RoundUpdate {
+export interface RoundUpdate extends Partial<
+  import('./apiV030').InterviewInput
+> {
+  expected_revision?: number;
   round_type_id?: string;
   scheduled_at?: string | null;
   completed_at?: string | null;

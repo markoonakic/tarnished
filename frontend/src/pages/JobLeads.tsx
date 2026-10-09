@@ -1,9 +1,12 @@
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
+import RecordLink from '@/components/ui/RecordLink';
 import { formatDate } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { observeRead } from '../lib/queryClient';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   getJobLeads,
   getJobLeadSources,
@@ -195,14 +198,15 @@ export default function JobLeads() {
                 className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
               {search && (
-                <button
+                <Button
+                  variant="icon"
                   onClick={() => updateParams({ search: '' })}
-                  className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent absolute top-1/2 right-3 cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+                  className="absolute top-1/2 right-3"
                   aria-label={t('Clear search')}
                   title={t('Clear search')}
                 >
                   <i className="bi-x icon-sm" />
-                </button>
+                </Button>
               )}
             </div>
 
@@ -245,13 +249,13 @@ export default function JobLeads() {
             {t(
               'Could not refresh the list. This does not undo any saved lead.'
             )}
-            <button
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent ml-3 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            <Button
+              className="ml-3 flex items-center gap-1.5"
               onClick={loadJobLeads}
             >
               <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('Reload list')}
-            </button>
+            </Button>
           </div>
         ) : jobLeads.length === 0 ? (
           isFiltered ? (
@@ -317,10 +321,7 @@ export default function JobLeads() {
                         }`}
                       >
                         <td className="px-4 py-3 text-sm">
-                          <Link
-                            to={`/job-leads/${lead.id}`}
-                            className="text-fg1 hover:text-accent-bright focus:ring-accent cursor-pointer font-medium transition-all duration-200 ease-in-out focus:ring-2"
-                          >
+                          <TextLink to={`/job-leads/${lead.id}`}>
                             <span className={lead.company ? '' : 'text-muted'}>
                               {lead.company || t('Untitled lead')}
                             </span>
@@ -329,7 +330,7 @@ export default function JobLeads() {
                                 {domain(lead.url)}
                               </span>
                             )}
-                          </Link>
+                          </TextLink>
                         </td>
                         <td className="text-primary px-4 py-3 text-sm">
                           {lead.title || <span className="text-muted">—</span>}
@@ -372,7 +373,7 @@ export default function JobLeads() {
               </table>
             </div>
 
-            <div className="space-y-3 md:hidden">
+            <div className="space-y-6 md:hidden">
               {jobLeads.map((lead) => {
                 const statusClass =
                   lead.decision === 'interesting'
@@ -381,10 +382,10 @@ export default function JobLeads() {
                       ? 'bg-red/15 text-red'
                       : 'bg-bg2 text-muted';
                 return (
-                  <Link
+                  <RecordLink
                     key={lead.id}
+                    surface="secondary"
                     to={`/job-leads/${lead.id}`}
-                    className="bg-secondary hover:bg-bg2 focus:ring-accent block cursor-pointer rounded-lg p-4 transition-all duration-200 ease-in-out focus:ring-2"
                   >
                     <div className="mb-2 flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -427,7 +428,7 @@ export default function JobLeads() {
                       {formatDate(lead.scraped_at)}
                       {lead.source && ` · ${lead.source}`}
                     </div>
-                  </Link>
+                  </RecordLink>
                 );
               })}
             </div>

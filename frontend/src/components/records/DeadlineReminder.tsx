@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiV030, type Reminder, type TargetType } from '@/lib/apiV030';
@@ -44,9 +45,10 @@ export default function DeadlineReminder({
   }, [id, type, deadline]);
   return (
     <>
-      <button
+      <Button
+        variant="icon"
         type="button"
-        className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent ml-2 cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+        className="ml-2"
         aria-label={t('records.remindMe')}
         onClick={async () => {
           setError('');
@@ -70,7 +72,7 @@ export default function DeadlineReminder({
           className={existing ? 'bi-alarm-fill' : 'bi-alarm'}
           aria-hidden="true"
         />
-      </button>
+      </Button>
       {error && (
         <p role="alert" className="text-red text-xs">
           {error}

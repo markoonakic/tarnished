@@ -1,6 +1,6 @@
+import RecordLink from '@/components/ui/RecordLink';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 
 import { useNeedsAttentionData } from '@/hooks/useDashboardData';
 
@@ -22,7 +22,6 @@ function AttentionSection({
   iconColor,
 }: AttentionSectionProps) {
   useTranslation();
-  const navigate = useNavigate();
 
   if (items.length === 0) {
     return (
@@ -47,11 +46,7 @@ function AttentionSection({
       </div>
       <div className="space-y-2">
         {items.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => navigate(`/applications/${item.id}`)}
-            className="bg-tertiary hover:bg-bg3 w-full cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5"
-          >
+          <RecordLink key={item.id} to={`/applications/${item.id}`}>
             <div className="space-y-1">
               <div className="min-w-0">
                 <p className="text-fg1 truncate font-medium">{item.company}</p>
@@ -62,7 +57,7 @@ function AttentionSection({
                 {t('d since applied')}
               </div>
             </div>
-          </button>
+          </RecordLink>
         ))}
       </div>
     </div>

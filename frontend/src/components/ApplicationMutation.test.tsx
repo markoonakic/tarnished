@@ -147,12 +147,16 @@ it('saves 85,500 unchanged via the native number control and refreshes mounted h
       <HistoryViewer applicationId="app-1" />
     </QueryClientProvider>
   );
-  await screen.findByText('Applied', { selector: 'span' });
+  await waitFor(() =>
+    expect(screen.getByRole('combobox', { name: /Status/ })).toHaveTextContent(
+      'Applied'
+    )
+  );
   const salary = screen.getByLabelText('Min Salary') as HTMLInputElement;
   expect(salary.value).toBe('85500');
   expect(salary.checkValidity()).toBe(true);
   fireEvent.click(screen.getByRole('combobox', { name: /Status/ }));
-  fireEvent.click(screen.getByRole('option', { name: 'Interviewing' }));
+  fireEvent.click(await screen.findByRole('option', { name: 'Interviewing' }));
   fireEvent.click(
     within(screen.getByRole('dialog', { name: 'Change status' })).getByRole(
       'button',

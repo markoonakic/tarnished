@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
@@ -66,19 +67,18 @@ export default function Pagination({
 
       {showPaginationControls && (
         <div className="flex items-center gap-1">
-          <button
+          <Button
+            variant="icon"
             type="button"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-all duration-200 ease-in-out ${
-              currentPage === 1
-                ? 'bg-bg2 text-muted cursor-not-allowed opacity-50'
-                : 'bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3'
+            className={`flex h-8 w-8 items-center justify-center ${
+              currentPage === 1 ? '' : ''
             } `}
             aria-label={t('Previous page')}
           >
             <i className="bi-chevron-left icon-sm" />
-          </button>
+          </Button>
 
           {pageNumbers.map((page, index) => {
             if (page === 'ellipsis-start' || page === 'ellipsis-end') {
@@ -94,36 +94,34 @@ export default function Pagination({
 
             const isActive = page === currentPage;
             return (
-              <button
+              <Button
+                variant="primary"
                 key={page}
                 type="button"
                 onClick={() => onPageChange(page)}
-                className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-all duration-200 ease-in-out ${
-                  isActive
-                    ? 'bg-accent text-bg1'
-                    : 'bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3'
+                className={`flex h-8 w-8 items-center justify-center ${
+                  isActive ? '' : ''
                 } `}
                 aria-label={t('Page {{page}}', { page: page })}
                 aria-current={isActive ? 'page' : undefined}
               >
                 {page}
-              </button>
+              </Button>
             );
           })}
 
-          <button
+          <Button
+            variant="icon"
             type="button"
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-all duration-200 ease-in-out ${
-              currentPage === totalPages
-                ? 'bg-bg2 text-muted cursor-not-allowed opacity-50'
-                : 'bg-bg2 text-fg1 hover:bg-bg3 focus:bg-bg3'
+            className={`flex h-8 w-8 items-center justify-center ${
+              currentPage === totalPages ? '' : ''
             } `}
             aria-label={t('Next page')}
           >
             <i className="bi-chevron-right icon-sm" />
-          </button>
+          </Button>
         </div>
       )}
     </div>

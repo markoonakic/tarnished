@@ -1,8 +1,10 @@
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
 import type { ReactNode } from 'react';
 import HelpTip from './HelpTip';
 import { useTranslation } from 'react-i18next';
 import { locale } from '@/lib/i18n';
-import { Link } from 'react-router-dom';
+
 import { pillStyle } from '@/lib/uiPills';
 export interface CalendarEvent {
   id: string;
@@ -59,7 +61,8 @@ export default function MonthGrid({
     <div className="bg-secondary mb-6 rounded-lg p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="icon"
             type="button"
             disabled={!onMonthChange}
             aria-label={t('kit.previousMonth')}
@@ -68,11 +71,11 @@ export default function MonthGrid({
                 new Date(month.getFullYear(), month.getMonth() - 1, 1)
               )
             }
-            className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+
             title={t('kit.previousMonth')}
           >
             <i className="bi bi-chevron-left" aria-hidden="true" />
-          </button>
+          </Button>
           <h3 className="text-fg1 text-lg font-semibold">
             {month.toLocaleDateString(locale(), {
               month: 'long',
@@ -82,7 +85,8 @@ export default function MonthGrid({
           <HelpTip label={t('kit.interviewCalendar')}>
             {t('kit.calendarLegend')}
           </HelpTip>
-          <button
+          <Button
+            variant="icon"
             type="button"
             disabled={!onMonthChange}
             aria-label={t('kit.nextMonth')}
@@ -91,12 +95,12 @@ export default function MonthGrid({
                 new Date(month.getFullYear(), month.getMonth() + 1, 1)
               )
             }
-            className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+
             title={t('kit.nextMonth')}
           >
             <i className="bi bi-chevron-right" aria-hidden="true" />
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             disabled={!onMonthChange}
             onClick={() =>
@@ -104,11 +108,11 @@ export default function MonthGrid({
                 new Date(today.getFullYear(), today.getMonth(), 1)
               )
             }
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
           >
             <i className="bi-arrow-right icon-sm" aria-hidden="true" />
             {t('kit.today')}
-          </button>
+          </Button>
         </div>
         {headerActions}
       </div>
@@ -141,7 +145,8 @@ export default function MonthGrid({
                   aria-label={key}
                   className={`bg-tertiary min-h-24 min-w-0 rounded-md p-1.5 ${key === dateKey(today) ? 'ring-accent ring-2 ring-inset' : ''}`}
                 >
-                  <button
+                  <Button
+                    variant="icon"
                     type="button"
                     aria-current={key === dateKey(today) ? 'date' : undefined}
                     aria-label={day.toLocaleDateString(locale(), {
@@ -149,10 +154,10 @@ export default function MonthGrid({
                     })}
                     disabled={!onDayClick}
                     onClick={() => onDayClick?.(key)}
-                    className={`${day.getMonth() === month.getMonth() ? 'text-fg1' : 'text-bg4'} focus:ring-accent mb-1 cursor-pointer rounded text-xs focus:ring-2 disabled:cursor-default`}
+                    className={` ${day.getMonth() === month.getMonth() ? '' : ''} mb-1`}
                   >
                     {day.getDate()}
-                  </button>
+                  </Button>
                   <div className="space-y-1">
                     {items.slice(0, Math.max(1, maxEvents)).map((event) => {
                       const style = pillStyle(
@@ -162,43 +167,48 @@ export default function MonthGrid({
                             ? '--red-bright'
                             : '--orange-bright'
                       );
-                      const cls =
-                        'focus:ring-accent hover:brightness-125 cursor-pointer block w-full truncate rounded px-1.5 py-1 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2';
-                      return event.href ? (
-                        <Link
+                      const cls = 'block w-full truncate text-left';
+                      return (
+                        <div
                           key={event.id}
-                          to={event.href}
-                          className={cls}
                           style={style}
-                          title={event.label}
+                          className="rounded px-1.5 py-1"
                         >
-                          {event.label}
-                        </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          key={event.id}
-                          disabled={!onEventClick}
-                          onClick={() => onEventClick?.(event)}
-                          className={cls}
-                          style={style}
-                          title={event.label}
-                        >
-                          <i
-                            className="bi-arrow-right icon-sm"
-                            aria-hidden="true"
-                          />
-                          {event.label}
-                        </button>
+                          {event.href ? (
+                            <TextLink
+                              key={event.id}
+                              to={event.href}
+                              className={cls}
+                              title={event.label}
+                            >
+                              {event.label}
+                            </TextLink>
+                          ) : (
+                            <Button
+                              type="button"
+                              key={event.id}
+                              disabled={!onEventClick}
+                              onClick={() => onEventClick?.(event)}
+                              className={cls}
+                              title={event.label}
+                            >
+                              <i
+                                className="bi-arrow-right icon-sm"
+                                aria-hidden="true"
+                              />
+                              {event.label}
+                            </Button>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
                   {items.length > Math.max(1, maxEvents) && (
-                    <button
+                    <Button
                       type="button"
                       disabled={!onDayClick}
                       onClick={() => onDayClick?.(key)}
-                      className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent mt-1 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                      className="mt-1 flex items-center gap-1.5"
                     >
                       <i
                         className="bi-arrow-right icon-sm"
@@ -207,7 +217,7 @@ export default function MonthGrid({
                       {t('kit.moreEvents', {
                         count: items.length - Math.max(1, maxEvents),
                       })}
-                    </button>
+                    </Button>
                   )}
                   {dots > 0 && (
                     <div

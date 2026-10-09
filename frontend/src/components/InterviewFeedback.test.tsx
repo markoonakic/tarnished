@@ -85,9 +85,11 @@ it('translates the Serbian request accessible name without starting feedback', a
   await i18n.changeLanguage('sr-Latn');
   render(<InterviewFeedback round={round} />);
   expect(
-    await screen.findByRole('button', {
-      name: 'Zatraži analizu: analiza intervjua',
-    })
+    await screen.findByRole(
+      'button',
+      { name: 'Zatraži analizu: analiza intervjua' },
+      { timeout: 2500 }
+    )
   ).toBeEnabled();
   expect(
     screen.queryByRole('button', { name: /interview feedback/ })

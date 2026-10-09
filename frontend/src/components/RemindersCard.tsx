@@ -1,3 +1,5 @@
+import Button from '@/components/ui/Button';
+import PopoverLayer from '@/components/ui/PopoverLayer';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatDateTime } from '@/lib/displayDate';
@@ -49,14 +51,14 @@ export default function RemindersCard({
       icon="bi-bell"
       actions={
         onAdd && (
-          <button
+          <Button
             type="button"
             onClick={onAdd}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
           >
             <i className="bi bi-plus-lg icon-sm" aria-hidden="true" />
             {t('kit.addReminder')}
-          </button>
+          </Button>
         )
       }
     >
@@ -70,7 +72,8 @@ export default function RemindersCard({
               key={reminder.id}
               className="bg-tertiary flex flex-wrap items-center gap-3 rounded-lg px-4 py-3"
             >
-              <button
+              <Button
+                variant="primary"
                 type="button"
                 disabled={!onToggle}
                 aria-label={t(
@@ -81,8 +84,8 @@ export default function RemindersCard({
                 onClick={() => onToggle?.(reminder)}
                 className={
                   completed
-                    ? 'bg-accent focus:ring-accent flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full focus:ring-2 disabled:cursor-default'
-                    : 'border-bg4 hover:border-accent focus:ring-accent h-5 w-5 shrink-0 cursor-pointer rounded-full border-2 focus:ring-2 disabled:cursor-default'
+                    ? 'flex h-5 w-5 shrink-0 items-center justify-center'
+                    : 'h-5 w-5 shrink-0'
                 }
               >
                 {completed && (
@@ -91,7 +94,7 @@ export default function RemindersCard({
                     aria-hidden="true"
                   />
                 )}
-              </button>
+              </Button>
               <div className="min-w-[min(100%,12rem)] flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
@@ -139,9 +142,9 @@ export default function RemindersCard({
                   >
                     <i className="bi bi-three-dots" aria-hidden="true" />
                   </summary>
-                  <div className="bg-secondary border-tertiary absolute right-0 z-10 w-36 rounded-lg border p-1 shadow-xl">
+                  <PopoverLayer className="p-2">
                     {onEdit && (
-                      <button
+                      <Button
                         type="button"
                         onClick={(e) => {
                           e.currentTarget
@@ -149,36 +152,37 @@ export default function RemindersCard({
                             ?.removeAttribute('open');
                           onEdit(reminder);
                         }}
-                        className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                        className="flex w-full items-center gap-1.5 text-left"
                       >
                         <i className="bi-pencil icon-sm" aria-hidden="true" />
                         {t('kit.edit')}
-                      </button>
+                      </Button>
                     )}
                     {onDismiss && !completed && (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => onDismiss(reminder)}
-                        className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                        className="flex w-full items-center gap-1.5 text-left"
                       >
                         <i
                           className="bi-arrow-right icon-sm"
                           aria-hidden="true"
                         />
                         {t('kit.dismiss')}
-                      </button>
+                      </Button>
                     )}
                     {onDelete && (
-                      <button
+                      <Button
+                        variant="danger"
                         type="button"
                         onClick={() => onDelete(reminder)}
-                        className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                        className="flex w-full items-center gap-1.5 text-left"
                       >
                         <i className="bi-trash icon-sm" aria-hidden="true" />
                         {t('kit.delete')}
-                      </button>
+                      </Button>
                     )}
-                  </div>
+                  </PopoverLayer>
                 </details>
               )}
             </div>
@@ -189,11 +193,11 @@ export default function RemindersCard({
         <p className="text-muted text-sm">{t('kit.noReminders')}</p>
       )}
       {done.length > 0 && (
-        <button
+        <Button
           type="button"
           aria-expanded={showDone}
           onClick={() => setShowDone(!showDone)}
-          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent mt-3 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          className="mt-3 flex items-center gap-1.5"
         >
           <i
             className={showDone ? 'bi bi-chevron-up' : 'bi bi-chevron-down'}
@@ -202,7 +206,7 @@ export default function RemindersCard({
           {t(showDone ? 'kit.hideDone' : 'kit.showDone', {
             count: done.length,
           })}
-        </button>
+        </Button>
       )}
     </Card>
   );

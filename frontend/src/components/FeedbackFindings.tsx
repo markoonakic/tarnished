@@ -1,3 +1,4 @@
+import TextLink from '@/components/ui/TextLink';
 import { t, locale } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import type {
@@ -286,12 +287,12 @@ export default function FeedbackFindings({
                         >
                           <h5 className="text-primary font-semibold">
                             {link ? (
-                              <a
-                                className="text-fg1 underline underline-offset-2 hover:decoration-2"
+                              <TextLink
+                                className="underline underline-offset-2"
                                 href={`/applications/${encodeURIComponent(id)}`}
                               >
                                 {text(record.company)}
-                              </a>
+                              </TextLink>
                             ) : (
                               text(record.company)
                             )}

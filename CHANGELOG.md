@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.8] - 2026-10-09
+
+### Fixed
+
+- Use shared Button and TextLink components on every screen. Keep action hover backgrounds, navigation hover colors, pointer cursors, focus rings and a 14px body font consistent.
+- Place dropdowns, menus and help tips in one opaque native popover layer above cards and modal forms. Keep participant options reachable with a pointer.
+- Ask for the sent date when a status move leaves an undated Preparing application. Default to today and use the same dialog on the board, detail page and edit form.
+- Restore the complete Add/Edit Round form, including optional times, completion, outcome, notes, transcript and recording uploads, summaries and safe upload retries. Put the added interview fields in a separate section.
+- Show an explicit next step in Profile match. Confirm existing requirements with a visible list, or start extraction before comparison. Keep permission checks and archive support.
+- Align task deadline dates, use one dashboard quick-action component, make whole board cards clickable, show status transitions in activity, and expose full requirement labels on focus.
+- Move remaining transcript, import, export and empty-chart explanations into help tips.
+
+### Added
+
+- A local Playwright UI audit for hover rules, fonts, cursors, popover layers, card gaps and help text in English and Serbian at desktop and mobile widths.
+- Regression tests for every built-in status pair, round file uploads and retry, explicit requirement confirmation, owner isolation, archive round trips and shared controls. Lint prevents new handwritten buttons and links outside the shared components.
+
 ## [0.3.7] - 2026-10-09
 
 ### Fixed

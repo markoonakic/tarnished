@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { formatDate } from '@/lib/displayDate';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -16,8 +17,6 @@ import AnalysisStatus from './AnalysisStatus';
 
 const ghost =
   'text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50 focus:ring-2 focus:ring-accent';
-const primary =
-  'bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50 flex items-center gap-1.5 focus:ring-2 focus:ring-accent';
 const basics = [
   'title',
   'company',
@@ -139,15 +138,15 @@ export default function ExtractionReview({
     }
   }
   const run = (
-    <button
+    <Button
       type="button"
-      className={ghost}
+
       disabled={disabled || !source}
       onClick={() => void controller.run()}
     >
       <i className="bi-stars mr-1" aria-hidden="true" />
       {t(analysis ? 'ai.runAgain' : 'ai.extract')}
-    </button>
+    </Button>
   );
   if (hideEmpty && !analysis && !controller.error) return null;
   if (analysis?.review_state === 'saved')
@@ -199,9 +198,9 @@ export default function ExtractionReview({
       actions={
         items.length ? (
           <>
-            <button
+            <Button
               type="button"
-              className={ghost}
+
               disabled={disabled || analysis?.stale}
               onClick={() => {
                 setChoices((current) => ({
@@ -221,10 +220,11 @@ export default function ExtractionReview({
             >
               <i className="bi-check2 icon-sm" aria-hidden="true" />
               {t('ai.acceptAll')}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               type="button"
-              className={primary}
+
               disabled={
                 disabled || !reviewed.length || companyNeeded || analysis?.stale
               }
@@ -232,7 +232,7 @@ export default function ExtractionReview({
             >
               <i className="bi-check2 icon-sm" aria-hidden="true" />
               {t('ai.saveReviewed')}
-            </button>
+            </Button>
           </>
         ) : (
           run
@@ -351,9 +351,9 @@ export default function ExtractionReview({
                         >
                           {t(`ai.${choice.decision}`)}
                         </span>
-                        <button
+                        <Button
                           type="button"
-                          className={`${ghost} text-muted text-xs`}
+                          className={` ${ghost} `}
                           disabled={disabled}
                           onClick={() =>
                             setChoices((value) => {
@@ -368,12 +368,12 @@ export default function ExtractionReview({
                             aria-hidden="true"
                           />
                           {t('ai.undo')}
-                        </button>
+                        </Button>
                       </>
                     ) : editing === item.id ? (
-                      <button
+                      <Button
                         type="button"
-                        className={ghost}
+
                         onClick={() => setEditing(null)}
                       >
                         <i
@@ -381,12 +381,13 @@ export default function ExtractionReview({
                           aria-hidden="true"
                         />
                         {t('ai.done')}
-                      </button>
+                      </Button>
                     ) : (
                       <>
-                        <button
+                        <Button
+                          variant="icon"
                           type="button"
-                          className={`${ghost} text-green-bright`}
+                          className={` ${ghost} `}
                           disabled={disabled || analysis?.stale}
                           aria-label={t('ai.acceptRow', {
                             value: displayValue(item.field, item.value),
@@ -395,10 +396,11 @@ export default function ExtractionReview({
                           onClick={() => decide(item, 'accepted')}
                         >
                           ✓
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="icon"
                           type="button"
-                          className={ghost}
+
                           disabled={disabled || analysis?.stale}
                           aria-label={t('ai.editRow', {
                             value: displayValue(item.field, item.value),
@@ -410,10 +412,11 @@ export default function ExtractionReview({
                           }}
                         >
                           ✎
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="danger"
                           type="button"
-                          className={`${ghost} text-red-bright`}
+                          className={` ${ghost} `}
                           disabled={disabled || analysis?.stale}
                           aria-label={t('ai.rejectRow', {
                             value: displayValue(item.field, item.value),
@@ -422,7 +425,7 @@ export default function ExtractionReview({
                           onClick={() => decide(item, 'rejected')}
                         >
                           ×
-                        </button>
+                        </Button>
                       </>
                     )}
                   </div>

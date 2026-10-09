@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
@@ -61,14 +62,14 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
           <h3 id="modal-title" className="text-primary font-medium">
             {t('Create User')}
           </h3>
-          <button
+          <Button
+            variant="icon"
             onClick={onClose}
             disabled={loading}
             aria-label={t('Close modal')}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
           >
             <i className="bi bi-x-lg icon-xl" />
-          </button>
+          </Button>
         </div>
 
         <form
@@ -125,21 +126,12 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
           </p>
 
           <div className="border-tertiary flex justify-end gap-3 border-t pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
-            >
+            <Button type="button" onClick={onClose} disabled={loading}>
               {t('Cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
-            >
+            </Button>
+            <Button variant="primary" type="submit" disabled={loading}>
               {loading ? t('Creating...') : t('Create')}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

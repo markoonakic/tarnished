@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import {
@@ -84,13 +85,9 @@ export default function FeatureToggles() {
         <p className="text-red-bright mb-4 text-sm">
           {t('Failed to load feature settings.')}
         </p>
-        <button
-          type="button"
-          onClick={() => void refetch()}
-          className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 ease-in-out"
-        >
+        <Button variant="primary" type="button" onClick={() => void refetch()}>
           {t('Try Again')}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -119,13 +116,14 @@ export default function FeatureToggles() {
                     {toggle.description}
                   </div>
                 </div>
-                <button
+                <Button
+                  variant="primary"
                   type="button"
                   onClick={() => handleToggle(toggle.key)}
                   disabled={updateMutation.isPending}
-                  className={`focus:ring-accent focus:ring-offset-bg1 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer self-center rounded-full border-2 border-transparent transition-all duration-200 ease-in-out focus:ring-2 focus:ring-offset-2 focus:outline-none ${
-                    isEnabled ? 'bg-accent' : 'bg-bg4'
-                  } ${updateMutation.isPending ? 'cursor-wait opacity-50' : ''}`}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 self-center ${
+                    isEnabled ? '' : ''
+                  } ${updateMutation.isPending ? '' : ''} `}
                   role="switch"
                   aria-label={toggle.label}
                   aria-checked={isEnabled}
@@ -137,7 +135,7 @@ export default function FeatureToggles() {
                       isEnabled ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
-                </button>
+                </Button>
               </div>
             </li>
           );

@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback } from 'react';
@@ -82,9 +83,9 @@ export default function SettingsProfile({
           className="bg-secondary text-red-bright rounded-lg p-4 md:p-6"
         >
           {t('Failed to load profile.')}
-          <button className="text-accent ml-3 underline" onClick={loadProfile}>
+          <Button className="ml-3 underline" onClick={loadProfile}>
             {t('Retry')}
-          </button>
+          </Button>
         </div>
       ) : (
         <form
@@ -253,10 +254,11 @@ export default function SettingsProfile({
 
           {/* Save button */}
           <div className="mt-6 flex justify-end">
-            <button
+            <Button
+              variant="primary"
               type="submit"
               disabled={saving}
-              className="bg-accent text-bg0 hover:bg-accent-bright flex cursor-pointer items-center gap-2 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-2"
             >
               {saving ? (
                 <>
@@ -269,7 +271,7 @@ export default function SettingsProfile({
                   {t('Save')}
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </form>
       )}

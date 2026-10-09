@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Company } from '@/lib/apiV030';
@@ -80,16 +81,16 @@ export default function MoreFilters({
   ] as const;
   return (
     <>
-      <button
+      <Button
         type="button"
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen(!open)}
-        className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent order-2 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+        className="order-2 flex items-center gap-1.5"
       >
         <i className="bi-sliders mr-2" aria-hidden="true" />
         {t('records.moreFilters', { count })}
-      </button>
+      </Button>
       {open && (
         <div
           id={id}
@@ -262,9 +263,9 @@ export default function MoreFilters({
       {!!active.length && (
         <div className="order-20 flex basis-full flex-wrap items-center gap-2">
           {active.map(({ key, value }) => (
-            <button
+            <Button
               key={key + value}
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              className="flex items-center gap-1.5"
               aria-label={t('records.removeFilter', {
                 label: t('records.' + key),
                 value: label(key, value),
@@ -280,10 +281,10 @@ export default function MoreFilters({
             >
               {t('records.' + key)}: {label(key, value)}{' '}
               <span aria-hidden="true">×</span>
-            </button>
+            </Button>
           ))}
-          <button
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          <Button
+            className="flex items-center gap-1.5"
             onClick={() =>
               onChange(
                 Object.fromEntries(recordFilterKeys.map((key) => [key, '']))
@@ -292,7 +293,7 @@ export default function MoreFilters({
           >
             <i className="bi-arrow-right icon-sm" aria-hidden="true" />
             {t('records.clearAll')}
-          </button>
+          </Button>
         </div>
       )}
     </>

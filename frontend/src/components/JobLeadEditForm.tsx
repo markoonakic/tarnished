@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t, uiLabel, locale } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
@@ -146,16 +147,17 @@ export default function JobLeadEditForm({
           <h2 className="text-primary text-xl font-semibold">
             {t('Edit Job Lead')}
           </h2>
-          <button
+          <Button
+            variant="icon"
             type="button"
             aria-label={t('Close lead editor')}
             disabled={busy}
             onClick={onCancel}
-            className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+
             title={t('Close lead editor')}
           >
             <i className="bi-x-lg icon-lg" aria-hidden="true" />
-          </button>
+          </Button>
         </div>
         {error && (
           <p role="alert" className="text-red-bright">
@@ -163,14 +165,14 @@ export default function JobLeadEditForm({
           </p>
         )}
         {stale && (
-          <button
+          <Button
             type="button"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
             onClick={onReload}
           >
             <i className="bi-x-lg icon-sm" aria-hidden="true" />
             {t('Discard draft and reload saved lead')}
-          </button>
+          </Button>
         )}
         <fieldset
           disabled={busy || stale}
@@ -253,22 +255,24 @@ export default function JobLeadEditForm({
           <JobMetadataFields value={metadata} onChange={setMetadata} />
         </fieldset>
         <div className="flex justify-end gap-2">
-          <button
+          <Button
             type="button"
             disabled={busy}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
             onClick={onCancel}
           >
             <i className="bi-x-lg icon-sm" aria-hidden="true" />
             {t('Cancel')}
-          </button>
-          <button
-            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            className="flex items-center gap-1.5"
             disabled={busy || stale}
           >
             <i className="bi-check2 icon-sm" aria-hidden="true" />
             {busy ? t('Saving…') : t('Save')}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

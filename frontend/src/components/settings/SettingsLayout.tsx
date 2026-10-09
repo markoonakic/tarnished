@@ -1,12 +1,8 @@
+import { NavigationLink } from '@/components/ui/TextLink';
+import TextLink from '@/components/ui/TextLink';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
-import {
-  Outlet,
-  NavLink,
-  useLocation,
-  Link,
-  useNavigate,
-} from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import Layout from '../Layout';
 
@@ -118,14 +114,10 @@ const settingsCategories: SettingsCategory[] = [
 function DesktopSidebarLink({ section }: { section: SettingsSection }) {
   useTranslation();
   return (
-    <NavLink
+    <NavigationLink
       to={section.path}
       className={({ isActive }) =>
-        `group flex cursor-pointer items-center gap-3 rounded px-3 py-2 text-sm transition-all duration-200 ease-in-out ${
-          isActive
-            ? 'bg-bg2 text-accent-bright'
-            : 'text-fg1 hover:bg-bg2 hover:text-fg0'
-        }`
+        `group flex items-center gap-3 ${isActive ? '' : ''} `
       }
     >
       {({ isActive }) => (
@@ -136,16 +128,16 @@ function DesktopSidebarLink({ section }: { section: SettingsSection }) {
           {section.label}
         </>
       )}
-    </NavLink>
+    </NavigationLink>
   );
 }
 
 function MobileSectionCard({ section }: { section: SettingsSection }) {
   useTranslation();
   return (
-    <NavLink
+    <NavigationLink
       to={section.path}
-      className="bg-bg1 hover:bg-bg2 active:bg-bg3 group flex cursor-pointer items-center justify-between rounded-lg p-4 transition-all duration-200 ease-in-out"
+      className="group flex items-center justify-between"
     >
       <div className="flex items-center gap-3">
         <i
@@ -154,20 +146,17 @@ function MobileSectionCard({ section }: { section: SettingsSection }) {
         <span className="text-fg1 font-medium">{section.label}</span>
       </div>
       <i className="bi-chevron-right icon-sm text-muted group-hover:text-fg1 transition-colors duration-200 ease-in-out" />
-    </NavLink>
+    </NavigationLink>
   );
 }
 
 export function SettingsBackLink() {
   useTranslation();
   return (
-    <Link
-      to="/settings"
-      className="text-accent hover:text-accent-bright mb-6 flex cursor-pointer items-center gap-2 text-sm transition-all duration-200 ease-in-out"
-    >
+    <TextLink to="/settings" className="mb-6 flex items-center gap-2">
       <i className="bi-chevron-left icon-sm" />
       {t('Back to Settings')}
-    </Link>
+    </TextLink>
   );
 }
 

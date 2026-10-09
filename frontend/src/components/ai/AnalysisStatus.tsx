@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useTranslation } from 'react-i18next';
 import type { JobAnalysisController } from '@/hooks/useJobAnalysis';
 export default function AnalysisStatus({
@@ -11,14 +12,14 @@ export default function AnalysisStatus({
     return (
       <p role="alert" className="text-yellow-bright my-3 text-sm">
         {t('ai.failed')}{' '}
-        <button
+        <Button
           type="button"
-          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          className="flex items-center gap-1.5"
           onClick={() => void reload()}
         >
           <i className="bi-arrow-right icon-sm" aria-hidden="true" />
           {t('ai.checkStatus')}
-        </button>
+        </Button>
       </p>
     );
   if (loading || busy || running)

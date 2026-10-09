@@ -1,6 +1,8 @@
+import TextLink from '@/components/ui/TextLink';
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+
 import type { Toast as ToastType } from '@/contexts/ToastContext';
 
 interface Props {
@@ -46,22 +48,23 @@ export default function Toast({ toast, onDismiss }: Props) {
       <div className="text-fg1 flex-1 text-sm">
         <p>{toast.message}</p>
         {toast.action && (
-          <Link
+          <TextLink
             to={toast.action.to}
             onClick={() => onDismiss(toast.id)}
-            className="text-accent hover:text-accent-bright mt-1 inline-block underline"
+            className="mt-1 inline-block underline"
           >
             {toast.action.label}
-          </Link>
+          </TextLink>
         )}
       </div>
-      <button
+      <Button
+        variant="icon"
         onClick={() => onDismiss(toast.id)}
-        className="text-fg4 hover:text-fg1 flex-shrink-0 cursor-pointer transition-colors duration-200 ease-in-out"
+        className="flex-shrink-0"
         aria-label={t('Dismiss notification')}
       >
         <i className="bi-x-lg icon-sm" />
-      </button>
+      </Button>
     </div>
   );
 }

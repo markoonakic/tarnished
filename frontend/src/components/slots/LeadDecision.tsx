@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { JobLead } from '@/lib/types';
@@ -47,8 +48,8 @@ export default function LeadDecision({
         }}
       />
       {lead.decision && (
-        <button
-          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent ml-2 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+        <Button
+          className="ml-2 flex items-center gap-1.5"
           disabled={busy}
           onClick={async () => {
             setBusy(true);
@@ -68,7 +69,7 @@ export default function LeadDecision({
         >
           <i className="bi-arrow-right icon-sm" aria-hidden="true" />
           {t('records.resetDecision')}
-        </button>
+        </Button>
       )}
       {error && (
         <p role="alert" className="text-red mt-2 text-xs">

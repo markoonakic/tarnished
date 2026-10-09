@@ -1,6 +1,7 @@
+import TextLink from '@/components/ui/TextLink';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+
 import CollapsibleCard from '../CollapsibleCard';
 import ApplicationBoard from '../ApplicationBoard';
 export default function DashboardBoard() {
@@ -13,12 +14,9 @@ export default function DashboardBoard() {
       open={open}
       onOpenChange={setOpen}
       actions={
-        <Link
-          to="/applications?view=board"
-          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-        >
+        <TextLink to="/applications?view=board">
           {t('tasks.openFullBoard')} →
-        </Link>
+        </TextLink>
       }
     >
       {open && <ApplicationBoard compact />}

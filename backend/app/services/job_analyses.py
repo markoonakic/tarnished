@@ -140,6 +140,48 @@ def target_revision(record):
     return record.revision if isinstance(record, JobLead) else record.evidence_revision
 
 
+async def confirm_requirements(db, row, expected_revision):
+    """Confirm saved lists explicitly, without fabricating a posting quote or AI run."""
+    record = await target(db, row)
+    if target_revision(record) != expected_revision:
+        raise HTTPException(409, "Target changed")
+    requirements = list(current_requirements(record))
+    for kind, attribute in (
+        ("must_have", "requirements_must_have"),
+        ("nice_to_have", "requirements_nice_to_have"),
+    ):
+        for text in getattr(record, attribute) or []:
+            if not text.strip() or any(
+                item.get("type") == kind and item.get("text") == text
+                for item in requirements
+            ):
+                continue
+            requirements.append(
+                {
+                    "id": str(uuid4()),
+                    "type": kind,
+                    "text": text,
+                    "source": "manual",
+                    "source_hash": fingerprint(record.source_text or ""),
+                    "authorship": "user",
+                    "review_state": "accepted",
+                }
+            )
+    if not requirements or len(requirements) > 100:
+        raise HTTPException(422, "Confirm between 1 and 100 requirements")
+    record.confirmed_requirements = requirements
+    record.requirements_revision += 1
+    if isinstance(record, JobLead):
+        record.revision += 1
+    else:
+        record.evidence_revision += 1
+    from app.services.interview_jobs import invalidate_reports
+
+    await invalidate_reports(db, user_id=row.user_id)
+    await db.flush()
+    return {"requirements": requirements, "revision": target_revision(record)}
+
+
 async def inputs(db, row):
     record = await target(db, row)
     if row.kind == "EXTRACTION":

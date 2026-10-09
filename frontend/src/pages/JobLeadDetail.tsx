@@ -1,10 +1,12 @@
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
 import { formatDate, formatDateTime } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errorMessage';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { observeRead } from '../lib/queryClient';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   getJobLead,
   deleteJobLead,
@@ -168,19 +170,16 @@ function JobLeadDetailContent({ id }: { id: string }) {
         <div className="flex items-center justify-center py-20">
           <div role="alert" className="text-red-bright">
             {error || t('Job lead not found')}
-            <button
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent ml-3 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            <Button
+              className="ml-3 flex items-center gap-1.5"
               onClick={loadJobLead}
             >
               <i className="bi-check2 icon-sm" aria-hidden="true" />
               {t('Reload saved lead')}
-            </button>
-            <Link
-              className="text-accent hover:text-accent-bright focus:ring-accent ml-3 cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-              to="/job-leads"
-            >
+            </Button>
+            <TextLink className="ml-3" to="/job-leads">
               {t('Back to Job Leads')}
-            </Link>
+            </TextLink>
           </div>
         </div>
       </Layout>
@@ -197,12 +196,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
     <Layout>
       <div className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-6">
-          <Link
-            to="/job-leads"
-            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-          >
-            {t('← Back to Job Leads')}
-          </Link>
+          <TextLink to="/job-leads">{t('← Back to Job Leads')}</TextLink>
         </div>
 
         {confirmExtraction && (
@@ -222,22 +216,23 @@ function JobLeadDetailContent({ id }: { id: string }) {
                   : t('ai.reviewDisclosure')}
               </p>
               <div className="flex justify-end gap-3">
-                <button
+                <Button
                   type="button"
                   onClick={() => setConfirmExtraction(false)}
-                  className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                  className="flex items-center gap-1.5"
                 >
                   <i className="bi-x-lg icon-sm" aria-hidden="true" />
                   {t('Cancel')}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
                   type="button"
                   onClick={() => void handleExtract()}
-                  className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                  className="flex items-center gap-1.5"
                 >
                   <i className="bi-arrow-right icon-sm" aria-hidden="true" />
                   {t('Extract with AI')}
-                </button>
+                </Button>
               </div>
             </div>
           </Modal>
@@ -252,15 +247,15 @@ function JobLeadDetailContent({ id }: { id: string }) {
         )}
 
         {(stale || error || jobLead.status === 'processing') && (
-          <button
+          <Button
             type="button"
             disabled={extracting || editing}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent mb-4 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="mb-4 flex items-center gap-1.5"
             onClick={loadJobLead}
           >
             <i className="bi-check2 icon-sm" aria-hidden="true" />
             {t('Reload saved lead')}
-          </button>
+          </Button>
         )}
         {(extracting || jobLead.status === 'processing') && (
           <p role="status" className="text-yellow mb-4">
@@ -291,12 +286,9 @@ function JobLeadDetailContent({ id }: { id: string }) {
               <div className="mb-1 flex flex-wrap items-center gap-2">
                 <h1 className="text-primary text-2xl font-bold">
                   {jobLead.company_id ? (
-                    <Link
-                      to={'/companies/' + jobLead.company_id}
-                      className="text-fg1 hover:text-accent-bright focus:ring-accent cursor-pointer font-medium transition-all duration-200 ease-in-out focus:ring-2"
-                    >
+                    <TextLink to={'/companies/' + jobLead.company_id}>
                       {jobLead.company || t('Unknown Company')}
-                    </Link>
+                    </TextLink>
                   ) : (
                     jobLead.company || t('Unknown Company')
                   )}
@@ -323,12 +315,11 @@ function JobLeadDetailContent({ id }: { id: string }) {
               </span>
               <LeadDecision lead={jobLead} onUpdated={loadJobLead} />
               {isConverted && (
-                <Link
+                <TextLink
                   to={`/applications/${jobLead.converted_to_application_id}`}
-                  className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
                 >
                   {t('View Application →')}
-                </Link>
+                </TextLink>
               )}
             </div>
           </div>
@@ -368,14 +359,13 @@ function JobLeadDetailContent({ id }: { id: string }) {
 
           {jobLead.url && (
             <div className="mb-4">
-              <a
+              <TextLink
                 href={jobLead.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
               >
                 {t('Open Job Page →')}
-              </a>
+              </TextLink>
             </div>
           )}
 
@@ -498,17 +488,17 @@ function JobLeadDetailContent({ id }: { id: string }) {
 
           <div className="border-tertiary flex flex-wrap items-center justify-end gap-2 border-t pt-4">
             {!isConverted && (
-              <button
+              <Button
                 disabled={stale || extracting || editing}
-                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                className="flex items-center gap-1.5"
                 onClick={() => setEditing(true)}
               >
                 <i className="bi-pencil icon-sm" aria-hidden="true" />
                 {t('Edit')}
-              </button>
+              </Button>
             )}
             {!isConverted && (
-              <button
+              <Button
                 title={
                   !canConvert
                     ? t('Add a company and job title to convert this lead.')
@@ -516,17 +506,17 @@ function JobLeadDetailContent({ id }: { id: string }) {
                 }
                 disabled={!canConvert || stale || extracting || editing}
                 onClick={() => setShowConvertModal(true)}
-                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                className="flex items-center gap-1.5"
               >
                 <i className="bi-arrow-repeat icon-sm"></i>
                 {t('Convert to Application')}
-              </button>
+              </Button>
             )}
             {!isConverted && (
-              <button
+              <Button
                 disabled={stale || extracting || editing}
                 onClick={() => setConfirmExtraction(true)}
-                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                className="flex items-center gap-1.5"
               >
                 <i className="bi-arrow-clockwise icon-sm"></i>
                 {extracting
@@ -536,15 +526,16 @@ function JobLeadDetailContent({ id }: { id: string }) {
                     : jobLead.status === 'failed'
                       ? t('Retry Extraction')
                       : t('Extract with AI')}
-              </button>
+              </Button>
             )}
-            <button
+            <Button
+              variant="danger"
               onClick={handleDelete}
-              className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              className="flex items-center gap-1.5"
             >
               <i className="bi-trash icon-sm"></i>
               {t('Delete')}
-            </button>
+            </Button>
           </div>
         </div>
         <LeadExtractionReview lead={jobLead} onUpdated={loadJobLead} />

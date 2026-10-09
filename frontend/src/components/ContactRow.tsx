@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom';
+import TextLink from '@/components/ui/TextLink';
+import Button from '@/components/ui/Button';
+
 import { useTranslation } from 'react-i18next';
 import { pillStyle } from '@/lib/uiPills';
 export default function ContactRow({
@@ -28,12 +30,7 @@ export default function ContactRow({
       <div className="min-w-0 flex-1 basis-full sm:basis-auto">
         <div className="flex flex-wrap items-center gap-2">
           {href ? (
-            <Link
-              to={href}
-              className="text-fg1 hover:text-accent-bright focus:ring-accent cursor-pointer font-medium transition-all duration-200 ease-in-out focus:ring-2"
-            >
-              {name}
-            </Link>
+            <TextLink to={href}>{name}</TextLink>
           ) : (
             <span className="text-fg1 text-sm font-medium">{name}</span>
           )}
@@ -51,35 +48,36 @@ export default function ContactRow({
       {lastContact && <span className="text-fg4 text-xs">{lastContact}</span>}
       <div className="text-muted flex gap-3">
         {email && (
-          <a
+          <TextLink
             href={`mailto:${email}`}
             aria-label={t('kit.emailContact', { name })}
-            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+
             title={t('kit.emailContact', { name })}
           >
             <i className="bi bi-envelope" aria-hidden="true" />
-          </a>
+          </TextLink>
         )}
         {phone && (
-          <a
+          <TextLink
             href={`tel:${phone}`}
             aria-label={t('kit.phoneContact', { name })}
-            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+
             title={t('kit.phoneContact', { name })}
           >
             <i className="bi bi-telephone" aria-hidden="true" />
-          </a>
+          </TextLink>
         )}
         {onUnlink && (
-          <button
+          <Button
+            variant="icon"
             type="button"
             aria-label={t('kit.unlinkContact', { name })}
             title={t('kit.unlinkContact', { name })}
             onClick={onUnlink}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
           >
             ×
-          </button>
+          </Button>
         )}
       </div>
     </div>

@@ -1,5 +1,7 @@
+import Button from '@/components/ui/Button';
 import { useTranslation } from 'react-i18next';
-import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
+import PopoverLayer from './ui/PopoverLayer';
 import type { ReactNode } from 'react';
 
 export default function HelpTip({
@@ -12,34 +14,11 @@ export default function HelpTip({
   useTranslation();
   const id = useId();
   const wrapper = useRef<HTMLSpanElement>(null);
-  const tooltip = useRef<HTMLSpanElement>(null);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [clicked, setClicked] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const open = !dismissed && (hovered || focused || clicked);
-
-  useLayoutEffect(() => {
-    const node = tooltip.current;
-    if (!node) return;
-    const place = () => {
-      const margin = 8;
-      node.style.left = '0px';
-      const rect = node.getBoundingClientRect();
-      let shift = 0;
-      if (rect.right > window.innerWidth - margin)
-        shift = window.innerWidth - margin - rect.right;
-      if (rect.left + shift < margin) shift = margin - rect.left;
-      node.style.left = `${shift}px`;
-    };
-    place();
-    window.addEventListener('resize', place);
-    window.addEventListener('scroll', place, true);
-    return () => {
-      window.removeEventListener('resize', place);
-      window.removeEventListener('scroll', place, true);
-    };
-  }, [open]);
 
   function dismiss() {
     setDismissed(true);
@@ -63,7 +42,8 @@ export default function HelpTip({
         }
       }}
     >
-      <button
+      <Button
+        variant="icon"
         type="button"
         aria-label={label}
         aria-expanded={open}
@@ -86,19 +66,19 @@ export default function HelpTip({
             setClicked(false);
           }
         }}
-        className="text-muted hover:text-fg1 focus-visible:ring-accent-bright inline-flex cursor-pointer items-center justify-center rounded-full focus-visible:ring-1 focus-visible:outline-none"
+        className="focus-visible:ring-accent-bright inline-flex items-center justify-center focus-visible:ring-1 focus-visible:outline-none"
       >
         <i className="bi-question-circle icon-sm" aria-hidden="true" />
-      </button>
+      </Button>
       {open && (
-        <span
-          ref={tooltip}
+        <PopoverLayer
           role="tooltip"
           id={id}
-          className="bg-bg3 border-tertiary text-fg1 absolute top-full left-0 z-20 mt-2 w-64 max-w-[calc(100vw-2rem)] space-y-1 rounded-lg border p-3 text-xs leading-relaxed shadow-lg"
+          className="space-y-1 p-3 text-sm leading-relaxed"
+          style={{ width: 256 }}
         >
           {children}
-        </span>
+        </PopoverLayer>
       )}
     </span>
   );

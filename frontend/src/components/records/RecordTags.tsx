@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { JobFields } from '@/lib/apiV030';
@@ -35,33 +36,33 @@ export default function RecordTags({
   }
   return (
     <div className="mt-2 mb-4 flex flex-wrap items-center gap-2">
-      <button
+      <Button
         type="button"
         onClick={edit}
-        className={`hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 ${record.priority === 'high' ? 'text-orange' : 'text-fg1'}`}
+        className={`flex items-center gap-1.5 ${record.priority === 'high' ? '' : ''} `}
       >
         <i className="bi-flag mr-1" aria-hidden="true" />
         {t('records.' + (record.priority || 'normal'))}
-      </button>
+      </Button>
       {(record.tags || []).map((tag) => (
-        <button
+        <Button
           key={tag}
           type="button"
           onClick={edit}
-          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          className="flex items-center gap-1.5"
         >
           <i className="bi-arrow-right icon-sm" aria-hidden="true" />
           {tag}
-        </button>
+        </Button>
       ))}
-      <button
+      <Button
         type="button"
         onClick={edit}
-        className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+        className="flex items-center gap-1.5"
       >
         <i className="bi-plus-lg icon-sm" aria-hidden="true" />
         {t('records.addTag')}
-      </button>
+      </Button>
       {open && (
         <Modal
           onClose={() => setOpen(false)}
@@ -123,7 +124,7 @@ export default function RecordTags({
               </p>
             )}
             <div className="flex justify-end gap-2">
-              <button
+              <Button
                 type="button"
                 disabled={busy}
                 className={recordAction}
@@ -131,14 +132,16 @@ export default function RecordTags({
               >
                 <i className="bi-x-lg icon-sm" aria-hidden="true" />
                 {t('Cancel')}
-              </button>
-              <button
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
                 disabled={busy}
-                className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                className="flex items-center gap-1.5"
               >
                 <i className="bi-check2 icon-sm" aria-hidden="true" />
                 {t('Save')}
-              </button>
+              </Button>
             </div>
           </form>
         </Modal>

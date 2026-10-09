@@ -33,10 +33,10 @@ describe('NeedsAttention', () => {
       </MemoryRouter>
     );
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('link', {
         name: 'Northwind Analytics Senior Backend Engineer 12d since applied',
       })
-    ).toBeInTheDocument();
+    ).toHaveAttribute('href', '/applications/application-1');
     expect(screen.getByText('Awaiting Response')).toBeInTheDocument();
     expect(
       screen.queryByText(/as-of|cohort|no_recorded_response/)

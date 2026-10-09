@@ -1,3 +1,5 @@
+import Button from '@/components/ui/Button';
+import PopoverLayer from '@/components/ui/PopoverLayer';
 import { useTranslation } from 'react-i18next';
 import KindPill from './KindPill';
 import ReminderRelated from './ReminderRelated';
@@ -18,7 +20,8 @@ export default function TaskRow({
   const done = item.state !== 'open';
   return (
     <div className="bg-tertiary grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-lg p-4 sm:flex sm:flex-wrap sm:items-center">
-      <button
+      <Button
+        variant="primary"
         type="button"
         aria-label={t(done ? 'kit.reopenReminder' : 'kit.completeReminder', {
           title: item.title,
@@ -28,10 +31,10 @@ export default function TaskRow({
         title={t(done ? 'kit.reopenReminder' : 'kit.completeReminder', {
           title: item.title,
         })}
-        className={`hover:bg-bg3 focus:ring-accent flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-all duration-200 ease-in-out focus:ring-2 ${done ? 'bg-accent border-accent text-bg0' : 'border-bg4 hover:border-accent'}`}
+        className={`flex h-5 w-5 shrink-0 items-center justify-center ${done ? '' : ''} `}
       >
         {done && <i className="bi bi-check" aria-hidden="true" />}
-      </button>
+      </Button>
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <span
@@ -51,13 +54,13 @@ export default function TaskRow({
         {done ? t('kit.' + item.state) : dueText(item.due_at, zone)}
       </span>
       {done && (
-        <button
-          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+        <Button
+          className="flex items-center gap-1.5"
           onClick={() => void actions.toggle(item)}
         >
           <i className="bi-arrow-right icon-sm" aria-hidden="true" />
           {t('tasks.reopen')}
-        </button>
+        </Button>
       )}
       {onEdit && (
         <details className="relative col-start-3 row-start-1">
@@ -68,9 +71,9 @@ export default function TaskRow({
           >
             <i className="bi bi-three-dots" aria-hidden="true" />
           </summary>
-          <div className="bg-secondary border-tertiary absolute right-0 z-10 w-36 rounded-lg border p-1 shadow-xl">
-            <button
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          <PopoverLayer className="p-2">
+            <Button
+              className="flex w-full items-center gap-1.5 text-left"
               onClick={(e) => {
                 e.currentTarget.closest('details')?.removeAttribute('open');
                 onEdit(item);
@@ -78,24 +81,25 @@ export default function TaskRow({
             >
               <i className="bi-pencil icon-sm" aria-hidden="true" />
               {t('Edit')}
-            </button>
+            </Button>
             {!done && (
-              <button
-                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              <Button
+                className="flex w-full items-center gap-1.5 text-left"
                 onClick={() => void actions.dismiss(item)}
               >
                 <i className="bi-arrow-right icon-sm" aria-hidden="true" />
                 {t('kit.dismiss')}
-              </button>
+              </Button>
             )}
-            <button
-              className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            <Button
+              variant="danger"
+              className="flex w-full items-center gap-1.5 text-left"
               onClick={() => void actions.remove(item)}
             >
               <i className="bi-trash icon-sm" aria-hidden="true" />
               {t('Delete')}
-            </button>
-          </div>
+            </Button>
+          </PopoverLayer>
         </details>
       )}
     </div>

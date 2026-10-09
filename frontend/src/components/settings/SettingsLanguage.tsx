@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { formatDateTime } from '@/lib/displayDate';
 import { useTranslation } from 'react-i18next';
 import {
@@ -40,12 +41,7 @@ export default function SettingsLanguage() {
         ) : isError || !data ? (
           <div role="alert">
             <p>{t('Failed to load language settings.')}</p>
-            <button
-              onClick={() => void refetch()}
-              className="hover:bg-bg2 focus:ring-accent cursor-pointer transition-all duration-200 ease-in-out focus:ring-2"
-            >
-              {t('Try Again')}
-            </button>
+            <Button onClick={() => void refetch()}>{t('Try Again')}</Button>
           </div>
         ) : (
           <div className="space-y-6">
@@ -59,17 +55,17 @@ export default function SettingsLanguage() {
                 aria-labelledby="interface-language"
               >
                 {(['en', 'sr-Latn'] as const).map((value) => (
-                  <button
+                  <Button
                     key={value}
                     type="button"
                     lang={value}
                     aria-pressed={data.language === value}
                     disabled={update.isPending}
                     onClick={() => update.mutate({ language: value })}
-                    className={`focus:ring-accent-bright cursor-pointer rounded px-3 py-1 text-sm focus:ring-2 disabled:opacity-50 ${data.language === value ? 'bg-bg3 text-fg1' : 'text-muted hover:text-fg1'}`}
+                    className={` ${data.language === value ? '' : ''} `}
                   >
                     {value === 'en' ? 'English' : 'Srpski (latinica)'}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>

@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiV030 } from '@/lib/apiV030';
@@ -51,7 +52,7 @@ export default function SavedPosting({
           </pre>
         </details>
         <div className="flex flex-wrap gap-1">
-          <button
+          <Button
             type="button"
             className={recordAction}
             disabled={busy}
@@ -66,8 +67,8 @@ export default function SavedPosting({
           >
             <i className="bi-clipboard mr-1" aria-hidden="true" />
             {t('records.replaceText')}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             className={recordAction}
             disabled={busy || !url}
@@ -93,7 +94,7 @@ export default function SavedPosting({
           >
             <i className="bi-cloud-download mr-1" aria-hidden="true" />
             {t('records.fetchSource')}
-          </button>
+          </Button>
         </div>
       </div>
       {error && !open && (
@@ -163,7 +164,7 @@ export default function SavedPosting({
               </p>
             )}
             <div className="flex justify-end gap-2">
-              <button
+              <Button
                 type="button"
                 disabled={busy}
                 className={recordAction}
@@ -171,14 +172,16 @@ export default function SavedPosting({
               >
                 <i className="bi-x-lg icon-sm" aria-hidden="true" />
                 {t('Cancel')}
-              </button>
-              <button
-                className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                className="flex items-center gap-1.5"
                 disabled={busy || count > 100000 || !draft.trim()}
               >
                 <i className="bi-check2 icon-sm" aria-hidden="true" />
                 {t('Save')}
-              </button>
+              </Button>
             </div>
           </form>
         </Modal>

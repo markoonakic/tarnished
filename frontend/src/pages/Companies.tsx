@@ -1,12 +1,9 @@
+import TextLink from '@/components/ui/TextLink';
+import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import {
-  Link,
-  useLocation,
-  useNavigate,
-  useSearchParams,
-} from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import SegmentedControl from '@/components/SegmentedControl';
 import EmptyState from '@/components/EmptyState';
@@ -22,8 +19,6 @@ import { pillStyle } from '@/lib/uiPills';
 import {
   allCompanies,
   inputClass,
-  primaryClass,
-  actionClass,
   roles,
   roleLabel,
   roleColor,
@@ -92,12 +87,7 @@ export default function Companies() {
     if ('lead_count' in row || !contacts) {
       const company = row as import('@/lib/apiV030').Company;
       return [
-        <Link
-          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-          to={'/companies/' + row.id}
-        >
-          {row.name}
-        </Link>,
+        <TextLink to={'/companies/' + row.id}>{row.name}</TextLink>,
         company.industry || '—',
         company.location || '—',
         company.size?.replaceAll('-', '–') || '—',
@@ -108,21 +98,16 @@ export default function Companies() {
     }
     const contact = row as import('@/lib/apiV030').Contact;
     return [
-      <Link
-        className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-        to={'/contacts/' + row.id}
-      >
-        {row.name}
-      </Link>,
+      <TextLink to={'/contacts/' + row.id}>{row.name}</TextLink>,
       contact.function || '—',
       contact.company_id ? (
-        <Link
+        <TextLink
           to={'/companies/' + contact.company_id}
-          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+
           onClick={(event) => event.stopPropagation()}
         >
           {companyNames.get(contact.company_id) || '—'}
-        </Link>
+        </TextLink>
       ) : (
         '—'
       ),
@@ -138,14 +123,14 @@ export default function Companies() {
       ),
       dateLabel(contact.last_contact_on),
       contact.email ? (
-        <a
+        <TextLink
           href={'mailto:' + contact.email}
           title={contact.email}
-          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer truncate text-sm transition-all duration-200 ease-in-out focus:ring-2"
+          className="truncate"
           onClick={(e) => e.stopPropagation()}
         >
           {contact.email}
-        </a>
+        </TextLink>
       ) : (
         '—'
       ),
@@ -158,10 +143,10 @@ export default function Companies() {
           <h1 className="text-primary text-2xl font-bold">
             {t('companies.companies')}
           </h1>
-          <button className={primaryClass} onClick={() => setCreating(true)}>
+          <Button variant="primary" onClick={() => setCreating(true)}>
             <i className="bi-plus-lg icon-sm" aria-hidden="true" />
             {t(contacts ? 'companies.newContact' : 'companies.newCompany')}
-          </button>
+          </Button>
         </div>
         <div className="mb-6">
           <SegmentedControl
@@ -244,10 +229,10 @@ export default function Companies() {
         ) : list.isError ? (
           <p role="alert" className="text-red">
             {failureMessage(list.error)}
-            <button className={actionClass} onClick={() => void list.refetch()}>
+            <Button onClick={() => void list.refetch()}>
               <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('companies.reload')}
-            </button>
+            </Button>
           </p>
         ) : !list.data.items.length ? (
           <div>
@@ -258,13 +243,10 @@ export default function Companies() {
               icon={contacts ? 'bi-person-lines-fill' : 'bi-buildings'}
             />
             <div className="mt-4 text-center">
-              <button
-                className={primaryClass}
-                onClick={() => setCreating(true)}
-              >
+              <Button variant="primary" onClick={() => setCreating(true)}>
                 <i className="bi-plus-lg icon-sm" aria-hidden="true" />
                 {t(contacts ? 'companies.newContact' : 'companies.newCompany')}
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -307,7 +289,7 @@ export default function Companies() {
                 </tbody>
               </table>
             </div>
-            <div className="mb-6 space-y-3 md:hidden">
+            <div className="mb-6 space-y-6 md:hidden">
               {list.data.items.map((row) => (
                 <div key={row.id} className="bg-secondary rounded-lg p-4">
                   {rowCells(row).map((cell, index) => (

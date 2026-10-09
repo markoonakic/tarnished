@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
@@ -36,12 +37,9 @@ export default class ErrorBoundary extends Component<Props, State> {
             <p className="text-muted mb-4">
               {this.state.error?.message || t('An unexpected error occurred.')}
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
-            >
+            <Button variant="primary" onClick={() => window.location.reload()}>
               {t('Reload Page')}
-            </button>
+            </Button>
           </div>
         </div>
       );

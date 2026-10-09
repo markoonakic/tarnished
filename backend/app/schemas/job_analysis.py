@@ -91,6 +91,18 @@ class Strict(BaseModel):
         return value
 
 
+class ConfirmRequirements(Strict):
+    lead_id: UUID | None = None
+    application_id: UUID | None = None
+    expected_revision: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def one_target(self):
+        if bool(self.lead_id) == bool(self.application_id):
+            raise ValueError("Exactly one target is required")
+        return self
+
+
 class Proposal(Strict):
     id: str = Field(min_length=1, max_length=80)
     field: FieldName

@@ -110,8 +110,8 @@
 }
 
 :root {
-  /* Scale text from 16 to 18 pixels. */
-  font-size: clamp(100%, 0.9rem + 0.3vw, 112.5%);
+  /* Keep text-sm and the body at 14px on every viewport. */
+  font-size: 100%;
 
   /* Font families */
   --font-display: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -129,6 +129,12 @@
 
 a {
   text-decoration: none;
+}
+
+/* Record names can keep their title color, but navigation always responds to hover. */
+a[data-ui='link']:hover .text-primary,
+a[data-ui='link']:hover .text-fg1 {
+  color: var(--accent-bright);
 }
 
 body {

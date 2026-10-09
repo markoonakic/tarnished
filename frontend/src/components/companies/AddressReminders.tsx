@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +7,7 @@ import ReminderModal from '../ReminderModal';
 import { DeleteConfirm } from './RecordModals';
 import { apiV030, type Reminder } from '@/lib/apiV030';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
-import { allPages, failureMessage, actionClass } from './addressBook';
+import { allPages, failureMessage } from './addressBook';
 
 export default function AddressReminders({
   type,
@@ -104,10 +105,10 @@ export default function AddressReminders({
       {(error || query.isError) && (
         <p role="alert" className="text-red mb-4">
           {error || failureMessage(query.error)}
-          <button className={actionClass} onClick={() => void query.refetch()}>
+          <Button onClick={() => void query.refetch()}>
             <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('companies.reload')}
-          </button>
+          </Button>
         </p>
       )}
       {editing && (

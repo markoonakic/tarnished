@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 export default function TagInput({
@@ -34,15 +35,16 @@ export default function TagInput({
           className="bg-bg3 text-fg2 flex items-center gap-1 rounded px-2 py-0.5 text-xs"
         >
           {tag}
-          <button
+          <Button
+            variant="icon"
             type="button"
             disabled={disabled}
             aria-label={t('kit.removeTag', { tag })}
             onClick={() => onChange(value.filter((_, i) => i !== index))}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
           >
             ×
-          </button>
+          </Button>
         </span>
       ))}
       <input

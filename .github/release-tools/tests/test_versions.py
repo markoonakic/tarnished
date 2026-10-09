@@ -15,7 +15,7 @@ SPEC.loader.exec_module(MODULE)
 
 class VersionTests(unittest.TestCase):
     def test_current_release_versions_match(self) -> None:
-        MODULE.check_versions(ROOT, "0.3.7")
+        MODULE.check_versions(ROOT, "0.3.8")
 
     def test_mismatched_version_and_missing_notes_fail(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -24,8 +24,8 @@ class VersionTests(unittest.TestCase):
             with patch.object(
                 MODULE, "component_versions", return_value={"cli": "0.1.7"}
             ):
-                with self.assertRaisesRegex(ValueError, "cli: 0.1.7 != 0.3.7") as error:
-                    MODULE.check_versions(root, "0.3.7")
+                with self.assertRaisesRegex(ValueError, "cli: 0.1.7 != 0.3.8") as error:
+                    MODULE.check_versions(root, "0.3.8")
                 self.assertIn("Missing changelog entry", str(error.exception))
 
 

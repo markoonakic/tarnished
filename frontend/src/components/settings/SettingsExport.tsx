@@ -1,3 +1,5 @@
+import HelpTip from '../HelpTip';
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
@@ -82,7 +84,12 @@ export default function SettingsExport() {
       </div>
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 mb-4 text-xl font-bold">{t('Data Export')}</h2>
+        <h2 className="text-fg1 mb-4 flex items-center gap-2 text-xl font-bold">
+          {t('Data Export')}{' '}
+          <HelpTip label={t('Data Export')}>
+            {t('Download all your application data for backup or analysis.')}
+          </HelpTip>
+        </h2>
 
         {error && (
           <div className="bg-red-bright/20 border-red-bright text-red-bright mb-6 rounded border px-4 py-3">
@@ -90,9 +97,6 @@ export default function SettingsExport() {
           </div>
         )}
 
-        <p className="text-muted mb-4 text-sm">
-          {t('Download all your application data for backup or analysis.')}
-        </p>
         {zipTransferState && (
           <div className="mb-4">
             <TransferProgressPanel state={zipTransferState} />
@@ -100,27 +104,27 @@ export default function SettingsExport() {
         )}
 
         <div className="flex flex-wrap gap-3">
-          <button
+          <Button
+            variant="primary"
             onClick={handleExportJSON}
             disabled={exporting}
-            className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             {exporting ? t('Exporting...') : t('Export JSON')}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleExportCSV}
             disabled={exporting}
-            className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             {exporting ? t('Exporting...') : t('Export CSV')}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleExportZIP}
             disabled={exporting}
-            className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             {exporting ? t('Exporting...') : t('Export ZIP (with files)')}
-          </button>
+          </Button>
         </div>
       </div>
     </>

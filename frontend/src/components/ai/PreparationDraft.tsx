@@ -1,7 +1,9 @@
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
 import { useState, type ReactNode } from 'react';
 import CollapsibleCard from '../CollapsibleCard';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+
 import { useJobAnalysis } from '@/hooks/useJobAnalysis';
 import { analysesApi, preparationCategories } from '@/lib/apiAnalyses';
 import AnalysisStatus from './AnalysisStatus';
@@ -66,9 +68,9 @@ export default function PreparationDraft({
       icon="bi-book"
       actions={
         <>
-          <button
+          <Button
             type="button"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
             disabled={disabled || !!hint}
             title={hint ? t(hint) : undefined}
             onClick={() => {
@@ -78,7 +80,7 @@ export default function PreparationDraft({
           >
             <i className="bi-stars mr-1" aria-hidden="true" />
             {t('ai.draftWithAi')}
-          </button>
+          </Button>
           {actions}
         </>
       }
@@ -93,24 +95,25 @@ export default function PreparationDraft({
               {t('ai.draftNotSaved')}
             </h4>
             <div className="flex gap-2">
-              <button
+              <Button
                 type="button"
-                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                className="flex items-center gap-1.5"
                 disabled={saving}
                 onClick={() => void save(true)}
               >
                 <i className="bi-x-lg icon-sm" aria-hidden="true" />
                 {t('ai.discard')}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 type="button"
-                className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                className="flex items-center gap-1.5"
                 disabled={disabled || !selected.size || analysis.stale}
                 onClick={() => void save()}
               >
                 <i className="bi-check2 icon-sm" aria-hidden="true" />
                 {t('ai.saveSelected', { count: selected.size })}
-              </button>
+              </Button>
             </div>
           </div>
           {analysis.stale && (
@@ -126,9 +129,9 @@ export default function PreparationDraft({
                     {t(`ai.category.${category}`)}
                   </h5>
                   {!!items[category]?.length && (
-                    <button
+                    <Button
                       type="button"
-                      className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                      className="flex items-center gap-1.5"
                       disabled={disabled}
                       onClick={() =>
                         setSelected(
@@ -145,7 +148,7 @@ export default function PreparationDraft({
                         aria-hidden="true"
                       />
                       {t('ai.selectAll')}
-                    </button>
+                    </Button>
                   )}
                 </div>
                 {(items[category] ?? []).map((item) => (
@@ -178,14 +181,13 @@ export default function PreparationDraft({
                     </label>
                     {item.evidence.map((citation, index) => (
                       <div key={index} className="mt-1 ml-6 text-xs">
-                        <Link
-                          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+                        <TextLink
                           to={`/profile#${encodeURIComponent(citation.profile_id)}`}
                         >
                           {controller.profile.find(
                             (profile) => profile.id === citation.profile_id
                           )?.name ?? t('ai.profileItem')}
-                        </Link>
+                        </TextLink>
                         <blockquote className="text-muted italic">
                           “{citation.quote}”
                         </blockquote>

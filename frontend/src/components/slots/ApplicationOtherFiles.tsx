@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { formatDate } from '@/lib/displayDate';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -56,7 +57,7 @@ export default function ApplicationOtherFiles({
             {t('records.filesNotAi')}
           </HelpTip>
         </h3>
-        <button
+        <Button
           className={recordAction}
           disabled={busy}
           onClick={() => {
@@ -68,7 +69,7 @@ export default function ApplicationOtherFiles({
         >
           <i className="bi-plus mr-1" aria-hidden="true" />
           {t('records.addFile')}
-        </button>
+        </Button>
       </div>
       {files.length ? (
         <ul className="space-y-2">
@@ -90,7 +91,8 @@ export default function ApplicationOtherFiles({
                 {formatDate(item.uploaded_at)}
               </span>
               <div className="flex shrink-0 gap-1">
-                <button
+                <Button
+                  variant="icon"
                   className={recordAction}
                   disabled={busy}
                   aria-label={t('records.downloadFile', {
@@ -118,9 +120,10 @@ export default function ApplicationOtherFiles({
                   })}
                 >
                   <i className="bi-download" aria-hidden="true" />
-                </button>
-                <button
-                  className={recordAction + ' text-red'}
+                </Button>
+                <Button
+                  variant="danger"
+                  className={recordAction + ''}
                   disabled={busy}
                   aria-label={t('records.deleteFile', {
                     name: item.original_filename,
@@ -153,7 +156,7 @@ export default function ApplicationOtherFiles({
                   })}
                 >
                   <i className="bi-trash" aria-hidden="true" />
-                </button>
+                </Button>
               </div>
             </li>
           ))}
@@ -230,7 +233,7 @@ export default function ApplicationOtherFiles({
               </p>
             )}
             <div className="flex justify-end gap-2">
-              <button
+              <Button
                 type="button"
                 className={recordAction}
                 disabled={busy}
@@ -238,14 +241,16 @@ export default function ApplicationOtherFiles({
               >
                 <i className="bi-x-lg icon-sm" aria-hidden="true" />
                 {t('Cancel')}
-              </button>
-              <button
-                className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                className="flex items-center gap-1.5"
                 disabled={busy || !file}
               >
                 <i className="bi-arrow-right icon-sm" aria-hidden="true" />
                 {t('records.upload')}
-              </button>
+              </Button>
             </div>
           </form>
         </Modal>

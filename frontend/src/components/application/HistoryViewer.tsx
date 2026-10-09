@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
@@ -64,20 +65,20 @@ export default function HistoryViewer({
           </h2>
           <div className="flex gap-2">
             {!!history?.length && (
-              <button
+              <Button
+                variant="primary"
                 onClick={() => setIsEditing(!isEditing)}
-                className={`cursor-pointer rounded-md px-4 py-2 font-medium transition-colors ${isEditing ? 'bg-accent text-bg0 hover:bg-accent-bright' : 'text-fg1 hover:bg-bg2'}`}
+                className={` ${isEditing ? '' : ''} `}
               >
                 {isEditing ? t('Done') : t('Edit History')}
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               onClick={() => setIsModalOpen(true)}
               disabled={!history?.length}
-              className="text-fg1 hover:bg-bg2 cursor-pointer rounded-md px-4 py-2 font-medium disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t('View All History')}
-            </button>
+            </Button>
           </div>
         </div>
         {isLoading ? (
@@ -129,25 +130,23 @@ export default function HistoryViewer({
                       />
                     </div>
                     {isEditing && !entry.is_gap && (
-                      <button
+                      <Button
+                        variant="danger"
                         onClick={() => handleDelete(entry.id)}
                         disabled={deleteMutation.isPending}
-                        className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-sm disabled:opacity-50"
+                        className="flex items-center gap-1.5"
                       >
                         <i className="bi-trash icon-xs" aria-hidden="true" />
                         {t('Delete')}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 ))}
                 {history.length > 3 && (
                   <div className="pt-2 text-center">
-                    <button
-                      onClick={() => setIsModalOpen(true)}
-                      className="text-muted hover:text-fg0 hover:bg-bg2 cursor-pointer rounded px-2 py-1 text-sm"
-                    >
+                    <Button onClick={() => setIsModalOpen(true)}>
                       {t('View {{count}} more', { count: history.length - 3 })}
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>

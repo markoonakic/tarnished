@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { formatDate } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
@@ -133,20 +134,16 @@ export default function FeedbackStatus({
               )}
             </p>
             <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={feedback.cancelRetry}
-                className="text-fg1 hover:bg-bg3 rounded px-4 py-2"
-              >
+              <Button type="button" onClick={feedback.cancelRetry}>
                 {t('Cancel')}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 type="button"
                 onClick={() => void feedback.confirmRequest()}
-                className="bg-accent text-bg0 rounded px-4 py-2"
               >
                 {t('Try again')}
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>
@@ -193,15 +190,16 @@ export default function FeedbackStatus({
         </p>
       )}
       {!hideAction && !feedback.loading && !starting && !running && (
-        <button
+        <Button
+          variant="primary"
           type="button"
           aria-label={`${feedback.actionLabel}: ${requestLabel}`}
           disabled={feedback.disabled}
           onClick={() => void feedback.request()}
-          className={`cursor-pointer rounded px-4 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${feedback.readError || feedback.actionLabel === t('Check status') ? 'text-fg1 hover:bg-bg3' : 'feedback-primary bg-accent text-bg0 hover:bg-accent-bright'}`}
+          className={` ${feedback.readError || feedback.actionLabel === t('Check status') ? '' : 'feedback-primary'} `}
         >
           {feedback.actionLabel}
-        </button>
+        </Button>
       )}
     </div>
   );

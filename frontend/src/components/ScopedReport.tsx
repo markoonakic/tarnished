@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { formatDate } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
@@ -97,14 +98,14 @@ export function ScopedReportContent({
           </HelpTip>
         </div>
         {onClose && (
-          <button
+          <Button
+            variant="icon"
             type="button"
             aria-label={t('Close {{value0}}', { value0: title.toLowerCase() })}
             onClick={onClose}
-            className="text-fg1 hover:bg-bg2 cursor-pointer rounded p-2"
           >
             <i className="bi-x-lg icon-lg" aria-hidden="true" />
-          </button>
+          </Button>
         )}
       </div>
       <FeedbackStatus

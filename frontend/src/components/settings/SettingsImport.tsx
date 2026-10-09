@@ -1,3 +1,5 @@
+import HelpTip from '../HelpTip';
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
@@ -21,19 +23,18 @@ export default function SettingsImport({
       </div>
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 mb-4 text-xl font-bold">{t('Data Import')}</h2>
+        <h2 className="text-fg1 mb-4 flex items-center gap-2 text-xl font-bold">
+          {t('Data Import')}{' '}
+          <HelpTip label={t('Data Import')}>
+            {t(
+              'Import job application data from a previously exported ZIP file.'
+            )}
+          </HelpTip>
+        </h2>
 
-        <p className="text-muted mb-4 text-sm">
-          {t(
-            'Import job application data from a previously exported ZIP file.'
-          )}
-        </p>
-        <button
-          onClick={() => setShowImportModal(true)}
-          className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
-        >
+        <Button variant="primary" onClick={() => setShowImportModal(true)}>
           {t('Import Data')}
-        </button>
+        </Button>
       </div>
 
       <ImportModal

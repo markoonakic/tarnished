@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import TextLink from '@/components/ui/TextLink';
+
 import { useTranslation } from 'react-i18next';
 import Card from '../Card';
 import { dateLabel } from './addressBook';
@@ -19,10 +20,10 @@ export function RelatedApplications({
   return (
     <>
       {items.map((app) => (
-        <Link
+        <TextLink
           key={app.id}
           to={'/applications/' + app.id}
-          className="bg-tertiary hover:bg-bg3 focus:ring-accent hover:bg-bg2 mb-2 flex cursor-pointer flex-wrap items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ease-in-out focus:ring-2"
+          className="mb-2 flex flex-wrap items-center gap-3"
         >
           <span className="text-fg1 min-w-0 flex-1 basis-full text-sm sm:basis-auto">
             {withCompany ? app.company + ' — ' : ''}
@@ -42,7 +43,7 @@ export function RelatedApplications({
           <span className="text-muted text-xs">
             {dateLabel(app.applied_at)}
           </span>
-        </Link>
+        </TextLink>
       ))}
       {!items.length && (
         <p className="text-muted text-sm">{t('companies.noApplications')}</p>
@@ -59,10 +60,10 @@ export function RelatedLeads({ items }: { items: Lead[] }) {
       count={items.length}
     >
       {items.map((lead) => (
-        <Link
+        <TextLink
           key={lead.id}
           to={'/job-leads/' + lead.id}
-          className="bg-tertiary hover:bg-bg3 focus:ring-accent hover:bg-bg2 mb-2 flex cursor-pointer flex-wrap items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ease-in-out focus:ring-2"
+          className="mb-2 flex flex-wrap items-center gap-3"
         >
           <span className="text-fg1 min-w-0 flex-1 basis-full text-sm sm:basis-auto">
             {lead.title || t('companies.untitled')}
@@ -84,7 +85,7 @@ export function RelatedLeads({ items }: { items: Lead[] }) {
           <span className="text-muted text-xs">
             {dateLabel(lead.scraped_at)}
           </span>
-        </Link>
+        </TextLink>
       ))}
       {!items.length && (
         <p className="text-muted text-sm">{t('companies.noLeads')}</p>
@@ -97,10 +98,10 @@ export function RelatedInterviews({ items }: { items: Interview[] }) {
   return (
     <>
       {items.map((round) => (
-        <Link
+        <TextLink
           key={round.id}
           to={'/interviews/' + round.id}
-          className="bg-tertiary hover:bg-bg3 focus:ring-accent hover:bg-bg2 mb-2 flex cursor-pointer flex-wrap items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ease-in-out focus:ring-2"
+          className="mb-2 flex flex-wrap items-center gap-3"
         >
           <span className="text-fg1 min-w-0 flex-1 basis-full text-sm sm:basis-auto">
             {roundTypeLabel(round.round_type)}
@@ -120,7 +121,7 @@ export function RelatedInterviews({ items }: { items: Interview[] }) {
           >
             {t('companies.outcome.' + (round.outcome || 'pending'))}
           </span>
-        </Link>
+        </TextLink>
       ))}
     </>
   );

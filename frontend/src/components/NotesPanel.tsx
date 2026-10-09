@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { formatDateTime } from '@/lib/displayDate';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -35,15 +36,15 @@ function NoteBody({ body }: { body: string }) {
         {body}
       </p>
       {long && (
-        <button
+        <Button
           type="button"
           aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}
-          className="text-accent hover:text-accent-bright focus:ring-accent mt-2 cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          className="mt-2"
         >
           <i className="bi-arrow-right icon-sm" aria-hidden="true" />
           {t(expanded ? 'kit.showLess' : 'kit.showMore')}
-        </button>
+        </Button>
       )}
     </>
   );
@@ -119,24 +120,25 @@ export default function NotesPanel({
         </p>
       )}
       <div className="mt-2 flex justify-end gap-2">
-        <button
+        <Button
           type="button"
           disabled={busy}
           onClick={() => setEditing(null)}
-          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          className="flex items-center gap-1.5"
         >
           <i className="bi-x-lg icon-sm" aria-hidden="true" />
           {t('kit.cancel')}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="primary"
           type="button"
           disabled={busy || !body.trim()}
           onClick={() => void save()}
-          className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          className="flex items-center gap-1.5"
         >
           <i className="bi-check2 icon-sm" aria-hidden="true" />
           {t('kit.save')}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -147,15 +149,15 @@ export default function NotesPanel({
       count={notes.length}
       actions={
         onAdd && (
-          <button
+          <Button
             type="button"
             disabled={editing !== null}
             onClick={() => start('')}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
           >
             <i className="bi bi-plus-lg icon-sm" aria-hidden="true" />
             {t('kit.addNote')}
-          </button>
+          </Button>
         )
       }
     >
@@ -180,27 +182,29 @@ export default function NotesPanel({
                   </span>
                   <span className="flex gap-2 opacity-60 group-focus-within:opacity-100 group-hover:opacity-100">
                     {onEdit && (
-                      <button
+                      <Button
+                        variant="icon"
                         type="button"
                         disabled={editing !== null}
                         aria-label={t('kit.editNote')}
                         onClick={() => start(note.id, note.body)}
-                        className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+
                         title={t('kit.editNote')}
                       >
                         <i className="bi bi-pencil" aria-hidden="true" />
-                      </button>
+                      </Button>
                     )}
                     {onDelete && (
-                      <button
+                      <Button
+                        variant="icon"
                         type="button"
                         aria-label={t('kit.deleteNote')}
                         onClick={() => onDelete(note.id)}
-                        className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+
                         title={t('kit.deleteNote')}
                       >
                         <i className="bi bi-trash" aria-hidden="true" />
-                      </button>
+                      </Button>
                     )}
                   </span>
                 </div>
