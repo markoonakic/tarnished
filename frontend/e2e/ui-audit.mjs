@@ -230,10 +230,10 @@ async function audit(page, state, lang, width) {
   const elements = ((await popup.count()) ? popup : page).locator(
     'button, a[href]'
   );
-  const count = await elements.count();
+  // Stable handles prevent a dismissed tooltip/menu from shifting indexed locators.
+  const controls = await elements.elementHandles();
   let checked = 0;
-  for (let index = 0; index < count; index++) {
-    const control = elements.nth(index);
+  for (const control of controls) {
     if (!(await control.isVisible().catch(() => false))) continue;
     const before = await control.evaluate((el) => {
       const dialogs = [...document.querySelectorAll('dialog[open]')].sort(
