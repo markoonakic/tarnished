@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.9] - 2026-10-09
+
+### Fixed
+
+- Restore profile city and country from ZIP archives in Replace mode. Keep account identity, credentials and other owners unchanged.
+- Disable decision and reset controls on converted job leads. Explain the existing application link in an English or Serbian help tip.
+- Put ZIP import, theme, accent color and empty interview feedback instructions in help tips. Add these phrases to the UI audit in both languages.
+
+### Added
+
+- Archive round-trip and owner-isolation checks for profile location, plus converted-lead decision and translated help-tip regression tests.
+
 ## [0.3.8] - 2026-10-09
 
 ### Fixed
