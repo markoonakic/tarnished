@@ -5,7 +5,7 @@ Run the audit against a disposable account or a database copy. It creates a comp
 Put credentials in a private JSON file outside the repository:
 
 ```json
-{"email":"audit@example.com","password":"your password"}
+{ "email": "audit@example.com", "password": "your password" }
 ```
 
 The account must be approved. Use a temporary admin account to include Admin, or add `adminEmail` and `adminPassword` for a separate account **in a database copy**. Do not use real account credentials in a public report.

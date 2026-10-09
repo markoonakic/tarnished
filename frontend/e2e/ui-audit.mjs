@@ -161,6 +161,7 @@ const knownHelp = [
   'Completed interview rounds with dates will appear here',
 ];
 const seenScreens = new Set();
+let reportWrite = Promise.resolve();
 async function audit(page, state, lang, width) {
   const label = `${lang}-${width}-${state}`;
   await page.addStyleTag({
@@ -238,7 +239,7 @@ async function audit(page, state, lang, width) {
           )
       );
       await page.mouse.move(normal.x, normal.y);
-      const hover = await control.evaluate(
+      let hover = await control.evaluate(
         (el) =>
           new Promise((resolve) =>
             requestAnimationFrame(() => {
@@ -251,10 +252,42 @@ async function audit(page, state, lang, width) {
                 bg: getComputedStyle(el).backgroundColor,
                 color: getComputedStyle(el).color,
                 reachable: hit === el || el.contains(hit),
+                hit:
+                  hit?.tagName +
+                  ':' +
+                  (hit?.getAttribute('data-ui') ||
+                    hit?.getAttribute('role') ||
+                    ''),
               });
             })
           )
       );
+      // A disappearing tooltip can move a target between frames. Retry with Playwright's stability check.
+      if (!hover.reachable) {
+        try {
+          await control.hover({ timeout: 1500 });
+          hover = await control.evaluate((el) => {
+            const r = el.getBoundingClientRect(),
+              hit = document.elementFromPoint(
+                r.x + r.width / 2,
+                r.y + r.height / 2
+              );
+            return {
+              bg: getComputedStyle(el).backgroundColor,
+              color: getComputedStyle(el).color,
+              reachable: hit === el || el.contains(hit),
+              hit:
+                hit?.tagName +
+                ':' +
+                (hit?.getAttribute('data-ui') ||
+                  hit?.getAttribute('role') ||
+                  ''),
+            };
+          });
+        } catch {
+          /* A stable obstruction is a violation. */
+        }
+      }
       if (!hover.reachable) issues.push('not-pointer-reachable');
       before.normal = normal;
       before.hover = hover;
@@ -277,6 +310,13 @@ async function audit(page, state, lang, width) {
         report.screenshots.push(file);
       }
     }
+    if (issues.length && report.violations.length < 15)
+      await page.screenshot({
+        path: path.join(
+          output,
+          `violation-${lang}-${width}-${report.violations.length}.png`
+        ),
+      });
     if (issues.length)
       report.violations.push({
         state: label,
@@ -370,10 +410,13 @@ async function audit(page, state, lang, width) {
   report.violations.push(...structural.map((v) => ({ state: label, ...v })));
   report.states.push({ state: label, checked });
   report.checked += checked;
-  await fs.writeFile(
-    path.join(output, 'report.json'),
-    JSON.stringify(report, null, 2)
+  reportWrite = reportWrite.then(() =>
+    fs.writeFile(
+      path.join(output, 'report.json'),
+      JSON.stringify(report, null, 2)
+    )
   );
+  await reportWrite;
 }
 async function panels(page, state, lang, width) {
   const triggers = page.locator(
@@ -478,141 +521,165 @@ const actionKeys = [
   'Import Data',
 ];
 try {
-  for (const lang of (process.env.AUDIT_LANGUAGES || 'en,sr-Latn').split(','))
-    for (const width of (process.env.AUDIT_WIDTHS || '1440,390')
-      .split(',')
-      .map(Number)) {
-      const context = await browser.newContext({
-        viewport: { width, height: 1000 },
-        locale: lang === 'en' ? 'en-US' : 'sr-Latn-RS',
-      });
-      const page = await context.newPage();
-      page.on('pageerror', (error) =>
-        report.violations.push({
-          state: `${lang}-${width}-${new URL(page.url()).pathname}`,
-          issues: ['page-error'],
-          control: error.message.slice(0, 160),
-        })
-      );
-      await context.addInitScript(
-        ({ lang }) => {
-          localStorage.setItem('tarnished-language', lang);
-          const show = HTMLDialogElement.prototype.showModal;
-          HTMLDialogElement.prototype.showModal = function () {
-            this.dataset.auditModalOrder = String(performance.now());
-            return show.call(this);
-          };
-        },
-        { lang }
-      );
-      for (const route of ['/login', '/register']) {
-        await page.goto(base + route);
-        await page.waitForLoadState('networkidle');
-        await audit(page, route, lang, width);
-      }
-      await api('/user-preferences', { language: lang }, 'PATCH');
-      // Use the same bearer session as a normal sign-in; no database or authentication bypass.
-      await page.evaluate((s) => {
-        localStorage.setItem('access_token', s.access_token);
-        localStorage.setItem('refresh_token', s.refresh_token);
-      }, session);
-      for (const route of process.env.AUDIT_PATHS
-        ? JSON.parse(process.env.AUDIT_PATHS)
-        : paths) {
-        await page.goto(base + route);
-        await page.waitForLoadState('networkidle');
-        if (page.url().includes('/login'))
-          throw new Error('Browser session was not accepted');
-        await audit(page, route, lang, width);
-        await panels(page, route, lang, width);
-        await disclosures(page, route, lang, width);
-        if (route === '/')
-          for (const selector of [
-            '[aria-controls="account-links"]',
-            '[aria-controls="mobile-navigation"]',
-          ]) {
-            const menu = page.locator(selector);
-            if (await menu.isVisible()) {
-              await menu.click();
-              await audit(page, route + ':navigation', lang, width);
-              await menu.click();
-            }
-          }
-        const buttons = await page
-          .locator('button:visible')
-          .evaluateAll((nodes) =>
-            nodes.map((n, index) => ({
-              index,
-              text: (n.getAttribute('aria-label') || n.textContent).trim(),
-            }))
-          );
-        const names = actionKeys.map((k) => messages[lang][k] || k);
-        const occurrences = new Map();
-        for (const { text } of buttons.filter((b) => names.includes(b.text))) {
-          const occurrence = occurrences.get(text) || 0;
-          occurrences.set(text, occurrence + 1);
-          await page.goto(base + route);
-          await page.waitForLoadState('networkidle');
-          const button = page
-            .getByRole('button', { name: text, exact: true })
-            .nth(occurrence);
-          if (!(await button.isVisible()) || (await button.isDisabled()))
-            continue;
-          const chevron = await button
-            .locator('[class*="chevron-down"]')
-            .count();
-          const before = await page.locator('dialog[open]').count();
-          await button.click();
-          await page.waitForTimeout(100);
-          if (chevron && (await page.locator('dialog[open]').count()) > before)
+  for (const lang of (process.env.AUDIT_LANGUAGES || 'en,sr-Latn').split(',')) {
+    const results = await Promise.allSettled(
+      (process.env.AUDIT_WIDTHS || '1440,390')
+        .split(',')
+        .map(Number)
+        .map(async (width) => {
+          const context = await browser.newContext({
+            viewport: { width, height: 1000 },
+            locale: lang === 'en' ? 'en-US' : 'sr-Latn-RS',
+          });
+          const page = await context.newPage();
+          page.on('pageerror', (error) =>
             report.violations.push({
-              state: route,
-              control: text,
-              issues: ['chevron-opens-modal'],
-            });
-          await audit(page, `${route}:${text}`, lang, width);
-          await panels(page, `${route}:${text}`, lang, width);
-          const participantAdd = page
+              state: `${lang}-${width}-${new URL(page.url()).pathname}`,
+              issues: ['page-error'],
+              control: error.message.slice(0, 160),
+            })
+          );
+          await context.addInitScript(
+            ({ lang }) => {
+              localStorage.setItem('tarnished-language', lang);
+              const show = HTMLDialogElement.prototype.showModal;
+              HTMLDialogElement.prototype.showModal = function () {
+                this.dataset.auditModalOrder = String(performance.now());
+                return show.call(this);
+              };
+            },
+            { lang }
+          );
+          for (const route of ['/login', '/register']) {
+            await page.goto(base + route);
+            await page.waitForLoadState('networkidle');
+            await audit(page, route, lang, width);
+          }
+          await api('/user-preferences', { language: lang }, 'PATCH');
+          await page.goto(base + '/login');
+          await page.locator('#email').fill(credentials.email);
+          await page
+            .locator('input[type="password"]')
+            .fill(credentials.password);
+          await page
             .getByRole('button', {
-              name: messages[lang]['tasks.addParticipant'],
+              name: messages[lang]['Sign In'],
               exact: true,
             })
-            .last();
-          if (
-            (route.startsWith('/applications/') ||
-              route.startsWith('/interviews/')) &&
-            (await participantAdd.isVisible().catch(() => false))
-          ) {
-            await participantAdd.click();
-            await audit(page, `${route}:${text}:participants`, lang, width);
-            await panels(page, `${route}:${text}:participants`, lang, width);
+            .click();
+          await page.waitForURL(base + '/');
+          for (const route of process.env.AUDIT_PATHS
+            ? JSON.parse(process.env.AUDIT_PATHS)
+            : paths) {
+            await page.goto(base + route);
+            await page.waitForLoadState('networkidle');
+            if (page.url().includes('/login'))
+              throw new Error('Browser session was not accepted');
+            await audit(page, route, lang, width);
+            await panels(page, route, lang, width);
+            await disclosures(page, route, lang, width);
+            if (route === '/')
+              for (const selector of [
+                '[aria-controls="account-links"]',
+                '[aria-controls="mobile-navigation"]',
+              ]) {
+                const menu = page.locator(selector);
+                if (await menu.isVisible()) {
+                  await menu.click();
+                  await audit(page, route + ':navigation', lang, width);
+                  await menu.click();
+                }
+              }
+            const buttons = await page
+              .locator('button:visible')
+              .evaluateAll((nodes) =>
+                nodes.map((n, index) => ({
+                  index,
+                  text: (n.getAttribute('aria-label') || n.textContent).trim(),
+                }))
+              );
+            const names = actionKeys.map((k) => messages[lang][k] || k);
+            const occurrences = new Map();
+            for (const { text } of buttons.filter((b) =>
+              names.includes(b.text)
+            )) {
+              const occurrence = occurrences.get(text) || 0;
+              occurrences.set(text, occurrence + 1);
+              await page.goto(base + route);
+              await page.waitForLoadState('networkidle');
+              const button = page
+                .getByRole('button', { name: text, exact: true })
+                .nth(occurrence);
+              if (!(await button.isVisible()) || (await button.isDisabled()))
+                continue;
+              const chevron = await button
+                .locator('[class*="chevron-down"]')
+                .count();
+              const before = await page.locator('dialog[open]').count();
+              await button.click();
+              await page.waitForTimeout(100);
+              if (
+                chevron &&
+                (await page.locator('dialog[open]').count()) > before
+              )
+                report.violations.push({
+                  state: route,
+                  control: text,
+                  issues: ['chevron-opens-modal'],
+                });
+              await audit(page, `${route}:${text}`, lang, width);
+              await panels(page, `${route}:${text}`, lang, width);
+              const participantAdd = page
+                .getByRole('button', {
+                  name: messages[lang]['tasks.addParticipant'],
+                  exact: true,
+                })
+                .last();
+              if (
+                (route.startsWith('/applications/') ||
+                  route.startsWith('/interviews/')) &&
+                (await participantAdd.isVisible().catch(() => false))
+              ) {
+                await participantAdd.click();
+                await audit(page, `${route}:${text}:participants`, lang, width);
+                await panels(
+                  page,
+                  `${route}:${text}:participants`,
+                  lang,
+                  width
+                );
+              }
+              const modes = page.locator('dialog[open] input[type=radio]');
+              for (let i = 0; i < (await modes.count()); i++) {
+                const radio = modes.nth(i);
+                if ((await radio.isChecked()) || (await radio.isDisabled()))
+                  continue;
+                await radio.locator('..').click();
+                await audit(page, `${route}:${text}:mode-${i}`, lang, width);
+                await panels(page, `${route}:${text}:mode-${i}`, lang, width);
+              }
+            }
           }
-          const modes = page.locator('dialog[open] input[type=radio]');
-          for (let i = 0; i < (await modes.count()); i++) {
-            const radio = modes.nth(i);
-            if ((await radio.isChecked()) || (await radio.isDisabled()))
-              continue;
-            await radio.locator('..').click();
-            await audit(page, `${route}:${text}:mode-${i}`, lang, width);
-            await panels(page, `${route}:${text}:mode-${i}`, lang, width);
-          }
-        }
-      }
-      await page.evaluate((s) => {
-        localStorage.setItem('access_token', s.access_token);
-        localStorage.setItem('refresh_token', s.refresh_token);
-      }, admin);
-      await api('/user-preferences', { language: lang }, 'PATCH', admin);
-      await page.goto(base + '/admin');
-      await page.waitForLoadState('networkidle');
-      await audit(page, '/admin', lang, width);
-      await panels(page, '/admin', lang, width);
-      await context.close();
-      await fs.writeFile(
-        path.join(output, 'report.json'),
-        JSON.stringify(report, null, 2)
-      );
-    }
+          await page.evaluate((s) => {
+            localStorage.setItem('access_token', s.access_token);
+            localStorage.setItem('refresh_token', s.refresh_token);
+          }, admin);
+          await api('/user-preferences', { language: lang }, 'PATCH', admin);
+          await page.goto(base + '/admin');
+          await page.waitForLoadState('networkidle');
+          await audit(page, '/admin', lang, width);
+          await panels(page, '/admin', lang, width);
+          await context.close();
+        })
+    );
+    for (const result of results)
+      if (result.status === 'rejected')
+        report.violations.push({
+          state: lang,
+          issues: ['audit-incomplete'],
+          control: result.reason.message,
+        });
+  }
 } catch (error) {
   report.violations.push({
     state: 'audit',

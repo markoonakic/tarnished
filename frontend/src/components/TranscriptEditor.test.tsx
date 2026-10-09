@@ -74,10 +74,16 @@ it('opens in reading mode and links to feedback without sending unsaved edits', 
   await screen.findByText('<script>literal source</script>');
   expect(screen.queryByLabelText('Text for passage 1')).not.toBeInTheDocument();
   expect(
-    screen.getByText(
+    screen.queryByText(
       'Some speakers are unidentified. Identify your answers in Edit transcript for personal feedback.'
     )
-  ).toBeVisible();
+  ).not.toBeInTheDocument();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Correct text and speaker roles' })
+  );
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Some speakers are unidentified. Identify your answers in Edit transcript for personal feedback.'
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Edit transcript' }));
   fireEvent.change(screen.getByLabelText('Text for passage 1'), {
     target: { value: 'Draft' },
