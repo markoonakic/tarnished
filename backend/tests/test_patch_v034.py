@@ -29,7 +29,10 @@ from app.schemas.job_analysis import CATEGORIES
 from app.services import interview_jobs
 from app.services.export_registry import default_registry
 from app.services.export_service import ExportService
-from app.services.import_execution import delete_existing_user_data, import_payload_data
+from app.services.import_execution import (
+    clear_existing_import_data,
+    import_payload_data,
+)
 from app.services.interview_evidence import (
     application_evidence_sources,
     application_snapshot,
@@ -281,7 +284,7 @@ async def test_zip_roundtrip_all_feedback_scopes_and_saved_analyses(
             == 1
         )
     for _ in range(2):
-        await delete_existing_user_data(db, recipient.id)
+        await clear_existing_import_data(db, recipient.id)
         await import_payload_data(db, recipient.id, archive, {}, lambda **kwargs: None)
         await db.commit()
         restored = await export(db, recipient.id)
