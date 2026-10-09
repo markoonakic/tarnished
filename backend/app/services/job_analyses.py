@@ -142,12 +142,6 @@ def target_revision(record):
 
 async def inputs(db, row):
     record = await target(db, row)
-    revisions = {
-        "requirements": record.requirements_revision,
-        "legacy_requirements": fingerprint(
-            [record.requirements_must_have, record.requirements_nice_to_have]
-        ),
-    }
     if row.kind == "EXTRACTION":
         return {"posting": record.source_text or ""}, {
             "source": record.revision
@@ -159,10 +153,24 @@ async def inputs(db, row):
         .where(UserProfile.user_id == row.user_id)
         .execution_options(populate_existing=True)
     )
-    revisions.update(
-        profile=profile.revision if profile else 0,
-        permission=profile.permission_revision if profile else 0,
-    )
+    data, revisions = comparison_inputs(record, profile)
+    # No private interview notes, contact details or documents enter these inputs.
+    if row.kind == "PREPARATION":
+        matches = await current_matches(db, row.user_id, [record])
+        data["match"] = matches.get(record.id)
+    return data, revisions
+
+
+def comparison_inputs(record, profile):
+    """The same permitted input for live matrices and local archive validation."""
+    revisions = {
+        "requirements": record.requirements_revision,
+        "legacy_requirements": fingerprint(
+            [record.requirements_must_have, record.requirements_nice_to_have]
+        ),
+        "profile": profile.revision if profile else 0,
+        "permission": profile.permission_revision if profile else 0,
+    }
     entries = []
     for field, value in allowed_profile(profile).items():
         for item in (
@@ -193,10 +201,6 @@ async def inputs(db, row):
         "profile": entries,
         "revisions": revisions,
     }
-    # No private interview notes, contact details or documents enter these inputs.
-    if row.kind == "PREPARATION":
-        matches = await current_matches(db, row.user_id, [record])
-        data["match"] = matches.get(record.id)
     return data, revisions
 
 

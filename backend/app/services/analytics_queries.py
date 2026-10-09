@@ -80,6 +80,7 @@ async def get_calculation_data(
     today: date | None = None,
     as_of: datetime | None = None,
     time_zone: str = "UTC",
+    archive_at: datetime | None = None,
 ) -> dict[str, Any]:
     """One ordered calculation shared by API and insight readers.
 
@@ -117,6 +118,36 @@ async def get_calculation_data(
             .order_by(Application.applied_at, Application.id)
         )
     ).all()
+    if archive_at is not None:
+        from types import SimpleNamespace
+
+        # Legacy reports have no retained input. Only recorded history can prove
+        # an earlier status. Work on copies; never repair imported owner records.
+        historical_apps = []
+        for app in apps:
+            history = [
+                h for h in app.status_history if utc(h.changed_at) <= utc(archive_at)
+            ]
+            latest = max(history, key=lambda h: (utc(h.changed_at), h.id), default=None)
+            values = {
+                column.key: getattr(app, column.key)
+                for column in Application.__table__.columns
+            }
+            if latest is not None and _recorded_entry(latest):
+                values.update(
+                    status_id=latest.to_status_id,
+                    status_meaning=latest.to_meaning,
+                    status_meaning_provenance=latest.to_meaning_provenance,
+                )
+            historical_apps.append(
+                SimpleNamespace(
+                    **values,
+                    status=latest.to_status if latest is not None else app.status,
+                    status_history=history,
+                    rounds=app.rounds,
+                )
+            )
+        apps = historical_apps
     visits: list[dict[str, Any]] = []
     records: list[dict[str, Any]] = []
     activity: list[dict[str, Any]] = []
@@ -543,9 +574,16 @@ async def get_pipeline_overview_data(
     today: date | None = None,
     as_of: datetime | None = None,
     time_zone: str = "UTC",
+    archive_at: datetime | None = None,
 ) -> dict[str, Any]:
     return await get_calculation_data(
-        db, user_id, period, today=today, as_of=as_of, time_zone=time_zone
+        db,
+        user_id,
+        period,
+        today=today,
+        as_of=as_of,
+        time_zone=time_zone,
+        archive_at=archive_at,
     )
 
 

@@ -541,7 +541,7 @@ async def checkpoint(db, job_id, claim, index, output, sources, *, pending=False
 
 
 async def publish(db, job_id, claim, sources, limits):
-    job, _, _ = await guard(db, job_id, claim, ("analyzing",))
+    job, data, _ = await guard(db, job_id, claim, ("analyzing",))
     if (
         job.uncertain
         or not job.total_sections
@@ -593,6 +593,11 @@ async def publish(db, job_id, claim, sources, limits):
         report["period"] = (job.manifest or {}).get("period")
         report["as_of"] = (job.manifest or {}).get("as_of")
         report["time_zone"] = (job.manifest or {}).get("time_zone")
+        # Live metrics and permitted matches cannot be reconstructed after edits
+        # or import. Retain the exact, bounded input, not fresh account authority.
+        report["evidence_snapshot"] = json.loads(json.dumps(data, default=str))
+        report["evidence_fingerprint"] = job.fingerprint
+        report["evidence_ids"] = {}
     if len(json.dumps(report)) > 1_000_000:
         with validation_context(job_id, job.scope):
             log_validation_failure(

@@ -17,6 +17,7 @@ from app.services.interview_evidence import (
     APP_FIELDS,
     PROFILE_FIELDS,
     ROUND_FIELDS,
+    fingerprint,
     profile_work_history,
 )
 from app.services.interview_jobs import READ_SCOPES
@@ -84,6 +85,17 @@ class ArchivedInterviewReport(BaseModel):
     limitations: list[str] = Field(max_length=1050)
 
 
+class PipelineEvidenceSnapshot(BaseModel):
+    """Saved pipeline input. It is historical data, never restored authority."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    period: Literal["7d", "30d", "3m", "all"]
+    as_of: str | None = Field(max_length=64)
+    time_zone: str = Field(min_length=1, max_length=64)
+    metrics: dict
+    profile: dict
+
+
 class ArchivedScopedReport(BaseModel):
     output_language: Literal["en", "sr-Latn"] = "en"
     """Application- and pipeline-scope latest report; latest only, never a history."""
@@ -104,6 +116,11 @@ class ArchivedScopedReport(BaseModel):
     period: Literal["7d", "30d", "3m", "all"] | None = None
     as_of: str | None = Field(default=None, max_length=64)
     time_zone: str | None = Field(default=None, max_length=64)
+    evidence_snapshot: PipelineEvidenceSnapshot | None = None
+    evidence_fingerprint: str | None = Field(
+        default=None, min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
+    )
+    evidence_ids: dict[str, str] = Field(default_factory=dict, max_length=20000)
     findings: list[PipelineFinding] = Field(max_length=384)
     # Keep every bounded record citation; the one-megabyte report bound still applies.
     sources: list[ReportSource] = Field(max_length=6144)
@@ -145,6 +162,36 @@ def _validate_scoped_report(value, models, apps, histories, profile, *, scope):
         _require(value.period in ("7d", "30d", "3m", "all"))
         if value.as_of is not None:
             datetime.fromisoformat(value.as_of)
+    rows = {
+        r["id"]: r
+        for name in ("Application", "Round", "ApplicationStatusHistory")
+        for r in models.get(name, [])
+    }
+    _require(all(key in rows for key in value.evidence_ids.values()))
+    _require(not value.evidence_ids or scope == "PIPELINE")
+    if value.evidence_snapshot is not None:
+        _require(scope == "PIPELINE")
+        saved = value.evidence_snapshot.model_dump()
+        _require(fingerprint(saved) == value.evidence_fingerprint)
+        _require(saved["period"] == value.period and saved["as_of"] == value.as_of)
+        _require(saved["time_zone"] == value.time_zone)
+        _require(set(saved["profile"]) == set(PROFILE_FIELDS))
+        # Snapshot identities must resolve to this archive, never database IDs.
+        for record in saved["metrics"].get("applications", []):
+            _require(
+                value.evidence_ids.get(
+                    record["application_id"], record["application_id"]
+                )
+                in apps
+            )
+        for record in saved["metrics"].get("rounds", []):
+            app_id = value.evidence_ids.get(
+                record["application_id"], record["application_id"]
+            )
+            _require(app_id in apps)
+        profile = saved["profile"]
+    else:
+        _require(value.evidence_fingerprint is None)
     round_ids = {r.get("id") for r in models.get("Round", [])}
     source_ids = set()
     for source in value.sources:
@@ -475,6 +522,49 @@ def _verify_report_sources(report, candidates):
             )
 
 
+def _archived_pipeline_insights(models, metrics, inverse):
+    """Verify saved matrix inputs locally before import resets their permissions."""
+    from types import SimpleNamespace
+
+    from app.services.job_analyses import comparison_inputs, validate_output
+    from app.services.requirement_insights import requirement_insights
+
+    ids = {
+        inverse.get(r["application_id"], r["application_id"])
+        for r in metrics["applications"]
+    }
+    apps = {
+        r["id"]: SimpleNamespace(**r)
+        for r in models.get("Application", [])
+        if r["id"] in ids
+    }
+    profile_row = _profile_row(models)
+    profile = SimpleNamespace(**profile_row) if profile_row else None
+    matches, seen = {}, set()
+    for row in sorted(
+        models.get("JobAnalysis", []),
+        key=lambda r: r.get("created_at", ""),
+        reverse=True,
+    ):
+        app_id = row.get("application_id")
+        if (
+            row.get("kind") != "PROFILE_MATCH"
+            or row.get("review_state") != "ready"
+            or app_id not in apps
+            or app_id in seen
+        ):
+            continue
+        seen.add(app_id)
+        data, revisions = comparison_inputs(apps[app_id], profile)
+        if (
+            row.get("fingerprint") == fingerprint(data)
+            and row.get("input_revisions") == revisions
+        ):
+            value = validate_output(row["draft"], [{"data": data}], "PROFILE_MATCH")
+            matches[app_id] = value["rows"]
+    return requirement_insights(list(apps.values()), matches)
+
+
 async def verify_restored_report_text(db, user_id, export_data, id_mapper, segment_ids):
     """Re-derive each restored report's evidence and require exact passage text.
 
@@ -483,7 +573,7 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
     untrusted input: without this check a fabricated passage survives validation
     because only the reference shape was verified.
     """
-    from sqlalchemy import select
+    from sqlalchemy import select, update
 
     from app.models import Application, Round, User
     from app.services.interview_evidence import (
@@ -575,7 +665,43 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
                 report.get("time_zone") or "UTC",
             )
             data["profile"] = verification_profile
+            archived_report = next(
+                (
+                    r["pipeline_report"]
+                    for r in models.get("User", [])
+                    if r.get("pipeline_report") is not None
+                ),
+                None,
+            )
+            if archived_report and archived_report.get("evidence_snapshot") is not None:
+                # The input was checked before mutation. It includes the original
+                # IDs and permissions, which import intentionally does not restore.
+                expected, _ = await pipeline_evidence_sources(
+                    archived_report["evidence_snapshot"]
+                )
+                _verify_report_sources(report, [{s["id"]: s["text"] for s in expected}])
+                return
+            data["metrics"].update(
+                _archived_pipeline_insights(models, data["metrics"], inverse)
+            )
             expected, _ = await pipeline_evidence_sources(data)
+            historical = []
+            if archived_report and archived_report.get("evidence_snapshot") is None:
+                historical_data, _ = await pipeline_snapshot(
+                    db,
+                    user_id,
+                    report["period"],
+                    as_of,
+                    report.get("time_zone") or "UTC",
+                    archive_at=datetime.fromisoformat(report["run_at"]),
+                )
+                historical_data["profile"] = verification_profile
+                historical_data["metrics"].update(
+                    _archived_pipeline_insights(
+                        models, historical_data["metrics"], inverse
+                    )
+                )
+                historical, _ = await pipeline_evidence_sources(historical_data)
             legacy_metrics, _ = await pipeline_evidence_sources(
                 data, include_workspace_metrics=False
             )
@@ -587,14 +713,54 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
                 "profile",
                 data["profile"].get("work_history"),
             )
+            pipeline_inverse = {
+                **inverse,
+                **{
+                    current: original
+                    for original, current in (archived_report or {})
+                    .get("evidence_ids", {})
+                    .items()
+                },
+            }
             _verify_report_sources(
                 report,
                 [
-                    _expected_index(expected, inverse),
-                    _expected_index(legacy_metrics, inverse),
-                    _expected_index(legacy_profile, inverse),
+                    _expected_index(expected, pipeline_inverse),
+                    _expected_index(legacy_metrics, pipeline_inverse),
+                    _expected_index(legacy_profile, pipeline_inverse),
+                    _expected_index(historical, pipeline_inverse),
                 ],
             )
+            # Preserve a locally verified legacy input for later round trips.
+            # Privacy reset makes its old matrix freshness impossible to recover
+            # on a second import. No imported permission or job is restored.
+            candidates = [data]
+            if historical:
+                candidates.append(historical_data)
+            for candidate in candidates:
+                candidate_sources, _ = await pipeline_evidence_sources(candidate)
+                try:
+                    _verify_report_sources(
+                        report, [_expected_index(candidate_sources, pipeline_inverse)]
+                    )
+                except ValueError:
+                    continue
+                saved = json.loads(
+                    _restore_archived_ids(
+                        json.dumps(candidate, default=str), pipeline_inverse
+                    )
+                )
+                saved["as_of"] = report.get("as_of")
+                report["evidence_snapshot"] = saved
+                report["evidence_fingerprint"] = fingerprint(saved)
+                if len(json.dumps(report)) > 1_000_000:
+                    raise ValueError("Report exceeds retained output bound")
+                await db.execute(
+                    update(User)
+                    .where(User.id == user_id)
+                    .values(pipeline_report=report)
+                )
+                break
     except Exception as exc:  # noqa: BLE001 - convert to one outward archive error
         logger.warning(
             "Imported report evidence failed verification for user %s: %r",
@@ -650,4 +816,13 @@ def remap_report(report, mapper, segment_ids, *, original_round_id=None):
         value = _remap_sources(value, mapper, segment_ids, None)
     else:
         value = _remap_sources(value, mapper, segment_ids, None)
+        old_aliases = value.get("evidence_ids", {})
+        aliases = {}
+        for key, new_id in mapper.mappings.items():
+            model, _, old_id = key.partition(":")
+            if model in ("Application", "Round", "ApplicationStatusHistory"):
+                originals = [k for k, v in old_aliases.items() if v == old_id]
+                for original in originals or [old_id]:
+                    aliases[original] = new_id
+        value["evidence_ids"] = aliases
     return value

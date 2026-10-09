@@ -297,7 +297,13 @@ async def application_snapshot(db: AsyncSession, user_id: str, application_id: s
 
 
 async def pipeline_snapshot(
-    db: AsyncSession, user_id: str, period: str, as_of, zone: str
+    db: AsyncSession,
+    user_id: str,
+    period: str,
+    as_of,
+    zone: str,
+    *,
+    archive_at=None,
 ):
     """Pipeline scope: deterministic metrics only, never model arithmetic.
 
@@ -309,7 +315,7 @@ async def pipeline_snapshot(
     is part of the fingerprint.
     """
     metrics = await get_pipeline_overview_data(
-        db, user_id, period, as_of=as_of, time_zone=zone
+        db, user_id, period, as_of=as_of, time_zone=zone, archive_at=archive_at
     )
     # 'current_record_basis.observed_at' is the live read instant, which changes on
     # every call. Replace it with the pinned instant so the fingerprint is stable.
