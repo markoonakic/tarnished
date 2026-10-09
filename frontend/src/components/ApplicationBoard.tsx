@@ -158,7 +158,7 @@ export default function ApplicationBoard({
               >
                 {collapsed ? (
                   <button
-                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex h-full min-h-48 w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex h-full min-h-48 w-full cursor-pointer items-center gap-3 rounded p-1 text-sm transition-all duration-200 ease-in-out [writing-mode:vertical-rl] focus:ring-2 disabled:opacity-50"
                     onClick={() => setExpanded([...expanded, status.id])}
                   >
                     <i className="bi-arrow-right icon-sm" aria-hidden="true" />

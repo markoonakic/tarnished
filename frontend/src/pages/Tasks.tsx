@@ -435,7 +435,10 @@ export default function Tasks() {
                     (!kind || kind === 'application_deadline') &&
                     Boolean(tasks.data?.deadlines.length) && (
                       <details className="bg-secondary mb-6 rounded-lg p-6">
-                        <summary className="text-fg1 hover:text-accent-bright focus:ring-accent hover:bg-bg2 cursor-pointer text-lg font-semibold transition-all duration-200 ease-in-out focus:ring-2">
+                        <summary
+                          style={{ fontFamily: 'var(--font-display)' }}
+                          className="text-fg1 hover:text-accent-bright focus:ring-accent hover:bg-bg2 cursor-pointer text-lg font-semibold transition-all duration-200 ease-in-out focus:ring-2"
+                        >
                           {t('tasks.deadlinesWithoutReminder', {
                             count: tasks.data?.deadlines.length ?? 0,
                           })}

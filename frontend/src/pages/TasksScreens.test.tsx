@@ -350,6 +350,9 @@ it('keeps board cards in place on Cancel and opens a keyboard Move to dialog wit
     />
   );
   await screen.findByText('Orbis Ledger');
+  expect(
+    within(screen.getByRole('region', { name: 'Rejected' })).getByRole('button')
+  ).toHaveClass('[writing-mode:vertical-rl]');
   const boardRequest = requests.find(
     (r) => r.url === '/api/applications/board'
   )!;
