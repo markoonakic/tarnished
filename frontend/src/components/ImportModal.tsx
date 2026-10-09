@@ -4,6 +4,7 @@ import FileButton from './FileButton';
 import { useToastContext } from '../contexts/ToastContext';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
+import HelpTip from './HelpTip';
 import { useState, useRef, useEffect } from 'react';
 import {
   validateImport,
@@ -219,9 +220,18 @@ export default function ImportModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="border-tertiary flex flex-shrink-0 items-center justify-between border-b p-4">
-          <h3 id="import-modal-title" className="text-primary font-medium">
-            {t('Import Data')}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 id="import-modal-title" className="text-primary font-medium">
+              {t('Import Data')}
+            </h3>
+            <HelpTip label={t('About data import')}>
+              <p>
+                {t(
+                  'Select a ZIP export file to import your job application data. Large archives can take a while to upload and process. Files larger than 100MB inside the ZIP may still fail backend validation.'
+                )}
+              </p>
+            </HelpTip>
+          </div>
           <Button
             variant="icon"
             onClick={handleClose}
@@ -355,12 +365,6 @@ export default function ImportModal({
             </div>
           ) : (
             <div>
-              <p className="text-secondary mb-4 text-sm">
-                {t(
-                  'Select a ZIP export file to import your job application data. Large archives can take a while to upload and process. Files larger than 100MB inside the ZIP may still fail backend validation.'
-                )}
-              </p>
-
               <FileButton
                 aria-label={t('ZIP archive')}
                 disabled={validating}

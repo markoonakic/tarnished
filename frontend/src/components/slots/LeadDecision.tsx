@@ -5,6 +5,7 @@ import type { JobLead } from '@/lib/types';
 import { apiV030, type LeadDecision as Decision } from '@/lib/apiV030';
 import { jobLeadError } from '@/lib/jobLeads';
 import SegmentedControl from '../SegmentedControl';
+import HelpTip from '../HelpTip';
 
 export default function LeadDecision({
   lead,
@@ -16,10 +17,16 @@ export default function LeadDecision({
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const converted = !!lead.converted_to_application_id;
   return (
     <div className="max-w-full text-right">
       {!lead.decision && (
         <p className="text-muted mb-1 text-xs">{t('records.undecided')}</p>
+      )}
+      {converted && (
+        <HelpTip label={t('records.decisionHelp')}>
+          <p>{t('records.convertedDecision')}</p>
+        </HelpTip>
       )}
       <SegmentedControl
         label={t('records.decision')}
@@ -28,10 +35,11 @@ export default function LeadDecision({
           (value) => ({
             value,
             label: t('records.decision.' + value),
-            disabled: busy,
+            disabled: busy || converted,
           })
         )}
         onChange={async (decision: Decision) => {
+          if (converted || busy) return;
           setBusy(true);
           setError('');
           try {
@@ -50,7 +58,7 @@ export default function LeadDecision({
       {lead.decision && (
         <Button
           className="ml-2 flex items-center gap-1.5"
-          disabled={busy}
+          disabled={busy || converted}
           onClick={async () => {
             setBusy(true);
             setError('');

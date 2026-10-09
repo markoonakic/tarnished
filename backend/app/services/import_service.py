@@ -135,6 +135,12 @@ class ImportService:
             from app.services.interview_archive import validate_interview_archive
 
             validate_interview_archive(data["models"])
+            from app.schemas.user_profile import UserProfileUpdate
+
+            for row in data["models"].get("User", []):
+                UserProfileUpdate.model_validate(
+                    {field: row[field] for field in ("city", "country") if field in row}
+                )
             from app.schemas.job_analysis import Extraction, Match, Preparation
 
             for row in data["models"].get("JobAnalysis", []):
@@ -277,10 +283,14 @@ class ImportService:
             model_class = exportable_model.model_class
             model_name = model_class.__name__
 
-            # Restore only the language preference, never account authority.
+            # Restore personal location on Replace and language, never account authority.
             if model_name == "User":
                 owner = session.get(User, user_id)
                 for record in export_data["models"].get("User", []):
+                    if override and owner is not None:
+                        for field in ("city", "country"):
+                            if field in record:
+                                setattr(owner, field, record[field])
                     preferences = record.get("settings")
                     if (
                         isinstance(preferences, dict)

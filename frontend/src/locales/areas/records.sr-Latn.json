@@ -41,6 +41,8 @@
   "records.postingText": "Tekst oglasa",
   "records.sourceLimit": "Ograničenje je 100.000 znakova. Skratite tekst pre čuvanja.",
   "records.decision": "Odluka",
+  "records.decisionHelp": "O odlukama za oglas",
+  "records.convertedDecision": "Ovaj oglas je već pretvoren u prijavu",
   "records.undecided": "Nije odlučeno",
   "records.decision.undecided": "Nije odlučeno",
   "records.decision.interesting": "Zanimljiv",

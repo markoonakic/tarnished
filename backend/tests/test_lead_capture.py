@@ -371,6 +371,23 @@ async def test_duplicate_race_returns_owned_identity(
     assert await db.scalar(select(func.count()).select_from(JobLead)) == 1
 
 
+@pytest.mark.parametrize("decision", ["interesting", "rejected", "archived", None])
+async def test_converted_lead_decisions_are_immutable(
+    client, capture_workspace, decision
+):
+    lead = await save(client, title="Engineer", company="Company")
+    path = "/api/job-leads/" + lead["id"]
+    assert (await client.post(path + "/convert")).status_code == 201
+    current = (await client.get(path)).json()
+    response = await client.patch(
+        path, json={"expected_revision": current["revision"], "decision": decision}
+    )
+    assert response.status_code == 409
+    after = (await client.get(path)).json()
+    assert after["decision"] == current["decision"]
+    assert after["revision"] == current["revision"]
+
+
 async def test_manual_conversion_race_is_atomic_and_repeat_checks_owned_result_first(
     client, db, capture_workspace, monkeypatch
 ):

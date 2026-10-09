@@ -162,6 +162,98 @@ def importing_auth_headers(importing_user: User) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+@pytest.mark.parametrize("city,country", [("Belgrade", "Serbia"), (None, None)])
+@pytest.mark.parametrize("target", ["same_owner", "other_owner"])
+async def test_zip_replace_restores_profile_location_only_for_importing_owner(
+    client,
+    db,
+    test_user,
+    importing_user,
+    auth_headers,
+    importing_auth_headers,
+    city,
+    country,
+    target,
+):
+    source_id, other_id = test_user.id, importing_user.id
+    response = await client.put(
+        "/api/profile",
+        headers=auth_headers,
+        json={"city": city, "country": country, "first_name": "Archive name"},
+    )
+    assert response.status_code == 200, response.text
+    exported = await client.get("/api/export/zip", headers=auth_headers)
+    assert exported.status_code == 200
+    with zipfile.ZipFile(io.BytesIO(exported.content)) as archive:
+        record = json.loads(archive.read("data.json"))["models"]["User"][0]
+        assert (record["city"], record["country"]) == (city, country)
+    headers = auth_headers if target == "same_owner" else importing_auth_headers
+    changed = await client.put(
+        "/api/profile",
+        headers=headers,
+        json={"city": "Novi Sad", "country": "Changed", "first_name": "Changed name"},
+    )
+    assert changed.status_code == 200
+    await db.refresh(importing_user)
+    other_credentials = importing_user.password_hash
+    response = await client.post(
+        "/api/import/import",
+        headers=headers,
+        data={"override": "true"},
+        files={"file": ("profile.zip", exported.content, "application/zip")},
+    )
+    assert response.status_code == 202, response.text
+    await wait_for_import_completion(client, headers, response.json()["import_id"])
+    restored = await client.get("/api/profile", headers=headers)
+    assert restored.status_code == 200
+    assert (restored.json()["city"], restored.json()["country"]) == (city, country)
+    assert restored.json()["first_name"] == "Archive name"
+    await db.rollback()
+    source, other = await db.get(User, source_id), await db.get(User, other_id)
+    assert source and other
+    assert (source.city, source.country) == (city, country)
+    assert other.email == "import_test@example.com" and not other.is_admin
+    assert other.password_hash == other_credentials
+    if target == "same_owner":
+        assert (other.city, other.country) == (None, None)
+
+
+@pytest.mark.parametrize("location", [{}, {"city": "Archive", "country": None}])
+async def test_merge_or_legacy_archive_does_not_clear_owner_location(
+    client,
+    db,
+    test_user,
+    auth_headers,
+    location,
+):
+    test_user.city, test_user.country = "Current city", "Current country"
+    await db.commit()
+    payload = {
+        "format_version": "2.0.0",
+        "models": {"User": [{"id": "foreign", **location}]},
+    }
+    service = ImportService(default_registry, IDMapper())
+    await db.run_sync(
+        lambda session: service.import_user_data(
+            payload,
+            test_user.id,
+            session,
+            override=not bool(location),
+        )
+    )
+    await db.commit()
+    assert (test_user.city, test_user.country) == ("Current city", "Current country")
+
+
+@pytest.mark.parametrize("value", ["x" * 101, 42, ["city"]])
+def test_archive_location_uses_profile_validation(value):
+    service = ImportService(default_registry, IDMapper())
+    valid, error = service.validate_export_data(
+        {"format_version": "2.0.0", "models": {"User": [{"city": value}]}}
+    )
+    assert not valid and error
+
+
 class TestExportImportRoundTrip:
     """Tests for export/import round-trip functionality."""
 
