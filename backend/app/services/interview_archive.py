@@ -536,7 +536,7 @@ def _archived_pipeline_insights(models, metrics, inverse):
     apps = {
         r["id"]: SimpleNamespace(**r)
         for r in models.get("Application", [])
-        if r["id"] in ids
+        if r["id"] in ids and r.get("confirmed_requirements")
     }
     profile_row = _profile_row(models)
     profile = SimpleNamespace(**profile_row) if profile_row else None

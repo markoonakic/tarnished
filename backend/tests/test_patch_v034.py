@@ -329,6 +329,21 @@ async def test_zip_roundtrip_all_feedback_scopes_and_saved_analyses(
     assert (await export(db, owner.id))["models"] == original["models"]
 
 
+def test_pre_workspace_archive_has_no_reviewed_requirement_insights():
+    from app.services.interview_archive import _archived_pipeline_insights
+
+    app_id = str(uuid4())
+    result = _archived_pipeline_insights(
+        {"Application": [{"id": app_id, "company": "North", "job_title": "Developer"}]},
+        {"applications": [{"application_id": app_id}]},
+        {},
+    )
+    assert result == {
+        "repeated_requirements": {"items": [], "denominator": 0},
+        "missing_evidence": {"items": [], "denominator": 0},
+    }
+
+
 async def test_pipeline_snapshot_tampering_and_foreign_identity_roll_back(
     client, db, workspace, monkeypatch
 ):
