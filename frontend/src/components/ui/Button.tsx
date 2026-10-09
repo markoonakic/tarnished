@@ -17,6 +17,7 @@ export type ButtonProps = ComponentProps<'button'> & {
 /** Actions share one visual contract. className is for layout, not a second skin. */
 export default function Button({
   variant = 'ghost',
+  type = 'button',
   className = '',
   children,
   title,
@@ -28,6 +29,7 @@ export default function Button({
   return (
     <button
       {...props}
+      type={type}
       title={title ?? (variant === 'icon' ? props['aria-label'] : undefined)}
       data-ui="button"
       data-variant={variant}

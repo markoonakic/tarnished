@@ -34,6 +34,19 @@ it.each(['primary', 'ghost', 'danger', 'icon'] as const)(
     if (variant === 'icon') expect(button).toHaveAttribute('title', 'Action');
   }
 );
+it('an action inside a form does not submit unless explicitly requested', () => {
+  const submit = vi.fn((event) => event.preventDefault());
+  render(
+    <form onSubmit={submit}>
+      <Button>Remove participant</Button>
+      <Button type="submit">Save</Button>
+    </form>
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Remove participant' }));
+  expect(submit).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(submit).toHaveBeenCalledOnce();
+});
 it('navigation stays a link with no background or button role', () => {
   render(
     <MemoryRouter>

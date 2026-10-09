@@ -95,7 +95,12 @@ export default function SettingsSecurity() {
             required
             autoComplete="new-password"
           />
-          <Button variant="primary" className="touch-target" disabled={busy}>
+          <Button
+            type="submit"
+            variant="primary"
+            className="touch-target"
+            disabled={busy}
+          >
             {t('Change password and sign out')}
           </Button>
         </form>

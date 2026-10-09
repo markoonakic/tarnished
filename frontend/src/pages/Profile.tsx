@@ -891,7 +891,7 @@ export default function Profile() {
                               />
                               {label('cancel')}
                             </Button>
-                            <Button variant="primary">
+                            <Button type="submit" variant="primary">
                               <i
                                 className="bi-check2 icon-sm"
                                 aria-hidden="true"
@@ -1002,7 +1002,7 @@ export default function Profile() {
                               />
                               {label('cancel')}
                             </Button>
-                            <Button variant="primary">
+                            <Button type="submit" variant="primary">
                               <i
                                 className="bi-check2 icon-sm"
                                 aria-hidden="true"
@@ -1148,7 +1148,7 @@ export default function Profile() {
                     <i className="bi-x-lg icon-sm" aria-hidden="true" />
                     {label('cancel')}
                   </Button>
-                  <Button variant="primary">
+                  <Button type="submit" variant="primary">
                     <i className="bi-check2 icon-sm" aria-hidden="true" />
                     {label('save')}
                   </Button>

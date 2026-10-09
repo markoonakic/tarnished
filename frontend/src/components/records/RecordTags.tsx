@@ -134,6 +134,7 @@ export default function RecordTags({
                 {t('Cancel')}
               </Button>
               <Button
+                type="submit"
                 variant="primary"
                 disabled={busy}
                 className="flex items-center gap-1.5"

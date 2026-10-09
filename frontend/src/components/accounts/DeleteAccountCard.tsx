@@ -154,6 +154,7 @@ export default function DeleteAccountCard() {
                   {t('accounts.cancel')}
                 </Button>
                 <Button
+                  type="submit"
                   variant="danger"
                   disabled={!confirm || !password || canDelete === false}
                   className="flex items-center gap-1.5"

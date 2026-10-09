@@ -140,6 +140,61 @@ if (!fixture) {
     JSON.stringify(fixture, null, 2)
   );
 }
+// Exercise recording/transcript controls without starting speech or text processing.
+const interview = await api(`/rounds/${fixture.interview}`);
+async function attachment(kind, name, bytes, type, generation) {
+  const body = new FormData();
+  body.append('file', new Blob([bytes], { type }), name);
+  const response = await fetch(
+    `${base}/api/rounds/${fixture.interview}/${kind}`,
+    {
+      method: 'POST',
+      body,
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        [`Expected-${kind === 'media' ? 'Media' : 'Transcript'}-Generation`]:
+          String(generation ?? 0),
+      },
+    }
+  );
+  if (!response.ok) throw new Error(`Fixture ${kind}: HTTP ${response.status}`);
+}
+if (!interview.transcript_path && !interview.has_current_transcript)
+  await attachment(
+    'transcript',
+    'conversation.txt',
+    'Interviewer: Describe a project.\nCandidate: I built a SQL reporting tool.\n',
+    'text/plain',
+    interview.transcript_generation
+  );
+if (!interview.media?.length) {
+  const wav = Buffer.alloc(44 + 16000);
+  wav.write('RIFF', 0);
+  wav.writeUInt32LE(wav.length - 8, 4);
+  wav.write('WAVEfmt ', 8);
+  wav.writeUInt32LE(16, 16);
+  wav.writeUInt16LE(1, 20);
+  wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(8000, 24);
+  wav.writeUInt32LE(16000, 28);
+  wav.writeUInt16LE(2, 32);
+  wav.writeUInt16LE(16, 34);
+  wav.write('data', 36);
+  wav.writeUInt32LE(16000, 40);
+  await attachment(
+    'media',
+    'conversation.wav',
+    wav,
+    'audio/wav',
+    interview.media_generation
+  );
+}
+const contacts = await api('/contacts?per_page=5');
+for (let i = contacts.total; i < 4; i++)
+  await api('/contacts', {
+    name: ['Luka', 'Nora', 'Ivan', 'Sara'][i],
+    company_id: fixture.company,
+  });
 const knownHelp = [
   'Nothing changes',
   'Uses only',
@@ -275,7 +330,7 @@ async function audit(page, state, lang, width) {
             return {
               bg: getComputedStyle(el).backgroundColor,
               color: getComputedStyle(el).color,
-              reachable: hit === el || el.contains(hit),
+              reachable: el.matches(':hover'),
               hit:
                 hit?.tagName +
                 ':' +
@@ -519,6 +574,14 @@ const actionKeys = [
   'Add Status',
   'Add Round Type',
   'Import Data',
+  'Add transcript',
+  'Read transcript',
+  'View transcript',
+  'Edit transcript',
+  'Edit round',
+  'companies.linkContact',
+  'records.replaceText',
+  'tasks.remindMe',
 ];
 try {
   for (const lang of (process.env.AUDIT_LANGUAGES || 'en,sr-Latn').split(',')) {
@@ -617,7 +680,7 @@ try {
                 .count();
               const before = await page.locator('dialog[open]').count();
               await button.click();
-              await page.waitForTimeout(100);
+              await page.waitForLoadState('networkidle');
               if (
                 chevron &&
                 (await page.locator('dialog[open]').count()) > before
@@ -629,6 +692,22 @@ try {
                 });
               await audit(page, `${route}:${text}`, lang, width);
               await panels(page, `${route}:${text}`, lang, width);
+              if (
+                [
+                  messages[lang]['Read transcript'],
+                  messages[lang]['View transcript'],
+                ].includes(text)
+              ) {
+                const editTranscript = page.getByRole('button', {
+                  name: messages[lang]['Edit transcript'],
+                  exact: true,
+                });
+                if (await editTranscript.isVisible().catch(() => false)) {
+                  await editTranscript.click();
+                  await audit(page, `${route}:${text}:edit`, lang, width);
+                  await panels(page, `${route}:${text}:edit`, lang, width);
+                }
+              }
               const participantAdd = page
                 .getByRole('button', {
                   name: messages[lang]['tasks.addParticipant'],
@@ -638,7 +717,17 @@ try {
               if (
                 (route.startsWith('/applications/') ||
                   route.startsWith('/interviews/')) &&
-                (await participantAdd.isVisible().catch(() => false))
+                (await participantAdd.isVisible().catch(() => false)) &&
+                (await participantAdd.evaluate((el) => {
+                  const dialogs = [
+                    ...document.querySelectorAll('dialog[open]'),
+                  ].sort(
+                    (a, b) =>
+                      Number(a.dataset.auditModalOrder) -
+                      Number(b.dataset.auditModalOrder)
+                  );
+                  return !dialogs.length || dialogs.at(-1).contains(el);
+                }))
               ) {
                 await participantAdd.click();
                 await audit(page, `${route}:${text}:participants`, lang, width);
@@ -669,6 +758,24 @@ try {
           await page.waitForLoadState('networkidle');
           await audit(page, '/admin', lang, width);
           await panels(page, '/admin', lang, width);
+          if (!page.url().endsWith('/admin'))
+            throw new Error('Admin coverage requires an admin audit account');
+          for (const key of ['Create User', 'Edit', 'Configure AI']) {
+            await page.goto(base + '/admin');
+            await page.waitForLoadState('networkidle');
+            const action = page
+              .getByRole('button', {
+                name: messages[lang][key] || key,
+                exact: true,
+              })
+              .first();
+            if ((await action.isVisible()) && !(await action.isDisabled())) {
+              await action.click();
+              await page.waitForLoadState('networkidle');
+              await audit(page, '/admin:' + key, lang, width);
+              await panels(page, '/admin:' + key, lang, width);
+            }
+          }
           await context.close();
         })
     );

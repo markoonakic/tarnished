@@ -99,6 +99,7 @@ export default function JobLeadCaptureForm({
         })
       ) : (
         <Button
+          type="button"
           variant="primary"
           onClick={() => {
             setError('');
@@ -275,6 +276,7 @@ export default function JobLeadCaptureForm({
                       {t('Cancel')}
                     </Button>
                     <Button
+                      type="submit"
                       variant="primary"
                       className="flex items-center gap-1.5"
                       disabled={

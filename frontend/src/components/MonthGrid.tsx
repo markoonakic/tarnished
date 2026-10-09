@@ -146,6 +146,7 @@ export default function MonthGrid({
                   className={`bg-tertiary min-h-24 min-w-0 rounded-md p-1.5 ${key === dateKey(today) ? 'ring-accent ring-2 ring-inset' : ''}`}
                 >
                   <Button
+                    variant="icon"
                     type="button"
                     aria-current={key === dateKey(today) ? 'date' : undefined}
                     aria-label={day.toLocaleDateString(locale(), {
@@ -166,34 +167,39 @@ export default function MonthGrid({
                             ? '--red-bright'
                             : '--orange-bright'
                       );
-                      const cls =
-                        'focus:ring-accent hover:brightness-125 cursor-pointer block w-full truncate rounded px-1.5 py-1 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2';
-                      return event.href ? (
-                        <TextLink
+                      const cls = 'block w-full truncate text-left';
+                      return (
+                        <div
                           key={event.id}
-                          to={event.href}
-                          className={cls}
                           style={style}
-                          title={event.label}
+                          className="rounded px-1.5 py-1"
                         >
-                          {event.label}
-                        </TextLink>
-                      ) : (
-                        <Button
-                          type="button"
-                          key={event.id}
-                          disabled={!onEventClick}
-                          onClick={() => onEventClick?.(event)}
-                          className={cls}
-                          style={style}
-                          title={event.label}
-                        >
-                          <i
-                            className="bi-arrow-right icon-sm"
-                            aria-hidden="true"
-                          />
-                          {event.label}
-                        </Button>
+                          {event.href ? (
+                            <TextLink
+                              key={event.id}
+                              to={event.href}
+                              className={cls}
+                              title={event.label}
+                            >
+                              {event.label}
+                            </TextLink>
+                          ) : (
+                            <Button
+                              type="button"
+                              key={event.id}
+                              disabled={!onEventClick}
+                              onClick={() => onEventClick?.(event)}
+                              className={cls}
+                              title={event.label}
+                            >
+                              <i
+                                className="bi-arrow-right icon-sm"
+                                aria-hidden="true"
+                              />
+                              {event.label}
+                            </Button>
+                          )}
+                        </div>
                       );
                     })}
                   </div>

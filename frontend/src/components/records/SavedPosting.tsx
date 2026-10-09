@@ -174,6 +174,7 @@ export default function SavedPosting({
                 {t('Cancel')}
               </Button>
               <Button
+                type="submit"
                 variant="primary"
                 className="flex items-center gap-1.5"
                 disabled={busy || count > 100000 || !draft.trim()}

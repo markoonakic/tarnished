@@ -243,6 +243,7 @@ export default function ApplicationOtherFiles({
                 {t('Cancel')}
               </Button>
               <Button
+                type="submit"
                 variant="primary"
                 className="flex items-center gap-1.5"
                 disabled={busy || !file}
