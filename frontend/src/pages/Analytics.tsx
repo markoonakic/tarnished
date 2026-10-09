@@ -96,7 +96,7 @@ export default function Analytics() {
               feedback={feedback}
               hideAction
               onClose={() => setShowFeedback(false)}
-              requestLabel="pipeline feedback"
+              requestLabel={t('pipeline feedback')}
               emptyHint={t(
                 'No feedback yet. Choose a period, then Seek Grace for suggestions from your saved job-search records.'
               )}

@@ -660,18 +660,28 @@ async def test_fabricated_report_source_text_is_rejected_per_kind(db):
         bad["models"]["Application"][0]["report"]["findings"][0]["citations"][0][
             "quote"
         ] = "FABRICATED " + head
-        with pytest.raises(ValueError):
-            await import_payload_data(db, recipient_id, bad, {}, lambda **kw: None)
+        result = await import_payload_data(db, recipient_id, bad, {}, lambda **kw: None)
+        assert result["skipped_reports"] == 1
+        assert (
+            await db.scalar(
+                select(Application.report).where(Application.user_id == recipient_id)
+            )
+            is None
+        )
         await db.rollback()
 
-    # Fabricated pipeline-scope source text must be rejected.
+    # Fabricated pipeline-scope source text must be skipped.
     bad = json.loads(json.dumps(honest))
     bad["models"]["User"][0]["pipeline_report"]["sources"][0]["text"] = "FABRICATED"
     bad["models"]["User"][0]["pipeline_report"]["findings"][0]["citations"][0][
         "quote"
     ] = "FABRICATED"
-    with pytest.raises(ValueError):
-        await import_payload_data(db, recipient_id, bad, {}, lambda **kw: None)
+    result = await import_payload_data(db, recipient_id, bad, {}, lambda **kw: None)
+    assert result["skipped_reports"] == 1
+    assert (
+        await db.scalar(select(User.pipeline_report).where(User.id == recipient_id))
+        is None
+    )
     await db.rollback()
 
 
@@ -756,7 +766,10 @@ async def test_rejected_report_leaves_recipient_data_byte_identical(db):
     honest = json.loads(json.dumps(await _export(db, owner_id)))
     before = _stable_export(await _export(db, recipient_id))
     bad = json.loads(json.dumps(honest))
-    bad["models"]["Application"][0]["report"]["sources"][0]["text"] = "FABRICATED"
+    # Structural ownership tampering still rejects all data atomically.
+    bad["models"]["Application"][0]["report"]["sources"][0]["id"] = (
+        f"application:{recipient_application.id}:company:0"
+    )
     with pytest.raises(ValueError):
         await import_payload_data(db, recipient_id, bad, {}, lambda **kw: None)
     await db.rollback()

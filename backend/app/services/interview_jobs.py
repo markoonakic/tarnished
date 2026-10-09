@@ -584,6 +584,12 @@ async def publish(db, job_id, claim, sources, limits):
             )
         ),
     }
+    if job.scope != "PIPELINE":
+        # Retain the exact passages supplied to the model, not mutable records
+        # or document paths. The existing retained-output bound also covers input.
+        report["evidence_snapshot"] = {"sources": sources}
+        report["evidence_fingerprint"] = fingerprint(report["evidence_snapshot"])
+        report["evidence_ids"] = {}
     if job.scope == "INTERVIEW":
         report["round_id"] = job.round_id
         report["source_media_id"] = (job.manifest or {}).get("source_media_id")

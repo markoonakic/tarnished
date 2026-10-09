@@ -8,6 +8,7 @@ import {
 } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { focusManager } from '@tanstack/react-query';
+import i18n from '@/lib/i18n';
 import type { InternalAxiosRequestConfig } from 'axios';
 import api from '../lib/api';
 import type { Round } from '../lib/types';
@@ -71,12 +72,27 @@ beforeEach(() => {
     };
   };
 });
-afterEach(() => {
+afterEach(async () => {
+  await i18n.changeLanguage('en');
   cleanup();
   queryClient.clear();
   api.defaults.adapter = original;
   focusManager.setFocused(undefined);
   vi.restoreAllMocks();
+});
+
+it('translates the Serbian request accessible name without starting feedback', async () => {
+  await i18n.changeLanguage('sr-Latn');
+  render(<InterviewFeedback round={round} />);
+  expect(
+    await screen.findByRole('button', {
+      name: 'Zatraži analizu: analiza intervjua',
+    })
+  ).toBeEnabled();
+  expect(
+    screen.queryByRole('button', { name: /interview feedback/ })
+  ).not.toBeInTheDocument();
+  expect(requests.every((request) => request.method === 'get')).toBe(true);
 });
 
 it('InterviewFeedback discloses inputs, sends only explicit intent and keeps saved findings without evidence panels', async () => {

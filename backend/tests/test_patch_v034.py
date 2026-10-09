@@ -173,23 +173,33 @@ async def fixture(client, db, workspace, monkeypatch, language):
     interview.interview_report = {
         **_honest_report("APPLICATION", sources=sources),
         "scope": "INTERVIEW",
+        "fingerprint": fingerprint(data),
         "round_id": interview.id,
         "source_media_id": None,
         "output_language": language,
         "findings": findings,
         "sources": [s for s in sources if s["id"] in cited],
+        "evidence_snapshot": {"sources": sources},
+        "evidence_fingerprint": fingerprint({"sources": sources}),
+        "evidence_ids": {},
     }
     interview.interview_report.pop("application_id", None)
     await db.commit()
     data, _ = await application_snapshot(db, owner.id, record.id)
     sources, _ = await application_evidence_sources(data)
-    requirement = next(s for s in sources if s["kind"] == "requirement")
+    status = next(s for s in sources if s["id"].endswith(":status_meaning:0"))
+    prior = next(s for s in sources if ":interview_findings:" in s["id"])
     record.report = {
-        **_honest_report(
-            "APPLICATION", sources=[requirement], application_id=record.id
-        ),
+        **_honest_report("APPLICATION", sources=[status], application_id=record.id),
         "output_language": language,
+        "evidence_snapshot": {"sources": sources},
+        "evidence_fingerprint": fingerprint({"sources": sources}),
+        "evidence_ids": {},
     }
+    record.report["sources"].append(prior)
+    record.report["findings"][0]["citations"].append(
+        {"source_id": prior["id"], "quote": prior["text"][:40]}
+    )
     await db.commit()
     data, digest = await pipeline_snapshot(
         db, owner.id, "all", datetime.now(UTC), "Europe/Belgrade"
@@ -268,6 +278,8 @@ async def test_zip_roundtrip_all_feedback_scopes_and_saved_analyses(
             "interviewing",
         )
         record.evidence_revision += 1
+        interview.notes_summary = "Changed after the saved report"
+        interview.outcome = "failed"
         await db.commit()
     response = await client.get("/api/export/zip", headers=headers)
     assert response.status_code == 200, response.text
@@ -365,11 +377,27 @@ async def test_pipeline_snapshot_tampering_and_foreign_identity_roll_back(
                 "application_id"
             ] = str(uuid4())
             report["evidence_fingerprint"] = fingerprint(report["evidence_snapshot"])
-        with pytest.raises(ValueError):
-            async with db.begin_nested():
-                await import_payload_data(
+        if change == "citation":
+            async with db.begin_nested() as transaction:
+                result = await import_payload_data(
                     db, recipient_id, bad, {}, lambda **kwargs: None
                 )
+                assert result["skipped_reports"] == 1
+                assert (
+                    await db.scalar(
+                        select(type(owner).pipeline_report).where(
+                            type(owner).id == recipient_id
+                        )
+                    )
+                    is None
+                )
+                await transaction.rollback()
+        else:
+            with pytest.raises(ValueError):
+                async with db.begin_nested():
+                    await import_payload_data(
+                        db, recipient_id, bad, {}, lambda **kwargs: None
+                    )
         assert not (
             await db.scalars(
                 select(Application).where(Application.user_id == recipient_id)

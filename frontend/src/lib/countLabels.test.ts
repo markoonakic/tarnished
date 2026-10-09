@@ -6,6 +6,11 @@ const counts = [
   1.5,
 ];
 const forms: Record<string, [string, string, string]> = {
+  'import.skippedReports': [
+    '{{count}} sačuvana AI analiza nije mogla da se proveri i nije uvezena',
+    '{{count}} sačuvane AI analize nisu mogle da se provere i nisu uvezene',
+    '{{count}} sačuvanih AI analiza nije moglo da se proveri i nisu uvezene',
+  ],
   daysCount: ['{{count}} dan', '{{count}} dana', '{{count}} dana'],
   applicationsCount: [
     '{{count}} prijava',

@@ -1,0 +1,5 @@
+{
+  "import.skippedReports_one": "1 saved AI report could not be verified and was not imported",
+  "import.skippedReports_few": "{{count}} saved AI reports could not be verified and were not imported",
+  "import.skippedReports_other": "{{count}} saved AI reports could not be verified and were not imported"
+}

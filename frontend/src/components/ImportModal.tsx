@@ -1,5 +1,6 @@
 import { t } from '@/lib/i18n';
 import FileButton from './FileButton';
+import { useToastContext } from '../contexts/ToastContext';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 import { useState, useRef, useEffect } from 'react';
@@ -31,6 +32,7 @@ export default function ImportModal({
   onSuccess,
 }: ImportModalProps) {
   useTranslation();
+  const toast = useToastContext();
   const progressConnection = useRef<EventSource | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -172,6 +174,8 @@ export default function ImportModal({
     const state = createTransferStateFromJob(progress);
     setTransferState(state);
     if (progress.status === 'complete') {
+      const count = progress.result?.skipped_reports ?? 0;
+      if (count) toast.warning(t('import.skippedReports', { count }));
       onSuccess();
       reset();
       return;
