@@ -488,6 +488,7 @@ def validate_reports_archive(models):
             if report is None:
                 continue
             value = ArchivedScopedReport.model_validate(report)
+            _require(value.application_id == application["id"])
             _validate_scoped_report(
                 value, models, apps, histories, profile, scope="APPLICATION"
             )

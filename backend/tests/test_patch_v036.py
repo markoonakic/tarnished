@@ -127,7 +127,7 @@ async def test_only_unverifiable_report_is_skipped(
     )
 
 
-@pytest.mark.parametrize("change", ["hash", "foreign", "bounds", "sibling"])
+@pytest.mark.parametrize("change", ["hash", "foreign", "bounds", "sibling", "target"])
 async def test_snapshot_structural_tampering_still_rejects_archive(
     client, db, workspace, monkeypatch, change
 ):
@@ -138,7 +138,12 @@ async def test_snapshot_structural_tampering_still_rejects_archive(
     archive = deepcopy(await export(db, owner.id))
     report = archive["models"]["Application"][0]["report"]
     source = report["evidence_snapshot"]["sources"][0]
-    if change == "hash":
+    if change == "target":
+        sibling = deepcopy(archive["models"]["Application"][0])
+        sibling_id = str(uuid4())
+        sibling.update(id=sibling_id, __original_id__=sibling_id)
+        archive["models"]["Application"].append(sibling)
+    elif change == "hash":
         source["text"] = "Changed input"
     elif change == "bounds":
         source["text"] = "x" * 4001
