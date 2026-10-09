@@ -197,8 +197,9 @@ export default function JobLeads() {
               {search && (
                 <button
                   onClick={() => updateParams({ search: '' })}
-                  className="text-muted hover:text-fg1 absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
+                  className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent absolute top-1/2 right-3 cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
                   aria-label={t('Clear search')}
+                  title={t('Clear search')}
                 >
                   <i className="bi-x icon-sm" />
                 </button>
@@ -245,9 +246,10 @@ export default function JobLeads() {
               'Could not refresh the list. This does not undo any saved lead.'
             )}
             <button
-              className="text-accent ml-3 underline"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent ml-3 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
               onClick={loadJobLeads}
             >
+              <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('Reload list')}
             </button>
           </div>
@@ -317,7 +319,7 @@ export default function JobLeads() {
                         <td className="px-4 py-3 text-sm">
                           <Link
                             to={`/job-leads/${lead.id}`}
-                            className="text-fg1 hover:text-accent-bright cursor-pointer font-medium transition-all duration-200 ease-in-out"
+                            className="text-fg1 hover:text-accent-bright focus:ring-accent cursor-pointer font-medium transition-all duration-200 ease-in-out focus:ring-2"
                           >
                             <span className={lead.company ? '' : 'text-muted'}>
                               {lead.company || t('Untitled lead')}
@@ -382,7 +384,7 @@ export default function JobLeads() {
                   <Link
                     key={lead.id}
                     to={`/job-leads/${lead.id}`}
-                    className="bg-secondary hover:bg-bg2 block cursor-pointer rounded-lg p-4 transition-all duration-200 ease-in-out"
+                    className="bg-secondary hover:bg-bg2 focus:ring-accent block cursor-pointer rounded-lg p-4 transition-all duration-200 ease-in-out focus:ring-2"
                   >
                     <div className="mb-2 flex items-start justify-between gap-2">
                       <div className="min-w-0">

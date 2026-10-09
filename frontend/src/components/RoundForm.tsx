@@ -29,7 +29,11 @@ export default function RoundForm(props: Props) {
   ) : (
     <p role="status">
       {preferences.isError ? t('tasks.loadFailed') : t('tasks.loading')}{' '}
-      <button className="underline" onClick={props.onCancel}>
+      <button
+        className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+        onClick={props.onCancel}
+      >
+        <i className="bi-x-lg icon-sm" aria-hidden="true" />
         {t('Cancel')}
       </button>
     </p>
@@ -284,14 +288,16 @@ function RoundFields({
           type="button"
           disabled={busy}
           onClick={onCancel}
-          className="hover:bg-bg3 rounded px-3 py-2"
+          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
         >
+          <i className="bi-x-lg icon-sm" aria-hidden="true" />
           {t('Cancel')}
         </button>
         <button
           disabled={busy || !typeId}
-          className="bg-accent text-bg0 focus:ring-accent rounded px-4 py-2 font-medium focus:ring-2 disabled:opacity-50"
+          className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
         >
+          <i className="bi-check2 icon-sm" aria-hidden="true" />
           {t(round ? 'Save' : 'Add Round')}
         </button>
       </div>

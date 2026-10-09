@@ -7,9 +7,9 @@ import { t } from '@/lib/i18n';
 export const inputClass =
   'bg-bg2 text-fg1 placeholder:text-fg4 focus:ring-accent w-full rounded px-3 py-2 outline-none focus:ring-2';
 export const actionClass =
-  'text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded px-3 py-1.5 text-sm focus:ring-2 disabled:opacity-50';
+  'text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50 focus:ring-2 focus:ring-accent';
 export const primaryClass =
-  'bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent cursor-pointer rounded px-4 py-2 font-medium focus:ring-2 disabled:opacity-50';
+  'bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50 flex items-center gap-1.5 focus:ring-2 focus:ring-accent';
 export const roles = [
   'Recruiter',
   'Hiring manager',

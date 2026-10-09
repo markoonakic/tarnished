@@ -22,7 +22,7 @@ export function RelatedApplications({
         <Link
           key={app.id}
           to={'/applications/' + app.id}
-          className="bg-tertiary hover:bg-bg3 focus:ring-accent mb-2 flex flex-wrap items-center gap-3 rounded-lg px-4 py-3 focus:ring-2"
+          className="bg-tertiary hover:bg-bg3 focus:ring-accent hover:bg-bg2 mb-2 flex cursor-pointer flex-wrap items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ease-in-out focus:ring-2"
         >
           <span className="text-fg1 min-w-0 flex-1 basis-full text-sm sm:basis-auto">
             {withCompany ? app.company + ' — ' : ''}
@@ -62,7 +62,7 @@ export function RelatedLeads({ items }: { items: Lead[] }) {
         <Link
           key={lead.id}
           to={'/job-leads/' + lead.id}
-          className="bg-tertiary hover:bg-bg3 focus:ring-accent mb-2 flex flex-wrap items-center gap-3 rounded-lg px-4 py-3 focus:ring-2"
+          className="bg-tertiary hover:bg-bg3 focus:ring-accent hover:bg-bg2 mb-2 flex cursor-pointer flex-wrap items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ease-in-out focus:ring-2"
         >
           <span className="text-fg1 min-w-0 flex-1 basis-full text-sm sm:basis-auto">
             {lead.title || t('companies.untitled')}
@@ -100,7 +100,7 @@ export function RelatedInterviews({ items }: { items: Interview[] }) {
         <Link
           key={round.id}
           to={'/interviews/' + round.id}
-          className="bg-tertiary hover:bg-bg3 focus:ring-accent mb-2 flex flex-wrap items-center gap-3 rounded-lg px-4 py-3 focus:ring-2"
+          className="bg-tertiary hover:bg-bg3 focus:ring-accent hover:bg-bg2 mb-2 flex cursor-pointer flex-wrap items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ease-in-out focus:ring-2"
         >
           <span className="text-fg1 min-w-0 flex-1 basis-full text-sm sm:basis-auto">
             {roundTypeLabel(round.round_type)}

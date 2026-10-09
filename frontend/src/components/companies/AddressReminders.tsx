@@ -105,6 +105,7 @@ export default function AddressReminders({
         <p role="alert" className="text-red mb-4">
           {error || failureMessage(query.error)}
           <button className={actionClass} onClick={() => void query.refetch()}>
+            <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('companies.reload')}
           </button>
         </p>

@@ -42,7 +42,7 @@ export default function ContactDetail() {
       <div className="mx-auto max-w-4xl px-4 py-8">
         <Link
           to="/contacts"
-          className="text-accent focus:ring-accent mb-6 inline-flex items-center gap-2 rounded focus:ring-2"
+          className="text-accent hover:text-accent-bright focus:ring-accent mb-6 inline-flex cursor-pointer items-center gap-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2"
         >
           <i className="bi bi-chevron-left" aria-hidden="true" />
           {t('companies.backContacts')}
@@ -56,6 +56,7 @@ export default function ContactDetail() {
               className={actionClass}
               onClick={() => void query.refetch()}
             >
+              <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('companies.reload')}
             </button>
           </p>
@@ -82,7 +83,7 @@ export default function ContactDetail() {
                     <>
                       {contact.function && ' ' + t('companies.at') + ' '}
                       <Link
-                        className="text-accent focus:ring-accent rounded focus:ring-2"
+                        className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
                         to={'/companies/' + contact.company.id}
                       >
                         {contact.company.name}
@@ -98,7 +99,7 @@ export default function ContactDetail() {
                     <dd className="text-fg1 break-words">
                       {contact.email ? (
                         <a
-                          className="text-accent"
+                          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
                           href={'mailto:' + contact.email}
                         >
                           {contact.email}
@@ -114,7 +115,12 @@ export default function ContactDetail() {
                     </dt>
                     <dd className="text-fg1">
                       {contact.phone ? (
-                        <a href={'tel:' + contact.phone}>{contact.phone}</a>
+                        <a
+                          href={'tel:' + contact.phone}
+                          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+                        >
+                          {contact.phone}
+                        </a>
                       ) : (
                         '—'
                       )}
@@ -127,7 +133,7 @@ export default function ContactDetail() {
                     <dd className="text-fg1 break-words">
                       {contact.profile_url ? (
                         <a
-                          className="text-accent"
+                          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
                           href={contact.profile_url}
                           target="_blank"
                           rel="noopener noreferrer"

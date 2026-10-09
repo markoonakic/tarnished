@@ -5,6 +5,9 @@ import i18n from '@/lib/i18n';
 import { DEFAULT_USER_PREFERENCES } from '@/lib/userPreferences';
 import SettingsLanguage from './SettingsLanguage';
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'owner' } }),
+}));
 const mocks = vi.hoisted(() => ({
   read: vi.fn(),
   mutate: vi.fn(),
@@ -40,9 +43,10 @@ it('saves language through the existing preference mutation without starting AI'
   );
   fireEvent.click(screen.getByRole('button', { name: 'Srpski (latinica)' }));
   expect(mocks.mutate).toHaveBeenCalledExactlyOnceWith({ language: 'sr-Latn' });
-  expect(
-    screen.getByText(/Quotes stay in the source language/)
-  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Language & time' }));
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    /Quotes stay in the source language/
+  );
 });
 it('shows Serbian labels, the account selection and the 24-hour preview', async () => {
   await i18n.changeLanguage('sr-Latn');
@@ -55,7 +59,7 @@ it('shows Serbian labels, the account selection and the 24-hour preview', async 
     </MemoryRouter>
   );
   expect(
-    screen.getByRole('heading', { name: 'Jezik i vreme' })
+    screen.getByRole('heading', { name: /Jezik i vreme/ })
   ).toBeInTheDocument();
   expect(
     screen.getByRole('button', { name: 'Srpski (latinica)' })

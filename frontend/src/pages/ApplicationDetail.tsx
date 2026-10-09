@@ -211,9 +211,10 @@ function ApplicationDetailContent({ id }: { id: string }) {
           <div role="alert" className="text-red-bright">
             {error || t('Application not found')}
             <button
-              className="text-accent ml-3 underline"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent ml-3 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
               onClick={loadApplication}
             >
+              <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('Retry')}
             </button>
           </div>
@@ -228,7 +229,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
         <div className="mb-6">
           <Link
             to="/applications"
-            className="text-accent hover:text-accent-bright cursor-pointer transition-all duration-200 ease-in-out"
+            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
           >
             {t('← Back to Applications')}
           </Link>
@@ -244,9 +245,10 @@ function ApplicationDetailContent({ id }: { id: string }) {
           <div className="bg-bg2 text-muted mb-4 flex items-center justify-between gap-2 rounded-lg px-4 py-3 text-sm">
             <span>{t('records.archived')}</span>
             <button
-              className="text-accent focus:ring-accent rounded px-2 py-1 focus:ring-2"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
               onClick={() => archive(false)}
             >
+              <i className="bi-arrow-right icon-sm" aria-hidden="true" />
               {t('records.unarchive')}
             </button>
           </div>
@@ -259,7 +261,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
                   {application.company_id ? (
                     <Link
                       to={'/companies/' + application.company_id}
-                      className="hover:text-accent focus:ring-accent rounded focus:ring-2"
+                      className="text-fg1 hover:text-accent-bright focus:ring-accent cursor-pointer font-medium transition-all duration-200 ease-in-out focus:ring-2"
                     >
                       {application.company || t('companies.notSet')}
                     </Link>
@@ -306,7 +308,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
                     showError(t('Failed to load statuses'));
                   }
                 }}
-                className="focus:ring-accent inline-flex cursor-pointer items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold focus:ring-2"
+                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 style={{
                   backgroundColor: `${getStatusColor(application.status.name, colors, application.status.color)}20`,
                   color: getStatusColor(
@@ -370,7 +372,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
                 href={application.job_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-accent hover:text-accent-bright cursor-pointer text-sm transition-all duration-200 ease-in-out"
+                className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
               >
                 {t('Open Job Page →')}
               </a>
@@ -490,7 +492,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
           <div className="border-tertiary flex flex-wrap items-center justify-end gap-2 border-t pt-4">
             {!application.archived_at && (
               <button
-                className="text-muted hover:bg-bg2 focus:ring-accent rounded px-3 py-1.5 text-sm focus:ring-2"
+                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 onClick={() => archive(true)}
               >
                 <i className="bi-archive mr-1" aria-hidden="true" />
@@ -502,21 +504,21 @@ function ApplicationDetailContent({ id }: { id: string }) {
                 setFeedbackOpened(true);
                 setShowFeedback(true);
               }}
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             >
               <i className="bi-stars icon-sm" aria-hidden="true" />
               {t('Application feedback')}
             </button>
             <button
               onClick={() => setShowEditModal(true)}
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             >
               <i className="bi-pencil icon-sm"></i>
               {t('Edit')}
             </button>
             <button
               onClick={handleDelete}
-              className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
+              className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             >
               <i className="bi-trash icon-sm"></i>
               {t('Delete')}
@@ -584,7 +586,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
           </div>
         )}
 
-        <div className="bg-secondary rounded-lg p-6">
+        <div className="bg-secondary mb-6 rounded-lg p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-primary text-lg font-semibold">
               {t('Interview Rounds')}
@@ -592,8 +594,9 @@ function ApplicationDetailContent({ id }: { id: string }) {
             {application.rounds && application.rounds.length > 0 && (
               <button
                 onClick={() => setShowRoundForm(true)}
-                className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
+                className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
               >
+                <i className="bi-plus-lg icon-sm" aria-hidden="true" />
                 {t('Add Round')}
               </button>
             )}

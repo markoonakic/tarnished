@@ -1,4 +1,10 @@
 {
+  "tasks.deadlinesWithoutReminder": "Deadlines without a reminder ({{count}})",
+  "tasks.browserNotifications": "Browser notifications for reminders",
+  "tasks.notificationsHelp": "This browser checks due reminders each minute while the app is open. Notifications are off on other browsers unless you turn them on there.",
+  "tasks.notificationTitle": "Reminder: {{title}}",
+  "tasks.notificationsDenied": "Permission denied. Allow notifications in your browser settings.",
+  "tasks.notificationsUnsupported": "Notifications are not available in this browser.",
   "tasks.allKinds": "All kinds",
   "tasks.followUp": "Follow up with {{name}}",
   "tasks.deleteReminder": "Delete this reminder?",

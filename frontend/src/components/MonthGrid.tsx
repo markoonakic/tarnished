@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import HelpTip from './HelpTip';
 import { useTranslation } from 'react-i18next';
 import { locale } from '@/lib/i18n';
 import { Link } from 'react-router-dom';
@@ -55,7 +56,7 @@ export default function MonthGrid({
     new Date(2026, 0, 5 + i).toLocaleDateString(locale(), { weekday: 'short' })
   );
   return (
-    <div className="overflow-hidden rounded-lg">
+    <div className="bg-secondary mb-6 rounded-lg p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
@@ -67,7 +68,8 @@ export default function MonthGrid({
                 new Date(month.getFullYear(), month.getMonth() - 1, 1)
               )
             }
-            className="text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded px-2 py-1 focus:ring-2 disabled:opacity-40"
+            className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+            title={t('kit.previousMonth')}
           >
             <i className="bi bi-chevron-left" aria-hidden="true" />
           </button>
@@ -77,6 +79,9 @@ export default function MonthGrid({
               year: 'numeric',
             })}
           </h3>
+          <HelpTip label={t('kit.interviewCalendar')}>
+            {t('kit.calendarLegend')}
+          </HelpTip>
           <button
             type="button"
             disabled={!onMonthChange}
@@ -86,7 +91,8 @@ export default function MonthGrid({
                 new Date(month.getFullYear(), month.getMonth() + 1, 1)
               )
             }
-            className="text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded px-2 py-1 focus:ring-2 disabled:opacity-40"
+            className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+            title={t('kit.nextMonth')}
           >
             <i className="bi bi-chevron-right" aria-hidden="true" />
           </button>
@@ -98,8 +104,9 @@ export default function MonthGrid({
                 new Date(today.getFullYear(), today.getMonth(), 1)
               )
             }
-            className="text-accent hover:bg-bg2 focus:ring-accent cursor-pointer rounded px-3 py-1 text-sm focus:ring-2 disabled:opacity-40"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
           >
+            <i className="bi-arrow-right icon-sm" aria-hidden="true" />
             {t('kit.today')}
           </button>
         </div>
@@ -132,7 +139,7 @@ export default function MonthGrid({
                   role="cell"
                   key={key}
                   aria-label={key}
-                  className={`bg-secondary min-h-24 min-w-0 rounded-md p-1.5 ${key === dateKey(today) ? 'ring-accent ring-2 ring-inset' : ''}`}
+                  className={`bg-tertiary min-h-24 min-w-0 rounded-md p-1.5 ${key === dateKey(today) ? 'ring-accent ring-2 ring-inset' : ''}`}
                 >
                   <button
                     type="button"
@@ -156,7 +163,7 @@ export default function MonthGrid({
                             : '--orange-bright'
                       );
                       const cls =
-                        'focus:ring-accent block w-full truncate rounded px-1.5 py-1 text-left text-xs focus:ring-2';
+                        'focus:ring-accent hover:brightness-125 cursor-pointer block w-full truncate rounded px-1.5 py-1 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2';
                       return event.href ? (
                         <Link
                           key={event.id}
@@ -177,6 +184,10 @@ export default function MonthGrid({
                           style={style}
                           title={event.label}
                         >
+                          <i
+                            className="bi-arrow-right icon-sm"
+                            aria-hidden="true"
+                          />
                           {event.label}
                         </button>
                       );
@@ -187,8 +198,12 @@ export default function MonthGrid({
                       type="button"
                       disabled={!onDayClick}
                       onClick={() => onDayClick?.(key)}
-                      className="text-accent focus:ring-accent mt-1 cursor-pointer rounded text-xs focus:ring-2"
+                      className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent mt-1 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                     >
+                      <i
+                        className="bi-arrow-right icon-sm"
+                        aria-hidden="true"
+                      />
                       {t('kit.moreEvents', {
                         count: items.length - Math.max(1, maxEvents),
                       })}
@@ -213,7 +228,6 @@ export default function MonthGrid({
           </div>
         ))}
       </div>
-      <p className="text-fg4 mt-3 text-xs">{t('kit.calendarLegend')}</p>
     </div>
   );
 }

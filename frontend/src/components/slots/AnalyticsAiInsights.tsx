@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/Card';
+import HelpTip from '@/components/HelpTip';
 import { apiV030, type AnalyticsQuery, type Breakdown } from '@/lib/apiV030';
 
 export default function AnalyticsAiInsights({
@@ -40,7 +41,19 @@ export default function AnalyticsAiInsights({
         return (
           <Card
             key={kind}
-            title={t(`ai.${kind}`)}
+            title={
+              <span className="inline-flex items-center gap-2">
+                {t(`ai.${kind}`)}{' '}
+                <HelpTip label={t(`ai.${kind}`)}>
+                  {t(
+                    kind === 'repeated_requirements'
+                      ? 'ai.reviewedDenominator'
+                      : 'ai.matchDenominator',
+                    { count: table?.denominator ?? 0 }
+                  )}
+                </HelpTip>
+              </span>
+            }
             icon={
               kind === 'repeated_requirements'
                 ? 'bi-arrow-repeat'
@@ -84,17 +97,11 @@ export default function AnalyticsAiInsights({
                     </div>
                   ))}
                 </div>
-                <p className="text-muted mt-4 text-xs">
-                  {t(
-                    kind === 'repeated_requirements'
-                      ? 'ai.reviewedDenominator'
-                      : 'ai.matchDenominator',
-                    { count: table?.denominator ?? 0 }
-                  )}{' '}
+                <div className="mt-4">
                   {rows.length > 5 && (
                     <button
                       type="button"
-                      className="text-accent cursor-pointer rounded hover:underline"
+                      className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                       onClick={() =>
                         setExpanded((value) => ({
                           ...value,
@@ -102,10 +109,14 @@ export default function AnalyticsAiInsights({
                         }))
                       }
                     >
+                      <i
+                        className="bi-arrow-right icon-sm"
+                        aria-hidden="true"
+                      />
                       {t(expanded[kind] ? 'ai.showLess' : 'ai.viewAll')}
                     </button>
                   )}
-                </p>
+                </div>
               </>
             )}
           </Card>

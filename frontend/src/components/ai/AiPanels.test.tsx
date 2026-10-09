@@ -339,7 +339,9 @@ it('shows a read-only matrix, exact evidence, footer and stale banner', async ()
   expect(
     screen.getByText(/Your profile or the requirements changed/)
   ).toBeInTheDocument();
-  expect(screen.getByText(/not your ability/)).toBeInTheDocument();
+  expect(screen.queryByText(/not your ability/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Profile match' }));
+  expect(screen.getByRole('tooltip')).toHaveTextContent(/not your ability/);
   expect(
     screen.queryByRole('button', { name: 'Edit' })
   ).not.toBeInTheDocument();
@@ -352,7 +354,9 @@ it('disables match until requirements are confirmed', async () => {
       <ProfileMatch target={{ lead_id: 'lead' }} />
     </MemoryRouter>
   );
-  await screen.findByText('Review the extracted requirements first.');
+  expect(
+    await screen.findByTitle('Review the extracted requirements first.')
+  ).toBeDisabled();
   expect(
     screen.getByRole('button', { name: 'Compare with profile' })
   ).toBeDisabled();
@@ -450,7 +454,15 @@ it('shows five insight rows, coverage denominators, and expands all', async () =
   render(<AnalyticsAiInsights period="all" />);
   await screen.findByText('Requirement 0');
   expect(screen.queryByText('Requirement 5')).not.toBeInTheDocument();
-  expect(screen.getByText('From 8 reviewed postings.')).toBeInTheDocument();
+  expect(
+    screen.queryByText('From 8 reviewed postings.')
+  ).not.toBeInTheDocument();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Repeated requirements' })
+  );
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'From 8 reviewed postings.'
+  );
   fireEvent.click(screen.getByRole('button', { name: 'View all' }));
   expect(screen.getByText('Requirement 5')).toBeInTheDocument();
 });

@@ -35,7 +35,7 @@ export default function SavedPosting({
     <section className="bg-bg2 mb-4 rounded-lg p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <details className="min-w-0 flex-1">
-          <summary className="text-muted cursor-pointer text-sm">
+          <summary className="text-muted hover:bg-bg2 focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2">
             <i className="bi-file-text mr-2" aria-hidden="true" />
             {t('records.savedPosting', {
               count: Array.from(text || '').length,
@@ -169,12 +169,14 @@ export default function SavedPosting({
                 className={recordAction}
                 onClick={() => setOpen(false)}
               >
+                <i className="bi-x-lg icon-sm" aria-hidden="true" />
                 {t('Cancel')}
               </button>
               <button
-                className="bg-accent text-bg0 rounded px-3 py-1.5 disabled:opacity-50"
+                className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 disabled={busy || count > 100000 || !draft.trim()}
               >
+                <i className="bi-check2 icon-sm" aria-hidden="true" />
                 {t('Save')}
               </button>
             </div>

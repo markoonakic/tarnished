@@ -169,12 +169,16 @@ function JobLeadDetailContent({ id }: { id: string }) {
           <div role="alert" className="text-red-bright">
             {error || t('Job lead not found')}
             <button
-              className="text-accent ml-3 underline"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent ml-3 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
               onClick={loadJobLead}
             >
+              <i className="bi-check2 icon-sm" aria-hidden="true" />
               {t('Reload saved lead')}
             </button>
-            <Link className="text-accent ml-3 underline" to="/job-leads">
+            <Link
+              className="text-accent hover:text-accent-bright focus:ring-accent ml-3 cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+              to="/job-leads"
+            >
               {t('Back to Job Leads')}
             </Link>
           </div>
@@ -195,7 +199,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
         <div className="mb-6">
           <Link
             to="/job-leads"
-            className="text-accent hover:text-accent-bright cursor-pointer transition-all duration-200 ease-in-out"
+            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
           >
             {t('← Back to Job Leads')}
           </Link>
@@ -221,15 +225,17 @@ function JobLeadDetailContent({ id }: { id: string }) {
                 <button
                   type="button"
                   onClick={() => setConfirmExtraction(false)}
-                  className="text-fg1 hover:bg-bg3 rounded px-4 py-2"
+                  className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 >
+                  <i className="bi-x-lg icon-sm" aria-hidden="true" />
                   {t('Cancel')}
                 </button>
                 <button
                   type="button"
                   onClick={() => void handleExtract()}
-                  className="bg-accent text-bg0 rounded px-4 py-2"
+                  className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 >
+                  <i className="bi-arrow-right icon-sm" aria-hidden="true" />
                   {t('Extract with AI')}
                 </button>
               </div>
@@ -249,9 +255,10 @@ function JobLeadDetailContent({ id }: { id: string }) {
           <button
             type="button"
             disabled={extracting || editing}
-            className="text-accent mb-4 underline"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent mb-4 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             onClick={loadJobLead}
           >
+            <i className="bi-check2 icon-sm" aria-hidden="true" />
             {t('Reload saved lead')}
           </button>
         )}
@@ -286,7 +293,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
                   {jobLead.company_id ? (
                     <Link
                       to={'/companies/' + jobLead.company_id}
-                      className="hover:text-accent focus:ring-accent rounded focus:ring-2"
+                      className="text-fg1 hover:text-accent-bright focus:ring-accent cursor-pointer font-medium transition-all duration-200 ease-in-out focus:ring-2"
                     >
                       {jobLead.company || t('Unknown Company')}
                     </Link>
@@ -318,7 +325,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
               {isConverted && (
                 <Link
                   to={`/applications/${jobLead.converted_to_application_id}`}
-                  className="text-accent hover:text-accent-bright cursor-pointer text-sm transition-all duration-200 ease-in-out"
+                  className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
                 >
                   {t('View Application →')}
                 </Link>
@@ -365,7 +372,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
                 href={jobLead.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-accent hover:text-accent-bright cursor-pointer text-sm transition-all duration-200 ease-in-out"
+                className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
               >
                 {t('Open Job Page →')}
               </a>
@@ -493,23 +500,23 @@ function JobLeadDetailContent({ id }: { id: string }) {
             {!isConverted && (
               <button
                 disabled={stale || extracting || editing}
-                className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
+                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 onClick={() => setEditing(true)}
               >
                 <i className="bi-pencil icon-sm" aria-hidden="true" />
                 {t('Edit')}
               </button>
             )}
-            {!canConvert && !isConverted && (
-              <p className="text-muted text-sm">
-                {t('Add a company and job title to convert this lead.')}
-              </p>
-            )}
-            {canConvert && (
+            {!isConverted && (
               <button
-                disabled={stale || extracting || editing}
+                title={
+                  !canConvert
+                    ? t('Add a company and job title to convert this lead.')
+                    : undefined
+                }
+                disabled={!canConvert || stale || extracting || editing}
                 onClick={() => setShowConvertModal(true)}
-                className="bg-aqua text-bg0 hover:bg-aqua-bright flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
+                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
               >
                 <i className="bi-arrow-repeat icon-sm"></i>
                 {t('Convert to Application')}
@@ -519,7 +526,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
               <button
                 disabled={stale || extracting || editing}
                 onClick={() => setConfirmExtraction(true)}
-                className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
+                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
               >
                 <i className="bi-arrow-clockwise icon-sm"></i>
                 {extracting
@@ -533,7 +540,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
             )}
             <button
               onClick={handleDelete}
-              className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
+              className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             >
               <i className="bi-trash icon-sm"></i>
               {t('Delete')}

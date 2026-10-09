@@ -117,7 +117,8 @@ export default function LinkedContacts({
           className={actionClass}
           onClick={() => setPicker(!picker)}
         >
-          + {t('companies.linkContact')}
+          <i className="bi-arrow-right icon-sm" aria-hidden="true" />
+          {t('companies.linkContact')}
         </button>
       }
     >
@@ -187,6 +188,7 @@ export default function LinkedContacts({
               onUpdated?.();
             }}
           >
+            <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('companies.reload')}
           </button>
         </p>

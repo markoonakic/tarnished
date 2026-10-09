@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { t } from '@/lib/i18n';
 import TasksBadge from './TasksBadge';
+import { useReminderNotifications } from '@/hooks/useReminderNotifications';
 import SignupRequestDot from './accounts/SignupRequestDot';
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 export default function Layout({ children }: Props) {
   useTranslation();
   const { user, signOut } = useAuth();
+  useReminderNotifications(user?.id);
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -75,7 +77,7 @@ export default function Layout({ children }: Props) {
       <nav className="bg-secondary border-tertiary border-b" ref={menuRef}>
         <a
           href="#main-content"
-          className="focus:bg-accent focus:text-bg0 sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded focus:px-4 focus:py-2"
+          className="focus:bg-accent focus:text-bg0 hover:bg-bg2 focus:ring-accent sr-only cursor-pointer transition-all duration-200 ease-in-out focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded focus:px-4 focus:py-2 focus:ring-2"
         >
           {t('Skip to main content')}
         </a>
@@ -83,7 +85,7 @@ export default function Layout({ children }: Props) {
           <div className="flex items-center gap-6">
             <Link
               to="/"
-              className="text-fg1 hover:text-accent-bright flex items-center gap-2 text-xl font-bold transition-all duration-200 ease-in-out"
+              className="text-fg1 hover:text-accent-bright hover:bg-bg2 focus:ring-accent flex cursor-pointer items-center gap-2 text-xl font-bold transition-all duration-200 ease-in-out focus:ring-2"
             >
               <div className="h-8 w-8 bg-current [mask-image:url('/tree.svg')] [mask-size:contain] [mask-position:center] [mask-repeat:no-repeat]" />
               Tarnished
@@ -107,7 +109,7 @@ export default function Layout({ children }: Props) {
               onClick={() => setAccountOpen(!accountOpen)}
               aria-expanded={accountOpen}
               aria-controls="account-links"
-              className="text-fg1 hover:bg-bg2 focus:ring-accent-bright flex max-w-64 cursor-pointer items-center gap-2 rounded-md px-3 py-2 focus:ring-2"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex max-w-64 cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             >
               <span className="truncate" title={accountName}>
                 {accountName}
@@ -125,7 +127,7 @@ export default function Layout({ children }: Props) {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className="text-fg1 hover:bg-bg2 focus:ring-accent-bright flex items-center gap-2 rounded px-3 py-2 focus:ring-2"
+                    className="text-fg1 hover:bg-bg2 focus:ring-accent-bright focus:ring-accent flex cursor-pointer items-center gap-2 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-2"
                   >
                     <i className={item.icon} aria-hidden="true" />
                     {item.label}
@@ -135,7 +137,7 @@ export default function Layout({ children }: Props) {
                 <hr className="border-tertiary my-2" />
                 <button
                   onClick={signOut}
-                  className="text-fg1 hover:bg-bg2 focus:ring-accent-bright flex w-full cursor-pointer items-center gap-2 rounded px-3 py-2 text-left focus:ring-2"
+                  className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 >
                   <i className="bi-box-arrow-right" aria-hidden="true" />
                   {t('Sign out')}
@@ -146,10 +148,11 @@ export default function Layout({ children }: Props) {
           <button
             ref={mobileButton}
             onClick={() => setMenuOpen(!menuOpen)}
-            className="text-fg1 hover:bg-bg2 focus:ring-accent-bright cursor-pointer rounded p-2 focus:ring-2 xl:hidden"
+            className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2 xl:hidden"
             aria-label={t('Toggle menu')}
             aria-expanded={menuOpen}
             aria-controls="mobile-navigation"
+            title={t('Toggle menu')}
           >
             <i
               className={`bi-${menuOpen ? 'x-lg' : 'list'} icon-lg`}
@@ -194,8 +197,9 @@ export default function Layout({ children }: Props) {
             <hr className="border-tertiary my-2" />
             <button
               onClick={signOut}
-              className="text-fg1 hover:bg-bg2 focus:ring-accent-bright w-full cursor-pointer rounded px-3 py-2 text-left focus:ring-2"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             >
+              <i className="bi-arrow-right icon-sm" aria-hidden="true" />
               {t('Sign out')}
             </button>
           </div>

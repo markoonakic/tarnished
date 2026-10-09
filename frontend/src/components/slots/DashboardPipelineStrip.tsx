@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import HelpTip from '../HelpTip';
 import { useTranslation } from 'react-i18next';
 import { useDashboardOverview } from '@/hooks/useDashboardOverview';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -17,20 +18,27 @@ export default function DashboardPipelineStrip() {
       {query.isError && (
         <p role="alert">
           {t('tasks.loadFailed')}{' '}
-          <button className="underline" onClick={() => void query.refetch()}>
+          <button
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            onClick={() => void query.refetch()}
+          >
+            <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('Retry')}
           </button>
         </p>
       )}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-primary text-lg font-semibold">
+        <h2 className="text-fg1 flex items-center gap-2 text-lg font-semibold">
           {t('tasks.pipeline')}
+          <HelpTip label={t('tasks.pipeline')}>
+            {t('tasks.pipelineTotal', {
+              count: pipeline.reduce(
+                (total, status) => total + status.count,
+                0
+              ),
+            })}
+          </HelpTip>
         </h2>
-        <span className="text-muted text-xs">
-          {t('tasks.pipelineTotal', {
-            count: pipeline.reduce((total, status) => total + status.count, 0),
-          })}
-        </span>
       </div>
       <div className="mb-3 flex h-3 overflow-hidden rounded-full">
         {pipeline
@@ -44,7 +52,7 @@ export default function DashboardPipelineStrip() {
                 backgroundColor: getStatusColor(s.name, colors, s.color),
               }}
               aria-label={statusLabel(s) + ' ' + s.count}
-              className="focus:ring-accent focus:ring-2"
+              className="focus:ring-accent cursor-pointer transition-all duration-200 ease-in-out hover:brightness-125 focus:ring-2"
             />
           ))}
       </div>
@@ -53,7 +61,7 @@ export default function DashboardPipelineStrip() {
           <Link
             key={s.status_id}
             to={'/applications?status=' + s.status_id}
-            className="focus:ring-accent inline-flex items-center gap-1.5 rounded text-xs focus:ring-2"
+            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
             style={{ color: getStatusColor(s.name, colors, s.color) }}
           >
             <span

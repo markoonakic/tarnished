@@ -85,7 +85,7 @@ export default function MoreFilters({
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen(!open)}
-        className="bg-bg2 text-fg1 hover:bg-bg3 focus:ring-accent order-2 cursor-pointer rounded px-3 py-2 text-sm focus:ring-2"
+        className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent order-2 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
       >
         <i className="bi-sliders mr-2" aria-hidden="true" />
         {t('records.moreFilters', { count })}
@@ -264,7 +264,7 @@ export default function MoreFilters({
           {active.map(({ key, value }) => (
             <button
               key={key + value}
-              className="bg-bg3 text-fg1 focus:ring-accent rounded-full px-3 py-1 text-xs focus:ring-2"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
               aria-label={t('records.removeFilter', {
                 label: t('records.' + key),
                 value: label(key, value),
@@ -283,13 +283,14 @@ export default function MoreFilters({
             </button>
           ))}
           <button
-            className="text-accent focus:ring-accent rounded px-2 py-1 text-xs focus:ring-2"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             onClick={() =>
               onChange(
                 Object.fromEntries(recordFilterKeys.map((key) => [key, '']))
               )
             }
           >
+            <i className="bi-arrow-right icon-sm" aria-hidden="true" />
             {t('records.clearAll')}
           </button>
         </div>

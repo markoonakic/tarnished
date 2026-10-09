@@ -38,7 +38,7 @@ export default function RecordTags({
       <button
         type="button"
         onClick={edit}
-        className={`focus:ring-accent rounded px-2 py-0.5 text-xs focus:ring-2 ${record.priority === 'high' ? 'bg-orange/15 text-orange' : 'bg-bg2 text-muted'}`}
+        className={`hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 ${record.priority === 'high' ? 'text-orange' : 'text-fg1'}`}
       >
         <i className="bi-flag mr-1" aria-hidden="true" />
         {t('records.' + (record.priority || 'normal'))}
@@ -48,16 +48,18 @@ export default function RecordTags({
           key={tag}
           type="button"
           onClick={edit}
-          className="bg-bg3 text-fg1 focus:ring-accent rounded px-2 py-0.5 text-xs focus:ring-2"
+          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
         >
+          <i className="bi-arrow-right icon-sm" aria-hidden="true" />
           {tag}
         </button>
       ))}
       <button
         type="button"
         onClick={edit}
-        className="text-accent focus:ring-accent rounded text-xs focus:ring-2"
+        className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
       >
+        <i className="bi-plus-lg icon-sm" aria-hidden="true" />
         {t('records.addTag')}
       </button>
       {open && (
@@ -127,12 +129,14 @@ export default function RecordTags({
                 className={recordAction}
                 onClick={() => setOpen(false)}
               >
+                <i className="bi-x-lg icon-sm" aria-hidden="true" />
                 {t('Cancel')}
               </button>
               <button
                 disabled={busy}
-                className="bg-accent text-bg0 rounded px-3 py-1.5"
+                className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
               >
+                <i className="bi-check2 icon-sm" aria-hidden="true" />
                 {t('Save')}
               </button>
             </div>

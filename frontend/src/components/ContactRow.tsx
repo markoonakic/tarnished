@@ -30,7 +30,7 @@ export default function ContactRow({
           {href ? (
             <Link
               to={href}
-              className="text-fg1 hover:text-accent-bright focus:ring-accent rounded text-sm font-medium focus:ring-2"
+              className="text-fg1 hover:text-accent-bright focus:ring-accent cursor-pointer font-medium transition-all duration-200 ease-in-out focus:ring-2"
             >
               {name}
             </Link>
@@ -54,7 +54,8 @@ export default function ContactRow({
           <a
             href={`mailto:${email}`}
             aria-label={t('kit.emailContact', { name })}
-            className="focus:ring-accent rounded focus:ring-2"
+            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+            title={t('kit.emailContact', { name })}
           >
             <i className="bi bi-envelope" aria-hidden="true" />
           </a>
@@ -63,7 +64,8 @@ export default function ContactRow({
           <a
             href={`tel:${phone}`}
             aria-label={t('kit.phoneContact', { name })}
-            className="focus:ring-accent rounded focus:ring-2"
+            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+            title={t('kit.phoneContact', { name })}
           >
             <i className="bi bi-telephone" aria-hidden="true" />
           </a>
@@ -72,8 +74,9 @@ export default function ContactRow({
           <button
             type="button"
             aria-label={t('kit.unlinkContact', { name })}
+            title={t('kit.unlinkContact', { name })}
             onClick={onUnlink}
-            className="text-muted focus:ring-accent cursor-pointer rounded focus:ring-2"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
           >
             ×
           </button>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import HelpTip from '../HelpTip';
 import api from '@/lib/api';
 import SegmentedControl from '@/components/SegmentedControl';
 
@@ -40,10 +41,11 @@ export default function ApplicationPostingCapture({
     <div className="border-bg3 border-b p-4">
       <button
         type="button"
-        className="text-accent hover:bg-bg2 cursor-pointer rounded px-2 py-1 text-sm"
+        className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
       >
+        <i className="bi-arrow-right icon-sm" aria-hidden="true" />
         {t('ai.fromPostingAction')}
       </button>
       {open && (
@@ -57,7 +59,9 @@ export default function ApplicationPostingCapture({
               { value: 'text', label: t('ai.pasteText') },
             ]}
           />
-          <p className="text-muted text-xs">{t('ai.preparingHint')}</p>
+          <HelpTip label={t('ai.captureMethod')}>
+            {t('ai.preparingHint')}
+          </HelpTip>
           {mode === 'url' ? (
             <label className="block text-sm">
               {t('ai.postingUrl')}
@@ -91,7 +95,7 @@ export default function ApplicationPostingCapture({
           )}
           <button
             type="button"
-            className="bg-accent text-bg0 cursor-pointer rounded px-3 py-2 text-sm disabled:opacity-50"
+            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             disabled={
               busy ||
               !statusId ||
@@ -101,6 +105,7 @@ export default function ApplicationPostingCapture({
             }
             onClick={() => void capture()}
           >
+            <i className="bi-check2 icon-sm" aria-hidden="true" />
             {t(busy ? 'ai.queued' : 'ai.saveAndReview')}
           </button>
         </div>

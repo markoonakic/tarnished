@@ -348,7 +348,8 @@ export default function ApplicationModal({
               onClick={onClose}
               disabled={loading}
               aria-label={t('Close modal')}
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
+              className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+              title={t('Close modal')}
             >
               <i className="bi bi-x-lg icon-xl" />
             </button>
@@ -793,15 +794,17 @@ export default function ApplicationModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
+                  className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 >
+                  <i className="bi-x-lg icon-sm" aria-hidden="true" />
                   {t('Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
+                  className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 >
+                  <i className="bi-check2 icon-sm" aria-hidden="true" />
                   {loading
                     ? t('Saving...')
                     : isEditing

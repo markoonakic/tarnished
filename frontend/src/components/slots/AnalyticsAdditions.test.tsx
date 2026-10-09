@@ -98,7 +98,15 @@ describe('deterministic analytics additions', () => {
   it('shows dated response sample, distinct rejection count, source outcomes and frequencies using one shared read', async () => {
     renderAdditions('30d', breakdown.as_of);
     expect(await screen.findByText('6.4 days')).toBeVisible();
-    expect(screen.getByText('n = 71 · 9 without a valid date')).toBeVisible();
+    expect(
+      screen.queryByText(/Based on 71 applications/)
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Avg. time to first response' })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      'Based on 71 applications with both dates recorded. 9 applications have missing or invalid dates.'
+    );
     expect(screen.getByText('41')).toBeVisible();
     const table = screen.getByRole('table', { name: 'By source' });
     expect(
@@ -162,7 +170,12 @@ describe('deterministic analytics additions', () => {
     renderAdditions();
     expect(await screen.findByText('—')).toBeVisible();
     expect(screen.queryByText('0 days')).not.toBeInTheDocument();
-    expect(screen.getByText('n = 0 · 3 without a valid date')).toBeVisible();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Avg. time to first response' })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      'Based on 0 applications with both dates recorded. 3 applications have missing or invalid dates.'
+    );
     expect(
       await screen.findByText('No activity in this period.')
     ).toBeVisible();

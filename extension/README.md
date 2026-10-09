@@ -2,7 +2,7 @@
 
 Detect job postings, save job leads, and fill application forms with your Tarnished profile.
 
-This guide describes version **0.3.6**. Use the extension with a matching Tarnished backend.
+This guide describes version **0.3.7**. Use the extension with a matching Tarnished backend.
 
 **Documentation:** https://markoonakic.github.io/tarnished/
 

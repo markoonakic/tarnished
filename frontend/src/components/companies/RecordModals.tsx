@@ -189,6 +189,7 @@ export function ContactModal({
               setName('');
             }}
           >
+            <i className="bi-arrow-right icon-sm" aria-hidden="true" />
             {t('companies.clearCompany')}
           </button>
         )}
@@ -356,9 +357,11 @@ function RecordForm({
             disabled={busy}
             onClick={onClose}
           >
+            <i className="bi-x-lg icon-sm" aria-hidden="true" />
             {t('companies.cancel')}
           </button>
           <button type="submit" className={primaryClass} disabled={busy}>
+            <i className="bi-check2 icon-sm" aria-hidden="true" />
             {t('companies.save')}
           </button>
         </div>
@@ -392,11 +395,12 @@ export function DeleteConfirm({
         )}
         <div className="mt-6 flex justify-end gap-2">
           <button disabled={busy} className={actionClass} onClick={onClose}>
+            <i className="bi-x-lg icon-sm" aria-hidden="true" />
             {t('companies.cancel')}
           </button>
           <button
             disabled={busy}
-            className="bg-red text-bg0 hover:bg-red-bright focus:ring-red cursor-pointer rounded px-4 py-2 font-medium focus:ring-2 disabled:opacity-50"
+            className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             onClick={async () => {
               if (busy) return;
               setBusy(true);
@@ -410,6 +414,7 @@ export function DeleteConfirm({
               }
             }}
           >
+            <i className="bi-trash icon-sm" aria-hidden="true" />
             {t('companies.delete')}
           </button>
         </div>

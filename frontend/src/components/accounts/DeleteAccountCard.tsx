@@ -7,6 +7,7 @@ import { observeRead } from '@/lib/queryClient';
 import { useAuth } from '@/contexts/AuthContext';
 import Modal from '@/components/Modal';
 import PasswordInput from '@/components/PasswordInput';
+import HelpTip from '@/components/HelpTip';
 
 export default function DeleteAccountCard() {
   useTranslation();
@@ -49,13 +50,13 @@ export default function DeleteAccountCard() {
   return (
     <>
       <div className="bg-secondary border-red space-y-4 rounded-lg border p-4 md:p-6">
-        <h2 className="text-red text-xl font-bold">
+        <h2 className="text-fg1 flex items-center gap-2 text-lg font-semibold">
           {t('accounts.deleteAccount')}
+          <HelpTip label={t('accounts.deleteAccountBody')}>
+            {t('accounts.deleteAccountBody')}
+            {canDelete === false && <span>{t('accounts.onlyAdmin')}</span>}
+          </HelpTip>
         </h2>
-        <p className="text-muted">{t('accounts.deleteAccountBody')}</p>
-        {canDelete === false && (
-          <p className="text-muted text-sm">{t('accounts.onlyAdmin')}</p>
-        )}
         {error && !open && (
           <p className="text-red" role="alert">
             {error}
@@ -63,12 +64,14 @@ export default function DeleteAccountCard() {
         )}
         <button
           disabled={canDelete !== true}
+          title={canDelete === false ? t('accounts.onlyAdmin') : undefined}
           onClick={() => {
             setOpen(true);
             setError('');
           }}
-          className="touch-target bg-red text-bg0 hover:bg-red-bright focus:ring-red cursor-pointer rounded px-4 py-2 focus:ring-2 disabled:cursor-not-allowed disabled:opacity-40"
+          className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
         >
+          <i className="bi-trash icon-sm" aria-hidden="true" />
           {t('accounts.deleteAccount')}
         </button>
       </div>
@@ -97,12 +100,13 @@ export default function DeleteAccountCard() {
                 type="button"
                 disabled={busy}
                 aria-label={t('accounts.close')}
-                className="text-muted focus:ring-accent cursor-pointer rounded p-2 focus:ring-2"
+                className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
                 onClick={() => {
                   setOpen(false);
                   setPassword('');
                   setConfirm(false);
                 }}
+                title={t('accounts.close')}
               >
                 <i className="bi-x-lg" aria-hidden="true" />
               </button>
@@ -136,19 +140,21 @@ export default function DeleteAccountCard() {
               <div className="flex flex-wrap justify-end gap-3">
                 <button
                   type="button"
-                  className="text-fg1 focus:ring-accent cursor-pointer rounded px-4 py-2 focus:ring-2"
+                  className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                   onClick={() => {
                     setOpen(false);
                     setPassword('');
                     setConfirm(false);
                   }}
                 >
+                  <i className="bi-x-lg icon-sm" aria-hidden="true" />
                   {t('accounts.cancel')}
                 </button>
                 <button
                   disabled={!confirm || !password || canDelete === false}
-                  className="bg-red text-bg0 hover:bg-red-bright focus:ring-red cursor-pointer rounded px-4 py-2 focus:ring-2 disabled:opacity-40"
+                  className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 >
+                  <i className="bi-trash icon-sm" aria-hidden="true" />
                   {t('accounts.deletePermanently')}
                 </button>
               </div>

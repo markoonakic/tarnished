@@ -52,7 +52,7 @@ export default function RemindersCard({
           <button
             type="button"
             onClick={onAdd}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
           >
             <i className="bi bi-plus-lg icon-sm" aria-hidden="true" />
             {t('kit.addReminder')}
@@ -132,7 +132,10 @@ export default function RemindersCard({
                     aria-label={t('kit.reminderActions', {
                       title: reminder.title,
                     })}
-                    className="text-muted focus:ring-accent cursor-pointer list-none rounded px-1 focus:ring-2"
+                    className="text-muted focus:ring-accent hover:bg-bg2 cursor-pointer list-none rounded px-1 transition-all duration-200 ease-in-out focus:ring-2"
+                    title={t('kit.reminderActions', {
+                      title: reminder.title,
+                    })}
                   >
                     <i className="bi bi-three-dots" aria-hidden="true" />
                   </summary>
@@ -146,8 +149,9 @@ export default function RemindersCard({
                             ?.removeAttribute('open');
                           onEdit(reminder);
                         }}
-                        className="text-fg1 hover:bg-bg2 focus:ring-accent block w-full cursor-pointer rounded px-3 py-2 text-left text-sm focus:ring-2"
+                        className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                       >
+                        <i className="bi-pencil icon-sm" aria-hidden="true" />
                         {t('kit.edit')}
                       </button>
                     )}
@@ -155,8 +159,12 @@ export default function RemindersCard({
                       <button
                         type="button"
                         onClick={() => onDismiss(reminder)}
-                        className="text-fg1 hover:bg-bg2 focus:ring-accent block w-full cursor-pointer rounded px-3 py-2 text-left text-sm focus:ring-2"
+                        className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                       >
+                        <i
+                          className="bi-arrow-right icon-sm"
+                          aria-hidden="true"
+                        />
                         {t('kit.dismiss')}
                       </button>
                     )}
@@ -164,8 +172,9 @@ export default function RemindersCard({
                       <button
                         type="button"
                         onClick={() => onDelete(reminder)}
-                        className="text-red hover:bg-bg2 focus:ring-accent block w-full cursor-pointer rounded px-3 py-2 text-left text-sm focus:ring-2"
+                        className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                       >
+                        <i className="bi-trash icon-sm" aria-hidden="true" />
                         {t('kit.delete')}
                       </button>
                     )}
@@ -184,7 +193,7 @@ export default function RemindersCard({
           type="button"
           aria-expanded={showDone}
           onClick={() => setShowDone(!showDone)}
-          className="text-accent hover:text-accent-bright focus:ring-accent mt-3 flex cursor-pointer items-center gap-1 rounded text-sm focus:ring-2"
+          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent mt-3 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
         >
           <i
             className={showDone ? 'bi bi-chevron-up' : 'bi bi-chevron-down'}

@@ -15,7 +15,7 @@ export default function DashboardBoard() {
       actions={
         <Link
           to="/applications?view=board"
-          className="text-accent focus:ring-accent rounded text-xs focus:ring-2"
+          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
         >
           {t('tasks.openFullBoard')} →
         </Link>

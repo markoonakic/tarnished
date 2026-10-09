@@ -123,7 +123,11 @@ export default function TargetReminders({
       {query.isError && (
         <p role="alert" className="text-red-bright mb-3">
           {t('tasks.loadFailed')}{' '}
-          <button onClick={() => void query.refetch()} className="underline">
+          <button
+            onClick={() => void query.refetch()}
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          >
+            <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('Retry')}
           </button>
         </p>
