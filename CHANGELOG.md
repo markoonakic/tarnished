@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.6] - 2026-10-09
+
+### Fixed
+
+- Retain bounded original interview and application feedback inputs so later record changes do not prevent archive restore. Keep citation, checksum, size and same-owner reference checks.
+- Skip only saved reports whose content cannot be verified, including older stale reports, and show a translated import summary. Invalid archive structure still rejects the complete import.
+- Translate interview and pipeline feedback request accessible names in Serbian.
+- Test stale three-scope report round trips, replaced transcript input, skipped legacy reports and tampered quotes on SQLite and PostgreSQL.
+
 ## [0.3.5] - 2026-10-09
 
 ### Fixed

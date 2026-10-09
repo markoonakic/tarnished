@@ -59,6 +59,7 @@ async def test_import_payload_data_maps_new_format_counts(db):
         "round_types": 1,
         "media": 5,
         "warnings": ["warning"],
+        "skipped_reports": 0,
     }
 
 

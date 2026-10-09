@@ -239,6 +239,8 @@ async def process_import_job(
                 "rounds": import_result.get("rounds", 0),
                 "status_history": import_result.get("status_history", 0),
                 "files": len(file_mapping),
+                "skipped_reports": import_result.get("skipped_reports", 0),
+                "warnings": import_result.get("warnings", []),
             }
 
             stage = "finalizing"

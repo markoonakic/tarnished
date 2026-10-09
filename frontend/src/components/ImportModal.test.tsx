@@ -9,6 +9,10 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n, { t } from '@/lib/i18n';
 
+const warning = vi.hoisted(() => vi.fn());
+vi.mock('../contexts/ToastContext', () => ({
+  useToastContext: () => ({ warning }),
+}));
 const validateImport = vi.fn();
 const importData = vi.fn();
 const connectToImportProgress = vi.fn();
@@ -104,6 +108,44 @@ describe('ImportModal', () => {
       expect(document.body.textContent).not.toContain('private-canary');
       expect(document.body.textContent).not.toContain('Private error detail');
       expect(success).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['en', 'sr-Latn'])(
+    'shows the skipped-report summary in %s',
+    async (language) => {
+      await i18n.changeLanguage(language);
+      validateImport.mockResolvedValue({
+        valid: true,
+        summary: {},
+        warnings: [],
+        errors: [],
+      });
+      importData.mockResolvedValue({ import_id: 'job-1' });
+      connectToImportProgress.mockImplementation((_id, _progress, terminal) => {
+        terminal({
+          status: 'complete',
+          percent: 100,
+          result: { skipped_reports: 1 },
+        });
+        return { close: vi.fn() };
+      });
+      const { default: ImportModal } = await import('./ImportModal');
+      const success = vi.fn();
+      render(<ImportModal isOpen onClose={vi.fn()} onSuccess={success} />);
+      fireEvent.change(screen.getByLabelText(t('ZIP archive')), {
+        target: { files: [new File(['zip'], 'backup.zip')] },
+      });
+      fireEvent.click(screen.getByRole('button', { name: t('Validate') }));
+      await screen.findByText(t('Import Summary'));
+      fireEvent.click(screen.getByRole('button', { name: t('Import Data') }));
+      await waitFor(() => expect(success).toHaveBeenCalledOnce());
+      expect(warning).toHaveBeenCalledWith(
+        t('import.skippedReports', { count: 1 })
+      );
+      expect(t('import.skippedReports', { count: 1 })).not.toContain(
+        'import.skippedReports'
+      );
     }
   );
 

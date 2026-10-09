@@ -381,10 +381,10 @@ async def test_supported_report_archive_roundtrip_and_malformed_preflight(
     )
 
 
-async def test_archive_replaced_passage_is_preflight_only(
+async def test_archive_retained_input_survives_replaced_passage(
     client, db, workspace, monkeypatch
 ):
-    """Reject citations to replaced transcript passages before changing records."""
+    """Historical report input survives replacement without changing current text."""
     job, sources, limits = await prepared(client, db, workspace, monkeypatch)
     await retain(db, job, sources, limits)
     archive = await db.run_sync(
@@ -404,16 +404,17 @@ async def test_archive_replaced_passage_is_preflight_only(
     )
     bad = deepcopy(archive)
     bad["models"]["Round"][0]["current_transcript"]["segments"][0]["id"] = str(uuid4())
-    with pytest.raises(ValueError, match="replaced transcript passage"):
-        await import_payload_data(db, workspace[1].id, bad, {}, lambda **kw: None)
-    await db.rollback()
+    result = await import_payload_data(db, workspace[1].id, bad, {}, lambda **kw: None)
+    assert result["skipped_reports"] == 0
+    await db.commit()
     await db.refresh(workspace[1])
     after = await db.run_sync(
         lambda session: ExportService(default_registry).export_user_data(
             workspace[1].id, session
         )
     )
-    assert after["models"] == before["models"]
+    assert after["models"]["UserProfile"] == before["models"]["UserProfile"]
+    assert after["models"]["Round"][0]["interview_report"]["findings"]
 
 
 async def test_profile_cited_report_roundtrips_after_profile_restore(

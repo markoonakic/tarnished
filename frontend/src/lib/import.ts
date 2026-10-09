@@ -49,6 +49,7 @@ export interface ImportProgress {
     rounds?: number;
     status_history?: number;
     files?: number;
+    skipped_reports?: number;
     error?: string;
   };
   error?: {

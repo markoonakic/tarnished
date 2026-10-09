@@ -62,6 +62,14 @@ class Coverage(BaseModel):
     characters: int = Field(ge=1, le=2_300_000)
 
 
+class BoundedEvidenceSnapshot(BaseModel):
+    """Original model input passages; no file paths or account authority."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    sources: list[ReportSource] = Field(min_length=1, max_length=10000)
+    source_media_id: str | None = Field(default=None, max_length=36)
+
+
 class ArchivedInterviewReport(BaseModel):
     output_language: Literal["en", "sr-Latn"] = "en"
     model_config = ConfigDict(extra="forbid", strict=True)
@@ -78,6 +86,11 @@ class ArchivedInterviewReport(BaseModel):
     fingerprint: str = Field(max_length=64)
     required_scopes: list[str] = Field(max_length=6)
     source_media_id: str | None = Field(default=None, max_length=36)
+    evidence_snapshot: BoundedEvidenceSnapshot | None = None
+    evidence_fingerprint: str | None = Field(
+        default=None, min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
+    )
+    evidence_ids: dict[str, str] = Field(default_factory=dict, max_length=20000)
     findings: list[InterviewFinding] = Field(max_length=256)
     # Six supporting passages and one separately attributed question per finding.
     sources: list[ReportSource] = Field(max_length=1792)
@@ -116,7 +129,7 @@ class ArchivedScopedReport(BaseModel):
     period: Literal["7d", "30d", "3m", "all"] | None = None
     as_of: str | None = Field(default=None, max_length=64)
     time_zone: str | None = Field(default=None, max_length=64)
-    evidence_snapshot: PipelineEvidenceSnapshot | None = None
+    evidence_snapshot: PipelineEvidenceSnapshot | BoundedEvidenceSnapshot | None = None
     evidence_fingerprint: str | None = Field(
         default=None, min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
     )
@@ -150,6 +163,75 @@ def _require(condition):
         raise ValueError()
 
 
+def _original_id(value, record_id):
+    return value.evidence_ids.get(record_id, record_id)
+
+
+def _validate_passage_snapshot(value, models, app_id):
+    saved = value.evidence_snapshot
+    _require(isinstance(saved, BoundedEvidenceSnapshot))
+    _require(
+        fingerprint(saved.model_dump(exclude_unset=True)) == value.evidence_fingerprint
+    )
+    _require(sum(len(s.text) for s in saved.sources) <= 2_300_000)
+    _require(
+        saved.source_media_id
+        == (value.source_media_id if value.scope == "INTERVIEW" else None)
+    )
+    rounds = {r["id"]: r for r in models.get("Round", [])}
+    histories = {r["id"]: r for r in models.get("ApplicationStatusHistory", [])}
+    seen = set()
+    for source in saved.sources:
+        _require(source.id not in seen)
+        seen.add(source.id)
+        parts = source.id.split(":")
+        _require(len(parts) >= 3)
+        _require(str(source.offset) == parts[-1] and source.offset % 4000 == 0)
+        head = parts[0]
+        record_id = _original_id(value, parts[1])
+        if head in ("application", "document"):
+            _require(len(parts) == 4 and record_id == app_id)
+            _require(
+                parts[2]
+                in (APP_FIELDS if head == "application" else ("cv", "cover_letter"))
+            )
+        elif head == "round":
+            _require(
+                len(parts) == 4
+                and rounds.get(record_id, {}).get("application_id") == app_id
+            )
+            _require(parts[2] in (*ROUND_FIELDS, "interview_findings"))
+            if value.scope == "INTERVIEW":
+                _require(
+                    record_id == value.round_id and parts[2] != "interview_findings"
+                )
+        elif head == "history":
+            _require(
+                len(parts) == 3
+                and histories.get(record_id, {}).get("application_id") == app_id
+            )
+            _require(not histories[record_id].get("is_gap"))
+        elif head == "profile":
+            _require(len(parts) == 3 and parts[1] in PROFILE_FIELDS)
+        elif head == "transcript":
+            _require(value.scope == "INTERVIEW" and len(parts) == 3)
+            _require(source.segment_id == parts[1] and source.role is not None)
+        else:
+            raise ValueError()
+        expected_kind = {
+            "application": "requirement"
+            if parts[2].startswith("requirements_") or parts[2] == "job_description"
+            else "application",
+            "document": parts[2] if head == "document" else None,
+            "round": "round",
+            "history": "history",
+            "profile": "profile",
+            "transcript": "transcript",
+        }[head]
+        _require(source.kind == expected_kind)
+    _require(all(s.id in seen for s in value.sources))
+
+
 def _validate_scoped_report(value, models, apps, histories, profile, *, scope):
     """Validate one APPLICATION/PIPELINE latest report against the archive."""
     _require(len(json.dumps(value.model_dump())) <= 1_000_000)
@@ -169,7 +251,10 @@ def _validate_scoped_report(value, models, apps, histories, profile, *, scope):
     }
     _require(all(key in rows for key in value.evidence_ids.values()))
     _require(not value.evidence_ids or scope == "PIPELINE")
-    if value.evidence_snapshot is not None:
+    if isinstance(value.evidence_snapshot, BoundedEvidenceSnapshot):
+        _require(scope == "APPLICATION")
+        _validate_passage_snapshot(value, models, value.application_id)
+    elif value.evidence_snapshot is not None:
         _require(scope == "PIPELINE")
         saved = value.evidence_snapshot.model_dump()
         _require(fingerprint(saved) == value.evidence_fingerprint)
@@ -189,7 +274,6 @@ def _validate_scoped_report(value, models, apps, histories, profile, *, scope):
                 record["application_id"], record["application_id"]
             )
             _require(app_id in apps)
-        profile = saved["profile"]
     else:
         _require(value.evidence_fingerprint is None)
     round_ids = {r.get("id") for r in models.get("Round", [])}
@@ -198,43 +282,43 @@ def _validate_scoped_report(value, models, apps, histories, profile, *, scope):
         _require(source.id not in source_ids)
         source_ids.add(source.id)
         parts = source.id.split(":")
+        _require(len(parts) >= 3)
         _require(str(source.offset) == parts[-1] and source.offset % 4000 == 0)
         head = parts[0]
         if head == "profile":
             _require(len(parts) == 3 and parts[1] in PROFILE_FIELDS)
-            texts = [_profile_field_text(profile, parts[1])]
-            if scope == "PIPELINE":
-                texts.append(_profile_field_text(profile, parts[1], filtered=False))
-            _require(
-                any(
-                    text is not None
-                    and text[source.offset : source.offset + 4000] == source.text
-                    for text in texts
-                )
-            )
         elif head == "application" or head == "document":
             _require(
                 len(parts) == 4
                 and scope == "APPLICATION"
-                and parts[1] == value.application_id
+                and _original_id(value, parts[1]) == value.application_id
             )
             if head == "document":
                 # A cited document must actually exist on this application; the
                 # post-insert text verification cannot see a document that was
                 # never there, so absent documents are rejected here.
                 _require(parts[2] in ("cv", "cover_letter"))
-                source_row = apps.get(parts[1], {})
-                _require(
-                    source_row.get(parts[2] + "_text")
-                    or source_row.get(parts[2] + "_path")
-                )
+                if value.evidence_snapshot is None:
+                    source_row = apps.get(parts[1], {})
+                    _require(
+                        source_row.get(parts[2] + "_text")
+                        or source_row.get(parts[2] + "_path")
+                    )
         elif head == "round":
             _require(len(parts) == 4 and scope == "APPLICATION")
-            _require(parts[1] in round_ids)
+            _require(_original_id(value, parts[1]) in round_ids)
+            _require(
+                next(
+                    r
+                    for r in models["Round"]
+                    if r["id"] == _original_id(value, parts[1])
+                )["application_id"]
+                == value.application_id
+            )
         elif head == "history":
             _require(len(parts) == 3 and scope == "APPLICATION")
             _require(
-                histories.get(parts[1], {}).get("application_id")
+                histories.get(_original_id(value, parts[1]), {}).get("application_id")
                 == value.application_id
             )
         elif head == "pipeline":
@@ -247,13 +331,6 @@ def _validate_scoped_report(value, models, apps, histories, profile, *, scope):
         for c in finding_citations(f.model_dump())
     }
     _require(source_ids == cited)
-    sources = [s.model_dump(exclude_none=True) for s in value.sources]
-    for finding in value.findings:
-        validate_section(
-            {"findings": [finding.model_dump(exclude_none=True)], "limitations": []},
-            sources,
-            scope,
-        )
 
 
 def validate_reports_archive(models):
@@ -294,6 +371,14 @@ def validate_reports_archive(models):
         histories = {r.get("id"): r for r in models.get("ApplicationStatusHistory", [])}
         media = {r.get("id"): r for r in models.get("RoundMedia", [])}
         profile = _profile_row(models)
+        users = models.get("User", [])
+        _require(len(users) <= 1)
+        if users:
+            owner_id = users[0]["id"]
+            _require(all(r.get("user_id") == owner_id for r in apps.values()))
+            _require(
+                all(r.get("user_id") == owner_id for r in models.get("UserProfile", []))
+            )
         for application in apps.values():
             for kind in ("cv", "cover_letter"):
                 text = application.get(kind + "_text")
@@ -315,10 +400,19 @@ def validate_reports_archive(models):
                 and media.get(value.source_media_id, {}).get("round_id") != row["id"]
             ):
                 raise ValueError()
-            segments = {
-                s["id"]: s
-                for s in (row.get("current_transcript") or {}).get("segments", [])
-            }
+            _require(value.required_scopes == READ_SCOPES and not value.evidence_ids)
+            datetime.fromisoformat(value.run_at)
+            if value.evidence_snapshot is not None:
+                _validate_passage_snapshot(value, models, app["id"])
+            else:
+                _require(value.evidence_fingerprint is None)
+                transcript = row.get("current_transcript")
+                if transcript and any(s.kind == "transcript" for s in value.sources):
+                    _require(value.source_media_id == transcript.get("source_media_id"))
+                    _require(
+                        transcript.get("provenance") != "media"
+                        or value.source_media_id is not None
+                    )
             source_ids = set()
             for source in value.sources:
                 _require(source.id not in source_ids)
@@ -329,46 +423,25 @@ def validate_reports_archive(models):
                 if source.kind == "transcript":
                     if len(parts) != 3 or parts[0] != "transcript":
                         raise ValueError()
-                    if parts[1] not in segments:
-                        raise ValueError(
-                            "Interview report cites a replaced transcript passage absent from this archive. Rerun using the current transcript before exporting."
-                        )
-                    transcript = row["current_transcript"]
-                    if value.source_media_id != transcript.get("source_media_id") or (
-                        transcript.get("provenance") == "media"
-                        and not value.source_media_id
-                    ):
-                        raise ValueError()
-                    segment = segments[parts[1]]
-                    if (
-                        source.segment_id != parts[1]
-                        or source.role != segment["role"]
-                        or source.text
-                        != segment["text"][source.offset : source.offset + 4000]
-                        or source.start != segment.get("start")
-                        or source.end != segment.get("end")
-                    ):
-                        raise ValueError()
+                    _require(source.segment_id == parts[1])
                 elif source.kind in ("cv", "cover_letter"):
                     if (
                         len(parts) != 4
-                        or parts[:3] != ["document", app["id"], source.kind]
-                        or not (
+                        or parts[0] != "document"
+                        or _original_id(value, parts[1]) != app["id"]
+                        or parts[2] != source.kind
+                    ):
+                        raise ValueError()
+                    if value.evidence_snapshot is None:
+                        _require(
                             app.get(source.kind + "_text")
                             or app.get(source.kind + "_path")
                         )
-                    ):
-                        raise ValueError()
-                    pasted = app.get(source.kind + "_text")
-                    if (
-                        pasted
-                        and source.text != pasted[source.offset : source.offset + 4000]
-                    ):
-                        raise ValueError()
                 elif source.kind in ("application", "requirement"):
                     if (
                         len(parts) != 4
-                        or parts[:2] != ["application", app["id"]]
+                        or parts[0] != "application"
+                        or _original_id(value, parts[1]) != app["id"]
                         or parts[2] not in APP_FIELDS
                     ):
                         raise ValueError()
@@ -381,14 +454,15 @@ def validate_reports_archive(models):
                 elif source.kind == "round":
                     if (
                         len(parts) != 4
-                        or parts[:2] != ["round", row["id"]]
+                        or parts[0] != "round"
+                        or _original_id(value, parts[1]) != row["id"]
                         or parts[2] not in ROUND_FIELDS
                     ):
                         raise ValueError()
                 elif source.kind == "history":
                     if len(parts) != 3 or parts[0] != "history":
                         raise ValueError()
-                    entry = histories.get(parts[1])
+                    entry = histories.get(_original_id(value, parts[1]))
                     if entry is None or entry.get("application_id") != app["id"]:
                         raise ValueError()
                     if entry.get("is_gap"):
@@ -398,11 +472,7 @@ def validate_reports_archive(models):
                         raise ValueError()
                     if parts[1] not in PROFILE_FIELDS:
                         raise ValueError()
-                    text = _profile_field_text(profile, parts[1])
-                    if text is None or (
-                        text[source.offset : source.offset + 4000] != source.text
-                    ):
-                        raise ValueError()
+
                 else:
                     raise ValueError()
             cited = {
@@ -412,15 +482,7 @@ def validate_reports_archive(models):
             }
             if source_ids != cited:
                 raise ValueError()
-            sources = [s.model_dump(exclude_none=True) for s in value.sources]
-            for finding in value.findings:
-                validate_section(
-                    {
-                        "findings": [finding.model_dump(exclude_none=True)],
-                        "limitations": [],
-                    },
-                    sources,
-                )
+
         for application in apps.values():
             report = application.get("report")
             if report is None:
@@ -448,7 +510,7 @@ def validate_reports_archive(models):
         raise ValueError(
             "Invalid grounded-report/document archive. Check bounded fields, own-source references and exact citations; no data imported"
         ) from None
-    except (KeyError, TypeError, AttributeError) as exc:
+    except (KeyError, IndexError, TypeError, AttributeError) as exc:
         logger.warning("Rejected grounded-report/document archive: %s", exc)
         raise ValueError(
             "Invalid grounded-report/document archive; no data imported"
@@ -487,38 +549,19 @@ def _expected_index(regenerated_sources, inverse):
 
 
 def _verify_report_sources(report, candidates):
-    """Require every archived passage to equal a passage re-derived locally.
+    """Require exact retained or locally rebuilt text for every passage.
 
-    Shape checks alone let a tampered archive carry fabricated evidence text that
-    the recipient UI renders as grounded. A source passes only when some locally
-    re-derived candidate reproduces its exact text; fabricated text matches none.
-
-    `candidates` is a list of indexes because one scope has two legitimate shapes
-    (an application report may or may not have included other rounds' interview
-    findings when it ran). Document kinds are verified only when the regenerated
-    evidence contains them: an attachment whose text cannot be re-extracted
-    locally is left to the pre-mutation existence check, matching the existing
-    pasted-versus-attachment discipline.
+    Even an existing attachment does not prove a legacy quoted passage when its
+    text cannot be extracted. Skip that report instead of accepting unknown text.
     """
     if not report:
         return
-    degraded = {"document", "cv", "cover_letter"}
     for source in report.get("sources", []):
-        seen = False
-        for expected in candidates:
-            text = expected.get(source["id"])
-            if text is None:
-                continue
-            seen = True
-            if text == source["text"]:
-                break
-        else:
-            # The document exists, but its text may not be locally extractable.
-            if not seen and source.get("kind") in degraded:
-                continue
+        if not any(
+            expected.get(source["id"]) == source["text"] for expected in candidates
+        ):
             raise ValueError(
-                "Report source text does not match the re-derived evidence: "
-                + source["id"]
+                "Report source text does not match verified input: " + source["id"]
             )
 
 
@@ -566,12 +609,10 @@ def _archived_pipeline_insights(models, metrics, inverse):
 
 
 async def verify_restored_report_text(db, user_id, export_data, id_mapper, segment_ids):
-    """Re-derive each restored report's evidence and require exact passage text.
+    """Verify original input, or rebuild legacy input; skip unverifiable reports.
 
-    Runs AFTER the imported rows are flushed but BEFORE the import commit, so a
-    mismatch still leaves the recipient's prior data intact. The archive is
-    untrusted input: without this check a fabricated passage survives validation
-    because only the reference shape was verified.
+    Structural checks run before mutation. Content checks run before commit,
+    so fabricated report text is never restored with the other owner data.
     """
     from sqlalchemy import select, update
 
@@ -619,34 +660,100 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
         segment_ids or {}
     ).items():
         inverse[new_segment_id] = old_segment_id
+    skipped = 0
+
+    def verify_content(report, candidates, *, input_sources=None):
+        _verify_report_sources(report, candidates)
+        if input_sources is not None:
+            index = {s["id"]: s for s in input_sources}
+            for source in report["sources"]:
+                expected = index.get(source["id"])
+                _require(expected is not None)
+                assert expected is not None
+                for key in ("kind", "offset", "segment_id", "role", "start", "end"):
+                    _require(source.get(key) == expected.get(key))
+        for finding in report["findings"]:
+            validate_section(
+                {"findings": [finding], "limitations": []},
+                report["sources"],
+                report["scope"],
+            )
+
     try:
         for row in models.get("Round", []):
-            if row.get("interview_report") is None:
+            original = row.get("interview_report")
+            if original is None:
                 continue
             new_round = id_mapper.get("Round", row["id"])
-            data, _ = await snapshot(db, user_id, new_round)
-            data["profile"] = verification_profile
-            expected, _ = await evidence_sources(data)
-            restored = await db.scalar(
-                select(Round.interview_report).where(Round.id == new_round)
+            owned_round = (
+                select(Round.id)
+                .join(Application)
+                .where(Round.id == new_round, Application.user_id == user_id)
             )
-            _verify_report_sources(restored, [_expected_index(expected, inverse)])
+            _require(await db.scalar(owned_round) == new_round)
+            restored = await db.scalar(
+                select(Round.interview_report).where(Round.id.in_(owned_round))
+            )
+            saved = original.get("evidence_snapshot")
+            if saved is not None:
+                candidates = [{s["id"]: s["text"] for s in saved["sources"]}]
+                checked = original
+            else:
+                data, _ = await snapshot(db, user_id, new_round)
+                data["profile"] = verification_profile
+                expected, _ = await evidence_sources(data)
+                candidates = [_expected_index(expected, inverse)]
+                checked = restored
+            try:
+                verify_content(
+                    checked,
+                    candidates,
+                    input_sources=saved["sources"] if saved else expected,
+                )
+            except ValueError:
+                skipped += 1
+                await db.execute(
+                    update(Round)
+                    .where(Round.id.in_(owned_round))
+                    .values(interview_report=None, interview_report_reason=None)
+                )
         for row in models.get("Application", []):
-            if row.get("report") is None:
+            original = row.get("report")
+            if original is None:
                 continue
             new_app = id_mapper.get("Application", row["id"])
-            data, _ = await application_snapshot(db, user_id, new_app)
-            data["profile"] = verification_profile
-            variants = []
-            for include in (True, False):
-                expected, _ = await application_evidence_sources(
-                    data, include_round_reports=include, include_imported_reports=True
+            owned_app = (Application.id == new_app, Application.user_id == user_id)
+            restored = await db.scalar(select(Application.report).where(*owned_app))
+            _require(restored is not None)
+            saved = original.get("evidence_snapshot")
+            if saved is not None:
+                variants = [{s["id"]: s["text"] for s in saved["sources"]}]
+                checked = original
+            else:
+                data, _ = await application_snapshot(db, user_id, new_app)
+                data["profile"] = verification_profile
+                variants = []
+                for include in (True, False):
+                    expected, _ = await application_evidence_sources(
+                        data,
+                        include_round_reports=include,
+                        include_imported_reports=True,
+                    )
+                    variants.append(_expected_index(expected, inverse))
+                checked = restored
+            try:
+                verify_content(
+                    checked,
+                    variants,
+                    input_sources=saved["sources"] if saved else None,
                 )
-                variants.append(_expected_index(expected, inverse))
-            restored = await db.scalar(
-                select(Application.report).where(Application.id == new_app)
-            )
-            _verify_report_sources(restored, variants)
+            except ValueError:
+                skipped += 1
+                await db.execute(
+                    update(Application)
+                    .where(*owned_app)
+                    .values(report=None, report_reason=None)
+                )
         # Read the columns directly: the identity-mapped User instance may hold a
         # stale/expired attribute in this session, which would lazy-load asynchronously.
         pipeline_report = await db.scalar(
@@ -679,8 +786,16 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
                 expected, _ = await pipeline_evidence_sources(
                     archived_report["evidence_snapshot"]
                 )
-                _verify_report_sources(report, [{s["id"]: s["text"] for s in expected}])
-                return
+                try:
+                    verify_content(report, [{s["id"]: s["text"] for s in expected}])
+                except ValueError:
+                    skipped += 1
+                    await db.execute(
+                        update(User)
+                        .where(User.id == user_id)
+                        .values(pipeline_report=None, pipeline_report_reason=None)
+                    )
+                return skipped
             data["metrics"].update(
                 _archived_pipeline_insights(models, data["metrics"], inverse)
             )
@@ -722,15 +837,24 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
                     .items()
                 },
             }
-            _verify_report_sources(
-                report,
-                [
-                    _expected_index(expected, pipeline_inverse),
-                    _expected_index(legacy_metrics, pipeline_inverse),
-                    _expected_index(legacy_profile, pipeline_inverse),
-                    _expected_index(historical, pipeline_inverse),
-                ],
-            )
+            try:
+                verify_content(
+                    report,
+                    [
+                        _expected_index(expected, pipeline_inverse),
+                        _expected_index(legacy_metrics, pipeline_inverse),
+                        _expected_index(legacy_profile, pipeline_inverse),
+                        _expected_index(historical, pipeline_inverse),
+                    ],
+                )
+            except ValueError:
+                skipped += 1
+                await db.execute(
+                    update(User)
+                    .where(User.id == user_id)
+                    .values(pipeline_report=None, pipeline_report_reason=None)
+                )
+                return skipped
             # Preserve a locally verified legacy input for later round trips.
             # Privacy reset makes its old matrix freshness impossible to recover
             # on a second import. No imported permission or job is restored.
@@ -768,6 +892,7 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
             exc,
         )
         raise ValueError(GENERIC_ARCHIVE_ERROR) from None
+    return skipped
 
 
 def _remap_sources(value, mapper, segment_ids, original_key):
@@ -789,7 +914,7 @@ def _remap_sources(value, mapper, segment_ids, original_key):
                 parts[1],
             )
         source["id"] = refs[old] = ":".join(parts)
-    for finding in value["findings"]:
+    for finding in value.get("findings", []):
         for citation in finding_citations(finding):
             citation["source_id"] = refs[citation["source_id"]]
     return value
@@ -801,6 +926,17 @@ def remap_report(report, mapper, segment_ids, *, original_round_id=None):
     value["fingerprint"] = ""
     value["config_revision"] = ""
     scope = value.get("scope")
+    if scope != "PIPELINE" and value.get("evidence_snapshot") is not None:
+        saved = deepcopy(value["evidence_snapshot"])
+        value["evidence_snapshot"] = saved
+        if saved.get("source_media_id"):
+            saved["source_media_id"] = mapper.get(
+                "RoundMedia", saved["source_media_id"]
+            )
+        _remap_sources(
+            saved, mapper, segment_ids, original_round_id or report.get("round_id")
+        )
+        value["evidence_fingerprint"] = fingerprint(saved)
     if scope == "INTERVIEW":
         value["round_id"] = mapper.get("Round", report["round_id"])
         value["source_media_id"] = (

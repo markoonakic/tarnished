@@ -485,7 +485,7 @@ async def import_payload_data(
         for key, new_id in (result.get("id_mappings") or {}).items():
             model_name, _, old_id = key.partition(":")
             mapper.add(model_name, old_id, new_id)
-        await verify_restored_report_text(
+        skipped_reports = await verify_restored_report_text(
             db, user_id, data, mapper, result.get("segment_ids") or {}
         )
         counts = result.get("counts", {})
@@ -496,7 +496,17 @@ async def import_payload_data(
             "statuses": counts.get("ApplicationStatus", 0),
             "round_types": counts.get("RoundType", 0),
             "media": counts.get("RoundMedia", 0),
-            "warnings": result.get("warnings", []),
+            "warnings": result.get("warnings", [])
+            + (
+                [
+                    "1 saved AI report could not be verified and was not imported"
+                    if skipped_reports == 1
+                    else f"{skipped_reports} saved AI reports could not be verified and were not imported"
+                ]
+                if skipped_reports
+                else []
+            ),
+            "skipped_reports": skipped_reports,
         }
 
     validated_data = ImportDataSchema(**data)

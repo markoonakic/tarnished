@@ -55,7 +55,7 @@ export default function InterviewFeedback({
       </div>
       <FeedbackStatus
         feedback={feedback}
-        requestLabel="interview feedback"
+        requestLabel={t('interview feedback')}
         emptyHint={t(
           'No feedback yet. Save a transcript and identify your answers as Candidate before requesting personal feedback.'
         )}

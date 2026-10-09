@@ -1,0 +1,5 @@
+{
+  "import.skippedReports_one": "{{count}} sačuvana AI analiza nije mogla da se proveri i nije uvezena",
+  "import.skippedReports_few": "{{count}} sačuvane AI analize nisu mogle da se provere i nisu uvezene",
+  "import.skippedReports_other": "{{count}} sačuvanih AI analiza nije moglo da se proveri i nisu uvezene"
+}

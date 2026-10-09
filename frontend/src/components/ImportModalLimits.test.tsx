@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ToastProvider } from '../contexts/ToastContext';
 
 const validateImport = vi.fn();
 const importData = vi.fn();
@@ -19,7 +20,11 @@ describe('ImportModal file limits', () => {
   it('accepts ZIP files larger than 100MB when still within backend archive limits', async () => {
     const { default: ImportModal } = await import('./ImportModal');
 
-    render(<ImportModal isOpen onClose={() => {}} onSuccess={() => {}} />);
+    render(
+      <ToastProvider>
+        <ImportModal isOpen onClose={() => {}} onSuccess={() => {}} />
+      </ToastProvider>
+    );
 
     const file = new File(['zip'], 'large-import.zip', {
       type: 'application/zip',

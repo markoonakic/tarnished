@@ -408,6 +408,18 @@ class ImportService:
         # (never authority). Report content is remapped to imported identities.
         for record in export_data["models"].get("Round", []):
             if record.get("interview_report") is not None:
+                # Historical input can contain passages from a replaced transcript.
+                # They remain local report data, never the current transcript.
+                report = record["interview_report"]
+                passages = (
+                    report.get("evidence_snapshot", {}).get("sources", [])
+                    if report.get("evidence_snapshot")
+                    else report["sources"]
+                )
+                for source in passages:
+                    if source.get("kind") == "transcript":
+                        key = (record["id"], source["segment_id"])
+                        self._interview_segment_ids.setdefault(key, str(uuid4()))
                 restored = session.get(Round, self.id_mapper.get("Round", record["id"]))
                 if restored is None:
                     raise ValueError(ERROR_MESSAGES["fk_integrity"])
