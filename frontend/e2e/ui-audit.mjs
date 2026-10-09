@@ -279,44 +279,33 @@ async function audit(page, state, lang, width) {
         el.scrollIntoView({ block: 'center', inline: 'nearest' });
       });
       await page.mouse.move(0, 0);
-      const normal = await control.evaluate(
-        (el) =>
-          new Promise((resolve) =>
-            requestAnimationFrame(() => {
-              const rect = el.getBoundingClientRect();
-              resolve({
-                bg: getComputedStyle(el).backgroundColor,
-                color: getComputedStyle(el).color,
-                x: rect.left + rect.width / 2,
-                y: rect.top + rect.height / 2,
-              });
-            })
-          )
-      );
+      // Pointer dispatch is awaited; getComputedStyle flushes styles with transitions disabled.
+      const normal = await control.evaluate((el) => {
+        const rect = el.getBoundingClientRect();
+        return {
+          bg: getComputedStyle(el).backgroundColor,
+          color: getComputedStyle(el).color,
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        };
+      });
       await page.mouse.move(normal.x, normal.y);
-      let hover = await control.evaluate(
-        (el) =>
-          new Promise((resolve) =>
-            requestAnimationFrame(() => {
-              const rect = el.getBoundingClientRect();
-              const hit = document.elementFromPoint(
-                rect.left + rect.width / 2,
-                rect.top + rect.height / 2
-              );
-              resolve({
-                bg: getComputedStyle(el).backgroundColor,
-                color: getComputedStyle(el).color,
-                reachable: hit === el || el.contains(hit),
-                hit:
-                  hit?.tagName +
-                  ':' +
-                  (hit?.getAttribute('data-ui') ||
-                    hit?.getAttribute('role') ||
-                    ''),
-              });
-            })
-          )
-      );
+      let hover = await control.evaluate((el) => {
+        const rect = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2
+        );
+        return {
+          bg: getComputedStyle(el).backgroundColor,
+          color: getComputedStyle(el).color,
+          reachable: hit === el || el.contains(hit),
+          hit:
+            hit?.tagName +
+            ':' +
+            (hit?.getAttribute('data-ui') || hit?.getAttribute('role') || ''),
+        };
+      });
       // A disappearing tooltip can move a target between frames. Retry with Playwright's stability check.
       if (!hover.reachable) {
         try {
@@ -389,7 +378,7 @@ async function audit(page, state, lang, width) {
         ([, v]) =>
           typeof v === 'string' && knownHelp.some((p) => v.startsWith(p))
       )
-      .map(([k]) => messages[lang][k])
+      .map(([k]) => messages[lang][k]?.split('{{')[0])
       .filter(Boolean),
   ];
   const structural = await page.evaluate((phrases) => {
@@ -398,9 +387,21 @@ async function audit(page, state, lang, width) {
       !!el.getClientRects().length &&
       getComputedStyle(el).visibility !== 'hidden' &&
       !el.closest('[aria-hidden="true"]');
-    for (const el of document.querySelectorAll('p')) {
-      if (!visible(el) || el.closest('[role="tooltip"]')) continue;
-      if (phrases.some((p) => el.textContent.trim().startsWith(p)))
+    for (const el of document.querySelectorAll('p,div,span')) {
+      if (
+        !visible(el) ||
+        el.closest('[role="tooltip"]') ||
+        (el.tagName !== 'P' && el.childElementCount > 0)
+      )
+        continue;
+      const text = el.textContent.trim();
+      if (
+        phrases.some(
+          (p) =>
+            text.startsWith(p) &&
+            (p !== 'From ' || /^From \d+ reviewed posting/.test(text))
+        )
+      )
         results.push({
           control: el.textContent.trim().slice(0, 160),
           issues: ['visible-help-sentence'],
@@ -450,19 +451,28 @@ async function audit(page, state, lang, width) {
           yOverlap > Math.min(a.height, b.height) * 0.5 && xOverlap <= 0
             ? -xOverlap
             : Infinity;
-        if (Math.min(vertical, horizontal) < 15.9)
+        if (
+          (xOverlap > 0 && yOverlap > 0) ||
+          Math.min(vertical, horizontal) < 15.9
+        )
           results.push({
             control:
               cards[i].el.textContent.trim().slice(0, 60) +
               ' / ' +
               cards[j].el.textContent.trim().slice(0, 60),
             issues: ['card-gap'],
-            gap: Math.min(vertical, horizontal),
+            gap:
+              xOverlap > 0 && yOverlap > 0
+                ? -Math.min(xOverlap, yOverlap)
+                : Math.min(vertical, horizontal),
           });
       }
     return results;
   }, help);
   report.violations.push(...structural.map((v) => ({ state: label, ...v })));
+  console.log(
+    `AUDIT ${label}: ${checked} controls; ${report.violations.length} total violations`
+  );
   report.states.push({ state: label, checked });
   report.checked += checked;
   reportWrite = reportWrite.then(() =>
@@ -491,7 +501,14 @@ async function panels(page, state, lang, width) {
       }))
     )
       continue;
+    const dialogsBefore = await page.locator('dialog[open]').count();
     await trigger.click();
+    if ((await page.locator('dialog[open]').count()) > dialogsBefore)
+      report.violations.push({
+        state,
+        control: await trigger.getAttribute('aria-label'),
+        issues: ['chevron-opens-modal'],
+      });
     await audit(page, `${state}-options-${i}`, lang, width);
     await trigger.press('Escape');
     await trigger.evaluate((el) => el.blur());
@@ -768,8 +785,9 @@ try {
                 name: messages[lang][key] || key,
                 exact: true,
               })
+              .and(page.locator('button:enabled'))
               .first();
-            if ((await action.isVisible()) && !(await action.isDisabled())) {
+            if (await action.isVisible()) {
               await action.click();
               await page.waitForLoadState('networkidle');
               await audit(page, '/admin:' + key, lang, width);
