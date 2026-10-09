@@ -429,12 +429,13 @@ async function audit(page, state, lang, width) {
           issues,
         });
     }
-    const cards = [...document.querySelectorAll('main .bg-secondary')]
+    const cardSelector = 'main .bg-secondary, main .bg-bg1';
+    const cards = [...document.querySelectorAll(cardSelector)]
       .filter(
         (el) =>
           visible(el) &&
           !el.closest('dialog,[data-ui="popover"]') &&
-          !el.parentElement.closest('main .bg-secondary')
+          !el.parentElement.closest(cardSelector)
       )
       .map((el) => ({ el, r: el.getBoundingClientRect() }));
     for (let i = 0; i < cards.length; i++)

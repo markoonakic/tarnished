@@ -270,6 +270,7 @@ export default function InterviewRecording({
             </HelpTip>
           </span>
           <FileButton
+            variant="primary"
             accept=".mp4,.webm,.mov,.mp3,.m4a,.wav,.ogg"
             onChange={(e) => void handleMediaUpload(e)}
             disabled={uploading}

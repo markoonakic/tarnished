@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import Button from './Button';
 import TextLink from './TextLink';
 import Dropdown from '../Dropdown';
+import FileButton from '../FileButton';
 
 afterEach(cleanup);
 it.each(['primary', 'ghost', 'danger', 'icon'] as const)(
@@ -46,6 +47,22 @@ it('an action inside a form does not submit unless explicitly requested', () => 
   expect(submit).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(submit).toHaveBeenCalledOnce();
+});
+it('file pickers keep primary upload and secondary replacement variants', () => {
+  render(
+    <>
+      <FileButton variant="primary">Upload</FileButton>
+      <FileButton>Replace</FileButton>
+    </>
+  );
+  expect(screen.getByRole('button', { name: 'Upload' })).toHaveAttribute(
+    'data-variant',
+    'primary'
+  );
+  expect(screen.getByRole('button', { name: 'Replace' })).toHaveAttribute(
+    'data-variant',
+    'ghost'
+  );
 });
 it('navigation stays a link with no background or button role', () => {
   render(

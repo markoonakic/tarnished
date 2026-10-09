@@ -181,6 +181,7 @@ export default function DocumentSection({
                 />
               )}
               <FileButton
+                variant="primary"
                 accept=".pdf,.doc,.docx,.txt"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
