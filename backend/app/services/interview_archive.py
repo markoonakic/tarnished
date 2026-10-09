@@ -67,6 +67,7 @@ class BoundedEvidenceSnapshot(BaseModel):
 
     model_config = ConfigDict(extra="forbid", strict=True)
     sources: list[ReportSource] = Field(min_length=1, max_length=10000)
+    source_media_id: str | None = Field(default=None, max_length=36)
 
 
 class ArchivedInterviewReport(BaseModel):
@@ -173,6 +174,10 @@ def _validate_passage_snapshot(value, models, app_id):
         fingerprint(saved.model_dump(exclude_unset=True)) == value.evidence_fingerprint
     )
     _require(sum(len(s.text) for s in saved.sources) <= 2_300_000)
+    _require(
+        saved.source_media_id
+        == (value.source_media_id if value.scope == "INTERVIEW" else None)
+    )
     rounds = {r["id"]: r for r in models.get("Round", [])}
     histories = {r["id"]: r for r in models.get("ApplicationStatusHistory", [])}
     seen = set()
@@ -401,6 +406,13 @@ def validate_reports_archive(models):
                 _validate_passage_snapshot(value, models, app["id"])
             else:
                 _require(value.evidence_fingerprint is None)
+                transcript = row.get("current_transcript")
+                if transcript and any(s.kind == "transcript" for s in value.sources):
+                    _require(value.source_media_id == transcript.get("source_media_id"))
+                    _require(
+                        transcript.get("provenance") != "media"
+                        or value.source_media_id is not None
+                    )
             source_ids = set()
             for source in value.sources:
                 _require(source.id not in source_ids)
@@ -536,39 +548,20 @@ def _expected_index(regenerated_sources, inverse):
     return index
 
 
-def _verify_report_sources(report, candidates, *, strict=False):
-    """Require every archived passage to equal a passage re-derived locally.
+def _verify_report_sources(report, candidates):
+    """Require exact retained or locally rebuilt text for every passage.
 
-    Shape checks alone let a tampered archive carry fabricated evidence text that
-    the recipient UI renders as grounded. A source passes only when some locally
-    re-derived candidate reproduces its exact text; fabricated text matches none.
-
-    `candidates` is a list of indexes because one scope has two legitimate shapes
-    (an application report may or may not have included other rounds' interview
-    findings when it ran). Document kinds are verified only when the regenerated
-    evidence contains them: an attachment whose text cannot be re-extracted
-    locally is left to the pre-mutation existence check, matching the existing
-    pasted-versus-attachment discipline.
+    Even an existing attachment does not prove a legacy quoted passage when its
+    text cannot be extracted. Skip that report instead of accepting unknown text.
     """
     if not report:
         return
-    degraded = {"document", "cv", "cover_letter"}
     for source in report.get("sources", []):
-        seen = False
-        for expected in candidates:
-            text = expected.get(source["id"])
-            if text is None:
-                continue
-            seen = True
-            if text == source["text"]:
-                break
-        else:
-            # The document exists, but its text may not be locally extractable.
-            if not strict and not seen and source.get("kind") in degraded:
-                continue
+        if not any(
+            expected.get(source["id"]) == source["text"] for expected in candidates
+        ):
             raise ValueError(
-                "Report source text does not match the re-derived evidence: "
-                + source["id"]
+                "Report source text does not match verified input: " + source["id"]
             )
 
 
@@ -669,8 +662,8 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
         inverse[new_segment_id] = old_segment_id
     skipped = 0
 
-    def verify_content(report, candidates, *, strict=False, input_sources=None):
-        _verify_report_sources(report, candidates, strict=strict)
+    def verify_content(report, candidates, *, input_sources=None):
+        _verify_report_sources(report, candidates)
         if input_sources is not None:
             index = {s["id"]: s for s in input_sources}
             for source in report["sources"]:
@@ -715,7 +708,6 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
                 verify_content(
                     checked,
                     candidates,
-                    strict=saved is not None,
                     input_sources=saved["sources"] if saved else expected,
                 )
             except ValueError:
@@ -753,7 +745,6 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
                 verify_content(
                     checked,
                     variants,
-                    strict=saved is not None,
                     input_sources=saved["sources"] if saved else None,
                 )
             except ValueError:
@@ -796,9 +787,7 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
                     archived_report["evidence_snapshot"]
                 )
                 try:
-                    verify_content(
-                        report, [{s["id"]: s["text"] for s in expected}], strict=True
-                    )
+                    verify_content(report, [{s["id"]: s["text"] for s in expected}])
                 except ValueError:
                     skipped += 1
                     await db.execute(
@@ -940,6 +929,10 @@ def remap_report(report, mapper, segment_ids, *, original_round_id=None):
     if scope != "PIPELINE" and value.get("evidence_snapshot") is not None:
         saved = deepcopy(value["evidence_snapshot"])
         value["evidence_snapshot"] = saved
+        if saved.get("source_media_id"):
+            saved["source_media_id"] = mapper.get(
+                "RoundMedia", saved["source_media_id"]
+            )
         _remap_sources(
             saved, mapper, segment_ids, original_round_id or report.get("round_id")
         )

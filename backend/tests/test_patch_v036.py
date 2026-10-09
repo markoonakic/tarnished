@@ -16,6 +16,24 @@ from app.services.import_execution import import_payload_data
 from app.services.interview_evidence import fingerprint
 
 
+def test_unextractable_legacy_document_passage_is_not_trusted():
+    from app.services.interview_archive import _verify_report_sources
+
+    with pytest.raises(ValueError):
+        _verify_report_sources(
+            {
+                "sources": [
+                    {
+                        "id": "document:owned:cv:0",
+                        "kind": "cv",
+                        "text": "Invented passage",
+                    }
+                ]
+            },
+            [{}],
+        )
+
+
 @pytest.mark.parametrize("scope", ["INTERVIEW", "APPLICATION"])
 async def test_publication_retains_original_bounded_input(
     client, db, workspace, monkeypatch, scope
