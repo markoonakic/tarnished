@@ -402,7 +402,7 @@ it('opens the collapsed question editor when Add is clicked', async () => {
   const header = screen.getByRole('button', { name: 'Questions & answers' });
   expect(header).toHaveAttribute('aria-expanded', 'false');
   fireEvent.click(
-    within(header.closest('section')!).getByRole('button', { name: '+ Add' })
+    within(header.closest('section')!).getByRole('button', { name: 'Add' })
   );
   expect(header).toHaveAttribute('aria-expanded', 'true');
   expect(screen.getByRole('textbox', { name: 'Question' })).toBeVisible();

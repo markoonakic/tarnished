@@ -1,6 +1,7 @@
 import { t } from '@/lib/i18n';
 import LanguageSwitch from '@/components/LanguageSwitch';
 import { useTranslation } from 'react-i18next';
+import HelpTip from '@/components/HelpTip';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -124,6 +125,13 @@ export default function Register() {
               : needsSetup
                 ? t('Create the first admin account')
                 : t('accounts.createAccount')}
+            {!sent && !needsSetup && (
+              <span className="ml-2">
+                <HelpTip label={t('accounts.approvalIntro')}>
+                  {t('accounts.approvalIntro')}
+                </HelpTip>
+              </span>
+            )}
           </h1>
           {checking && <p role="status">{t('Checking setup status...')}</p>}
           {error && (
@@ -136,13 +144,13 @@ export default function Register() {
           )}
           {!checking && needsSetup !== null && !sent && !setupComplete && (
             <>
-              <p>
-                {needsSetup
-                  ? t(
-                      'Create an administrator account to start using Tarnished.'
-                    )
-                  : t('accounts.approvalIntro')}
-              </p>
+              {needsSetup && (
+                <p>
+                  {t(
+                    'Create an administrator account to start using Tarnished.'
+                  )}
+                </p>
+              )}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label

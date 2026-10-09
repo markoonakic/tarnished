@@ -973,7 +973,7 @@ export default function Profile() {
                             className="bi-plus-lg icon-sm"
                             aria-hidden="true"
                           />
-                          + {label(`add_${section.key}`)}
+                          {label(`add_${section.key}`)}
                         </button>
                       </div>
                     ) : isEditing ? (

@@ -293,7 +293,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
                   {jobLead.company_id ? (
                     <Link
                       to={'/companies/' + jobLead.company_id}
-                      className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+                      className="text-fg1 hover:text-accent-bright focus:ring-accent cursor-pointer font-medium transition-all duration-200 ease-in-out focus:ring-2"
                     >
                       {jobLead.company || t('Unknown Company')}
                     </Link>

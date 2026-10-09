@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import HelpTip from '../HelpTip';
 import { useTranslation } from 'react-i18next';
 import { useDashboardOverview } from '@/hooks/useDashboardOverview';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -27,14 +28,17 @@ export default function DashboardPipelineStrip() {
         </p>
       )}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-primary text-lg font-semibold">
+        <h2 className="text-fg1 flex items-center gap-2 text-lg font-semibold">
           {t('tasks.pipeline')}
+          <HelpTip label={t('tasks.pipeline')}>
+            {t('tasks.pipelineTotal', {
+              count: pipeline.reduce(
+                (total, status) => total + status.count,
+                0
+              ),
+            })}
+          </HelpTip>
         </h2>
-        <span className="text-muted text-xs">
-          {t('tasks.pipelineTotal', {
-            count: pipeline.reduce((total, status) => total + status.count, 0),
-          })}
-        </span>
       </div>
       <div className="mb-3 flex h-3 overflow-hidden rounded-full">
         {pipeline
@@ -48,7 +52,7 @@ export default function DashboardPipelineStrip() {
                 backgroundColor: getStatusColor(s.name, colors, s.color),
               }}
               aria-label={statusLabel(s) + ' ' + s.count}
-              className="focus:ring-accent focus:ring-2"
+              className="focus:ring-accent cursor-pointer transition-all duration-200 ease-in-out hover:brightness-125 focus:ring-2"
             />
           ))}
       </div>

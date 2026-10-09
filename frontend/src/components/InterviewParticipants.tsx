@@ -77,7 +77,7 @@ export default function InterviewParticipants({
           onClick={() => setAdding(!adding)}
           className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
         >
-          <i className="bi-plus-lg icon-sm" aria-hidden="true" />+{' '}
+          <i className="bi-plus-lg icon-sm" aria-hidden="true" />
           {t('tasks.addParticipant')}
         </button>
       </div>

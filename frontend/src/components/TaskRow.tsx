@@ -17,7 +17,7 @@ export default function TaskRow({
   const actions = useReminderActions();
   const done = item.state !== 'open';
   return (
-    <div className="bg-tertiary flex flex-wrap items-center gap-3 rounded-lg p-4">
+    <div className="bg-tertiary grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-lg p-4 sm:flex sm:flex-wrap sm:items-center">
       <button
         type="button"
         aria-label={t(done ? 'kit.reopenReminder' : 'kit.completeReminder', {
@@ -46,7 +46,7 @@ export default function TaskRow({
         <ReminderRelated item={item} />
       </div>
       <span
-        className={`text-xs ${!done && new Date(item.due_at) < new Date() ? 'text-red-bright' : 'text-muted'}`}
+        className={`col-start-2 row-start-2 text-xs ${!done && new Date(item.due_at) < new Date() ? 'text-red-bright' : 'text-muted'}`}
       >
         {done ? t('kit.' + item.state) : dueText(item.due_at, zone)}
       </span>
@@ -60,7 +60,7 @@ export default function TaskRow({
         </button>
       )}
       {onEdit && (
-        <details className="relative">
+        <details className="relative col-start-3 row-start-1">
           <summary
             className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer list-none rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
             title={t('kit.reminderActions', { title: item.title })}

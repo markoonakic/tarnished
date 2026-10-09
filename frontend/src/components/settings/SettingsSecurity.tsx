@@ -4,6 +4,7 @@ import { useState } from 'react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import PasswordInput from '../PasswordInput';
+import HelpTip from '../HelpTip';
 import { newPasswordError } from '../../lib/password';
 import { SettingsBackLink } from './SettingsLayout';
 import DeleteAccountCard from '../accounts/DeleteAccountCard';
@@ -47,17 +48,19 @@ export default function SettingsSecurity() {
   }
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-6">
       <div className="md:hidden">
         <SettingsBackLink />
       </div>
       <div className="bg-secondary space-y-4 rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 text-xl font-bold">{t('Security')}</h2>
-        <p className="text-muted">
-          {t(
-            'Changing your password signs out all browser sessions. API keys stay active; you can revoke them in API Keys.'
-          )}
-        </p>
+        <h2 className="text-fg1 flex items-center gap-2 text-lg font-semibold">
+          {t('Security')}{' '}
+          <HelpTip label={t('Security')}>
+            {t(
+              'Changing your password signs out all browser sessions. API keys stay active; you can revoke them in API Keys.'
+            )}
+          </HelpTip>
+        </h2>
         {error && (
           <p role="alert" className="text-red-bright">
             {error}

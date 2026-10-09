@@ -501,7 +501,7 @@ function InterviewPage({ id }: { id?: string }) {
                     edit('questions');
                   }}
                 >
-                  <i className="bi-plus-lg icon-sm" aria-hidden="true" />+{' '}
+                  <i className="bi-plus-lg icon-sm" aria-hidden="true" />
                   {t('tasks.add')}
                 </button>
               }
@@ -573,7 +573,7 @@ function InterviewPage({ id }: { id?: string }) {
                         ])
                       }
                     >
-                      <i className="bi-plus-lg icon-sm" aria-hidden="true" />+{' '}
+                      <i className="bi-plus-lg icon-sm" aria-hidden="true" />
                       {t('tasks.add')}
                     </button>
                     {field('impressions')}

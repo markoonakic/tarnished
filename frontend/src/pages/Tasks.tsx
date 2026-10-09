@@ -328,7 +328,7 @@ export default function Tasks() {
                             <Link
                               key={r.id}
                               to={`/interviews/${r.id}`}
-                              className="bg-tertiary hover:bg-bg3 focus:ring-accent hover:bg-bg2 flex w-full cursor-pointer flex-wrap gap-3 rounded-lg p-4 text-left text-sm transition-[translate,background-color] transition-all duration-200 ease-in-out will-change-transform hover:-translate-y-0.5 focus:ring-2"
+                              className="bg-tertiary hover:bg-bg3 focus:ring-accent grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-start gap-3 rounded-lg p-4 text-left text-sm transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5 focus:ring-2 sm:flex sm:flex-wrap"
                             >
                               <span className="text-orange-bright">
                                 {new Date(r.scheduled_at!).toLocaleTimeString(
@@ -352,7 +352,7 @@ export default function Tasks() {
                                 {roundTypeLabel(r.round_type)}
                               </span>
                               <span
-                                className={`rounded px-2 py-1 text-xs ${r.outcome === 'passed' ? 'bg-green-bright/10 text-green-bright' : r.outcome === 'failed' ? 'bg-red-bright/10 text-red-bright' : 'bg-orange-bright/10 text-orange-bright'}`}
+                                className={`justify-self-start rounded px-2 py-1 text-xs ${r.outcome === 'passed' ? 'bg-green-bright/10 text-green-bright' : r.outcome === 'failed' ? 'bg-red-bright/10 text-red-bright' : 'bg-orange-bright/10 text-orange-bright'}`}
                               >
                                 ●{' '}
                                 {t('tasks.outcome.' + (r.outcome || 'pending'))}

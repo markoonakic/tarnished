@@ -117,7 +117,7 @@ export default function LinkedContacts({
           className={actionClass}
           onClick={() => setPicker(!picker)}
         >
-          <i className="bi-arrow-right icon-sm" aria-hidden="true" />+{' '}
+          <i className="bi-arrow-right icon-sm" aria-hidden="true" />
           {t('companies.linkContact')}
         </button>
       }
