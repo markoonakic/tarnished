@@ -3,7 +3,7 @@ title: Tarnished documentation
 description: Install and use the Tarnished self-hosted job application tracker.
 ---
 
-Tarnished 0.3.2 keeps applications, leads, documents, interview rounds and
+Tarnished 0.3.3 keeps applications, leads, documents, interview rounds and
 analytics on your own infrastructure. AI extraction, feedback and speech
 transcription are optional.
 

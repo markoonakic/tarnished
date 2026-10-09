@@ -5,7 +5,7 @@ description: Reference for Tarnished environment variables and their deployment 
 ---
 
 This page separates Compose-file inputs from variables passed to the backend.
-The install guides target Tarnished 0.3.2.
+The install guides target Tarnished 0.3.3.
 
 ## Common install-time variables
 
@@ -16,7 +16,7 @@ Used by the Docker Compose install files to override the published Tarnished ima
 Example:
 
 ```bash
-TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.3.2 docker compose up -d
+TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.3.3 docker compose up -d
 ```
 
 ### `APP_PORT`

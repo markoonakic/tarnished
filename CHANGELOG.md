@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.3] - 2026-10-09
+
+### Fixed
+
+- Preserve unknown sent dates when restoring Preparing applications from an archive.
+- Show explicit extraction and feedback retry dialogs instead of browser confirmation prompts.
+- Keep edited and rejected proposals when accepting the remaining extraction rows.
+- Refresh contact-link revisions after extraction and use only reviewed requirements after review.
+- Use consistent localized dates and the selected time zone for record timestamps.
+- Translate profile evidence, import phases, key presets and current extraction values; fix Serbian plurals and person labels.
+- Open Questions & answers when adding a question and keep reminder shortcuts inside their card.
+- Tell feedback models to use bounded exact citations instead of oversized source objects; keep the strict 2000-character validator.
+
 ## [0.3.2] - 2026-10-09
 
 ### Fixed
