@@ -1,6 +1,6 @@
 ---
 title: Install with Helm
-description: Install Tarnished 0.3.5 on Kubernetes with persistent storage.
+description: Install Tarnished 0.3.6 on Kubernetes with persistent storage.
 ---
 
 You need Kubernetes 1.23 or newer, Helm 3.8 or newer, `kubectl` and a working
@@ -12,7 +12,7 @@ separately.
 
 ```bash
 helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
-  --version 0.3.5 --namespace tarnished --create-namespace
+  --version 0.3.6 --namespace tarnished --create-namespace
 kubectl rollout status -n tarnished deploy/tarnished
 kubectl port-forward -n tarnished svc/tarnished 5577:5577
 ```
@@ -47,7 +47,7 @@ Use this install command instead of the SQLite command:
 
 ```bash
 helm install tarnished oci://ghcr.io/markoonakic/charts/tarnished \
-  --version 0.3.5 --namespace tarnished --create-namespace \
+  --version 0.3.6 --namespace tarnished --create-namespace \
   --values values-production.yaml
 ```
 
