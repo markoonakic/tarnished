@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.4] - 2026-10-09
+
+### Fixed
+
+- Restore ZIP archives with saved pipeline feedback, including stale reports and saved profile comparisons. Keep the original bounded input snapshot, exact citation checks and owner-scoped references; imported results remain unverified and inactive.
+- Verify older pipeline reports against recorded historical status data instead of changed live statuses.
+- Use correct English and Serbian preparation, pipeline and posting count forms. Check all Serbian count labels for one, few and other forms.
+- Add archive round-trip coverage for saved interview, application and pipeline feedback, reviewed extraction, profile comparisons and preparation drafts.
+
 ## [0.3.3] - 2026-10-09
 
 ### Fixed

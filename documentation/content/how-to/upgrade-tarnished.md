@@ -20,7 +20,7 @@ Preserve local overrides, the database password, URL and port binding. Set the
 image in `.env`:
 
 ```dotenv
-TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.3.3
+TARNISHED_IMAGE=ghcr.io/markoonakic/tarnished:0.3.4
 ```
 
 A shell `TARNISHED_IMAGE` overrides `.env`. From the install directory:
@@ -39,7 +39,7 @@ Keep your existing values, PVC and Secrets:
 
 ```bash
 helm upgrade tarnished oci://ghcr.io/markoonakic/charts/tarnished \
-  --version 0.3.3 --namespace tarnished --values values-production.yaml
+  --version 0.3.4 --namespace tarnished --values values-production.yaml
 kubectl rollout status -n tarnished deploy/tarnished
 ```
 
