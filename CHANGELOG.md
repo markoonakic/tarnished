@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.7] - 2026-10-09
+
+### Fixed
+
+- Restore complete interview round cards on application pages, including media, transcript editing, feedback, scheduled and completed times, and summary notes. Keep the interview detail page and its new fields.
+- Use the existing button, link, card and hover styles across the account, profile, company, contact, lead, application, interview and task screens. Fix gaps between detail and analytics cards.
+- Put analytics, board, profile, document and review explanations in translated help tips instead of footnotes. Keep disabled-action guidance in tooltips.
+- Group tasks inside cards and collapse deadlines without reminders into one closed group.
+
+### Added
+
+- Optional browser notifications for due reminders while the app is open. Ask permission only when enabled, check each minute, remember notified IDs per account in this browser, and open Tasks when a notification is selected. No push service or background server is required.
+- Tests for complete round cards, notification permission and polling, duplicate prevention, reminder owner isolation, collapsed deadlines and help tips.
+
 ## [0.3.6] - 2026-10-09
 
 ### Fixed
