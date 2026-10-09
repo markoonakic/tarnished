@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.5] - 2026-10-09
+
+### Fixed
+
+- Select profile permission-count forms from the total number of items, including Serbian singular and few forms.
+- Use singular English proposal and legacy pagination labels, with complete Serbian count-form coverage.
+- Test profile totals in the page and include all inflected count labels in the shared language tests.
+
 ## [0.3.4] - 2026-10-09
 
 ### Fixed

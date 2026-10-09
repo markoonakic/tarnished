@@ -4,7 +4,7 @@ sidebar_position: 3
 description: Understand Tarnished authentication modes and API key scope design.
 ---
 
-This page describes authentication in Tarnished 0.3.4. See
+This page describes authentication in Tarnished 0.3.5. See
 [account setup](../get-started/create-admin-account.md) for owner setup and recovery.
 
 Tarnished uses two different authentication styles depending on the client.
