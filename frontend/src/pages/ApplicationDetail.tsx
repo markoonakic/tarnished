@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from '@/lib/displayDate';
 import { t, locale } from '@/lib/i18n';
 import { statusLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
@@ -191,17 +192,6 @@ function ApplicationDetailContent({ id }: { id: string }) {
       setError(errorMsg);
       showError(errorMsg);
     }
-  }
-
-  function formatDate(dateStr: string | null) {
-    if (!dateStr) return '-';
-    // Applied dates are calendar dates, not instants in the device zone.
-    return new Date(dateStr).toLocaleDateString(locale(), { timeZone: 'UTC' });
-  }
-
-  function formatDateTime(dateStr: string | null) {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString(locale());
   }
 
   if (loading) {
@@ -585,7 +575,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
                 generation: state.generation,
                 config_revision: state.capability.configuration_revision,
               })}
-              requestLabel="application feedback"
+              requestLabel={t('application feedback')}
               onClose={() => setShowFeedback(false)}
               emptyHint={t(
                 "No feedback yet. Get suggestions from this application's saved details."

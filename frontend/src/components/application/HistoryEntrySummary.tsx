@@ -1,4 +1,5 @@
-import { t, locale } from '@/lib/i18n';
+import { formatDateTime } from '@/lib/displayDate';
+import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import type { ApplicationStatusHistory } from '../../lib/types';
 import { historyStage } from '../../lib/history';
@@ -45,7 +46,7 @@ export default function HistoryEntrySummary({
       </div>
       <p className="text-muted text-xs">
         {entry.time_provenance === 'recorded'
-          ? new Date(entry.changed_at).toLocaleString(locale())
+          ? formatDateTime(entry.changed_at)
           : t('Date not confirmed')}
         {entry.corrected_at ? t('· Edited') : ''}
       </p>

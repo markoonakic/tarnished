@@ -1,8 +1,9 @@
+import { formatDate } from '@/lib/displayDate';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiV030, type Attachment, type AttachmentKind } from '@/lib/apiV030';
 import { errorMessage } from '@/lib/errorMessage';
-import { locale } from '@/lib/i18n';
+
 import type { Application } from '@/lib/types';
 import Dropdown from '../Dropdown';
 import Modal from '../Modal';
@@ -80,7 +81,7 @@ export default function ApplicationOtherFiles({
               </span>
               <span className="text-muted text-xs">
                 {Math.ceil(item.byte_count / 1024)} KB ·{' '}
-                {new Date(item.uploaded_at).toLocaleDateString(locale())}
+                {formatDate(item.uploaded_at)}
               </span>
               <div className="flex shrink-0 gap-1">
                 <button

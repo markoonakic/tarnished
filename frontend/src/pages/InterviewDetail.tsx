@@ -1,3 +1,4 @@
+import { formatDateTime, formatDate as displayDate } from '@/lib/displayDate';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +20,7 @@ import {
   type QuestionAnswer,
 } from '@/lib/apiV030';
 import type { Round } from '@/lib/types';
-import { locale } from '@/lib/i18n';
+
 import { roundTypeLabel } from '@/lib/referenceLabels';
 import { historyInstant, historyLocalTime } from '@/lib/historyDateTime';
 import { getEffectiveTimeZone } from '@/lib/roundDateTime';
@@ -61,6 +62,7 @@ function InterviewPage({ id }: { id?: string }) {
   const [draftRevision, setDraftRevision] = useState(0);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [questions, setQuestions] = useState<QuestionAnswer[]>([]);
+  const [questionsOpen, setQuestionsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const interview = query.data;
@@ -211,11 +213,7 @@ function InterviewPage({ id }: { id?: string }) {
     );
   }
   const formatDate = (value: string, timeZone: string) =>
-    new Date(value).toLocaleString(locale(), {
-      timeZone,
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    });
+    formatDateTime(value, timeZone);
   const reminders = interview
     ? [
         ...(interview.scheduled_at
@@ -483,9 +481,16 @@ function InterviewPage({ id }: { id?: string }) {
             <CollapsibleCard
               title={t('tasks.questionsAnswers')}
               icon="bi-chat-left-text"
-              defaultOpen={false}
+              open={questionsOpen}
+              onOpenChange={setQuestionsOpen}
               actions={
-                <button className={ghost} onClick={() => edit('questions')}>
+                <button
+                  className={ghost}
+                  onClick={() => {
+                    setQuestionsOpen(true);
+                    edit('questions');
+                  }}
+                >
                   + {t('tasks.add')}
                 </button>
               }
@@ -662,12 +667,7 @@ function InterviewPage({ id }: { id?: string }) {
                     </p>
                     <p className="text-primary mt-1 text-sm">
                       {interview.expected_reply_on
-                        ? new Date(
-                            `${interview.expected_reply_on}T12:00Z`
-                          ).toLocaleDateString(locale(), {
-                            timeZone: 'UTC',
-                            dateStyle: 'medium',
-                          })
+                        ? displayDate(interview.expected_reply_on)
                         : '—'}
                       {interview.expected_reply_on &&
                         shortcut('expected_feedback', true)}

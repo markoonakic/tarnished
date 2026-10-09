@@ -1,3 +1,4 @@
+import { formatDate } from '@/lib/displayDate';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/Card';
@@ -48,7 +49,7 @@ export default function ExtractionReview({
   onUpdated?: () => void;
   hideEmpty?: boolean;
 }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const controller = useJobAnalysis('EXTRACTION', target, refreshKey);
   const { analysis, busy, loading, running } = controller;
   const [choices, setChoices] = useState<Record<string, ReviewChoice>>({});
@@ -151,9 +152,7 @@ export default function ExtractionReview({
     return (
       <Card
         title={t('ai.reviewedSummary', {
-          date: new Intl.DateTimeFormat(
-            i18n.language === 'sr-Latn' ? 'sr-Latn-RS' : 'en-GB'
-          ).format(new Date(analysis.updated_at)),
+          date: formatDate(analysis.updated_at),
           accepted: analysis.reviewed.filter(
             (row) => row.decision === 'accepted'
           ).length,
@@ -195,15 +194,19 @@ export default function ExtractionReview({
               className={ghost}
               disabled={disabled || analysis?.stale}
               onClick={() => {
-                setChoices(
-                  Object.fromEntries(
+                setChoices((current) => ({
+                  ...Object.fromEntries(
                     items.map((item) => [
                       item.id,
-                      { id: item.id, decision: 'accepted', value: item.value },
+                      {
+                        id: item.id,
+                        decision: 'accepted' as const,
+                        value: item.value,
+                      },
                     ])
-                  )
-                );
-                setEditing(null);
+                  ),
+                  ...current,
+                }));
               }}
             >
               {t('ai.acceptAll')}
@@ -285,7 +288,11 @@ export default function ExtractionReview({
                     )}
                     {currentValue != null && currentValue !== '' && (
                       <p className="text-muted mt-1 text-xs">
-                        {t('ai.current', { value: String(currentValue) })}
+                        {t('ai.current', {
+                          value: String(
+                            displayValue(item.field, String(currentValue))
+                          ),
+                        })}
                       </p>
                     )}
                     <blockquote className="border-accent text-muted mt-1 border-l pl-3 text-xs italic">

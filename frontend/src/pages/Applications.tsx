@@ -1,4 +1,5 @@
-import { t, locale } from '@/lib/i18n';
+import { formatDate } from '@/lib/displayDate';
+import { t } from '@/lib/i18n';
 import ApplicationBoard from '@/components/ApplicationBoard';
 import ApplicationsViewSwitch from '../components/slots/ApplicationsViewSwitch';
 import { statusLabel } from '@/lib/referenceLabels';
@@ -167,12 +168,6 @@ export default function Applications() {
   }
 
   const totalPages = Math.ceil(total / perPage);
-
-  function formatDate(dateStr: string | null) {
-    if (!dateStr) return '—';
-    // Applied dates are calendar dates, not instants in the device zone.
-    return new Date(dateStr).toLocaleDateString(locale(), { timeZone: 'UTC' });
-  }
 
   return (
     <Layout>

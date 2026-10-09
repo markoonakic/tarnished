@@ -64,7 +64,11 @@
   "companies.noLinkedContacts": "No linked contacts.",
   "companies.failed": "The request failed. Try again.",
   "companies.confirmDelete": "Confirm deletion",
-  "companies.deleteCompanyWarning": "{{leads}} job leads and {{applications}} applications will keep the company name, but lose the link. Company notes and reminders will be deleted.",
+  "companies.deleteCompanyWarning": "{{leads}} and {{applications}} will keep the company name, but lose the link. Company notes and reminders will be deleted.",
+  "companies.linkedLeads_one": "{{count}} job lead",
+  "companies.linkedLeads_other": "{{count}} job leads",
+  "companies.linkedApplications_one": "{{count}} application",
+  "companies.linkedApplications_other": "{{count}} applications",
   "companies.deleteContactWarning": "Delete this contact? Linked applications and interviews will stay. Contact notes and reminders will be deleted.",
   "companies.deleteNote": "Delete this note permanently?",
   "companies.deleteReminder": "Delete this reminder permanently?",
@@ -80,5 +84,7 @@
   "companies.outcome.pending": "Pending",
   "companies.outcome.passed": "Passed",
   "companies.outcome.failed": "Failed",
-  "companies.outcome.cancelled": "Cancelled"
+  "companies.outcome.cancelled": "Cancelled",
+  "companies.linkedLeads_few": "{{count}} job leads",
+  "companies.linkedApplications_few": "{{count}} applications"
 }

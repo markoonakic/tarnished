@@ -153,6 +153,43 @@ it('does not replay an uncertain request after navigation to another record', as
   );
 });
 
+it.each([
+  ['en', 'Years of experience: 1'],
+  ['sr-Latn', 'Godine iskustva: 1'],
+])('shows a human scalar evidence label in %s', async (language, label) => {
+  await i18n.changeLanguage(language);
+  latest(
+    {
+      ...base,
+      kind: 'PROFILE_MATCH',
+      draft: {
+        rows: [
+          {
+            requirement_id: 'r1',
+            state: 'confirmed',
+            why: 'Saved data',
+            evidence: [{ profile_id: 'years_experience', quote: '1.0' }],
+          },
+        ],
+      },
+    },
+    base.requirements,
+    [{ id: 'years_experience', name: 'years_experience', text: '1.0' }]
+  );
+  render(
+    <MemoryRouter>
+      <ProfileMatch target={{ lead_id: 'lead' }} legacy={['Basic Python']} />
+    </MemoryRouter>
+  );
+  expect(await screen.findByRole('link', { name: label })).toHaveAttribute(
+    'href',
+    '/profile#years_experience'
+  );
+  expect(
+    screen.queryByText(/Not reviewed|Nije pregledano/)
+  ).not.toBeInTheDocument();
+});
+
 it('has complete natural Serbian area strings', () => {
   expect(Object.keys(en).sort()).toEqual(Object.keys(sr).sort());
   expect(sr['ai.profileMatch']).toBe('Poređenje sa profilom');
@@ -194,6 +231,49 @@ it('reads without starting AI, saves reviewed choices atomically and collapses',
     screen.queryByRole('button', { name: 'Accept Python' })
   ).not.toBeInTheDocument();
 });
+it('Accept all keeps existing edits and rejections', async () => {
+  latest({
+    ...base,
+    draft: {
+      items: [
+        proposal,
+        { ...proposal, id: 'r2', value: 'SQL' },
+        { ...proposal, id: 'r3', value: 'Redis' },
+      ],
+    },
+  });
+  vi.mocked(analysesApi.review).mockResolvedValue({
+    ...base,
+    review_state: 'saved',
+  });
+  render(
+    <ExtractionReview target={{ lead_id: 'lead' }} source="Python required" />
+  );
+  const edit = await screen.findByRole('button', { name: 'Edit Python' });
+  await waitFor(() => expect(edit).toBeEnabled());
+  fireEvent.click(edit);
+  fireEvent.change(
+    screen.getByRole('textbox', { name: 'Edit proposed value' }),
+    { target: { value: 'Python services' } }
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Reject SQL' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Accept all' }));
+  expect(screen.getByText('Python services')).toBeVisible();
+  expect(screen.getByText('Rejected')).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Save reviewed' }));
+  await waitFor(() =>
+    expect(analysesApi.review).toHaveBeenCalledWith(
+      expect.objectContaining({ id: base.id }),
+      expect.arrayContaining([
+        { id: 'r1', decision: 'edited', value: 'Python services' },
+        { id: 'r2', decision: 'rejected', value: 'SQL' },
+        { id: 'r3', decision: 'accepted', value: 'Redis' },
+      ])
+    )
+  );
+});
+
 it('keeps edited drafts after conflict, supports reject and undo', async () => {
   vi.mocked(analysesApi.review).mockRejectedValue(new Error('409'));
   render(

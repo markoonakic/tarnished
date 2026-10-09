@@ -130,6 +130,7 @@ export function useFeedback<T extends FeedbackState = FeedbackState>(
   const pending = useRef(new Map<string, Attempt>());
   const epoch = useRef(0);
   const [attempts, setAttempts] = useState<Record<string, Attempt>>({});
+  const [confirmRetry, setConfirmRetry] = useState(false);
 
   function updateAttempt(key: string, value?: Attempt) {
     if (value) pending.current.set(key, value);
@@ -146,6 +147,7 @@ export function useFeedback<T extends FeedbackState = FeedbackState>(
     epoch.current += 1;
     pending.current.clear();
     setAttempts({});
+    setConfirmRetry(false);
     return () => {
       epoch.current += 1;
     };
@@ -205,7 +207,7 @@ export function useFeedback<T extends FeedbackState = FeedbackState>(
     }
   }
 
-  async function request() {
+  async function request(confirmed = false) {
     const old = pending.current.get(identity);
     if (old?.phase === 'unknown' && !old.checked) {
       await refresh();
@@ -220,15 +222,11 @@ export function useFeedback<T extends FeedbackState = FeedbackState>(
       !state.capability.available
     )
       return;
-    if (
-      (old?.phase === 'unknown' || terminalUncertain) &&
-      !confirm(
-        t(
-          'Try again? The service may already have processed this request. Another attempt can repeat work or charges.'
-        )
-      )
-    )
+    if ((old?.phase === 'unknown' || terminalUncertain) && !confirmed) {
+      setConfirmRetry(true);
       return;
+    }
+    setConfirmRetry(false);
     const currentEpoch = epoch.current;
     const next: Attempt =
       old?.phase === 'unknown'
@@ -299,6 +297,9 @@ export function useFeedback<T extends FeedbackState = FeedbackState>(
               : t('Get feedback');
   return {
     state,
+    confirmRetry,
+    cancelRetry: () => setConfirmRetry(false),
+    confirmRequest: () => request(true),
     starting,
     running,
     requestedPeriod: starting

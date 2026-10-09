@@ -1,4 +1,5 @@
-import { t, uiLabel, locale } from '@/lib/i18n';
+import { formatDate } from '@/lib/displayDate';
+import { t, uiLabel } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useMemo, useState } from 'react';
 import { useHeatmapAnalytics } from '@/hooks/useAnalyticsData';
@@ -28,7 +29,7 @@ const MONTH_LABELS = [
 ];
 
 function displayDate(day: string): string {
-  return new Date(day).toLocaleDateString(locale(), { timeZone: 'UTC' });
+  return formatDate(day);
 }
 
 interface CellData {

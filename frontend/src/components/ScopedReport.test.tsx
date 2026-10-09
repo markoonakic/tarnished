@@ -156,7 +156,7 @@ describe('ScopedReport', () => {
       expect(screen.getAllByRole('status')).toHaveLength(1);
       expect(screen.getByRole('status')).toHaveTextContent(
         phase === 'ready'
-          ? 'Last 7 days · 10/4/2026'
+          ? 'Last 7 days · 4 Oct 2026'
           : phase === 'running'
             ? 'Preparing feedback for Last 30 days…'
             : 'Saved feedback is for Last 7 days.'
@@ -589,6 +589,44 @@ describe('ScopedReport', () => {
     expect(post).not.toHaveBeenCalled();
   });
 
+  it.each(['APPLICATION', 'PIPELINE'])(
+    'restarts an invalidated %s job only after visible confirmation',
+    async (scope) => {
+      await renderReport(
+        state({
+          generation: 7,
+          job: {
+            id: 'old',
+            state: 'invalidated',
+            uncertain: true,
+            error: 'Input changed',
+            completed_sections: 0,
+            total_sections: 1,
+          },
+        }),
+        { scope }
+      );
+      post.mockResolvedValue({ data: { id: 'new', state: 'queued' } });
+      fireEvent.click(requestButton());
+      const dialog = await screen.findByRole('dialog');
+      expect(post).not.toHaveBeenCalled();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+      expect(post).not.toHaveBeenCalled();
+      fireEvent.click(requestButton());
+      fireEvent.click(
+        within(await screen.findByRole('dialog')).getByRole('button', {
+          name: 'Try again',
+        })
+      );
+      await waitFor(() => expect(post).toHaveBeenCalledOnce());
+      expect(post.mock.calls[0][1]).toMatchObject({
+        generation: 7,
+        config_revision: 'rev-1',
+      });
+      expect(confirm).not.toHaveBeenCalled();
+    }
+  );
+
   it('checks an unconfirmed request then reuses its original intent and payload on explicit retry', async () => {
     await renderReport(state());
     post.mockRejectedValueOnce(new Error('response lost'));
@@ -640,6 +678,8 @@ describe('ScopedReport', () => {
       },
     });
     fireEvent.click(retry);
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
     expect(post.mock.calls[1][1]).toEqual(first);
     expect(first).toMatchObject({ generation: 0, config_revision: 'rev-1' });

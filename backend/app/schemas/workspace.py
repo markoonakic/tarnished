@@ -210,6 +210,27 @@ class JobFieldsResponse(JobFields):
     confirmed_requirements: list[dict[str, Any]] = Field(default_factory=list)
     requirements_revision: int = 0
 
+    @model_validator(mode="after")
+    def reviewed_requirement_projection(self):
+        if self.confirmed_requirements:
+            for kind, attribute in (
+                ("must_have", "requirements_must_have"),
+                ("nice_to_have", "requirements_nice_to_have"),
+            ):
+                if attribute in type(self).model_fields:
+                    setattr(
+                        self,
+                        attribute,
+                        list(
+                            dict.fromkeys(
+                                item["text"]
+                                for item in self.confirmed_requirements
+                                if item.get("type") == kind
+                            )
+                        ),
+                    )
+        return self
+
 
 PREPARATION_KEYS = (
     "review_topics",

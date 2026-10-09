@@ -379,6 +379,24 @@ it('reports stale board writes without moving the card', async () => {
     )
   ).toBeVisible();
 });
+it('opens the collapsed question editor when Add is clicked', async () => {
+  show(
+    <Routes>
+      <Route path="/interviews/:id" element={<InterviewDetail />} />
+    </Routes>,
+    '/interviews/round-1'
+  );
+  await screen.findByRole('heading', { name: 'Technical', level: 1 });
+  const header = screen.getByRole('button', { name: 'Questions & answers' });
+  expect(header).toHaveAttribute('aria-expanded', 'false');
+  fireEvent.click(
+    within(header.closest('section')!).getByRole('button', { name: '+ Add' })
+  );
+  expect(header).toHaveAttribute('aria-expanded', 'true');
+  expect(screen.getByRole('textbox', { name: 'Question' })).toBeVisible();
+  expect(writes()).toHaveLength(0);
+});
+
 it('shows interview sections and recording controls only on its detail page; manual preparation saves all seven lists', async () => {
   show(
     <Routes>

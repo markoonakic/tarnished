@@ -1,3 +1,4 @@
+import { formatDate as displayDate, formatDateTime } from '@/lib/displayDate';
 import { t, locale } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import {
@@ -208,7 +209,7 @@ export default function Admin() {
   }
 
   function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString(locale());
+    return displayDate(dateStr);
   }
 
   function lastLogin(value?: string | null) {
@@ -524,9 +525,7 @@ export default function Admin() {
                             className="text-muted px-4 py-3 text-sm"
                             title={
                               u.last_login_at
-                                ? new Date(u.last_login_at).toLocaleString(
-                                    locale()
-                                  )
+                                ? formatDateTime(u.last_login_at)
                                 : undefined
                             }
                           >
@@ -606,7 +605,7 @@ export default function Admin() {
                       className="text-muted text-xs"
                       title={
                         u.last_login_at
-                          ? new Date(u.last_login_at).toLocaleString(locale())
+                          ? formatDateTime(u.last_login_at)
                           : undefined
                       }
                     >

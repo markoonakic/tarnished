@@ -1,4 +1,5 @@
-import { t, locale } from '@/lib/i18n';
+import { formatDate, formatDateTime } from '@/lib/displayDate';
+import { t } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errorMessage';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -21,6 +22,7 @@ import {
 import type { JobLead } from '../lib/types';
 import { useToastContext } from '../contexts/ToastContext';
 import Layout from '../components/Layout';
+import Modal from '../components/Modal';
 import ConvertToApplicationModal from '../components/ConvertToApplicationModal';
 import LeadDetails from '../components/slots/LeadDetails';
 import RecordTags from '../components/records/RecordTags';
@@ -50,6 +52,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [editing, setEditing] = useState(false);
   const [extracting, setExtracting] = useState(false);
+  const [confirmExtraction, setConfirmExtraction] = useState(false);
   const [stale, setStale] = useState(false);
 
   const loadJobLead = useCallback(async () => {
@@ -100,16 +103,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
   async function handleExtract() {
     if (!jobLead) return;
     const restarting = jobLead.status === 'processing';
-    if (
-      !confirm(
-        restarting
-          ? t(
-              'The previous request may still be running or have been billed. Restarting may repeat paid work. Explicitly replace it?'
-            )
-          : t('ai.reviewDisclosure')
-      )
-    )
-      return;
+    setConfirmExtraction(false);
     setExtracting(true);
     setError('');
     try {
@@ -146,11 +140,6 @@ function JobLeadDetailContent({ id }: { id: string }) {
   async function handleConverted(applicationId: string) {
     toast.success(t('Job lead converted to application'));
     navigate(`/applications/${applicationId}`);
-  }
-
-  function formatDateTime(dateStr: string | null) {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString(locale());
   }
 
   function getSourceBadge(source: string | null) {
@@ -212,6 +201,41 @@ function JobLeadDetailContent({ id }: { id: string }) {
           </Link>
         </div>
 
+        {confirmExtraction && (
+          <Modal
+            onClose={() => setConfirmExtraction(false)}
+            label={t('Extract with AI')}
+          >
+            <div className="bg-secondary w-full max-w-lg rounded-lg p-6">
+              <h2 className="text-primary mb-4 text-lg font-semibold">
+                {t('Extract with AI')}
+              </h2>
+              <p className="text-fg1 mb-4">
+                {jobLead.status === 'processing'
+                  ? t(
+                      'The previous request may still be running or have been billed. Restarting may repeat paid work. Explicitly replace it?'
+                    )
+                  : t('ai.reviewDisclosure')}
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmExtraction(false)}
+                  className="text-fg1 hover:bg-bg3 rounded px-4 py-2"
+                >
+                  {t('Cancel')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleExtract()}
+                  className="bg-accent text-bg0 rounded px-4 py-2"
+                >
+                  {t('Extract with AI')}
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
         {error && (
           <div
             role="alert"
@@ -329,9 +353,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
               <div>
                 <span className="text-muted">{t('Posted:')}</span>
                 <span className="text-primary ml-2">
-                  {new Date(jobLead.posted_date).toLocaleDateString(locale(), {
-                    timeZone: 'UTC',
-                  })}
+                  {formatDate(jobLead.posted_date)}
                 </span>
               </div>
             )}
@@ -496,7 +518,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
             {!isConverted && (
               <button
                 disabled={stale || extracting || editing}
-                onClick={handleExtract}
+                onClick={() => setConfirmExtraction(true)}
                 className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <i className="bi-arrow-clockwise icon-sm"></i>

@@ -1,4 +1,5 @@
-import { t, locale } from '@/lib/i18n';
+import { formatDate } from '@/lib/displayDate';
+import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { observeRead } from '../lib/queryClient';
@@ -160,11 +161,6 @@ export default function JobLeads() {
     },
     [updateParams]
   );
-
-  function formatDate(dateStr: string | null) {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString(locale());
-  }
 
   function domain(url: string | null) {
     try {

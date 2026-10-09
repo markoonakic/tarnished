@@ -132,5 +132,8 @@
   "tasks.daysAgo": "Pre {{count}} d",
   "tasks.minutesAgo": "Pre {{count}} min",
   "tasks.todayAt": "Danas, {{time}}",
-  "tasks.tomorrowAt": "Sutra, {{time}}"
+  "tasks.tomorrowAt": "Sutra, {{time}}",
+  "tasks.participantsCount_one": "{{count}} učesnik",
+  "tasks.participantsCount_few": "{{count}} učesnika",
+  "tasks.participantsCount_other": "{{count}} učesnika"
 }

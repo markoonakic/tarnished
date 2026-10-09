@@ -1,9 +1,10 @@
+import { formatDateTime } from '@/lib/displayDate';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDashboardOverview } from '@/hooks/useDashboardOverview';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { getEffectiveTimeZone } from '@/lib/roundDateTime';
-import { locale } from '@/lib/i18n';
+
 import { dueText } from '@/lib/taskDates';
 import { roundTypeLabel, statusLabel } from '@/lib/referenceLabels';
 import { useReminderActions } from '@/hooks/useReminderActions';
@@ -27,15 +28,7 @@ export default function DashboardUpcomingRow() {
       count: hours >= 24 ? Math.floor(hours / 24) : hours,
     });
   };
-  const date = (value: string) =>
-    new Date(value).toLocaleString(locale(), {
-      timeZone: zone ?? undefined,
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hourCycle: 'h23',
-    });
+  const date = (value: string) => formatDateTime(value, zone ?? undefined);
   return (
     <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
       <Card

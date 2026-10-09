@@ -18,11 +18,16 @@ export default function TransferProgressPanel({
           <p className="text-fg1 text-sm font-medium">{state.message}</p>
           {state.stage && (
             <p className="text-fg1/70 text-xs">
-              {t('Stage:')} {state.stage}
+              {t('Stage:')}{' '}
+              {t('transfer.stage.' + state.stage, {
+                defaultValue: t('Processing...'),
+              })}
             </p>
           )}
         </div>
-        <span className="text-fg1/70 text-xs uppercase">{state.phase}</span>
+        <span className="text-fg1/70 text-xs uppercase">
+          {t('transfer.phase.' + state.phase)}
+        </span>
       </div>
       <ProgressBar
         progress={state.progress}

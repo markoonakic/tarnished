@@ -53,7 +53,7 @@ it('labels calendar months without applying a UTC offset', () => {
     )[0]
   ).toHaveTextContent('Jan');
   expect(
-    screen.getByRole('img', { name: '1 application on 1/1/2026' })
+    screen.getByRole('img', { name: '1 application on 1 Jan 2026' })
   ).toBeVisible();
 });
 it('uses Serbian dates and plurals without changing calendar keys', async () => {

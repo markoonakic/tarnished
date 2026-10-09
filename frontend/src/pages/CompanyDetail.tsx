@@ -294,9 +294,14 @@ export default function CompanyDetail() {
               {deleting && (
                 <DeleteConfirm
                   message={t('companies.deleteCompanyWarning', {
-                    leads: company.lead_count ?? company.leads.length,
-                    applications:
-                      company.application_count ?? company.applications.length,
+                    leads: t('companies.linkedLeads', {
+                      count: company.lead_count ?? company.leads.length,
+                    }),
+                    applications: t('companies.linkedApplications', {
+                      count:
+                        company.application_count ??
+                        company.applications.length,
+                    }),
                   })}
                   onClose={() => setDeleting(false)}
                   onDelete={async () => {

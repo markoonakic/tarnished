@@ -481,6 +481,38 @@ it('adds, edits and deletes owner-targeted notes with revisions', async () => {
   );
   await waitFor(() => expect(remove).toHaveBeenCalledWith('note', 3));
 });
+it('refreshes contact-link revisions after extraction changes the application', async () => {
+  const view = show(
+    <LinkedContacts kind="application" id="application" revision={6} />
+  );
+  await screen.findByRole('link', { name: contact.name });
+  vi.mocked(apiV030.applicationContacts).mockResolvedValue({
+    contact_ids: [contact.id],
+    revision: 9,
+  });
+  const save = vi
+    .spyOn(apiV030, 'setApplicationContacts')
+    .mockResolvedValue({ contact_ids: [], revision: 10 });
+  view.rerender(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <LinkedContacts kind="application" id="application" revision={9} />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+  await waitFor(() =>
+    expect(apiV030.applicationContacts).toHaveBeenCalledTimes(2)
+  );
+  await screen.findByRole('link', { name: contact.name });
+  fireEvent.click(screen.getByRole('button', { name: 'Unlink Ana Ristić' }));
+  await waitFor(() =>
+    expect(save).toHaveBeenCalledWith('application', {
+      contact_ids: [],
+      expected_revision: 9,
+    })
+  );
+});
+
 it('unlinks an application contact without deleting the contact and uses the link revision', async () => {
   const save = vi
     .spyOn(apiV030, 'setApplicationContacts')

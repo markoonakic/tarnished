@@ -1,7 +1,8 @@
+import { formatDateTime } from '@/lib/displayDate';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { roundTypeLabel } from '@/lib/referenceLabels';
-import { locale } from '@/lib/i18n';
+
 import { getEffectiveTimeZone } from '@/lib/roundDateTime';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import type { Round } from '@/lib/types';
@@ -31,11 +32,7 @@ export default function RoundCard({
           </h4>
           <p className="text-muted mt-1 text-sm">
             {round.scheduled_at && zone
-              ? new Date(round.scheduled_at).toLocaleString(locale(), {
-                  timeZone: zone,
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                })
+              ? formatDateTime(round.scheduled_at, zone)
               : '—'}{' '}
             <i
               className={`bi ${round.mode === 'video' ? 'bi-camera-video' : round.mode === 'phone' ? 'bi-telephone' : 'bi-geo-alt'} ml-2`}

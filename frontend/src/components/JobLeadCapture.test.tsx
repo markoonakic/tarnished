@@ -217,7 +217,7 @@ it('shows a posted calendar date without inventing a time or shifting its day', 
   renderDetail();
   await screen.findByRole('heading', { name: 'Calendar posting' });
   expect(screen.getByText('Posted:').parentElement).toHaveTextContent(
-    '9/15/2026'
+    '15 Sept 2026'
   );
   expect(screen.getByText('Posted:').parentElement).not.toHaveTextContent(
     /AM|PM/
@@ -503,11 +503,19 @@ it('renders source escaped and permits manual-ready conversion from saved/not-ex
   ]);
 });
 
+async function confirmExtraction(label: string) {
+  fireEvent.click(await screen.findByRole('button', { name: label }));
+  const dialog = await screen.findByRole('dialog');
+  fireEvent.click(
+    within(dialog).getByRole('button', { name: 'Extract with AI' })
+  );
+}
+
 it('keeps saved identity and reads the new revision after provider failure, without automatic retry', async () => {
   renderDetail();
   await screen.findByText('Saved', { selector: 'span' });
   failure = 'extract';
-  fireEvent.click(screen.getByRole('button', { name: 'Extract with AI' }));
+  await confirmExtraction('Extract with AI');
   expect(await screen.findByRole('alert')).toHaveTextContent(
     'Your job lead is saved. The service is unavailable.'
   );
@@ -526,7 +534,7 @@ it('keeps saved identity and reads the new revision after provider failure, with
     expected_revision: 0,
     restart_processing: false,
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Retry Extraction' }));
+  await confirmExtraction('Retry Extraction');
   await waitFor(() =>
     expect(requests.filter((r) => r.method === 'post')).toHaveLength(2)
   );
@@ -539,7 +547,7 @@ it('marks failed refresh stale and preserves the saved identity instead of losin
   renderDetail();
   await screen.findByText('Saved', { selector: 'span' });
   failure = 'reload';
-  fireEvent.click(screen.getByRole('button', { name: 'Extract with AI' }));
+  await confirmExtraction('Extract with AI');
   await screen.findByRole('alert');
   await waitFor(() =>
     expect(screen.getByRole('button', { name: 'Edit' })).toBeDisabled()
@@ -568,9 +576,7 @@ it('distinguishes a requested retry from the last saved failure until the respon
     return { data: saved, status: 200, statusText: 'OK', headers: {}, config };
   };
   renderDetail();
-  fireEvent.click(
-    await screen.findByRole('button', { name: 'Retry Extraction' })
-  );
+  await confirmExtraction('Retry Extraction');
   expect(await screen.findByRole('status')).toHaveTextContent(
     'Filling in job details'
   );
@@ -588,14 +594,16 @@ it('shows uncertain processing and sends acknowledged revisioned restart only af
   expect(screen.getByRole('status')).toHaveTextContent(
     'Extraction has not finished'
   );
-  vi.mocked(window.confirm).mockReturnValueOnce(false);
   fireEvent.click(
     screen.getByRole('button', { name: 'Restart interrupted extraction' })
+  );
+  fireEvent.click(
+    within(await screen.findByRole('dialog')).getByRole('button', {
+      name: 'Cancel',
+    })
   );
   expect(requests).toHaveLength(1);
-  fireEvent.click(
-    screen.getByRole('button', { name: 'Restart interrupted extraction' })
-  );
+  await confirmExtraction('Restart interrupted extraction');
   await screen.findByText('Extracted', { selector: 'span' });
   expect(requests[1]).toEqual({
     method: 'post',

@@ -132,5 +132,8 @@
   "tasks.daysAgo": "{{count}}d ago",
   "tasks.minutesAgo": "{{count}}m ago",
   "tasks.todayAt": "Today, {{time}}",
-  "tasks.tomorrowAt": "Tomorrow, {{time}}"
+  "tasks.tomorrowAt": "Tomorrow, {{time}}",
+  "tasks.participantsCount_one": "{{count}} participant",
+  "tasks.participantsCount_other": "{{count}} participants",
+  "tasks.participantsCount_few": "{{count}} participants"
 }

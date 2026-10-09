@@ -1,7 +1,9 @@
-import { t, locale } from '@/lib/i18n';
+import { formatDate } from '@/lib/displayDate';
+import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { errorMessage } from '@/lib/errorMessage';
 import type { FeedbackController } from '../hooks/useFeedback';
+import Modal from './Modal';
 
 /** Shared copy for the same report protocol; speech keeps its separate retry rules. */
 export default function FeedbackStatus({
@@ -101,7 +103,7 @@ export default function FeedbackStatus({
     message =
       readyLabel ||
       t('Feedback ready · {{value0}}', {
-        value0: new Date(report.run_at).toLocaleDateString(locale()),
+        value0: formatDate(report.run_at),
       });
   else if (state) message = emptyHint;
 
@@ -119,6 +121,36 @@ export default function FeedbackStatus({
   const problem = feedback.readError || unknown || failed || !!requestError;
   return (
     <div className="mt-3 space-y-2 text-sm">
+      {feedback.confirmRetry && (
+        <Modal onClose={feedback.cancelRetry} label={t('Try again')}>
+          <div className="bg-secondary w-full max-w-lg rounded-lg p-6">
+            <h2 className="text-primary mb-4 text-lg font-semibold">
+              {t('Try again')}
+            </h2>
+            <p className="text-fg1 mb-4">
+              {t(
+                'Try again? The service may already have processed this request. Another attempt can repeat work or charges.'
+              )}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={feedback.cancelRetry}
+                className="text-fg1 hover:bg-bg3 rounded px-4 py-2"
+              >
+                {t('Cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={() => void feedback.confirmRequest()}
+                className="bg-accent text-bg0 rounded px-4 py-2"
+              >
+                {t('Try again')}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
       {message && (
         <p
           role={problem ? 'alert' : 'status'}

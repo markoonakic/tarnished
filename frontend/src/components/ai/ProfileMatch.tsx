@@ -45,7 +45,7 @@ export default function ProfileMatch({
     >
       <AnalysisStatus controller={controller} />
       {hint && <p className="text-muted mb-4 text-sm">{t(hint)}</p>}
-      {legacy.length > 0 && (
+      {legacy.length > 0 && !requirements.length && (
         <p className="text-muted mb-4 text-xs">
           {t('ai.notReviewed')}: {legacy.join(' · ')}
         </p>
@@ -103,12 +103,26 @@ export default function ProfileMatch({
                           className="text-accent hover:underline"
                           to={`/profile#${encodeURIComponent(citation.profile_id)}`}
                         >
-                          {profile.find(
-                            (item) => item.id === citation.profile_id
-                          )?.name ?? t('ai.profileItem')}
+                          {(() => {
+                            const item = profile.find(
+                              (item) => item.id === citation.profile_id
+                            );
+                            return item && item.id === item.name
+                              ? t('accounts.' + item.id, {
+                                  defaultValue: item.name,
+                                }) +
+                                  (item.id === 'years_experience'
+                                    ? ': ' + Number(item.text)
+                                    : '')
+                              : (item?.name ?? t('ai.profileItem'));
+                          })()}
                         </Link>
                         <blockquote className="border-accent text-muted mt-1 border-l pl-2 italic">
-                          “{citation.quote}”
+                          “
+                          {citation.profile_id === 'years_experience'
+                            ? Number(citation.quote)
+                            : citation.quote}
+                          ”
                         </blockquote>
                       </div>
                     ))

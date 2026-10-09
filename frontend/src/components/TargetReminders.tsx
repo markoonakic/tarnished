@@ -85,40 +85,41 @@ export default function TargetReminders({
       intent: crypto.randomUUID(),
     });
   };
+  const shortcutButtons = shortcuts.length > 0 && (
+    <span
+      className={
+        shortcutsOnly
+          ? 'inline-flex flex-wrap gap-2'
+          : 'mb-3 flex flex-wrap gap-2'
+      }
+    >
+      {shortcuts.map((shortcut) => (
+        <button
+          key={shortcut.kind}
+          type="button"
+          aria-label={t('tasks.remindMe')}
+          title={t('kit.kind.' + shortcut.kind)}
+          disabled={!zone || query.isPending}
+          onClick={() => openShortcut(shortcut)}
+          className={`text-accent hover:bg-bg2 focus:ring-accent rounded py-1.5 text-sm whitespace-nowrap focus:ring-2 disabled:opacity-50 ${shortcutsOnly ? 'px-1' : 'px-3'}`}
+        >
+          <i
+            className={`bi ${query.data?.items.some((r) => r.kind === shortcut.kind && r.state === 'open') ? 'bi-bell-fill' : 'bi-bell'} mr-2`}
+            aria-hidden="true"
+          />
+          {!iconOnly && (
+            <>
+              {t('tasks.remindMe')}
+              {!shortcutsOnly && <> · {t('kit.kind.' + shortcut.kind)}</>}
+            </>
+          )}
+        </button>
+      ))}
+    </span>
+  );
   return (
     <>
-      {shortcuts.length > 0 && (
-        <span
-          className={
-            shortcutsOnly
-              ? 'inline-flex flex-wrap gap-2'
-              : 'mb-3 flex flex-wrap gap-2'
-          }
-        >
-          {shortcuts.map((shortcut) => (
-            <button
-              key={shortcut.kind}
-              type="button"
-              aria-label={t('tasks.remindMe')}
-              title={t('kit.kind.' + shortcut.kind)}
-              disabled={!zone || query.isPending}
-              onClick={() => openShortcut(shortcut)}
-              className={`text-accent hover:bg-bg2 focus:ring-accent rounded py-1.5 text-sm whitespace-nowrap focus:ring-2 disabled:opacity-50 ${shortcutsOnly ? 'px-1' : 'px-3'}`}
-            >
-              <i
-                className={`bi ${query.data?.items.some((r) => r.kind === shortcut.kind && r.state === 'open') ? 'bi-bell-fill' : 'bi-bell'} mr-2`}
-                aria-hidden="true"
-              />
-              {!iconOnly && (
-                <>
-                  {t('tasks.remindMe')}
-                  {!shortcutsOnly && <> · {t('kit.kind.' + shortcut.kind)}</>}
-                </>
-              )}
-            </button>
-          ))}
-        </span>
-      )}
+      {shortcutsOnly && shortcutButtons}
       {query.isError && (
         <p role="alert" className="text-red-bright mb-3">
           {t('tasks.loadFailed')}{' '}
@@ -129,6 +130,7 @@ export default function TargetReminders({
       )}
       {!shortcutsOnly && (
         <RemindersCard
+          shortcuts={shortcutButtons}
           reminders={
             query.data?.items.map((item) => ({
               ...item,

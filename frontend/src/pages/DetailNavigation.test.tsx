@@ -7,22 +7,32 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
+  within,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import ApplicationDetail from './ApplicationDetail';
 import JobLeadDetail from './JobLeadDetail';
 
-const { getApplication, getJobLead, toast } = vi.hoisted(() => ({
-  getApplication: vi.fn(),
-  getJobLead: vi.fn(),
-  toast: { error: vi.fn(), success: vi.fn() },
-}));
+const { getApplication, getJobLead, extractJobLead, toast } = vi.hoisted(
+  () => ({
+    getApplication: vi.fn(),
+    getJobLead: vi.fn(),
+    extractJobLead: vi.fn(),
+    toast: { error: vi.fn(), success: vi.fn() },
+  })
+);
 vi.mock('../lib/applications', () => ({
   getApplication,
   deleteApplication: vi.fn(),
 }));
-vi.mock('../lib/jobLeads', () => ({ getJobLead, deleteJobLead: vi.fn() }));
+vi.mock('../lib/jobLeads', () => ({
+  getJobLead,
+  extractJobLead,
+  retryJobLead: extractJobLead,
+  deleteJobLead: vi.fn(),
+}));
 vi.mock('../contexts/ToastContext', () => ({ useToastContext: () => toast }));
 vi.mock('../hooks/useThemeColors', () => ({ useThemeColors: () => ({}) }));
 vi.mock('../components/slots/ApplicationReminders', () => ({
@@ -47,6 +57,45 @@ function SwitchRecord({ prefix }: { prefix: string }) {
     <button onClick={() => navigate(`/${prefix}/new`)}>Next record</button>
   );
 }
+it('dispatches lead extraction only from the visible confirmation dialog', async () => {
+  const lead = {
+    id: 'lead',
+    title: 'Engineer',
+    company: 'River',
+    revision: 3,
+    status: 'pending',
+    source_text: 'Python required',
+    years_experience_min: null,
+    years_experience_max: null,
+  };
+  getJobLead.mockResolvedValue(lead);
+  extractJobLead.mockResolvedValue({
+    ...lead,
+    revision: 4,
+    pending_analysis_id: 'analysis',
+  });
+  render(
+    <MemoryRouter initialEntries={['/job-leads/lead']}>
+      <Routes>
+        <Route path="/job-leads/:id" element={<JobLeadDetail />} />
+      </Routes>
+    </MemoryRouter>
+  );
+  await screen.findByRole('heading', { name: 'River' });
+  fireEvent.click(screen.getByRole('button', { name: 'Extract with AI' }));
+  const dialog = await screen.findByRole('dialog', { name: 'Extract with AI' });
+  expect(extractJobLead).not.toHaveBeenCalled();
+  fireEvent.click(
+    within(dialog).getByRole('button', { name: 'Extract with AI' })
+  );
+  await waitFor(() =>
+    expect(extractJobLead).toHaveBeenCalledWith('lead', {
+      expected_revision: 3,
+      restart_processing: false,
+    })
+  );
+});
+
 beforeEach(() => vi.resetAllMocks());
 afterEach(cleanup);
 

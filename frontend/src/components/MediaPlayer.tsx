@@ -1,4 +1,5 @@
-import { t, locale } from '@/lib/i18n';
+import { formatDateTime } from '@/lib/displayDate';
+import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
 import { observeRead } from '../lib/queryClient';
@@ -108,8 +109,7 @@ export default function MediaPlayer({ media, onClose }: Props) {
         </div>
 
         <div className="text-muted px-4 pb-4 text-sm">
-          {t('Uploaded:')}{' '}
-          {new Date(media.uploaded_at).toLocaleString(locale())}
+          {t('Uploaded:')} {formatDateTime(media.uploaded_at)}
         </div>
       </div>
     </Modal>
