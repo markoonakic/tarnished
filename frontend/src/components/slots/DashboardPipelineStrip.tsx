@@ -46,12 +46,20 @@ export default function DashboardPipelineStrip() {
         {pipeline
           .filter((s) => s.count > 0)
           .map((s) => (
-            <TextLink
+            <div
               key={s.status_id}
-              to={'/applications?status=' + s.status_id}
-              style={{ flex: s.count }}
-              aria-label={statusLabel(s) + ' ' + s.count}
-            />
+              className="transition-[filter] hover:brightness-125"
+              style={{
+                flex: s.count,
+                backgroundColor: getStatusColor(s.name, colors, s.color),
+              }}
+            >
+              <TextLink
+                to={'/applications?status=' + s.status_id}
+                className="block h-full"
+                aria-label={statusLabel(s) + ' ' + s.count}
+              />
+            </div>
           ))}
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-2">
@@ -59,6 +67,7 @@ export default function DashboardPipelineStrip() {
           <TextLink
             key={s.status_id}
             to={'/applications?status=' + s.status_id}
+            className="inline-flex items-center gap-1.5"
           >
             <span
               className="h-2 w-2 rounded-full"
