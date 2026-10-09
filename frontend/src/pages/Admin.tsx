@@ -585,7 +585,7 @@ export default function Admin() {
                   </tbody>
                 </table>
               </div>
-              <div className="mt-4 space-y-3 md:hidden">
+              <div className="mt-4 space-y-6 md:hidden">
                 {!users.length && (
                   <p className="bg-secondary text-muted rounded-lg p-4 text-sm">
                     {searchQuery.trim()

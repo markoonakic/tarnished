@@ -289,7 +289,7 @@ export default function Companies() {
                 </tbody>
               </table>
             </div>
-            <div className="mb-6 space-y-3 md:hidden">
+            <div className="mb-6 space-y-6 md:hidden">
               {list.data.items.map((row) => (
                 <div key={row.id} className="bg-secondary rounded-lg p-4">
                   {rowCells(row).map((cell, index) => (

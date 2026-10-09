@@ -14,6 +14,14 @@ const output = process.env.TARNISHED_AUDIT_OUTPUT || './ui-audit';
 const credentials = JSON.parse(
   await fs.readFile(process.env.TARNISHED_AUDIT_CREDENTIALS, 'utf8')
 );
+function safeError(error) {
+  let message = String(error?.message ?? error);
+  for (const secret of [credentials.password, credentials.adminPassword].filter(
+    Boolean
+  ))
+    message = message.replaceAll(secret, '[redacted]');
+  return message;
+}
 const browser = await chromium.launch({
   executablePath:
     process.env.CHROMIUM_PATH || '/etc/profiles/per-user/marko/bin/chromium',
@@ -224,12 +232,18 @@ async function audit(page, state, lang, width) {
       '*,*::before,*::after { transition-duration:0s!important; animation-duration:0s!important; scroll-behavior:auto!important; }',
   });
   await page.evaluate(() => document.fonts.ready);
-  const popup = page
-    .locator('[data-ui="popover"]:popover-open:not([role="tooltip"])')
-    .last();
-  const elements = ((await popup.count()) ? popup : page).locator(
-    'button, a[href]'
+  const popups = page.locator(
+    '[data-ui="popover"]:popover-open:not([role="tooltip"])'
   );
+  const popupOrder = await popups.evaluateAll((nodes) =>
+    Math.max(0, ...nodes.map((node) => Number(node.dataset.auditPopoverOrder)))
+  );
+  const activeLayer = popupOrder
+    ? page.locator(
+        `[data-ui="popover"][data-audit-popover-order="${popupOrder}"]:popover-open`
+      )
+    : page;
+  const elements = activeLayer.locator('button, a[href]');
   // Stable handles prevent a dismissed tooltip/menu from shifting indexed locators.
   const controls = await elements.elementHandles();
   let checked = 0;
@@ -617,12 +631,19 @@ try {
             report.violations.push({
               state: `${lang}-${width}-${new URL(page.url()).pathname}`,
               issues: ['page-error'],
-              control: error.message.slice(0, 160),
+              control: safeError(error).slice(0, 160),
             })
           );
           await context.addInitScript(
             ({ lang }) => {
               localStorage.setItem('tarnished-language', lang);
+              const showPopover = HTMLElement.prototype.showPopover;
+              if (showPopover)
+                HTMLElement.prototype.showPopover = function (...args) {
+                  if (!this.matches(':popover-open'))
+                    this.dataset.auditPopoverOrder = String(performance.now());
+                  return showPopover.apply(this, args);
+                };
               const show = HTMLDialogElement.prototype.showModal;
               HTMLDialogElement.prototype.showModal = function () {
                 this.dataset.auditModalOrder = String(performance.now());
@@ -803,13 +824,13 @@ try {
         report.violations.push({
           state: lang,
           issues: ['audit-incomplete'],
-          control: result.reason.message,
+          control: safeError(result.reason),
         });
   }
 } catch (error) {
   report.violations.push({
     state: 'audit',
-    control: error.message,
+    control: safeError(error),
     issues: ['audit-incomplete'],
   });
 } finally {

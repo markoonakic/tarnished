@@ -5,11 +5,12 @@ import TextLink from './TextLink';
 export default function RecordLink({
   children,
   className = '',
+  surface = 'tertiary',
   ...props
-}: LinkProps) {
+}: LinkProps & { surface?: 'secondary' | 'tertiary' }) {
   return (
     <div
-      className={`bg-tertiary hover:bg-bg3 w-full cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5 ${className}`}
+      className={`${surface === 'secondary' ? 'bg-secondary hover:bg-bg2' : 'bg-tertiary hover:bg-bg3'} w-full cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5 ${className}`}
     >
       <TextLink {...props} className="-m-4 block p-4">
         {children}

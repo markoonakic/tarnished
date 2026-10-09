@@ -1,5 +1,6 @@
 import Button from '@/components/ui/Button';
 import TextLink from '@/components/ui/TextLink';
+import RecordLink from '@/components/ui/RecordLink';
 import { formatDate } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
 import ApplicationBoard from '@/components/ApplicationBoard';
@@ -420,12 +421,12 @@ export default function Applications() {
             </div>
 
             {/* Mobile cards */}
-            <div className="space-y-3 md:hidden">
+            <div className="space-y-6 md:hidden">
               {applications.map((app) => (
-                <TextLink
+                <RecordLink
                   key={app.id}
+                  surface="secondary"
                   to={`/applications/${app.id}`}
-                  className="block"
                 >
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <span className="text-fg1 truncate font-medium">
@@ -462,7 +463,7 @@ export default function Applications() {
                     {formatDate(app.applied_at)} ·{' '}
                     {t('roundCount', { count: app.round_count })}
                   </div>
-                </TextLink>
+                </RecordLink>
               ))}
             </div>
 

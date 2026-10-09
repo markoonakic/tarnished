@@ -3,6 +3,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import Button from './Button';
 import TextLink from './TextLink';
+import RecordLink from './RecordLink';
 import Dropdown from '../Dropdown';
 import FileButton from '../FileButton';
 
@@ -81,6 +82,19 @@ it('navigation stays a link with no background or button role', () => {
     );
     expect(link.className).not.toMatch(/\bbg-|hover:bg-/);
   }
+});
+it('mobile record cards keep their surface outside the navigation link', () => {
+  render(
+    <MemoryRouter>
+      <RecordLink to="/applications/1" surface="secondary">
+        Record
+      </RecordLink>
+    </MemoryRouter>
+  );
+  const link = screen.getByRole('link', { name: 'Record' });
+  expect(link.parentElement).toHaveClass('bg-secondary', 'rounded-lg', 'p-4');
+  expect(link).toHaveClass('text-accent', 'hover:text-accent-bright');
+  expect(link.className).not.toMatch(/\bbg-|hover:bg-/);
 });
 it('the shared option layer is opaque, bordered and above cards', () => {
   render(
