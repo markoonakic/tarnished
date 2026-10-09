@@ -41,6 +41,8 @@
   "records.postingText": "Posting text",
   "records.sourceLimit": "The limit is 100,000 characters. Shorten the text before saving.",
   "records.decision": "Decision",
+  "records.decisionHelp": "About lead decisions",
+  "records.convertedDecision": "This lead is already an application",
   "records.undecided": "Not decided",
   "records.decision.undecided": "Not decided",
   "records.decision.interesting": "Interesting",

@@ -232,6 +232,7 @@ async def process_import_job(
                 data,
                 file_mapping,
                 lambda **_: None,
+                override=override,
             )
 
             result_payload = {

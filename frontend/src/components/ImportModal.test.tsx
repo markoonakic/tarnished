@@ -31,6 +31,23 @@ afterEach(async () => {
 });
 
 describe('ImportModal', () => {
+  it.each(['en', 'sr-Latn'])(
+    'keeps upload instructions in a help tip in %s',
+    async (language) => {
+      await i18n.changeLanguage(language);
+      const { default: ImportModal } = await import('./ImportModal');
+      render(<ImportModal isOpen onClose={vi.fn()} onSuccess={vi.fn()} />);
+      const copy = t(
+        'Select a ZIP export file to import your job application data. Large archives can take a while to upload and process. Files larger than 100MB inside the ZIP may still fail backend validation.'
+      );
+      expect(screen.queryByText(copy)).not.toBeInTheDocument();
+      fireEvent.focus(
+        screen.getByRole('button', { name: t('About data import') })
+      );
+      expect(screen.getByRole('tooltip')).toHaveTextContent(copy);
+    }
+  );
+
   beforeEach(() => {
     vi.clearAllMocks();
   });

@@ -11,7 +11,7 @@ class InstallSurfaceTests(unittest.TestCase):
             with self.subTest(file=name):
                 content = (COMPOSE / name).read_text()
                 self.assertIn(
-                    "image: ${TARNISHED_IMAGE:-ghcr.io/markoonakic/tarnished:0.3.8}",
+                    "image: ${TARNISHED_IMAGE:-ghcr.io/markoonakic/tarnished:0.3.9}",
                     content,
                 )
                 self.assertIn("${APP_PORT:-127.0.0.1:5577}:5577", content)
@@ -27,7 +27,7 @@ class InstallSurfaceTests(unittest.TestCase):
             with self.subTest(file=path.name):
                 content = path.read_text()
                 self.assertIn("docker compose up -d", content)
-                self.assertIn("v0.3.8/deploy/compose/docker-compose.yml", content)
+                self.assertIn("v0.3.9/deploy/compose/docker-compose.yml", content)
                 self.assertNotIn("chown -R", content)
                 self.assertNotIn("demo-data", content)
                 self.assertIn("create the first admin account in the browser", content)

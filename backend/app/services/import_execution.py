@@ -271,7 +271,7 @@ def extract_import_file_mapping(
 
 
 def _run_import_user_data(
-    sync_session, export_data: dict, user_id: str, file_mapping: dict
+    sync_session, export_data: dict, user_id: str, file_mapping: dict, override: bool
 ) -> dict:
     id_mapper = IDMapper()
     import_service = ImportService(registry=default_registry, id_mapper=id_mapper)
@@ -279,7 +279,7 @@ def _run_import_user_data(
         export_data=export_data,
         user_id=user_id,
         session=sync_session,
-        override=False,
+        override=override,
         file_mapping=file_mapping,
     )
     # The identity map is needed by the caller to re-derive and verify report
@@ -467,7 +467,12 @@ async def clear_existing_import_data(db: AsyncSession, user_id: str) -> None:
 
 
 async def import_payload_data(
-    db: AsyncSession, user_id: str, data: dict, file_mapping: dict, progress_callback
+    db: AsyncSession,
+    user_id: str,
+    data: dict,
+    file_mapping: dict,
+    progress_callback,
+    override: bool = False,
 ) -> dict:
     if is_new_export_format(data):
         from app.services.ai_settings import lock_ai_settings
@@ -477,7 +482,9 @@ async def import_payload_data(
 
         if data.get("models", {}).get("UserProfile"):
             await invalidate_interviews(db, user_id=user_id, removed=True)
-        result = await db.run_sync(_run_import_user_data, data, user_id, file_mapping)
+        result = await db.run_sync(
+            _run_import_user_data, data, user_id, file_mapping, override
+        )
         # Verify cited evidence before committing the import.
         from app.services.interview_archive import verify_restored_report_text
 

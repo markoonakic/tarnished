@@ -8,7 +8,7 @@ import {
 } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { focusManager } from '@tanstack/react-query';
-import i18n from '@/lib/i18n';
+import i18n, { t } from '@/lib/i18n';
 import type { InternalAxiosRequestConfig } from 'axios';
 import api from '../lib/api';
 import type { Round } from '../lib/types';
@@ -80,6 +80,28 @@ afterEach(async () => {
   focusManager.setFocused(undefined);
   vi.restoreAllMocks();
 });
+
+it.each(['en', 'sr-Latn'])(
+  'keeps empty feedback instructions in its help tip in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    render(<InterviewFeedback round={round} />);
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        t('No feedback yet.')
+      )
+    );
+    const copy = t(
+      'Save a transcript and identify your answers as Candidate before requesting personal feedback.'
+    );
+    expect(screen.queryByText(copy)).not.toBeInTheDocument();
+    fireEvent.focus(
+      screen.getByRole('button', { name: t('About interview feedback') })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(copy);
+    expect(requests.every((request) => request.method === 'get')).toBe(true);
+  }
+);
 
 it('translates the Serbian request accessible name without starting feedback', async () => {
   await i18n.changeLanguage('sr-Latn');

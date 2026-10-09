@@ -41,6 +41,11 @@ export default function InterviewFeedback({
                 'Uses your transcript and job details with the configured AI service. Charges may apply only when you request feedback.'
               )}
             </p>
+            <p>
+              {t(
+                'Save a transcript and identify your answers as Candidate before requesting personal feedback.'
+              )}
+            </p>
           </HelpTip>
         </div>
         {onClose && (
@@ -57,9 +62,7 @@ export default function InterviewFeedback({
       <FeedbackStatus
         feedback={feedback}
         requestLabel={t('interview feedback')}
-        emptyHint={t(
-          'No feedback yet. Save a transcript and identify your answers as Candidate before requesting personal feedback.'
-        )}
+        emptyHint={t('No feedback yet.')}
       />
       {report && (
         <div

@@ -1,6 +1,6 @@
 {
   "name": "tarnished-extension",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "description": "Browser extension for detecting and saving job listings to Tarnished",
   "private": true,
   "license": "MIT",

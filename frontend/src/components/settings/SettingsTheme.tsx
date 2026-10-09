@@ -3,6 +3,7 @@ import { t, uiLabel } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeDropdown from '../ThemeDropdown';
+import HelpTip from '../HelpTip';
 import { SettingsBackLink } from './SettingsLayout';
 
 export default function SettingsTheme() {
@@ -23,10 +24,12 @@ export default function SettingsTheme() {
       </div>
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 mb-4 text-xl font-bold">{t('Theme')}</h2>
-        <p className="text-muted mb-4 text-sm">
-          {t('Choose your preferred color theme for the application.')}
-        </p>
+        <div className="mb-4 flex items-center gap-2">
+          <h2 className="text-fg1 text-xl font-bold">{t('Theme')}</h2>
+          <HelpTip label={t('About theme')}>
+            <p>{t('Choose your preferred color theme for the application.')}</p>
+          </HelpTip>
+        </div>
         <ThemeDropdown
           themes={themes}
           currentTheme={currentTheme}
@@ -35,12 +38,16 @@ export default function SettingsTheme() {
       </div>
 
       <div className="bg-secondary mt-4 rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 mb-4 text-xl font-bold">{t('Accent Color')}</h2>
-        <p className="text-muted mb-4 text-sm">
-          {t(
-            'Choose the accent color for buttons, links, and focus indicators.'
-          )}
-        </p>
+        <div className="mb-4 flex items-center gap-2">
+          <h2 className="text-fg1 text-xl font-bold">{t('Accent Color')}</h2>
+          <HelpTip label={t('About accent color')}>
+            <p>
+              {t(
+                'Choose the accent color for buttons, links, and focus indicators.'
+              )}
+            </p>
+          </HelpTip>
+        </div>
         <div className="flex flex-wrap gap-3">
           {accentOptions.map((option) => (
             <Button

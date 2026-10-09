@@ -222,6 +222,11 @@ const knownHelp = [
   'Add interview rounds to your applications to see conversion funnel analytics',
   'Add completed interview rounds to see outcome analytics',
   'Completed interview rounds with dates will appear here',
+  'Select a ZIP export file to import your job application data.',
+  'Choose your preferred color theme for the application.',
+  'Choose the accent color for buttons, links, and focus indicators.',
+  'No feedback yet. Save a transcript and identify your answers as Candidate',
+  'Save a transcript and identify your answers as Candidate before requesting personal feedback.',
 ];
 const seenScreens = new Set();
 let reportWrite = Promise.resolve();
