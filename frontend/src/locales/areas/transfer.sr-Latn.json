@@ -1,0 +1,20 @@
+{
+  "transfer.phase.idle": "Spremno",
+  "transfer.phase.uploading": "Otpremanje",
+  "transfer.phase.processing": "Obrada",
+  "transfer.phase.ready": "Spremno",
+  "transfer.phase.downloading": "Preuzimanje",
+  "transfer.phase.complete": "Završeno",
+  "transfer.phase.failed": "Neuspešno",
+  "transfer.phase.cancelled": "Otkazano",
+  "transfer.phase.unknown": "Nepoznato",
+  "transfer.stage.validating": "Provera",
+  "transfer.stage.extracting": "Raspakivanje",
+  "transfer.stage.clearing": "Uklanjanje postojećih podataka",
+  "transfer.stage.importing": "Uvoz",
+  "transfer.stage.importing_applications": "Uvoz prijava",
+  "transfer.stage.finalizing": "Završavanje",
+  "transfer.stage.queued": "Na čekanju",
+  "transfer.stage.exporting": "Izvoz",
+  "transfer.stage.archiving": "Priprema arhive"
+}

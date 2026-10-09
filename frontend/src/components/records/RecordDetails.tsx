@@ -1,3 +1,4 @@
+import { formatDate } from '@/lib/displayDate';
 import { useEffectiveDayKey } from '@/hooks/useEffectiveDayKey';
 import { useTranslation } from 'react-i18next';
 import { locale } from '@/lib/i18n';
@@ -22,10 +23,7 @@ export default function RecordDetails({
   onUpdated?: () => void;
 }) {
   const { t } = useTranslation();
-  const date = (value?: string | null) =>
-    value
-      ? new Date(value).toLocaleDateString(locale(), { timeZone: 'UTC' })
-      : '—';
+  const date = formatDate;
   const today = useEffectiveDayKey();
   const days = record.deadline
     ? Math.round((Date.parse(record.deadline) - Date.parse(today)) / 86400000)

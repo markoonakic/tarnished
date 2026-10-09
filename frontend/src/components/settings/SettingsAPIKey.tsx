@@ -1,4 +1,5 @@
-import { t, locale } from '@/lib/i18n';
+import { formatDateTime } from '@/lib/displayDate';
+import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { observeRead } from '@/lib/queryClient';
 import { useCallback, useEffect, useState } from 'react';
@@ -127,7 +128,7 @@ function formatDate(value: string | null): string {
     return t('Unknown');
   }
 
-  return date.toLocaleString(locale());
+  return formatDateTime(date);
 }
 
 function formatMaskedKey(prefix: string): string {
@@ -530,7 +531,10 @@ export default function SettingsAPIKey() {
                           {formatMaskedKey(apiKey.key_prefix)}
                         </p>
                         <p className="text-muted text-xs">
-                          {t('Preset:')} {apiKey.preset}
+                          {t('Preset:')}{' '}
+                          {API_KEY_PRESETS.find(
+                            (preset) => preset.value === apiKey.preset
+                          )?.label ?? t('Unknown')}
                         </p>
                         {apiKey.preset === 'custom' && (
                           <p className="text-muted text-xs">

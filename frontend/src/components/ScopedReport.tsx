@@ -1,4 +1,5 @@
-import { t, locale } from '@/lib/i18n';
+import { formatDate } from '@/lib/displayDate';
+import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import {
   useFeedback,
@@ -37,9 +38,7 @@ const periods: Record<string, string> = {
 function savedLabel(report: NonNullable<FeedbackState['report']>) {
   const parts = [
     report.period ? (periods[report.period] ?? report.period) : null,
-    new Date(report.as_of || report.run_at).toLocaleDateString(locale(), {
-      timeZone: report.time_zone ?? undefined,
-    }),
+    formatDate(report.as_of || report.run_at, report.time_zone ?? undefined),
   ].filter(Boolean);
   return parts.join(' · ');
 }

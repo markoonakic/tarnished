@@ -1,6 +1,7 @@
+import { formatDateTime } from '@/lib/displayDate';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { locale } from '@/lib/i18n';
+
 import Card from './Card';
 function NoteBody({ body }: { body: string }) {
   const { t } = useTranslation();
@@ -166,10 +167,7 @@ export default function NotesPanel({
               <div key={note.id} className="bg-tertiary group rounded-lg p-4">
                 <div className="text-fg4 mb-1 flex items-center justify-between gap-2 text-xs">
                   <span>
-                    {new Date(note.created_at).toLocaleString(locale(), {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                    })}
+                    {formatDateTime(note.created_at)}
                     {(note.revision !== undefined
                       ? note.revision > 0
                       : note.updated_at &&

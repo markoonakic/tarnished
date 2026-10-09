@@ -44,7 +44,7 @@ export default function LinkedContacts({
   );
   const links = useQuery(
     {
-      queryKey: ['contacts', 'application', id],
+      queryKey: ['contacts', 'application', id, revision],
       queryFn: () => apiV030.applicationContacts(id),
       enabled: kind === 'application',
     },
@@ -113,7 +113,7 @@ export default function LinkedContacts({
       actions={
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || (kind === 'application' && links.isPending)}
           className={actionClass}
           onClick={() => setPicker(!picker)}
         >
@@ -171,7 +171,7 @@ export default function LinkedContacts({
               )
             }
             onCreate={setCreateName}
-            disabled={busy}
+            disabled={busy || (kind === 'application' && links.isPending)}
             placeholder={t('companies.searchContacts')}
           />
         </div>

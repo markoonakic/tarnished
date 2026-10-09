@@ -136,5 +136,6 @@
   "accounts.saveError": "Could not save your profile. Check the entered values. Your changes are kept.",
   "accounts.staleError": "Your profile changed elsewhere. Reload, then save your changes.",
   "accounts.reload": "Reload",
-  "accounts.retry": "Retry"
+  "accounts.retry": "Retry",
+  "accounts.personName": "Name"
 }

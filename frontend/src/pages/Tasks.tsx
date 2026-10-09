@@ -1,3 +1,4 @@
+import { formatDate } from '@/lib/displayDate';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -261,15 +262,7 @@ export default function Tasks() {
                     ‹
                   </button>
                   <span>
-                    {new Date(`${days[0]}T12:00Z`).toLocaleDateString(
-                      locale(),
-                      { dateStyle: 'medium' }
-                    )}{' '}
-                    —{' '}
-                    {new Date(`${days[6]}T12:00Z`).toLocaleDateString(
-                      locale(),
-                      { dateStyle: 'medium' }
-                    )}
+                    {formatDate(days[0])} — {formatDate(days[6])}
                   </span>
                   <button
                     aria-label={t('tasks.nextWeek')}

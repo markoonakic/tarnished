@@ -1,10 +1,11 @@
+import { formatDateTime } from '@/lib/displayDate';
 import { useTranslation } from 'react-i18next';
 import {
   useUserPreferences,
   useUpdateUserPreferences,
 } from '@/hooks/useUserPreferences';
 import { getBrowserTimeZone } from '@/lib/api';
-import { locale, t } from '@/lib/i18n';
+import { t } from '@/lib/i18n';
 import { SettingsBackLink } from './SettingsLayout';
 import TimeZoneSettings from './TimeZoneSettings';
 
@@ -63,14 +64,7 @@ export default function SettingsLanguage() {
             <TimeZoneSettings />
             <p className="bg-bg2 text-fg1 rounded-lg px-4 py-3 text-sm">
               <span className="text-muted">{t('Example:')}</span>{' '}
-              {new Date('2026-10-08T12:30:00Z').toLocaleString(locale(), {
-                timeZone: zone,
-                year: 'numeric',
-                month: 'numeric',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {formatDateTime('2026-10-08T12:30:00Z', zone)}
             </p>
             <p className="text-muted text-xs">
               <i className="bi-stars mr-2" aria-hidden="true" />

@@ -60,7 +60,7 @@ it('shows Serbian labels, the account selection and the 24-hour preview', async 
   expect(
     screen.getByRole('button', { name: 'Srpski (latinica)' })
   ).toHaveAttribute('aria-pressed', 'true');
-  expect(screen.getByText(/8\. 10\. 2026\. 14:30/)).toBeInTheDocument();
+  expect(screen.getByText(/8\. 10\. 2026\., 14:30/)).toBeInTheDocument();
 });
 it('blocks repeated language writes during a save', () => {
   mocks.pending = true;

@@ -136,5 +136,6 @@
   "accounts.saveError": "Profil nije sačuvan. Proverite unete vrednosti. Izmene su zadržane.",
   "accounts.staleError": "Profil je izmenjen na drugom mestu. Učitajte ga ponovo, pa sačuvajte izmene.",
   "accounts.reload": "Učitaj ponovo",
-  "accounts.retry": "Pokušaj ponovo"
+  "accounts.retry": "Pokušaj ponovo",
+  "accounts.personName": "Ime i prezime"
 }

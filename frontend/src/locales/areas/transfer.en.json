@@ -1,0 +1,20 @@
+{
+  "transfer.phase.idle": "Idle",
+  "transfer.phase.uploading": "Uploading",
+  "transfer.phase.processing": "Processing",
+  "transfer.phase.ready": "Ready",
+  "transfer.phase.downloading": "Downloading",
+  "transfer.phase.complete": "Complete",
+  "transfer.phase.failed": "Failed",
+  "transfer.phase.cancelled": "Cancelled",
+  "transfer.phase.unknown": "Unknown",
+  "transfer.stage.validating": "Validating",
+  "transfer.stage.extracting": "Extracting",
+  "transfer.stage.clearing": "Removing existing data",
+  "transfer.stage.importing": "Importing",
+  "transfer.stage.importing_applications": "Importing applications",
+  "transfer.stage.finalizing": "Finalizing",
+  "transfer.stage.queued": "Queued",
+  "transfer.stage.exporting": "Exporting",
+  "transfer.stage.archiving": "Preparing archive"
+}

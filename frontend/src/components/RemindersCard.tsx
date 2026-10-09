@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { locale } from '@/lib/i18n';
+import { formatDateTime } from '@/lib/displayDate';
 import Card from './Card';
 import KindPill from './KindPill';
 import type { ReminderKind } from '@/lib/uiPills';
@@ -16,6 +16,7 @@ export interface ReminderItem {
 }
 export interface RemindersCardProps {
   reminders: ReminderItem[];
+  shortcuts?: ReactNode;
   onAdd?: () => void;
   onEdit?: (reminder: ReminderItem) => void;
   onToggle?: (reminder: ReminderItem) => void;
@@ -26,6 +27,7 @@ export interface RemindersCardProps {
 }
 export default function RemindersCard({
   reminders,
+  shortcuts,
   onAdd,
   onEdit,
   onToggle,
@@ -58,6 +60,7 @@ export default function RemindersCard({
         )
       }
     >
+      {shortcuts}
       <div className="space-y-2">
         {visible.map((reminder) => {
           const completed = reminder.state !== 'open';
@@ -119,11 +122,7 @@ export default function RemindersCard({
                   <>
                     {overdue && <>{t('kit.overdue')} · </>}
                     {reminder.dueText ??
-                      new Date(reminder.due_at).toLocaleString(locale(), {
-                        timeZone,
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
+                      formatDateTime(reminder.due_at, timeZone)}
                   </>
                 )}
               </span>

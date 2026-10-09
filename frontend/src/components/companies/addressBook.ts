@@ -1,7 +1,8 @@
+import { formatDate } from '@/lib/displayDate';
 import { isAxiosError } from 'axios';
 import { apiV030, type Page, type Company, type Contact } from '@/lib/apiV030';
 import { errorMessage } from '@/lib/errorMessage';
-import { locale, t } from '@/lib/i18n';
+import { t } from '@/lib/i18n';
 
 export const inputClass =
   'bg-bg2 text-fg1 placeholder:text-fg4 focus:ring-accent w-full rounded px-3 py-2 outline-none focus:ring-2';
@@ -26,16 +27,7 @@ export const roleColor = (role?: string | null) =>
     : role === 'Interviewer'
       ? '--orange-bright'
       : '--aqua-bright';
-export const dateLabel = (date?: string | null) =>
-  date
-    ? new Date(
-        date.length === 10 ? date + 'T12:00:00' : date
-      ).toLocaleDateString(locale(), {
-        day: 'numeric',
-        month: locale().startsWith('sr') ? 'numeric' : 'short',
-        year: 'numeric',
-      })
-    : '—';
+export const dateLabel = formatDate;
 export const failureMessage = (error: unknown) =>
   isAxiosError(error)
     ? errorMessage(error.response?.data, error.response?.status)

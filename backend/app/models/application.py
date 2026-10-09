@@ -184,9 +184,7 @@ class Application(JobDetails, Base):
     cover_letter_original_filename: Mapped[str | None] = mapped_column(
         String(255), nullable=True
     )
-    applied_at: Mapped[date | None] = mapped_column(
-        Date, default=date.today, nullable=True
-    )
+    applied_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     outcome_reason: Mapped[str | None] = mapped_column(Text)
     source_text: Mapped[str | None] = mapped_column(Text)

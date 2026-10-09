@@ -1,3 +1,4 @@
+import { formatDateTime } from '@/lib/displayDate';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -138,9 +139,7 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
               >
                 <time
                   dateTime={item.occurred_at}
-                  title={new Date(item.occurred_at).toLocaleString(locale(), {
-                    timeZone,
-                  })}
+                  title={formatDateTime(item.occurred_at, undefined)}
                   className="text-muted col-span-2 text-xs sm:col-span-1"
                 >
                   {new Date(item.occurred_at).toLocaleString(locale(), {

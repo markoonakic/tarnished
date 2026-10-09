@@ -982,6 +982,13 @@ def _system_prompt(scope, *, current_date=None):
         "Do not invent deadlines, priority scores or daily schedules. Suggest timing such as today or "
         "tomorrow only when supplied dates or commitments justify it. "
         "Correlation is not causation and employer motives are unknown; never state or imply a motive. "
+        "Every citation.quote MUST contain at most 2000 characters, including whitespace. "
+        "Choose a short exact passage that supports the claim, not the entire source. "
+        "For metrics, quote an exact key/value passage with its relevant denominator or scope; "
+        "do not copy the whole metrics object. For application feedback, short exact field values "
+        "or passages are sufficient; complete application objects are required only for pipeline "
+        "record coaching. Never truncate or rebuild an oversized record citation: choose a different "
+        "complete record within the limit, use the explicit permitted fallback, or omit the finding. "
         "Cite only provided source text with its exact source_id. Copy JSON records exactly as supplied, "
         "including every value; do not paraphrase JSON strings or combine fields from different records. "
         'For example, for source text {"count": 2, "stage": "applied"}, quote '

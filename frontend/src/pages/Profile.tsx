@@ -1003,7 +1003,12 @@ export default function Profile() {
                         ).map((field) => (
                           <div key={field.key}>
                             <dt className="text-muted text-xs">
-                              {label(field.key)}
+                              {label(
+                                section.key === 'personal' &&
+                                  field.key === 'name'
+                                  ? 'personName'
+                                  : field.key
+                              )}
                             </dt>
                             <dd className="text-fg1 mt-1 text-sm break-words">
                               {field.type === 'tags' ? (

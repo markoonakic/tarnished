@@ -1,4 +1,5 @@
-import { t, locale } from '@/lib/i18n';
+import { formatDateTime } from '@/lib/displayDate';
+import { t } from '@/lib/i18n';
 import AnalyticsNewKpis from '../components/slots/AnalyticsNewKpis';
 import AnalyticsBreakdowns from '../components/slots/AnalyticsBreakdowns';
 import AnalyticsActivity from '../components/slots/AnalyticsActivity';
@@ -62,7 +63,7 @@ export default function Analytics() {
         </div>
         {asOf && (
           <p className="text-muted mb-4 text-sm">
-            {t('History through')} {new Date(asOf).toLocaleString(locale())}.
+            {t('History through')} {formatDateTime(asOf)}.
             <button
               className="text-accent hover:text-accent-bright ml-2 cursor-pointer rounded px-3 py-1.5 transition-all duration-200 ease-in-out"
               onClick={() => {

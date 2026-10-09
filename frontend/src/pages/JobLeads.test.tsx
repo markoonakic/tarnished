@@ -145,7 +145,7 @@ it('shows an untitled lead with its domain, not a raw URL, on desktop and mobile
   await screen.findAllByText('Untitled lead');
   expect(screen.getAllByText('Untitled lead')).toHaveLength(2);
   expect(screen.getAllByText('careers.example.com')).toHaveLength(2);
-  expect(screen.getAllByText('—')).toHaveLength(2);
+  expect(screen.getAllByText('—')).toHaveLength(3);
   expect(screen.queryByText(/tracking=long-query/)).not.toBeInTheDocument();
   for (const label of screen.getAllByText('Untitled lead'))
     expect(label).toHaveClass('text-muted');

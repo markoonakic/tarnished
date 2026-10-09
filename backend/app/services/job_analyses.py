@@ -484,12 +484,7 @@ async def review(db, row, request):
                 record,
                 attribute,
                 list(
-                    dict.fromkeys(
-                        [
-                            *(getattr(record, attribute) or []),
-                            *(r["text"] for r in requirements if r["type"] == kind),
-                        ]
-                    )
+                    dict.fromkeys(r["text"] for r in requirements if r["type"] == kind)
                 ),
             )
     if (
