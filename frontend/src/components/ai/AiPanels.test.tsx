@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -26,6 +27,7 @@ vi.mock('@/lib/apiAnalyses', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/apiAnalyses')>()),
   analysesApi: {
     latest: vi.fn(),
+    confirmRequirements: vi.fn(),
     create: vi.fn(),
     run: vi.fn(),
     review: vi.fn(),
@@ -347,7 +349,7 @@ it('shows a read-only matrix, exact evidence, footer and stale banner', async ()
   ).not.toBeInTheDocument();
   expect(analysesApi.run).not.toHaveBeenCalled();
 });
-it('disables match until requirements are confirmed', async () => {
+it('offers extraction instead of a silently disabled comparison when requirements are missing', async () => {
   latest(null, [], []);
   render(
     <MemoryRouter>
@@ -355,11 +357,46 @@ it('disables match until requirements are confirmed', async () => {
     </MemoryRouter>
   );
   expect(
-    await screen.findByTitle('Review the extracted requirements first.')
-  ).toBeDisabled();
+    await screen.findByRole('button', { name: 'Extract with AI' })
+  ).toBeEnabled();
   expect(
-    screen.getByRole('button', { name: 'Compare with profile' })
-  ).toBeDisabled();
+    screen.queryByRole('button', { name: 'Compare with profile' })
+  ).not.toBeInTheDocument();
+});
+it('confirms the current list explicitly before enabling comparison', async () => {
+  latest(null, [], base.profile);
+  render(
+    <MemoryRouter>
+      <ProfileMatch
+        target={{ application_id: 'app' }}
+        refreshKey={4}
+        legacy={['Python']}
+      />
+    </MemoryRouter>
+  );
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Use these requirements' })
+  );
+  expect(screen.getByRole('dialog')).toHaveTextContent('Python');
+  expect(analysesApi.confirmRequirements).not.toHaveBeenCalled();
+  latest(null, base.requirements, base.profile);
+  vi.mocked(analysesApi.confirmRequirements).mockResolvedValue({
+    requirements: base.requirements,
+    revision: 5,
+  });
+  fireEvent.click(
+    within(screen.getByRole('dialog')).getByRole('button', {
+      name: 'Use these requirements',
+    })
+  );
+  expect(
+    await screen.findByRole('button', { name: 'Compare with profile' })
+  ).toBeEnabled();
+  expect(analysesApi.confirmRequirements).toHaveBeenCalledWith(
+    { application_id: 'app' },
+    4
+  );
+  expect(analysesApi.run).not.toHaveBeenCalled();
 });
 it('selects preparation suggestions and appends only selected IDs', async () => {
   const draft: Analysis = {

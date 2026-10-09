@@ -1,4 +1,5 @@
 {
+  "records.sentDate": "Sent date",
   "records.previewPosting": "Fetched posting preview",
   "records.captureMode": "Lead source",
   "records.capture.url": "From URL",

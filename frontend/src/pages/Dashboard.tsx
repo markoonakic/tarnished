@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import DashboardPipelineStrip from '../components/slots/DashboardPipelineStrip';
 import DashboardUpcomingRow from '../components/slots/DashboardUpcomingRow';
@@ -16,6 +17,7 @@ import KPICards from '../components/dashboard/KPICards';
 import NeedsAttention from '../components/dashboard/NeedsAttention';
 import ImportModal from '../components/ImportModal';
 import ApplicationModal from '../components/ApplicationModal';
+import QuickAction from '@/components/dashboard/QuickAction';
 import JobLeadCaptureForm from '../components/JobLeadCaptureForm';
 import {
   hasSeenImportPrompt,
@@ -83,12 +85,12 @@ export default function Dashboard() {
           ) : (
             <div role="alert" className="text-red-bright">
               {t('Failed to load dashboard.')}
-              <button
-                className="text-accent ml-3 underline"
+              <Button
+                className="ml-3 underline"
                 onClick={() => setRetry((value) => value + 1)}
               >
                 {t('Retry')}
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -132,18 +134,10 @@ export default function Dashboard() {
                 </p>
               </div>
               <div className="flex flex-shrink-0 gap-3">
-                <button
-                  onClick={handleDismissPrompt}
-                  className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded-md bg-transparent px-4 py-2 font-medium transition-all duration-200 ease-in-out"
-                >
-                  {t('Skip')}
-                </button>
-                <button
-                  onClick={handleOpenImportModal}
-                  className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
-                >
+                <Button onClick={handleDismissPrompt}>{t('Skip')}</Button>
+                <Button variant="primary" onClick={handleOpenImportModal}>
                   {t('Import Data')}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -175,33 +169,23 @@ export default function Dashboard() {
             <KPICards />
             <DashboardPipelineStrip />
 
-            {/* Quick Actions - single layer cards using inline-block (no flex) to avoid Firefox animation bug */}
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
-              <button
+              <QuickAction
+                icon="bi-plus-lg"
                 onClick={() => setShowCreateModal(true)}
-                className="bg-secondary hover:bg-bg2 cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5"
               >
-                <i className="bi bi-plus-lg text-accent icon-xl align-middle"></i>
-                <span className="text-fg1 ml-3 align-middle font-medium">
-                  {t('New Application')}
-                </span>
-              </button>
-              <div className="bg-secondary hover:bg-bg2 [&>button]:text-fg1 relative rounded-lg [&>button]:w-full [&>button]:bg-transparent [&>button]:py-4 [&>button]:pl-12 [&>button]:text-left">
-                <i
-                  className="bi bi-link-45deg text-accent icon-xl pointer-events-none absolute top-4 left-4"
-                  aria-hidden="true"
-                />
-                <JobLeadCaptureForm />
-              </div>
-              <button
-                onClick={() => navigate('/applications?view=board')}
-                className="bg-secondary hover:bg-bg2 cursor-pointer rounded-lg p-4 text-left transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5"
-              >
-                <i className="bi bi-kanban text-accent icon-xl align-middle"></i>
-                <span className="text-fg1 ml-3 align-middle font-medium">
-                  {t('tasks.openBoard')}
-                </span>
-              </button>
+                {t('New Application')}
+              </QuickAction>
+              <JobLeadCaptureForm
+                trigger={(open) => (
+                  <QuickAction icon="bi-link-45deg" onClick={open}>
+                    {t('New Job Lead')}
+                  </QuickAction>
+                )}
+              />
+              <QuickAction icon="bi-kanban" to="/applications?view=board">
+                {t('tasks.openBoard')}
+              </QuickAction>
             </div>
 
             <DashboardUpcomingRow />

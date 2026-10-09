@@ -22,7 +22,11 @@ export function normalizeHistoryTime(value: string): string {
   return seconds.length === 16 ? `${seconds}:00` : seconds;
 }
 
-export function historyInstant(value: string, timeZone: string): string {
+export function historyInstant(
+  value: string,
+  timeZone: string,
+  disambiguation: 'reject' | 'earlier' = 'reject'
+): string {
   const local = normalizeHistoryTime(value);
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(local))
     throw new Error(t('Enter a complete date and time.'));
@@ -52,12 +56,12 @@ export function historyInstant(value: string, timeZone: string): string {
         { timeZone: timeZone }
       )
     );
-  if (candidates.size > 1)
+  if (candidates.size > 1 && disambiguation === 'reject')
     throw new Error(
       t(
         'That time occurs twice in {{timeZone}} because the clock changes. Choose an unambiguous time.',
         { timeZone: timeZone }
       )
     );
-  return new Date([...candidates][0]).toISOString();
+  return new Date(Math.min(...candidates)).toISOString();
 }

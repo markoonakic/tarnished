@@ -1,3 +1,5 @@
+import Button from '@/components/ui/Button';
+import PopoverLayer from './ui/PopoverLayer';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import {
@@ -29,34 +31,6 @@ const triggerClasses = {
   bg2: 'bg-bg3',
   bg3: 'bg-bg4',
   bg4: 'bg-bg-h',
-} as const;
-
-const optionClasses = {
-  bg0: {
-    base: 'bg-bg1',
-    selected: 'bg-bg2',
-    hover: 'hover:bg-bg3',
-  },
-  bg1: {
-    base: 'bg-bg2',
-    selected: 'bg-bg3',
-    hover: 'hover:bg-bg4',
-  },
-  bg2: {
-    base: 'bg-bg3',
-    selected: 'bg-bg4',
-    hover: 'hover:bg-bg-h',
-  },
-  bg3: {
-    base: 'bg-bg4',
-    selected: 'bg-bg-h',
-    hover: 'hover:bg-bg0',
-  },
-  bg4: {
-    base: 'bg-bg-h',
-    selected: 'bg-bg0',
-    hover: 'hover:bg-bg1',
-  },
 } as const;
 
 function filterOptions(
@@ -276,8 +250,6 @@ export default function SearchableCombobox({
 
   const triggerBackground =
     triggerClasses[containerBackground as keyof typeof triggerClasses];
-  const optionPalette =
-    optionClasses[containerBackground as keyof typeof optionClasses];
 
   return (
     <div
@@ -313,10 +285,11 @@ export default function SearchableCombobox({
               ? `${listboxId}-option-${focusedIndex}`
               : undefined
           }
-          className={`text-fg1 placeholder-muted block h-full w-full bg-transparent px-4 py-2 pr-12 text-base transition-all duration-200 ease-in-out focus:outline-none ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+          className={`text-fg1 placeholder-muted block h-full w-full bg-transparent px-4 py-2 pr-12 text-sm transition-all duration-200 ease-in-out focus:outline-none ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
           placeholder={selectedOption?.label ?? placeholder}
         />
-        <button
+        <Button
+          variant="icon"
           type="button"
           onClick={() => {
             if (isOpen) {
@@ -328,25 +301,15 @@ export default function SearchableCombobox({
           }}
           disabled={disabled}
           aria-label={isOpen ? t('Close options') : t('Open options')}
-          className="text-fg4 absolute inset-y-0 right-0 flex h-full cursor-pointer items-center px-3 transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
+          className="absolute inset-y-0 right-0 flex h-full items-center"
         >
           <i
             className={`bi-chevron-down icon-md transition-transform duration-200 ease-in-out ${isOpen ? 'rotate-180' : ''}`}
           />
-        </button>
+        </Button>
       </div>
 
-      <div
-        id={listboxId}
-        role="listbox"
-        aria-hidden={!isOpen}
-        inert={!isOpen || disabled}
-        className={`bg-secondary border-tertiary ring-accent-bright absolute z-50 mt-1 w-full overflow-hidden rounded-lg border shadow-lg ring-1 transition-all duration-200 ease-in-out ${
-          isOpen
-            ? 'translate-y-0 opacity-100'
-            : 'pointer-events-none -translate-y-2 opacity-0'
-        }`}
-      >
+      <PopoverLayer id={listboxId} open={isOpen && !disabled} role="listbox">
         <div className="max-h-72 overflow-y-auto overscroll-contain">
           {filteredOptions.length === 0 ? (
             <div className="text-muted px-4 py-3 text-sm">{noResultsText}</div>
@@ -356,7 +319,7 @@ export default function SearchableCombobox({
               const isFocused = focusedIndex === index;
 
               return (
-                <button
+                <Button
                   key={option.value}
                   id={`${listboxId}-option-${index}`}
                   ref={(element) => {
@@ -369,20 +332,16 @@ export default function SearchableCombobox({
                   onMouseEnter={() => setFocusedIndex(index)}
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => handleSelect(option)}
-                  className={`flex w-full cursor-pointer items-center justify-between px-4 py-2 text-left text-base transition-all duration-200 ease-in-out ${
-                    isSelected
-                      ? `${optionPalette.selected} text-fg0`
-                      : `${optionPalette.base} text-fg1 ${optionPalette.hover}`
-                  } ${isFocused ? 'bg-bg4' : ''}`}
+                  className={`w-full justify-between text-left ${isFocused ? '' : ''} `}
                 >
                   <span className="truncate">{option.label}</span>
                   {isSelected && <i className="bi-check icon-md text-green" />}
-                </button>
+                </Button>
               );
             })
           )}
         </div>
-      </div>
+      </PopoverLayer>
     </div>
   );
 }

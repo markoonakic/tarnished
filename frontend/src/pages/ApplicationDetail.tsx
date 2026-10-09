@@ -1,9 +1,11 @@
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
 import { formatDate, formatDateTime } from '@/lib/displayDate';
 import { t, locale } from '@/lib/i18n';
 import { statusLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { observeRead } from '../lib/queryClient';
 import { getApplication, deleteApplication } from '../lib/applications';
 import { deleteRound } from '../lib/rounds';
@@ -39,7 +41,6 @@ import { apiV030 } from '@/lib/apiV030';
 import { updateApplication } from '@/lib/applications';
 import { listStatuses } from '@/lib/settings';
 import { getPreferences } from '@/lib/userPreferences';
-import { historyLocalTime } from '@/lib/historyDateTime';
 import type { Status } from '@/lib/types';
 
 export default function ApplicationDetail() {
@@ -210,13 +211,13 @@ function ApplicationDetailContent({ id }: { id: string }) {
         <div className="flex items-center justify-center py-20">
           <div role="alert" className="text-red-bright">
             {error || t('Application not found')}
-            <button
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent ml-3 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            <Button
+              className="ml-3 flex items-center gap-1.5"
               onClick={loadApplication}
             >
               <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('Retry')}
-            </button>
+            </Button>
           </div>
         </div>
       </Layout>
@@ -227,12 +228,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
     <Layout>
       <div className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-6">
-          <Link
-            to="/applications"
-            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-          >
-            {t('← Back to Applications')}
-          </Link>
+          <TextLink to="/applications">{t('← Back to Applications')}</TextLink>
         </div>
 
         {error && (
@@ -244,13 +240,13 @@ function ApplicationDetailContent({ id }: { id: string }) {
         {application.archived_at && (
           <div className="bg-bg2 text-muted mb-4 flex items-center justify-between gap-2 rounded-lg px-4 py-3 text-sm">
             <span>{t('records.archived')}</span>
-            <button
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            <Button
+              className="flex items-center gap-1.5"
               onClick={() => archive(false)}
             >
               <i className="bi-arrow-right icon-sm" aria-hidden="true" />
               {t('records.unarchive')}
-            </button>
+            </Button>
           </div>
         )}
         <div className="bg-secondary mb-6 rounded-lg p-6">
@@ -259,12 +255,9 @@ function ApplicationDetailContent({ id }: { id: string }) {
               <div className="mb-1 flex items-center gap-2">
                 <h1 className="text-primary text-2xl font-bold">
                   {application.company_id ? (
-                    <Link
-                      to={'/companies/' + application.company_id}
-                      className="text-fg1 hover:text-accent-bright focus:ring-accent cursor-pointer font-medium transition-all duration-200 ease-in-out focus:ring-2"
-                    >
+                    <TextLink to={'/companies/' + application.company_id}>
                       {application.company || t('companies.notSet')}
-                    </Link>
+                    </TextLink>
                   ) : (
                     application.company || t('companies.notSet')
                   )}
@@ -297,7 +290,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
               </p>
             </div>
             <div className="flex flex-col items-end gap-2">
-              <button
+              <Button
                 type="button"
                 aria-label={t('records.changeStatus')}
                 onClick={async () => {
@@ -308,29 +301,25 @@ function ApplicationDetailContent({ id }: { id: string }) {
                     showError(t('Failed to load statuses'));
                   }
                 }}
-                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
-                style={{
-                  backgroundColor: `${getStatusColor(application.status.name, colors, application.status.color)}20`,
-                  color: getStatusColor(
-                    application.status.name,
-                    colors,
-                    application.status.color
-                  ),
-                }}
+                className="flex items-center gap-1.5"
               >
                 <span
-                  className="h-2 w-2 rounded-full"
+                  className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold"
                   style={{
-                    backgroundColor: getStatusColor(
+                    color: getStatusColor(
                       application.status.name,
                       colors,
                       application.status.color
                     ),
+                    backgroundColor: `${getStatusColor(application.status.name, colors, application.status.color)}20`,
                   }}
-                />
-                {statusLabel(application.status)}{' '}
-                <i className="bi-chevron-down ml-1" aria-hidden="true" />
-              </button>
+                >
+                  <span className="h-2 w-2 rounded-full bg-current" />
+                  {statusLabel(application.status)}
+                </span>
+                <i className="bi-pencil ml-1" aria-hidden="true" />
+                {t('records.changeStatus')}
+              </Button>
               {application.outcome_reason && (
                 <p className="text-muted max-w-xs text-right text-xs">
                   {application.outcome_reason}
@@ -368,14 +357,13 @@ function ApplicationDetailContent({ id }: { id: string }) {
           />
           {application.job_url && (
             <div className="mb-4">
-              <a
+              <TextLink
                 href={application.job_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
               >
                 {t('Open Job Page →')}
-              </a>
+              </TextLink>
             </div>
           )}
 
@@ -491,44 +479,46 @@ function ApplicationDetailContent({ id }: { id: string }) {
           />
           <div className="border-tertiary flex flex-wrap items-center justify-end gap-2 border-t pt-4">
             {!application.archived_at && (
-              <button
-                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              <Button
+                className="flex items-center gap-1.5"
                 onClick={() => archive(true)}
               >
                 <i className="bi-archive mr-1" aria-hidden="true" />
                 {t('records.archive')}
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               onClick={() => {
                 setFeedbackOpened(true);
                 setShowFeedback(true);
               }}
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              className="flex items-center gap-1.5"
             >
               <i className="bi-stars icon-sm" aria-hidden="true" />
               {t('Application feedback')}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setShowEditModal(true)}
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              className="flex items-center gap-1.5"
             >
               <i className="bi-pencil icon-sm"></i>
               {t('Edit')}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="danger"
               onClick={handleDelete}
-              className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              className="flex items-center gap-1.5"
             >
               <i className="bi-trash icon-sm"></i>
               {t('Delete')}
-            </button>
+            </Button>
           </div>
         </div>
 
         <StatusChangeDialog
           isOpen={showStatusDialog}
           statusId={application.status.id}
+          appliedAt={application.applied_at}
           timeZone={timeZone}
           options={statuses.map((status) => ({
             value: status.id,
@@ -543,16 +533,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
               status_changed_at: draft.changed_at,
               status_comment: draft.comment || null,
               status_reason: draft.reason,
-              ...(!application.applied_at &&
-              statuses.find((status) => status.id === draft.status_id)
-                ?.meaning !== 'preparing'
-                ? {
-                    applied_at: historyLocalTime(
-                      draft.changed_at,
-                      timeZone
-                    ).slice(0, 10),
-                  }
-                : {}),
+              ...(draft.applied_at ? { applied_at: draft.applied_at } : {}),
             });
             await loadApplication();
           }}
@@ -592,13 +573,14 @@ function ApplicationDetailContent({ id }: { id: string }) {
               {t('Interview Rounds')}
             </h2>
             {application.rounds && application.rounds.length > 0 && (
-              <button
+              <Button
+                variant="primary"
                 onClick={() => setShowRoundForm(true)}
-                className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                className="flex items-center gap-1.5"
               >
                 <i className="bi-plus-lg icon-sm" aria-hidden="true" />
                 {t('Add Round')}
-              </button>
+              </Button>
             )}
           </div>
 

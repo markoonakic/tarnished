@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom';
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
+
 import HelpTip from '../HelpTip';
 import { useTranslation } from 'react-i18next';
 import { useDashboardOverview } from '@/hooks/useDashboardOverview';
@@ -18,13 +20,13 @@ export default function DashboardPipelineStrip() {
       {query.isError && (
         <p role="alert">
           {t('tasks.loadFailed')}{' '}
-          <button
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          <Button
+            className="flex items-center gap-1.5"
             onClick={() => void query.refetch()}
           >
             <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('Retry')}
-          </button>
+          </Button>
         </p>
       )}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -44,25 +46,19 @@ export default function DashboardPipelineStrip() {
         {pipeline
           .filter((s) => s.count > 0)
           .map((s) => (
-            <Link
+            <TextLink
               key={s.status_id}
               to={'/applications?status=' + s.status_id}
-              style={{
-                flex: s.count,
-                backgroundColor: getStatusColor(s.name, colors, s.color),
-              }}
+              style={{ flex: s.count }}
               aria-label={statusLabel(s) + ' ' + s.count}
-              className="focus:ring-accent cursor-pointer transition-all duration-200 ease-in-out hover:brightness-125 focus:ring-2"
             />
           ))}
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-2">
         {pipeline.map((s) => (
-          <Link
+          <TextLink
             key={s.status_id}
             to={'/applications?status=' + s.status_id}
-            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-            style={{ color: getStatusColor(s.name, colors, s.color) }}
           >
             <span
               className="h-2 w-2 rounded-full"
@@ -72,7 +68,7 @@ export default function DashboardPipelineStrip() {
             />
             {statusLabel(s)}{' '}
             <span className="text-primary font-semibold">{s.count}</span>
-          </Link>
+          </TextLink>
         ))}
       </div>
     </section>

@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
@@ -62,18 +63,19 @@ export default function DeleteAccountCard() {
             {error}
           </p>
         )}
-        <button
+        <Button
+          variant="danger"
           disabled={canDelete !== true}
           title={canDelete === false ? t('accounts.onlyAdmin') : undefined}
           onClick={() => {
             setOpen(true);
             setError('');
           }}
-          className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          className="flex items-center gap-1.5"
         >
           <i className="bi-trash icon-sm" aria-hidden="true" />
           {t('accounts.deleteAccount')}
-        </button>
+        </Button>
       </div>
       {open && (
         <Modal
@@ -96,11 +98,12 @@ export default function DeleteAccountCard() {
               <h2 className="text-fg1 text-xl font-bold">
                 {t('accounts.deleteAccount')}
               </h2>
-              <button
+              <Button
+                variant="icon"
                 type="button"
                 disabled={busy}
                 aria-label={t('accounts.close')}
-                className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+
                 onClick={() => {
                   setOpen(false);
                   setPassword('');
@@ -109,7 +112,7 @@ export default function DeleteAccountCard() {
                 title={t('accounts.close')}
               >
                 <i className="bi-x-lg" aria-hidden="true" />
-              </button>
+              </Button>
             </div>
             <p className="text-muted text-sm">
               {t('accounts.deleteModalBody')}
@@ -138,9 +141,9 @@ export default function DeleteAccountCard() {
                 {t('accounts.deleteConfirmation')}
               </label>
               <div className="flex flex-wrap justify-end gap-3">
-                <button
+                <Button
                   type="button"
-                  className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                  className="flex items-center gap-1.5"
                   onClick={() => {
                     setOpen(false);
                     setPassword('');
@@ -149,14 +152,15 @@ export default function DeleteAccountCard() {
                 >
                   <i className="bi-x-lg icon-sm" aria-hidden="true" />
                   {t('accounts.cancel')}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="danger"
                   disabled={!confirm || !password || canDelete === false}
-                  className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                  className="flex items-center gap-1.5"
                 >
                   <i className="bi-trash icon-sm" aria-hidden="true" />
                   {t('accounts.deletePermanently')}
-                </button>
+                </Button>
               </div>
             </fieldset>
           </form>

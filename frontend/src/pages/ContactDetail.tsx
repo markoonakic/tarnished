@@ -1,7 +1,9 @@
+import TextLink from '@/components/ui/TextLink';
+import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import Card from '@/components/Card';
 import Loading from '@/components/Loading';
@@ -16,7 +18,6 @@ import {
   RelatedInterviews,
 } from '@/components/companies/RelatedRecords';
 import {
-  actionClass,
   roleLabel,
   roleColor,
   dateLabel,
@@ -40,25 +41,22 @@ export default function ContactDetail() {
   return (
     <Layout>
       <div className="mx-auto max-w-4xl px-4 py-8">
-        <Link
+        <TextLink
           to="/contacts"
-          className="text-accent hover:text-accent-bright focus:ring-accent mb-6 inline-flex cursor-pointer items-center gap-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2"
+          className="mb-6 inline-flex items-center gap-1.5"
         >
           <i className="bi bi-chevron-left" aria-hidden="true" />
           {t('companies.backContacts')}
-        </Link>
+        </TextLink>
         {query.isPending ? (
           <Loading />
         ) : query.isError ? (
           <p role="alert" className="text-red">
             {failureMessage(query.error)}{' '}
-            <button
-              className={actionClass}
-              onClick={() => void query.refetch()}
-            >
+            <Button onClick={() => void query.refetch()}>
               <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('companies.reload')}
-            </button>
+            </Button>
           </p>
         ) : (
           contact && (
@@ -82,12 +80,9 @@ export default function ContactDetail() {
                   {contact.company && (
                     <>
                       {contact.function && ' ' + t('companies.at') + ' '}
-                      <Link
-                        className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-                        to={'/companies/' + contact.company.id}
-                      >
+                      <TextLink to={'/companies/' + contact.company.id}>
                         {contact.company.name}
-                      </Link>
+                      </TextLink>
                     </>
                   )}
                 </p>
@@ -98,12 +93,9 @@ export default function ContactDetail() {
                     </dt>
                     <dd className="text-fg1 break-words">
                       {contact.email ? (
-                        <a
-                          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-                          href={'mailto:' + contact.email}
-                        >
+                        <TextLink href={'mailto:' + contact.email}>
                           {contact.email}
-                        </a>
+                        </TextLink>
                       ) : (
                         '—'
                       )}
@@ -115,12 +107,9 @@ export default function ContactDetail() {
                     </dt>
                     <dd className="text-fg1">
                       {contact.phone ? (
-                        <a
-                          href={'tel:' + contact.phone}
-                          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-                        >
+                        <TextLink href={'tel:' + contact.phone}>
                           {contact.phone}
-                        </a>
+                        </TextLink>
                       ) : (
                         '—'
                       )}
@@ -132,14 +121,13 @@ export default function ContactDetail() {
                     </dt>
                     <dd className="text-fg1 break-words">
                       {contact.profile_url ? (
-                        <a
-                          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+                        <TextLink
                           href={contact.profile_url}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
                           {contact.profile_url.replace(/^https?:\/\//, '')}
-                        </a>
+                        </TextLink>
                       ) : (
                         '—'
                       )}
@@ -165,20 +153,18 @@ export default function ContactDetail() {
                   </div>
                 )}
                 <div className="border-tertiary mt-6 flex justify-end gap-2 border-t pt-4">
-                  <button
-                    className={actionClass}
-                    onClick={() => setEditing(true)}
-                  >
+                  <Button onClick={() => setEditing(true)}>
                     <i className="bi bi-pencil mr-2" aria-hidden="true" />
                     {t('companies.edit')}
-                  </button>
-                  <button
-                    className={actionClass + ' text-red'}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    className=""
                     onClick={() => setDeleting(true)}
                   >
                     <i className="bi bi-trash mr-2" aria-hidden="true" />
                     {t('companies.delete')}
-                  </button>
+                  </Button>
                 </div>
               </section>
               <Card title={t('companies.linkedRecords')} icon="bi-link-45deg">

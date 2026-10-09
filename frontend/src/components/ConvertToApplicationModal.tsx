@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
@@ -83,14 +84,14 @@ export default function ConvertToApplicationModal({
             <i className="bi bi-arrow-repeat icon-md text-aqua" />
             {t('Convert to Application')}
           </h3>
-          <button
+          <Button
+            variant="icon"
             onClick={onClose}
             disabled={isConverting}
             aria-label={t('Close modal')}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             <i className="bi bi-x-lg icon-lg" />
-          </button>
+          </Button>
         </div>
 
         <div className="p-6">
@@ -114,14 +115,10 @@ export default function ConvertToApplicationModal({
         </div>
 
         <div className="border-tertiary flex justify-end gap-3 border-t p-4">
-          <button
-            onClick={onClose}
-            disabled={isConverting}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded bg-transparent px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
-          >
+          <Button onClick={onClose} disabled={isConverting}>
             {t('Cancel')}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleConvert}
             disabled={
               isConverting ||
@@ -129,7 +126,7 @@ export default function ConvertToApplicationModal({
               (!lead.converted_to_application_id &&
                 (!lead.company?.trim() || !lead.title?.trim()))
             }
-            className="bg-aqua text-bg0 hover:bg-aqua-bright flex cursor-pointer items-center gap-2 rounded px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
+            className="flex items-center gap-2"
           >
             {isConverting ? (
               <>
@@ -142,7 +139,7 @@ export default function ConvertToApplicationModal({
                 {t('Convert to Application')}
               </>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

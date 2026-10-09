@@ -1,4 +1,5 @@
 {
+  "ai.useRequirements": "Koristi ove zahteve",
   "ai.reviewTitle": "Pregled izdvojenih podataka",
   "ai.proposalCount": "Predlozi: {{count}} · Pregledano: {{reviewed}}",
   "ai.proposalCount_one": "Predlozi: {{count}} · Pregledano: {{reviewed}}",

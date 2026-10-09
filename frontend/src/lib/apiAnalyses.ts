@@ -67,6 +67,16 @@ export interface AnalysisRead {
   profile: Analysis['profile'];
 }
 export const analysesApi = {
+  confirmRequirements: async (
+    target: AnalysisTarget,
+    expectedRevision: number
+  ) =>
+    (
+      await api.post('/api/job-analyses/confirm-requirements', {
+        ...target,
+        expected_revision: expectedRevision,
+      })
+    ).data,
   latest: async (kind: AnalysisKind, target: AnalysisTarget) =>
     (
       await api.get<AnalysisRead>('/api/job-analyses', {

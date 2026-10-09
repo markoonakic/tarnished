@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -94,14 +95,14 @@ export default function TargetReminders({
       }
     >
       {shortcuts.map((shortcut) => (
-        <button
+        <Button
           key={shortcut.kind}
           type="button"
           aria-label={t('tasks.remindMe')}
           title={t('kit.kind.' + shortcut.kind)}
           disabled={!zone || query.isPending}
           onClick={() => openShortcut(shortcut)}
-          className={`text-accent hover:bg-bg2 focus:ring-accent rounded py-1.5 text-sm whitespace-nowrap focus:ring-2 disabled:opacity-50 ${shortcutsOnly ? 'px-1' : 'px-3'}`}
+          className={`whitespace-nowrap ${shortcutsOnly ? '' : ''} `}
         >
           <i
             className={`bi ${query.data?.items.some((r) => r.kind === shortcut.kind && r.state === 'open') ? 'bi-bell-fill' : 'bi-bell'} mr-2`}
@@ -113,7 +114,7 @@ export default function TargetReminders({
               {!shortcutsOnly && <> · {t('kit.kind.' + shortcut.kind)}</>}
             </>
           )}
-        </button>
+        </Button>
       ))}
     </span>
   );
@@ -123,13 +124,13 @@ export default function TargetReminders({
       {query.isError && (
         <p role="alert" className="text-red-bright mb-3">
           {t('tasks.loadFailed')}{' '}
-          <button
+          <Button
             onClick={() => void query.refetch()}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
           >
             <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('Retry')}
-          </button>
+          </Button>
         </p>
       )}
       {!shortcutsOnly && (

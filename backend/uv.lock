@@ -2682,7 +2682,7 @@ wheels = [
 
 [[package]]
 name = "tarnished-backend"
-version = "0.3.7"
+version = "0.3.8"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },

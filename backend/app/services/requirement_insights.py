@@ -20,7 +20,7 @@ def current_requirements(record):
             "nice_to_have": "requirements_nice_to_have",
         }.get(str(item.get("type", "")))
         if (
-            item.get("analysis_id")
+            (item.get("analysis_id") or item.get("source") == "manual")
             and projection
             and item.get("text") not in (getattr(record, projection, None) or [])
         ):

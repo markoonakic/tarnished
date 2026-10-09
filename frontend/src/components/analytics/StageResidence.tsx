@@ -1,6 +1,7 @@
+import TextLink from '@/components/ui/TextLink';
 import { t, locale } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+
 import type { PipelineMetrics } from '@/lib/analytics';
 import type { StatusMeaning } from '@/lib/types';
 import { historyStageLabels } from '@/lib/history';
@@ -86,10 +87,10 @@ export default function StageResidence({
           <ul className="space-y-2">
             {waiting.map((app) => (
               <li key={app.application_id}>
-                <Link
+                <TextLink
                   to={`/applications/${app.application_id}`}
                   aria-label={`${app.company} · ${app.job_title}, ${stageName(app.as_of_meaning)}, ${duration(app.current_stage_age_hours!)}`}
-                  className="bg-bg2 hover:bg-bg3 flex flex-wrap items-center justify-between gap-2 rounded-lg px-4 py-3 text-sm transition-all duration-200 ease-in-out"
+                  className="flex flex-wrap items-center justify-between gap-2"
                 >
                   <span className="text-fg1 min-w-0">
                     {app.company} · {app.job_title}
@@ -98,7 +99,7 @@ export default function StageResidence({
                     {stageName(app.as_of_meaning)} ·{' '}
                     {duration(app.current_stage_age_hours!)}
                   </span>
-                </Link>
+                </TextLink>
               </li>
             ))}
           </ul>

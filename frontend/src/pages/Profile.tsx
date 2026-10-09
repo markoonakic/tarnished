@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import HelpTip from '@/components/HelpTip';
@@ -186,10 +187,6 @@ const sections: {
 ];
 const inputClass =
   'bg-bg2 text-fg1 focus:ring-accent-bright mt-1 w-full rounded px-3 py-2 focus:ring-2 focus:outline-none';
-const ghostClass =
-  'text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50 focus:ring-2 focus:ring-accent';
-const saveClass =
-  'bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50 flex items-center gap-1.5 focus:ring-2 focus:ring-accent';
 const label = (key: string) => t(`accounts.${key}`);
 const optionLabel = (value: string) =>
   !value
@@ -684,20 +681,20 @@ export default function Profile() {
           >
             {error}
             {stale && (
-              <button className={ghostClass} onClick={() => void load()}>
+              <Button onClick={() => void load()}>
                 <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
                 {label('reload')}
-              </button>
+              </Button>
             )}
           </div>
         )}
         {loading ? (
           <Loading message={label('loading')} />
         ) : !profile ? (
-          <button className={saveClass} onClick={() => void load()}>
+          <Button variant="primary" onClick={() => void load()}>
             <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {label('retry')}
-          </button>
+          </Button>
         ) : (
           <>
             {!total && !profile.display_name && !profile.first_name ? (
@@ -762,13 +759,13 @@ export default function Profile() {
                     {t('accounts.aiCount', { allowed, total, count: total })}
                   </p>
                   {allowed < total && (
-                    <button className={`${ghostClass} px-0`} onClick={review}>
+                    <Button className="" onClick={review}>
                       <i
                         className="bi-arrow-right icon-sm"
                         aria-hidden="true"
                       />
                       {label('review')}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -814,14 +811,13 @@ export default function Profile() {
                           </>
                         )}
                         {!isEditing && (
-                          <button
-                            className={ghostClass}
+                          <Button
                             disabled={busy}
                             onClick={() => edit(section.key)}
                           >
                             <i className="bi-pencil mr-1" aria-hidden="true" />
                             {label('edit')}
-                          </button>
+                          </Button>
                         )}
                       </>
                     }
@@ -884,9 +880,9 @@ export default function Profile() {
                             </p>
                           )}
                           <div className="flex justify-end gap-3">
-                            <button
+                            <Button
                               type="button"
-                              className={ghostClass}
+
                               onClick={() => setEditing(null)}
                             >
                               <i
@@ -894,14 +890,14 @@ export default function Profile() {
                                 aria-hidden="true"
                               />
                               {label('cancel')}
-                            </button>
-                            <button className={saveClass}>
+                            </Button>
+                            <Button variant="primary">
                               <i
                                 className="bi-check2 icon-sm"
                                 aria-hidden="true"
                               />
                               {label('save')}
-                            </button>
+                            </Button>
                           </div>
                         </fieldset>
                       </form>
@@ -964,8 +960,8 @@ export default function Profile() {
                             {label('noEntries')}
                           </p>
                         )}
-                        <button
-                          className={`${ghostClass} mt-2 px-0`}
+                        <Button
+                          className="mt-2"
                           disabled={busy}
                           onClick={() => newEntry(section.key as EntrySection)}
                         >
@@ -974,7 +970,7 @@ export default function Profile() {
                             aria-hidden="true"
                           />
                           {label(`add_${section.key}`)}
-                        </button>
+                        </Button>
                       </div>
                     ) : isEditing ? (
                       <form
@@ -995,9 +991,9 @@ export default function Profile() {
                             }
                           />
                           <div className="mt-6 flex justify-end gap-3">
-                            <button
+                            <Button
                               type="button"
-                              className={ghostClass}
+
                               onClick={() => setEditing(null)}
                             >
                               <i
@@ -1005,14 +1001,14 @@ export default function Profile() {
                                 aria-hidden="true"
                               />
                               {label('cancel')}
-                            </button>
-                            <button className={saveClass}>
+                            </Button>
+                            <Button variant="primary">
                               <i
                                 className="bi-check2 icon-sm"
                                 aria-hidden="true"
                               />
                               {label('save')}
-                            </button>
+                            </Button>
                           </div>
                         </fieldset>
                       </form>
@@ -1087,24 +1083,25 @@ export default function Profile() {
                 <h2 className="text-fg1 text-xl font-bold">
                   {label(`${entry.existing ? 'edit' : 'add'}_${entry.section}`)}
                 </h2>
-                <button
+                <Button
+                  variant="icon"
                   type="button"
                   aria-label={label('close')}
                   disabled={busy}
-                  className={ghostClass}
+
                   onClick={() => setEntry(null)}
                   title={label('close')}
                 >
                   <i className="bi-x-lg" aria-hidden="true" />
-                </button>
+                </Button>
               </div>
               {error && (
                 <div role="alert" className="text-red mb-4">
                   {error}
                   {stale && (
-                    <button
+                    <Button
                       type="button"
-                      className={ghostClass}
+
                       onClick={() => void load()}
                     >
                       <i
@@ -1112,7 +1109,7 @@ export default function Profile() {
                         aria-hidden="true"
                       />
                       {label('reload')}
-                    </button>
+                    </Button>
                   )}
                 </div>
               )}
@@ -1143,18 +1140,18 @@ export default function Profile() {
                   />
                 </div>
                 <div className="mt-6 flex justify-end gap-3">
-                  <button
+                  <Button
                     type="button"
-                    className={ghostClass}
+
                     onClick={() => setEntry(null)}
                   >
                     <i className="bi-x-lg icon-sm" aria-hidden="true" />
                     {label('cancel')}
-                  </button>
-                  <button className={saveClass}>
+                  </Button>
+                  <Button variant="primary">
                     <i className="bi-check2 icon-sm" aria-hidden="true" />
                     {label('save')}
-                  </button>
+                  </Button>
                 </div>
               </fieldset>
             </form>
@@ -1176,16 +1173,13 @@ export default function Profile() {
                 })}
               </p>
               <div className="flex justify-end gap-3">
-                <button
-                  className={ghostClass}
-                  disabled={busy}
-                  onClick={() => setDeleting(null)}
-                >
+                <Button disabled={busy} onClick={() => setDeleting(null)}>
                   <i className="bi-x-lg icon-sm" aria-hidden="true" />
                   {label('cancel')}
-                </button>
-                <button
-                  className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                </Button>
+                <Button
+                  variant="danger"
+                  className="flex items-center gap-1.5"
                   disabled={busy}
                   onClick={async () => {
                     if (
@@ -1200,7 +1194,7 @@ export default function Profile() {
                 >
                   <i className="bi-trash icon-sm" aria-hidden="true" />
                   {label('delete')}
-                </button>
+                </Button>
               </div>
             </div>
           </Modal>

@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { formatDate as displayDate, formatDateTime } from '@/lib/displayDate';
 import { t, locale } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
@@ -392,13 +393,14 @@ export default function Admin() {
                     </span>
                   )}
                 </div>
-                <button
+                <Button
+                  variant="primary"
                   onClick={() => setShowCreateModal(true)}
-                  className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                  className="flex items-center gap-1.5"
                 >
                   <i className="bi-plus-lg icon-sm" aria-hidden="true" />
                   {t('Create User')}
-                </button>
+                </Button>
               </div>
 
               <div className="bg-bg1 mb-6 rounded-lg p-4">
@@ -414,14 +416,15 @@ export default function Admin() {
                       className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                     />
                     {searchQuery && (
-                      <button
+                      <Button
+                        variant="icon"
                         onClick={() => handleSearchQueryChange('')}
-                        className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent absolute top-1/2 right-3 cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+                        className="absolute top-1/2 right-3"
                         aria-label={t('Clear search')}
                         title={t('Clear search')}
                       >
                         <i className="bi-x icon-sm" />
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -536,33 +539,35 @@ export default function Admin() {
                           <td className="px-4 py-3 text-sm">
                             <div className="flex flex-wrap items-center justify-end gap-2">
                               {u.approval_pending ? (
-                                <button
+                                <Button
+                                  variant="primary"
                                   disabled={Boolean(accountBusy)}
                                   onClick={() => void handleApprove(u.id)}
-                                  className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                                  className="flex items-center gap-1.5"
                                 >
                                   <i
                                     className="bi-check2 icon-sm"
                                     aria-hidden="true"
                                   />
                                   {t('accounts.approve')}
-                                </button>
+                                </Button>
                               ) : (
-                                <button
+                                <Button
                                   onClick={() => setEditingUser(u)}
-                                  className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                                  className="flex items-center gap-1.5"
                                 >
                                   <i
                                     className="bi-pencil mr-1"
                                     aria-hidden="true"
                                   />
                                   {t('Edit')}
-                                </button>
+                                </Button>
                               )}
-                              <button
+                              <Button
+                                variant="danger"
                                 disabled={Boolean(accountBusy)}
                                 onClick={() => void handleDeleteUser(u)}
-                                className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                                className="flex items-center gap-1.5"
                               >
                                 <i
                                   className="bi-trash icon-sm"
@@ -571,7 +576,7 @@ export default function Admin() {
                                 {u.approval_pending
                                   ? t('accounts.reject')
                                   : t('Delete')}
-                              </button>
+                              </Button>
                             </div>
                           </td>
                         </tr>
@@ -623,33 +628,35 @@ export default function Admin() {
                     </p>
                     <div className="flex gap-3">
                       {u.approval_pending ? (
-                        <button
+                        <Button
+                          variant="primary"
                           disabled={Boolean(accountBusy)}
                           onClick={() => void handleApprove(u.id)}
-                          className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                          className="flex items-center gap-1.5"
                         >
                           <i className="bi-check2 icon-sm" aria-hidden="true" />
                           {t('accounts.approve')}
-                        </button>
+                        </Button>
                       ) : (
-                        <button
+                        <Button
                           onClick={() => setEditingUser(u)}
-                          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                          className="flex items-center gap-1.5"
                         >
                           <i className="bi-pencil icon-sm" aria-hidden="true" />
                           {t('Edit')}
-                        </button>
+                        </Button>
                       )}
-                      <button
+                      <Button
+                        variant="danger"
                         disabled={Boolean(accountBusy)}
                         onClick={() => void handleDeleteUser(u)}
-                        className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                        className="flex items-center gap-1.5"
                       >
                         <i className="bi-trash icon-sm" aria-hidden="true" />
                         {u.approval_pending
                           ? t('accounts.reject')
                           : t('Delete')}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -673,16 +680,17 @@ export default function Admin() {
                 >
                   {t('AI Configuration')}
                 </h2>
-                <button
+                <Button
+                  variant="primary"
                   onClick={() => {
                     setAiNotice(null);
                     setShowAISettings(true);
                   }}
-                  className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                  className="flex items-center gap-1.5"
                 >
                   <i className="bi-arrow-right icon-sm" aria-hidden="true" />
                   {t('Configure AI')}
-                </button>
+                </Button>
               </div>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="bg-secondary space-y-2 rounded-lg p-6">
@@ -727,15 +735,16 @@ export default function Admin() {
                       <h2 className="text-primary text-xl font-bold">
                         {t('AI Configuration')}
                       </h2>
-                      <button
+                      <Button
+                        variant="icon"
                         aria-label={t('Close AI settings')}
                         disabled={savingAi}
                         onClick={() => setShowAISettings(false)}
-                        className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+
                         title={t('Close AI settings')}
                       >
                         <i className="bi-x-lg icon-lg" aria-hidden="true" />
-                      </button>
+                      </Button>
                     </div>
                     <p className="text-muted mb-4 text-sm">
                       {t(
@@ -933,9 +942,9 @@ export default function Admin() {
                                 )}{' '}
                                 <code>deploy/compose/LOCAL-SPEECH.md</code>.
                               </p>
-                              <button
+                              <Button
                                 type="button"
-                                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                                className="flex items-center gap-1.5"
                                 disabled={checkingLocal}
                                 onClick={async () => {
                                   setCheckingLocal(true);
@@ -972,7 +981,7 @@ export default function Admin() {
                                   aria-hidden="true"
                                 />
                                 {t('Check saved local installation')}
-                              </button>
+                              </Button>
                               <p role="status">{localStatus}</p>
                             </div>
                           )}
@@ -1119,13 +1128,14 @@ export default function Admin() {
                             {t('Clear speech endpoint')}
                           </label>
                         </div>
-                        <button
+                        <Button
+                          variant="primary"
                           type="submit"
-                          className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50 md:col-span-2"
+                          className="flex min-h-11 items-center gap-1.5 md:col-span-2"
                         >
                           <i className="bi-check2 icon-sm" aria-hidden="true" />
                           {savingAi ? t('Saving...') : t('Save Settings')}
-                        </button>
+                        </Button>
                       </fieldset>
                     </form>
                   </div>

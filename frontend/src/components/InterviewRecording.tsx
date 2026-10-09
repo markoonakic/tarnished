@@ -1,8 +1,10 @@
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import InterviewFeedback from './InterviewFeedback';
 import HelpTip from './HelpTip';
-import { Link } from 'react-router-dom';
+
 import { formatDateTime } from '@/lib/displayDate';
 import { roundTypeLabel } from '@/lib/referenceLabels';
 import { getEffectiveTimeZone } from '@/lib/roundDateTime';
@@ -203,34 +205,34 @@ export default function InterviewRecording({
               {t('tasks.outcome.' + (round.outcome || 'pending'))}
             </span>
           )}
-          <button
+          <Button
             onClick={() => {
               setFeedbackOpened(true);
               setShowFeedback(true);
             }}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
           >
             <i className="bi-stars icon-sm mr-1" aria-hidden="true" />
             {t('Interview feedback')}
-          </button>
+          </Button>
           {showRoundHeader && (
             <>
-              <button
+              <Button
+                variant="icon"
                 onClick={onEdit}
                 aria-label={t('Edit round')}
                 title={t('Edit')}
-                className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
               >
                 <i className="bi-pencil icon-md" />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="icon"
                 onClick={onDelete}
                 aria-label={t('Delete round')}
                 title={t('Delete')}
-                className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
               >
                 <i className="bi-trash icon-md" />
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -248,12 +250,9 @@ export default function InterviewRecording({
               })}{' '}
               · {t('tasks.preparationCount', { count: preparationCount })}
             </span>
-            <Link
-              to={`/interviews/${round.id}`}
-              className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-            >
+            <TextLink to={`/interviews/${round.id}`}>
               {t('tasks.openInterview')} →
-            </Link>
+            </TextLink>
           </div>
           {round.notes_summary && (
             <p className="text-secondary mb-3 text-sm whitespace-pre-wrap">
@@ -274,7 +273,7 @@ export default function InterviewRecording({
             accept=".mp4,.webm,.mov,.mp3,.m4a,.wav,.ogg"
             onChange={(e) => void handleMediaUpload(e)}
             disabled={uploading}
-            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
           >
             <i className="bi-plus-circle icon-sm"></i>
             {uploading ? t('Uploading...') : t('Add Media')}
@@ -294,14 +293,14 @@ export default function InterviewRecording({
           </div>
         )}
         {(pendingMedia || deleteConflict) && !uploading && (
-          <button
+          <Button
             type="button"
             onClick={onMediaChange}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
           >
             <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('Reload recordings')}
-          </button>
+          </Button>
         )}
         {pendingMedia && !uploading && (
           <div className="mb-2 text-sm">
@@ -311,25 +310,25 @@ export default function InterviewRecording({
                 '. Existing media/transcripts remain available. A lost response may mean the upload succeeded; review before retrying.'
               )}
             </p>
-            <button
+            <Button
               type="button"
               onClick={() => void sendMedia(pendingMedia)}
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              className="flex items-center gap-1.5"
             >
               <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('Retry recording upload')}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={() => {
                 setPendingMedia(null);
                 setMediaError('');
               }}
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              className="flex items-center gap-1.5"
             >
               <i className="bi-x-lg icon-sm" aria-hidden="true" />
               {t('Discard pending upload')}
-            </button>
+            </Button>
           </div>
         )}
         {uploading && (
@@ -370,29 +369,29 @@ export default function InterviewRecording({
                     ` · ${Math.ceil(m.probed_duration_seconds / 60)} min`}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button
+                  <Button
                     onClick={() => setTranscribingMedia(m.id)}
-                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                    className="flex items-center gap-1.5"
                   >
                     <i
                       className="bi-file-text icon-sm mr-1"
                       aria-hidden="true"
                     />
                     {t('Transcribe')}
-                  </button>
+                  </Button>
                   <FileButton
                     accept=".mp4,.webm,.mov,.mp3,.m4a,.wav,.ogg"
                     disabled={uploading}
                     onChange={(e) => void handleMediaUpload(e, m.id)}
-                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                    className="flex items-center gap-1.5"
                   >
                     <i className="bi-pencil icon-sm" aria-hidden="true" />
                     {t('Replace recording')}
                   </FileButton>
-                  <button
+                  <Button
                     disabled={m.validation !== 'audio_decode_check'}
                     onClick={() => setPlayingMedia(m)}
-                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                    className="flex items-center gap-1.5"
                     title={
                       m.validation === 'audio_decode_check'
                         ? t('Play')
@@ -403,24 +402,25 @@ export default function InterviewRecording({
                   >
                     <i className="bi-play-fill icon-md" />
                     {t('Play')}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={(e) => handleMediaDownload(m, e)}
-                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                    className="flex items-center gap-1.5"
                     title={t('Download')}
                   >
                     <i className="bi-download icon-sm" />
                     {t('Download')}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="danger"
                     disabled={uploading}
                     onClick={(e) => handleMediaDelete(m.id, e)}
-                    className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                    className="flex items-center gap-1.5"
                     title={t('Delete')}
                   >
                     <i className="bi-trash icon-sm text-red-bright" />
                     {t('Delete')}
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
@@ -440,14 +440,15 @@ export default function InterviewRecording({
               <h2 className="text-primary text-xl font-semibold">
                 {t('Transcribe recording')}
               </h2>
-              <button
+              <Button
+                variant="icon"
                 aria-label={t('Close transcription')}
                 onClick={() => setTranscribingMedia(null)}
-                className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+
                 title={t('Close transcription')}
               >
                 <i className="bi-x-lg icon-lg" aria-hidden="true" />
-              </button>
+              </Button>
             </div>
             <TranscriptionPanel
               round={round}
@@ -470,16 +471,17 @@ export default function InterviewRecording({
               ? t('Transcript attachment available')
               : t('No transcript yet')}
         </p>
-        <button
+        <Button
+          variant="primary"
           type="button"
           onClick={() => setEditingTranscript(true)}
-          className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          className="flex items-center gap-1.5"
         >
           <i className="bi-plus-lg icon-sm" aria-hidden="true" />
           {round.has_current_transcript || round.transcript_path
             ? t('Read transcript')
             : t('Add transcript')}
-        </button>
+        </Button>
         {round.transcript_summary && (
           <p className="text-secondary mt-2 text-sm whitespace-pre-wrap">
             {t('Round transcript summary:')} {round.transcript_summary}

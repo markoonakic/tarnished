@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
@@ -76,16 +77,17 @@ function ReminderForm({
           <h2 id={id} className="text-fg1 text-xl font-semibold">
             {t(editing ? 'kit.editReminder' : 'kit.addReminder')}
           </h2>
-          <button
+          <Button
+            variant="icon"
             type="button"
             aria-label={t('kit.close')}
             disabled={busy}
             onClick={onClose}
-            className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+
             title={t('kit.close')}
           >
             <i className="bi bi-x-lg" aria-hidden="true" />
-          </button>
+          </Button>
         </div>
         <fieldset disabled={busy} className="space-y-4">
           <div>
@@ -180,25 +182,26 @@ function ReminderForm({
           </p>
         )}
         <div className="mt-6 flex justify-end gap-2">
-          <button
+          <Button
             type="button"
             disabled={busy}
             onClick={onClose}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
           >
             <i className="bi-x-lg icon-sm" aria-hidden="true" />
             {t('kit.cancel')}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             type="submit"
             disabled={
               busy || !draft.title.trim() || !draft.due_date || !draft.due_time
             }
-            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
           >
             <i className="bi-check2 icon-sm" aria-hidden="true" />
             {t('kit.save')}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

@@ -1,3 +1,6 @@
+import Dropdown from './Dropdown';
+import HelpTip from './HelpTip';
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { isAxiosError } from 'axios';
@@ -170,30 +173,18 @@ export default function TranscriptEditor({
           <h2 className="text-primary text-xl font-semibold">
             {t('Interview transcript')}
           </h2>
-          <button
-            type="button"
-            onClick={close}
-            disabled={busy}
-            className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-3 py-2"
-          >
+          <Button type="button" onClick={close} disabled={busy}>
             {returnToFeedback ? t('Back to feedback') : t('Close')}
-          </button>
+          </Button>
         </div>
-        <p className="text-muted mb-4 text-sm">
+        <HelpTip label={t('Supported transcript files')}>
           {t(
             'Read the transcript or request feedback. You can edit the transcript if needed.'
+          )}{' '}
+          {t(
+            'English UTF-8 TXT, SRT or VTT, up to 2 MB. Subtitle times must be within two hours. Timing is kept when supplied.'
           )}
-        </p>
-        <details className="text-muted mb-4 text-sm">
-          <summary className="cursor-pointer">
-            {t('Supported transcript files')}
-          </summary>
-          <p>
-            {t(
-              'English UTF-8 TXT, SRT or VTT, up to 2 MB. Subtitle times must be within two hours. Timing is kept when supplied.'
-            )}
-          </p>
-        </details>
+        </HelpTip>
         {savedNotice && (
           <p role="status" className="text-green mb-3 text-sm">
             {savedNotice}
@@ -207,9 +198,9 @@ export default function TranscriptEditor({
         {loading ? (
           <p role="status">{t('Loading transcript…')}</p>
         ) : !saved ? (
-          <button
+          <Button
             type="button"
-            className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-3 py-2"
+
             onClick={() => {
               setError('');
               setLoading(true);
@@ -217,30 +208,29 @@ export default function TranscriptEditor({
             }}
           >
             {t('Retry loading')}
-          </button>
+          </Button>
         ) : (
           <>
             {saved.transcript && (
               <div className="mb-4 flex flex-wrap items-center gap-2">
-                <button
+                <Button
                   type="button"
                   disabled={busy}
                   onClick={() => setEditing(!editing)}
-                  className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-3 py-2 transition-all duration-200 ease-in-out"
                 >
                   {editing ? t('Read transcript') : t('Edit transcript')}
-                </button>
+                </Button>
                 {onFeedback && !returnToFeedback && (
-                  <button
+                  <Button
+                    variant="primary"
                     type="button"
                     disabled={busy || dirty}
                     onClick={onFeedback}
-                    className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50"
                   >
                     {returnToFeedback
                       ? t('Back to feedback')
                       : t('Interview feedback')}
-                  </button>
+                  </Button>
                 )}
                 {dirty && (
                   <span className="text-muted text-sm">
@@ -260,34 +250,38 @@ export default function TranscriptEditor({
                 </p>
               )}
             {saved.transcript?.structure === 'automatic' && (
-              <p className="text-muted mb-3 text-sm">
+              <HelpTip label={t('Interview transcript')}>
                 {t(
                   'Parts and roles were assigned automatically. Edit only if something is wrong.'
                 )}
-              </p>
+              </HelpTip>
             )}
             {saved.transcript?.structure_status && (
               <p role="status" className="text-muted mb-3 text-sm">
                 {saved.transcript.structure_status}
-                {t(
-                  '. The transcript is saved. You can assign roles in Edit transcript.'
-                )}
+                <HelpTip label={t('Correct text and speaker roles')}>
+                  {t(
+                    '. The transcript is saved. You can assign roles in Edit transcript.'
+                  )}
+                </HelpTip>
               </p>
             )}
             {(saved.attachment_only ||
               saved.transcript?.provenance === 'upload') && (
-              <p className="mb-3">
-                {saved.attachment_only
-                  ? t(
-                      'An existing document is stored as an attachment, not editable text. Paste or upload TXT/SRT/VTT to replace it.'
-                    )
-                  : t(
-                      'The original upload is retained separately from your corrections.'
-                    )}{' '}
-                <button
+              <div className="mb-3 flex items-center gap-2">
+                <HelpTip label={t('Supported transcript files')}>
+                  {saved.attachment_only
+                    ? t(
+                        'An existing document is stored as an attachment, not editable text. Paste or upload TXT/SRT/VTT to replace it.'
+                      )
+                    : t(
+                        'The original upload is retained separately from your corrections.'
+                      )}
+                </HelpTip>
+                <Button
                   type="button"
                   disabled={busy}
-                  className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-3 py-2 transition-colors disabled:opacity-50"
+
                   onClick={async () => {
                     try {
                       const { url } = await getRoundTranscriptSignedUrl(
@@ -312,8 +306,8 @@ export default function TranscriptEditor({
                   {saved.attachment_only
                     ? t('Download attachment')
                     : t('Download original upload')}
-                </button>
-              </p>
+                </Button>
+              </div>
             )}
             {saved.transcript && !editing && (
               <div className="space-y-3">
@@ -337,11 +331,11 @@ export default function TranscriptEditor({
                   </article>
                 ))}
                 {segments.some((segment) => segment.role === 'unknown') && (
-                  <p className="text-muted text-sm">
+                  <HelpTip label={t('Correct text and speaker roles')}>
                     {t(
                       'Some speakers are unidentified. Identify your answers in Edit transcript for personal feedback.'
                     )}
-                  </p>
+                  </HelpTip>
                 )}
               </div>
             )}
@@ -404,35 +398,33 @@ export default function TranscriptEditor({
                             </label>
                             <label>
                               {t('Role for passage')} {index + 1}
-                              <select
-                                className="bg-bg3 text-fg1 focus:ring-accent-bright block rounded px-3 py-2 focus:ring-1 focus:outline-none"
+                              <Dropdown
+                                id={`segment-role-${index}`}
                                 value={segment.role}
-                                onChange={(event) =>
+                                onChange={(value) =>
                                   change(index, {
-                                    role: event.target
-                                      .value as TranscriptSegment['role'],
+                                    role: value as TranscriptSegment['role'],
                                   })
                                 }
-                              >
-                                <option value="unknown">{t('Unknown')}</option>
-                                <option value="candidate">
-                                  {t('Candidate')}
-                                </option>
-                                <option value="interviewer">
-                                  {t('Interviewer')}
-                                </option>
-                                <option value="other">{t('Other')}</option>
-                              </select>
+                                options={[
+                                  'unknown',
+                                  'candidate',
+                                  'interviewer',
+                                  'other',
+                                ].map((value) => ({
+                                  value,
+                                  label: t(
+                                    value[0].toUpperCase() + value.slice(1)
+                                  ),
+                                }))}
+                              />
                             </label>
                           </div>
                         </div>
                       ))}
-                      <button
-                        type="submit"
-                        className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                      >
+                      <Button variant="primary" type="submit">
                         {t('Save corrections')}
-                      </button>
+                      </Button>
                     </fieldset>
                   </form>
                 )
@@ -475,18 +467,18 @@ export default function TranscriptEditor({
                   </legend>
                   <label>
                     {t('Transcript format')}
-                    <select
+                    <Dropdown
+                      id="transcript-format"
                       value={format}
-                      onChange={(event) => {
-                        setFormat(event.target.value as typeof format);
+                      onChange={(value) => {
+                        setFormat(value as typeof format);
                         setDirty(true);
                       }}
-                      className="bg-bg2 text-fg1 focus:ring-accent-bright mx-2 rounded px-3 py-2 focus:ring-1 focus:outline-none"
-                    >
-                      <option value="txt">TXT</option>
-                      <option value="srt">SRT</option>
-                      <option value="vtt">VTT</option>
-                    </select>
+                      options={['txt', 'srt', 'vtt'].map((value) => ({
+                        value,
+                        label: value.toUpperCase(),
+                      }))}
+                    />
                   </label>
                   <label className="mt-2 block">
                     {t('Transcript text')}
@@ -502,12 +494,9 @@ export default function TranscriptEditor({
                       rows={5}
                     />
                   </label>
-                  <button
-                    type="submit"
-                    className="bg-accent text-bg0 hover:bg-accent-bright mt-2 cursor-pointer rounded px-4 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                  >
+                  <Button variant="primary" type="submit" className="mt-2">
                     {t('Save pasted transcript')}
-                  </button>
+                  </Button>
                 </fieldset>
               </form>
               <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -518,17 +507,17 @@ export default function TranscriptEditor({
                     setFile(event.target.files?.[0] ?? null);
                     setDirty(true);
                   }}
-                  className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-4 py-2 transition-colors disabled:opacity-50"
                 >
                   {t('Choose transcript file')}
                 </FileButton>
                 {file && (
                   <>
                     <span>{file.name}</span>
-                    <button
+                    <Button
+                      variant="primary"
                       type="button"
                       disabled={busy}
-                      className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+
                       onClick={() => {
                         if (
                           (saved.transcript || saved.attachment_only) &&
@@ -555,7 +544,7 @@ export default function TranscriptEditor({
                       }}
                     >
                       {t('Upload transcript')}
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>
@@ -565,10 +554,10 @@ export default function TranscriptEditor({
                 {t('Transcript actions')}
               </summary>
               <div className="mt-3 flex flex-wrap gap-3">
-                <button
+                <Button
                   type="button"
                   disabled={busy}
-                  className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-3 py-2 transition-colors disabled:opacity-50"
+
                   onClick={() => {
                     if (
                       !confirm(
@@ -588,12 +577,13 @@ export default function TranscriptEditor({
                   }}
                 >
                   {t('Reload current transcript')}
-                </button>
+                </Button>
                 {(saved.transcript || saved.attachment_only) && (
-                  <button
+                  <Button
+                    variant="danger"
                     type="button"
                     disabled={busy}
-                    className="text-red hover:bg-bg2 hover:text-red-bright cursor-pointer rounded px-3 py-2 transition-colors disabled:opacity-50"
+
                     onClick={() => {
                       if (
                         !confirm(
@@ -621,7 +611,7 @@ export default function TranscriptEditor({
                     }}
                   >
                     {t('Delete transcript')}
-                  </button>
+                  </Button>
                 )}
               </div>
             </details>

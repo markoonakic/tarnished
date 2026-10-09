@@ -108,9 +108,8 @@ it('loads literal text and saves stable identities/unknown timing with assigned 
   expect(document.querySelector('script')).toBeNull();
   expect(screen.getByText(/Timing unknown/)).toBeVisible();
   fireEvent.change(text, { target: { value: 'Corrected answer' } });
-  fireEvent.change(screen.getByLabelText('Role for passage 1'), {
-    target: { value: 'candidate' },
-  });
+  fireEvent.click(screen.getByLabelText('Role for passage 1'));
+  fireEvent.click(screen.getByRole('option', { name: 'Candidate' }));
   fireEvent.change(screen.getByLabelText('Speaker for passage 1'), {
     target: { value: 'Me' },
   });
@@ -300,11 +299,12 @@ it('shows automatic roles and full time ranges without requiring an edit before 
       onFeedback={onFeedback}
     />
   );
-  expect(
-    await screen.findByText(
-      'Parts and roles were assigned automatically. Edit only if something is wrong.'
-    )
-  ).toBeVisible();
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Interview transcript' })
+  );
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Parts and roles were assigned automatically. Edit only if something is wrong.'
+  );
   expect(screen.getByText('Interviewer · 00:00–00:12')).toBeVisible();
   expect(screen.getByText('Candidate · 00:12–01:30')).toBeVisible();
   expect(screen.getByText('Other · 01:30–01:31')).toBeVisible();

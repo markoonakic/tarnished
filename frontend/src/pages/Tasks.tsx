@@ -1,8 +1,10 @@
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
 import { formatDate } from '@/lib/displayDate';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import SegmentedControl from '@/components/SegmentedControl';
 import MonthGrid from '@/components/MonthGrid';
@@ -184,15 +186,16 @@ export default function Tasks() {
       >
         <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <h1 className="text-primary text-2xl font-bold">{t('kit.tasks')}</h1>
-          <button
+          <Button
+            variant="primary"
             type="button"
             disabled={!zone}
             onClick={() => openNew()}
-            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 self-start rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5 self-start"
           >
             <i className="bi-plus-lg icon-sm" aria-hidden="true" />
             {t('kit.newReminder')}
-          </button>
+          </Button>
         </div>
         <div className="mb-6">
           <SegmentedControl
@@ -208,17 +211,17 @@ export default function Tasks() {
         {(tasks.isError || rounds.isError || preferences.isError) && (
           <p role="alert" className="text-red-bright mb-4">
             {t('tasks.loadFailed')}{' '}
-            <button
+            <Button
               onClick={() => {
                 void tasks.refetch();
                 void rounds.refetch();
                 void preferences.refetch();
               }}
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              className="flex items-center gap-1.5"
             >
               <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('Retry')}
-            </button>
+            </Button>
           </p>
         )}
         {interviews ? (
@@ -251,7 +254,8 @@ export default function Tasks() {
             <div className={week ? '' : 'sm:hidden'}>
               <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <button
+                  <Button
+                    variant="icon"
                     aria-label={t('tasks.previousWeek')}
                     onClick={() =>
                       update({
@@ -260,14 +264,15 @@ export default function Tasks() {
                           .slice(0, 10),
                       })
                     }
-                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                    className="flex items-center gap-1.5"
                   >
                     ‹
-                  </button>
+                  </Button>
                   <span>
                     {formatDate(days[0])} — {formatDate(days[6])}
                   </span>
-                  <button
+                  <Button
+                    variant="icon"
                     aria-label={t('tasks.nextWeek')}
                     onClick={() =>
                       update({
@@ -276,19 +281,19 @@ export default function Tasks() {
                           .slice(0, 10),
                       })
                     }
-                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                    className="flex items-center gap-1.5"
                   >
                     ›
-                  </button>
-                  <button
-                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                  </Button>
+                  <Button
+                    className="flex items-center gap-1.5"
                     onClick={() =>
                       update({ date: dayKey(new Date(), zone || 'UTC') })
                     }
                   >
                     <i className="bi-arrow-right icon-sm" aria-hidden="true" />
                     {t('kit.today')}
-                  </button>
+                  </Button>
                 </div>
                 <div className="hidden sm:block">
                   <SegmentedControl
@@ -325,10 +330,10 @@ export default function Tasks() {
                               dayKey(r.scheduled_at, zone) === day
                           )
                           .map((r) => (
-                            <Link
+                            <TextLink
                               key={r.id}
                               to={`/interviews/${r.id}`}
-                              className="bg-tertiary hover:bg-bg3 focus:ring-accent grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-start gap-3 rounded-lg p-4 text-left text-sm transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5 focus:ring-2 sm:flex sm:flex-wrap"
+                              className="grid w-full grid-cols-[auto_minmax(0,1fr)] items-start gap-3 text-left will-change-transform sm:flex sm:flex-wrap"
                             >
                               <span className="text-orange-bright">
                                 {new Date(r.scheduled_at!).toLocaleTimeString(
@@ -357,7 +362,7 @@ export default function Tasks() {
                                 ●{' '}
                                 {t('tasks.outcome.' + (r.outcome || 'pending'))}
                               </span>
-                            </Link>
+                            </TextLink>
                           ))}
                     </div>
                   </section>
@@ -447,16 +452,16 @@ export default function Tasks() {
                           {tasks.data?.deadlines.map((d) => (
                             <div
                               key={d.id}
-                              className="bg-tertiary text-muted flex flex-wrap items-center justify-between gap-3 rounded-lg p-4 text-sm"
+                              className="bg-tertiary text-muted grid grid-cols-[minmax(0,1fr)_6rem] items-center gap-3 rounded-lg p-4 text-sm sm:grid-cols-[minmax(0,1fr)_7rem_10rem]"
                             >
-                              <Link
-                                className="text-accent hover:text-accent-bright focus:ring-accent min-w-0 cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+                              <TextLink
+                                className="min-w-0"
                                 to={`/${d.target_type === 'lead' ? 'job-leads' : d.target_type === 'round' ? 'interviews' : 'applications'}/${d.id}`}
                               >
                                 <i className="bi bi-calendar-x mr-2" />
                                 {t('tasks.deadline', { title: d.title })}
-                              </Link>
-                              <span className="text-muted text-xs">
+                              </TextLink>
+                              <span className="text-muted w-full text-right text-sm tabular-nums">
                                 {new Date(d.due_at).toLocaleDateString(
                                   locale(),
                                   {
@@ -466,13 +471,13 @@ export default function Tasks() {
                                   }
                                 )}
                               </span>
-                              <button
-                                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                              <Button
+                                className="flex items-center gap-1.5"
                                 onClick={() => openNew(d)}
                               >
                                 <i className="bi bi-bell mr-2" />
                                 {t('tasks.remindMe')}
-                              </button>
+                              </Button>
                             </div>
                           ))}
                         </div>

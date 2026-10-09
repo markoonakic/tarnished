@@ -2,6 +2,7 @@ import type { Application } from '@/lib/types';
 import ProfileMatch from '@/components/ai/ProfileMatch';
 export default function ApplicationProfileMatch({
   application,
+  onUpdated,
 }: {
   application: Application;
   onUpdated?: () => void;
@@ -13,8 +14,13 @@ export default function ApplicationProfileMatch({
   };
   return (
     <ProfileMatch
+      onUpdated={onUpdated}
       target={{ application_id: record.id }}
       refreshKey={record.evidence_revision}
+      legacy={[
+        ...(record.requirements_must_have ?? []),
+        ...(record.requirements_nice_to_have ?? []),
+      ]}
     />
   );
 }

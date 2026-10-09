@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import Modal from '../Modal';
@@ -51,21 +52,17 @@ export default function StatusHistoryModal({
           </h3>
           <div className="flex items-center gap-2">
             {!!history.length && (
-              <button
-                type="button"
-                onClick={onToggleEditing}
-                className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-3 py-2"
-              >
+              <Button type="button" onClick={onToggleEditing}>
                 {isEditing ? t('Done') : t('Edit History')}
-              </button>
+              </Button>
             )}
-            <button
+            <Button
+              variant="icon"
               aria-label={t('Close history')}
               onClick={onClose}
-              className="text-fg1 hover:bg-bg2 cursor-pointer rounded p-2"
             >
               <i className="bi-x-lg icon-xl" aria-hidden="true" />
-            </button>
+            </Button>
           </div>
         </div>
         <div className="flex-1 space-y-3 overflow-y-auto p-6">
@@ -98,14 +95,15 @@ export default function StatusHistoryModal({
                   />
                 </div>
                 {isEditing && !entry.is_gap && (
-                  <button
+                  <Button
+                    variant="danger"
                     onClick={() => onDelete(entry.id)}
                     disabled={deleteIsPending}
-                    className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-sm disabled:opacity-50"
+                    className="flex items-center gap-1.5"
                   >
                     <i className="bi-trash icon-xs" aria-hidden="true" />
                     {t('Delete')}
-                  </button>
+                  </Button>
                 )}
               </div>
             ))

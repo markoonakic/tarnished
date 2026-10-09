@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useTranslation } from 'react-i18next';
 import SearchableCombobox from '../SearchableCombobox';
 import { getBrowserTimeZone } from '@/lib/api';
@@ -21,7 +22,7 @@ export default function TimeZoneSettings() {
     return (
       <div role="alert">
         <p>{t('Failed to load time zone settings.')}</p>
-        <button onClick={() => void refetch()}>{t('Try Again')}</button>
+        <Button onClick={() => void refetch()}>{t('Try Again')}</Button>
       </div>
     );
   return (

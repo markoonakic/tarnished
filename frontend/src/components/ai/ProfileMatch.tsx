@@ -1,5 +1,10 @@
+import TextLink from '@/components/ui/TextLink';
+import Button from '@/components/ui/Button';
+import { useState } from 'react';
+import Modal from '@/components/Modal';
+import { analysesApi } from '@/lib/apiAnalyses';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+
 import Card from '@/components/Card';
 import HelpTip from '../HelpTip';
 import ResultPill, { type MatchResult } from '@/components/ResultPill';
@@ -11,22 +16,22 @@ export default function ProfileMatch({
   target,
   refreshKey,
   legacy = [],
+  onUpdated,
 }: {
   target: AnalysisTarget;
   refreshKey?: string | number;
   legacy?: string[];
+  onUpdated?: () => void;
 }) {
   const { t } = useTranslation();
   const controller = useJobAnalysis('PROFILE_MATCH', target, refreshKey);
+  const extraction = useJobAnalysis('EXTRACTION', target, refreshKey);
+  const [confirming, setConfirming] = useState(false);
+  const [saving, setSaving] = useState(false);
   const { analysis, requirements, profile, busy, loading, running } =
     controller;
   const rows = analysis?.draft.rows ?? [];
-  const hint = !requirements.length
-    ? 'ai.reviewFirst'
-    : !profile.length
-      ? 'ai.profileFirst'
-      : null;
-  const disabled = busy || running || loading || !!hint;
+  const disabled = busy || running || loading || saving;
   return (
     <Card
       title={
@@ -45,26 +50,105 @@ export default function ProfileMatch({
       icon="bi-person-check"
       actions={
         <>
-          <Link
-            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-            to="/profile"
-          >
-            {t('ai.openProfile')}
-          </Link>
-          <button
-            type="button"
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
-            disabled={disabled}
-            title={hint ? t(hint) : undefined}
-            onClick={() => void controller.run()}
-          >
-            <i className="bi-arrow-repeat mr-1" aria-hidden="true" />
-            {t(analysis ? 'ai.runAgain' : 'ai.compare')}
-          </button>
+          <TextLink to="/profile">{t('ai.openProfile')}</TextLink>
+          {requirements.length > 0 && profile.length > 0 && (
+            <Button
+              type="button"
+              className="flex items-center gap-1.5"
+              disabled={disabled}
+              title={disabled ? t('ai.loading') : undefined}
+              onClick={() => void controller.run()}
+            >
+              <i className="bi-arrow-repeat mr-1" aria-hidden="true" />
+              {t(analysis ? 'ai.runAgain' : 'ai.compare')}
+            </Button>
+          )}
         </>
       }
     >
       <AnalysisStatus controller={controller} />
+      {!requirements.length && <AnalysisStatus controller={extraction} />}
+      {!loading && !requirements.length && (
+        <div className="mb-4">
+          {legacy.length ? (
+            <Button
+              type="button"
+              disabled={disabled}
+              onClick={() => setConfirming(true)}
+            >
+              {t('ai.useRequirements')}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              disabled={disabled || extraction.busy || extraction.running}
+              onClick={async () => {
+                await extraction.run();
+                onUpdated?.();
+              }}
+            >
+              {t('ai.extract')}
+            </Button>
+          )}
+        </div>
+      )}
+      {!loading && !!requirements.length && !profile.length && (
+        <p className="text-muted text-sm">{t('ai.profileFirst')}</p>
+      )}
+      {confirming && (
+        <Modal
+          onClose={() => setConfirming(false)}
+          label={t('ai.useRequirements')}
+          busy={saving}
+        >
+          <div className="bg-secondary mx-4 max-h-[80dvh] w-full max-w-lg overflow-y-auto rounded-lg p-6">
+            <h2 className="mb-4 text-lg">{t('ai.useRequirements')}</h2>
+            <ul className="mb-4 list-inside list-disc text-sm">
+              {legacy.map((text, index) => (
+                <li key={index}>{text}</li>
+              ))}
+            </ul>
+            {controller.error && (
+              <p role="alert" className="text-red mb-4 text-sm">
+                {t('kit.saveFailed')}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                disabled={saving}
+                onClick={() => setConfirming(false)}
+              >
+                {t('kit.cancel')}
+              </Button>
+              <Button
+                variant="primary"
+                type="button"
+                disabled={saving}
+                onClick={async () => {
+                  setSaving(true);
+                  controller.setError(false);
+                  try {
+                    await analysesApi.confirmRequirements(
+                      target,
+                      Number(refreshKey)
+                    );
+                    await controller.reload();
+                    onUpdated?.();
+                    setConfirming(false);
+                  } catch {
+                    controller.setError(true);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+              >
+                {t('ai.useRequirements')}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {analysis?.stale && (
         <p
@@ -115,8 +199,7 @@ export default function ProfileMatch({
                   {row.evidence.length ? (
                     row.evidence.map((citation, index) => (
                       <div key={index} className="mb-2">
-                        <Link
-                          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+                        <TextLink
                           to={`/profile#${encodeURIComponent(citation.profile_id)}`}
                         >
                           {(() => {
@@ -132,7 +215,7 @@ export default function ProfileMatch({
                                     : '')
                               : (item?.name ?? t('ai.profileItem'));
                           })()}
-                        </Link>
+                        </TextLink>
                         <blockquote className="border-accent text-muted mt-1 border-l pl-2 italic">
                           “
                           {citation.profile_id === 'years_experience'

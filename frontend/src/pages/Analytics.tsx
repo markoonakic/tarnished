@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { formatDateTime } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
 import AnalyticsNewKpis from '../components/slots/AnalyticsNewKpis';
@@ -64,8 +65,8 @@ export default function Analytics() {
         {asOf && (
           <p className="text-muted mb-4 text-sm">
             {t('History through')} {formatDateTime(asOf)}.
-            <button
-              className="text-accent hover:text-accent-bright ml-2 cursor-pointer rounded px-3 py-1.5 transition-all duration-200 ease-in-out"
+            <Button
+              className="ml-2"
               onClick={() => {
                 const next = new URLSearchParams(searchParams);
                 next.delete('as_of');
@@ -73,19 +74,19 @@ export default function Analytics() {
               }}
             >
               {t('Show current data')}
-            </button>
+            </Button>
           </p>
         )}
         {!showFeedback && (
-          <button
+          <Button
             type="button"
-            className="text-accent hover:bg-bg2 hover:text-accent-bright mb-4 cursor-pointer rounded px-3 py-2 transition-colors"
+            className="mb-4"
             onClick={() => setShowFeedback(true)}
           >
             {feedback.running || feedback.starting
               ? t('View feedback progress')
               : t('View saved feedback')}
-          </button>
+          </Button>
         )}
         {showFeedback && (
           <div className="mb-6">

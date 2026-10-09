@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { statusLabel } from '@/lib/referenceLabels';
 import { historyStageLabels } from '@/lib/history';
@@ -180,22 +181,23 @@ export default function SettingsStatuses() {
                       <span className="text-muted text-xs">{t('Default')}</span>
                     )}
                     {!status.is_default && (
-                      <button
+                      <Button
                         onClick={() => startEditStatus(status)}
-                        className="text-fg1 hover:bg-bg3 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
+                        className="flex items-center gap-1.5"
                       >
                         <i className="bi-pencil icon-xs"></i>
                         {t('Edit')}
-                      </button>
+                      </Button>
                     )}
                     {!status.is_default && (
-                      <button
+                      <Button
+                        variant="danger"
                         onClick={() => handleDeleteStatus(status)}
-                        className="text-red hover:bg-bg3 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-xs transition-all duration-200 ease-in-out"
+                        className="flex items-center gap-1.5"
                       >
                         <i className="bi-trash icon-xs"></i>
                         {t('Delete')}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -243,19 +245,16 @@ export default function SettingsStatuses() {
                     onChange={(e) => setEditStatusColor(e.target.value)}
                     className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"
                   />
-                  <button
-                    type="submit"
-                    className="bg-accent text-bg0 hover:bg-accent-bright h-10 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
-                  >
+                  <Button variant="primary" type="submit" className="h-10">
                     {t('Save')}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={() => setEditingStatus(null)}
-                    className="text-fg1 hover:bg-bg2 hover:text-fg0 h-10 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out"
+                    className="h-10"
                   >
                     {t('Cancel')}
-                  </button>
+                  </Button>
                 </div>
               </form>
             ) : (
@@ -293,12 +292,9 @@ export default function SettingsStatuses() {
                   onChange={(e) => setNewStatusColor(e.target.value)}
                   className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"
                 />
-                <button
-                  type="submit"
-                  className="bg-accent text-bg0 hover:bg-accent-bright h-10 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
-                >
+                <Button variant="primary" type="submit" className="h-10">
                   {t('Add')}
-                </button>
+                </Button>
               </form>
             )}
 

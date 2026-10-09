@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import HelpTip from '../HelpTip';
@@ -39,15 +40,15 @@ export default function ApplicationPostingCapture({
   }
   return (
     <div className="border-bg3 border-b p-4">
-      <button
+      <Button
         type="button"
-        className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+        className="flex items-center gap-1.5"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
       >
         <i className="bi-arrow-right icon-sm" aria-hidden="true" />
         {t('ai.fromPostingAction')}
-      </button>
+      </Button>
       {open && (
         <div className="mt-3 space-y-3">
           <SegmentedControl
@@ -93,9 +94,10 @@ export default function ApplicationPostingCapture({
               {t('ai.loadFailed')}
             </p>
           )}
-          <button
+          <Button
+            variant="primary"
             type="button"
-            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
             disabled={
               busy ||
               !statusId ||
@@ -107,7 +109,7 @@ export default function ApplicationPostingCapture({
           >
             <i className="bi-check2 icon-sm" aria-hidden="true" />
             {t(busy ? 'ai.queued' : 'ai.saveAndReview')}
-          </button>
+          </Button>
         </div>
       )}
     </div>

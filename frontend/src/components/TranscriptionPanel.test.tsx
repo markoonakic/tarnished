@@ -49,11 +49,18 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+async function openDisclosure() {
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Recording transcription' })
+  );
+  await screen.findByText(/Audio is sent to the configured speech service/);
+}
+
 it('TranscriptionPanel discloses input before explicit revision-bound start; GET never starts work', async () => {
   render(
     <TranscriptionPanel round={round} onChange={vi.fn()} onResult={vi.fn()} />
   );
-  await screen.findByText(/Audio is sent to the configured speech service/);
+  await openDisclosure();
   expect(screen.queryByText('Unverified route')).not.toBeInTheDocument();
   expect(
     screen.getByText(
@@ -132,8 +139,8 @@ it('starts transcription for the recording chosen on the round card', async () =
       onResult={vi.fn()}
     />
   );
-  await screen.findByText(/Audio is sent to the configured speech service/);
-  expect(screen.getByRole('combobox')).toHaveValue('second');
+  await openDisclosure();
+  expect(screen.getByRole('combobox')).toHaveTextContent('second.wav');
   fireEvent.click(screen.getByRole('button', { name: 'Start transcription' }));
   await waitFor(() =>
     expect(
@@ -204,7 +211,11 @@ it('keeps the same job active while assigning roles, with no new user request', 
   const status = screen.getByRole('status');
   expect(status).toHaveTextContent('Assigning parts and roles');
   expect(status.querySelector('.animate-spin')).not.toBeNull();
-  expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', {
+      name: /^(Start transcription|Retry transcription|Transcribe again)$/,
+    })
+  ).not.toBeInTheDocument();
   expect(requests.every((r) => r.method === 'get')).toBe(true);
 });
 
@@ -276,7 +287,7 @@ it('shows visible loading feedback when retrying a failed status read', async ()
     'Loading speech service'
   );
   resolve(null);
-  await screen.findByText(/Audio is sent to the configured speech service/);
+  await openDisclosure();
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   expect(
     screen.getByRole('button', { name: 'Start transcription' })

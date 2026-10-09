@@ -1,9 +1,11 @@
+import TextLink from '@/components/ui/TextLink';
+import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { apiV030 } from '@/lib/apiV030';
 import SearchableCombobox from './SearchableCombobox';
-import { Link } from 'react-router-dom';
+
 export default function InterviewParticipants({
   value,
   onChange,
@@ -49,37 +51,35 @@ export default function InterviewParticipants({
               key={id}
               className="bg-bg2 inline-flex items-center gap-2 rounded px-2 py-1 text-xs"
             >
-              <Link
-                to={`/contacts/${id}`}
-                className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-              >
+              <TextLink to={`/contacts/${id}`}>
                 {item?.name ?? t('tasks.openContact')}
                 {item?.role
                   ? ` · ${t('tasks.role.' + item.role, { defaultValue: item.role })}`
                   : ''}
-              </Link>
+              </TextLink>
               {!readOnly && (
-                <button
+                <Button
+                  variant="icon"
                   aria-label={t('tasks.removeParticipant', {
                     name: item?.name ?? id,
                   })}
                   onClick={() => onChange(value.filter((v) => v !== id))}
-                  className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                  className="flex items-center gap-1.5"
                 >
                   ×
-                </button>
+                </Button>
               )}
             </span>
           );
         })}
-        <button
+        <Button
           type="button"
           onClick={() => setAdding(!adding)}
-          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          className="flex items-center gap-1.5"
         >
           <i className="bi-plus-lg icon-sm" aria-hidden="true" />
           {t('tasks.addParticipant')}
-        </button>
+        </Button>
       </div>
       {adding && (
         <SearchableCombobox

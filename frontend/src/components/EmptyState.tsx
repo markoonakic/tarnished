@@ -1,3 +1,5 @@
+import HelpTip from './HelpTip';
+import Button from '@/components/ui/Button';
 import { useTranslation } from 'react-i18next';
 interface Props {
   message: string;
@@ -28,17 +30,12 @@ export default function EmptyState({
 
       <p className="text-muted max-w-md text-sm leading-relaxed">{message}</p>
 
-      {subMessage && (
-        <p className="text-muted mt-2 max-w-md text-xs">{subMessage}</p>
-      )}
+      {subMessage && <HelpTip label={message}>{subMessage}</HelpTip>}
 
       {action && (
-        <button
-          onClick={action.onClick}
-          className="bg-accent text-bg0 hover:bg-accent-bright mt-6 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
-        >
+        <Button variant="primary" onClick={action.onClick} className="mt-6">
           {action.label}
-        </button>
+        </Button>
       )}
     </div>
   );

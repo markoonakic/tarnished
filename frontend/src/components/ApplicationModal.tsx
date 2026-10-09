@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { statusLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
@@ -305,6 +306,7 @@ export default function ApplicationModal({
         }
         isOpen={showStatusDialog}
         statusId={pendingStatus || statusId}
+        appliedAt={appliedAt || null}
         timeZone={timeZone}
         options={statusOptionsWithCurrent(
           statuses,
@@ -321,14 +323,7 @@ export default function ApplicationModal({
         onSave={(draft) => {
           setStatusDraft(draft);
           setStatusId(draft.status_id);
-          if (
-            !appliedAt &&
-            statuses.find((status) => status.id === draft.status_id)
-              ?.meaning !== 'preparing'
-          )
-            setAppliedAt(
-              historyLocalTime(draft.changed_at, timeZone).slice(0, 10)
-            );
+          if (draft.applied_at) setAppliedAt(draft.applied_at);
         }}
       />
       <Modal
@@ -344,15 +339,16 @@ export default function ApplicationModal({
             <h3 id="modal-title" className="text-primary font-medium">
               {isEditing ? t('Edit Application') : t('New Application')}
             </h3>
-            <button
+            <Button
+              variant="icon"
               onClick={onClose}
               disabled={loading}
               aria-label={t('Close modal')}
-              className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+
               title={t('Close modal')}
             >
               <i className="bi bi-x-lg icon-xl" />
-            </button>
+            </Button>
           </div>
 
           {!isEditing && (
@@ -791,18 +787,19 @@ export default function ApplicationModal({
               </div>
 
               <div className="border-tertiary flex justify-end gap-3 border-t pt-4">
-                <button
+                <Button
                   type="button"
                   onClick={onClose}
-                  className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                  className="flex items-center gap-1.5"
                 >
                   <i className="bi-x-lg icon-sm" aria-hidden="true" />
                   {t('Cancel')}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
                   type="submit"
                   disabled={loading}
-                  className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                  className="flex items-center gap-1.5"
                 >
                   <i className="bi-check2 icon-sm" aria-hidden="true" />
                   {loading
@@ -810,7 +807,7 @@ export default function ApplicationModal({
                     : isEditing
                       ? t('Save')
                       : t('Add Application')}
-                </button>
+                </Button>
               </div>
             </fieldset>
           </form>

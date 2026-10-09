@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/Card';
@@ -84,6 +85,8 @@ export default function AnalyticsAiInsights({
                       <span
                         className={expanded[kind] ? 'break-words' : 'truncate'}
                         title={row.label}
+                        aria-label={row.label}
+                        tabIndex={0}
                       >
                         {row.label}
                       </span>
@@ -99,9 +102,9 @@ export default function AnalyticsAiInsights({
                 </div>
                 <div className="mt-4">
                   {rows.length > 5 && (
-                    <button
+                    <Button
                       type="button"
-                      className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+
                       onClick={() =>
                         setExpanded((value) => ({
                           ...value,
@@ -114,7 +117,7 @@ export default function AnalyticsAiInsights({
                         aria-hidden="true"
                       />
                       {t(expanded[kind] ? 'ai.showLess' : 'ai.viewAll')}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </>

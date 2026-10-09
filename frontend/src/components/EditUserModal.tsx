@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
@@ -101,14 +102,14 @@ export default function EditUserModal({
           <h3 id="edit-modal-title" className="text-primary font-medium">
             {t('Edit User')}
           </h3>
-          <button
+          <Button
+            variant="icon"
             onClick={onClose}
             disabled={loading}
             aria-label={t('Close modal')}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
           >
             <i className="bi bi-x-lg icon-xl" />
-          </button>
+          </Button>
         </div>
 
         <form
@@ -193,31 +194,33 @@ export default function EditUserModal({
           </p>
 
           <div className="border-tertiary flex flex-col-reverse justify-between gap-3 border-t pt-4 sm:flex-row sm:items-center">
-            <button
+            <Button
+              variant="danger"
               type="button"
               onClick={handleDelete}
               disabled={isCurrentUser || loading}
-              className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center justify-center gap-1.5 rounded-md bg-transparent px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5"
             >
               <i className="bi-trash icon-sm" />
               {t('Delete')}
-            </button>
+            </Button>
             <div className="flex gap-3">
-              <button
+              <Button
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="text-fg1 hover:bg-bg2 hover:text-fg0 flex-1 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out disabled:opacity-50 sm:flex-initial"
+                className="flex-1 sm:flex-initial"
               >
                 {t('Cancel')}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 type="submit"
                 disabled={loading || isCurrentUser}
-                className="bg-accent text-bg0 hover:bg-accent-bright flex-1 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50 sm:flex-initial"
+                className="flex-1 sm:flex-initial"
               >
                 {loading ? t('Saving...') : t('Save')}
-              </button>
+              </Button>
             </div>
           </div>
         </form>

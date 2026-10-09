@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
@@ -55,9 +56,9 @@ export default function EvidenceSummary({
         )}
       </p>
       {!editing && (
-        <button
+        <Button
           type="button"
-          className="text-accent hover:bg-bg2 hover:text-accent-bright cursor-pointer rounded px-3 py-2 transition-colors"
+
           onClick={() => {
             setMeaning(application.status_meaning);
             setBaseline({
@@ -69,7 +70,7 @@ export default function EvidenceSummary({
           }}
         >
           {t('Correct recorded stage')}
-        </button>
+        </Button>
       )}
       {editing && (
         <form
@@ -131,21 +132,21 @@ export default function EvidenceSummary({
             </p>
           )}
           <div className="flex justify-end gap-2">
-            <button
+            <Button
               type="button"
               disabled={pending}
-              className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-4 py-2 transition-colors disabled:opacity-50"
+
               onClick={() => setEditing(false)}
             >
               {t('Cancel')}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               type="submit"
               disabled={pending || meaning === baseline.meaning}
-              className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
               {pending ? t('Saving…') : t('Save changes')}
-            </button>
+            </Button>
           </div>
         </form>
       )}

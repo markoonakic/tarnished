@@ -1,9 +1,11 @@
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
 import { t } from '@/lib/i18n';
 import LanguageSwitch from '@/components/LanguageSwitch';
 import { useTranslation } from 'react-i18next';
 import HelpTip from '@/components/HelpTip';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import api, { safeErrorMessage } from '../lib/api';
 import { observeRead } from '../lib/queryClient';
@@ -184,10 +186,11 @@ export default function Register() {
                   required
                   autoComplete="new-password"
                 />
-                <button
+                <Button
+                  variant="primary"
                   type="submit"
                   disabled={loading}
-                  className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+                  className="flex w-full items-center gap-1.5"
                 >
                   <i className="bi-plus-lg icon-sm" aria-hidden="true" />
                   {loading
@@ -195,7 +198,7 @@ export default function Register() {
                     : needsSetup
                       ? t('Create admin account')
                       : t('accounts.requestAccount')}
-                </button>
+                </Button>
               </form>
             </>
           )}
@@ -205,22 +208,20 @@ export default function Register() {
             </p>
           )}
           {!checking && needsSetup === null && (
-            <button
-              className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            <Button
+              variant="primary"
+              className="flex items-center gap-1.5"
               onClick={refreshStatus}
             >
               <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('Retry setup check')}
-            </button>
+            </Button>
           )}
           <p className="text-muted text-center">
             {!sent && !needsSetup && t('accounts.alreadyHaveAccount')}{' '}
-            <Link
-              className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-              to="/login"
-            >
+            <TextLink to="/login">
               {sent ? t('accounts.backToSignIn') : t('Sign in')}
-            </Link>
+            </TextLink>
           </p>
         </div>
         <LanguageSwitch />

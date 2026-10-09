@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t, uiLabel } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -42,20 +43,25 @@ export default function SettingsTheme() {
         </p>
         <div className="flex flex-wrap gap-3">
           {accentOptions.map((option) => (
-            <button
+            <Button
               key={option.name}
+              variant="icon"
               type="button"
+              aria-label={uiLabel(
+                option.name.charAt(0).toUpperCase() + option.name.slice(1)
+              )}
+              aria-pressed={currentAccent === option.name}
               title={uiLabel(
                 option.name.charAt(0).toUpperCase() + option.name.slice(1)
               )}
               onClick={() => setAccentColor(option.name)}
-              className={`h-8 w-8 cursor-pointer rounded-full transition-all duration-200 ease-in-out ${
-                currentAccent === option.name
-                  ? 'ring-fg1 ring-offset-bg1 ring-2 ring-offset-2'
-                  : 'hover:ring-fg4 hover:ring-1'
-              }`}
-              style={{ backgroundColor: `var(${option.cssVar})` }}
-            />
+              className="h-10 w-10"
+            >
+              <span
+                className="block h-full w-full rounded-full"
+                style={{ backgroundColor: `var(${option.cssVar})` }}
+              />
+            </Button>
           ))}
         </div>
       </div>

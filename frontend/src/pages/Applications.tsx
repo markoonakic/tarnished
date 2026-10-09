@@ -1,3 +1,5 @@
+import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
 import { formatDate } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
 import ApplicationBoard from '@/components/ApplicationBoard';
@@ -6,7 +8,7 @@ import { statusLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { observeRead } from '../lib/queryClient';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getApplicationSources, listApplications } from '../lib/applications';
 import type { ListParams } from '../lib/applications';
 import { parsePositivePageParam } from '../lib/paginationParams';
@@ -187,13 +189,14 @@ export default function Applications() {
               view={searchParams.get('view') === 'board' ? 'board' : 'list'}
               onChange={(view) => updateParams({ view })}
             />
-            <button
+            <Button
+              variant="primary"
               onClick={() => setShowCreateModal(true)}
-              className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              className="flex items-center gap-1.5"
             >
               <i className="bi-plus-lg icon-sm" aria-hidden="true" />
               {t('New Application')}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -211,14 +214,15 @@ export default function Applications() {
                 className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
               {search && (
-                <button
+                <Button
+                  variant="icon"
                   onClick={() => updateParams({ search: '' })}
-                  className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent absolute top-1/2 right-3 cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+                  className="absolute top-1/2 right-3"
                   aria-label={t('Clear search')}
                   title={t('Clear search')}
                 >
                   <i className="bi-x icon-sm" />
-                </button>
+                </Button>
               )}
             </div>
 
@@ -295,14 +299,14 @@ export default function Applications() {
             className="bg-red-bright/20 border-red-bright text-red-bright mb-6 rounded border px-4 py-3"
           >
             {error}
-            <button
+            <Button
               type="button"
               onClick={loadApplications}
-              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent ml-3 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+              className="ml-3 flex items-center gap-1.5"
             >
               <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('Retry')}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -364,12 +368,9 @@ export default function Applications() {
                       className={`hover:bg-bg2 cursor-pointer transition-colors duration-200 ${index < applications.length - 1 ? 'border-tertiary border-b' : ''}`}
                     >
                       <td className="px-4 py-3 text-sm">
-                        <Link
-                          to={`/applications/${app.id}`}
-                          className="text-fg1 hover:text-accent-bright focus:ring-accent cursor-pointer font-medium transition-all duration-200 ease-in-out focus:ring-2"
-                        >
+                        <TextLink to={`/applications/${app.id}`}>
                           {app.company || t('companies.notSet')}
-                        </Link>
+                        </TextLink>
                       </td>
                       <td className="text-primary px-4 py-3 text-sm">
                         {app.job_title || t('companies.notSet')}
@@ -421,10 +422,10 @@ export default function Applications() {
             {/* Mobile cards */}
             <div className="space-y-3 md:hidden">
               {applications.map((app) => (
-                <Link
+                <TextLink
                   key={app.id}
                   to={`/applications/${app.id}`}
-                  className="bg-secondary hover:bg-bg2 focus:ring-accent block cursor-pointer rounded-lg p-4 transition-all duration-200 ease-in-out focus:ring-2"
+                  className="block"
                 >
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <span className="text-fg1 truncate font-medium">
@@ -461,7 +462,7 @@ export default function Applications() {
                     {formatDate(app.applied_at)} ·{' '}
                     {t('roundCount', { count: app.round_count })}
                   </div>
-                </Link>
+                </TextLink>
               ))}
             </div>
 

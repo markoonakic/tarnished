@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import DocumentTextFallback from './DocumentTextFallback';
@@ -139,15 +140,15 @@ export default function DocumentSection({
                 >
                   {wasJustReplaced ? t('Replaced!') : t('Uploaded')}
                 </span>
-                <button
+                <Button
                   onClick={() => handlePreview(type)}
                   disabled={isUploading}
-                  className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
+                  className="flex items-center gap-1.5"
                   title={canPreview ? t('Preview') : t('View/Download')}
                 >
                   <i className="bi-eye icon-sm"></i>
                   {canPreview ? t('Preview') : t('View/Download')}
-                </button>
+                </Button>
                 <FileButton
                   accept=".pdf,.doc,.docx,.txt"
                   onChange={(e) => {
@@ -155,19 +156,20 @@ export default function DocumentSection({
                     if (file) handleUpload(type, file, true);
                   }}
                   disabled={isUploading}
-                  className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
+                  className="flex items-center gap-1.5"
                 >
                   <i className="bi-arrow-repeat icon-sm"></i>
                   {t('Replace')}
                 </FileButton>
-                <button
+                <Button
+                  variant="danger"
                   onClick={() => handleDelete(type)}
                   disabled={isUploading}
-                  className="text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
+                  className="flex items-center gap-1.5"
                 >
                   <i className="bi-trash icon-sm"></i>
                   {t('Delete')}
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -185,7 +187,7 @@ export default function DocumentSection({
                   if (file) handleUpload(type, file);
                 }}
                 disabled={isUploading}
-                className="bg-accent text-bg0 hover:bg-accent-bright flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
+                className="flex items-center gap-1.5"
               >
                 <i className="bi-upload icon-sm"></i>
                 {isUploading ? t('Uploading...') : t('Upload')}

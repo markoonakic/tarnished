@@ -1,5 +1,8 @@
+import TextLink from '@/components/ui/TextLink';
+import RecordLink from '@/components/ui/RecordLink';
+import Button from '@/components/ui/Button';
 import { formatDateTime } from '@/lib/displayDate';
-import { Link } from 'react-router-dom';
+
 import { useTranslation } from 'react-i18next';
 import { useDashboardOverview } from '@/hooks/useDashboardOverview';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
@@ -39,11 +42,7 @@ export default function DashboardUpcomingRow() {
       >
         <div className="space-y-2">
           {query.data?.upcoming_interviews.map((r) => (
-            <Link
-              key={r.id}
-              to={`/interviews/${r.id}`}
-              className="bg-tertiary hover:bg-bg3 focus:ring-accent block w-full cursor-pointer rounded-lg p-4 text-left text-sm transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5 focus:ring-2"
-            >
+            <RecordLink key={r.id} to={`/interviews/${r.id}`}>
               <span className="text-orange-bright text-xs">
                 {r.scheduled_at ? date(r.scheduled_at) : '—'}
               </span>
@@ -55,18 +54,15 @@ export default function DashboardUpcomingRow() {
                 />
                 {roundTypeLabel(r.round_type)}
               </span>
-            </Link>
+            </RecordLink>
           ))}
         </div>
         {!query.data?.upcoming_interviews.length && (
           <p className="text-muted text-sm">{t('kit.noInterviews')}</p>
         )}
-        <Link
-          to="/tasks?view=interviews"
-          className="text-accent hover:text-accent-bright focus:ring-accent mt-4 block cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-        >
+        <TextLink to="/tasks?view=interviews" className="mt-4 block">
           {t('tasks.openCalendar')} →
-        </Link>
+        </TextLink>
       </Card>
       <Card
         title={t('tasks.tasksDeadlines')}
@@ -84,15 +80,15 @@ export default function DashboardUpcomingRow() {
               key={r.id}
               className="bg-tertiary flex items-start gap-3 rounded-lg p-4"
             >
-              <button
+              <Button
+                variant="icon"
                 aria-label={t('kit.completeReminder', { title: r.title })}
                 onClick={() => void actions.toggle(r)}
-                className="border-bg4 hover:border-accent hover:bg-bg3 focus:ring-accent mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded-full border-2 transition-all duration-200 ease-in-out focus:ring-2"
-              />
-              <Link
-                to="/tasks"
-                className="text-accent hover:text-accent-bright focus:ring-accent min-w-0 cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+                className="shrink-0"
               >
+                <i className="bi-circle icon-sm" aria-hidden="true" />
+              </Button>
+              <TextLink to="/tasks" className="min-w-0">
                 <span className="text-primary block">{r.title}</span>
                 <span
                   className={`text-xs ${new Date(r.due_at) < new Date() ? 'text-red-bright' : 'text-muted'}`}
@@ -103,31 +99,24 @@ export default function DashboardUpcomingRow() {
                     ? dueText(r.due_at, zone, new Date(), true)
                     : date(r.due_at)}
                 </span>
-              </Link>
+              </TextLink>
             </div>
           ))}
           {query.data?.deadlines
             .slice(0, Math.max(0, 5 - query.data.tasks.length))
             .map((d) => (
-              <Link
-                key={d.id}
-                to="/tasks"
-                className="bg-tertiary hover:bg-bg3 focus:ring-accent block w-full cursor-pointer rounded-lg p-4 text-left text-sm transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5 focus:ring-2"
-              >
+              <RecordLink key={d.id} to="/tasks">
                 {t('tasks.deadline', { title: d.title })}
                 <span className="block text-xs">{date(d.due_at)}</span>
-              </Link>
+              </RecordLink>
             ))}
         </div>
         {!query.data?.tasks.length && !query.data?.deadlines.length && (
           <p className="text-muted text-sm">{t('kit.noTasks')}</p>
         )}
-        <Link
-          to="/tasks"
-          className="text-accent hover:text-accent-bright focus:ring-accent mt-4 block cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-        >
+        <TextLink to="/tasks" className="mt-4 block">
           {t('tasks.openTasks')} →
-        </Link>
+        </TextLink>
       </Card>
       <Card
         title={t('tasks.recentlyUpdated')}
@@ -137,11 +126,7 @@ export default function DashboardUpcomingRow() {
       >
         <div className="space-y-2">
           {query.data?.recent_applications.map((a) => (
-            <Link
-              key={a.id}
-              to={`/applications/${a.id}`}
-              className="bg-tertiary hover:bg-bg3 focus:ring-accent block w-full cursor-pointer rounded-lg p-4 text-left text-sm transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5 focus:ring-2"
-            >
+            <RecordLink key={a.id} to={`/applications/${a.id}`}>
               <span className="text-primary block">{a.company}</span>
               <span className="text-muted block truncate text-xs">
                 {a.job_title}
@@ -174,29 +159,26 @@ export default function DashboardUpcomingRow() {
                   {updatedText(a.updated_at)}
                 </span>
               </div>
-            </Link>
+            </RecordLink>
           ))}
         </div>
         {!query.data?.recent_applications.length && (
           <p className="text-muted text-sm">{t('tasks.noRecent')}</p>
         )}
-        <Link
-          to="/applications"
-          className="text-accent hover:text-accent-bright focus:ring-accent mt-4 block cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
-        >
+        <TextLink to="/applications" className="mt-4 block">
           {t('tasks.viewApplications')} →
-        </Link>
+        </TextLink>
       </Card>
       {query.isError && (
         <p role="alert" className="text-red-bright lg:col-span-3">
           {t('tasks.loadFailed')}{' '}
-          <button
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+          <Button
+            className="flex items-center gap-1.5"
             onClick={() => void query.refetch()}
           >
             <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('Retry')}
-          </button>
+          </Button>
         </p>
       )}
     </div>

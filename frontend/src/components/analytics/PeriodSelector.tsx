@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -37,17 +38,14 @@ export default function PeriodSelector({
   return (
     <div className="flex gap-2">
       {PERIODS.map((period) => (
-        <button
+        <Button
+          variant="primary"
           key={period.value}
           onClick={() => handlePeriodChange(period.value)}
-          className={`cursor-pointer rounded-lg px-4 py-2 font-medium transition-all duration-200 ease-in-out ${
-            currentPeriod === period.value
-              ? 'bg-accent text-bg1'
-              : 'text-fg1 hover:bg-bg2 hover:text-fg0 bg-transparent'
-          }`}
+          className={` ${currentPeriod === period.value ? '' : ''} `}
         >
           {period.label}
-        </button>
+        </Button>
       ))}
     </div>
   );

@@ -1,7 +1,9 @@
+import TextLink from '@/components/ui/TextLink';
+import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import Card from '@/components/Card';
 import Loading from '@/components/Loading';
@@ -18,8 +20,6 @@ import {
   RelatedLeads,
 } from '@/components/companies/RelatedRecords';
 import {
-  actionClass,
-  primaryClass,
   inputClass,
   roleLabel,
   roleColor,
@@ -48,25 +48,22 @@ export default function CompanyDetail() {
   return (
     <Layout>
       <div className="mx-auto max-w-4xl px-4 py-8">
-        <Link
+        <TextLink
           to="/companies"
-          className="text-accent hover:text-accent-bright focus:ring-accent mb-6 inline-flex cursor-pointer items-center gap-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2"
+          className="mb-6 inline-flex items-center gap-1.5"
         >
           <i className="bi bi-chevron-left" aria-hidden="true" />
           {t('companies.backCompanies')}
-        </Link>
+        </TextLink>
         {query.isPending ? (
           <Loading />
         ) : query.isError ? (
           <p role="alert" className="text-red">
             {failureMessage(query.error)}{' '}
-            <button
-              className={actionClass}
-              onClick={() => void query.refetch()}
-            >
+            <Button onClick={() => void query.refetch()}>
               <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('companies.reload')}
-            </button>
+            </Button>
           </p>
         ) : (
           company && (
@@ -77,15 +74,15 @@ export default function CompanyDetail() {
                     {company.name}
                   </h1>
                   {company.website && (
-                    <a
-                      className="bg-tertiary text-muted focus:ring-accent hover:bg-bg2 inline-flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-xs transition-all duration-200 ease-in-out focus:ring-2"
+                    <TextLink
+                      className="inline-flex items-center gap-2"
                       href={company.website}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       <i className="bi bi-link-45deg" aria-hidden="true" />
                       {company.website.replace(/^https?:\/\//, '')}
-                    </a>
+                    </TextLink>
                   )}
                 </div>
                 <p className="text-muted text-sm">
@@ -103,20 +100,18 @@ export default function CompanyDetail() {
                   </p>
                 )}
                 <div className="border-tertiary mt-6 flex justify-end gap-2 border-t pt-4">
-                  <button
-                    className={actionClass}
-                    onClick={() => setEditing(true)}
-                  >
+                  <Button onClick={() => setEditing(true)}>
                     <i className="bi bi-pencil mr-2" aria-hidden="true" />
                     {t('companies.edit')}
-                  </button>
-                  <button
-                    className={actionClass + ' text-red'}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    className=""
                     onClick={() => setDeleting(true)}
                   >
                     <i className="bi bi-trash mr-2" aria-hidden="true" />
                     {t('companies.delete')}
-                  </button>
+                  </Button>
                 </div>
               </section>
               <Card
@@ -124,8 +119,7 @@ export default function CompanyDetail() {
                 icon="bi-chat-square-quote"
                 actions={
                   culture === null && (
-                    <button
-                      className={actionClass}
+                    <Button
                       onClick={() => {
                         setCulture(company.culture_notes ?? '');
                         setCultureRevision(company.revision);
@@ -134,7 +128,7 @@ export default function CompanyDetail() {
                     >
                       <i className="bi bi-pencil mr-2" aria-hidden="true" />
                       {t('companies.edit')}
-                    </button>
+                    </Button>
                   )
                 }
               >
@@ -185,23 +179,19 @@ export default function CompanyDetail() {
                       </p>
                     )}
                     <div className="mt-3 flex justify-end gap-2">
-                      <button
+                      <Button
                         type="button"
                         disabled={busy}
-                        className={actionClass}
+
                         onClick={() => setCulture(null)}
                       >
                         <i className="bi-x-lg icon-sm" aria-hidden="true" />
                         {t('companies.cancel')}
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={busy}
-                        className={primaryClass}
-                      >
+                      </Button>
+                      <Button type="submit" disabled={busy} variant="primary">
                         <i className="bi-check2 icon-sm" aria-hidden="true" />
                         {t('companies.save')}
-                      </button>
+                      </Button>
                     </div>
                   </form>
                 )}
@@ -211,13 +201,10 @@ export default function CompanyDetail() {
                 icon="bi-person-lines-fill"
                 count={company.contact_count ?? company.contacts.length}
                 actions={
-                  <button
-                    className={actionClass}
-                    onClick={() => setAddingContact(true)}
-                  >
+                  <Button onClick={() => setAddingContact(true)}>
                     <i className="bi-plus-lg icon-sm" aria-hidden="true" />
                     {t('companies.addContact')}
-                  </button>
+                  </Button>
                 }
               >
                 <div className="space-y-2">
@@ -245,22 +232,16 @@ export default function CompanyDetail() {
                   </p>
                 )}
                 {(company.contact_count ?? 0) > company.contacts.length && (
-                  <Link
-                    className={actionClass}
-                    to={'/contacts?company_id=' + id}
-                  >
+                  <TextLink to={'/contacts?company_id=' + id}>
                     {t('companies.viewAll')}
-                  </Link>
+                  </TextLink>
                 )}
               </Card>
               <RelatedLeads items={company.leads} />
               {(company.lead_count ?? 0) > company.leads.length && (
-                <Link
-                  className={actionClass}
-                  to={'/job-leads?company_id=' + id}
-                >
+                <TextLink to={'/job-leads?company_id=' + id}>
                   {t('companies.viewAll')}
-                </Link>
+                </TextLink>
               )}
               <Card
                 title={t('companies.applications')}
@@ -270,12 +251,9 @@ export default function CompanyDetail() {
                 <RelatedApplications items={company.applications} />
                 {(company.application_count ?? 0) >
                   company.applications.length && (
-                  <Link
-                    className={actionClass}
-                    to={'/applications?company_id=' + id}
-                  >
+                  <TextLink to={'/applications?company_id=' + id}>
                     {t('companies.viewAll')}
-                  </Link>
+                  </TextLink>
                 )}
               </Card>
               <AddressReminders type="company" id={id} name={company.name} />

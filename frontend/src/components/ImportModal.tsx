@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import FileButton from './FileButton';
 import { useToastContext } from '../contexts/ToastContext';
@@ -221,14 +222,14 @@ export default function ImportModal({
           <h3 id="import-modal-title" className="text-primary font-medium">
             {t('Import Data')}
           </h3>
-          <button
+          <Button
+            variant="icon"
             onClick={handleClose}
             disabled={importing || validating || checking}
             aria-label={t('Close modal')}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out disabled:opacity-50"
           >
             <i className="bi bi-x-lg icon-xl" />
-          </button>
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
@@ -242,16 +243,16 @@ export default function ImportModal({
             <div className="py-8">
               <TransferProgressPanel state={transferState} />
               {jobId && !importing && (
-                <button
+                <Button
                   type="button"
                   disabled={checking}
                   onClick={checkStatus}
-                  className="text-accent mt-4 underline disabled:opacity-50"
+                  className="mt-4 underline"
                 >
                   {checking
                     ? t('Checking status...')
                     : t('Check import status')}
-                </button>
+                </Button>
               )}
             </div>
           ) : validation ? (
@@ -340,18 +341,16 @@ export default function ImportModal({
               )}
 
               <div className="flex gap-3">
-                <button
-                  onClick={() => setValidation(null)}
-                  className="text-fg1 hover:bg-bg2 hover:text-fg0 flex-1 cursor-pointer rounded-md bg-transparent px-4 py-2 transition-all duration-200 ease-in-out"
-                >
+                <Button onClick={() => setValidation(null)} className="flex-1">
                   {t('Cancel')}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
                   onClick={handleImport}
-                  className="bg-accent text-bg0 hover:bg-accent-bright flex-1 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
+                  className="flex-1"
                 >
                   {t('Import Data')}
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -370,20 +369,21 @@ export default function ImportModal({
                   handleFileSelect(event);
                   event.currentTarget.value = '';
                 }}
-                className="bg-bg2 text-fg1 focus:ring-accent-bright w-full cursor-pointer rounded px-3 py-2 text-left transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                className="w-full text-left"
               >
                 {file?.name || t('Choose ZIP archive')}
               </FileButton>
 
               {file && (
                 <div className="mt-4">
-                  <button
+                  <Button
+                    variant="primary"
                     onClick={handleValidate}
                     disabled={validating}
-                    className="bg-accent text-bg0 hover:bg-accent-bright w-full cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
+                    className="w-full"
                   >
                     {validating ? t('Validating...') : t('Validate')}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

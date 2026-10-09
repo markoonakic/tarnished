@@ -1,4 +1,5 @@
 {
+  "tasks.interviewDetails": "Detalji intervjua",
   "tasks.deadlinesWithoutReminder": "Rokovi bez podsetnika ({{count}})",
   "tasks.browserNotifications": "Obaveštenja pregledača za podsetnike",
   "tasks.notificationsHelp": "Ovaj pregledač proverava dospele podsetnike svakog minuta dok je aplikacija otvorena. Obaveštenja su isključena u drugim pregledačima dok se tamo ne uključe.",

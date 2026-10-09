@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
@@ -115,16 +116,16 @@ export default function DocumentTextFallback({
   }
   return (
     <>
-      <button
+      <Button
         type="button"
         onClick={() => setOpen(true)}
         aria-label={t('Use {{label}} text', { label: label })}
         title={t('Paste text instead of a file')}
-        className="text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-all duration-200 ease-in-out"
+        className="flex items-center gap-1.5"
       >
         <i className="bi-file-text icon-sm" aria-hidden="true" />
         {t('Use text')}
-      </button>
+      </Button>
       {open && (
         <Modal
           label={t('{{label}} text', { label: label })}
@@ -136,15 +137,15 @@ export default function DocumentTextFallback({
               <h2 className="text-primary text-xl font-semibold">
                 {t('{{label}} text', { label })}
               </h2>
-              <button
+              <Button
+                variant="icon"
                 type="button"
                 onClick={close}
                 disabled={busy}
                 aria-label={t('Close document text')}
-                className="text-fg1 hover:bg-bg2 cursor-pointer rounded p-2"
               >
                 <i className="bi-x-lg icon-lg" aria-hidden="true" />
-              </button>
+              </Button>
             </div>
             <p className="text-muted my-2 text-sm">
               {t(
@@ -185,17 +186,18 @@ export default function DocumentTextFallback({
                 {t('Unsaved document draft; not sent for analysis.')}
               </p>
             )}
-            <button
+            <Button
+              variant="primary"
               type="button"
-              className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+
               disabled={busy || !saved}
               onClick={() => void save(draft)}
             >
               {t('Save {{label}} text', { label })}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-3 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+
               disabled={busy}
               onClick={() => {
                 explicitReload.current = true;
@@ -203,10 +205,11 @@ export default function DocumentTextFallback({
               }}
             >
               {t('Refresh saved {{label}} text (keep draft)', { label })}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="danger"
               type="button"
-              className="text-red hover:bg-bg2 hover:text-red-bright cursor-pointer rounded px-3 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+
               disabled={busy || !saved?.text}
               onClick={() => {
                 if (
@@ -220,7 +223,7 @@ export default function DocumentTextFallback({
               }}
             >
               {t('Clear saved {{label}} text', { label })}
-            </button>
+            </Button>
             {error && (
               <p role="alert" className="text-red-bright">
                 {error}

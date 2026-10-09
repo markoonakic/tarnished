@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useTranslation } from 'react-i18next';
 import { useRef, type InputHTMLAttributes, type ReactNode } from 'react';
 
@@ -12,14 +13,14 @@ export default function FileButton({
   const input = useRef<HTMLInputElement>(null);
   return (
     <>
-      <button
+      <Button
         type="button"
         className={className}
         disabled={inputProps.disabled}
         onClick={() => input.current?.click()}
       >
         {children}
-      </button>
+      </Button>
       <input {...inputProps} ref={input} type="file" className="hidden" />
     </>
   );

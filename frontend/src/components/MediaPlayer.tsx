@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { formatDateTime } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
@@ -60,13 +61,9 @@ export default function MediaPlayer({ media, onClose }: Props) {
           <h3 className="text-primary truncate font-medium">
             {media.original_filename || media.file_path.split('/').pop()}
           </h3>
-          <button
-            onClick={onClose}
-            aria-label={t('Close')}
-            className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded p-2 transition-all duration-200 ease-in-out"
-          >
+          <Button variant="icon" onClick={onClose} aria-label={t('Close')}>
             <i className="bi bi-x-lg icon-xl" />
-          </button>
+          </Button>
         </div>
 
         <div className="p-4">

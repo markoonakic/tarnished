@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +7,7 @@ import NotesPanel from './NotesPanel';
 import Loading from './Loading';
 import { apiV030, type Note, type TargetType } from '@/lib/apiV030';
 import { DeleteConfirm } from './companies/RecordModals';
-import { allPages, failureMessage, actionClass } from './companies/addressBook';
+import { allPages, failureMessage } from './companies/addressBook';
 
 export default function TargetNotes({
   targetType,
@@ -60,10 +61,10 @@ export default function TargetNotes({
     return (
       <p role="alert" className="text-red mb-6">
         {failureMessage(query.error)}{' '}
-        <button className={actionClass} onClick={() => void query.refetch()}>
+        <Button onClick={() => void query.refetch()}>
           <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
           {t('companies.reload')}
-        </button>
+        </Button>
       </p>
     );
   return (
@@ -96,8 +97,7 @@ export default function TargetNotes({
       {error && (
         <p role="alert" className="text-red mb-6">
           {error}{' '}
-          <button
-            className={actionClass}
+          <Button
             onClick={async () => {
               revisions.current.clear();
               await query.refetch();
@@ -107,7 +107,7 @@ export default function TargetNotes({
           >
             <i className="bi-x-lg icon-sm" aria-hidden="true" />
             {t('companies.discardReload')}
-          </button>
+          </Button>
         </p>
       )}
       {deleting && (

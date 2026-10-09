@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useTranslation } from 'react-i18next';
 import i18n, { language, t } from '@/lib/i18n';
 
@@ -12,15 +13,15 @@ export default function LanguageSwitch() {
       {(['en', 'sr-Latn'] as const).map((value, index) => (
         <span key={value} className="flex items-center gap-2">
           {index > 0 && <span aria-hidden="true">|</span>}
-          <button
+          <Button
             type="button"
             lang={value}
             aria-pressed={language() === value}
             onClick={() => void i18n.changeLanguage(value)}
-            className={`focus:ring-accent-bright cursor-pointer rounded px-2 py-1 focus:ring-2 ${language() === value ? 'text-accent-bright' : 'hover:text-fg1'}`}
+            className={` ${language() === value ? '' : ''} `}
           >
             {value === 'en' ? 'EN' : 'SR'}
-          </button>
+          </Button>
         </span>
       ))}
     </div>

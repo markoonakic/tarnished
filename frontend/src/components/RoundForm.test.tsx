@@ -27,9 +27,11 @@ const round: Round = {
   created_at: '2026-01-01T00:00Z',
 };
 const adapter = api.defaults.adapter;
-let writes: { method: string; data: Record<string, unknown> }[];
+let writes: { method: string; data: Record<string, unknown>; url?: string }[];
+let failRecording = false;
 beforeEach(() => {
   writes = [];
+  failRecording = false;
   queryClient.clear();
   api.defaults.adapter = async (config) => {
     let data: unknown = round;
@@ -38,9 +40,20 @@ beforeEach(() => {
     if (config.url === '/api/round-types') data = [round.round_type];
     if (config.url === '/api/contacts') data = { items: [], total: 0 };
     if (config.method === 'post' || config.method === 'patch') {
-      const input = JSON.parse(config.data);
-      writes.push({ method: config.method, data: input });
-      data = { ...round, ...input };
+      const input =
+        config.data instanceof FormData
+          ? { file: (config.data.get('file') as File).name }
+          : JSON.parse(config.data);
+      writes.push({ method: config.method, data: input, url: config.url });
+      if (config.url?.endsWith('/media') && failRecording) {
+        failRecording = false;
+        throw new Error('Upload failed');
+      }
+      data = {
+        ...round,
+        ...input,
+        transcript_generation: config.url?.endsWith('/transcript') ? 1 : 0,
+      };
     }
     return { data, status: 200, statusText: 'OK', headers: {}, config };
   };
@@ -70,7 +83,7 @@ it('keeps an unchanged folded instant and seconds while saving interview metadat
   expect(await screen.findByLabelText('Scheduled Date')).toHaveValue(
     '2026-11-01'
   );
-  expect(screen.getByLabelText('Time')).toHaveValue('01:30');
+  expect(screen.getAllByLabelText('Time (optional)')[0]).toHaveValue('01:30');
   fireEvent.change(screen.getByLabelText('Duration (minutes)'), {
     target: { value: '60' },
   });
@@ -87,7 +100,9 @@ it('keeps an unchanged folded instant and seconds while saving interview metadat
     meeting_url: 'https://example.com/meeting',
   });
   expect(writes[0].data).not.toHaveProperty('scheduled_at');
-  expect(screen.queryByText('Choose recording...')).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Choose recording...' })
+  ).toBeInTheDocument();
 });
 it('creates a round with a UTC instant from the selected zone and does not start media or AI work', async () => {
   const save = show();
@@ -100,7 +115,7 @@ it('creates a round with a UTC instant from the selected zone and does not start
   fireEvent.change(screen.getByLabelText('Scheduled Date'), {
     target: { value: '2026-10-10' },
   });
-  fireEvent.change(screen.getByLabelText('Time'), {
+  fireEvent.change(screen.getAllByLabelText('Time (optional)')[0], {
     target: { value: '15:00' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Add Round' }));
@@ -115,13 +130,51 @@ it('creates a round with a UTC instant from the selected zone and does not start
     },
   });
 });
+it('uploads both transcript and recording from Add Round and retries on the same saved round', async () => {
+  const save = show();
+  await screen.findByLabelText('Scheduled Date');
+  await waitFor(() =>
+    expect(
+      screen.getByRole('combobox', { name: 'Round Type' })
+    ).toHaveTextContent('Technical')
+  );
+  fireEvent.change(document.querySelector('input[accept*=".srt"]')!, {
+    target: {
+      files: [new File(['Hello'], 'interview.txt', { type: 'text/plain' })],
+    },
+  });
+  fireEvent.change(document.querySelector('input[accept*=".mp4"]')!, {
+    target: {
+      files: [new File(['audio'], 'interview.wav', { type: 'audio/wav' })],
+    },
+  });
+  failRecording = true;
+  fireEvent.click(screen.getByRole('button', { name: 'Add Round' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'recording upload failed'
+  );
+  expect(save).not.toHaveBeenCalled();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Retry save and upload' })
+  );
+  await waitFor(() => expect(save).toHaveBeenCalledOnce());
+  expect(
+    writes.filter((w) => w.url === '/api/applications/app-1/rounds')
+  ).toHaveLength(1);
+  expect(
+    writes.filter((w) => w.url === '/api/rounds/round-1/transcript')
+  ).toHaveLength(1);
+  expect(
+    writes.filter((w) => w.url === '/api/rounds/round-1/media')
+  ).toHaveLength(2);
+});
 it('rejects a nonexistent local time without a write and keeps the entered date', async () => {
   show(round);
   await screen.findByLabelText('Scheduled Date');
   fireEvent.change(screen.getByLabelText('Scheduled Date'), {
     target: { value: '2026-03-08' },
   });
-  fireEvent.change(screen.getByLabelText('Time'), {
+  fireEvent.change(screen.getAllByLabelText('Time (optional)')[0], {
     target: { value: '02:30' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));

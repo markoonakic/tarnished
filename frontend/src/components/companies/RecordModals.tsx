@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { useId, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -11,14 +12,7 @@ import {
   type Contact,
   type ContactInput,
 } from '@/lib/apiV030';
-import {
-  actionClass,
-  primaryClass,
-  inputClass,
-  failureMessage,
-  roles,
-  roleLabel,
-} from './addressBook';
+import { inputClass, failureMessage, roles, roleLabel } from './addressBook';
 
 export function CompanyModal({
   company,
@@ -181,9 +175,9 @@ export function ContactModal({
           }}
         />
         {draft.company_id && (
-          <button
+          <Button
             type="button"
-            className={actionClass}
+
             onClick={() => {
               setDraft({ ...draft, company_id: null });
               setName('');
@@ -191,7 +185,7 @@ export function ContactModal({
           >
             <i className="bi-arrow-right icon-sm" aria-hidden="true" />
             {t('companies.clearCompany')}
-          </button>
+          </Button>
         )}
       </div>
       {(['email', 'phone', 'profile_url', 'last_contact_on'] as const).map(
@@ -332,15 +326,15 @@ function RecordForm({
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-primary text-xl font-semibold">{title}</h2>
-          <button
+          <Button
+            variant="icon"
             type="button"
             disabled={busy}
             aria-label={t('companies.close')}
             onClick={onClose}
-            className={actionClass}
           >
             ×
-          </button>
+          </Button>
         </div>
         <fieldset disabled={busy} className="space-y-4">
           {children}
@@ -351,19 +345,19 @@ function RecordForm({
           </p>
         )}
         <div className="mt-6 flex justify-end gap-2">
-          <button
+          <Button
             type="button"
-            className={actionClass}
+
             disabled={busy}
             onClick={onClose}
           >
             <i className="bi-x-lg icon-sm" aria-hidden="true" />
             {t('companies.cancel')}
-          </button>
-          <button type="submit" className={primaryClass} disabled={busy}>
+          </Button>
+          <Button type="submit" variant="primary" disabled={busy}>
             <i className="bi-check2 icon-sm" aria-hidden="true" />
             {t('companies.save')}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>
@@ -394,13 +388,14 @@ export function DeleteConfirm({
           </p>
         )}
         <div className="mt-6 flex justify-end gap-2">
-          <button disabled={busy} className={actionClass} onClick={onClose}>
+          <Button disabled={busy} onClick={onClose}>
             <i className="bi-x-lg icon-sm" aria-hidden="true" />
             {t('companies.cancel')}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="danger"
             disabled={busy}
-            className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            className="flex items-center gap-1.5"
             onClick={async () => {
               if (busy) return;
               setBusy(true);
@@ -416,7 +411,7 @@ export function DeleteConfirm({
           >
             <i className="bi-trash icon-sm" aria-hidden="true" />
             {t('companies.delete')}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

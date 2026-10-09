@@ -1,3 +1,4 @@
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import type { Round } from '../lib/types';
@@ -43,14 +44,14 @@ export default function InterviewFeedback({
           </HelpTip>
         </div>
         {onClose && (
-          <button
+          <Button
+            variant="icon"
             type="button"
             aria-label={t('Close interview feedback')}
             onClick={onClose}
-            className="text-fg1 hover:bg-bg3 cursor-pointer rounded p-2"
           >
             <i className="bi-x-lg icon-lg" aria-hidden="true" />
-          </button>
+          </Button>
         )}
       </div>
       <FeedbackStatus

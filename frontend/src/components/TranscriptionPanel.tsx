@@ -1,3 +1,6 @@
+import Dropdown from './Dropdown';
+import HelpTip from './HelpTip';
+import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errorMessage';
 import { useTranslation } from 'react-i18next';
@@ -184,7 +187,7 @@ export default function TranscriptionPanel({
   return (
     <section className="space-y-3" aria-label={t('Recording transcription')}>
       {speech ? (
-        <p className="text-muted text-sm">
+        <HelpTip label={t('Recording transcription')}>
           {speech.provider === 'local'
             ? t(
                 'Audio is processed by the local speech service on this server.'
@@ -195,25 +198,23 @@ export default function TranscriptionPanel({
           {t(
             'The transcript is then sent to the configured text analysis service to assign parts and roles automatically. Charges may apply.'
           )}
-        </p>
+        </HelpTip>
       ) : (
         !error && <p role="status">{t('Loading speech service…')}</p>
       )}
       {round.media.length > 1 && (
         <label className="block text-sm">
           {t('Recording to transcribe')}
-          <select
-            className="bg-bg2 text-fg1 focus:ring-accent-bright mt-1 w-full rounded px-3 py-2 focus:ring-1 focus:outline-none"
+          <Dropdown
+            id="recording-to-transcribe"
             value={selectedId || ''}
             disabled={busy || !!activeJob}
-            onChange={(event) => setMediaId(event.target.value)}
-          >
-            {round.media.map((media) => (
-              <option key={media.id} value={media.id}>
-                {media.original_filename || t('Recording')}
-              </option>
-            ))}
-          </select>
+            onChange={setMediaId}
+            options={round.media.map((media) => ({
+              value: media.id,
+              label: media.original_filename || t('Recording'),
+            }))}
+          />
         </label>
       )}
       {busy && !activeJob && (
@@ -263,19 +264,20 @@ export default function TranscriptionPanel({
       )}
       <div className="flex flex-wrap gap-2">
         {!busy && !activeJob && (
-          <button
+          <Button
+            variant="primary"
             type="button"
-            className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+
             disabled={!speech?.available || !!error || !round.media.length}
             onClick={() => void request(retryJob)}
           >
             {mainLabel}
-          </button>
+          </Button>
         )}
         {error && (
-          <button
+          <Button
             type="button"
-            className="text-fg1 hover:bg-bg3 cursor-pointer rounded px-3 py-2"
+
             disabled={busy}
             onClick={() => {
               setError('');
@@ -284,7 +286,7 @@ export default function TranscriptionPanel({
             }}
           >
             {t('Try loading status again')}
-          </button>
+          </Button>
         )}
       </div>
       {shownJob && (
@@ -322,13 +324,13 @@ export default function TranscriptionPanel({
             </p>
           )}
           {shownJob.state === 'complete' && (
-            <button
+            <Button
               type="button"
-              className="text-accent hover:bg-bg4 cursor-pointer rounded px-3 py-2"
+
               onClick={onResult}
             >
               {t('View transcript')}
-            </button>
+            </Button>
           )}
         </div>
       )}
