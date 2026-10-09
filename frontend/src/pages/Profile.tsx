@@ -754,7 +754,7 @@ export default function Profile() {
                       className="bi-stars text-accent mr-2"
                       aria-hidden="true"
                     />
-                    {t('accounts.aiCount', { allowed, total })}
+                    {t('accounts.aiCount', { allowed, total, count: total })}
                   </p>
                   {allowed < total && (
                     <button className={`${ghostClass} px-0`} onClick={review}>

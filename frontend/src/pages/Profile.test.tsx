@@ -84,6 +84,24 @@ async function open() {
 function card(name: string) {
   return screen.getByRole('heading', { name }).closest('section')!;
 }
+it.each([
+  ['en', 'AI can use 1 of 1 item'],
+  ['sr-Latn', 'AI može da koristi 1 od 1 stavke'],
+])(
+  'uses the profile total for the %s permission count',
+  async (language, label) => {
+    profile.desired_positions = [];
+    profile.seniority = null;
+    profile.work_modes = [];
+    profile.employment_types = [];
+    profile.years_experience = null;
+    profile.projects = [];
+    await i18n.changeLanguage(language);
+    await open();
+    expect(screen.getByText(label)).toBeVisible();
+  }
+);
+
 it('shows all nine sections and never offers a personal AI switch', async () => {
   await open();
   for (const name of [

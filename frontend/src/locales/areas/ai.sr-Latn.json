@@ -1,6 +1,9 @@
 {
   "ai.reviewTitle": "Pregled izdvojenih podataka",
   "ai.proposalCount": "Predlozi: {{count}} · Pregledano: {{reviewed}}",
+  "ai.proposalCount_one": "Predlozi: {{count}} · Pregledano: {{reviewed}}",
+  "ai.proposalCount_few": "Predlozi: {{count}} · Pregledano: {{reviewed}}",
+  "ai.proposalCount_other": "Predlozi: {{count}} · Pregledano: {{reviewed}}",
   "ai.acceptAll": "Prihvati sve",
   "ai.saveReviewed": "Sačuvaj pregledano",
   "ai.reviewHint": "Podaci se ne menjaju dok se ne sačuvaju. Uz svaku vrednost prikazana je izvorna rečenica.",

@@ -1,6 +1,9 @@
 {
   "ai.reviewTitle": "Review extracted data",
   "ai.proposalCount": "{{count}} proposals · {{reviewed}} reviewed",
+  "ai.proposalCount_one": "{{count}} proposal · {{reviewed}} reviewed",
+  "ai.proposalCount_few": "{{count}} proposals · {{reviewed}} reviewed",
+  "ai.proposalCount_other": "{{count}} proposals · {{reviewed}} reviewed",
   "ai.acceptAll": "Accept all",
   "ai.saveReviewed": "Save reviewed",
   "ai.reviewHint": "Nothing changes until you save. Each value shows the sentence it came from.",

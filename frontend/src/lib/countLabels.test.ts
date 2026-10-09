@@ -35,6 +35,21 @@ const forms: Record<string, [string, string, string]> = {
     '{{count}} godine',
     '{{count}} godina',
   ],
+  'accounts.aiCount': [
+    'AI može da koristi {{allowed}} od {{total}} stavke',
+    'AI može da koristi {{allowed}} od {{total}} stavke',
+    'AI može da koristi {{allowed}} od {{total}} stavki',
+  ],
+  'ai.proposalCount': [
+    'Predlozi: {{count}} · Pregledano: {{reviewed}}',
+    'Predlozi: {{count}} · Pregledano: {{reviewed}}',
+    'Predlozi: {{count}} · Pregledano: {{reviewed}}',
+  ],
+  'Showing {{start}}–{{end}} of {{count}} items': [
+    'Prikaz {{start}}–{{end}} od {{count}} stavke',
+    'Prikaz {{start}}–{{end}} od {{count}} stavke',
+    'Prikaz {{start}}–{{end}} od {{count}} stavki',
+  ],
   'analytics.days': ['{{value}} dan', '{{value}} dana', '{{value}} dana'],
   'companies.linkedLeads': [
     '{{count}} oglas',
@@ -72,6 +87,7 @@ const values = {
   end: 2,
   limit: 100000,
   reviewed: 1,
+  allowed: 1,
   names: 'A',
   value0: 'prijava',
   date: '9. 10. 2026.',
@@ -82,9 +98,12 @@ const values = {
 const interpolate = (text: string, count: number) =>
   text.replace(/\{\{(\w+)\}\}/g, (_, key: string) =>
     String(
-      ({ ...values, count, value: count } as Record<string, string | number>)[
-        key
-      ]
+      (
+        { ...values, count, total: count, value: count } as Record<
+          string,
+          string | number
+        >
+      )[key]
     )
   );
 
@@ -99,9 +118,10 @@ it.each(counts)(
     const category = new Intl.PluralRules('sr-Latn').select(count);
     const index = category === 'one' ? 0 : category === 'few' ? 1 : 2;
     for (const [key, expected] of Object.entries(forms)) {
-      expect(i18n.t(key, { ...values, count, value: count }), key).toBe(
-        interpolate(expected[index], count)
-      );
+      expect(
+        i18n.t(key, { ...values, count, total: count, value: count }),
+        key
+      ).toBe(interpolate(expected[index], count));
     }
   }
 );
@@ -143,4 +163,17 @@ it('keeps English singular and plural preparation, posting and pipeline labels',
   expect(i18n.t('tasks.pipelineTotal', { count: 1 })).toBe(
     '1 application · archived not counted'
   );
+  expect(i18n.t('accounts.aiCount', { allowed: 1, total: 1, count: 1 })).toBe(
+    'AI can use 1 of 1 item'
+  );
+  expect(i18n.t('ai.proposalCount', { count: 1, reviewed: 1 })).toBe(
+    '1 proposal · 1 reviewed'
+  );
+  expect(
+    i18n.t('Showing {{start}}–{{end}} of {{count}} items', {
+      start: 1,
+      end: 1,
+      count: 1,
+    })
+  ).toBe('Showing 1–1 of 1 item');
 });
