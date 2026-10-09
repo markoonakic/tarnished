@@ -46,7 +46,7 @@ export default function DeadlineReminder({
     <>
       <button
         type="button"
-        className="text-accent focus:ring-accent ml-2 cursor-pointer rounded px-1 focus:ring-2"
+        className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent ml-2 cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
         aria-label={t('records.remindMe')}
         onClick={async () => {
           setError('');
@@ -64,6 +64,7 @@ export default function DeadlineReminder({
             setError(errorMessage(error));
           }
         }}
+        title={t('records.remindMe')}
       >
         <i
           className={existing ? 'bi-alarm-fill' : 'bi-alarm'}

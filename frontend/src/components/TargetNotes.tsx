@@ -61,6 +61,7 @@ export default function TargetNotes({
       <p role="alert" className="text-red mb-6">
         {failureMessage(query.error)}{' '}
         <button className={actionClass} onClick={() => void query.refetch()}>
+          <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
           {t('companies.reload')}
         </button>
       </p>
@@ -104,6 +105,7 @@ export default function TargetNotes({
               setError('');
             }}
           >
+            <i className="bi-x-lg icon-sm" aria-hidden="true" />
             {t('companies.discardReload')}
           </button>
         </p>

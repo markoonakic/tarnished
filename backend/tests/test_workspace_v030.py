@@ -317,6 +317,55 @@ async def test_reminders_retry_completion_and_tasks(client, db, workspace, kind)
     assert (await client.get("/api/dashboard/overview", headers=h)).status_code == 200
 
 
+async def test_notification_poll_is_owner_scoped_ordered_and_read_only(
+    client, workspace
+):
+    _, headers, _, other_headers, _ = workspace
+    now = datetime.now(UTC)
+    saved = []
+    for minutes in (5, -10, -5):
+        saved.append(
+            await post(
+                client,
+                "/reminders",
+                {
+                    "kind": "recruiter_follow_up",
+                    "title": f"Follow up {minutes}",
+                    "due_at": (now + timedelta(minutes=minutes)).isoformat(),
+                    "time_zone": "UTC",
+                    "intent_id": str(uuid4()),
+                },
+                headers,
+            )
+        )
+    await post(
+        client,
+        "/reminders",
+        {
+            "kind": "recruiter_follow_up",
+            "title": "Other owner",
+            "due_at": (now - timedelta(hours=1)).isoformat(),
+            "time_zone": "UTC",
+            "intent_id": str(uuid4()),
+        },
+        other_headers,
+    )
+    before = (await client.get("/api/reminders?state=open", headers=headers)).json()
+    for _ in range(2):
+        response = await client.get(
+            "/api/tasks?state=open&per_page=1&page=1", headers=headers
+        )
+        assert response.status_code == 200
+        assert response.json()["items"][0]["id"] == saved[1]["id"]
+        assert response.json()["total"] == 3
+        second = (
+            await client.get("/api/tasks?state=open&per_page=1&page=2", headers=headers)
+        ).json()
+        assert second["items"][0]["id"] == saved[2]["id"]
+    after = (await client.get("/api/reminders?state=open", headers=headers)).json()
+    assert after == before
+
+
 async def test_reminder_dst_is_explicit(client, workspace):
     _, h, _, _, _ = workspace
     base = {

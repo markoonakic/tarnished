@@ -49,7 +49,7 @@
   "records.allDecisions": "Sve odluke",
   "records.remindMe": "Podseti me",
   "records.deadlineFor": "Rok: {{title}}",
-  "records.addTag": "+ oznaka",
+  "records.addTag": "Dodaj oznaku",
   "records.priorityTags": "Prioritet i oznake",
   "records.savedPosting": "Sačuvan oglas · {{count}} znakova",
   "records.savedPosting_one": "Sačuvan oglas · {{count}} znak",

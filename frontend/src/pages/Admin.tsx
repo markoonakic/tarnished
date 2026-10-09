@@ -394,8 +394,9 @@ export default function Admin() {
                 </div>
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
+                  className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 >
+                  <i className="bi-plus-lg icon-sm" aria-hidden="true" />
                   {t('Create User')}
                 </button>
               </div>
@@ -415,8 +416,9 @@ export default function Admin() {
                     {searchQuery && (
                       <button
                         onClick={() => handleSearchQueryChange('')}
-                        className="text-muted hover:text-fg1 absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
+                        className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent absolute top-1/2 right-3 cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
                         aria-label={t('Clear search')}
+                        title={t('Clear search')}
                       >
                         <i className="bi-x icon-sm" />
                       </button>
@@ -537,14 +539,18 @@ export default function Admin() {
                                 <button
                                   disabled={Boolean(accountBusy)}
                                   onClick={() => void handleApprove(u.id)}
-                                  className="bg-accent text-bg0 cursor-pointer rounded px-3 py-1.5 text-xs disabled:opacity-50"
+                                  className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                                 >
+                                  <i
+                                    className="bi-check2 icon-sm"
+                                    aria-hidden="true"
+                                  />
                                   {t('accounts.approve')}
                                 </button>
                               ) : (
                                 <button
                                   onClick={() => setEditingUser(u)}
-                                  className="text-fg1 hover:bg-bg2 cursor-pointer rounded px-2 py-1.5 text-xs"
+                                  className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                                 >
                                   <i
                                     className="bi-pencil mr-1"
@@ -556,8 +562,12 @@ export default function Admin() {
                               <button
                                 disabled={Boolean(accountBusy)}
                                 onClick={() => void handleDeleteUser(u)}
-                                className="text-red hover:bg-bg2 cursor-pointer rounded px-2 py-1.5 text-xs disabled:opacity-50"
+                                className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                               >
+                                <i
+                                  className="bi-trash icon-sm"
+                                  aria-hidden="true"
+                                />
                                 {u.approval_pending
                                   ? t('accounts.reject')
                                   : t('Delete')}
@@ -616,23 +626,26 @@ export default function Admin() {
                         <button
                           disabled={Boolean(accountBusy)}
                           onClick={() => void handleApprove(u.id)}
-                          className="bg-accent text-bg0 cursor-pointer rounded px-3 py-2 text-xs disabled:opacity-50"
+                          className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                         >
+                          <i className="bi-check2 icon-sm" aria-hidden="true" />
                           {t('accounts.approve')}
                         </button>
                       ) : (
                         <button
                           onClick={() => setEditingUser(u)}
-                          className="text-fg1 cursor-pointer rounded px-3 py-2 text-xs"
+                          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                         >
+                          <i className="bi-pencil icon-sm" aria-hidden="true" />
                           {t('Edit')}
                         </button>
                       )}
                       <button
                         disabled={Boolean(accountBusy)}
                         onClick={() => void handleDeleteUser(u)}
-                        className="text-red cursor-pointer rounded px-3 py-2 text-xs disabled:opacity-50"
+                        className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                       >
+                        <i className="bi-trash icon-sm" aria-hidden="true" />
                         {u.approval_pending
                           ? t('accounts.reject')
                           : t('Delete')}
@@ -665,8 +678,9 @@ export default function Admin() {
                     setAiNotice(null);
                     setShowAISettings(true);
                   }}
-                  className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
+                  className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 >
+                  <i className="bi-arrow-right icon-sm" aria-hidden="true" />
                   {t('Configure AI')}
                 </button>
               </div>
@@ -717,7 +731,8 @@ export default function Admin() {
                         aria-label={t('Close AI settings')}
                         disabled={savingAi}
                         onClick={() => setShowAISettings(false)}
-                        className="text-fg1 hover:bg-bg2 cursor-pointer rounded p-2"
+                        className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+                        title={t('Close AI settings')}
                       >
                         <i className="bi-x-lg icon-lg" aria-hidden="true" />
                       </button>
@@ -920,7 +935,7 @@ export default function Admin() {
                               </p>
                               <button
                                 type="button"
-                                className="text-fg1 hover:bg-bg2 cursor-pointer rounded-md px-3 py-2 text-sm transition-all duration-200 ease-in-out disabled:opacity-50"
+                                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                                 disabled={checkingLocal}
                                 onClick={async () => {
                                   setCheckingLocal(true);
@@ -952,6 +967,10 @@ export default function Admin() {
                                   }
                                 }}
                               >
+                                <i
+                                  className="bi-check2 icon-sm"
+                                  aria-hidden="true"
+                                />
                                 {t('Check saved local installation')}
                               </button>
                               <p role="status">{localStatus}</p>
@@ -1102,8 +1121,9 @@ export default function Admin() {
                         </div>
                         <button
                           type="submit"
-                          className="bg-accent text-bg0 hover:bg-accent-bright min-h-11 cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50 md:col-span-2"
+                          className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50 md:col-span-2"
                         >
+                          <i className="bi-check2 icon-sm" aria-hidden="true" />
                           {savingAi ? t('Saving...') : t('Save Settings')}
                         </button>
                       </fieldset>

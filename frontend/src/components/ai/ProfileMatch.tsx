@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import Card from '@/components/Card';
+import HelpTip from '../HelpTip';
 import ResultPill, { type MatchResult } from '@/components/ResultPill';
 import { useJobAnalysis } from '@/hooks/useJobAnalysis';
 import type { AnalysisTarget } from '@/lib/apiAnalyses';
@@ -28,28 +29,43 @@ export default function ProfileMatch({
   const disabled = busy || running || loading || !!hint;
   return (
     <Card
-      title={t('ai.profileMatch')}
+      title={
+        <span className="inline-flex items-center gap-2">
+          {t('ai.profileMatch')}{' '}
+          <HelpTip label={t('ai.profileMatch')}>
+            {t('ai.profileFooter')}
+            {legacy.length > 0 && !requirements.length && (
+              <span>
+                {t('ai.notReviewed')}: {legacy.join(' · ')}
+              </span>
+            )}
+          </HelpTip>
+        </span>
+      }
       icon="bi-person-check"
       actions={
-        <button
-          type="button"
-          className="text-accent hover:bg-bg3 cursor-pointer rounded px-2 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={disabled}
-          title={hint ? t(hint) : undefined}
-          onClick={() => void controller.run()}
-        >
-          <i className="bi-arrow-repeat mr-1" aria-hidden="true" />
-          {t(analysis ? 'ai.runAgain' : 'ai.compare')}
-        </button>
+        <>
+          <Link
+            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+            to="/profile"
+          >
+            {t('ai.openProfile')}
+          </Link>
+          <button
+            type="button"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            disabled={disabled}
+            title={hint ? t(hint) : undefined}
+            onClick={() => void controller.run()}
+          >
+            <i className="bi-arrow-repeat mr-1" aria-hidden="true" />
+            {t(analysis ? 'ai.runAgain' : 'ai.compare')}
+          </button>
+        </>
       }
     >
       <AnalysisStatus controller={controller} />
-      {hint && <p className="text-muted mb-4 text-sm">{t(hint)}</p>}
-      {legacy.length > 0 && !requirements.length && (
-        <p className="text-muted mb-4 text-xs">
-          {t('ai.notReviewed')}: {legacy.join(' · ')}
-        </p>
-      )}
+
       {analysis?.stale && (
         <p
           role="status"
@@ -100,7 +116,7 @@ export default function ProfileMatch({
                     row.evidence.map((citation, index) => (
                       <div key={index} className="mb-2">
                         <Link
-                          className="text-accent hover:underline"
+                          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
                           to={`/profile#${encodeURIComponent(citation.profile_id)}`}
                         >
                           {(() => {
@@ -142,12 +158,6 @@ export default function ProfileMatch({
           </div>
         </>
       )}
-      <footer className="text-muted mt-4 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span>{t('ai.profileFooter')}</span>
-        <Link className="text-accent hover:underline" to="/profile">
-          {t('ai.openProfile')}
-        </Link>
-      </footer>
     </Card>
   );
 }

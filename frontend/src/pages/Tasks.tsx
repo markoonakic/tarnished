@@ -188,8 +188,9 @@ export default function Tasks() {
             type="button"
             disabled={!zone}
             onClick={() => openNew()}
-            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent self-start rounded-md px-4 py-2 font-medium focus:ring-2 disabled:opacity-50"
+            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 self-start rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
           >
+            <i className="bi-plus-lg icon-sm" aria-hidden="true" />
             {t('kit.newReminder')}
           </button>
         </div>
@@ -213,8 +214,9 @@ export default function Tasks() {
                 void rounds.refetch();
                 void preferences.refetch();
               }}
-              className="underline"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             >
+              <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('Retry')}
             </button>
           </p>
@@ -258,6 +260,7 @@ export default function Tasks() {
                           .slice(0, 10),
                       })
                     }
+                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                   >
                     ‹
                   </button>
@@ -273,15 +276,17 @@ export default function Tasks() {
                           .slice(0, 10),
                       })
                     }
+                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                   >
                     ›
                   </button>
                   <button
-                    className="text-accent"
+                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                     onClick={() =>
                       update({ date: dayKey(new Date(), zone || 'UTC') })
                     }
                   >
+                    <i className="bi-arrow-right icon-sm" aria-hidden="true" />
                     {t('kit.today')}
                   </button>
                 </div>
@@ -300,7 +305,10 @@ export default function Tasks() {
               {days
                 .filter((day) => events.some((event) => event.date === day))
                 .map((day) => (
-                  <section key={day} className="mb-6">
+                  <section
+                    key={day}
+                    className="bg-secondary mb-6 rounded-lg p-6"
+                  >
                     <h2 className="text-muted mb-3 text-sm font-semibold uppercase">
                       {new Date(`${day}T12:00Z`).toLocaleDateString(locale(), {
                         weekday: 'long',
@@ -320,7 +328,7 @@ export default function Tasks() {
                             <Link
                               key={r.id}
                               to={`/interviews/${r.id}`}
-                              className="bg-secondary hover:bg-bg2 flex flex-wrap gap-3 rounded-lg p-4 text-sm"
+                              className="bg-tertiary hover:bg-bg3 focus:ring-accent hover:bg-bg2 flex w-full cursor-pointer flex-wrap gap-3 rounded-lg p-4 text-left text-sm transition-[translate,background-color] transition-all duration-200 ease-in-out will-change-transform hover:-translate-y-0.5 focus:ring-2"
                             >
                               <span className="text-orange-bright">
                                 {new Date(r.scheduled_at!).toLocaleTimeString(
@@ -399,18 +407,14 @@ export default function Tasks() {
                       tasks.data?.items.filter(
                         (r) => taskGroup(r.due_at, zone) === group
                       ) ?? [];
-                    const deadlines =
-                      filter !== 'done' &&
-                      (!kind || kind === 'application_deadline')
-                        ? (tasks.data?.deadlines.filter(
-                            (d) => taskGroup(d.due_at, zone) === group
-                          ) ?? [])
-                        : [];
-                    if (!rows.length && !deadlines.length) return null;
+                    if (!rows.length) return null;
                     return (
-                      <section key={group} className="mb-7">
+                      <section
+                        key={group}
+                        className="bg-secondary mb-6 rounded-lg p-6"
+                      >
                         <h2
-                          className={`mb-3 text-sm font-semibold uppercase ${group === 'overdue' ? 'text-red-bright' : 'text-primary'}`}
+                          className={`mb-3 text-lg font-semibold ${group === 'overdue' ? 'text-red-bright' : 'text-fg1'}`}
                         >
                           {t('tasks.group.' + group)}
                         </h2>
@@ -423,13 +427,27 @@ export default function Tasks() {
                               onEdit={edit}
                             />
                           ))}
-                          {deadlines.map((d) => (
+                        </div>
+                      </section>
+                    );
+                  })}
+                  {filter !== 'done' &&
+                    (!kind || kind === 'application_deadline') &&
+                    Boolean(tasks.data?.deadlines.length) && (
+                      <details className="bg-secondary mb-6 rounded-lg p-6">
+                        <summary className="text-fg1 hover:text-accent-bright focus:ring-accent hover:bg-bg2 cursor-pointer text-lg font-semibold transition-all duration-200 ease-in-out focus:ring-2">
+                          {t('tasks.deadlinesWithoutReminder', {
+                            count: tasks.data?.deadlines.length ?? 0,
+                          })}
+                        </summary>
+                        <div className="mt-4 space-y-2">
+                          {tasks.data?.deadlines.map((d) => (
                             <div
                               key={d.id}
-                              className="border-bg4 text-muted flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed px-4 py-3 text-sm"
+                              className="bg-tertiary text-muted flex flex-wrap items-center justify-between gap-3 rounded-lg p-4 text-sm"
                             >
                               <Link
-                                className="min-w-0 flex-1"
+                                className="text-accent hover:text-accent-bright focus:ring-accent min-w-0 cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
                                 to={`/${d.target_type === 'lead' ? 'job-leads' : d.target_type === 'round' ? 'interviews' : 'applications'}/${d.id}`}
                               >
                                 <i className="bi bi-calendar-x mr-2" />
@@ -440,14 +458,13 @@ export default function Tasks() {
                                   locale(),
                                   {
                                     timeZone: zone,
-                                    ...(group === 'thisWeek'
-                                      ? { weekday: 'short' }
-                                      : { month: 'short', day: 'numeric' }),
+                                    month: 'short',
+                                    day: 'numeric',
                                   }
                                 )}
                               </span>
                               <button
-                                className="text-primary focus:ring-accent rounded px-2 py-1 focus:ring-2"
+                                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                                 onClick={() => openNew(d)}
                               >
                                 <i className="bi bi-bell mr-2" />
@@ -456,9 +473,8 @@ export default function Tasks() {
                             </div>
                           ))}
                         </div>
-                      </section>
-                    );
-                  })}
+                      </details>
+                    )}
                   {tasks.data?.total === 0 && !tasks.data.deadlines.length && (
                     <EmptyState
                       message={t('kit.noTasks')}

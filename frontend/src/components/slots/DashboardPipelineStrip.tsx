@@ -17,7 +17,11 @@ export default function DashboardPipelineStrip() {
       {query.isError && (
         <p role="alert">
           {t('tasks.loadFailed')}{' '}
-          <button className="underline" onClick={() => void query.refetch()}>
+          <button
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            onClick={() => void query.refetch()}
+          >
+            <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('Retry')}
           </button>
         </p>
@@ -53,7 +57,7 @@ export default function DashboardPipelineStrip() {
           <Link
             key={s.status_id}
             to={'/applications?status=' + s.status_id}
-            className="focus:ring-accent inline-flex items-center gap-1.5 rounded text-xs focus:ring-2"
+            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
             style={{ color: getStatusColor(s.name, colors, s.color) }}
           >
             <span

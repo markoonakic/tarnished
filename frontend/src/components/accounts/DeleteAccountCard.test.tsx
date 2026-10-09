@@ -49,8 +49,8 @@ it('disables deletion for the last active administrator', async () => {
   } as Account);
   render(<DeleteAccountCard />);
   expect(
-    await screen.findByText(/You are the only administrator/)
-  ).toBeVisible();
+    await screen.findByTitle(/You are the only administrator/)
+  ).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Delete account' })).toBeDisabled();
   expect(apiV030.deleteAccount).not.toHaveBeenCalled();
 });

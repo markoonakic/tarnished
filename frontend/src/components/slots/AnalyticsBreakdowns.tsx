@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/Card';
+import HelpTip from '@/components/HelpTip';
 import { locale } from '@/lib/i18n';
 import type { Frequency } from '@/lib/apiV030';
 import {
@@ -80,17 +81,25 @@ export default function AnalyticsBreakdowns(props: AnalyticsSlotProps) {
         </p>
         <button
           type="button"
-          className="text-accent mt-2 rounded"
+          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent mt-2 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
           onClick={() => void refetch()}
         >
+          <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
           {t('analytics.retry')}
         </button>
       </Card>
     );
   return (
-    <div className="grid gap-6">
+    <div className="mb-6 grid gap-6">
       <Card
-        title={t('analytics.bySource')}
+        title={
+          <span className="inline-flex items-center gap-2">
+            {t('analytics.bySource')}{' '}
+            <HelpTip label={t('analytics.bySource')}>
+              {t('analytics.sourceHint')}
+            </HelpTip>
+          </span>
+        }
         icon="bi-signpost-split"
         className="mb-0!"
       >
@@ -156,9 +165,6 @@ export default function AnalyticsBreakdowns(props: AnalyticsSlotProps) {
                 </li>
               ))}
             </ul>
-            <p className="text-muted mt-3 text-xs">
-              {t('analytics.sourceHint')}
-            </p>
           </>
         )}
       </Card>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import HelpTip from '@/components/HelpTip';
 import axios from 'axios';
 import i18n, { t, locale } from '@/lib/i18n';
 import {
@@ -186,9 +187,9 @@ const sections: {
 const inputClass =
   'bg-bg2 text-fg1 focus:ring-accent-bright mt-1 w-full rounded px-3 py-2 focus:ring-2 focus:outline-none';
 const ghostClass =
-  'text-accent focus:ring-accent cursor-pointer rounded px-2 py-1 text-sm focus:ring-2 disabled:opacity-50';
+  'text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50 focus:ring-2 focus:ring-accent';
 const saveClass =
-  'bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded px-4 py-2 disabled:opacity-50';
+  'bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50 flex items-center gap-1.5 focus:ring-2 focus:ring-accent';
 const label = (key: string) => t(`accounts.${key}`);
 const optionLabel = (value: string) =>
   !value
@@ -670,10 +671,12 @@ export default function Profile() {
   return (
     <Layout>
       <div className="mx-auto max-w-4xl px-4 py-8">
-        <h1 className="text-primary mb-2 text-2xl font-bold">
-          {label('profile')}
-        </h1>
-        <p className="text-muted mb-6 text-sm">{label('profileSubtitle')}</p>
+        <div className="mb-6 flex items-center gap-2">
+          <h1 className="text-primary text-2xl font-bold">
+            {label('profile')}
+          </h1>
+          <HelpTip label={label('profile')}>{label('profileSubtitle')}</HelpTip>
+        </div>
         {error && !entry && (
           <div
             role="alert"
@@ -682,6 +685,7 @@ export default function Profile() {
             {error}
             {stale && (
               <button className={ghostClass} onClick={() => void load()}>
+                <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
                 {label('reload')}
               </button>
             )}
@@ -691,6 +695,7 @@ export default function Profile() {
           <Loading message={label('loading')} />
         ) : !profile ? (
           <button className={saveClass} onClick={() => void load()}>
+            <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {label('retry')}
           </button>
         ) : (
@@ -758,6 +763,10 @@ export default function Profile() {
                   </p>
                   {allowed < total && (
                     <button className={`${ghostClass} px-0`} onClick={review}>
+                      <i
+                        className="bi-arrow-right icon-sm"
+                        aria-hidden="true"
+                      />
                       {label('review')}
                     </button>
                   )}
@@ -880,9 +889,17 @@ export default function Profile() {
                               className={ghostClass}
                               onClick={() => setEditing(null)}
                             >
+                              <i
+                                className="bi-x-lg icon-sm"
+                                aria-hidden="true"
+                              />
                               {label('cancel')}
                             </button>
                             <button className={saveClass}>
+                              <i
+                                className="bi-check2 icon-sm"
+                                aria-hidden="true"
+                              />
                               {label('save')}
                             </button>
                           </div>
@@ -952,6 +969,10 @@ export default function Profile() {
                           disabled={busy}
                           onClick={() => newEntry(section.key as EntrySection)}
                         >
+                          <i
+                            className="bi-plus-lg icon-sm"
+                            aria-hidden="true"
+                          />
                           + {label(`add_${section.key}`)}
                         </button>
                       </div>
@@ -979,9 +1000,17 @@ export default function Profile() {
                               className={ghostClass}
                               onClick={() => setEditing(null)}
                             >
+                              <i
+                                className="bi-x-lg icon-sm"
+                                aria-hidden="true"
+                              />
                               {label('cancel')}
                             </button>
                             <button className={saveClass}>
+                              <i
+                                className="bi-check2 icon-sm"
+                                aria-hidden="true"
+                              />
                               {label('save')}
                             </button>
                           </div>
@@ -1064,6 +1093,7 @@ export default function Profile() {
                   disabled={busy}
                   className={ghostClass}
                   onClick={() => setEntry(null)}
+                  title={label('close')}
                 >
                   <i className="bi-x-lg" aria-hidden="true" />
                 </button>
@@ -1077,6 +1107,10 @@ export default function Profile() {
                       className={ghostClass}
                       onClick={() => void load()}
                     >
+                      <i
+                        className="bi-arrow-clockwise icon-sm"
+                        aria-hidden="true"
+                      />
                       {label('reload')}
                     </button>
                   )}
@@ -1114,9 +1148,13 @@ export default function Profile() {
                     className={ghostClass}
                     onClick={() => setEntry(null)}
                   >
+                    <i className="bi-x-lg icon-sm" aria-hidden="true" />
                     {label('cancel')}
                   </button>
-                  <button className={saveClass}>{label('save')}</button>
+                  <button className={saveClass}>
+                    <i className="bi-check2 icon-sm" aria-hidden="true" />
+                    {label('save')}
+                  </button>
                 </div>
               </fieldset>
             </form>
@@ -1143,10 +1181,11 @@ export default function Profile() {
                   disabled={busy}
                   onClick={() => setDeleting(null)}
                 >
+                  <i className="bi-x-lg icon-sm" aria-hidden="true" />
                   {label('cancel')}
                 </button>
                 <button
-                  className="bg-red text-bg0 rounded px-4 py-2 disabled:opacity-50"
+                  className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                   disabled={busy}
                   onClick={async () => {
                     if (
@@ -1159,6 +1198,7 @@ export default function Profile() {
                       setDeleting(null);
                   }}
                 >
+                  <i className="bi-trash icon-sm" aria-hidden="true" />
                   {label('delete')}
                 </button>
               </div>

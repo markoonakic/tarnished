@@ -13,6 +13,7 @@ import { getEffectiveTimeZone } from '@/lib/roundDateTime';
 import { useToast } from '@/hooks/useToast';
 import StatusChangeDialog from './StatusChangeDialog';
 import { locale } from '@/lib/i18n';
+import HelpTip from './HelpTip';
 
 function boardFilters(params: URLSearchParams): JobQuery {
   const values = Object.fromEntries(params);
@@ -101,8 +102,9 @@ export default function ApplicationBoard({
             void board.refetch();
             void statuses.refetch();
           }}
-          className="underline"
+          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
         >
+          <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
           {t('Retry')}
         </button>
       </p>
@@ -111,6 +113,12 @@ export default function ApplicationBoard({
     return <p role="status">{t('tasks.loading')}</p>;
   return (
     <>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-fg1 text-lg font-semibold">
+          {t('tasks.board')}
+        </span>
+        <HelpTip label={t('tasks.board')}>{t('tasks.boardHint')}</HelpTip>
+      </div>
       <div
         className="flex items-stretch gap-3 overflow-x-auto pb-3"
         aria-label={t('tasks.board')}
@@ -150,9 +158,10 @@ export default function ApplicationBoard({
               >
                 {collapsed ? (
                   <button
-                    className="focus:ring-accent flex h-full min-h-48 w-full items-center gap-3 rounded [writing-mode:vertical-rl] focus:ring-2"
+                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex h-full min-h-48 w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                     onClick={() => setExpanded([...expanded, status.id])}
                   >
+                    <i className="bi-arrow-right icon-sm" aria-hidden="true" />
                     <span style={{ color }}>{statusLabel(status)}</span>
                     <span className="text-muted">{column?.count ?? 0}</span>
                   </button>
@@ -182,6 +191,7 @@ export default function ApplicationBoard({
                           aria-label={t('tasks.collapseColumn', {
                             name: statusLabel(status),
                           })}
+                          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                         >
                           ‹
                         </button>
@@ -205,7 +215,7 @@ export default function ApplicationBoard({
                         >
                           <Link
                             to={`/applications/${card.id}`}
-                            className="focus:ring-accent block rounded pr-5 text-sm focus:ring-2"
+                            className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
                           >
                             <strong className="text-primary block">
                               {card.company || t('companies.notSet')}
@@ -235,7 +245,10 @@ export default function ApplicationBoard({
                               aria-label={t('tasks.cardActions', {
                                 company: card.company,
                               })}
-                              className="text-muted focus:ring-accent cursor-pointer list-none rounded px-1 focus:ring-2"
+                              className="text-muted focus:ring-accent hover:bg-bg2 cursor-pointer list-none rounded px-1 transition-all duration-200 ease-in-out focus:ring-2"
+                              title={t('tasks.cardActions', {
+                                company: card.company,
+                              })}
                             >
                               <i
                                 className="bi bi-three-dots"
@@ -251,7 +264,7 @@ export default function ApplicationBoard({
                                 .map((s) => (
                                   <button
                                     key={s.id}
-                                    className="hover:bg-bg2 focus:ring-accent block w-full rounded px-3 py-2 text-left text-sm focus:ring-2"
+                                    className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                                     disabled={!zone}
                                     onClick={(e) => {
                                       e.currentTarget
@@ -260,6 +273,10 @@ export default function ApplicationBoard({
                                       openMove(card, s.id);
                                     }}
                                   >
+                                    <i
+                                      className="bi-arrow-right icon-sm"
+                                      aria-hidden="true"
+                                    />
                                     {statusLabel(s)}
                                   </button>
                                 ))}
@@ -319,8 +336,12 @@ export default function ApplicationBoard({
                       <button
                         disabled={Boolean(loadingColumn)}
                         onClick={() => void loadMore(status.id)}
-                        className="text-accent focus:ring-accent mt-3 rounded text-xs focus:ring-2 disabled:opacity-50"
+                        className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent mt-3 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                       >
+                        <i
+                          className="bi-arrow-right icon-sm"
+                          aria-hidden="true"
+                        />
                         {t('tasks.loadMore')}
                       </button>
                     )}
@@ -335,7 +356,7 @@ export default function ApplicationBoard({
             );
           })}
       </div>
-      <p className="text-muted mt-2 text-xs">{t('tasks.boardHint')}</p>
+
       {move && zone && (
         <StatusChangeDialog
           options={

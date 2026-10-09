@@ -3,6 +3,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import Card from '@/components/Card';
+import HelpTip from '@/components/HelpTip';
 import { apiV030, type Activity } from '@/lib/apiV030';
 import { locale } from '@/lib/i18n';
 import { statusLabel } from '@/lib/referenceLabels';
@@ -112,8 +113,17 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
       ? preferences.time_zone || undefined
       : undefined;
   return (
-    <Card title={t('analytics.activity')} icon="bi-activity" className="mb-0!">
-      <p className="text-muted mb-3 text-xs">{t('analytics.activityHint')}</p>
+    <Card
+      title={
+        <span className="inline-flex items-center gap-2">
+          {t('analytics.activity')}{' '}
+          <HelpTip label={t('analytics.activity')}>
+            {t('analytics.activityHint')}
+          </HelpTip>
+        </span>
+      }
+      icon="bi-activity"
+    >
       {history.isPending && (
         <p className="text-muted" role="status">
           {t('analytics.loading')}
@@ -164,7 +174,7 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
                 {href && (
                   <Link
                     to={href}
-                    className="text-accent rounded text-xs"
+                    className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
                     aria-label={t('analytics.openEvent', { event: label })}
                   >
                     {t('analytics.open')}
@@ -182,13 +192,14 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
           </p>
           <button
             type="button"
-            className="text-accent mt-2 rounded"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent mt-2 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             onClick={() =>
               void (history.isFetchNextPageError
                 ? history.fetchNextPage()
                 : history.refetch())
             }
           >
+            <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('analytics.retry')}
           </button>
         </div>
@@ -196,10 +207,11 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
       {history.hasNextPage && !history.isFetchNextPageError && (
         <button
           type="button"
-          className="text-accent mt-4 rounded disabled:opacity-50"
+          className="text-accent hover:text-accent-bright focus:ring-accent mt-4 cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
           disabled={history.isFetchingNextPage}
           onClick={() => void history.fetchNextPage()}
         >
+          <i className="bi-chevron-right icon-sm" aria-hidden="true" />
           {t(
             history.isFetchingNextPage
               ? 'analytics.loading'

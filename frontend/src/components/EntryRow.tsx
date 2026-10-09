@@ -38,7 +38,8 @@ export default function EntryRow({
             type="button"
             aria-label={t('kit.edit')}
             onClick={onEdit}
-            className="focus:ring-accent cursor-pointer rounded focus:ring-2"
+            className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+            title={t('kit.edit')}
           >
             <i className="bi bi-pencil" aria-hidden="true" />
           </button>
@@ -48,7 +49,8 @@ export default function EntryRow({
             type="button"
             aria-label={t('kit.delete')}
             onClick={onDelete}
-            className="hover:text-red focus:ring-accent cursor-pointer rounded focus:ring-2"
+            className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+            title={t('kit.delete')}
           >
             <i className="bi bi-trash" aria-hidden="true" />
           </button>

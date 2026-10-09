@@ -12,6 +12,8 @@ import api from '../lib/api';
 import { queryClient } from '../lib/queryClient';
 import type { Round } from '../lib/types';
 import RoundCard from './InterviewRecording';
+import ApplicationRoundCard from './RoundCard';
+import { MemoryRouter } from 'react-router-dom';
 import TranscriptionPanel from './TranscriptionPanel';
 import i18n from '../lib/i18n';
 
@@ -130,7 +132,54 @@ it.each([
   }
 );
 
-it('keeps the round compact and opens transcription or feedback only on request', async () => {
+it('restores the complete application round card without starting media or feedback jobs', async () => {
+  const edit = vi.fn();
+  const remove = vi.fn();
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <ApplicationRoundCard
+          round={{
+            ...round,
+            scheduled_at: '2026-10-08T10:00:00Z',
+            completed_at: '2026-10-08T11:00:00Z',
+            mode: 'video',
+            contact_ids: ['contact'],
+            preparation: { review_topics: ['SQL'] },
+          }}
+          onEdit={edit}
+          onDelete={remove}
+          onMediaChange={vi.fn()}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+  expect(screen.getByText('Keep notes')).toBeVisible();
+  expect(screen.getByText(/Scheduled:/)).toBeVisible();
+  expect(screen.getByText(/Completed:/)).toBeVisible();
+  expect(screen.getByText('first.wav')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Add Media' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Play' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Add transcript' })).toBeVisible();
+  expect(
+    screen.getByRole('button', { name: 'Interview feedback' })
+  ).toBeVisible();
+  expect(screen.getByRole('link', { name: /Open interview/ })).toHaveAttribute(
+    'href',
+    '/interviews/round-1'
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Edit round' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Delete round' }));
+  expect(edit).toHaveBeenCalledOnce();
+  expect(remove).toHaveBeenCalledOnce();
+  expect(requests.every((request) => request.method === 'get')).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Transcribe' }));
+  expect(
+    screen.getByRole('dialog', { name: 'Transcribe recording' })
+  ).toBeVisible();
+});
+
+it('opens transcription or feedback only on request', async () => {
   render(
     <QueryClientProvider client={queryClient}>
       <RoundCard
@@ -237,11 +286,14 @@ it('RoundCard shows imported duration as unverified and disables inline playback
       />
     </QueryClientProvider>
   );
-  expect(screen.getByText(/Duration unverified/)).toBeVisible();
+  expect(screen.getByTitle(/Duration unverified/)).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Play' })).toBeDisabled();
-  expect(
-    screen.getByText(/Transcribe to check this recording and enable playback/)
-  ).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Play' })).toHaveAttribute(
+    'title',
+    expect.stringContaining(
+      'Transcribe to check this recording and enable playback'
+    )
+  );
 });
 
 it('RoundCard stale delete keeps metadata and exposes explicit review/reload without a pending upload', async () => {

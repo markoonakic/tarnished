@@ -49,7 +49,10 @@ export default function InterviewParticipants({
               key={id}
               className="bg-bg2 inline-flex items-center gap-2 rounded px-2 py-1 text-xs"
             >
-              <Link to={`/contacts/${id}`}>
+              <Link
+                to={`/contacts/${id}`}
+                className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+              >
                 {item?.name ?? t('tasks.openContact')}
                 {item?.role
                   ? ` · ${t('tasks.role.' + item.role, { defaultValue: item.role })}`
@@ -61,6 +64,7 @@ export default function InterviewParticipants({
                     name: item?.name ?? id,
                   })}
                   onClick={() => onChange(value.filter((v) => v !== id))}
+                  className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 >
                   ×
                 </button>
@@ -71,9 +75,10 @@ export default function InterviewParticipants({
         <button
           type="button"
           onClick={() => setAdding(!adding)}
-          className="text-accent focus:ring-accent rounded text-xs focus:ring-2"
+          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
         >
-          + {t('tasks.addParticipant')}
+          <i className="bi-plus-lg icon-sm" aria-hidden="true" />+{' '}
+          {t('tasks.addParticipant')}
         </button>
       </div>
       {adding && (

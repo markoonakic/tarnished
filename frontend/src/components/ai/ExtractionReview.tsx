@@ -2,6 +2,7 @@ import { formatDate } from '@/lib/displayDate';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/Card';
+import HelpTip from '../HelpTip';
 import SearchableCombobox from '@/components/SearchableCombobox';
 import { useJobAnalysis } from '@/hooks/useJobAnalysis';
 import {
@@ -14,8 +15,9 @@ import { apiV030, type Company } from '@/lib/apiV030';
 import AnalysisStatus from './AnalysisStatus';
 
 const ghost =
-  'cursor-pointer rounded px-2 py-1 text-sm hover:bg-bg3 disabled:cursor-not-allowed disabled:opacity-50';
-const primary = `${ghost} bg-accent text-bg0 hover:bg-accent-bright`;
+  'text-fg1 hover:bg-bg2 hover:text-fg0 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50 focus:ring-2 focus:ring-accent';
+const primary =
+  'bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50 flex items-center gap-1.5 focus:ring-2 focus:ring-accent';
 const basics = [
   'title',
   'company',
@@ -174,6 +176,14 @@ export default function ExtractionReview({
       title={
         <>
           {t('ai.reviewTitle')}{' '}
+          <HelpTip label={t('ai.reviewTitle')}>
+            {t('ai.reviewHint')}
+            {legacy.length > 0 && !analysis?.reviewed.length && (
+              <span>
+                {t('ai.notReviewed')}: {legacy.join(' · ')}
+              </span>
+            )}
+          </HelpTip>
           {items.length > 0 && (
             <span className="text-muted ml-2 text-xs font-normal">
               {t('ai.proposalCount', {
@@ -209,6 +219,7 @@ export default function ExtractionReview({
                 }));
               }}
             >
+              <i className="bi-check2 icon-sm" aria-hidden="true" />
               {t('ai.acceptAll')}
             </button>
             <button
@@ -219,6 +230,7 @@ export default function ExtractionReview({
               }
               onClick={() => void save()}
             >
+              <i className="bi-check2 icon-sm" aria-hidden="true" />
               {t('ai.saveReviewed')}
             </button>
           </>
@@ -233,12 +245,7 @@ export default function ExtractionReview({
           {t('ai.sourceChanged')} {run}
         </div>
       )}
-      <p className="text-muted mb-4 text-xs">{t('ai.reviewHint')}</p>
-      {legacy.length > 0 && !analysis?.reviewed.length && (
-        <p className="text-muted mb-4 text-xs">
-          {t('ai.notReviewed')}: {legacy.join(' · ')}
-        </p>
-      )}
+
       {groups.map((name) => (
         <div key={name} className="mb-4 last:mb-0">
           <h4 className="text-muted mb-1 text-xs font-semibold uppercase">
@@ -356,6 +363,10 @@ export default function ExtractionReview({
                             })
                           }
                         >
+                          <i
+                            className="bi-arrow-right icon-sm"
+                            aria-hidden="true"
+                          />
                           {t('ai.undo')}
                         </button>
                       </>
@@ -365,6 +376,10 @@ export default function ExtractionReview({
                         className={ghost}
                         onClick={() => setEditing(null)}
                       >
+                        <i
+                          className="bi-arrow-right icon-sm"
+                          aria-hidden="true"
+                        />
                         {t('ai.done')}
                       </button>
                     ) : (

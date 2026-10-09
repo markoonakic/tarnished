@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import HelpTip from '@/components/HelpTip';
 import { locale } from '@/lib/i18n';
 import {
   useAnalyticsBreakdowns,
@@ -20,9 +21,10 @@ export default function AnalyticsNewKpis(props: AnalyticsSlotProps) {
         <p className="text-red-bright">{t('analytics.loadError')}</p>
         <button
           type="button"
-          className="text-accent mt-2 rounded"
+          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent mt-2 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
           onClick={() => void refetch()}
         >
+          <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
           {t('analytics.retry')}
         </button>
       </div>
@@ -34,8 +36,14 @@ export default function AnalyticsNewKpis(props: AnalyticsSlotProps) {
         className="bg-secondary rounded-lg p-6"
         aria-label={t('analytics.firstResponse')}
       >
-        <h3 className="text-muted mb-3 text-sm">
-          {t('analytics.firstResponse')}
+        <h3 className="text-muted mb-3 flex items-center gap-2 text-sm">
+          {t('analytics.firstResponse')}{' '}
+          <HelpTip label={t('analytics.firstResponse')}>
+            {t('analytics.sample', {
+              n: response.n,
+              unknown: response.unknown_count,
+            })}
+          </HelpTip>
         </h3>
         <p className="text-fg1 text-2xl font-bold">
           {response.mean_days === null
@@ -47,22 +55,20 @@ export default function AnalyticsNewKpis(props: AnalyticsSlotProps) {
                 }),
               })}
         </p>
-        <p className="text-muted text-xs">
-          {t('analytics.sample', {
-            n: response.n,
-            unknown: response.unknown_count,
-          })}
-        </p>
       </section>
       <section
         className="bg-secondary rounded-lg p-6"
         aria-label={t('analytics.rejected')}
       >
-        <h3 className="text-muted mb-3 text-sm">{t('analytics.rejected')}</h3>
+        <h3 className="text-muted mb-3 flex items-center gap-2 text-sm">
+          {t('analytics.rejected')}{' '}
+          <HelpTip label={t('analytics.rejected')}>
+            {t('analytics.rejectedHint')}
+          </HelpTip>
+        </h3>
         <p className="text-fg1 text-2xl font-bold">
           {data.rejected_count.toLocaleString(locale())}
         </p>
-        <p className="text-muted text-xs">{t('analytics.rejectedHint')}</p>
       </section>
     </div>
   );

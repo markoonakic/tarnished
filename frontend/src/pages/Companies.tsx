@@ -93,7 +93,7 @@ export default function Companies() {
       const company = row as import('@/lib/apiV030').Company;
       return [
         <Link
-          className="text-fg1 hover:text-accent focus:ring-accent rounded focus:ring-2"
+          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
           to={'/companies/' + row.id}
         >
           {row.name}
@@ -109,7 +109,7 @@ export default function Companies() {
     const contact = row as import('@/lib/apiV030').Contact;
     return [
       <Link
-        className="text-fg1 hover:text-accent focus:ring-accent rounded focus:ring-2"
+        className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
         to={'/contacts/' + row.id}
       >
         {row.name}
@@ -118,7 +118,7 @@ export default function Companies() {
       contact.company_id ? (
         <Link
           to={'/companies/' + contact.company_id}
-          className="text-accent focus:ring-accent rounded focus:ring-2"
+          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
           onClick={(event) => event.stopPropagation()}
         >
           {companyNames.get(contact.company_id) || '—'}
@@ -141,7 +141,7 @@ export default function Companies() {
         <a
           href={'mailto:' + contact.email}
           title={contact.email}
-          className="text-accent block truncate"
+          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer truncate text-sm transition-all duration-200 ease-in-out focus:ring-2"
           onClick={(e) => e.stopPropagation()}
         >
           {contact.email}
@@ -159,6 +159,7 @@ export default function Companies() {
             {t('companies.companies')}
           </h1>
           <button className={primaryClass} onClick={() => setCreating(true)}>
+            <i className="bi-plus-lg icon-sm" aria-hidden="true" />
             {t(contacts ? 'companies.newContact' : 'companies.newCompany')}
           </button>
         </div>
@@ -244,6 +245,7 @@ export default function Companies() {
           <p role="alert" className="text-red">
             {failureMessage(list.error)}
             <button className={actionClass} onClick={() => void list.refetch()}>
+              <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('companies.reload')}
             </button>
           </p>
@@ -260,6 +262,7 @@ export default function Companies() {
                 className={primaryClass}
                 onClick={() => setCreating(true)}
               >
+                <i className="bi-plus-lg icon-sm" aria-hidden="true" />
                 {t(contacts ? 'companies.newContact' : 'companies.newCompany')}
               </button>
             </div>

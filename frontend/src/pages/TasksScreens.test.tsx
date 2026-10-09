@@ -259,6 +259,18 @@ it('loads grouped tasks, keeps a deadline informational and completes with its r
       name: 'Orbis Ledger — Graduate Engineer',
     })
   ).toHaveAttribute('href', '/applications/app-1');
+  const deadlineGroup = screen
+    .getByText('Deadlines without a reminder (1)')
+    .closest('details')!;
+  expect(deadlineGroup).not.toHaveAttribute('open');
+  expect(
+    screen.getByText('Prepare SQL examples').closest('.bg-tertiary')
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { name: 'Overdue' }).closest('section')
+  ).toHaveClass('bg-secondary', 'p-6', 'mb-6');
+  fireEvent.click(screen.getByText('Deadlines without a reminder (1)'));
+  expect(deadlineGroup).toHaveAttribute('open');
   expect(screen.getByText('Deadline: Saved lead deadline')).toBeVisible();
   expect(writes()).toHaveLength(0);
   fireEvent.click(

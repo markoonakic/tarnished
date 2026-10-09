@@ -17,7 +17,7 @@ export default function TaskRow({
   const actions = useReminderActions();
   const done = item.state !== 'open';
   return (
-    <div className="bg-bg2 flex flex-wrap items-center gap-3 rounded-lg px-4 py-3">
+    <div className="bg-tertiary flex flex-wrap items-center gap-3 rounded-lg p-4">
       <button
         type="button"
         aria-label={t(done ? 'kit.reopenReminder' : 'kit.completeReminder', {
@@ -25,7 +25,10 @@ export default function TaskRow({
         })}
         aria-pressed={done}
         onClick={() => void actions.toggle(item)}
-        className={`focus:ring-accent flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 focus:ring-2 ${done ? 'bg-accent border-accent text-bg0' : 'border-bg4 hover:border-accent'}`}
+        title={t(done ? 'kit.reopenReminder' : 'kit.completeReminder', {
+          title: item.title,
+        })}
+        className={`hover:bg-bg3 focus:ring-accent flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-all duration-200 ease-in-out focus:ring-2 ${done ? 'bg-accent border-accent text-bg0' : 'border-bg4 hover:border-accent'}`}
       >
         {done && <i className="bi bi-check" aria-hidden="true" />}
       </button>
@@ -49,42 +52,47 @@ export default function TaskRow({
       </span>
       {done && (
         <button
-          className="text-accent text-xs underline"
+          className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
           onClick={() => void actions.toggle(item)}
         >
+          <i className="bi-arrow-right icon-sm" aria-hidden="true" />
           {t('tasks.reopen')}
         </button>
       )}
       {onEdit && (
         <details className="relative">
           <summary
-            className="text-muted focus:ring-accent cursor-pointer list-none rounded px-1 focus:ring-2"
+            className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer list-none rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+            title={t('kit.reminderActions', { title: item.title })}
             aria-label={t('kit.reminderActions', { title: item.title })}
           >
             <i className="bi bi-three-dots" aria-hidden="true" />
           </summary>
           <div className="bg-secondary border-tertiary absolute right-0 z-10 w-36 rounded-lg border p-1 shadow-xl">
             <button
-              className="hover:bg-bg2 block w-full rounded px-3 py-2 text-left text-sm"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
               onClick={(e) => {
                 e.currentTarget.closest('details')?.removeAttribute('open');
                 onEdit(item);
               }}
             >
+              <i className="bi-pencil icon-sm" aria-hidden="true" />
               {t('Edit')}
             </button>
             {!done && (
               <button
-                className="hover:bg-bg2 block w-full rounded px-3 py-2 text-left text-sm"
+                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 onClick={() => void actions.dismiss(item)}
               >
+                <i className="bi-arrow-right icon-sm" aria-hidden="true" />
                 {t('kit.dismiss')}
               </button>
             )}
             <button
-              className="text-red-bright hover:bg-bg2 block w-full rounded px-3 py-2 text-left text-sm"
+              className="text-red hover:bg-bg2 hover:text-red-bright focus:ring-accent flex w-full cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-left text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
               onClick={() => void actions.remove(item)}
             >
+              <i className="bi-trash icon-sm" aria-hidden="true" />
               {t('Delete')}
             </button>
           </div>

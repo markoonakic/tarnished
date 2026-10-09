@@ -1,6 +1,7 @@
 import { formatDate } from '@/lib/displayDate';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import HelpTip from '../HelpTip';
 import { apiV030, type Attachment, type AttachmentKind } from '@/lib/apiV030';
 import { errorMessage } from '@/lib/errorMessage';
 
@@ -49,7 +50,12 @@ export default function ApplicationOtherFiles({
   return (
     <section className="border-tertiary mt-5 border-t pt-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-muted text-sm">{t('records.otherFiles')}</h3>
+        <h3 className="text-muted flex items-center gap-2 text-sm">
+          {t('records.otherFiles')}{' '}
+          <HelpTip label={t('records.otherFiles')}>
+            {t('records.filesNotAi')}
+          </HelpTip>
+        </h3>
         <button
           className={recordAction}
           disabled={busy}
@@ -107,6 +113,9 @@ export default function ApplicationOtherFiles({
                       setBusy(false);
                     }
                   }}
+                  title={t('records.downloadFile', {
+                    name: item.original_filename,
+                  })}
                 >
                   <i className="bi-download" aria-hidden="true" />
                 </button>
@@ -139,6 +148,9 @@ export default function ApplicationOtherFiles({
                       setBusy(false);
                     }
                   }}
+                  title={t('records.deleteFile', {
+                    name: item.original_filename,
+                  })}
                 >
                   <i className="bi-trash" aria-hidden="true" />
                 </button>
@@ -154,7 +166,7 @@ export default function ApplicationOtherFiles({
           {error}
         </p>
       )}
-      <p className="text-muted mt-3 text-xs">{t('records.filesNotAi')}</p>
+
       {open && (
         <Modal
           onClose={() => setOpen(false)}
@@ -224,12 +236,14 @@ export default function ApplicationOtherFiles({
                 disabled={busy}
                 onClick={() => setOpen(false)}
               >
+                <i className="bi-x-lg icon-sm" aria-hidden="true" />
                 {t('Cancel')}
               </button>
               <button
-                className="bg-accent text-bg0 focus:ring-accent rounded px-3 py-1.5 focus:ring-2 disabled:opacity-50"
+                className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 disabled={busy || !file}
               >
+                <i className="bi-arrow-right icon-sm" aria-hidden="true" />
                 {t('records.upload')}
               </button>
             </div>

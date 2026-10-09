@@ -68,7 +68,7 @@ export default function PreparationDraft({
         <>
           <button
             type="button"
-            className="text-accent hover:bg-bg3 cursor-pointer rounded px-2 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             disabled={disabled || !!hint}
             title={hint ? t(hint) : undefined}
             onClick={() => {
@@ -84,7 +84,6 @@ export default function PreparationDraft({
       }
     >
       {children}
-      {hint && <p className="text-muted text-xs">{t(hint)}</p>}
       <AnalysisStatus controller={controller} />
       {show && (
         <div className="border-accent bg-bg2 mt-3 rounded-lg border-l-2 p-4">
@@ -96,18 +95,20 @@ export default function PreparationDraft({
             <div className="flex gap-2">
               <button
                 type="button"
-                className="hover:bg-bg3 cursor-pointer rounded px-2 py-1 text-sm"
+                className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 disabled={saving}
                 onClick={() => void save(true)}
               >
+                <i className="bi-x-lg icon-sm" aria-hidden="true" />
                 {t('ai.discard')}
               </button>
               <button
                 type="button"
-                className="bg-accent text-bg0 cursor-pointer rounded px-3 py-1 text-sm disabled:opacity-50"
+                className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                 disabled={disabled || !selected.size || analysis.stale}
                 onClick={() => void save()}
               >
+                <i className="bi-check2 icon-sm" aria-hidden="true" />
                 {t('ai.saveSelected', { count: selected.size })}
               </button>
             </div>
@@ -127,7 +128,7 @@ export default function PreparationDraft({
                   {!!items[category]?.length && (
                     <button
                       type="button"
-                      className="text-accent hover:bg-bg3 cursor-pointer rounded px-1 text-xs"
+                      className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
                       disabled={disabled}
                       onClick={() =>
                         setSelected(
@@ -139,6 +140,10 @@ export default function PreparationDraft({
                         )
                       }
                     >
+                      <i
+                        className="bi-arrow-right icon-sm"
+                        aria-hidden="true"
+                      />
                       {t('ai.selectAll')}
                     </button>
                   )}
@@ -174,7 +179,7 @@ export default function PreparationDraft({
                     {item.evidence.map((citation, index) => (
                       <div key={index} className="mt-1 ml-6 text-xs">
                         <Link
-                          className="text-accent hover:underline"
+                          className="text-accent hover:text-accent-bright focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
                           to={`/profile#${encodeURIComponent(citation.profile_id)}`}
                         >
                           {controller.profile.find(

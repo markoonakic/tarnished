@@ -151,7 +151,8 @@ export default function JobLeadEditForm({
             aria-label={t('Close lead editor')}
             disabled={busy}
             onClick={onCancel}
-            className="text-fg1 hover:bg-bg2 cursor-pointer rounded p-2"
+            className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+            title={t('Close lead editor')}
           >
             <i className="bi-x-lg icon-lg" aria-hidden="true" />
           </button>
@@ -164,9 +165,10 @@ export default function JobLeadEditForm({
         {stale && (
           <button
             type="button"
-            className="text-accent underline"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             onClick={onReload}
           >
+            <i className="bi-x-lg icon-sm" aria-hidden="true" />
             {t('Discard draft and reload saved lead')}
           </button>
         )}
@@ -254,15 +256,17 @@ export default function JobLeadEditForm({
           <button
             type="button"
             disabled={busy}
-            className="text-fg1 hover:bg-bg2 cursor-pointer rounded-md px-4 py-2 transition-all duration-200 ease-in-out"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             onClick={onCancel}
           >
+            <i className="bi-x-lg icon-sm" aria-hidden="true" />
             {t('Cancel')}
           </button>
           <button
-            className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out disabled:opacity-50"
+            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             disabled={busy || stale}
           >
+            <i className="bi-check2 icon-sm" aria-hidden="true" />
             {busy ? t('Saving…') : t('Save')}
           </button>
         </div>

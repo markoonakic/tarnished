@@ -49,7 +49,7 @@
   "records.allDecisions": "All Decisions",
   "records.remindMe": "Remind me",
   "records.deadlineFor": "Deadline: {{title}}",
-  "records.addTag": "+ tag",
+  "records.addTag": "Add tag",
   "records.priorityTags": "Priority and tags",
   "records.savedPosting": "Saved posting · {{count}} characters",
   "records.savedPosting_one": "Saved posting · {{count}} character",

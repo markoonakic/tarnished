@@ -27,7 +27,7 @@ export default function SegmentedControl<T extends string>({
       {options.map((option) => (
         <label
           key={option.value}
-          className={`focus-within:ring-accent cursor-pointer rounded px-3 py-1 text-sm transition-all duration-200 ease-in-out focus-within:ring-2 ${option.value === value ? 'bg-bg3 text-fg0' : 'text-fg4 hover:text-fg1'} ${option.disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+          className={`focus-within:ring-accent cursor-pointer rounded px-3 py-1 text-sm transition-all duration-200 ease-in-out focus-within:ring-2 ${option.value === value ? 'bg-bg3 text-fg0' : 'text-fg4 hover:bg-bg3 hover:text-fg1'} ${option.disabled ? 'cursor-not-allowed opacity-50' : ''}`}
         >
           <input
             className="sr-only"

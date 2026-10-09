@@ -382,7 +382,13 @@ it('lists kinds, bytes and dates, asks for kind on upload, and deletes only afte
   await waitFor(() =>
     expect(apiV030.deleteAttachment).toHaveBeenCalledWith('file-1')
   );
-  expect(screen.getByText('These files are not used by AI.')).toBeVisible();
+  expect(
+    screen.queryByText('These files are not used by AI.')
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Other files' }));
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'These files are not used by AI.'
+  );
 });
 
 it('retains the chosen file when upload fails', async () => {

@@ -50,7 +50,7 @@ export default function CompanyDetail() {
       <div className="mx-auto max-w-4xl px-4 py-8">
         <Link
           to="/companies"
-          className="text-accent focus:ring-accent mb-6 inline-flex items-center gap-2 rounded focus:ring-2"
+          className="text-accent hover:text-accent-bright focus:ring-accent mb-6 cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
         >
           <i className="bi bi-chevron-left" aria-hidden="true" />
           {t('companies.backCompanies')}
@@ -64,6 +64,7 @@ export default function CompanyDetail() {
               className={actionClass}
               onClick={() => void query.refetch()}
             >
+              <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('companies.reload')}
             </button>
           </p>
@@ -77,7 +78,7 @@ export default function CompanyDetail() {
                   </h1>
                   {company.website && (
                     <a
-                      className="bg-tertiary text-muted focus:ring-accent inline-flex items-center gap-2 rounded px-2 py-1 text-xs focus:ring-2"
+                      className="bg-tertiary text-muted focus:ring-accent hover:bg-bg2 inline-flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-xs transition-all duration-200 ease-in-out focus:ring-2"
                       href={company.website}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -190,6 +191,7 @@ export default function CompanyDetail() {
                         className={actionClass}
                         onClick={() => setCulture(null)}
                       >
+                        <i className="bi-x-lg icon-sm" aria-hidden="true" />
                         {t('companies.cancel')}
                       </button>
                       <button
@@ -197,6 +199,7 @@ export default function CompanyDetail() {
                         disabled={busy}
                         className={primaryClass}
                       >
+                        <i className="bi-check2 icon-sm" aria-hidden="true" />
                         {t('companies.save')}
                       </button>
                     </div>
@@ -212,7 +215,8 @@ export default function CompanyDetail() {
                     className={actionClass}
                     onClick={() => setAddingContact(true)}
                   >
-                    + {t('companies.addContact')}
+                    <i className="bi-plus-lg icon-sm" aria-hidden="true" />+{' '}
+                    {t('companies.addContact')}
                   </button>
                 }
               >

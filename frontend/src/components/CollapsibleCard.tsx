@@ -5,6 +5,7 @@ export default function CollapsibleCard({
   title,
   icon,
   actions,
+  help,
   count,
   children,
   defaultOpen = true,
@@ -12,6 +13,7 @@ export default function CollapsibleCard({
   onOpenChange,
 }: CardHeaderProps & {
   children: ReactNode;
+  help?: ReactNode;
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -24,33 +26,36 @@ export default function CollapsibleCard({
       <div
         className={`flex flex-wrap items-center justify-between gap-3 ${isOpen ? 'mb-4' : ''}`}
       >
-        <button
-          type="button"
-          aria-expanded={isOpen}
-          aria-controls={id}
-          onClick={() => {
-            setExpanded(!isOpen);
-            onOpenChange?.(!isOpen);
-          }}
-          className="text-fg1 focus:ring-accent flex cursor-pointer items-center gap-2 rounded text-lg font-semibold focus:ring-2"
-        >
-          <i
-            className={`bi ${isOpen ? 'bi-chevron-down' : 'bi-chevron-right'} text-muted icon-sm`}
-            aria-hidden="true"
-          />
-          {icon && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-expanded={isOpen}
+            aria-controls={id}
+            onClick={() => {
+              setExpanded(!isOpen);
+              onOpenChange?.(!isOpen);
+            }}
+            className="text-fg1 hover:text-accent-bright hover:bg-bg2 focus:ring-accent flex cursor-pointer items-center gap-2 rounded text-lg font-semibold transition-all duration-200 ease-in-out focus:ring-2"
+          >
             <i
-              className={`bi ${icon} text-accent icon-md`}
+              className={`bi ${isOpen ? 'bi-chevron-down' : 'bi-chevron-right'} text-muted icon-sm`}
               aria-hidden="true"
             />
-          )}
-          <span style={{ fontFamily: 'var(--font-display)' }}>{title}</span>
-          {count !== undefined && (
-            <span className="bg-tertiary text-fg4 rounded-full px-2 py-0.5 text-xs">
-              {count}
-            </span>
-          )}
-        </button>
+            {icon && (
+              <i
+                className={`bi ${icon} text-accent icon-md`}
+                aria-hidden="true"
+              />
+            )}
+            <span style={{ fontFamily: 'var(--font-display)' }}>{title}</span>
+            {count !== undefined && (
+              <span className="bg-tertiary text-fg4 rounded-full px-2 py-0.5 text-xs">
+                {count}
+              </span>
+            )}
+          </button>
+          {help}
+        </div>
         {actions && (
           <div className="flex flex-wrap items-center gap-1">{actions}</div>
         )}

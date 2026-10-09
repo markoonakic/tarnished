@@ -189,8 +189,9 @@ export default function Applications() {
             />
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-accent text-bg0 hover:bg-accent-bright cursor-pointer rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out"
+              className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             >
+              <i className="bi-plus-lg icon-sm" aria-hidden="true" />
               {t('New Application')}
             </button>
           </div>
@@ -212,8 +213,9 @@ export default function Applications() {
               {search && (
                 <button
                   onClick={() => updateParams({ search: '' })}
-                  className="text-muted hover:text-fg1 absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-all duration-200 ease-in-out"
+                  className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent absolute top-1/2 right-3 cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
                   aria-label={t('Clear search')}
+                  title={t('Clear search')}
                 >
                   <i className="bi-x icon-sm" />
                 </button>
@@ -296,8 +298,9 @@ export default function Applications() {
             <button
               type="button"
               onClick={loadApplications}
-              className="ml-3 underline"
+              className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent ml-3 flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
             >
+              <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
               {t('Retry')}
             </button>
           </div>
@@ -363,7 +366,7 @@ export default function Applications() {
                       <td className="px-4 py-3 text-sm">
                         <Link
                           to={`/applications/${app.id}`}
-                          className="text-fg1 hover:text-accent-bright font-medium transition-all duration-200 ease-in-out"
+                          className="text-fg1 hover:text-accent-bright focus:ring-accent cursor-pointer font-medium transition-all duration-200 ease-in-out focus:ring-2"
                         >
                           {app.company || t('companies.notSet')}
                         </Link>
@@ -421,7 +424,7 @@ export default function Applications() {
                 <Link
                   key={app.id}
                   to={`/applications/${app.id}`}
-                  className="bg-secondary hover:bg-bg2 block cursor-pointer rounded-lg p-4 transition-all duration-200 ease-in-out"
+                  className="bg-secondary hover:bg-bg2 focus:ring-accent block cursor-pointer rounded-lg p-4 transition-all duration-200 ease-in-out focus:ring-2"
                 >
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <span className="text-fg1 truncate font-medium">

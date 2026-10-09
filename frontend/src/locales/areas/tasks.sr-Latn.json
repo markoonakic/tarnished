@@ -1,4 +1,10 @@
 {
+  "tasks.deadlinesWithoutReminder": "Rokovi bez podsetnika ({{count}})",
+  "tasks.browserNotifications": "Obaveštenja pregledača za podsetnike",
+  "tasks.notificationsHelp": "Ovaj pregledač proverava dospele podsetnike svakog minuta dok je aplikacija otvorena. Obaveštenja su isključena u drugim pregledačima dok se tamo ne uključe.",
+  "tasks.notificationTitle": "Podsetnik: {{title}}",
+  "tasks.notificationsDenied": "Dozvola je odbijena. Omogućite obaveštenja u podešavanjima pregledača.",
+  "tasks.notificationsUnsupported": "Obaveštenja nisu dostupna u ovom pregledaču.",
   "tasks.allKinds": "Sve vrste",
   "tasks.followUp": "Naknadni kontakt sa {{name}}",
   "tasks.deleteReminder": "Obrisati ovaj podsetnik?",

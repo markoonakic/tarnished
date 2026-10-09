@@ -8,6 +8,8 @@ import { getBrowserTimeZone } from '@/lib/api';
 import { t } from '@/lib/i18n';
 import { SettingsBackLink } from './SettingsLayout';
 import TimeZoneSettings from './TimeZoneSettings';
+import ReminderNotificationSettings from './ReminderNotificationSettings';
+import HelpTip from '../HelpTip';
 
 export default function SettingsLanguage() {
   useTranslation();
@@ -24,16 +26,26 @@ export default function SettingsLanguage() {
         <SettingsBackLink />
       </div>
       <section className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 text-xl font-bold">{t('Language & time')}</h2>
-        <p className="text-muted mt-1 mb-6 text-sm">
-          {t('Interface language and time zone for dates.')}
-        </p>
+        <h2 className="text-fg1 mb-6 flex items-center gap-2 text-lg font-semibold">
+          {t('Language & time')}{' '}
+          <HelpTip label={t('Language & time')}>
+            {t('Interface language and time zone for dates.')}{' '}
+            {t(
+              'AI replies use this language on the next explicit run. Quotes stay in the source language.'
+            )}
+          </HelpTip>
+        </h2>
         {isLoading ? (
           <p role="status">{t('Loading...')}</p>
         ) : isError || !data ? (
           <div role="alert">
             <p>{t('Failed to load language settings.')}</p>
-            <button onClick={() => void refetch()}>{t('Try Again')}</button>
+            <button
+              onClick={() => void refetch()}
+              className="hover:bg-bg2 focus:ring-accent cursor-pointer transition-all duration-200 ease-in-out focus:ring-2"
+            >
+              {t('Try Again')}
+            </button>
           </div>
         ) : (
           <div className="space-y-6">
@@ -66,12 +78,7 @@ export default function SettingsLanguage() {
               <span className="text-muted">{t('Example:')}</span>{' '}
               {formatDateTime('2026-10-08T12:30:00Z', zone)}
             </p>
-            <p className="text-muted text-xs">
-              <i className="bi-stars mr-2" aria-hidden="true" />
-              {t(
-                'AI replies use this language on the next explicit run. Quotes stay in the source language.'
-              )}
-            </p>
+            <ReminderNotificationSettings />
           </div>
         )}
       </section>

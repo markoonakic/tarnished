@@ -81,7 +81,8 @@ function ReminderForm({
             aria-label={t('kit.close')}
             disabled={busy}
             onClick={onClose}
-            className="text-muted focus:ring-accent cursor-pointer rounded p-1 focus:ring-2"
+            className="text-muted hover:text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded p-1.5 transition-all duration-200 ease-in-out focus:ring-2"
+            title={t('kit.close')}
           >
             <i className="bi bi-x-lg" aria-hidden="true" />
           </button>
@@ -183,8 +184,9 @@ function ReminderForm({
             type="button"
             disabled={busy}
             onClick={onClose}
-            className="text-fg1 hover:bg-bg2 focus:ring-accent cursor-pointer rounded px-3 py-1.5 text-sm focus:ring-2"
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
           >
+            <i className="bi-x-lg icon-sm" aria-hidden="true" />
             {t('kit.cancel')}
           </button>
           <button
@@ -192,8 +194,9 @@ function ReminderForm({
             disabled={
               busy || !draft.title.trim() || !draft.due_date || !draft.due_time
             }
-            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium focus:ring-2 disabled:opacity-50"
+            className="bg-accent text-bg0 hover:bg-accent-bright focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded-md px-4 py-2 font-medium transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
           >
+            <i className="bi-check2 icon-sm" aria-hidden="true" />
             {t('kit.save')}
           </button>
         </div>

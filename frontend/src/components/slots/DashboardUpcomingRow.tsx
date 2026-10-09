@@ -30,19 +30,19 @@ export default function DashboardUpcomingRow() {
   };
   const date = (value: string) => formatDateTime(value, zone ?? undefined);
   return (
-    <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
       <Card
         title={t('tasks.upcomingInterviews')}
         icon="bi-calendar-event"
         count={query.data?.upcoming_interviews.length}
         className="mb-0"
       >
-        <div className="space-y-3">
+        <div className="space-y-2">
           {query.data?.upcoming_interviews.map((r) => (
             <Link
               key={r.id}
               to={`/interviews/${r.id}`}
-              className="bg-bg2 hover:bg-bg3 focus:ring-accent block rounded-lg p-3 text-sm focus:ring-2"
+              className="bg-tertiary hover:bg-bg3 focus:ring-accent block w-full cursor-pointer rounded-lg p-4 text-left text-sm transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5 focus:ring-2"
             >
               <span className="text-orange-bright text-xs">
                 {r.scheduled_at ? date(r.scheduled_at) : '—'}
@@ -63,7 +63,7 @@ export default function DashboardUpcomingRow() {
         )}
         <Link
           to="/tasks?view=interviews"
-          className="text-accent mt-4 block text-xs"
+          className="text-accent hover:text-accent-bright focus:ring-accent mt-4 block cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
         >
           {t('tasks.openCalendar')} →
         </Link>
@@ -78,18 +78,21 @@ export default function DashboardUpcomingRow() {
         }
         className="mb-0"
       >
-        <div className="space-y-3">
+        <div className="space-y-2">
           {query.data?.tasks.slice(0, 5).map((r) => (
             <div
               key={r.id}
-              className="bg-bg2 flex items-start gap-3 rounded-lg p-3"
+              className="bg-tertiary flex items-start gap-3 rounded-lg p-4"
             >
               <button
                 aria-label={t('kit.completeReminder', { title: r.title })}
                 onClick={() => void actions.toggle(r)}
-                className="border-bg4 hover:border-accent focus:ring-accent mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 focus:ring-2"
+                className="border-bg4 hover:border-accent hover:bg-bg3 focus:ring-accent mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded-full border-2 transition-all duration-200 ease-in-out focus:ring-2"
               />
-              <Link to="/tasks" className="min-w-0 text-sm">
+              <Link
+                to="/tasks"
+                className="text-accent hover:text-accent-bright focus:ring-accent min-w-0 cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+              >
                 <span className="text-primary block">{r.title}</span>
                 <span
                   className={`text-xs ${new Date(r.due_at) < new Date() ? 'text-red-bright' : 'text-muted'}`}
@@ -109,7 +112,7 @@ export default function DashboardUpcomingRow() {
               <Link
                 key={d.id}
                 to="/tasks"
-                className="bg-bg2 text-muted block rounded-lg p-3 text-sm"
+                className="bg-tertiary hover:bg-bg3 focus:ring-accent block w-full cursor-pointer rounded-lg p-4 text-left text-sm transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5 focus:ring-2"
               >
                 {t('tasks.deadline', { title: d.title })}
                 <span className="block text-xs">{date(d.due_at)}</span>
@@ -119,7 +122,10 @@ export default function DashboardUpcomingRow() {
         {!query.data?.tasks.length && !query.data?.deadlines.length && (
           <p className="text-muted text-sm">{t('kit.noTasks')}</p>
         )}
-        <Link to="/tasks" className="text-accent mt-4 block text-xs">
+        <Link
+          to="/tasks"
+          className="text-accent hover:text-accent-bright focus:ring-accent mt-4 block cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+        >
           {t('tasks.openTasks')} →
         </Link>
       </Card>
@@ -129,12 +135,12 @@ export default function DashboardUpcomingRow() {
         count={query.data?.recent_applications.length}
         className="mb-0"
       >
-        <div className="space-y-3">
+        <div className="space-y-2">
           {query.data?.recent_applications.map((a) => (
             <Link
               key={a.id}
               to={`/applications/${a.id}`}
-              className="bg-bg2 hover:bg-bg3 focus:ring-accent block rounded-lg p-3 text-sm focus:ring-2"
+              className="bg-tertiary hover:bg-bg3 focus:ring-accent block w-full cursor-pointer rounded-lg p-4 text-left text-sm transition-[translate,background-color] duration-200 ease-in-out will-change-transform hover:-translate-y-0.5 focus:ring-2"
             >
               <span className="text-primary block">{a.company}</span>
               <span className="text-muted block truncate text-xs">
@@ -174,14 +180,21 @@ export default function DashboardUpcomingRow() {
         {!query.data?.recent_applications.length && (
           <p className="text-muted text-sm">{t('tasks.noRecent')}</p>
         )}
-        <Link to="/applications" className="text-accent mt-4 block text-xs">
+        <Link
+          to="/applications"
+          className="text-accent hover:text-accent-bright focus:ring-accent mt-4 block cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2"
+        >
           {t('tasks.viewApplications')} →
         </Link>
       </Card>
       {query.isError && (
         <p role="alert" className="text-red-bright lg:col-span-3">
           {t('tasks.loadFailed')}{' '}
-          <button className="underline" onClick={() => void query.refetch()}>
+          <button
+            className="text-fg1 hover:bg-bg2 hover:text-fg0 focus:ring-accent flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2 disabled:opacity-50"
+            onClick={() => void query.refetch()}
+          >
+            <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('Retry')}
           </button>
         </p>
