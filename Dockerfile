@@ -6,7 +6,7 @@ COPY frontend/ ./
 ENV VITE_API_URL=""
 RUN yarn build
 
-FROM python:3.12-alpine AS builder
+FROM python:3.14-alpine AS builder
 RUN apk add --no-cache build-base libffi-dev postgresql-dev
 WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /usr/local/bin/uv
@@ -14,7 +14,7 @@ ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --locked --no-dev --no-install-project
 
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 RUN apk upgrade --no-cache && \
     apk add --no-cache libpq libmagic libffi ffmpeg poppler-utils
 WORKDIR /app
