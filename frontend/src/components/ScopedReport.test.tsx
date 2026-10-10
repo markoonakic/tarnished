@@ -8,6 +8,7 @@ import {
   within,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from '@/lib/i18n';
 
 const { get, post, safeErrorMessage } = vi.hoisted(() => ({
   get: vi.fn(),
@@ -985,7 +986,11 @@ describe('ScopedReport', () => {
       ).not.toBeInTheDocument();
       expect(screen.getByText('69.2%')).toBeVisible();
       expect(screen.getByText('Rate unavailable')).toBeVisible();
-      expect(screen.getByText(/Applied 2026-09-18/)).toBeVisible();
+      expect(screen.getByText(/Applied 18 Sept 2026/)).toBeVisible();
+      await act(() => i18n.changeLanguage('sr-Latn'));
+      expect(screen.getByText(/Poslata 18\. 9\. 2026\./)).toBeVisible();
+      expect(screen.queryByText(/Poslata 2026-09-18/)).not.toBeInTheDocument();
+      await act(() => i18n.changeLanguage('en'));
       expect(screen.getByText(/Source: Not recorded/)).toBeVisible();
       expect(screen.getByText(/Technical · Scheduled/)).toHaveTextContent(
         'Completed: Not recorded · Outcome: Not recorded'

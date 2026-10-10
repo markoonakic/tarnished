@@ -189,6 +189,24 @@ it.each([false, true])(
   }
 );
 
+it('keeps local speech installation guidance in a help tip', async () => {
+  server.speech_provider = 'local';
+  server.speech_model = 'Systran/faster-whisper-tiny.en';
+  const a = await tab();
+  const copy =
+    'Install the local speech service on the Tarnished server first. Selecting a model does not download it. Setup instructions:';
+  expect(a.queryByText(copy)).not.toBeInTheDocument();
+  fireEvent.focus(a.getByRole('button', { name: 'Local speech' }));
+  expect(a.getByRole('tooltip')).toHaveTextContent(copy);
+  expect(a.getByRole('tooltip')).toHaveTextContent(
+    'deploy/compose/LOCAL-SPEECH.md'
+  );
+  expect(
+    a.getByRole('button', { name: 'Check saved local installation' })
+  ).toBeEnabled();
+  expect(updateAISettings).not.toHaveBeenCalled();
+});
+
 it('sends only the changed text protocol and keeps the selector hydrated', async () => {
   const a = await tab();
   expect(a.getByLabelText('Text protocol')).toHaveTextContent(

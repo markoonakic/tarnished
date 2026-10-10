@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import HelpTip from '@/components/HelpTip';
 import { formatDate as displayDate, formatDateTime } from '@/lib/displayDate';
 import { t, locale } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
@@ -936,12 +937,6 @@ export default function Admin() {
                           </p>
                           {speech.provider === 'local' && (
                             <div className="space-y-2">
-                              <p className="text-muted text-sm">
-                                {t(
-                                  'Install the local speech service on the Tarnished server first. Selecting a model does not download it. Setup instructions:'
-                                )}{' '}
-                                <code>deploy/compose/LOCAL-SPEECH.md</code>.
-                              </p>
                               <Button
                                 type="button"
                                 className="flex items-center gap-1.5"
@@ -1025,8 +1020,18 @@ export default function Admin() {
                               }
                             />
                           </label>
-                          <label className="block">
-                            {t('Speech model')}
+                          <div className="block">
+                            <label htmlFor="speech-model">
+                              {t('Speech model')}
+                            </label>{' '}
+                            {speech.provider === 'local' && (
+                              <HelpTip label={t('Local speech')}>
+                                {t(
+                                  'Install the local speech service on the Tarnished server first. Selecting a model does not download it. Setup instructions:'
+                                )}{' '}
+                                <code>deploy/compose/LOCAL-SPEECH.md</code>.
+                              </HelpTip>
+                            )}
                             {speech.provider === 'local' ? (
                               <Dropdown
                                 id="speech-model"
@@ -1055,7 +1060,7 @@ export default function Admin() {
                                 }
                               />
                             )}
-                          </label>
+                          </div>
                           <label className="block">
                             {t('Speech credential')}
                             <input

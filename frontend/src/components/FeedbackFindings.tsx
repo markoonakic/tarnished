@@ -1,4 +1,5 @@
 import TextLink from '@/components/ui/TextLink';
+import { formatDate, formatDateTime } from '@/lib/displayDate';
 import HelpTip from './HelpTip';
 import { roundTypeLabel } from '@/lib/referenceLabels';
 import { t, locale } from '@/lib/i18n';
@@ -29,6 +30,12 @@ function recordValue(quote?: string): Record<string, unknown> | null {
 }
 const text = (value: unknown) =>
   typeof value === 'string' && value ? value : t('Not recorded');
+
+function dateText(value: unknown, withTime = false) {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value))
+    ? (withTime ? formatDateTime : formatDate)(value)
+    : text(value);
+}
 
 function stageText(value: unknown) {
   return typeof value === 'string' && Object.hasOwn(historyStageLabels, value)
@@ -332,7 +339,7 @@ export default function FeedbackFindings({
                           </h5>
                           <p className="text-fg2 text-sm">
                             {text(record.role)} {t('· Applied')}{' '}
-                            {text(record.applied_at)}
+                            {dateText(record.applied_at)}
                           </p>
                           <p className="text-fg2 text-sm">
                             {t('Source:')} {text(record.source)}{' '}
@@ -358,8 +365,10 @@ export default function FeedbackFindings({
                             return round ? (
                               <p key={c} className="text-fg2 text-sm">
                                 {savedRoundLabel(round, report)}{' '}
-                                {t('· Scheduled:')} {text(round.scheduled_at)}{' '}
-                                {t('· Completed:')} {text(round.completed_at)}{' '}
+                                {t('· Scheduled:')}{' '}
+                                {dateText(round.scheduled_at, true)}{' '}
+                                {t('· Completed:')}{' '}
+                                {dateText(round.completed_at, true)}{' '}
                                 {t('· Outcome:')} {text(round.outcome)}
                               </p>
                             ) : null;
