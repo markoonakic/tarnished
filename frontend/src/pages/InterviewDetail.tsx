@@ -119,6 +119,13 @@ function InterviewPage({ id }: { id?: string }) {
   }
   async function saveSection() {
     if (!interview || busy) return;
+    if (
+      section === 'questions' &&
+      questions.some((pair) => !pair.question.trim() && pair.answer.trim())
+    ) {
+      setError(t('tasks.questionRequired'));
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -533,7 +540,7 @@ function InterviewPage({ id }: { id?: string }) {
                           id={`question-${i}`}
                           disabled={busy}
                           value={pair.question}
-                          className={input}
+                          className={input.replace('bg-bg2', 'bg-bg1')}
                           onChange={(e) =>
                             setQuestions(
                               questions.map((p, index) =>
@@ -554,7 +561,7 @@ function InterviewPage({ id }: { id?: string }) {
                           id={`answer-${i}`}
                           disabled={busy}
                           value={pair.answer}
-                          className={input}
+                          className={input.replace('bg-bg2', 'bg-bg1')}
                           onChange={(e) =>
                             setQuestions(
                               questions.map((p, index) =>
