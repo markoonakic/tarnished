@@ -311,3 +311,46 @@ it('offers the profile edit action for an empty profile', async () => {
   fireEvent.click(await screen.findByRole('button', { name: 'Edit profile' }));
   expect(screen.getByLabelText('Display name')).toBeVisible();
 });
+
+it.each(['display_name', 'city', 'location_restrictions'] as const)(
+  'wraps saved profile section value %s',
+  async (field) => {
+    profile[field] = 'W'.repeat(240);
+    render(<Profile />);
+    await screen.findByRole('heading', { name: profile.display_name! });
+    const value = screen
+      .getAllByText(
+        (text, node) => node?.tagName === 'DD' && text.includes('W'.repeat(240))
+      )
+      .find((node) => node.tagName === 'DD')!;
+    expect(value).toHaveClass('[overflow-wrap:anywhere]');
+    expect(value.parentElement).toHaveClass('min-w-0');
+  }
+);
+it.each(['en', 'sr-Latn'])(
+  'shows a named busy response, not an input error, and keeps the profile draft in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    render(<Profile />);
+    await screen.findByRole('heading', { name: 'Mila' });
+    fireEvent.click(
+      within(card(i18n.t('accounts.personal'))).getByRole('button', {
+        name: i18n.t('accounts.edit'),
+      })
+    );
+    fireEvent.change(screen.getByLabelText(i18n.t('accounts.city')), {
+      target: { value: 'Retained city' },
+    });
+    vi.mocked(apiV030.updateProfile).mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { status: 503, data: { code: 'database_busy' } },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('accounts.save') })
+    );
+    await screen.findByText(i18n.t('error.database_busy'));
+    expect(screen.getByLabelText(i18n.t('accounts.city'))).toHaveValue(
+      'Retained city'
+    );
+  }
+);

@@ -298,7 +298,10 @@ export default function Companies() {
             </div>
             <div className="mb-6 space-y-6 md:hidden">
               {list.data.items.map((row) => (
-                <div key={row.id} className="bg-secondary rounded-lg p-4">
+                <div
+                  key={row.id}
+                  className="bg-secondary min-w-0 rounded-lg p-4 [overflow-wrap:anywhere]"
+                >
                   {rowCells(row).map((cell, index) => (
                     <div
                       key={index}

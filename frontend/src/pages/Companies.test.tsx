@@ -613,3 +613,54 @@ it('unlinks an application contact without deleting the contact and uses the lin
     })
   );
 });
+
+it.each(['company', 'contact'])(
+  'wraps long saved %s headers and linked row names',
+  async (type) => {
+    const name = 'W'.repeat(197);
+    if (type === 'company')
+      vi.mocked(apiV030.company).mockResolvedValueOnce({
+        ...company,
+        name,
+        contacts: [{ ...contact, name }],
+        leads: [],
+        applications: [],
+      });
+    else
+      vi.mocked(apiV030.contact).mockResolvedValueOnce({
+        ...contact,
+        name,
+        company: { ...company, name },
+        applications: [],
+        rounds: [],
+      });
+    show(
+      <Routes>
+        <Route
+          path={type === 'company' ? '/companies/:id' : '/contacts/:id'}
+          element={type === 'company' ? <CompanyDetail /> : <ContactDetail />}
+        />
+      </Routes>,
+      type === 'company' ? '/companies/company' : '/contacts/contact'
+    );
+    const heading = await screen.findByRole('heading', { name });
+    expect(heading.closest('section')).toHaveClass('[overflow-wrap:anywhere]');
+    if (type === 'company')
+      expect(screen.getByRole('link', { name })).toHaveClass(
+        'max-w-full',
+        '[overflow-wrap:anywhere]'
+      );
+  }
+);
+it('wraps linked company names inside mobile contact cards', async () => {
+  const name = 'W'.repeat(197);
+  vi.mocked(apiV030.contacts).mockResolvedValueOnce(
+    page([{ ...contact, company_name: name }])
+  );
+  show(<Companies />, '/contacts');
+  const links = await screen.findAllByRole('link', { name });
+  const mobile = links.find((link) => link.closest('[class~="md:hidden"]'));
+  expect(mobile?.closest('.bg-secondary')).toHaveClass(
+    '[overflow-wrap:anywhere]'
+  );
+});

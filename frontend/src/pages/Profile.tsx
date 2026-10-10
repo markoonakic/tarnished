@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import HelpTip from '@/components/HelpTip';
 import axios from 'axios';
+import { errorMessage } from '@/lib/errorMessage';
 import i18n, { t, locale } from '@/lib/i18n';
 import {
   apiV030,
@@ -485,7 +486,12 @@ export default function Profile() {
       const conflict =
         axios.isAxiosError(cause) && cause.response?.status === 409;
       setStale(conflict);
-      setError(label(conflict ? 'staleError' : 'saveError'));
+      setError(
+        axios.isAxiosError(cause) &&
+          cause.response?.data?.code === 'database_busy'
+          ? errorMessage(cause.response.data, cause.response.status)
+          : label(conflict ? 'staleError' : 'saveError')
+      );
       return false;
     } finally {
       setBusy(false);
@@ -1028,7 +1034,7 @@ export default function Profile() {
                             ] as Field[])
                           : section.fields
                         ).map((field) => (
-                          <div key={field.key}>
+                          <div key={field.key} className="min-w-0">
                             <dt className="text-muted text-xs">
                               {label(
                                 section.key === 'personal' &&
@@ -1037,7 +1043,7 @@ export default function Profile() {
                                   : field.key
                               )}
                             </dt>
-                            <dd className="text-fg1 mt-1 text-sm break-words">
+                            <dd className="text-fg1 mt-1 text-sm [overflow-wrap:anywhere]">
                               {field.type === 'tags' ? (
                                 <div className="flex flex-wrap gap-1">
                                   {tags(

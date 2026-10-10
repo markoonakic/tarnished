@@ -284,9 +284,9 @@ function JobLeadDetailContent({ id }: { id: string }) {
             }}
           />
         )}
-        <div className="bg-secondary mb-6 rounded-lg p-6">
+        <div className="bg-secondary mb-6 rounded-lg p-6 [overflow-wrap:anywhere]">
           <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-            <div className="flex-1">
+            <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
               <div className="mb-1 flex flex-wrap items-center gap-2">
                 <h1 className="text-primary text-2xl font-bold">
                   {jobLead.company_id ? (

@@ -61,7 +61,7 @@ export default function ContactDetail() {
         ) : (
           contact && (
             <>
-              <section className="bg-secondary mb-6 rounded-lg p-6">
+              <section className="bg-secondary mb-6 rounded-lg p-6 [overflow-wrap:anywhere]">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h1 className="text-primary text-2xl font-bold">
                     {contact.name}

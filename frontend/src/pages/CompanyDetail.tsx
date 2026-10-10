@@ -70,7 +70,7 @@ export default function CompanyDetail() {
         ) : (
           company && (
             <>
-              <section className="bg-secondary mb-6 rounded-lg p-6">
+              <section className="bg-secondary mb-6 rounded-lg p-6 [overflow-wrap:anywhere]">
                 <div className="mb-1 flex flex-wrap items-center gap-3">
                   <h1 className="text-primary text-2xl font-bold">
                     {company.name}

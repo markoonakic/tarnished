@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MAX_SEARCH_LENGTH } from '@/lib/recordFilters';
 import { useQuery } from '@tanstack/react-query';
 import SearchableCombobox from './SearchableCombobox';
 import { apiV030, type TargetType } from '@/lib/apiV030';
@@ -47,7 +48,8 @@ export default function ReminderRecordPicker({
       <input
         aria-label={t('tasks.searchRecords')}
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        maxLength={MAX_SEARCH_LENGTH}
+        onChange={(e) => setSearch(e.target.value.slice(0, MAX_SEARCH_LENGTH))}
         className="bg-bg2 focus:ring-accent mb-2 w-full rounded px-3 py-2 text-sm focus:ring-2"
         placeholder={t('tasks.searchRecords')}
       />

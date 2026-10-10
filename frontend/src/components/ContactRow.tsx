@@ -30,9 +30,16 @@ export default function ContactRow({
       <div className="min-w-0 flex-1 basis-full sm:basis-auto">
         <div className="flex flex-wrap items-center gap-2">
           {href ? (
-            <TextLink to={href}>{name}</TextLink>
+            <TextLink
+              to={href}
+              className="max-w-full min-w-0 [overflow-wrap:anywhere]"
+            >
+              {name}
+            </TextLink>
           ) : (
-            <span className="text-fg1 text-sm font-medium">{name}</span>
+            <span className="text-fg1 max-w-full min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
+              {name}
+            </span>
           )}
         </div>
         {subtitle && <p className="text-fg4 text-xs">{subtitle}</p>}
