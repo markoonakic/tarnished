@@ -317,6 +317,15 @@ class ImportService:
                                     },
                                 }
                             ).model_dump(exclude_unset=True)
+                            from app.core.themes import ACCENT_OPTIONS, THEMES
+
+                            if (
+                                isinstance(preferences.get("theme"), str)
+                                and preferences["theme"] in THEMES
+                            ):
+                                updates["theme"] = preferences["theme"]
+                            if preferences.get("accent") in ACCENT_OPTIONS:
+                                updates["accent"] = preferences["accent"]
                         merged = {**(owner.settings or {}), **updates}
                         if updates and merged != owner.settings:
                             owner.settings = merged

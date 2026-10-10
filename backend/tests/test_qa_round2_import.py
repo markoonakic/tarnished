@@ -2,6 +2,7 @@
 
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import func, select
 from tests.test_core_mutation_integrity import workspace as workspace
 
@@ -61,6 +62,8 @@ async def test_replace_restores_allowlisted_preferences_but_not_account_authorit
         "time_zone_mode": "manual",
         "time_zone": "Pacific/Auckland",
         "private_setting": "keep",
+        "theme": "dracula",
+        "accent": "red",
     }
     await db.commit()
     archive = {
@@ -75,6 +78,8 @@ async def test_replace_restores_allowlisted_preferences_but_not_account_authorit
                         "time_zone": "Europe/Belgrade",
                         "show_heatmap": False,
                         "private_setting": "discard",
+                        "theme": "gruvbox-light",
+                        "accent": "blue",
                     },
                     "is_admin": False,
                 }
@@ -91,4 +96,57 @@ async def test_replace_restores_allowlisted_preferences_but_not_account_authorit
     assert owner.settings["time_zone"] == "Europe/Belgrade"
     assert owner.settings["show_heatmap"] is False
     assert owner.settings["private_setting"] == "keep"
+    assert owner.settings["theme"] == "gruvbox-light"
+    assert owner.settings["accent"] == "blue"
     assert owner.is_admin
+
+
+@pytest.mark.parametrize("override", [False, True])
+async def test_import_does_not_restore_invalid_appearance(db, workspace, override):
+    owner = workspace[0]
+    owner.settings = {"theme": "dracula", "accent": "red"}
+    await db.commit()
+    archive = {
+        "format_version": "2.0.0",
+        "models": {
+            "User": [
+                {
+                    "id": str(uuid4()),
+                    "settings": {"theme": ["unknown"], "accent": "unknown"},
+                }
+            ]
+        },
+    }
+    service = ImportService(default_registry, IDMapper())
+    await db.run_sync(
+        lambda session: service.import_user_data(
+            archive, owner.id, session, override=override
+        )
+    )
+    await db.commit()
+    assert owner.settings["theme"] == "dracula"
+    assert owner.settings["accent"] == "red"
+
+
+async def test_merge_keeps_current_appearance(db, workspace):
+    owner = workspace[0]
+    owner.settings = {"theme": "dracula", "accent": "red"}
+    await db.commit()
+    archive = {
+        "format_version": "2.0.0",
+        "models": {
+            "User": [
+                {
+                    "id": str(uuid4()),
+                    "settings": {"theme": "catppuccin", "accent": "purple"},
+                }
+            ]
+        },
+    }
+    service = ImportService(default_registry, IDMapper())
+    await db.run_sync(
+        lambda session: service.import_user_data(archive, owner.id, session)
+    )
+    await db.commit()
+    assert owner.settings["theme"] == "dracula"
+    assert owner.settings["accent"] == "red"
