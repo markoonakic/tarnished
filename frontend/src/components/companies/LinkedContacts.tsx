@@ -1,5 +1,6 @@
 import Button from '@/components/ui/Button';
 import { useState } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { queryClient } from '@/lib/queryClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +39,7 @@ export default function LinkedContacts({
   const [createName, setCreateName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  useUnsavedChanges(busy);
   const contacts = useQuery(
     { queryKey: ['contacts', 'picker'], queryFn: allContacts },
     queryClient

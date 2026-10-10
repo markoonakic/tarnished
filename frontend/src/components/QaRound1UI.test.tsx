@@ -134,9 +134,11 @@ it('keeps a pending note draft and blocks reload until the save ends', async () 
   await waitFor(() =>
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   );
-  const done = new Event('beforeunload', { cancelable: true });
-  window.dispatchEvent(done);
-  expect(done.defaultPrevented).toBe(false);
+  await waitFor(() => {
+    const done = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(done);
+    expect(done.defaultPrevented).toBe(false);
+  });
 });
 it.each(['en', 'sr-Latn'])(
   'keeps Features, API Keys and Create User explanations in closed HelpTips in %s',
