@@ -8,6 +8,9 @@ const variants = {
   danger:
     'text-red hover:bg-bg2 hover:text-red-bright flex cursor-pointer items-center gap-1.5 rounded bg-transparent px-3 py-1.5 text-sm transition-all duration-200 ease-in-out disabled:opacity-50',
   icon: 'text-muted hover:text-fg1 hover:bg-bg2 rounded p-1.5 cursor-pointer transition-all duration-200 ease-in-out',
+  // Select-style trigger: the field background comes from Dropdown, as the v0.2.5 select.
+  field:
+    'text-fg1 flex w-full cursor-pointer items-center justify-between gap-3 rounded px-3 py-2 text-left text-sm transition-all duration-200 ease-in-out focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
 };
 
 export type ButtonProps = ComponentProps<'button'> & {

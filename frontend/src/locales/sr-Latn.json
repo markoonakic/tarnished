@@ -1142,5 +1142,8 @@
   "View {{count}} more": "Prikaži još {{count}}",
   "openNoun_one": "otvorena",
   "openNoun_few": "otvorene",
-  "openNoun_other": "otvorenih"
+  "openNoun_other": "otvorenih",
+  "Remove": "Ukloni",
+  "Round saved, but transcript upload failed.": "Krug je sačuvan, ali otpremanje transkripta nije uspelo.",
+  "Round saved, but recording upload failed.": "Krug je sačuvan, ali otpremanje snimka nije uspelo."
 }

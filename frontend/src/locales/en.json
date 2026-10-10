@@ -1142,5 +1142,8 @@
   "View {{count}} more": "View {{count}} more",
   "openNoun_one": "open",
   "openNoun_few": "open",
-  "openNoun_other": "open"
+  "openNoun_other": "open",
+  "Remove": "Remove",
+  "Round saved, but transcript upload failed.": "Round saved, but transcript upload failed.",
+  "Round saved, but recording upload failed.": "Round saved, but recording upload failed."
 }

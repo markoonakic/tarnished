@@ -39,12 +39,12 @@ beforeEach(() => {
       data = { time_zone_mode: 'manual', time_zone: 'Europe/Belgrade' };
     if (config.url === '/api/round-types') data = [round.round_type];
     if (config.url === '/api/contacts') data = { items: [], total: 0 };
-    if (config.method === 'post' || config.method === 'patch') {
+    if (['post', 'patch', 'put'].includes(config.method ?? '')) {
       const input =
         config.data instanceof FormData
           ? { file: (config.data.get('file') as File).name }
           : JSON.parse(config.data);
-      writes.push({ method: config.method, data: input, url: config.url });
+      writes.push({ method: config.method ?? '', data: input, url: config.url });
       if (config.url?.endsWith('/media') && failRecording) {
         failRecording = false;
         throw new Error('Upload failed');
@@ -100,8 +100,9 @@ it('keeps an unchanged folded instant and seconds while saving interview metadat
     meeting_url: 'https://example.com/meeting',
   });
   expect(writes[0].data).not.toHaveProperty('scheduled_at');
+  expect(screen.getByRole('button', { name: 'Add Media' })).toBeInTheDocument();
   expect(
-    screen.getByRole('button', { name: 'Choose recording...' })
+    screen.getByRole('button', { name: 'Add transcript' })
   ).toBeInTheDocument();
 });
 it('creates a round with a UTC instant from the selected zone and does not start media or AI work', async () => {
@@ -138,6 +139,7 @@ it('uploads both transcript and recording from Add Round and retries on the same
       screen.getByRole('combobox', { name: 'Round Type' })
     ).toHaveTextContent('Technical')
   );
+  fireEvent.click(screen.getByRole('button', { name: 'Add transcript' }));
   fireEvent.change(document.querySelector('input[accept*=".srt"]')!, {
     target: {
       files: [new File(['Hello'], 'interview.txt', { type: 'text/plain' })],
@@ -153,6 +155,8 @@ it('uploads both transcript and recording from Add Round and retries on the same
   expect(await screen.findByRole('alert')).toHaveTextContent(
     'recording upload failed'
   );
+  // The failed recording stays listed; the uploaded transcript is not sent again.
+  expect(screen.getByText('interview.wav')).toBeInTheDocument();
   expect(save).not.toHaveBeenCalled();
   fireEvent.click(
     screen.getByRole('button', { name: 'Retry save and upload' })
@@ -181,4 +185,48 @@ it('rejects a nonexistent local time without a write and keeps the entered date'
   expect(await screen.findByRole('alert')).toHaveTextContent('does not exist');
   expect(writes).toHaveLength(0);
   expect(screen.getByLabelText('Scheduled Date')).toHaveValue('2026-03-08');
+});
+
+it('queues several recordings and pasted transcript text and uploads them after the round is created', async () => {
+  const save = show();
+  await screen.findByLabelText('Scheduled Date');
+  await waitFor(() =>
+    expect(
+      screen.getByRole('combobox', { name: 'Round Type' })
+    ).toHaveTextContent('Technical')
+  );
+  const media = document.querySelector('input[accept*=".mp4"]')!;
+  fireEvent.change(media, {
+    target: { files: [new File(['a'], 'one.mp3', { type: 'audio/mpeg' })] },
+  });
+  fireEvent.change(media, {
+    target: { files: [new File(['b'], 'two.mp4', { type: 'video/mp4' })] },
+  });
+  fireEvent.change(media, {
+    target: { files: [new File(['c'], 'gone.wav', { type: 'audio/wav' })] },
+  });
+  expect(screen.getByText('one.mp3')).toBeInTheDocument();
+  expect(screen.getByText('two.mp4')).toBeInTheDocument();
+  fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[2]);
+  expect(screen.queryByText('gone.wav')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Add transcript' }));
+  fireEvent.change(screen.getByLabelText('Transcript text'), {
+    target: { value: 'Interviewer: Hello' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Add Round' }));
+  await waitFor(() => expect(save).toHaveBeenCalledOnce());
+  expect(writes.map((w) => w.url)).toEqual([
+    '/api/applications/app-1/rounds',
+    '/api/rounds/round-1/transcript',
+    '/api/rounds/round-1/media',
+    '/api/rounds/round-1/media',
+  ]);
+  expect(writes[1]).toMatchObject({
+    method: 'put',
+    data: { text: 'Interviewer: Hello', format: 'txt' },
+  });
+  expect(writes.slice(2).map((w) => w.data.file)).toEqual([
+    'one.mp3',
+    'two.mp4',
+  ]);
 });

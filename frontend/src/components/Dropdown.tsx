@@ -28,6 +28,15 @@ interface DropdownProps {
   id?: string;
 }
 
+// Field colors as in v0.2.5: one step lighter than the card the field sits on.
+const fieldClasses = {
+  bg0: 'bg-bg1 hover:bg-bg2',
+  bg1: 'bg-bg2 hover:bg-bg3',
+  bg2: 'bg-bg3 hover:bg-bg4',
+  bg3: 'bg-bg4 hover:bg-bg-h',
+  bg4: 'bg-bg-h hover:bg-bg0',
+} as const;
+
 const TYPEAHEAD_RESET_MS = 500;
 const PAGE_JUMP_SIZE = 10;
 
@@ -64,6 +73,7 @@ export default function Dropdown({
   onChange,
   placeholder = t('Select...'),
   disabled = false,
+  containerBackground = 'bg1',
   id,
 }: DropdownProps) {
   useTranslation();
@@ -293,7 +303,8 @@ export default function Dropdown({
             : undefined
         }
         aria-disabled={disabled}
-        className="w-full justify-between text-left"
+        variant="field"
+        className={`${fieldClasses[containerBackground]} ${isOpen ? 'ring-accent-bright ring-1' : ''}`}
       >
         <span className={selectedOption ? 'text-fg1' : 'text-fg4'}>
           {selectedOption?.icon && (
@@ -329,7 +340,7 @@ export default function Dropdown({
                   tabIndex={-1}
                   role="option"
                   aria-selected={isSelected}
-                  className={`w-full justify-between text-left ${isFocused ? '' : ''} `}
+                  className={`w-full justify-between rounded-none text-left ${isFocused ? 'bg-bg2 text-fg0' : ''}`}
                 >
                   <span>
                     {option.icon && (
