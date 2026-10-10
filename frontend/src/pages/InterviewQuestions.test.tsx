@@ -12,15 +12,16 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import i18n from '@/lib/i18n';
 import InterviewDetail from './InterviewDetail';
 
-const { interview, updateInterview } = vi.hoisted(() => ({
+const { interview, updateInterview, preferences } = vi.hoisted(() => ({
   interview: vi.fn(),
   updateInterview: vi.fn(),
+  preferences: { time_zone_mode: 'manual', time_zone: 'UTC' },
 }));
 vi.mock('@/lib/apiV030', () => ({ apiV030: { interview, updateInterview } }));
 vi.mock('@/hooks/useToast', () => ({ useToast: () => ({ error: vi.fn() }) }));
 vi.mock('@/hooks/useUserPreferences', () => ({
   useUserPreferences: () => ({
-    data: { time_zone_mode: 'manual', time_zone: 'UTC' },
+    data: preferences,
   }),
 }));
 vi.mock('@/components/Layout', () => ({
@@ -37,6 +38,7 @@ vi.mock('@/components/InterviewPreparationDraft', () => ({
 beforeEach(async () => {
   await i18n.changeLanguage('en');
   vi.resetAllMocks();
+  preferences.time_zone = 'UTC';
   interview.mockResolvedValue({
     id: 'round',
     revision: 1,
@@ -51,8 +53,8 @@ beforeEach(async () => {
 });
 afterEach(cleanup);
 
-async function editor() {
-  render(
+function show() {
+  return render(
     <QueryClientProvider
       client={
         new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -65,6 +67,9 @@ async function editor() {
       </MemoryRouter>
     </QueryClientProvider>
   );
+}
+async function editor() {
+  show();
   await screen.findByRole('heading', { name: 'Technical' });
   fireEvent.click(screen.getByRole('button', { name: 'Add' }));
   return screen.getByLabelText('Question');
@@ -131,4 +136,70 @@ it('uses a separate field surface inside the question row', async () => {
   expect(screen.getByLabelText('My answer')).toHaveClass('bg-bg1');
   expect(question.parentElement).toHaveClass('bg-bg2');
   expect(question).not.toHaveClass('bg-bg2');
+});
+
+it.each([false, true])(
+  'pins deadline interpretation to the editor zone (changed date: %s)',
+  async (changeDate) => {
+    preferences.time_zone = 'Europe/Belgrade';
+    interview.mockResolvedValue({
+      id: 'round',
+      revision: 1,
+      application_id: 'app',
+      company: 'River',
+      round_type: { name: 'Take-home', builtin_key: 'take_home' },
+      task_description: 'Saved description',
+      task_deadline: '2027-07-19T14:20:00Z',
+    });
+    show();
+    await screen.findByRole('heading', { name: 'Take-home' });
+    const task = screen.getByText('Take-home task').closest('section')!;
+    fireEvent.click(
+      within(task as HTMLElement).getByRole('button', { name: 'Edit' })
+    );
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Changed description' },
+    });
+    const deadline = screen.getByLabelText('Task deadline');
+    expect(deadline).toHaveValue('2027-07-19T16:20');
+    preferences.time_zone = 'Asia/Tokyo';
+    // An input update renders the newly read preference without changing the date.
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Latest description' },
+    });
+    if (changeDate)
+      fireEvent.change(deadline, { target: { value: '2027-07-20T16:20' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(updateInterview).toHaveBeenCalledWith(
+        'round',
+        expect.objectContaining({
+          task_description: 'Latest description',
+          task_deadline: changeDate
+            ? '2027-07-20T14:20:00.000Z'
+            : '2027-07-19T14:20:00Z',
+        })
+      )
+    );
+  }
+);
+
+it('constrains long saved type names and next-step grid text', async () => {
+  const name = 'W'.repeat(187);
+  const next = 'https://example.test/' + 'z'.repeat(240);
+  interview.mockResolvedValue({
+    id: 'round',
+    revision: 1,
+    application_id: 'app',
+    company: 'River',
+    round_type: { name },
+    next_steps: next,
+  });
+  show();
+  const heading = await screen.findByRole('heading', { name });
+  expect(heading).toHaveClass('min-w-0', 'flex-1');
+  expect(heading.closest('[class*=overflow-wrap]')).toBeInTheDocument();
+  const nextText = screen.getByText(next);
+  expect(nextText.parentElement).toHaveClass('min-w-0');
+  expect(nextText.parentElement?.parentElement).toHaveClass('grid-cols-1');
 });

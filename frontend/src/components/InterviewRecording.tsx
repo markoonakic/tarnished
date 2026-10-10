@@ -171,7 +171,11 @@ export default function InterviewRecording({
   return (
     <div
       id={`round-${round.id}`}
-      className={showRoundHeader ? 'bg-bg2 rounded-lg p-4' : undefined}
+      className={
+        showRoundHeader
+          ? 'bg-bg2 min-w-0 rounded-lg p-4 [overflow-wrap:anywhere]'
+          : undefined
+      }
     >
       {playingMedia && (
         <MediaPlayer
@@ -182,7 +186,7 @@ export default function InterviewRecording({
 
       <div className="mb-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
         {showRoundHeader && (
-          <div>
+          <div className="min-w-0 flex-1">
             <h4 className="text-primary font-medium">
               {roundTypeLabel(round.round_type)}
             </h4>
@@ -199,7 +203,7 @@ export default function InterviewRecording({
             )}
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex max-w-full shrink-0 flex-wrap items-center gap-1.5">
           {showRoundHeader && (
             <span
               className={`mr-2 text-sm font-medium ${round.outcome === 'passed' ? 'text-green' : round.outcome === 'failed' ? 'text-red' : 'text-yellow'}`}

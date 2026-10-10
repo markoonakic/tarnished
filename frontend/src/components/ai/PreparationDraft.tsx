@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useJobAnalysis } from '@/hooks/useJobAnalysis';
 import { analysesApi, preparationCategories } from '@/lib/apiAnalyses';
 import AnalysisStatus from './AnalysisStatus';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 
 /** Place inside the interview Preparation card. Saves append to its seven lists. */
 export default function PreparationDraft({
@@ -33,6 +34,7 @@ export default function PreparationDraft({
   const { analysis, busy, running, loading } = controller;
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  useUnsavedChanges(selected.size > 0 || saving);
   const disabled = busy || running || loading || saving;
   const hint = !controller.requirements.length
     ? 'ai.reviewFirst'

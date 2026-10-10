@@ -64,6 +64,7 @@ function InterviewPage({ id }: { id?: string }) {
   const [editing, setEditing] = useState(false);
   const [section, setSection] = useState<string | null>(null);
   const [draftRevision, setDraftRevision] = useState(0);
+  const [draftZone, setDraftZone] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [questions, setQuestions] = useState<QuestionAnswer[]>([]);
   const [questionsOpen, setQuestionsOpen] = useState(false);
@@ -90,6 +91,7 @@ function InterviewPage({ id }: { id?: string }) {
     if (!interview || busy || section !== null) return;
     setSection(which);
     setDraftRevision(interview.revision);
+    setDraftZone(zone);
     setError('');
     setDraft(
       which === 'preparation'
@@ -156,11 +158,13 @@ function InterviewPage({ id }: { id?: string }) {
           task_description: draft.task_description || null,
           task_deadline: draft.task_deadline
             ? interview.task_deadline &&
-              zone &&
-              historyLocalTime(interview.task_deadline, zone).slice(0, 16) ===
-                draft.task_deadline
+              draftZone &&
+              historyLocalTime(interview.task_deadline, draftZone).slice(
+                0,
+                16
+              ) === draft.task_deadline
               ? interview.task_deadline
-              : historyInstant(draft.task_deadline, zone!)
+              : historyInstant(draft.task_deadline, draftZone!)
             : null,
         });
       else if (section === 'next')
@@ -274,7 +278,7 @@ function InterviewPage({ id }: { id?: string }) {
   );
   return (
     <Layout>
-      <div className="mx-auto max-w-4xl px-4 py-8">
+      <div className="mx-auto max-w-4xl min-w-0 px-4 py-8 [overflow-wrap:anywhere]">
         {query.isPending ? (
           <p role="status">{t('tasks.loading')}</p>
         ) : query.isError || !interview ? (
@@ -318,11 +322,11 @@ function InterviewPage({ id }: { id?: string }) {
             ) : (
               <section className="bg-secondary mb-6 rounded-lg p-6">
                 <div className="mb-2 flex items-start justify-between gap-3">
-                  <h1 className="text-primary text-2xl font-bold">
+                  <h1 className="text-primary min-w-0 flex-1 text-2xl font-bold">
                     {roundTypeLabel(interview.round_type)}
                   </h1>
                   <span
-                    className={`rounded px-2 py-1 text-xs ${interview.outcome === 'passed' ? 'bg-green-bright/10 text-green-bright' : interview.outcome === 'failed' ? 'bg-red-bright/10 text-red-bright' : 'bg-orange-bright/10 text-orange-bright'}`}
+                    className={`shrink-0 rounded px-2 py-1 text-xs ${interview.outcome === 'passed' ? 'bg-green-bright/10 text-green-bright' : interview.outcome === 'failed' ? 'bg-red-bright/10 text-red-bright' : 'bg-orange-bright/10 text-orange-bright'}`}
                   >
                     ● {t('tasks.outcome.' + (interview.outcome || 'pending'))}
                   </span>
@@ -695,8 +699,8 @@ function InterviewPage({ id }: { id?: string }) {
                   {controls}
                 </>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="min-w-0">
                     <p className="text-muted text-xs">{t('tasks.nextSteps')}</p>
                     <p className="text-primary mt-1 text-sm whitespace-pre-wrap">
                       {interview.next_steps || '—'}

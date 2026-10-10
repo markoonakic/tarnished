@@ -337,3 +337,29 @@ it('RoundCard stale delete keeps metadata and exposes explicit review/reload wit
   expect(requests.filter((r) => r.method === 'delete')).toHaveLength(1);
   vi.restoreAllMocks();
 });
+
+it('wraps a long type without removing full application-card controls', async () => {
+  const name = 'W'.repeat(187);
+  const view = render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <ApplicationRoundCard
+          round={{ ...round, round_type: { id: 'type', name } }}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onMediaChange={vi.fn()}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+  const heading = screen.getByRole('heading', { name });
+  expect(heading.parentElement).toHaveClass('min-w-0', 'flex-1');
+  expect(view.container.querySelector('#round-round-1')).toHaveClass(
+    '[overflow-wrap:anywhere]'
+  );
+  expect(screen.getByRole('button', { name: 'Edit round' })).toBeVisible();
+  expect(
+    screen.getByRole('button', { name: 'Interview feedback' })
+  ).toBeVisible();
+  expect(screen.getByText('Add Media')).toBeVisible();
+});
