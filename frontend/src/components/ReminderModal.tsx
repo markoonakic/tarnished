@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
@@ -46,6 +47,8 @@ function ReminderForm({
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
+  const [baseline] = useState(() => JSON.stringify(draft));
+  useUnsavedChanges(busy || JSON.stringify(draft) !== baseline);
   const input =
     'bg-bg2 text-fg1 placeholder:text-fg4 w-full rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent';
   const label = 'text-muted mb-1 block text-sm';

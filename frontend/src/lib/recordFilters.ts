@@ -1,5 +1,15 @@
 import type { JobQuery } from './apiV030';
 export const MAX_SEARCH_LENGTH = 200;
+export const MAX_TAG_LENGTH = 100;
+export const MAX_TAGS = 50;
+// Ten URL tags fit below the HTTP request-line limit, including Unicode.
+export const MAX_FILTER_TAGS = 10;
+export const filterTags = (tags: string[]) =>
+  [
+    ...new Set(
+      tags.filter((tag) => tag.length > 0 && tag.length <= MAX_TAG_LENGTH)
+    ),
+  ].slice(0, MAX_FILTER_TAGS);
 export const advancedFilterKeys = [
   'company_id',
   'location',
@@ -25,7 +35,7 @@ export function recordFilters(params: URLSearchParams): JobQuery {
   const result: JobQuery = {};
   for (const key of advancedFilterKeys) {
     if (key === 'tags') {
-      const tags = params.getAll(key).filter(Boolean);
+      const tags = filterTags(params.getAll(key));
       if (tags.length) result.tags = tags;
     } else if (key === 'show_archived') {
       if (params.get(key) === 'true') result.show_archived = true;
@@ -42,7 +52,8 @@ export function changeRecordFilters(
   const next = new URLSearchParams(params);
   for (const [key, values] of Object.entries(changes)) {
     next.delete(key);
-    for (const value of Array.isArray(values) ? values : [values])
+    const list = Array.isArray(values) ? values : [values];
+    for (const value of key === 'tags' ? filterTags(list) : list)
       if (value)
         next.append(
           key,

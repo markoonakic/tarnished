@@ -315,7 +315,10 @@ export default function JobLeads() {
                     return (
                       <tr
                         key={lead.id}
-                        onClick={() => navigate(`/job-leads/${lead.id}`)}
+                        onClick={(event) => {
+                          if (!(event.target as Element).closest('a, button'))
+                            navigate(`/job-leads/${lead.id}`);
+                        }}
                         className={`hover:bg-bg2 cursor-pointer transition-all duration-200 ease-in-out ${
                           index < jobLeads.length - 1
                             ? 'border-tertiary border-b'

@@ -8,7 +8,13 @@ import {
   within,
 } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { apiV030, type Company, type Contact } from '@/lib/apiV030';
 import { queryClient } from '@/lib/queryClient';
@@ -113,6 +119,75 @@ afterEach(() => {
   queryClient.clear();
   vi.restoreAllMocks();
 });
+function NavigationCheck() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return (
+    <>
+      <output data-testid="list-url">
+        {location.pathname + location.search}
+      </output>
+      <button onClick={() => navigate(-1)}>Back once</button>
+    </>
+  );
+}
+it.each(['companies', 'contacts'])(
+  'desktop %s name link returns to the list with one Back',
+  async (prefix) => {
+    show(
+      <>
+        <Companies />
+        <NavigationCheck />
+      </>,
+      '/' + prefix + '?search=keep'
+    );
+    fireEvent.click(
+      (
+        await screen.findAllByRole('link', {
+          name: prefix === 'companies' ? company.name : contact.name,
+        })
+      )[0]
+    );
+    expect(screen.getByTestId('list-url')).toHaveTextContent(
+      '/' + prefix + '/' + (prefix === 'companies' ? company.id : contact.id)
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Back once' }));
+    expect(screen.getByTestId('list-url')).toHaveTextContent(
+      '/' + prefix + '?search=keep'
+    );
+  }
+);
+
+it('keeps culture drafts and pending saves protected on Reload', async () => {
+  vi.spyOn(apiV030, 'updateCompany').mockImplementation(
+    () => new Promise(() => {})
+  );
+  show(
+    <Routes>
+      <Route path="/companies/:id" element={<CompanyDetail />} />
+    </Routes>,
+    '/companies/company'
+  );
+  const title = await screen.findByRole('heading', {
+    name: 'Culture & hiring process',
+  });
+  const culture = within(title.closest('section')!);
+  fireEvent.click(culture.getByRole('button', { name: 'Edit' }));
+  fireEvent.change(culture.getByRole('textbox'), {
+    target: { value: 'Keep culture draft' },
+  });
+  for (const saving of [false, true]) {
+    if (saving) {
+      fireEvent.click(culture.getByRole('button', { name: 'Save' }));
+      await waitFor(() => expect(apiV030.updateCompany).toHaveBeenCalledOnce());
+    }
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(culture.getByRole('textbox')).toHaveValue('Keep culture draft');
+  }
+});
+
 it('keeps company and contact edit revisions frozen when newer reads arrive', async () => {
   const updateCompany = vi
     .spyOn(apiV030, 'updateCompany')

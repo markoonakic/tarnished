@@ -13,6 +13,8 @@ import api from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 import StatusChangeDialog from './StatusChangeDialog';
 import ApplicationBoard from './ApplicationBoard';
+import { apiV030 } from '@/lib/apiV030';
+import { AxiosError } from 'axios';
 
 vi.mock('@/hooks/useUserPreferences', () => ({
   useUserPreferences: () => ({
@@ -45,7 +47,73 @@ afterEach(() => {
   cleanup();
   queryClient.clear();
   api.defaults.adapter = original;
+  vi.restoreAllMocks();
 });
+it('keeps Comment and Reason when a board move conflicts', async () => {
+  api.defaults.adapter = async (config) => ({
+    config,
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    data:
+      config.url === '/api/statuses'
+        ? statuses
+        : {
+            columns: [
+              {
+                status_id: 'applied',
+                count: 1,
+                items: [
+                  {
+                    id: 'app',
+                    company: 'North',
+                    job_title: 'Engineer',
+                    status: statuses[1],
+                    evidence_revision: 4,
+                    applied_at: '2026-10-01',
+                    round_count: 0,
+                  },
+                ],
+              },
+            ],
+          },
+  });
+  const error = new AxiosError('Conflict');
+  error.response = {
+    status: 409,
+    statusText: 'Conflict',
+    headers: {},
+    config: {} as never,
+    data: { detail: 'Changed' },
+  };
+  vi.spyOn(apiV030, 'updateApplication').mockRejectedValue(error);
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <ApplicationBoard />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+  await screen.findByText('Engineer');
+  const menu = document.querySelector('article details') as HTMLDetailsElement;
+  menu.open = true;
+  fireEvent.click(within(menu).getByRole('button', { name: 'Rejected' }));
+  const dialog = await screen.findByRole('dialog');
+  fireEvent.change(within(dialog).getByLabelText('Comment (optional)'), {
+    target: { value: 'Keep comment' },
+  });
+  fireEvent.change(within(dialog).getByLabelText('Reason'), {
+    target: { value: 'Keep reason' },
+  });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+  await screen.findByRole('alert');
+  expect(screen.getByRole('dialog')).toBe(dialog);
+  expect(within(dialog).getByLabelText('Comment (optional)')).toHaveValue(
+    'Keep comment'
+  );
+  expect(within(dialog).getByLabelText('Reason')).toHaveValue('Keep reason');
+});
+
 it.each(pairs)('detail dialog: $from.name → $to.name', async ({ from, to }) => {
   const save = vi.fn();
   render(

@@ -273,14 +273,15 @@ export default function Companies() {
                     <tr
                       key={row.id}
                       className="border-tertiary hover:bg-bg2 cursor-pointer border-b last:border-b-0"
-                      onClick={() =>
-                        navigate(
-                          '/' +
-                            (contacts ? 'contacts' : 'companies') +
+                      onClick={(event) => {
+                        if (!(event.target as Element).closest('a, button'))
+                          navigate(
                             '/' +
-                            row.id
-                        )
-                      }
+                              (contacts ? 'contacts' : 'companies') +
+                              '/' +
+                              row.id
+                          );
+                      }}
                     >
                       {rowCells(row).map((cell, index) => (
                         <td

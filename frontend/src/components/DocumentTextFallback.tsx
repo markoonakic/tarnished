@@ -1,4 +1,6 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import HelpTip from './HelpTip';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
@@ -38,6 +40,7 @@ export default function DocumentTextFallback({
   const readGeneration = useRef(0);
   const label = kind === 'cv' ? t('CV') : t('Cover letter');
   const path = `/api/applications/${applicationId}/documents/${kind}/text`;
+  useUnsavedChanges(dirty || busy);
   useEffect(() => {
     let alive = true;
     const generation = ++readGeneration.current;
@@ -136,6 +139,12 @@ export default function DocumentTextFallback({
             <div className="mb-4 flex items-center justify-between gap-2">
               <h2 className="text-primary text-xl font-semibold">
                 {t('{{label}} text', { label })}
+                <HelpTip label={t('{{label}} text', { label })}>
+                  {t(
+                    'Paste text if you do not have a file or its text cannot be read. Feedback uses this text instead of the attachment. Replacing the attachment clears saved text.'
+                  )}{' '}
+                  {t('Unsaved document draft; not sent for analysis.')}
+                </HelpTip>
               </h2>
               <Button
                 variant="icon"
@@ -147,11 +156,6 @@ export default function DocumentTextFallback({
                 <i className="bi-x-lg icon-lg" aria-hidden="true" />
               </Button>
             </div>
-            <p className="text-muted my-2 text-sm">
-              {t(
-                'Paste text if you do not have a file or its text cannot be read. Feedback uses this text instead of the attachment. Replacing the attachment clears saved text.'
-              )}
-            </p>
             {!saved && !error && (
               <p role="status">{t('Loading saved text…')}</p>
             )}
@@ -181,11 +185,6 @@ export default function DocumentTextFallback({
                 }}
               />
             </label>
-            {dirty && (
-              <p className="text-muted text-sm">
-                {t('Unsaved document draft; not sent for analysis.')}
-              </p>
-            )}
             <Button
               variant="primary"
               type="button"

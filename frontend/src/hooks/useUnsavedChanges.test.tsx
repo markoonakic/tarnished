@@ -1,5 +1,6 @@
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { useUnsavedChanges } from './useUnsavedChanges';
 
 function Draft({ active = true }: { active?: boolean }) {
@@ -9,6 +10,28 @@ function Draft({ active = true }: { active?: boolean }) {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+});
+
+it('blocks single-entry Back before BrowserRouter can unmount the draft', () => {
+  window.history.replaceState({ idx: 1 }, '', '/draft');
+  vi.spyOn(window, 'confirm').mockReturnValue(false);
+  const go = vi.spyOn(window.history, 'go').mockImplementation(() => {});
+  const view = render(
+    <BrowserRouter>
+      <Routes>
+        <Route path="/draft" element={<Draft />} />
+        <Route path="/other" element={<p>List page</p>} />
+      </Routes>
+    </BrowserRouter>
+  );
+  window.history.replaceState({ idx: 0 }, '', '/other');
+  window.dispatchEvent(new PopStateEvent('popstate', { state: { idx: 0 } }));
+  expect(window.confirm).toHaveBeenCalledOnce();
+  expect(go).toHaveBeenCalledWith(1);
+  expect(view.getByText('Other page')).toBeInTheDocument();
+  expect(view.queryByText('List page')).not.toBeInTheDocument();
+  window.history.replaceState({ idx: 1 }, '', '/draft');
+  window.dispatchEvent(new PopStateEvent('popstate', { state: { idx: 1 } }));
 });
 
 it('warns before reload while active and removes the warning after save', () => {

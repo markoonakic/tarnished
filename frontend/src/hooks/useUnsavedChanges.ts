@@ -1,6 +1,20 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
+// Window popstate listeners run in registration order at the event target.
+// Install before BrowserRouter so it cannot unmount a draft before confirmation.
+const historyGuards = new Set<(event: PopStateEvent) => void>();
+window.addEventListener(
+  'popstate',
+  (event) => {
+    for (const guard of historyGuards) {
+      guard(event);
+      if (event.cancelBubble) break;
+    }
+  },
+  true
+);
+
 /** Guard document exits, links and browser history while a draft or upload is pending. */
 export function useUnsavedChanges(active: boolean) {
   const { t } = useTranslation();
@@ -64,12 +78,11 @@ export function useUnsavedChanges(active: boolean) {
     };
     window.addEventListener('beforeunload', unload);
     document.addEventListener('click', click, true);
-    // Capture before the router reads the new entry. Restore a cancelled move.
-    window.addEventListener('popstate', pop, true);
+    historyGuards.add(pop);
     return () => {
       window.removeEventListener('beforeunload', unload);
       document.removeEventListener('click', click, true);
-      window.removeEventListener('popstate', pop, true);
+      historyGuards.delete(pop);
     };
   }, [active, t]);
 }

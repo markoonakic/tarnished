@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { formatDate } from '@/lib/displayDate';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +26,7 @@ export default function ApplicationOtherFiles({
   const [file, setFile] = useState<File>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  useUnsavedChanges(open && (busy || Boolean(file)));
   useEffect(() => {
     let current = true;
     apiV030
@@ -191,6 +193,7 @@ export default function ApplicationOtherFiles({
                 );
                 setFiles((items) => [...items, saved]);
                 setOpen(false);
+                setFile(undefined);
                 onUpdated?.();
               } catch (error) {
                 setError(errorMessage(error));

@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/useToast';
 import StatusChangeDialog from './StatusChangeDialog';
 import { locale } from '@/lib/i18n';
 import HelpTip from './HelpTip';
+import { filterTags } from '@/lib/recordFilters';
 
 function boardFilters(params: URLSearchParams): JobQuery {
   const values = Object.fromEntries(params);
@@ -29,7 +30,7 @@ function boardFilters(params: URLSearchParams): JobQuery {
   }
   return {
     ...values,
-    tags: params.getAll('tags'),
+    tags: filterTags(params.getAll('tags')),
     show_archived: params.get('show_archived') === 'true',
     page: 1,
     per_page: 25,
@@ -413,7 +414,6 @@ export default function ApplicationBoard({
             } catch (error) {
               if (isAxiosError(error) && error.response?.status === 409) {
                 toast.error(t('tasks.boardConflict'));
-                setMove(null);
               }
               throw error;
             }

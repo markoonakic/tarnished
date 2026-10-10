@@ -367,7 +367,10 @@ export default function Applications() {
                   {applications.map((app, index) => (
                     <tr
                       key={app.id}
-                      onClick={() => navigate(`/applications/${app.id}`)}
+                      onClick={(event) => {
+                        if (!(event.target as Element).closest('a, button'))
+                          navigate(`/applications/${app.id}`);
+                      }}
                       className={`hover:bg-bg2 cursor-pointer transition-colors duration-200 ${index < applications.length - 1 ? 'border-tertiary border-b' : ''}`}
                     >
                       <td className="px-4 py-3 text-sm">
