@@ -82,13 +82,13 @@ vi.mock('@/components/RoundCard', () => ({
   ),
 }));
 vi.mock('@/components/RoundForm', () => ({
-  default: ({
+  default: function RoundEditor({
     round,
     onSave,
   }: {
     round?: Round;
     onSave: (round: Round) => void;
-  }) => {
+  }) {
     const [notes, setNotes] = useState(round?.notes_summary || '');
     const [file, setFile] = useState('');
     return (
