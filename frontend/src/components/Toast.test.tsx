@@ -47,7 +47,7 @@ it('shows the saved lead action and opens its route while dismissing the toast',
   vi.useRealTimers();
 });
 
-it('positions non-modal notifications below header navigation', () => {
+it('keeps the toast stack away from header and expanded navigation', () => {
   render(
     <MemoryRouter>
       <ToastProvider>
@@ -57,7 +57,11 @@ it('positions non-modal notifications below header navigation', () => {
     </MemoryRouter>
   );
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-  expect(screen.getByRole('alert').parentElement).toHaveClass('top-20');
+  expect(screen.getByRole('alert').parentElement).toHaveClass(
+    'bottom-4',
+    'pointer-events-none'
+  );
+  expect(screen.getByRole('alert')).toHaveClass('pointer-events-auto');
   expect(
     screen.getByRole('button', { name: 'Dismiss notification' })
   ).toBeEnabled();

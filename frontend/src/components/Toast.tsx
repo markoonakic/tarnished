@@ -39,7 +39,7 @@ export default function Toast({ toast, onDismiss }: Props) {
 
   return (
     <div
-      className={`${config.bgClass} flex items-start gap-3 rounded-lg px-4 py-3 shadow-lg transition-all duration-200 ease-in-out`}
+      className={`${config.bgClass} pointer-events-auto flex items-start gap-3 rounded-lg px-4 py-3 shadow-lg transition-all duration-200 ease-in-out`}
       role="alert"
     >
       <i
