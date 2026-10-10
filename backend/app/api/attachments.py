@@ -4,8 +4,9 @@ import hashlib
 import tempfile
 from pathlib import Path
 from typing import Literal
+from uuid import UUID
 
-from fastapi import APIRouter, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Form, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 
@@ -21,6 +22,7 @@ from app.core.config import get_settings, resolve_upload_path
 from app.models import Application
 from app.models.workspace import ApplicationDocument
 from app.services.ai_settings import lock_ai_settings
+from app.services.create_retry import recover_create
 from app.services.workspace import audit, owned, record_dict
 
 router = APIRouter(prefix="/api", tags=["attachments"], route_class=UploadLimitRoute)
@@ -53,6 +55,7 @@ async def upload_attachment(
     db: DB,
     user: Owner,
     kind: Literal["portfolio", "task", "solution", "other"] = Form(...),
+    idempotency_key: UUID | None = Header(default=None),
 ):
     app = await owned(db, Application, application_id, user.id)
     settings = get_settings()
@@ -66,16 +69,25 @@ async def upload_attachment(
         valid, mime = validate_file(Path(temporary.name), ALLOWED_DOCUMENT_TYPES)
     if not valid:
         raise HTTPException(422, "Unsupported document type")
+    values = {
+        "application_id": app.id,
+        "kind": kind,
+        "original_filename": sanitize_filename(file.filename or "document"),
+        "media_type": mime,
+        "byte_count": len(content),
+        "sha256": hashlib.sha256(content).hexdigest(),
+    }
+    existing = await recover_create(
+        db, ApplicationDocument, idempotency_key, user.id, values
+    )
+    if existing is not None:
+        return attachment(existing)
     await lock_ai_settings(db)
     path = store_file(content, Path(settings.upload_dir))
     row = ApplicationDocument(
+        **({"id": str(idempotency_key)} if idempotency_key else {}),
         user_id=user.id,
-        application_id=app.id,
-        kind=kind,
-        original_filename=sanitize_filename(file.filename or "document"),
-        media_type=mime,
-        byte_count=len(content),
-        sha256=hashlib.sha256(content).hexdigest(),
+        **values,
         file_path=path,
     )
     db.add(row)

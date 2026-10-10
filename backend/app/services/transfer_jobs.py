@@ -14,6 +14,7 @@ async def create_transfer_job(
     *,
     user_id: str,
     job_type: str,
+    job_id: str | None = None,
     status: str,
     stage: str | None = None,
     percent: int = 0,
@@ -24,6 +25,7 @@ async def create_transfer_job(
     error: dict[str, Any] | None = None,
 ) -> TransferJob:
     job = TransferJob(
+        **({"id": job_id} if job_id else {}),
         user_id=user_id,
         job_type=job_type,
         status=status,

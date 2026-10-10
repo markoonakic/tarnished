@@ -1,4 +1,5 @@
 import os
+import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy.exc import OperationalError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import Response
 from starlette.types import Scope
@@ -72,6 +74,19 @@ async def coded_http_error(request: Request, exc: StarletteHTTPException):
         status_code=exc.status_code,
         content={"detail": exc.detail, "code": error_code(exc.status_code, exc.detail)},
         headers=exc.headers,
+    )
+
+
+@app.exception_handler(OperationalError)
+async def database_error(request: Request, exc: OperationalError):
+    original = exc.orig
+    busy = isinstance(original, sqlite3.OperationalError) and (
+        getattr(original, "sqlite_errorcode", 0) & 0xFF
+    ) in {sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED}
+    return JSONResponse(
+        status_code=503 if busy else 500,
+        content={"code": "database_busy" if busy else "server_error"},
+        headers={"Retry-After": "1"} if busy else None,
     )
 
 
