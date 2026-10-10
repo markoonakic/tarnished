@@ -323,9 +323,7 @@ async def delete_status(
         ("meaning", expected_meaning),
     ):
         if expected is not None and expected != getattr(status_obj, field):
-            raise HTTPException(
-                409, "Settings changed. Reload and review before retrying."
-            )
+            raise HTTPException(409, {"code": "settings_changed"})
 
     try:
         await db.delete(status_obj)
@@ -450,7 +448,7 @@ async def delete_round_type(
         )
 
     if expected_name is not None and expected_name != round_type.name:
-        raise HTTPException(409, "Settings changed. Reload and review before retrying.")
+        raise HTTPException(409, {"code": "settings_changed"})
 
     try:
         await db.delete(round_type)

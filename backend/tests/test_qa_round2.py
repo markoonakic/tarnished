@@ -145,6 +145,7 @@ async def test_settings_delete_checks_original_displayed_values(
     ).status_code == 200
     stale = await client.delete(path + "/" + first["id"], params=expected)
     assert stale.status_code == 409
+    assert stale.json()["detail"]["code"] == "settings_changed"
     saved = next(
         item for item in (await client.get(path)).json() if item["id"] == first["id"]
     )

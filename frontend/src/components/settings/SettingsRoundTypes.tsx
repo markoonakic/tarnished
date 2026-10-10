@@ -86,8 +86,13 @@ export default function SettingsRoundTypes() {
     try {
       await deleteRoundType(roundType.id, roundType);
       loadData();
-    } catch {
-      setError(t('Failed to delete round type'));
+    } catch (error) {
+      setError(
+        isAxiosError(error) &&
+          error.response?.data?.detail?.code === 'settings_changed'
+          ? t('Settings changed. Reload and review before retrying.')
+          : t('Failed to delete round type')
+      );
     }
   }
 

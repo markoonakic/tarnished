@@ -10,7 +10,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import SettingsStatuses from './SettingsStatuses';
 import i18n from '@/lib/i18n';
-import { createStatus, updateStatus } from '@/lib/settings';
+import { createStatus, updateStatus, deleteStatus } from '@/lib/settings';
 vi.mock('@/hooks/useThemeColors', () => ({ useThemeColors: () => ({}) }));
 vi.mock('@/lib/settings', () => ({
   listStatuses: vi.fn().mockResolvedValue([
@@ -31,6 +31,31 @@ afterEach(async () => {
   await i18n.changeLanguage('en');
 });
 beforeEach(() => vi.clearAllMocks());
+it('keeps a stale status row and shows reload guidance after a conflicting delete', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  vi.mocked(deleteStatus).mockRejectedValueOnce({
+    isAxiosError: true,
+    response: { status: 409, data: { detail: { code: 'settings_changed' } } },
+  });
+  render(
+    <MemoryRouter>
+      <SettingsStatuses />
+    </MemoryRouter>
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+  await screen.findByText(
+    'Settings changed. Reload and review before retrying.'
+  );
+  expect(screen.getByText('Custom')).toBeInTheDocument();
+  expect(deleteStatus).toHaveBeenCalledWith(
+    'personal',
+    expect.objectContaining({
+      name: 'Custom',
+      color: '#ffffff',
+      meaning: 'rejected',
+    })
+  );
+});
 it('sends one create while Add is pending, including repeated form submissions', async () => {
   vi.mocked(createStatus).mockImplementationOnce(() => new Promise(() => {}));
   render(

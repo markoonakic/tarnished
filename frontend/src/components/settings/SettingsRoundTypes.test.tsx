@@ -59,6 +59,19 @@ it('sends the displayed round type snapshot when deleting', async () => {
     expect.objectContaining({ name: 'W'.repeat(180) })
   );
 });
+it('keeps a stale round type row and asks for reload when deletion conflicts', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  vi.mocked(deleteRoundType).mockRejectedValueOnce({
+    isAxiosError: true,
+    response: { status: 409, data: { detail: { code: 'settings_changed' } } },
+  });
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+  await screen.findByText(
+    'Settings changed. Reload and review before retrying.'
+  );
+  expect(screen.getByText('W'.repeat(180))).toBeInTheDocument();
+});
 it('guards a pending create against double-submit and repeated Enter', async () => {
   vi.mocked(createRoundType).mockImplementationOnce(
     () => new Promise(() => {})
