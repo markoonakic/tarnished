@@ -21,7 +21,7 @@ async def test_tag_filters_reject_oversized_values_and_unbounded_lists(
     ).status_code == 200
 
 
-async def test_pipeline_round_evidence_keeps_builtin_identity():
+async def test_pipeline_round_evidence_preserves_strict_citation_wire():
     sources, _ = await pipeline_evidence_sources(
         {
             "metrics": {
@@ -46,5 +46,7 @@ async def test_pipeline_round_evidence_keeps_builtin_identity():
             source["text"] for source in sources if source["id"] == "pipeline:rounds:0"
         )
     )
-    assert records["rounds"][0]["round_builtin_key"] == "technical"
-    assert records["rounds"][1]["round_builtin_key"] is None
+    # The strict five-field citation wire stays unchanged. UI identity comes
+    # from the immutable evidence snapshot, not translated source quotes.
+    assert "round_builtin_key" not in records["rounds"][0]
+    assert "round_builtin_key" not in records["rounds"][1]
