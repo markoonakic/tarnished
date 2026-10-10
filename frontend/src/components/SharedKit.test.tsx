@@ -39,6 +39,26 @@ afterEach(async () => {
   await i18n.changeLanguage('en');
 });
 
+it('wraps long unbroken reminder titles inside the row', () => {
+  const title = 'R'.repeat(250);
+  render(
+    <RemindersCard
+      reminders={[
+        {
+          id: 'long',
+          kind: 'recruiter_follow_up',
+          title,
+          due_at: '2026-10-08T09:00:00Z',
+          state: 'open',
+        },
+      ]}
+    />
+  );
+  const value = screen.getByText(title);
+  expect(value).toHaveClass('min-w-0', '[overflow-wrap:anywhere]');
+  expect(value.parentElement?.parentElement).toHaveClass('min-w-0');
+});
+
 it('loads area files and keeps complete English and Serbian keys', async () => {
   expect(Object.keys(sr).sort()).toEqual(Object.keys(en).sort());
   expect(Object.keys(dictionaries.en).sort()).toEqual(

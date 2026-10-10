@@ -95,13 +95,13 @@ export default function RemindersCard({
                   />
                 )}
               </Button>
-              <div className="min-w-[min(100%,12rem)] flex-1">
+              <div className="min-w-0 flex-1 basis-[min(100%,12rem)]">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={
                       completed
-                        ? 'text-fg4 text-sm break-words line-through'
-                        : 'text-fg1 text-sm break-words'
+                        ? 'text-fg4 min-w-0 text-sm [overflow-wrap:anywhere] line-through'
+                        : 'text-fg1 min-w-0 text-sm [overflow-wrap:anywhere]'
                     }
                   >
                     {reminder.title}

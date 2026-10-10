@@ -136,6 +136,27 @@ describe('deterministic analytics additions', () => {
     });
   });
 
+  it('bounds long activity labels and keeps the navigation action reachable', async () => {
+    const label = 'W'.repeat(200);
+    activity.mockResolvedValue({
+      ...firstPage,
+      items: [{ ...event, target_label: label }],
+    });
+    renderAdditions();
+    const content = await screen.findByText('Status changed');
+    expect(content.parentElement).toHaveClass(
+      'min-w-0',
+      '[overflow-wrap:anywhere]'
+    );
+    expect(content.closest('li')).toHaveClass(
+      'grid-cols-[minmax(0,1fr)_auto]',
+      'sm:grid-cols-[9rem_minmax(0,1fr)_auto]'
+    );
+    expect(
+      screen.getByRole('link', { name: /Status changed/ })
+    ).toHaveAttribute('href', '/applications/app');
+  });
+
   it('shows translated status transitions and event-specific icons', async () => {
     activity.mockResolvedValue({
       ...firstPage,

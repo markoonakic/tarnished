@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -233,6 +234,69 @@ it('reads without starting AI, saves reviewed choices atomically and collapses',
     screen.queryByRole('button', { name: 'Accept Python' })
   ).not.toBeInTheDocument();
 });
+it.each([{ lead_id: 'lead' }, { application_id: 'app' }])(
+  'guards review drafts and pending saves for %j',
+  async (target) => {
+    let release!: (analysis: Analysis) => void;
+    vi.mocked(analysesApi.review).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        })
+    );
+    render(<ExtractionReview target={target} source="Python required" />);
+    await screen.findByRole('button', { name: 'Edit Python' });
+    const before = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(before);
+    expect(before.defaultPrevented).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Python' }));
+    fireEvent.change(screen.getByLabelText('Edit proposed value'), {
+      target: { value: 'Edited Python' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    const draft = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(draft);
+    expect(draft.defaultPrevented).toBe(true);
+    expect(screen.getByText('Edited Python')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Save reviewed' }));
+    const saving = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(saving);
+    expect(saving.defaultPrevented).toBe(true);
+    expect(screen.getByText('Edited Python')).toBeVisible();
+    await act(async () =>
+      release({
+        ...base,
+        revision: 3,
+        review_state: 'saved',
+        reviewed: [{ ...proposal, decision: 'edited', value: 'Edited Python' }],
+      })
+    );
+    await screen.findByRole('button', { name: 'Run again' });
+    const saved = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(saved);
+    expect(saved.defaultPrevented).toBe(false);
+  }
+);
+
+it('removes the review exit guard after Undo and keeps choices on failed save', async () => {
+  vi.mocked(analysesApi.review).mockRejectedValueOnce(new Error('Offline'));
+  render(
+    <ExtractionReview target={{ lead_id: 'lead' }} source="Python required" />
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Accept Python' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+  const undone = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(undone);
+  expect(undone.defaultPrevented).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: 'Accept Python' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save reviewed' }));
+  await screen.findByRole('alert');
+  const failed = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(failed);
+  expect(failed.defaultPrevented).toBe(true);
+  expect(screen.getByText('Accepted')).toBeVisible();
+});
+
 it('Accept all keeps existing edits and rejections', async () => {
   latest({
     ...base,

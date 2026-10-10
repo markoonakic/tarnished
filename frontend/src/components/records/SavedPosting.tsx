@@ -38,7 +38,7 @@ export default function SavedPosting({
     <section className="bg-bg2 mb-4 rounded-lg p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <details className="min-w-0 flex-1">
-          <summary className="text-muted hover:bg-bg2 focus:ring-accent cursor-pointer text-sm transition-all duration-200 ease-in-out focus:ring-2">
+          <summary className="text-fg1 hover:bg-bg3 hover:text-fg0 focus:ring-accent cursor-pointer rounded px-3 py-1.5 text-sm transition-all duration-200 ease-in-out focus:ring-2">
             <i className="bi-file-text mr-2" aria-hidden="true" />
             {t('records.savedPosting', {
               count: Array.from(text || '').length,

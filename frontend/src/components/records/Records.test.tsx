@@ -56,6 +56,24 @@ const attachment = {
   byte_count: 2048,
   uploaded_at: '2026-10-08T09:00:00Z',
 } as Attachment;
+it('uses a visible hover surface for the saved posting disclosure', () => {
+  const { container } = render(
+    <SavedPosting
+      id="lead"
+      type="lead"
+      revision={0}
+      text="Saved posting text"
+    />
+  );
+  const summary = container.querySelector('summary');
+  expect(summary).toHaveClass(
+    'hover:bg-bg3',
+    'hover:text-fg0',
+    'cursor-pointer'
+  );
+  expect(summary?.closest('section')).toHaveClass('bg-bg2');
+});
+
 beforeEach(async () => {
   await i18n.changeLanguage('en');
   vi.spyOn(apiV030, 'companies').mockResolvedValue({

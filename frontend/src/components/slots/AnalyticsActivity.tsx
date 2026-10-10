@@ -145,7 +145,7 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
             return (
               <li
                 key={`${item.id}:${item.event}`}
-                className="border-muted/30 grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 border-b py-3 text-sm sm:grid-cols-[9rem_1fr_auto]"
+                className="border-muted/30 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border-b py-3 text-sm sm:grid-cols-[9rem_minmax(0,1fr)_auto]"
               >
                 <time
                   dateTime={item.occurred_at}
@@ -163,10 +163,10 @@ export default function AnalyticsActivity(props: AnalyticsSlotProps) {
                 </time>
                 <span className="text-fg1 flex min-w-0 items-center gap-3">
                   <i
-                    className={`bi ${activityIcon(item.event)} text-accent`}
+                    className={`bi ${activityIcon(item.event)} text-accent shrink-0`}
                     aria-hidden="true"
                   />
-                  <span>
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
                     <span>{label}</span>
                     {item.target_label && <> · {item.target_label}</>}
                   </span>

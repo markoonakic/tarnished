@@ -1,6 +1,7 @@
 import Button from '@/components/ui/Button';
 import { formatDate } from '@/lib/displayDate';
 import { useEffect, useState } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/Card';
 import HelpTip from '../HelpTip';
@@ -94,6 +95,7 @@ export default function ExtractionReview({
   }, [analysis?.id, analysis?.revision]);
   const disabled = busy || running || saving || loading;
   const reviewed = Object.values(choices);
+  useUnsavedChanges(saving || reviewed.length > 0 || editing !== null);
   const companyNeeded =
     items.some(
       (item) =>
@@ -278,6 +280,7 @@ export default function ExtractionReview({
                           type={
                             typeof item.value === 'number' ? 'number' : 'text'
                           }
+                          disabled={disabled}
                           value={choice?.value ?? item.value}
                           onChange={(event) =>
                             setChoices((value) => ({
@@ -378,6 +381,7 @@ export default function ExtractionReview({
                       <Button
                         type="button"
 
+                        disabled={disabled}
                         onClick={() => setEditing(null)}
                       >
                         <i

@@ -60,6 +60,20 @@ let interview: Interview;
 let card: BoardCard;
 let requests: InternalAxiosRequestConfig[];
 let conflict: boolean;
+it('wraps maximum-length unbroken reminder titles on Tasks', async () => {
+  reminder.title = 'W'.repeat(250);
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/tasks']}>
+        <Tasks />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+  expect(await screen.findByText(reminder.title)).toHaveClass(
+    'min-w-0',
+    '[overflow-wrap:anywhere]'
+  );
+});
 beforeEach(() => {
   queryClient.clear();
   vi.clearAllMocks();
