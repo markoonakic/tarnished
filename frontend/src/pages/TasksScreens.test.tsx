@@ -412,6 +412,50 @@ it('opens the collapsed question editor when Add is clicked', async () => {
   expect(writes()).toHaveLength(0);
 });
 
+it('disables other interview editors until a held section save finishes', async () => {
+  interview.round_type.builtin_key = 'take_home';
+  show(
+    <Routes>
+      <Route path="/interviews/:id" element={<InterviewDetail />} />
+    </Routes>,
+    '/interviews/round-1'
+  );
+  await screen.findByRole('button', { name: 'Next steps' });
+  const task = screen
+    .getAllByRole('button', { name: 'Take-home task' })[0]
+    .closest('section')!;
+  const next = screen
+    .getByRole('button', { name: 'Next steps' })
+    .closest('section')!;
+  let release!: () => void;
+  const original = api.defaults.adapter;
+  api.defaults.adapter = async (config) => {
+    if (config.method === 'patch')
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    return (
+      original as (
+        config: InternalAxiosRequestConfig
+      ) => ReturnType<import('axios').AxiosAdapter>
+    )(config);
+  };
+  fireEvent.click(within(task).getByRole('button', { name: 'Edit' }));
+  fireEvent.change(within(task).getByLabelText('Description'), {
+    target: { value: 'Saved task' },
+  });
+  fireEvent.click(within(task).getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(release).toBeDefined());
+  expect(within(next).getByRole('button', { name: 'Edit' })).toBeDisabled();
+  fireEvent.click(within(next).getByRole('button', { name: 'Edit' }));
+  expect(screen.queryByLabelText('Next steps')).not.toBeInTheDocument();
+  release();
+  await waitFor(() =>
+    expect(within(next).getByRole('button', { name: 'Edit' })).toBeEnabled()
+  );
+  fireEvent.click(within(next).getByRole('button', { name: 'Edit' }));
+  expect(screen.getByLabelText('Next steps')).toBeVisible();
+});
 it('shows interview sections and recording controls only on its detail page; manual preparation saves all seven lists', async () => {
   show(
     <Routes>

@@ -52,6 +52,18 @@ export async function deleteRound(
   invalidateEvidenceQueries();
 }
 
+const recordingKeys = new WeakMap<File, Map<string, string>>();
+function recordingKey(roundId: string, file: File, replaceMediaId?: string) {
+  let keys = recordingKeys.get(file);
+  if (!keys) {
+    keys = new Map();
+    recordingKeys.set(file, keys);
+  }
+  const intent = roundId + ':' + (replaceMediaId ?? '');
+  if (!keys.has(intent)) keys.set(intent, crypto.randomUUID());
+  return keys.get(intent)!;
+}
+
 export async function uploadMedia(
   roundId: string,
   file: File,
@@ -68,6 +80,7 @@ export async function uploadMedia(
       'Content-Type': 'multipart/form-data',
       'Expected-Media-Generation': generation,
       'Replace-Media-Id': replaceMediaId,
+      'Idempotency-Key': recordingKey(roundId, file, replaceMediaId),
     }),
     onUploadProgress: (event) => {
       if (event.total) {

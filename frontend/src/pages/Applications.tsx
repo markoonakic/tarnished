@@ -26,6 +26,7 @@ import ApplicationModal from '../components/ApplicationModal';
 import Pagination from '../components/Pagination';
 import MoreFilters from '../components/records/MoreFilters';
 import {
+  MAX_SEARCH_LENGTH,
   recordFilters,
   recordFilterKeys,
   changeRecordFilters,
@@ -88,7 +89,7 @@ export default function Applications() {
     : 25;
   const statusFilter = searchParams.get('status') || '';
   const sourceFilter = searchParams.get('source') || '';
-  const search = searchParams.get('search') || '';
+  const search = (searchParams.get('search') || '').slice(0, MAX_SEARCH_LENGTH);
   const sort =
     sortOptions.find((option) => option.value === searchParams.get('sort'))
       ?.value ?? 'applied_desc';
@@ -211,6 +212,7 @@ export default function Applications() {
                 placeholder={t('Search company or job title...')}
                 aria-label={t('Search applications')}
                 value={search}
+                maxLength={MAX_SEARCH_LENGTH}
                 onChange={(e) => updateParams({ search: e.target.value })}
                 className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />

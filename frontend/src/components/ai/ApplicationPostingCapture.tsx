@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import HelpTip from '../HelpTip';
@@ -14,11 +15,13 @@ export default function ApplicationPostingCapture({
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [requestKey] = useState(() => crypto.randomUUID());
   const [mode, setMode] = useState('url');
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
+  useUnsavedChanges(busy || (open && Boolean(url || text)));
   async function capture() {
     setBusy(true);
     setError(false);
@@ -29,7 +32,8 @@ export default function ApplicationPostingCapture({
           url: mode === 'url' ? url : '',
           text: mode === 'text' ? text : undefined,
           status_id: statusId,
-        }
+        },
+        { headers: { 'Idempotency-Key': requestKey } }
       );
       onCreated(data.id);
     } catch {

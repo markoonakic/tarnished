@@ -368,11 +368,14 @@ export default function SettingsAPIKey() {
 
               {advancedScopesOpen && (
                 <div className="bg-bg3 mt-4 rounded-lg p-4">
-                  <p className="text-muted mb-3 text-sm">
-                    {t(
-                      'Editing scopes directly will turn this key into a custom key.'
-                    )}
-                  </p>
+                  <div className="mb-3 flex items-center gap-2 text-sm">
+                    {t('Advanced Scopes')}
+                    <HelpTip label={t('Advanced Scopes')}>
+                      {t(
+                        'Editing scopes directly will turn this key into a custom key.'
+                      )}
+                    </HelpTip>
+                  </div>
                   <div className="grid gap-2 md:grid-cols-2">
                     {ALL_SCOPES.map((scope) => (
                       <label

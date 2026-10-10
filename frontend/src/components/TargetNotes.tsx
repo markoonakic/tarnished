@@ -75,9 +75,12 @@ export default function TargetNotes({
           ...note,
           updated_at: note.revision > 0 ? note.updated_at : note.created_at,
         }))}
-        onAdd={(body) =>
+        onAdd={(body, requestKey) =>
           save(() =>
-            apiV030.createNote({ body, [targetType + '_id']: targetId })
+            apiV030.createNote(
+              { body, [targetType + '_id']: targetId },
+              requestKey
+            )
           )
         }
         onEdit={(id, body) =>

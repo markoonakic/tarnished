@@ -569,10 +569,14 @@ const get = async <T>(path: string, params?: object): Promise<T> =>
       headers: withAxiosTimeZoneHeaders(),
     })
   ).data;
-const post = async <T>(path: string, data?: unknown): Promise<T> =>
+const post = async <T>(
+  path: string,
+  data?: unknown,
+  requestKey?: string
+): Promise<T> =>
   (
     await api.post<T>(`/api${path}`, data, {
-      headers: withAxiosTimeZoneHeaders(),
+      headers: withAxiosTimeZoneHeaders({ 'Idempotency-Key': requestKey }),
     })
   ).data;
 const patch = async <T>(path: string, data: unknown): Promise<T> =>
@@ -625,14 +629,16 @@ export const apiV030 = {
   updateProfile: (data: ProfileUpdate) => put<Profile>('/profile', data),
   companies: (query?: CompanyQuery) => get<Page<Company>>('/companies', query),
   company: (id: ID) => get<CompanyDetail>(`/companies/${id}`),
-  createCompany: (data: CompanyInput) => post<Company>('/companies', data),
+  createCompany: (data: CompanyInput, requestKey?: string) =>
+    post<Company>('/companies', data, requestKey),
   updateCompany: (id: ID, data: CompanyUpdate) =>
     patch<Company>(`/companies/${id}`, data),
   deleteCompany: (id: ID, revision: number) =>
     remove(`/companies/${id}`, revision),
   contacts: (query?: ContactQuery) => get<Page<Contact>>('/contacts', query),
   contact: (id: ID) => get<ContactDetail>(`/contacts/${id}`),
-  createContact: (data: ContactInput) => post<Contact>('/contacts', data),
+  createContact: (data: ContactInput, requestKey?: string) =>
+    post<Contact>('/contacts', data, requestKey),
   updateContact: (id: ID, data: ContactUpdate) =>
     patch<Contact>(`/contacts/${id}`, data),
   deleteContact: (id: ID, revision: number) =>
@@ -645,7 +651,8 @@ export const apiV030 = {
   setRoundContacts: (id: ID, data: ContactLinksInput) =>
     put<ContactLinks>(`/rounds/${id}/contacts`, data),
   notes: (query: TargetQuery) => get<Page<Note>>('/notes', query),
-  createNote: (data: NoteInput) => post<Note>('/notes', data),
+  createNote: (data: NoteInput, requestKey?: string) =>
+    post<Note>('/notes', data, requestKey),
   updateNote: (id: ID, data: NoteUpdate) => patch<Note>(`/notes/${id}`, data),
   deleteNote: (id: ID, revision: number) => remove(`/notes/${id}`, revision),
   reminders: (query?: ReminderQuery) =>

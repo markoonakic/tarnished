@@ -14,6 +14,9 @@ import {
 import type { Application } from '../lib/types';
 import { API_BASE } from '../lib/api';
 import ProgressBar from './ProgressBar';
+import { isAxiosError } from 'axios';
+import { errorMessage } from '@/lib/errorMessage';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 
 interface Props {
   application: Application;
@@ -32,6 +35,7 @@ export default function DocumentSection({
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
   const [justReplaced, setJustReplaced] = useState<string | null>(null);
   const [error, setError] = useState('');
+  useUnsavedChanges(Boolean(uploading));
 
   async function handleUpload(
     type: 'cv' | 'cover-letter',
@@ -46,9 +50,16 @@ export default function DocumentSection({
     try {
       let updated: Application;
       if (type === 'cv') {
-        updated = await uploadCV(application.id, file, (loaded, total) => {
-          setUploadProgress(total > 0 ? Math.round((loaded / total) * 100) : 0);
-        });
+        updated = await uploadCV(
+          application.id,
+          file,
+          (loaded, total) => {
+            setUploadProgress(
+              total > 0 ? Math.round((loaded / total) * 100) : 0
+            );
+          },
+          application.evidence_revision
+        );
       } else {
         updated = await uploadCoverLetter(
           application.id,
@@ -57,7 +68,8 @@ export default function DocumentSection({
             setUploadProgress(
               total > 0 ? Math.round((loaded / total) * 100) : 0
             );
-          }
+          },
+          application.evidence_revision
         );
       }
       setUploadProgress(100);
@@ -67,8 +79,12 @@ export default function DocumentSection({
         setTimeout(() => setJustReplaced(null), 2000);
       }
       setTimeout(() => setUploadProgress(0), 500);
-    } catch {
-      setError(t('Failed to upload {{type}}', { type: type }));
+    } catch (error) {
+      setError(
+        isAxiosError(error) && error.response
+          ? errorMessage(error.response.data, error.response.status)
+          : t('Failed to upload {{type}}', { type: type })
+      );
       setUploadProgress(0);
     } finally {
       setUploading(null);
@@ -82,13 +98,20 @@ export default function DocumentSection({
     try {
       let updated: Application;
       if (type === 'cv') {
-        updated = await deleteCV(application.id);
+        updated = await deleteCV(application.id, application.evidence_revision);
       } else {
-        updated = await deleteCoverLetter(application.id);
+        updated = await deleteCoverLetter(
+          application.id,
+          application.evidence_revision
+        );
       }
       onUpdate(updated);
-    } catch {
-      setError(t('Failed to delete {{type}}', { type: type }));
+    } catch (error) {
+      setError(
+        isAxiosError(error) && error.response
+          ? errorMessage(error.response.data, error.response.status)
+          : t('Failed to delete {{type}}', { type: type })
+      );
     }
   }
 

@@ -313,6 +313,11 @@ it('shows grounded answer review, a fact-limited rewrite and practice without a 
     screen.getByRole('article', { name: 'Keep test coverage separate' })
   );
   expect(second.getByText(finding.coaching.better_answer)).not.toBeVisible();
+  for (const label of ['Better answer', 'Practise this', 'Role requirement'])
+    expect(first.getByText(label).closest('details')).toHaveClass(
+      '[&>summary:hover]:bg-bg2',
+      '[&>summary:hover]:text-fg0'
+    );
   fireEvent.click(second.getByText('Better answer'));
   expect(second.getByText(finding.coaching.better_answer)).toBeVisible();
   fireEvent.click(first.getByText('Role requirement'));
@@ -335,9 +340,7 @@ it('InterviewFeedback presents uncertain interruption without automatic replay',
   };
   vi.spyOn(window, 'confirm').mockReturnValue(false);
   render(<InterviewFeedback round={round} onClose={vi.fn()} />);
-  fireEvent.click(
-    await screen.findByRole('button', { name: 'Try again' })
-  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Try again' }));
   expect(screen.getByRole('tooltip')).toHaveTextContent(
     'Trying again may repeat work or charges'
   );

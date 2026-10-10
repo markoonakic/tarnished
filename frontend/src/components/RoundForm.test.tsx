@@ -104,6 +104,41 @@ function show(value?: Round) {
   );
   return save;
 }
+it.each([undefined, round])(
+  'warns before leaving an ordinary new or edit round draft without attachments',
+  async (value) => {
+    show(value);
+    await screen.findByLabelText('Notes');
+    fireEvent.change(screen.getByLabelText('Notes'), {
+      target: { value: 'Unsaved notes' },
+    });
+    fireEvent.change(screen.getByLabelText('Transcript Summary'), {
+      target: { value: 'Unsaved summary' },
+    });
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(screen.getByLabelText('Notes')).toHaveValue('Unsaved notes');
+  }
+);
+it('keeps the time-zone recovery explanation in a HelpTip', async () => {
+  show();
+  const zone = await screen.findByRole('combobox', { name: 'Time zone' });
+  fireEvent.change(zone, { target: { value: 'Europe/London' } });
+  fireEvent.click(await screen.findByRole('option', { name: 'Europe/London' }));
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'Your time zone changed to'
+  );
+  expect(
+    screen.queryByText(/Before saving, reload saved dates/)
+  ).not.toBeInTheDocument();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'About reloading dates' })
+  );
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'discards unsaved date/time edits only'
+  );
+});
 it('keeps an unchanged folded instant and seconds while saving interview metadata with the expected revision', async () => {
   const save = show(round);
   expect(await screen.findByLabelText('Scheduled Date')).toHaveValue(
@@ -194,9 +229,14 @@ it('uploads both transcript and recording from Add Round and retries on the same
   expect(
     writes.filter((w) => w.url === '/api/rounds/round-1/transcript')
   ).toHaveLength(1);
-  expect(
-    writes.filter((w) => w.url === '/api/rounds/round-1/media')
-  ).toHaveLength(2);
+  const recordings = writes.filter(
+    (w) => w.url === '/api/rounds/round-1/media'
+  );
+  expect(recordings).toHaveLength(2);
+  expect(recordings[0].headers?.['Idempotency-Key']).toBeTruthy();
+  expect(recordings[1].headers?.['Idempotency-Key']).toBe(
+    recordings[0].headers?.['Idempotency-Key']
+  );
 });
 it('rejects a nonexistent local time without a write and keeps the entered date', async () => {
   show(round);

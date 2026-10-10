@@ -22,6 +22,7 @@ export default function InterviewParticipants({
   const { t } = useTranslation();
   const client = useQueryClient();
   const [adding, setAdding] = useState(false);
+  const [requestKey, setRequestKey] = useState(() => crypto.randomUUID());
   const [error, setError] = useState(false);
   const contacts = useQuery({
     queryKey: ['interview-participants', companyId],
@@ -99,10 +100,14 @@ export default function InterviewParticipants({
           onChange={add}
           onCreate={async (name) => {
             try {
-              const c = await apiV030.createContact({
-                name,
-                company_id: companyId,
-              });
+              const c = await apiV030.createContact(
+                {
+                  name,
+                  company_id: companyId,
+                },
+                requestKey
+              );
+              setRequestKey(crypto.randomUUID());
               await client.invalidateQueries({
                 queryKey: ['interview-participants'],
               });

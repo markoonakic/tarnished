@@ -276,6 +276,29 @@ it('Accept all keeps existing edits and rejections', async () => {
   );
 });
 
+it.each(['en', 'sr-Latn'])(
+  'keeps edited-value guidance behind a HelpTip in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    render(
+      <ExtractionReview target={{ lead_id: 'lead' }} source="Python required" />
+    );
+    const edit = await screen.findByRole('button', {
+      name: i18n.t('ai.editRow', { value: 'Python' }),
+    });
+    await waitFor(() => expect(edit).toBeEnabled());
+    fireEvent.click(edit);
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'Edited Python' },
+    });
+    const message = i18n.t('ai.userEdited');
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('ai.editedValueHelp') })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(message);
+  }
+);
 it('keeps edited drafts after conflict, supports reject and undo', async () => {
   vi.mocked(analysesApi.review).mockRejectedValue(new Error('409'));
   render(

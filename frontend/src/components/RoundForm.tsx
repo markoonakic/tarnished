@@ -159,7 +159,28 @@ function RoundFormFields({
     round?.transcript_summary || ''
   );
   const pendingTranscript = Boolean(transcriptFile || transcriptText.trim());
-  useUnsavedChanges(loading || pendingTranscript || mediaFiles.length > 0);
+  const defaultType =
+    roundTypes.find((type) => type.is_default) ?? roundTypes[0];
+  const fieldsChanged =
+    roundTypeId !== (round?.round_type.id ?? defaultType?.id ?? '') ||
+    notesSummary !== (round?.notes_summary ?? '') ||
+    transcriptSummary !== (round?.transcript_summary ?? '') ||
+    scheduledDate !== dateTimeBaseline.scheduled.date ||
+    scheduledTime !== dateTimeBaseline.scheduled.time ||
+    completedDate !== dateTimeBaseline.completed.date ||
+    completedTime !== dateTimeBaseline.completed.time ||
+    duration !== String(round?.duration_minutes ?? '') ||
+    mode !== (round?.mode ?? 'video') ||
+    where !==
+      (round?.mode === 'video'
+        ? round.meeting_url || ''
+        : round?.location || '') ||
+    outcome !== (round?.outcome ?? '') ||
+    timeZoneChanged ||
+    JSON.stringify(participants) !== JSON.stringify(round?.contact_ids ?? []);
+  useUnsavedChanges(
+    fieldsChanged || loading || pendingTranscript || mediaFiles.length > 0
+  );
   const currentRound = persistedRound || round;
   const hasTranscript = Boolean(
     currentRound?.has_current_transcript || currentRound?.transcript_path
@@ -322,13 +343,12 @@ function RoundFormFields({
           setPersistedRound(savedRound);
           onPersist(savedRound);
         } catch (error) {
-          const detail = isAxiosError(error)
-            ? error.response?.data?.detail
-            : null;
+          const detail =
+            isAxiosError(error) && error.response
+              ? errorMessage(error.response.data, error.response.status)
+              : '';
           setError(
-            typeof detail === 'string'
-              ? `${t('Round saved, but transcript upload failed.')} ${detail}`
-              : t('Round saved, but transcript upload failed.')
+            `${t('Round saved, but transcript upload failed.')} ${detail}`
           );
           return;
         } finally {
@@ -404,9 +424,11 @@ function RoundFormFields({
       {timeZoneChanged && (
         <div role="alert" className="text-muted mb-4 text-sm">
           {t('Your time zone changed to')} {timeZone}
-          {t(
-            '. Before saving, reload saved dates in this zone. This discards unsaved date/time edits only; other edits and any saved round are kept.'
-          )}
+          <HelpTip label={t('About reloading dates')}>
+            {t(
+              '. Before saving, reload saved dates in this zone. This discards unsaved date/time edits only; other edits and any saved round are kept.'
+            )}
+          </HelpTip>
           <Button type="button" disabled={loading} onClick={reloadDates}>
             <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('Reload saved dates in')} {timeZone}

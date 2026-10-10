@@ -84,6 +84,28 @@ async function open() {
 function card(name: string) {
   return screen.getByRole('heading', { name }).closest('section')!;
 }
+it('keeps a profile draft on Reload and a cancelled navigation link', async () => {
+  await open();
+  fireEvent.click(
+    within(card('Personal details')).getByRole('button', { name: 'Edit' })
+  );
+  fireEvent.change(screen.getByLabelText('City'), {
+    target: { value: 'Unsaved city' },
+  });
+  const event = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(event);
+  expect(event.defaultPrevented).toBe(true);
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+  const anchor = document.createElement('a');
+  anchor.href = '/applications';
+  document.body.append(anchor);
+  const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+  anchor.dispatchEvent(click);
+  anchor.remove();
+  expect(click.defaultPrevented).toBe(true);
+  expect(screen.getByLabelText('City')).toHaveValue('Unsaved city');
+  confirm.mockRestore();
+});
 it.each([
   ['en', 'AI can use 1 of 1 item'],
   ['sr-Latn', 'AI može da koristi 1 od 1 stavke'],

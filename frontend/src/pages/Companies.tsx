@@ -1,4 +1,5 @@
 import TextLink from '@/components/ui/TextLink';
+import { MAX_SEARCH_LENGTH } from '@/lib/recordFilters';
 import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -34,7 +35,7 @@ export default function Companies() {
   const [creating, setCreating] = useState(false);
   const contacts = location.pathname === '/contacts';
   const page = Math.max(1, Number(params.get('page')) || 1);
-  const search = params.get('query') ?? '';
+  const search = (params.get('query') ?? '').slice(0, MAX_SEARCH_LENGTH);
   const industry = params.get('industry') ?? '';
   const companyId = params.get('company_id') ?? '';
   const role = params.get('role') ?? '';
@@ -64,7 +65,11 @@ export default function Companies() {
   });
   function filter(key: string, value: string) {
     const next = new URLSearchParams(params);
-    if (value) next.set(key, value);
+    if (value)
+      next.set(
+        key,
+        key === 'query' ? value.slice(0, MAX_SEARCH_LENGTH) : value
+      );
     else next.delete(key);
     if (key !== 'page') next.delete('page');
     setParams(next, { replace: true });
@@ -173,6 +178,7 @@ export default function Companies() {
                 : 'companies.searchCompanies'
             )}
             value={search}
+            maxLength={MAX_SEARCH_LENGTH}
             onChange={(e) => filter('query', e.target.value)}
           />
           <Dropdown

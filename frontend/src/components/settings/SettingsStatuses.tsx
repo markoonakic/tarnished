@@ -142,7 +142,7 @@ export default function SettingsStatuses() {
     }
 
     try {
-      await deleteStatus(status.id);
+      await deleteStatus(status.id, status);
       loadData();
     } catch {
       setError(t('Failed to delete status'));

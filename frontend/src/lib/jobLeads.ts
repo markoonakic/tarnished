@@ -122,8 +122,13 @@ export interface JobLeadExtractRequest {
   restart_processing?: boolean;
 }
 
-export async function createJobLead(body: JobLeadCreate): Promise<JobLead> {
-  const response = await api.post('/api/job-leads', body);
+export async function createJobLead(
+  body: JobLeadCreate,
+  requestKey?: string
+): Promise<JobLead> {
+  const response = await api.post('/api/job-leads', body, {
+    headers: { 'Idempotency-Key': requestKey },
+  });
   return response.data;
 }
 

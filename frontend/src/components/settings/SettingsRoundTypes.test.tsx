@@ -2,7 +2,13 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import SettingsRoundTypes from './SettingsRoundTypes';
-import { createRoundType, updateRoundType } from '@/lib/settings';
+import {
+  createRoundType,
+  updateRoundType,
+  listRoundTypes,
+  deleteRoundType,
+} from '@/lib/settings';
+import i18n from '@/lib/i18n';
 vi.mock('@/lib/settings', () => ({
   listRoundTypes: vi
     .fn()
@@ -14,13 +20,45 @@ vi.mock('@/lib/settings', () => ({
   deleteRoundType: vi.fn(),
 }));
 beforeEach(() => vi.clearAllMocks());
-afterEach(cleanup);
+afterEach(async () => {
+  cleanup();
+  vi.restoreAllMocks();
+  await i18n.changeLanguage('en');
+});
 const show = () =>
   render(
     <MemoryRouter>
       <SettingsRoundTypes />
     </MemoryRouter>
   );
+it.each(['en', 'sr-Latn'])(
+  'keeps default round-type guidance in a HelpTip in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    vi.mocked(listRoundTypes).mockResolvedValueOnce([
+      { id: 'default', name: 'Technical', is_default: true },
+    ]);
+    show();
+    await screen.findByText(i18n.t('Default'));
+    const message = i18n.t(
+      'Using default round types. Add custom round types to override.'
+    );
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('Interview Round Types') })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(message);
+  }
+);
+it('sends the displayed round type snapshot when deleting', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+  expect(deleteRoundType).toHaveBeenCalledWith(
+    'custom',
+    expect.objectContaining({ name: 'W'.repeat(180) })
+  );
+});
 it('guards a pending create against double-submit and repeated Enter', async () => {
   vi.mocked(createRoundType).mockImplementationOnce(
     () => new Promise(() => {})

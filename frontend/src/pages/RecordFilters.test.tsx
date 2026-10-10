@@ -130,6 +130,34 @@ for (const type of ['application', 'lead'] as const) {
     ).not.toBeInTheDocument();
   });
 }
+it.each(['application', 'lead'])(
+  'bounds pasted %s searches before URL and API writes and constrains chips',
+  async (type) => {
+    render(
+      <MemoryRouter>
+        {type === 'application' ? <Applications /> : <JobLeads />}
+        <Location />
+      </MemoryRouter>
+    );
+    const input = await screen.findByRole('textbox', {
+      name: type === 'application' ? 'Search applications' : 'Search job leads',
+    });
+    expect(input).toHaveAttribute('maxLength', '200');
+    fireEvent.change(input, { target: { value: 'W'.repeat(80001) } });
+    expect(input).toHaveValue('W'.repeat(200));
+    expect(screen.getByTestId('url').textContent!.length).toBeLessThan(300);
+    const list = type === 'application' ? listApplications : getJobLeads;
+    await waitFor(() =>
+      expect(list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: 'W'.repeat(200) })
+      )
+    );
+    const chip = screen.getByRole('button', { name: /Remove Search/ });
+    expect(chip).toHaveClass('max-w-full', 'min-w-0');
+    expect(chip.parentElement).toHaveClass('min-w-0', 'max-w-full', 'w-full');
+    expect(chip.querySelector('span')).toHaveClass('truncate');
+  }
+);
 it('preserves unrelated URL state and uses repeated tag parameters', () => {
   const params = new URLSearchParams(
     'view=board&sort=company&page=3&tags=old&source=LinkedIn'

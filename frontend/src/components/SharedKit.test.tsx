@@ -208,7 +208,9 @@ describe('notes', () => {
     const input = screen.getByRole('textbox', { name: 'Note' });
     fireEvent.change(input, { target: { value: 'Draft' } });
     fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
-    await waitFor(() => expect(onAdd).toHaveBeenCalledWith('Draft'));
+    await waitFor(() =>
+      expect(onAdd).toHaveBeenCalledWith('Draft', expect.any(String))
+    );
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Could not save.'
     );

@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { t, uiLabel, locale } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
@@ -62,6 +63,12 @@ export default function JobLeadEditForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [stale, setStale] = useState(false);
+  const [initialFields] = useState(fields);
+  useUnsavedChanges(
+    busy ||
+      JSON.stringify(fields) !== JSON.stringify(initialFields) ||
+      JSON.stringify(metadata) !== JSON.stringify(jobMetadata(baseline))
+  );
   const inputClass =
     'bg-bg2 text-fg1 focus:ring-accent-bright mt-1 w-full rounded px-3 py-2 font-normal transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none';
 

@@ -11,6 +11,8 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 import Dropdown from './Dropdown';
 import Loading from './Loading';
 import EmptyState from './EmptyState';
+import HelpTip from './HelpTip';
+import TextLink from './ui/TextLink';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_LABELS = [
@@ -222,11 +224,18 @@ export default function ActivityHeatmap() {
             />
           </div>
         </div>
-        <EmptyState
-          message={t(
-            'Not enough data for visualization. Add more applications with different statuses.'
-          )}
-        />
+        <div className="flex items-center gap-2 text-sm">
+          {t('Activity Heatmap')}
+          <HelpTip label={t('Activity Heatmap')}>
+            {t(
+              'Not enough data for visualization. Add more applications with different statuses.'
+            )}
+          </HelpTip>
+        </div>
+        <EmptyState message={t('No activity yet.')} />
+        <div className="text-center">
+          <TextLink href="/applications">{t('Applications')}</TextLink>
+        </div>
       </div>
     );
   }

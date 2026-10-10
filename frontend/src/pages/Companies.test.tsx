@@ -336,7 +336,8 @@ it('opens create forms from the list and saves a selected company', async () => 
         name: contact.name,
         company_id: company.id,
         last_contact_on: null,
-      })
+      }),
+      expect.any(String)
     )
   );
 });
@@ -453,10 +454,13 @@ it('adds, edits and deletes owner-targeted notes with revisions', async () => {
     ctrlKey: true,
   });
   await waitFor(() =>
-    expect(add).toHaveBeenCalledWith({
-      body: 'New note',
-      company_id: company.id,
-    })
+    expect(add).toHaveBeenCalledWith(
+      {
+        body: 'New note',
+        company_id: company.id,
+      },
+      expect.any(String)
+    )
   );
   await waitFor(() =>
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()

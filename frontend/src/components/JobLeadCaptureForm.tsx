@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import TextLink from '@/components/ui/TextLink';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +24,7 @@ export default function JobLeadCaptureForm({
   useTranslation();
   const toast = useToast();
   const [open, setOpen] = useState(false);
+  const [requestKey, setRequestKey] = useState(() => crypto.randomUUID());
   const [mode, setMode] = useState('url');
   const [title, setTitle] = useState('');
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -34,6 +36,7 @@ export default function JobLeadCaptureForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [duplicateId, setDuplicateId] = useState<string>();
+  useUnsavedChanges(open && (busy || Boolean(title || company || url || text)));
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -60,9 +63,11 @@ export default function JobLeadCaptureForm({
               location: location || null,
               work_mode: workMode,
             }
-          : { ...(url ? { url } : {}), ...(text ? { text } : {}) }
+          : { ...(url ? { url } : {}), ...(text ? { text } : {}) },
+        requestKey
       );
       setOpen(false);
+      setRequestKey(crypto.randomUUID());
       setUrl('');
       setText('');
       setTitle('');

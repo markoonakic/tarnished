@@ -13,7 +13,7 @@ import type { StatusMeaning } from '../lib/types';
 
 type Report = NonNullable<FeedbackState['report']>;
 const disclosure =
-  'border-bg3 rounded border p-3 [&>summary]:cursor-pointer [&>summary]:text-fg1 [&>summary]:font-semibold [&>summary]:focus-visible:outline-accent';
+  'border-bg3 rounded border p-3 [&>summary]:cursor-pointer [&>summary]:rounded [&>summary]:px-3 [&>summary]:py-1.5 [&>summary]:text-sm [&>summary]:text-fg1 [&>summary]:font-semibold [&>summary]:transition-colors [&>summary:hover]:bg-bg2 [&>summary:hover]:text-fg0 [&>summary]:focus-visible:outline-accent';
 
 function recordValue(quote?: string): Record<string, unknown> | null {
   try {

@@ -39,8 +39,14 @@ export async function updateStatus(
   return response.data;
 }
 
-export async function deleteStatus(id: string): Promise<void> {
-  await api.delete(`/api/statuses/${id}`);
+export async function deleteStatus(id: string, status?: Status): Promise<void> {
+  await api.delete(`/api/statuses/${id}`, {
+    params: {
+      expected_name: status?.name,
+      expected_color: status?.color,
+      expected_meaning: status?.meaning,
+    },
+  });
   invalidateEvidenceQueries();
 }
 
@@ -66,8 +72,13 @@ export async function updateRoundType(
   return response.data;
 }
 
-export async function deleteRoundType(id: string): Promise<void> {
-  await api.delete(`/api/round-types/${id}`);
+export async function deleteRoundType(
+  id: string,
+  roundType?: RoundType
+): Promise<void> {
+  await api.delete(`/api/round-types/${id}`, {
+    params: { expected_name: roundType?.name },
+  });
   invalidateEvidenceQueries();
 }
 

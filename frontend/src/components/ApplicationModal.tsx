@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import HelpTip from './HelpTip';
 import { t } from '@/lib/i18n';
 import { statusLabel } from '@/lib/referenceLabels';
@@ -50,6 +51,7 @@ export default function ApplicationModal({
   useTranslation();
   const isEditing = Boolean(application);
   const initializedFormKeyRef = useRef<string | null>(null);
+  const requestKey = useRef(crypto.randomUUID());
   const [formApplication, setFormApplication] = useState(application);
   const [metadata, setMetadata] = useState(() => jobMetadata(application));
   const [location, setLocation] = useState(application?.location || '');
@@ -100,10 +102,43 @@ export default function ApplicationModal({
   const [responseAction, setResponseAction] = useState('unchanged');
   const [responseDate, setResponseDate] = useState('');
   const [responseNote, setResponseNote] = useState('');
+  const [baselineValues, setBaselineValues] = useState(() =>
+    getApplicationModalDefaults([])
+  );
+  const values = {
+    company,
+    jobTitle,
+    jobDescription,
+    jobUrl,
+    statusId,
+    appliedAt,
+    salaryMin,
+    salaryMax,
+    salaryCurrency,
+    recruiterName,
+    recruiterTitle,
+    recruiterLinkedinUrl,
+    requirementsMustHave,
+    requirementsNiceToHave,
+    source,
+  };
+  const fieldsChanged =
+    Object.entries(baselineValues).some(
+      ([key, value]) =>
+        !(key === 'statusId' && !value) &&
+        values[key as keyof typeof values] !== value
+    ) ||
+    JSON.stringify(metadata) !== JSON.stringify(jobMetadata(formApplication)) ||
+    location !== (formApplication?.location ?? '') ||
+    statusDraft !== undefined ||
+    responseAction !== 'unchanged' ||
+    responseDate !== (formApplication?.response_occurred_on ?? '') ||
+    responseNote !== (formApplication?.response_reference ?? '');
 
   function applyFormValues(
     values: ReturnType<typeof getApplicationModalValues>
   ) {
+    setBaselineValues(values);
     setCompany(values.company);
     setJobTitle(values.jobTitle);
     setJobDescription(values.jobDescription);
@@ -160,6 +195,7 @@ export default function ApplicationModal({
       return;
     }
 
+    requestKey.current = crypto.randomUUID();
     setFormApplication(application);
     setMetadata(jobMetadata(application));
     setLocation(application?.location || '');
@@ -195,6 +231,8 @@ export default function ApplicationModal({
     setStatusId(getApplicationModalDefaults(statuses).statusId);
   }, [isOpen, isEditing, statusId, statuses]);
 
+  useUnsavedChanges(isOpen && (loading || fieldsChanged));
+
   if (!isOpen) return null;
 
   async function handleSubmit(e: React.FormEvent) {
@@ -223,26 +261,11 @@ export default function ApplicationModal({
     setError('');
 
     try {
-      const values = {
-        company,
-        jobTitle,
-        jobDescription,
-        jobUrl: normalizedUrl,
-        statusId,
-        appliedAt,
-        salaryMin,
-        salaryMax,
-        salaryCurrency,
-        recruiterName,
-        recruiterTitle,
-        recruiterLinkedinUrl,
-        requirementsMustHave,
-        requirementsNiceToHave,
-        source,
-      };
+      const submittedValues = { ...values, jobUrl: normalizedUrl };
 
       if (isEditing && formApplication) {
-        const data: ApplicationUpdate = buildUpdateApplicationPayload(values);
+        const data: ApplicationUpdate =
+          buildUpdateApplicationPayload(submittedValues);
         if (isPreparing) {
           data.company = company.trim();
           data.job_title = jobTitle.trim();
@@ -271,7 +294,8 @@ export default function ApplicationModal({
         onSuccess(formApplication.id);
         onClose();
       } else {
-        const data: ApplicationCreate = buildCreateApplicationPayload(values);
+        const data: ApplicationCreate =
+          buildCreateApplicationPayload(submittedValues);
         Object.assign(data, metadata, { location: location || null });
         if (
           statuses.find((status) => status.id === statusId)?.meaning ===
@@ -284,7 +308,7 @@ export default function ApplicationModal({
             occurred_on: responseDate || null,
             reference: responseNote || null,
           };
-        const created = await createApplication(data);
+        const created = await createApplication(data, requestKey.current);
         onSuccess(created.id);
         onClose();
       }

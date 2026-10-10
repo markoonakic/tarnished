@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useId, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +26,7 @@ export function CompanyModal({
 }) {
   const { t } = useTranslation();
   const [baseline] = useState(company);
+  const [requestKey] = useState(() => crypto.randomUUID());
   const [draft, setDraft] = useState<CompanyInput>({
     name: company?.name ?? '',
     website: company?.website ?? '',
@@ -35,8 +37,10 @@ export function CompanyModal({
     culture_notes: company?.culture_notes ?? '',
   });
   const client = useQueryClient();
+  const [initialDraft] = useState(draft);
   return (
     <RecordForm
+      dirty={JSON.stringify(draft) !== JSON.stringify(initialDraft)}
       title={t(company ? 'companies.editCompany' : 'companies.newCompany')}
       onClose={onClose}
       onSave={async () => {
@@ -46,7 +50,7 @@ export function CompanyModal({
               ...data,
               expected_revision: baseline.revision,
             })
-          : await apiV030.createCompany(data);
+          : await apiV030.createCompany(data, requestKey);
         await client.invalidateQueries({ queryKey: ['companies'] });
         onSaved(saved);
       }}
@@ -111,6 +115,7 @@ export function ContactModal({
   const { t } = useTranslation();
   const client = useQueryClient();
   const [baseline] = useState(contact);
+  const [requestKey] = useState(() => crypto.randomUUID());
   const [draft, setDraft] = useState<ContactInput>({
     name: contact?.name ?? initialName,
     function: contact?.function ?? '',
@@ -122,12 +127,14 @@ export function ContactModal({
     last_contact_on: contact?.last_contact_on ?? '',
     communication_note: contact?.communication_note ?? '',
   });
+  const [initialDraft] = useState(draft);
   const [name, setName] = useState(companyName ?? '');
   const [customRole, setCustomRole] = useState(
     !!contact?.role && !roles.includes(contact.role)
   );
   return (
     <RecordForm
+      dirty={JSON.stringify(draft) !== JSON.stringify(initialDraft)}
       title={t(contact ? 'companies.editContact' : 'companies.newContact')}
       onClose={onClose}
       onSave={async () => {
@@ -141,7 +148,7 @@ export function ContactModal({
               ...data,
               expected_revision: baseline.revision,
             })
-          : await apiV030.createContact(data);
+          : await apiV030.createContact(data, requestKey);
         await client.invalidateQueries({ queryKey: ['contacts'] });
         await client.invalidateQueries({ queryKey: ['companies'] });
         onSaved(saved);
@@ -292,11 +299,13 @@ export function Field({
   );
 }
 function RecordForm({
+  dirty,
   title,
   onClose,
   onSave,
   children,
 }: {
+  dirty: boolean;
   title: string;
   onClose: () => void;
   onSave: () => Promise<void>;
@@ -305,6 +314,7 @@ function RecordForm({
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  useUnsavedChanges(busy || dirty);
   return (
     <Modal label={title} onClose={onClose} busy={busy}>
       <form

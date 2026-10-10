@@ -25,6 +25,7 @@ import { useToastContext } from '../contexts/ToastContext';
 import Pagination from '../components/Pagination';
 import MoreFilters from '../components/records/MoreFilters';
 import {
+  MAX_SEARCH_LENGTH,
   recordFilters,
   recordFilterKeys,
   changeRecordFilters,
@@ -64,7 +65,7 @@ export default function JobLeads() {
     : 25;
 
   const page = parsePositivePageParam(searchParams.get('page'));
-  const search = searchParams.get('search') || '';
+  const search = (searchParams.get('search') || '').slice(0, MAX_SEARCH_LENGTH);
   const statusFilter = searchParams.get('status') || '';
   const decisionFilter = searchParams.get('decision') || '';
   const extraParams = new URLSearchParams(searchParams);
@@ -194,6 +195,7 @@ export default function JobLeads() {
                 placeholder={t('Search company or job title...')}
                 aria-label={t('Search job leads')}
                 value={search}
+                maxLength={MAX_SEARCH_LENGTH}
                 onChange={(e) => updateParams({ search: e.target.value })}
                 className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />

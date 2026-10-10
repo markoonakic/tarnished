@@ -1,6 +1,8 @@
 import { t } from './i18n';
 
 const codes = [
+  'transcript_attachment_replacement',
+  'create_content_changed',
   'round_time_zone_changed',
   'no_audio_track',
   'report_configuration',

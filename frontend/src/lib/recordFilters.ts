@@ -1,4 +1,5 @@
 import type { JobQuery } from './apiV030';
+export const MAX_SEARCH_LENGTH = 200;
 export const advancedFilterKeys = [
   'company_id',
   'location',
@@ -42,7 +43,13 @@ export function changeRecordFilters(
   for (const [key, values] of Object.entries(changes)) {
     next.delete(key);
     for (const value of Array.isArray(values) ? values : [values])
-      if (value) next.append(key, value);
+      if (value)
+        next.append(
+          key,
+          key === 'search' || key === 'query'
+            ? value.slice(0, MAX_SEARCH_LENGTH)
+            : value
+        );
   }
   if (Object.keys(changes).some((key) => key !== 'page' && key !== 'view'))
     next.set('page', '1');

@@ -131,7 +131,10 @@ it('saves a manual lead without a URL, creates and selects the company without l
   fireEvent.change(input, { target: { value: 'New company' } });
   fireEvent.click(screen.getByRole('option', { name: /Create/ }));
   await waitFor(() =>
-    expect(apiV030.createCompany).toHaveBeenCalledWith({ name: 'New company' })
+    expect(apiV030.createCompany).toHaveBeenCalledWith(
+      { name: 'New company' },
+      expect.any(String)
+    )
   );
   fireEvent.change(screen.getByLabelText('Location'), {
     target: { value: 'Belgrade' },
@@ -140,13 +143,16 @@ it('saves a manual lead without a URL, creates and selects the company without l
   fireEvent.click(screen.getByRole('option', { name: 'Hybrid' }));
   fireEvent.click(screen.getByRole('button', { name: 'Save Lead' }));
   await waitFor(() =>
-    expect(createJobLead).toHaveBeenCalledWith({
-      title: 'Junior Engineer',
-      company: 'Orbis Ledger',
-      company_id: 'company-1',
-      location: 'Belgrade',
-      work_mode: 'hybrid',
-    })
+    expect(createJobLead).toHaveBeenCalledWith(
+      {
+        title: 'Junior Engineer',
+        company: 'Orbis Ledger',
+        company_id: 'company-1',
+        location: 'Belgrade',
+        work_mode: 'hybrid',
+      },
+      expect.any(String)
+    )
   );
 });
 
@@ -163,7 +169,10 @@ it('saves pasted text without requiring a URL', async () => {
   });
   fireEvent.click(screen.getByRole('button', { name: 'Save Lead' }));
   await waitFor(() =>
-    expect(createJobLead).toHaveBeenCalledWith({ text: 'A saved job posting' })
+    expect(createJobLead).toHaveBeenCalledWith(
+      { text: 'A saved job posting' },
+      expect.any(String)
+    )
   );
 });
 

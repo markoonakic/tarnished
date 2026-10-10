@@ -4,6 +4,7 @@ import { errorMessage } from '@/lib/errorMessage';
 import TextLink from '@/components/ui/TextLink';
 import { formatDateTime, formatDate as displayDate } from '@/lib/displayDate';
 import { useState } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import HelpTip from '@/components/HelpTip';
@@ -68,6 +69,7 @@ function InterviewPage({ id }: { id?: string }) {
   const [questionsOpen, setQuestionsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  useUnsavedChanges(busy || section !== null);
   const interview = query.data;
   async function refresh() {
     await client.invalidateQueries({ queryKey: ['interview', id] });
@@ -85,7 +87,7 @@ function InterviewPage({ id }: { id?: string }) {
     await refresh();
   }
   function edit(which: string) {
-    if (!interview) return;
+    if (!interview || busy || section !== null) return;
     setSection(which);
     setDraftRevision(interview.revision);
     setError('');
@@ -201,6 +203,7 @@ function InterviewPage({ id }: { id?: string }) {
         {type === 'textarea' ? (
           <textarea
             id={'interview-' + key}
+            disabled={busy}
             className={input}
             rows={key === 'notes_summary' ? 4 : 3}
             value={draft[key] ?? ''}
@@ -209,6 +212,7 @@ function InterviewPage({ id }: { id?: string }) {
         ) : (
           <input
             id={'interview-' + key}
+            disabled={busy}
             className={input}
             type={type}
             value={draft[key] ?? ''}
@@ -411,7 +415,10 @@ function InterviewPage({ id }: { id?: string }) {
                 </dl>
                 <div className="border-tertiary mt-6 flex justify-end gap-2 border-t pt-4">
                   {interview.scheduled_at && shortcut('interview')}
-                  <Button onClick={() => setEditing(true)}>
+                  <Button
+                    disabled={busy || section !== null}
+                    onClick={() => setEditing(true)}
+                  >
                     <i className="bi bi-pencil mr-2" />
                     {t('Edit')}
                   </Button>
@@ -451,7 +458,10 @@ function InterviewPage({ id }: { id?: string }) {
               interview={interview}
               onSaved={refresh}
               actions={
-                <Button onClick={() => edit('preparation')}>
+                <Button
+                  disabled={busy || section !== null}
+                  onClick={() => edit('preparation')}
+                >
                   <i className="bi bi-pencil mr-2" aria-hidden="true" />
                   {t('Edit')}
                 </Button>
@@ -497,6 +507,7 @@ function InterviewPage({ id }: { id?: string }) {
               onOpenChange={setQuestionsOpen}
               actions={
                 <Button
+                  disabled={busy || section !== null}
                   onClick={() => {
                     setQuestionsOpen(true);
                     edit('questions');
@@ -520,6 +531,7 @@ function InterviewPage({ id }: { id?: string }) {
                         </label>
                         <input
                           id={`question-${i}`}
+                          disabled={busy}
                           value={pair.question}
                           className={input}
                           onChange={(e) =>
@@ -540,6 +552,7 @@ function InterviewPage({ id }: { id?: string }) {
                         </label>
                         <textarea
                           id={`answer-${i}`}
+                          disabled={busy}
                           value={pair.answer}
                           className={input}
                           onChange={(e) =>
@@ -554,6 +567,7 @@ function InterviewPage({ id }: { id?: string }) {
                         />
                         <Button
                           variant="danger"
+                          disabled={busy}
                           className="flex items-center gap-1.5"
                           onClick={() =>
                             setQuestions(
@@ -567,6 +581,7 @@ function InterviewPage({ id }: { id?: string }) {
                       </div>
                     ))}
                     <Button
+                      disabled={busy}
                       onClick={() =>
                         setQuestions([
                           ...questions,
@@ -618,7 +633,10 @@ function InterviewPage({ id }: { id?: string }) {
                 }
                 icon="bi-file-code"
                 actions={
-                  <Button onClick={() => edit('task')}>
+                  <Button
+                    disabled={busy || section !== null}
+                    onClick={() => edit('task')}
+                  >
                     <i className="bi bi-pencil mr-2" aria-hidden="true" />
                     {t('Edit')}
                   </Button>
@@ -652,7 +670,10 @@ function InterviewPage({ id }: { id?: string }) {
               title={t('tasks.nextSteps')}
               icon="bi-signpost"
               actions={
-                <Button onClick={() => edit('next')}>
+                <Button
+                  disabled={busy || section !== null}
+                  onClick={() => edit('next')}
+                >
                   <i className="bi bi-pencil mr-2" aria-hidden="true" />
                   {t('Edit')}
                 </Button>
@@ -693,7 +714,9 @@ function InterviewPage({ id }: { id?: string }) {
               <Card title={t('tasks.recordingTranscript')} icon="bi-mic">
                 <InterviewRecording
                   round={interview as Round}
-                  onEdit={() => setEditing(true)}
+                  onEdit={() => {
+                    if (!busy && section === null) setEditing(true);
+                  }}
                   onDelete={() => {}}
                   onMediaChange={() => void refresh()}
                 />
@@ -703,7 +726,10 @@ function InterviewPage({ id }: { id?: string }) {
               title={t('tasks.summary')}
               icon="bi-card-text"
               actions={
-                <Button onClick={() => edit('summary')}>
+                <Button
+                  disabled={busy || section !== null}
+                  onClick={() => edit('summary')}
+                >
                   <i className="bi bi-pencil mr-2" aria-hidden="true" />
                   {t('Edit')}
                 </Button>
@@ -753,8 +779,11 @@ function InterviewNotes({ interview }: { interview: Interview }) {
       {query.isError && <p role="alert">{t('tasks.loadFailed')}</p>}
       <NotesPanel
         notes={query.data?.items ?? []}
-        onAdd={async (body) => {
-          await apiV030.createNote({ round_id: interview.id, body });
+        onAdd={async (body, requestKey) => {
+          await apiV030.createNote(
+            { round_id: interview.id, body },
+            requestKey
+          );
           await refresh();
         }}
         onEdit={async (id, body) => {

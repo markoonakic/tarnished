@@ -61,6 +61,29 @@ afterEach(async () => {
   await i18n.changeLanguage('en');
 });
 
+it.each(['en', 'sr-Latn'])(
+  'keeps expanded API scope guidance in a HelpTip in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    render(
+      <MemoryRouter>
+        <SettingsAPIKey />
+      </MemoryRouter>
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: i18n.t('Advanced Scopes') })
+    );
+    const message = i18n.t(
+      'Editing scopes directly will turn this key into a custom key.'
+    );
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    const buttons = screen.getAllByRole('button', {
+      name: i18n.t('Advanced Scopes'),
+    });
+    fireEvent.click(buttons[1]);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(message);
+  }
+);
 it('help overlays cannot intercept clicks on adjacent form actions', () => {
   render(
     <>

@@ -1,0 +1,7 @@
+{
+  "error.transcript_attachment_replacement": "Izričito obrišite izmenjivi transkript pre otpremanja priloga. Postojeći transkript i nacrt su sačuvani.",
+  "error.create_content_changed": "Ovaj zahtev je već sačuvao zapis sa drugačijim vrednostima. Ponovo učitajte i proverite sačuvani zapis. Nacrt je sačuvan.",
+  "About reloading dates": "O ponovnom učitavanju datuma",
+  "ai.editedValueHelp": "O izmenjenim vrednostima",
+  "No activity yet.": "Još nema aktivnosti."
+}

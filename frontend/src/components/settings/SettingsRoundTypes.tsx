@@ -13,6 +13,7 @@ import {
 } from '../../lib/settings';
 import type { RoundType } from '../../lib/types';
 import Loading from '../Loading';
+import HelpTip from '../HelpTip';
 import { SettingsBackLink } from './SettingsLayout';
 
 export default function SettingsRoundTypes() {
@@ -83,7 +84,7 @@ export default function SettingsRoundTypes() {
     }
 
     try {
-      await deleteRoundType(roundType.id);
+      await deleteRoundType(roundType.id, roundType);
       loadData();
     } catch {
       setError(t('Failed to delete round type'));
@@ -115,7 +116,14 @@ export default function SettingsRoundTypes() {
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
         <h2 className="text-fg1 mb-4 text-xl font-bold">
-          {t('Interview Round Types')}
+          {t('Interview Round Types')}{' '}
+          {!loading && roundTypes.every((type) => type.is_default) && (
+            <HelpTip label={t('Interview Round Types')}>
+              {t(
+                'Using default round types. Add custom round types to override.'
+              )}
+            </HelpTip>
+          )}
         </h2>
 
         {error && (
@@ -128,13 +136,6 @@ export default function SettingsRoundTypes() {
           <Loading message={t('Loading settings...')} />
         ) : (
           <>
-            {roundTypes.filter((t) => !t.is_default).length === 0 && (
-              <p className="text-muted bg-tertiary mb-4 rounded p-3 text-sm">
-                {t(
-                  'Using default round types. Add custom round types to override.'
-                )}
-              </p>
-            )}
             <div className="mb-4 space-y-2">
               {roundTypes.map((type) => (
                 <div

@@ -19,6 +19,37 @@ afterEach(async () => {
   await i18n.changeLanguage('en');
   vi.restoreAllMocks();
 });
+it.each(['en', 'sr-Latn'])(
+  'puts empty heatmap guidance in a HelpTip and keeps an action in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    heatmap.mockReturnValue({
+      data: { days: [], max_count: 0 },
+      isLoading: false,
+      isError: false,
+    });
+    render(<ActivityHeatmap />);
+    expect(screen.getByText(i18n.t('No activity yet.'))).toBeVisible();
+    expect(
+      screen.queryByText(
+        i18n.t(
+          'Not enough data for visualization. Add more applications with different statuses.'
+        )
+      )
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: i18n.t('Applications') })
+    ).toHaveAttribute('href', '/applications');
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('Activity Heatmap') })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      i18n.t(
+        'Not enough data for visualization. Add more applications with different statuses.'
+      )
+    );
+  }
+);
 it('starts the loaded mobile scroller at the recent end without resetting a user scroll on rerender', () => {
   vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(825);
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(310);

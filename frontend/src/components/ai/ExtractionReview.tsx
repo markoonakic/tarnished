@@ -58,6 +58,9 @@ export default function ExtractionReview({
   const [saving, setSaving] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companyId, setCompanyId] = useState('');
+  const [companyRequestKey, setCompanyRequestKey] = useState(() =>
+    crypto.randomUUID()
+  );
   const items = analysis?.draft.items ?? [];
   const hasCompany = items.some((item) => item.field === 'company');
   useEffect(() => {
@@ -309,9 +312,9 @@ export default function ExtractionReview({
                       </span>
                     </blockquote>
                     {choice?.decision === 'edited' && (
-                      <p className="text-muted mt-1 text-xs">
+                      <HelpTip label={t('ai.editedValueHelp')}>
                         {t('ai.userEdited')}
-                      </p>
+                      </HelpTip>
                     )}
                     {item.field === 'company' && (
                       <div className="mt-2">
@@ -332,10 +335,11 @@ export default function ExtractionReview({
                           onChange={setCompanyId}
                           onCreate={(name) => {
                             void apiV030
-                              .createCompany({ name })
+                              .createCompany({ name }, companyRequestKey)
                               .then((company) => {
                                 setCompanies((value) => [...value, company]);
                                 setCompanyId(company.id);
+                                setCompanyRequestKey(crypto.randomUUID());
                               })
                               .catch(() => controller.setError(true));
                           }}

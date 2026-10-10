@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import HelpTip from '@/components/HelpTip';
@@ -451,6 +452,7 @@ export default function Profile() {
     section: EntrySection;
     item: ProfileItem;
   } | null>(null);
+  useUnsavedChanges(busy || editing !== null || entry !== null);
   const load = useCallback(async () => {
     try {
       setProfile(await apiV030.profile());
