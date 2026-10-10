@@ -131,12 +131,20 @@ it('keeps appearance writes in click order while an older save is delayed', asyn
   fireEvent.click(screen.getByRole('button', { name: 'yellow' }));
   expect(screen.getByText('gruvbox-light/yellow')).toBeVisible();
   expect(api.patch).toHaveBeenCalledOnce();
+  const pending = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(pending);
+  expect(pending.defaultPrevented).toBe(true);
   await act(async () => release({ data: {} }));
   await waitFor(() => expect(api.patch).toHaveBeenCalledTimes(2));
   expect(vi.mocked(api.patch).mock.calls.map((call) => call[1])).toEqual([
     { theme: 'gruvbox-light', accent: 'purple' },
     { theme: 'gruvbox-light', accent: 'yellow' },
   ]);
+  await waitFor(() => {
+    const saved = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(saved);
+    expect(saved.defaultPrevented).toBe(false);
+  });
 });
 
 it('continues the ordered save queue after a failure, including theme changes', async () => {

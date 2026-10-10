@@ -11,6 +11,7 @@ import {
 } from 'react';
 import api from '../lib/api';
 import { useAuth } from './AuthContext';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { observeRead } from '@/lib/queryClient';
 import {
   getAccentOverrides,
@@ -121,6 +122,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const pendingSaves = useRef(Promise.resolve());
   const settingsVersion = useRef(0);
+  const [savingSettings, setSavingSettings] = useState(false);
+  useUnsavedChanges(savingSettings);
   const [currentTheme, setCurrentTheme] = useState(() => {
     return getStoredTheme();
   });
@@ -173,14 +176,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const syncSettingsToBackend = useCallback((theme: string, accent: string) => {
-    ++settingsVersion.current;
+    const version = ++settingsVersion.current;
+    setSavingSettings(true);
     // Keep server writes in click order, including after a failed request.
     pendingSaves.current = pendingSaves.current
       .then(() => api.patch('/api/users/settings', { theme, accent }))
       .then(
         () => undefined,
         () => undefined
-      );
+      )
+      .then(() => {
+        if (version === settingsVersion.current) setSavingSettings(false);
+      });
   }, []);
 
   const setTheme = useCallback(
