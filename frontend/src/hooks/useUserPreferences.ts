@@ -1,4 +1,5 @@
 import { t } from '@/lib/i18n';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -47,7 +48,7 @@ export function useUpdateUserPreferences(
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: (updates: UserPreferencesUpdate) => updatePreferences(updates),
     onMutate: async (updates) => {
       await queryClient.cancelQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
@@ -87,4 +88,6 @@ export function useUpdateUserPreferences(
       }
     },
   });
+  useUnsavedChanges(mutation.isPending);
+  return mutation;
 }
