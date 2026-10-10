@@ -1,5 +1,7 @@
 import Button from '@/components/ui/Button';
 import HelpTip from '@/components/HelpTip';
+import { isAxiosError } from 'axios';
+import { errorMessage } from '@/lib/errorMessage';
 import { formatDate as displayDate, formatDateTime } from '@/lib/displayDate';
 import { t, locale } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
@@ -230,7 +232,10 @@ export default function Admin() {
     if (accountBusy) return;
     setAccountBusy(id);
     try {
-      await apiV030.approveUser(id);
+      await apiV030.approveUser(
+        id,
+        users.find((user) => user.id === id)?.revision
+      );
       window.dispatchEvent(new Event('accounts-updated'));
       await loadData();
     } catch {
@@ -259,11 +264,15 @@ export default function Admin() {
 
     setAccountBusy(user.id);
     try {
-      await deleteUser(user.id);
+      await deleteUser(user.id, user);
       window.dispatchEvent(new Event('accounts-updated'));
       await loadData();
-    } catch {
-      setError(t('Failed to delete user'));
+    } catch (error) {
+      setError(
+        isAxiosError(error) && error.response?.status === 409
+          ? errorMessage(error.response.data, 409)
+          : t('Failed to delete user')
+      );
     } finally {
       setAccountBusy(null);
     }

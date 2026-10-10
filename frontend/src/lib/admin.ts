@@ -3,6 +3,7 @@ import type { User } from './types';
 
 export interface AdminUser extends User {
   created_at: string;
+  revision?: number;
   approval_pending?: boolean;
   last_login_at?: string | null;
 }
@@ -34,7 +35,12 @@ export async function listUsers(params?: {
 
 export async function updateUser(
   userId: string,
-  data: { is_admin?: boolean; is_active?: boolean; password?: string }
+  data: {
+    is_admin?: boolean;
+    is_active?: boolean;
+    password?: string;
+    expected_revision?: number;
+  }
 ): Promise<AdminUser> {
   const response = await api.patch(`/api/admin/users/${userId}`, data);
   return response.data;
@@ -48,8 +54,16 @@ export async function createUser(data: {
   return response.data;
 }
 
-export async function deleteUser(userId: string): Promise<void> {
-  await api.delete(`/api/admin/users/${userId}`);
+export async function deleteUser(
+  userId: string,
+  user?: AdminUser
+): Promise<void> {
+  await api.delete(`/api/admin/users/${userId}`, {
+    params: {
+      expected_revision: user?.revision,
+      pending_only: user?.approval_pending || undefined,
+    },
+  });
 }
 
 export async function getAdminStats(): Promise<AdminStats> {

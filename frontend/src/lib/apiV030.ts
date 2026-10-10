@@ -488,6 +488,7 @@ export interface Account {
   last_login_at: ISODateTime | null;
 }
 export interface AdminUser extends Account {
+  revision?: number;
   created_at: ISODateTime;
   application_count: number;
 }
@@ -619,12 +620,16 @@ export const apiV030 = {
   adminUsers: (query?: AdminUsersQuery) =>
     get<Page<AdminUser>>('/admin/users', query),
   adminStats: () => get<AdminStats>('/admin/stats'),
-  approveUser: (id: ID) =>
+  approveUser: (id: ID, expected_revision?: number) =>
     patch<AdminUser>(`/admin/users/${id}`, {
+      expected_revision,
       is_active: true,
       approval_pending: false,
     }),
-  rejectUser: (id: ID) => remove(`/admin/users/${id}`),
+  rejectUser: (id: ID, expected_revision?: number) =>
+    api.delete(`/api/admin/users/${id}`, {
+      params: { expected_revision, pending_only: true },
+    }),
   profile: () => get<Profile>('/profile'),
   updateProfile: (data: ProfileUpdate) => put<Profile>('/profile', data),
   companies: (query?: CompanyQuery) => get<Page<Company>>('/companies', query),

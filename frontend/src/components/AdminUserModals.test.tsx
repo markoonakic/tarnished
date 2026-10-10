@@ -342,12 +342,101 @@ it('keeps self-management controls disabled but allows closing without a write',
   ])
     expect(control).toBeDisabled();
   expect(
-    screen.getByText(/Change your own password in Settings/)
-  ).toBeVisible();
+    screen.queryByText(/Change your own password in Settings/)
+  ).not.toBeInTheDocument();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'About password resets' })
+  );
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Change your own password in Settings'
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
   fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(requests).toEqual([]);
   expect(onSuccess).not.toHaveBeenCalled();
   expect(onClose).toHaveBeenCalledOnce();
+});
+
+it('keeps a stale edit and sends its captured authority revision', async () => {
+  api.defaults.adapter = async (config) => {
+    requests.push({
+      method: config.method,
+      url: config.url,
+      body: JSON.parse(config.data),
+    });
+    const { AxiosError } = await import('axios');
+    throw new AxiosError('Conflict', 'ERR_BAD_REQUEST', config, undefined, {
+      data: {},
+      status: 409,
+      statusText: 'Conflict',
+      headers: {},
+      config,
+    });
+  };
+  const close = vi.fn();
+  render(
+    <EditUserModal
+      user={{ ...firstUser, revision: 4 }}
+      currentUserId="operator"
+      onClose={close}
+      onSuccess={vi.fn()}
+    />
+  );
+  fireEvent.change(screen.getByLabelText('New Password (optional)'), {
+    target: { value: 'replacement' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await screen.findByText(/changed.*reload|changed.*Reload|changed.*refresh/i);
+  expect(requests[0].body).toEqual(
+    expect.objectContaining({ expected_revision: 4, is_admin: true })
+  );
+  expect(screen.getByLabelText('New Password (optional)')).toHaveValue(
+    'replacement'
+  );
+  expect(close).not.toHaveBeenCalled();
+});
+
+it('guards a changed admin editor and clears the guard when restored', () => {
+  render(
+    <EditUserModal
+      user={secondUser}
+      currentUserId="operator"
+      onClose={vi.fn()}
+      onSuccess={vi.fn()}
+    />
+  );
+  const unload = () => {
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  expect(unload()).toBe(false);
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Active' }));
+  expect(unload()).toBe(true);
+  expect(screen.getByRole('checkbox', { name: 'Active' })).not.toBeChecked();
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Active' }));
+  expect(unload()).toBe(false);
+});
+
+it('puts password-reset instructions behind the field HelpTip', () => {
+  render(
+    <EditUserModal
+      user={secondUser}
+      currentUserId="operator"
+      onClose={vi.fn()}
+      onSuccess={vi.fn()}
+    />
+  );
+  expect(
+    screen.queryByText(
+      'A password reset signs out browser sessions. API keys stay active.'
+    )
+  ).not.toBeInTheDocument();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'About password resets' })
+  );
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'A password reset signs out browser sessions. API keys stay active.'
+  );
 });

@@ -1,6 +1,14 @@
 from datetime import UTC, datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, StrictBool, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    StrictBool,
+    StrictInt,
+    field_validator,
+)
 
 from app.core.reference_names import normalize_reference_name
 from app.schemas.auth import NewPassword
@@ -8,6 +16,7 @@ from app.schemas.evidence import Meaning
 
 
 class AdminUserResponse(BaseModel):
+    revision: int = 0
     approval_pending: bool = False
     last_login_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
@@ -26,6 +35,7 @@ class AdminUserResponse(BaseModel):
 
 
 class AdminUserUpdate(BaseModel):
+    expected_revision: StrictInt | None = Field(default=None, ge=0)
     approval_pending: StrictBool | None = None
     is_active: StrictBool | None = None
     is_admin: StrictBool | None = None

@@ -36,6 +36,7 @@ beforeEach(() => {
     items: [
       {
         id: 'new',
+        revision: 3,
         email: 'new@example.com',
         is_admin: false,
         is_active: false,
@@ -83,7 +84,9 @@ it('approves pending users with the API approval contract', async () => {
   fireEvent.click(
     within(screen.getByRole('table')).getByRole('button', { name: 'Approve' })
   );
-  await waitFor(() => expect(apiV030.approveUser).toHaveBeenCalledWith('new'));
+  await waitFor(() =>
+    expect(apiV030.approveUser).toHaveBeenCalledWith('new', 3)
+  );
 });
 it('rejects only after confirmation', async () => {
   vi.spyOn(window, 'confirm')
@@ -97,5 +100,10 @@ it('rejects only after confirmation', async () => {
   fireEvent.click(button);
   expect(deleteUser).not.toHaveBeenCalled();
   fireEvent.click(button);
-  await waitFor(() => expect(deleteUser).toHaveBeenCalledWith('new'));
+  await waitFor(() =>
+    expect(deleteUser).toHaveBeenCalledWith(
+      'new',
+      expect.objectContaining({ revision: 3, approval_pending: true })
+    )
+  );
 });

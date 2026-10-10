@@ -84,6 +84,7 @@ async def list_users(
     items = [
         AdminUserResponse(
             id=user.id,
+            revision=user.session_version,
             email=user.email,
             is_admin=user.is_admin,
             is_active=user.is_active,
@@ -126,9 +127,15 @@ async def update_user(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-    update_data = data.model_dump(exclude_unset=True)
+    update_data = data.model_dump(exclude_unset=True, exclude={"expected_revision"})
 
-    if update_data and not await update_account(db, user_id, **update_data):
+    if update_data and not await update_account(
+        db, user_id, expected_version=data.expected_revision, **update_data
+    ):
+        if data.expected_revision is not None:
+            raise HTTPException(
+                status_code=409, detail="User changed; reload and review"
+            )
         raise HTTPException(status_code=404, detail="User not found")
     await db.commit()
     await db.refresh(user)
@@ -145,6 +152,7 @@ async def update_user(
         is_active=user.is_active,
         created_at=user.created_at,
         application_count=app_count,
+        revision=user.session_version,
         approval_pending=user.approval_pending,
         last_login_at=user.last_login_at,
     )
@@ -185,12 +193,15 @@ async def create_user(
         is_active=user.is_active,
         created_at=user.created_at,
         application_count=0,
+        revision=user.session_version,
     )
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     user_id: str,
+    expected_revision: int | None = Query(None, ge=0),
+    pending_only: bool = False,
     admin: User = Depends(get_current_admin),
     _: object = Depends(require_api_key_scope("admin:write")),
     db: AsyncSession = Depends(get_db),
@@ -214,7 +225,9 @@ async def delete_user(
         # CAS blobs remain for reference-aware maintenance, never unlinked here.
         from app.services.accounts import delete_account
 
-        await delete_account(db, user_id)
+        await delete_account(
+            db, user_id, expected_version=expected_revision, pending_only=pending_only
+        )
     except IntegrityError:
         await db.rollback()
         raise HTTPException(
