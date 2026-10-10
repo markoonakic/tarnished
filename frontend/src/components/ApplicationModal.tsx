@@ -456,29 +456,31 @@ export default function ApplicationModal({
                 </div>
 
                 <fieldset className="space-y-2 sm:col-span-2">
-                  <label className="text-fg1 flex cursor-pointer items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={
-                        responseAction === 'record' ||
-                        (responseAction === 'unchanged' &&
-                          formApplication?.response_state === 'recorded')
-                      }
-                      onChange={(e) =>
-                        setResponseAction(
-                          e.target.checked
-                            ? 'record'
-                            : isEditing
-                              ? 'clear'
-                              : 'unchanged'
-                        )
-                      }
-                    />
-                    {t('Employer replied')}
-                  </label>
-                  <HelpTip label={t('About employer replies')}>
-                    {t('Include rejections, but not automatic receipts.')}
-                  </HelpTip>
+                  <div className="flex items-center gap-2">
+                    <label className="text-fg1 flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={
+                          responseAction === 'record' ||
+                          (responseAction === 'unchanged' &&
+                            formApplication?.response_state === 'recorded')
+                        }
+                        onChange={(e) =>
+                          setResponseAction(
+                            e.target.checked
+                              ? 'record'
+                              : isEditing
+                                ? 'clear'
+                                : 'unchanged'
+                          )
+                        }
+                      />
+                      {t('Employer replied')}
+                    </label>
+                    <HelpTip label={t('About employer replies')}>
+                      {t('Include rejections, but not automatic receipts.')}
+                    </HelpTip>
+                  </div>
                   {(responseAction === 'record' ||
                     (responseAction === 'unchanged' &&
                       formApplication?.response_state === 'recorded')) && (
@@ -514,19 +516,21 @@ export default function ApplicationModal({
                 </fieldset>
 
                 <div>
-                  <label
-                    htmlFor="applied-date"
-                    className="text-muted mb-1 block text-sm font-semibold"
-                  >
-                    {t('Applied Date')}
-                  </label>
-                  {!isEditing && (
-                    <HelpTip label={t('About applied dates')}>
-                      {t(
-                        'Leave the date blank to use today in your effective time zone.'
-                      )}
-                    </HelpTip>
-                  )}
+                  <div className="mb-1 flex items-center gap-2">
+                    <label
+                      htmlFor="applied-date"
+                      className="text-muted block text-sm font-semibold"
+                    >
+                      {t('Applied Date')}
+                    </label>
+                    {!isEditing && (
+                      <HelpTip label={t('About applied dates')}>
+                        {t(
+                          'Leave the date blank to use today in your effective time zone.'
+                        )}
+                      </HelpTip>
+                    )}
+                  </div>
                   <input
                     id="applied-date"
                     type="date"

@@ -56,6 +56,14 @@ describe('ApplicationModal', () => {
         'Leave the date blank to use today in your effective time zone.'
       )
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'About employer replies' })
+        .parentElement?.parentElement
+    ).toHaveClass('flex', 'items-center');
+    expect(
+      screen.getByRole('button', { name: 'About applied dates' }).parentElement
+        ?.parentElement
+    ).toHaveClass('flex', 'items-center');
     fireEvent.click(
       screen.getByRole('button', { name: 'About employer replies' })
     );
