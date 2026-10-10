@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { isAxiosError } from 'axios';
 import TextLink from '@/components/ui/TextLink';
 import { formatDate, formatDateTime } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
@@ -92,11 +93,14 @@ function JobLeadDetailContent({ id }: { id: string }) {
   async function handleDelete() {
     if (!confirm(t('Are you sure you want to delete this job lead?'))) return;
     try {
-      await deleteJobLead(id!);
+      await deleteJobLead(id!, jobLead?.revision);
       toast.success(t('Job lead deleted'));
       navigate('/job-leads');
-    } catch {
-      const errorMsg = t('Failed to delete job lead');
+    } catch (error) {
+      const errorMsg =
+        isAxiosError(error) && error.response
+          ? errorMessage(error.response.data, error.response.status)
+          : t('Failed to delete job lead');
       setError(errorMsg);
       showError(errorMsg);
     }

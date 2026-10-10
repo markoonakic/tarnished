@@ -137,11 +137,14 @@ function ApplicationDetailContent({ id }: { id: string }) {
     if (!confirm(t('Are you sure you want to delete this application?')))
       return;
     try {
-      await deleteApplication(id!);
+      await deleteApplication(id!, application?.evidence_revision);
       toast.success(t('Application deleted'));
       navigate('/applications');
-    } catch {
-      const errorMsg = t('Failed to delete application');
+    } catch (error) {
+      const errorMsg =
+        isAxiosError(error) && error.response
+          ? errorMessage(error.response.data, error.response.status)
+          : t('Failed to delete application');
       setError(errorMsg);
       showError(errorMsg);
     }

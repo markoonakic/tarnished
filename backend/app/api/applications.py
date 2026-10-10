@@ -583,6 +583,7 @@ async def update_application(
 @router.delete("/{application_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_application(
     application_id: str,
+    expected_evidence_revision: int | None = Header(default=None, ge=0),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("applications:write")),
     db: AsyncSession = Depends(get_db),
@@ -600,6 +601,7 @@ async def delete_application(
             status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
         )
 
+    check_document_revision(application, expected_evidence_revision)
     await db.delete(application)
     await db.commit()
 

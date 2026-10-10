@@ -52,7 +52,7 @@ from app.services.job_filters import JobFilters, apply_filters, filter_params
 from app.services.lead_capture import capture_complete_source
 from app.services.reference_data import get_initial_application_status
 from app.services.user_time import get_user_local_today
-from app.services.workspace import JOB_FIELDS, audit, job_links
+from app.services.workspace import JOB_FIELDS, audit, change_record, job_links
 
 router = APIRouter(prefix="/api/job-leads", tags=["job-leads"])
 
@@ -437,6 +437,7 @@ async def retry_job_lead_extraction(
 @router.delete("/{job_lead_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_job_lead(
     job_lead_id: str,
+    expected_revision: int | None = Header(default=None, ge=0),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("job_leads:write")),
     db: AsyncSession = Depends(get_db),
@@ -468,6 +469,13 @@ async def delete_job_lead(
             detail="Job lead not found",
         )
 
+    await change_record(
+        db,
+        job_lead,
+        user.id,
+        job_lead.revision if expected_revision is None else expected_revision,
+        {},
+    )
     await db.delete(job_lead)
     await db.commit()
 

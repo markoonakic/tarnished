@@ -1,4 +1,6 @@
 import Button from '@/components/ui/Button';
+import { isAxiosError } from 'axios';
+import { errorMessage } from '@/lib/errorMessage';
 import HelpTip from '../HelpTip';
 import { formatDateTime } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
@@ -153,6 +155,7 @@ export default function SettingsAPIKey() {
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState('');
+  const [editingRevision, setEditingRevision] = useState(0);
   const [editingPreset, setEditingPreset] = useState<string>('full_access');
   const [editingScopes, setEditingScopes] = useState<string[]>([]);
   const [editingAdvancedScopesOpen, setEditingAdvancedScopesOpen] =
@@ -249,7 +252,10 @@ export default function SettingsAPIKey() {
         editingPreset === 'custom'
           ? { label, preset: 'custom', scopes: editingScopes }
           : { label, preset: editingPreset };
-      const updated = await updateAPIKey(id, payload);
+      const updated = await updateAPIKey(id, {
+        ...payload,
+        expected_revision: editingRevision,
+      });
       setApiKeys((current) =>
         current.map((item) => (item.id === id ? updated : item))
       );
@@ -259,8 +265,12 @@ export default function SettingsAPIKey() {
       setEditingScopes([]);
       setEditingAdvancedScopesOpen(false);
       toast.success(t('API key updated'));
-    } catch {
-      showError(t('Failed to update API key'));
+    } catch (error) {
+      showError(
+        isAxiosError(error) && error.response
+          ? errorMessage(error.response.data, error.response.status)
+          : t('Failed to update API key')
+      );
     } finally {
       setSubmitting(false);
     }
@@ -397,12 +407,12 @@ export default function SettingsAPIKey() {
 
             {revealedKey && (
               <div className="bg-bg2 rounded-lg p-4">
-                <h3 className="text-fg1 mb-2 text-sm font-medium">
+                <h3 className="text-fg1 mb-2 flex items-center gap-2 text-sm font-medium">
                   {t('New API Key')}
+                  <HelpTip label={t('New API Key')}>
+                    {t('Copy this now. You will not be able to view it again.')}
+                  </HelpTip>
                 </h3>
-                <p className="text-muted mb-3 text-xs">
-                  {t('Copy this now. You will not be able to view it again.')}
-                </p>
                 <div className="flex items-center gap-2">
                   <div className="text-fg1 bg-bg3 flex-1 overflow-x-auto rounded px-3 py-2 font-mono text-sm break-all">
                     {revealedKey}
@@ -561,6 +571,7 @@ export default function SettingsAPIKey() {
                           <Button
                             onClick={() => {
                               setEditingId(apiKey.id);
+                              setEditingRevision(apiKey.revision ?? 0);
                               setEditingLabel(apiKey.label);
                               setEditingPreset(apiKey.preset);
                               setEditingScopes(apiKey.scopes);

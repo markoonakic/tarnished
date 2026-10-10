@@ -86,6 +86,7 @@ async def create_api_key(
 
     return UserAPIKeyCreateResponse(
         id=api_key.id,
+        revision=api_key.revision,
         label=api_key.label,
         preset=api_key.preset,
         scopes=api_key.scopes,
@@ -104,6 +105,7 @@ async def update_api_key(
     user: User = Depends(get_current_user_jwt),
     db: AsyncSession = Depends(get_db),
 ) -> UserAPIKey:
+    await lock_ai_settings(db)
     result = await db.execute(
         select(UserAPIKey).where(
             UserAPIKey.id == api_key_id,
@@ -113,6 +115,13 @@ async def update_api_key(
     api_key = result.scalar_one_or_none()
     if api_key is None:
         raise HTTPException(status_code=404, detail="API key not found")
+
+    if api_key.revoked_at is not None or (
+        data.expected_revision is not None
+        and data.expected_revision != api_key.revision
+    ):
+        raise HTTPException(409, {"code": "settings_changed"})
+    api_key.revision += 1
 
     if data.label is not None:
         api_key.label = data.label
@@ -141,6 +150,7 @@ async def delete_api_key(
     user: User = Depends(get_current_user_jwt),
     db: AsyncSession = Depends(get_db),
 ) -> None:
+    await lock_ai_settings(db)
     result = await db.execute(
         select(UserAPIKey).where(
             UserAPIKey.id == api_key_id,
@@ -152,6 +162,7 @@ async def delete_api_key(
         raise HTTPException(status_code=404, detail="API key not found")
 
     api_key.revoked_at = datetime.now(UTC)
+    api_key.revision += 1
     await db.commit()
 
 

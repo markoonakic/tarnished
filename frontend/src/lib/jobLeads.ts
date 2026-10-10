@@ -56,8 +56,13 @@ export async function getJobLeadSources(): Promise<string[]> {
 /**
  * Delete a job lead by ID.
  */
-export async function deleteJobLead(id: string): Promise<void> {
-  await api.delete(`/api/job-leads/${id}`);
+export async function deleteJobLead(
+  id: string,
+  expectedRevision?: number
+): Promise<void> {
+  await api.delete(`/api/job-leads/${id}`, {
+    headers: { 'Expected-Revision': expectedRevision },
+  });
 }
 
 export type JobLeadListItem = Pick<

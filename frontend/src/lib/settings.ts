@@ -98,7 +98,12 @@ export async function createAPIKey(data: {
 
 export async function updateAPIKey(
   id: string,
-  data: { label?: string; preset?: string; scopes?: string[] }
+  data: {
+    label?: string;
+    preset?: string;
+    scopes?: string[];
+    expected_revision?: number;
+  }
 ): Promise<APIKey> {
   const response = await api.patch(`/api/settings/api-keys/${id}`, data);
   return response.data;

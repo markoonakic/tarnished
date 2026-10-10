@@ -48,6 +48,46 @@ describe('SettingsAPIKey', () => {
     vi.resetAllMocks();
   });
 
+  it('keeps stale key edit drafts and sends their original revision', async () => {
+    listAPIKeys.mockResolvedValue([
+      {
+        id: 'key',
+        label: 'Original',
+        revision: 7,
+        preset: 'full_access',
+        scopes: [],
+        key_prefix: 'fixture',
+        created_at: '2026-10-01T00:00:00Z',
+        last_used_at: null,
+      },
+    ]);
+    updateAPIKey.mockRejectedValue(new Error('Conflict'));
+    render(
+      <MemoryRouter>
+        <SettingsAPIKey />
+      </MemoryRouter>
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Rename' }));
+    fireEvent.change(
+      screen.getByLabelText('Label', { selector: 'input[id^=edit]' }),
+      { target: { value: 'Keep label' } }
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+    await waitFor(() =>
+      expect(updateAPIKey).toHaveBeenCalledWith('key', {
+        label: 'Keep label',
+        preset: 'full_access',
+        expected_revision: 7,
+      })
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /^Save$/ })).toBeEnabled()
+    );
+    expect(
+      screen.getByLabelText('Label', { selector: 'input[id^=edit]' })
+    ).toHaveValue('Keep label');
+  });
+
   it('renders existing named api keys from the multi-key endpoint', async () => {
     listAPIKeys.mockResolvedValue([
       {
@@ -101,6 +141,7 @@ describe('SettingsAPIKey', () => {
       last_used_at: null,
       revoked_at: null,
       api_key: 'raw-secret-key',
+      revision: 0,
     });
 
     render(
@@ -127,6 +168,15 @@ describe('SettingsAPIKey', () => {
         preset: 'custom',
         scopes: ['round_types:read'],
       })
+    );
+    expect(
+      screen.queryByText(
+        'Copy this now. You will not be able to view it again.'
+      )
+    ).not.toBeInTheDocument();
+    fireEvent.focus(screen.getByRole('button', { name: 'New API Key' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      'Copy this now. You will not be able to view it again.'
     );
   });
 
@@ -186,6 +236,7 @@ describe('SettingsAPIKey', () => {
         label: 'MacBook CLI',
         preset: 'custom',
         scopes: ['round_types:read'],
+        expected_revision: 0,
       })
     );
   });

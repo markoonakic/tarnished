@@ -285,6 +285,7 @@ export interface UserProfile {
 
 export interface APIKey {
   id: string;
+  revision: number;
   label: string;
   preset: string;
   scopes: string[];

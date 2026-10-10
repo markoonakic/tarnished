@@ -64,8 +64,13 @@ export async function updateApplication(
   return response.data;
 }
 
-export async function deleteApplication(id: string): Promise<void> {
-  await api.delete(`/api/applications/${id}`);
+export async function deleteApplication(
+  id: string,
+  expectedRevision?: number
+): Promise<void> {
+  await api.delete(`/api/applications/${id}`, {
+    headers: { 'Expected-Evidence-Revision': expectedRevision },
+  });
   invalidateEvidenceQueries();
 }
 
