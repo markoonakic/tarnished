@@ -12,6 +12,7 @@ from sqlalchemy import Date, DateTime, inspect, select
 from sqlalchemy.orm import Mapper, Session
 
 from app.core.reference_names import normalize_reference_name, normalized_reference_name
+from app.models.job_lead import JobLead
 from app.models.round_type import RoundType
 from app.models.status import ApplicationStatus
 from app.models.user import User
@@ -58,7 +59,7 @@ class ImportService:
 
     # Fields of the owner's own profile that this archive restores. Account and
     # credential state (id/user_id/password/session) is never transferable.
-    PROFILE_RESTORE_FIELDS = (
+    PROFILE_RESTORE_FIELDS: tuple[str, ...] = (
         "first_name",
         "last_name",
         "email",
@@ -99,6 +100,8 @@ class ImportService:
         self.registry = registry
         self.id_mapper = id_mapper
         self._deferred_foreign_keys: list[tuple[str, str, str, str]] = []
+        self._interview_segment_ids: dict[tuple[str, str], str] = {}
+        self._merged_leads: set[str] = set()
 
     def validate_export_data(self, data: dict[str, Any]) -> tuple[bool, str | None]:
         """
@@ -277,13 +280,14 @@ class ImportService:
 
         self._deferred_foreign_keys = []
         self._interview_segment_ids = {}
+        self._merged_leads = set()
         counts: dict[str, int] = {}
         # Process models in order (parents before children)
         for exportable_model in self.registry.get_models():
             model_class = exportable_model.model_class
             model_name = model_class.__name__
 
-            # Restore personal location on Replace and language, never account authority.
+            # Restore allowlisted preferences on Replace, never account authority.
             if model_name == "User":
                 owner = session.get(User, user_id)
                 for record in export_data["models"].get("User", []):
@@ -292,15 +296,30 @@ class ImportService:
                             if field in record:
                                 setattr(owner, field, record[field])
                     preferences = record.get("settings")
-                    if (
-                        isinstance(preferences, dict)
-                        and preferences.get("language") in ("en", "sr-Latn")
-                        and owner is not None
-                    ):
-                        owner.settings = {
-                            **(owner.settings or {}),
-                            "language": preferences["language"],
-                        }
+                    if isinstance(preferences, dict) and owner is not None:
+                        from app.api.user_preferences import UserPreferencesUpdate
+
+                        updates = {}
+                        if preferences.get("language") in ("en", "sr-Latn"):
+                            updates["language"] = preferences["language"]
+                        if override:
+                            from app.services.user_settings import (
+                                DEFAULT_USER_PREFERENCES,
+                            )
+
+                            updates = UserPreferencesUpdate.model_validate(
+                                {
+                                    **DEFAULT_USER_PREFERENCES,
+                                    **{
+                                        key: value
+                                        for key, value in preferences.items()
+                                        if key in UserPreferencesUpdate.model_fields
+                                    },
+                                }
+                            ).model_dump(exclude_unset=True)
+                        merged = {**(owner.settings or {}), **updates}
+                        if updates and merged != owner.settings:
+                            owner.settings = merged
                 continue
 
             # The owner's profile is personal data and restores with an explicit
@@ -350,7 +369,7 @@ class ImportService:
                 restored = session.get(
                     model, self.id_mapper.get(model.__name__, record["id"])
                 )
-                if restored is not None:
+                if restored is not None and restored.id not in self._merged_leads:
                     restored.confirmed_requirements = [
                         {
                             **item,
@@ -660,6 +679,21 @@ class ImportService:
         # Get original ID for mapping
         original_id = record_data.get("__original_id__")
 
+        # A URL identifies an existing owned lead on Merge. Keep its content and
+        # link imported children to it instead of violating the unique URL index.
+        if model_class.__name__ == "JobLead" and record_data.get("url"):
+            existing = session.scalar(
+                select(JobLead).where(
+                    JobLead.user_id == user_id,
+                    JobLead.url == record_data["url"],
+                )
+            )
+            if existing is not None:
+                if original_id:
+                    self.id_mapper.add("JobLead", original_id, existing.id)
+                self._merged_leads.add(existing.id)
+                return None
+
         # Generate new ID
         new_id = str(uuid4())
 
@@ -810,11 +844,10 @@ class ImportService:
                 for segment in transcript["segments"]:
                     old_segment_id = segment["id"]
                     segment["id"] = str(uuid4())
-                    if not hasattr(self, "_interview_segment_ids"):
-                        self._interview_segment_ids = {}
-                    self._interview_segment_ids[(original_id, old_segment_id)] = (
-                        segment["id"]
-                    )
+                    if original_id:
+                        self._interview_segment_ids[(original_id, old_segment_id)] = (
+                            segment["id"]
+                        )
                 new_data["current_transcript"] = transcript
             new_data["transcript_generation"] = 1 if transcript else 0
             new_data["interview_generation"] = 0
