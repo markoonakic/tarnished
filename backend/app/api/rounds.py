@@ -2,12 +2,14 @@ import asyncio
 import shutil
 import tempfile
 from pathlib import Path
+from uuid import UUID
 
 from fastapi import (
     APIRouter,
     Depends,
     Header,
     HTTPException,
+    Query,
     Request,
     UploadFile,
     status,
@@ -92,13 +94,25 @@ async def get_user_application(
 async def create_round(
     application_id: str,
     data: RoundCreate,
+    idempotency_key: UUID | None = Header(default=None),
     expected_round_time_zone: str | None = Header(default=None),
     x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("rounds:write")),
     db: AsyncSession = Depends(get_db),
 ):
+    await lock_ai_settings(db)
     await get_user_application(application_id, user, db)
+    if idempotency_key is not None:
+        existing = await db.scalar(
+            select(Round)
+            .where(Round.id == str(idempotency_key))
+            .options(selectinload(Round.round_type), selectinload(Round.media))
+        )
+        if existing is not None:
+            if existing.application_id != application_id:
+                raise HTTPException(409, "Round request key is already in use")
+            return existing
 
     result = await db.execute(
         select(RoundType).where(
@@ -138,6 +152,8 @@ async def create_round(
         user, x_timezone=x_timezone
     )
     extra["completed_at"] = normalize_in_zone(data.completed_at, extra["time_zone"])
+    if idempotency_key is not None:
+        extra["id"] = str(idempotency_key)
     round = Round(
         **extra,
         application_id=application_id,
@@ -184,6 +200,9 @@ async def update_round(
     if not round:
         raise HTTPException(status_code=404, detail="Round not found")
 
+    if data.expected_transcript_generation is not None:
+        expected_generation(round, data.expected_transcript_generation)
+
     if data.round_type_id:
         result = await db.execute(
             select(RoundType).where(
@@ -195,7 +214,8 @@ async def update_round(
             raise HTTPException(status_code=400, detail="Invalid round type")
 
     update_data = data.model_dump(
-        exclude_unset=True, exclude={"expected_revision", "contact_ids"}
+        exclude_unset=True,
+        exclude={"expected_revision", "expected_transcript_generation", "contact_ids"},
     )
     try:
         for field in ("scheduled_at", "completed_at"):
@@ -254,21 +274,38 @@ async def update_round(
 @router.delete("/api/rounds/{round_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_round(
     round_id: str,
+    expected_revision: int | None = Query(default=None, ge=0),
+    expected_media_generation: int | None = Header(default=None, ge=0),
+    expected_transcript_generation: int | None = Header(default=None, ge=0),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("rounds:write")),
     db: AsyncSession = Depends(get_db),
 ):
+    await lock_ai_settings(db)
     result = await db.execute(
         select(Round)
         .join(Application)
         .where(Round.id == round_id, Application.user_id == user.id)
         .options(selectinload(Round.media))
+        .execution_options(populate_existing=True)
     )
     round = result.scalars().first()
 
     if not round:
         raise HTTPException(status_code=404, detail="Round not found")
 
+    if (
+        (expected_revision is not None and expected_revision != round.revision)
+        or (
+            expected_media_generation is not None
+            and expected_media_generation != round.media_generation
+        )
+        or (
+            expected_transcript_generation is not None
+            and expected_transcript_generation != round.transcript_generation
+        )
+    ):
+        raise HTTPException(409, "Round changed. Reload and review before deleting.")
     await claim_media_generation(db, round_id, user.id, round.media_generation)
     await db.refresh(round, attribute_names=["media"])
     # Shared CAS blobs are retained for offline maintenance.
@@ -575,6 +612,11 @@ async def upload_transcript(
     generation = expected_generation(round, expected_transcript_generation)
     legacy = expected_transcript_generation is None
     suffix = Path(file.filename or "").suffix.lower().lstrip(".")
+    if suffix not in {"txt", "srt", "vtt", "pdf", "docx", "doc", "md", "rtf"}:
+        raise HTTPException(
+            422,
+            "Unsupported transcript file. Choose TXT, SRT, VTT, PDF, DOCX, DOC, MD or RTF.",
+        )
     editable = suffix in ("txt", "srt", "vtt")
     if editable or round.current_transcript:
         check_api_key_scope(auth, "files:read")

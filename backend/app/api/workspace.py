@@ -266,9 +266,22 @@ async def contacts(
         statement = statement.where(Contact.company_id == company_id)
     if role:
         statement = statement.where(Contact.role == role)
-    return await paged(
+    result = await paged(
         db, statement.order_by(func.lower(Contact.name), Contact.id), page, per_page
     )
+    company_ids = {row["company_id"] for row in result["items"] if row["company_id"]}
+    names = dict(
+        (
+            await db.execute(
+                select(Company.id, Company.name).where(
+                    Company.user_id == user.id, Company.id.in_(company_ids)
+                )
+            )
+        ).all()
+    )
+    for row in result["items"]:
+        row["company_name"] = names.get(row["company_id"])
+    return result
 
 
 @router.post("/contacts", status_code=201)

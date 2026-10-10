@@ -27,10 +27,12 @@ from app.schemas.api_keys import (
 from app.schemas.settings import (
     RoundTypeCreate,
     RoundTypeFullResponse,
+    RoundTypeUpdate,
     StatusCreate,
     StatusFullResponse,
     StatusUpdate,
 )
+from app.services.ai_settings import lock_ai_settings
 from app.services.reference_data import (
     find_user_status_by_name,
     find_visible_round_type_by_name,
@@ -171,6 +173,7 @@ async def create_status(
     _: object = Depends(require_api_key_scope("statuses:write")),
     db: AsyncSession = Depends(get_db),
 ):
+    await lock_ai_settings(db)
     existing_status = await find_user_status_by_name(db, user.id, data.name)
     if existing_status is not None:
         raise HTTPException(status_code=409, detail="Status name already exists")
@@ -197,7 +200,11 @@ async def create_status(
         order=max_order + 1,
     )
     db.add(status_obj)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(409, "Status name already exists") from None
     await db.refresh(status_obj)
     return status_obj
 
@@ -210,13 +217,24 @@ async def update_status(
     _: object = Depends(require_api_key_scope("statuses:write")),
     db: AsyncSession = Depends(get_db),
 ):
+    await lock_ai_settings(db)
     result = await db.execute(
-        select(ApplicationStatus).where(ApplicationStatus.id == status_id)
+        select(ApplicationStatus)
+        .where(ApplicationStatus.id == status_id)
+        .execution_options(populate_existing=True)
     )
     status_obj = result.scalar_one_or_none()
 
     if not status_obj:
         raise HTTPException(status_code=404, detail="Status not found")
+    if status_obj.user_id not in (None, user.id):
+        raise HTTPException(403, "Not authorized to edit this status")
+    for field in ("name", "color", "meaning"):
+        expected = getattr(data, "expected_" + field)
+        if expected is not None and expected != getattr(status_obj, field):
+            raise HTTPException(
+                409, "Settings changed. Reload and review before retrying."
+            )
 
     # If editing a default status, create user override instead
     if status_obj.user_id is None:
@@ -321,6 +339,7 @@ async def create_round_type(
     _: object = Depends(require_api_key_scope("round_types:write")),
     db: AsyncSession = Depends(get_db),
 ):
+    await lock_ai_settings(db)
     existing_round_type = await find_visible_round_type_by_name(db, user.id, data.name)
     if existing_round_type is not None:
         raise HTTPException(status_code=409, detail="Round type name already exists")
@@ -331,7 +350,11 @@ async def create_round_type(
         user_id=user.id,
     )
     db.add(round_type)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(409, "Round type name already exists") from None
     await db.refresh(round_type)
     return round_type
 
@@ -339,12 +362,17 @@ async def create_round_type(
 @router.patch("/round-types/{round_type_id}", response_model=RoundTypeFullResponse)
 async def update_round_type(
     round_type_id: str,
-    data: RoundTypeCreate,
+    data: RoundTypeUpdate,
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("round_types:write")),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(RoundType).where(RoundType.id == round_type_id))
+    await lock_ai_settings(db)
+    result = await db.execute(
+        select(RoundType)
+        .where(RoundType.id == round_type_id)
+        .execution_options(populate_existing=True)
+    )
     round_type = result.scalar_one_or_none()
 
     if not round_type:
@@ -358,6 +386,9 @@ async def update_round_type(
         raise HTTPException(
             status_code=403, detail="Not authorized to edit this round type"
         )
+
+    if data.expected_name is not None and data.expected_name != round_type.name:
+        raise HTTPException(409, "Settings changed. Reload and review before retrying.")
 
     if data.name is not None:
         existing_round_type = await find_visible_round_type_by_name(
