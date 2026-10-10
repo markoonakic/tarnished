@@ -25,7 +25,14 @@ export async function createStatus(data: {
 
 export async function updateStatus(
   id: string,
-  data: { name?: string; color?: string; meaning?: StatusMeaning }
+  data: {
+    name?: string;
+    color?: string;
+    meaning?: StatusMeaning;
+    expected_name?: string;
+    expected_color?: string;
+    expected_meaning?: StatusMeaning;
+  }
 ): Promise<Status> {
   const response = await api.patch(`/api/statuses/${id}`, data);
   invalidateEvidenceQueries();
@@ -52,7 +59,7 @@ export async function createRoundType(data: {
 
 export async function updateRoundType(
   id: string,
-  data: { name: string }
+  data: { name: string; expected_name?: string }
 ): Promise<RoundType> {
   const response = await api.patch(`/api/round-types/${id}`, data);
   invalidateEvidenceQueries();

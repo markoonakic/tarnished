@@ -9,6 +9,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { observeRead } from '../lib/queryClient';
 import { getApplication, deleteApplication } from '../lib/applications';
 import { deleteRound } from '../lib/rounds';
+import { isAxiosError } from 'axios';
+import { errorMessage } from '@/lib/errorMessage';
 import {
   mergeApplicationRoundMedia,
   preserveApplicationRounds,
@@ -152,12 +154,18 @@ function ApplicationDetailContent({ id }: { id: string }) {
   async function handleDeleteRound(roundId: string) {
     if (!confirm(t('Delete this round?'))) return;
     try {
-      await deleteRound(roundId);
+      await deleteRound(
+        roundId,
+        application?.rounds?.find((round) => round.id === roundId)
+      );
 
       setApplication((prev) => removeApplicationRound(prev, roundId));
       toast.success(t('Round deleted'));
-    } catch {
-      const errorMsg = t('Failed to delete round');
+    } catch (error) {
+      const errorMsg =
+        isAxiosError(error) && error.response
+          ? errorMessage(error.response.data, error.response.status)
+          : t('Failed to delete round');
       setError(errorMsg);
       showError(errorMsg);
     }

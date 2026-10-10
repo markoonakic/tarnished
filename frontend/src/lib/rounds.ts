@@ -5,13 +5,15 @@ import type { Round, RoundCreate, RoundUpdate } from './types';
 export async function createRound(
   applicationId: string,
   data: RoundCreate,
-  expectedTimeZone?: string
+  expectedTimeZone?: string,
+  requestKey?: string
 ): Promise<Round> {
   const response = await api.post(
     `/api/applications/${applicationId}/rounds`,
     data,
     {
       headers: withAxiosTimeZoneHeaders({
+        'Idempotency-Key': requestKey,
         'Expected-Round-Time-Zone': expectedTimeZone,
       }),
     }
@@ -34,8 +36,19 @@ export async function updateRound(
   return response.data;
 }
 
-export async function deleteRound(roundId: string): Promise<void> {
-  await api.delete(`/api/rounds/${roundId}`);
+export async function deleteRound(
+  roundId: string,
+  round?: Round
+): Promise<void> {
+  await api.delete(`/api/rounds/${roundId}`, {
+    params: { expected_revision: round?.revision },
+    headers: {
+      'Expected-Transcript-Generation':
+        round?.transcript_generation ?? (round ? 0 : undefined),
+      'Expected-Media-Generation':
+        round?.media_generation ?? (round ? 0 : undefined),
+    },
+  });
   invalidateEvidenceQueries();
 }
 

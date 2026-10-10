@@ -204,6 +204,7 @@ export interface RoundUpdate extends Partial<
   import('./apiV030').InterviewInput
 > {
   expected_revision?: number;
+  expected_transcript_generation?: number;
   round_type_id?: string;
   scheduled_at?: string | null;
   completed_at?: string | null;

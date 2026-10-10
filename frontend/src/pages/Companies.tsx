@@ -106,7 +106,7 @@ export default function Companies() {
 
           onClick={(event) => event.stopPropagation()}
         >
-          {companyNames.get(contact.company_id) || '—'}
+          {contact.company_name || companyNames.get(contact.company_id) || '—'}
         </TextLink>
       ) : (
         '—'

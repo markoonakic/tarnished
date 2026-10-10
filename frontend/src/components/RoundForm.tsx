@@ -9,8 +9,10 @@ import SearchableCombobox from './SearchableCombobox';
 import InterviewParticipants from './InterviewParticipants';
 import type { InterviewInput } from '@/lib/apiV030';
 import { observeRead } from '../lib/queryClient';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { isAxiosError } from 'axios';
+import { errorMessage } from '@/lib/errorMessage';
 import { useUserPreferences } from '../hooks/useUserPreferences';
 import {
   getEffectiveTimeZone,
@@ -23,7 +25,7 @@ import {
   uploadRoundTranscript,
   uploadMedia,
 } from '../lib/rounds';
-import { getTranscript, pasteTranscript } from '../lib/transcripts';
+import { pasteTranscript } from '../lib/transcripts';
 import { listRoundTypes } from '../lib/settings';
 import type { Round, RoundType, RoundCreate, RoundUpdate } from '../lib/types';
 import Dropdown from './Dropdown';
@@ -114,6 +116,11 @@ function RoundFormFields({
   const isEditing = Boolean(round);
   const [roundTypes, setRoundTypes] = useState<RoundType[]>([]);
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
+  const [requestKey] = useState(() => crypto.randomUUID());
+  const [transcriptGeneration, setTranscriptGeneration] = useState(
+    round?.transcript_generation ?? 0
+  );
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
 
@@ -152,6 +159,7 @@ function RoundFormFields({
     round?.transcript_summary || ''
   );
   const pendingTranscript = Boolean(transcriptFile || transcriptText.trim());
+  useUnsavedChanges(loading || pendingTranscript || mediaFiles.length > 0);
   const currentRound = persistedRound || round;
   const hasTranscript = Boolean(
     currentRound?.has_current_transcript || currentRound?.transcript_path
@@ -209,7 +217,7 @@ function RoundFormFields({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (timeZoneChanged) return;
+    if (timeZoneChanged || submitting.current) return;
     if (!roundTypeId) {
       setError(t('Please select a round type'));
       return;
@@ -221,6 +229,7 @@ function RoundFormFields({
       !confirm(t('Replace the current transcript and discard its corrections?'))
     )
       return;
+    submitting.current = true;
     setLoading(true);
     setError('');
 
@@ -231,6 +240,9 @@ function RoundFormFields({
         const data: RoundUpdate = {
           ...extra,
           expected_revision: existingRound.revision,
+          expected_transcript_generation: pendingTranscript
+            ? transcriptGeneration
+            : undefined,
           round_type_id: roundTypeId,
           scheduled_at:
             scheduledDate === dateTimeBaseline.scheduled.date &&
@@ -262,7 +274,8 @@ function RoundFormFields({
         savedRound = await createRound(
           applicationId,
           data,
-          dateTimeBaseline.timeZone
+          dateTimeBaseline.timeZone,
+          requestKey
         );
       }
 
@@ -287,18 +300,24 @@ function RoundFormFields({
                 setUploadProgress(
                   total > 0 ? Math.round((loaded / total) * 100) : 0
                 ),
-              savedRound.transcript_generation ?? 0
+              transcriptGeneration
             );
           } else {
-            const current = await getTranscript(savedRound.id);
-            await pasteTranscript(
+            const transcript = await pasteTranscript(
               savedRound.id,
-              current.generation,
+              transcriptGeneration,
               transcriptText,
               transcriptFormat
             );
-            savedRound = { ...savedRound, has_current_transcript: true };
+            savedRound = {
+              ...savedRound,
+              has_current_transcript: true,
+              transcript_generation: transcript.generation,
+            };
           }
+          setTranscriptGeneration(
+            savedRound.transcript_generation ?? transcriptGeneration + 1
+          );
           clearTranscript();
           setPersistedRound(savedRound);
           onPersist(savedRound);
@@ -357,13 +376,16 @@ function RoundFormFields({
       }
       const detail = isAxiosError(error) ? error.response?.data?.detail : null;
       setError(
-        typeof detail === 'string'
-          ? detail
-          : error instanceof Error
-            ? error.message
-            : t('Failed to save round. Please check your inputs.')
+        isAxiosError(error) && error.response
+          ? errorMessage(error.response.data, error.response.status)
+          : typeof detail === 'string'
+            ? t(detail)
+            : error instanceof Error
+              ? error.message
+              : t('Failed to save round. Please check your inputs.')
       );
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   }
@@ -601,6 +623,7 @@ function RoundFormFields({
         <div className="sm:col-span-2">
           <span className={labelClass}>{t('tasks.participants')}</span>
           <InterviewParticipants
+            containerBackground="bg2"
             value={participants}
             onChange={setParticipants}
           />
@@ -762,7 +785,20 @@ function RoundFormFields({
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     e.target.value = '';
-                    if (file) setTranscriptFile(file);
+                    if (file) {
+                      if (
+                        !/\.(txt|srt|vtt|pdf|docx?|md|rtf)$/i.test(file.name)
+                      ) {
+                        setError(
+                          t(
+                            'Unsupported transcript file. Choose TXT, SRT, VTT, PDF, DOCX, DOC, MD or RTF.'
+                          )
+                        );
+                        return;
+                      }
+                      setError('');
+                      setTranscriptFile(file);
+                    }
                   }}
                   className="flex items-center gap-1.5"
                 >

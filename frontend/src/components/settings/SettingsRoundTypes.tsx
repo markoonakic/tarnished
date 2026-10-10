@@ -1,9 +1,10 @@
 import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
+import { isAxiosError } from 'axios';
 import { roundTypeLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
 import { observeRead } from '@/lib/queryClient';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   listRoundTypes,
   createRoundType,
@@ -24,6 +25,8 @@ export default function SettingsRoundTypes() {
   const [editRoundTypeName, setEditRoundTypeName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
 
   useEffect(() => observeRead(loadData), []);
 
@@ -47,16 +50,28 @@ export default function SettingsRoundTypes() {
 
   async function handleUpdateRoundType(e: React.FormEvent) {
     e.preventDefault();
-    if (!editingRoundType || !editRoundTypeName.trim()) return;
-
+    if (!editingRoundType || !editRoundTypeName.trim() || submitting.current)
+      return;
+    submitting.current = true;
+    setBusy(true);
     try {
       await updateRoundType(editingRoundType.id, {
+        expected_name: editingRoundType.name,
         name: editRoundTypeName.trim(),
       });
       setEditingRoundType(null);
       loadData();
-    } catch {
-      setError(t('Failed to update round type'));
+    } catch (error) {
+      setError(
+        t(
+          isAxiosError(error) && error.response?.status === 409
+            ? 'Settings changed. Reload and review before retrying.'
+            : 'Failed to update round type'
+        )
+      );
+    } finally {
+      submitting.current = false;
+      setBusy(false);
     }
   }
 
@@ -77,14 +92,18 @@ export default function SettingsRoundTypes() {
 
   async function handleAddRoundType(e: React.FormEvent) {
     e.preventDefault();
-    if (!newRoundTypeName.trim()) return;
-
+    if (!newRoundTypeName.trim() || submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
     try {
       await createRoundType({ name: newRoundTypeName.trim() });
       setNewRoundTypeName('');
       loadData();
     } catch {
       setError(t('Failed to create round type'));
+    } finally {
+      submitting.current = false;
+      setBusy(false);
     }
   }
 
@@ -120,10 +139,12 @@ export default function SettingsRoundTypes() {
               {roundTypes.map((type) => (
                 <div
                   key={type.id}
-                  className="bg-tertiary flex items-center justify-between rounded px-3 py-2"
+                  className="bg-tertiary flex min-w-0 items-center justify-between gap-3 rounded px-3 py-2"
                 >
-                  <span className="text-fg1">{roundTypeLabel(type)}</span>
-                  <div className="flex items-center gap-2">
+                  <span className="text-fg1 min-w-0 flex-1 [overflow-wrap:anywhere]">
+                    {roundTypeLabel(type)}
+                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
                     {type.is_default && (
                       <span className="text-muted text-xs">{t('Default')}</span>
                     )}
@@ -166,9 +187,9 @@ export default function SettingsRoundTypes() {
                     onChange={(e) => setEditRoundTypeName(e.target.value)}
                     placeholder={t('Round type name')}
                     aria-label={t('Round type name')}
-                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright min-w-0 flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
-                  <Button variant="primary" type="submit">
+                  <Button variant="primary" type="submit" disabled={busy}>
                     {t('Save')}
                   </Button>
                   <Button
@@ -187,9 +208,9 @@ export default function SettingsRoundTypes() {
                   onChange={(e) => setNewRoundTypeName(e.target.value)}
                   placeholder={t('New round type name')}
                   aria-label={t('New round type name')}
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright min-w-0 flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
-                <Button variant="primary" type="submit">
+                <Button variant="primary" type="submit" disabled={busy}>
                   {t('Add')}
                 </Button>
               </form>

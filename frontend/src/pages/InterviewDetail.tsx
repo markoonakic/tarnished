@@ -1,4 +1,6 @@
 import Button from '@/components/ui/Button';
+import { isAxiosError } from 'axios';
+import { errorMessage } from '@/lib/errorMessage';
 import TextLink from '@/components/ui/TextLink';
 import { formatDateTime, formatDate as displayDate } from '@/lib/displayDate';
 import { useState } from 'react';
@@ -419,11 +421,18 @@ function InterviewPage({ id }: { id?: string }) {
                     onClick={async () => {
                       if (!confirm(t('tasks.deleteInterview'))) return;
                       try {
-                        await apiV030.deleteInterview(interview.id);
+                        await apiV030.deleteInterview(interview.id, interview);
                         await refresh();
                         navigate(`/applications/${interview.application_id}`);
-                      } catch {
-                        toast.error(t('tasks.saveFailed'));
+                      } catch (error) {
+                        toast.error(
+                          isAxiosError(error) && error.response
+                            ? errorMessage(
+                                error.response.data,
+                                error.response.status
+                              )
+                            : t('tasks.saveFailed')
+                        );
                       }
                     }}
                   >

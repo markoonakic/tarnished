@@ -1,3 +1,5 @@
+import type { Round } from './types';
+import { deleteRound } from './rounds';
 import api, { withAxiosTimeZoneHeaders } from './api';
 import { queryClient } from './queryClient';
 
@@ -73,7 +75,9 @@ export interface ContactInput {
   communication_note?: string | null;
   company_id?: ID | null;
 }
-export interface Contact extends OwnedRecord, ContactInput {}
+export interface Contact extends OwnedRecord, ContactInput {
+  company_name?: string | null;
+}
 export interface ContactDetail extends Contact {
   company: Company | null;
   applications: ApplicationRecord[];
@@ -660,7 +664,7 @@ export const apiV030 = {
     post<Interview>(`/applications/${applicationId}/rounds`, data),
   updateInterview: (id: ID, data: InterviewUpdate) =>
     patch<Interview>(`/rounds/${id}`, data),
-  deleteInterview: (id: ID) => remove(`/rounds/${id}`),
+  deleteInterview: (id: ID, round?: Round) => deleteRound(id, round),
   overview: () => get<Overview>('/dashboard/overview'),
   board: (query?: JobQuery) => get<Board>('/applications/board', query),
   leads: (query?: JobQuery) => get<Page<Lead>>('/job-leads', query),

@@ -3,6 +3,7 @@ import { formatDateTime } from '@/lib/displayDate';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import Card from './Card';
 function NoteBody({ body }: { body: string }) {
   const { t } = useTranslation();
@@ -73,6 +74,7 @@ export default function NotesPanel({
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
+  useUnsavedChanges(busy || (editing !== null && Boolean(body.trim())));
   function start(id: string, text = '') {
     setEditing(id);
     setBody(text);

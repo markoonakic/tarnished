@@ -1,10 +1,12 @@
 import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
+import HelpTip from '../HelpTip';
+import { isAxiosError } from 'axios';
 import { statusLabel } from '@/lib/referenceLabels';
 import { historyStageLabels } from '@/lib/history';
 import { useTranslation } from 'react-i18next';
 import { observeRead } from '@/lib/queryClient';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   listStatuses,
   createStatus,
@@ -44,6 +46,8 @@ export default function SettingsStatuses() {
   const [editStatusColor, setEditStatusColor] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -69,8 +73,9 @@ export default function SettingsStatuses() {
 
   async function handleAddStatus(e: React.FormEvent) {
     e.preventDefault();
-    if (!newStatusName.trim()) return;
-
+    if (!newStatusName.trim() || submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
     try {
       await createStatus({
         name: newStatusName.trim(),
@@ -81,6 +86,9 @@ export default function SettingsStatuses() {
       loadData();
     } catch {
       setError(t('Failed to create status'));
+    } finally {
+      submitting.current = false;
+      setBusy(false);
     }
   }
 
@@ -93,18 +101,31 @@ export default function SettingsStatuses() {
 
   async function handleUpdateStatus(e: React.FormEvent) {
     e.preventDefault();
-    if (!editingStatus || !editStatusName.trim()) return;
-
+    if (!editingStatus || !editStatusName.trim() || submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
     try {
       await updateStatus(editingStatus.id, {
+        expected_name: editingStatus.name,
+        expected_color: editingStatus.color,
+        expected_meaning: editingStatus.meaning,
         name: editStatusName.trim(),
         color: editStatusColor,
         meaning: editMeaning,
       });
       setEditingStatus(null);
       loadData();
-    } catch {
-      setError(t('Failed to update status'));
+    } catch (error) {
+      setError(
+        t(
+          isAxiosError(error) && error.response?.status === 409
+            ? 'Settings changed. Reload and review before retrying.'
+            : 'Failed to update status'
+        )
+      );
+    } finally {
+      submitting.current = false;
+      setBusy(false);
     }
   }
 
@@ -137,6 +158,11 @@ export default function SettingsStatuses() {
       <div className="bg-secondary rounded-lg p-4 md:p-6">
         <h2 className="text-fg1 mb-4 text-xl font-bold">
           {t('Application Statuses')}
+          <HelpTip label={t('About application statuses')}>
+            {t(
+              'Choose the stage used in reports; the status name can be your own. Changes apply the next time a status is selected, not to existing history.'
+            )}
+          </HelpTip>
         </h2>
 
         {error && (
@@ -166,7 +192,7 @@ export default function SettingsStatuses() {
                       style={{ backgroundColor: status.color }}
                     />
                     <div className="min-w-0">
-                      <span className="text-fg1 break-words">
+                      <span className="text-fg1 [overflow-wrap:anywhere]">
                         {statusLabel(status)}
                       </span>
                       {!status.is_default && (
@@ -245,7 +271,12 @@ export default function SettingsStatuses() {
                     onChange={(e) => setEditStatusColor(e.target.value)}
                     className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"
                   />
-                  <Button variant="primary" type="submit" className="h-10">
+                  <Button
+                    variant="primary"
+                    type="submit"
+                    disabled={busy}
+                    className="h-10"
+                  >
                     {t('Save')}
                   </Button>
                   <Button
@@ -292,17 +323,16 @@ export default function SettingsStatuses() {
                   onChange={(e) => setNewStatusColor(e.target.value)}
                   className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"
                 />
-                <Button variant="primary" type="submit" className="h-10">
+                <Button
+                  variant="primary"
+                  type="submit"
+                  disabled={busy}
+                  className="h-10"
+                >
                   {t('Add')}
                 </Button>
               </form>
             )}
-
-            <p className="text-muted mt-3 text-xs">
-              {t(
-                'Choose the stage used in reports; the status name can be your own. Changes apply the next time a status is selected, not to existing history.'
-              )}
-            </p>
           </>
         )}
       </div>

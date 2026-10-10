@@ -11,11 +11,13 @@ export default function InterviewParticipants({
   onChange,
   companyId,
   readOnly = false,
+  containerBackground = 'bg1',
 }: {
   value: string[];
   onChange: (value: string[]) => void;
   companyId?: string | null;
   readOnly?: boolean;
+  containerBackground?: 'bg1' | 'bg2' | 'bg3';
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -83,6 +85,7 @@ export default function InterviewParticipants({
       </div>
       {adding && (
         <SearchableCombobox
+          containerBackground={containerBackground}
           value=""
           options={
             contacts.data
