@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import HelpTip from '../HelpTip';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import {
@@ -94,12 +95,14 @@ export default function FeatureToggles() {
 
   return (
     <div className="bg-secondary rounded-lg p-4 md:p-6">
-      <h2 className="text-fg1 mb-4 text-xl font-bold">{t('Features')}</h2>
-      <p className="text-muted mb-6 text-sm">
-        {t(
-          'Choose which optional dashboard and analytics sections stay visible.'
-        )}
-      </p>
+      <h2 className="text-fg1 mb-4 text-xl font-bold">
+        {t('Features')}
+        <HelpTip label={t('About features')}>
+          {t(
+            'Choose which optional dashboard and analytics sections stay visible.'
+          )}
+        </HelpTip>
+      </h2>
 
       <ul className="space-y-3">
         {toggles.map((toggle) => {
@@ -111,9 +114,7 @@ export default function FeatureToggles() {
                 <div className="min-w-0 flex-1">
                   <div className="text-fg1 text-sm font-medium">
                     {toggle.label}
-                  </div>
-                  <div className="text-muted mt-1 text-sm">
-                    {toggle.description}
+                    <HelpTip label={toggle.label}>{toggle.description}</HelpTip>
                   </div>
                 </div>
                 <Button

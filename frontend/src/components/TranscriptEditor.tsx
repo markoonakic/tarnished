@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import Dropdown from './Dropdown';
 import HelpTip from './HelpTip';
 import Button from '@/components/ui/Button';
@@ -83,6 +84,7 @@ export default function TranscriptEditor({
   const [dirty, setDirty] = useState(false);
   const [editing, setEditing] = useState(false);
   const [savedNotice, setSavedNotice] = useState('');
+  useUnsavedChanges(dirty || busy);
 
   useEffect(() => {
     let active = true;
@@ -435,7 +437,7 @@ export default function TranscriptEditor({
               open={(!saved.transcript && !saved.attachment_only) || undefined}
               className="border-tertiary mt-6 border-t pt-4"
             >
-              <summary className="text-fg1 cursor-pointer font-medium">
+              <summary className="text-fg1 hover:bg-bg2 hover:text-fg0 cursor-pointer rounded px-3 py-1.5 text-sm font-medium transition-all duration-200 ease-in-out">
                 {saved.transcript || saved.attachment_only
                   ? t('Replace transcript')
                   : t('Add transcript')}
@@ -550,7 +552,7 @@ export default function TranscriptEditor({
               </div>
             </details>
             <details className="text-muted mt-4 text-sm">
-              <summary className="cursor-pointer">
+              <summary className="hover:bg-bg2 hover:text-fg0 cursor-pointer rounded px-3 py-1.5 transition-all duration-200 ease-in-out">
                 {t('Transcript actions')}
               </summary>
               <div className="mt-3 flex flex-wrap gap-3">

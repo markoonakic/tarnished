@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { errorMessage } from '@/lib/errorMessage';
 import type { FeedbackController } from '../hooks/useFeedback';
 import Modal from './Modal';
+import HelpTip from './HelpTip';
 
 /** Shared copy for the same report protocol; speech keeps its separate retry rules. */
 export default function FeedbackStatus({
@@ -106,7 +107,7 @@ export default function FeedbackStatus({
       t('Feedback ready · {{value0}}', {
         value0: formatDate(report.run_at),
       });
-  else if (state) message = emptyHint;
+  else if (state) message = t('No feedback yet.');
 
   if (running && (state?.job?.total_sections ?? 0) > 1)
     message += t(
@@ -116,8 +117,7 @@ export default function FeedbackStatus({
         total_sections: state!.job!.total_sections,
       }
     );
-  if (!running && !starting && (unknown || terminalUncertain))
-    message += t('· Trying again may repeat work or charges.');
+  const retryRisk = !running && !starting && (unknown || terminalUncertain);
 
   const problem = feedback.readError || unknown || failed || !!requestError;
   return (
@@ -149,7 +149,7 @@ export default function FeedbackStatus({
         </Modal>
       )}
       {message && (
-        <p
+        <div
           role={problem ? 'alert' : 'status'}
           className={
             problem
@@ -171,7 +171,15 @@ export default function FeedbackStatus({
             />
           )}
           {message}
-        </p>
+          {state && !report && !running && !starting && !problem && (
+            <HelpTip label={requestLabel}>{emptyHint}</HelpTip>
+          )}
+          {retryRisk && (
+            <HelpTip label={t('Try again')}>
+              {t('· Trying again may repeat work or charges.')}
+            </HelpTip>
+          )}
+        </div>
       )}
       {report && (savedPeriod || starting || running) && (
         <p className="text-muted">

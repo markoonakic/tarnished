@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import HelpTip from '../HelpTip';
 import { formatDateTime } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
@@ -289,12 +290,14 @@ export default function SettingsAPIKey() {
       </div>
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 mb-4 text-xl font-bold">{t('API Keys')}</h2>
-        <p className="text-muted mb-6 text-sm">
-          {t(
-            'Create a separate API key for each CLI profile or browser extension. Keys are shown in full only once when created.'
-          )}
-        </p>
+        <h2 className="text-fg1 mb-4 text-xl font-bold">
+          {t('API Keys')}
+          <HelpTip label={t('About API keys')}>
+            {t(
+              'Create a separate API key for each CLI profile or browser extension. Keys are shown in full only once when created.'
+            )}
+          </HelpTip>
+        </h2>
 
         {loading ? (
           <Loading message={t('Loading API keys...')} />

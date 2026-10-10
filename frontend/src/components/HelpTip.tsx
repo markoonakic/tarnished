@@ -44,6 +44,7 @@ export default function HelpTip({
     >
       <Button
         variant="icon"
+        data-help-tip
         type="button"
         aria-label={label}
         aria-expanded={open}
@@ -74,7 +75,7 @@ export default function HelpTip({
         <PopoverLayer
           role="tooltip"
           id={id}
-          className="space-y-1 p-3 text-sm leading-relaxed"
+          className="pointer-events-none space-y-1 p-3 text-sm leading-relaxed"
           style={{ width: 256 }}
         >
           {children}

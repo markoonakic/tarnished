@@ -48,6 +48,29 @@ describe('ApplicationModal', () => {
 
     render(<ApplicationModal isOpen onClose={vi.fn()} onSuccess={vi.fn()} />);
 
+    expect(
+      screen.queryByText('Include rejections, but not automatic receipts.')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Leave the date blank to use today in your effective time zone.'
+      )
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'About employer replies' })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      'Include rejections, but not automatic receipts.'
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'About employer replies' })
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'About applied dates' })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      'Leave the date blank to use today in your effective time zone.'
+    );
     const companyInput = screen.getByLabelText(/company/i);
     fireEvent.change(companyInput, { target: { value: 'Acme' } });
 

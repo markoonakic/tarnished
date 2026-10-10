@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import HelpTip from './HelpTip';
 import { t } from '@/lib/i18n';
 import { statusLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
@@ -475,9 +476,9 @@ export default function ApplicationModal({
                     />
                     {t('Employer replied')}
                   </label>
-                  <p className="text-muted text-xs">
+                  <HelpTip label={t('About employer replies')}>
                     {t('Include rejections, but not automatic receipts.')}
-                  </p>
+                  </HelpTip>
                   {(responseAction === 'record' ||
                     (responseAction === 'unchanged' &&
                       formApplication?.response_state === 'recorded')) && (
@@ -519,8 +520,14 @@ export default function ApplicationModal({
                   >
                     {t('Applied Date')}
                   </label>
+                  {!isEditing && (
+                    <HelpTip label={t('About applied dates')}>
+                      {t(
+                        'Leave the date blank to use today in your effective time zone.'
+                      )}
+                    </HelpTip>
+                  )}
                   <input
-                    aria-describedby="applied-date-help"
                     id="applied-date"
                     type="date"
                     required={isEditing && !isPreparing}
@@ -530,16 +537,6 @@ export default function ApplicationModal({
                   />
                 </div>
 
-                {!isEditing && (
-                  <p
-                    id="applied-date-help"
-                    className="text-muted text-sm sm:col-span-2"
-                  >
-                    {t(
-                      'Leave the date blank to use today in your effective time zone.'
-                    )}
-                  </p>
-                )}
                 <div className="sm:col-span-2">
                   <label
                     htmlFor="job-url"

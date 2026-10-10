@@ -220,9 +220,16 @@ describe('ScopedReport', () => {
       '/api/applications/a1/feedback'
     );
     expect(post).not.toHaveBeenCalled();
+    expect(screen.getByText('No feedback yet.')).toBeInTheDocument();
     expect(
-      screen.getByText(/No saved application report yet/i)
-    ).toBeInTheDocument();
+      screen.queryByText(/No saved application report yet/i)
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'application feedback' })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      'No saved application report yet.'
+    );
   });
 
   it('sends only the generation, config revision and an intent id', async () => {

@@ -242,6 +242,15 @@ it('RoundCard retains rejected file, retries the same precondition and requires 
   });
   expect(await screen.findByRole('alert')).toHaveTextContent('no audio track');
   expect(screen.getByText(/Pending: replacement.wav/)).toBeVisible();
+  expect(
+    screen.queryByText(/Existing media\/transcripts remain available/)
+  ).not.toBeInTheDocument();
+  const tips = screen.getAllByRole('button', { name: 'Media Files' });
+  fireEvent.mouseEnter(tips[tips.length - 1].parentElement!);
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'A lost response may mean the upload succeeded'
+  );
+  fireEvent.mouseLeave(tips[tips.length - 1].parentElement!);
   expect(screen.getByText('first.wav', { selector: 'span' })).toBeVisible();
   const uploads = () => requests.filter((r) => r.url?.endsWith('/media'));
   expect(uploads()[0].headers.get('Expected-Media-Generation')).toBe('1');

@@ -2,6 +2,7 @@ import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
+import HelpTip from './HelpTip';
 import { newPasswordError } from '../lib/password';
 import { useState, useEffect } from 'react';
 import { createUser } from '../lib/admin';
@@ -61,6 +62,11 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
         <div className="border-tertiary flex flex-shrink-0 items-center justify-between border-b p-4">
           <h3 id="modal-title" className="text-primary font-medium">
             {t('Create User')}
+            <HelpTip label={t('About password resets')}>
+              {t(
+                'Password resets invalidate all browser sessions and signed links, not API keys.'
+              )}
+            </HelpTip>
           </h3>
           <Button
             variant="icon"
@@ -118,12 +124,6 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
               autoComplete="new-password"
             />
           </div>
-
-          <p className="text-muted text-sm">
-            {t(
-              'Password resets invalidate all browser sessions and signed links, not API keys.'
-            )}
-          </p>
 
           <div className="border-tertiary flex justify-end gap-3 border-t pt-4">
             <Button type="button" onClick={onClose} disabled={loading}>

@@ -335,7 +335,12 @@ it('InterviewFeedback presents uncertain interruption without automatic replay',
   };
   vi.spyOn(window, 'confirm').mockReturnValue(false);
   render(<InterviewFeedback round={round} onClose={vi.fn()} />);
-  await screen.findByText(/Trying again may repeat work or charges/);
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Try again' })
+  );
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Trying again may repeat work or charges'
+  );
   fireEvent.click(
     screen.getByRole('button', { name: 'Try again: interview feedback' })
   );

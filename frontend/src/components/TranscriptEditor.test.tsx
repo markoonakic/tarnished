@@ -72,6 +72,9 @@ it('opens in reading mode and links to feedback without sending unsaved edits', 
     />
   );
   await screen.findByText('<script>literal source</script>');
+  expect(
+    screen.getByText('Replace transcript', { selector: 'summary' })
+  ).toHaveClass('hover:bg-bg2', 'hover:text-fg0');
   expect(screen.queryByLabelText('Text for passage 1')).not.toBeInTheDocument();
   expect(
     screen.queryByText(
@@ -93,6 +96,9 @@ it('opens in reading mode and links to feedback without sending unsaved edits', 
   ).toBeDisabled();
   fireEvent.click(screen.getByRole('button', { name: 'Read transcript' }));
   expect(screen.getByText('Draft')).toBeVisible();
+  const leaving = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(leaving);
+  expect(leaving.defaultPrevented).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: 'Edit transcript' }));
   expect(screen.getByLabelText('Text for passage 1')).toHaveValue('Draft');
   fireEvent.click(screen.getByRole('button', { name: 'Save corrections' }));

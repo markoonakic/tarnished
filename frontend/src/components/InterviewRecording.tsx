@@ -14,6 +14,7 @@ import TranscriptionPanel from './TranscriptionPanel';
 import FileButton from './FileButton';
 import Modal from './Modal';
 import { useState } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { isAxiosError } from 'axios';
 import { uploadMedia, deleteMedia, getMediaSignedUrl } from '../lib/rounds';
 import type { Round, RoundMedia } from '../lib/types';
@@ -58,6 +59,7 @@ export default function InterviewRecording({
     generation: number;
     replaceId?: string;
   } | null>(null);
+  useUnsavedChanges(uploading || Boolean(pendingMedia));
   const [mediaError, setMediaError] = useState('');
   const [deleteConflict, setDeleteConflict] = useState(false);
   const [editingTranscript, setEditingTranscript] = useState(false);
@@ -305,12 +307,14 @@ export default function InterviewRecording({
         )}
         {pendingMedia && !uploading && (
           <div className="mb-2 text-sm">
-            <p>
+            <div>
               {t('Pending:')} {pendingMedia.file.name}
-              {t(
-                '. Existing media/transcripts remain available. A lost response may mean the upload succeeded; review before retrying.'
-              )}
-            </p>
+              <HelpTip label={t('Media Files')}>
+                {t(
+                  '. Existing media/transcripts remain available. A lost response may mean the upload succeeded; review before retrying.'
+                )}
+              </HelpTip>
+            </div>
             <Button
               type="button"
               onClick={() => void sendMedia(pendingMedia)}
