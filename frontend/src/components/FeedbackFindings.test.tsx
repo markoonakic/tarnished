@@ -45,7 +45,7 @@ it('keeps Better answer safety guidance inside its HelpTip', () => {
   );
 });
 
-it.each(['direct', 'snapshot', 'custom'] as const)(
+it.each(['direct', 'snapshot', 'duplicate', 'ambiguous', 'custom'] as const)(
   'localizes saved round identity via %s without changing quotes',
   async (mode) => {
     await i18n.changeLanguage('sr-Latn');
@@ -68,7 +68,20 @@ it.each(['direct', 'snapshot', 'custom'] as const)(
         report={{
           ...report,
           evidence_snapshot: {
-            metrics: { rounds: [{ ...round, round_builtin_key: 'technical' }] },
+            metrics: {
+              rounds: [
+                { ...round, round_builtin_key: 'technical' },
+                ...(mode === 'duplicate' || mode === 'ambiguous'
+                  ? [
+                      {
+                        ...round,
+                        round_builtin_key:
+                          mode === 'duplicate' ? 'technical' : null,
+                      },
+                    ]
+                  : []),
+              ],
+            },
           },
           findings: [
             {
@@ -106,7 +119,11 @@ it.each(['direct', 'snapshot', 'custom'] as const)(
     );
     expect(
       screen.getByText(
-        new RegExp(mode === 'custom' ? '^Technical' : '^Tehnički intervju')
+        new RegExp(
+          ['custom', 'ambiguous'].includes(mode)
+            ? '^Technical'
+            : '^Tehnički intervju'
+        )
       )
     ).toBeVisible();
     expect(quote).toBe(JSON.stringify(round));

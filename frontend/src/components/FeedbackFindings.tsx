@@ -50,7 +50,13 @@ function savedRoundLabel(round: Record<string, unknown>, report: Report) {
           'outcome',
         ].every((field) => (row[field] ?? null) === (round[field] ?? null))
       ) ?? [];
-    if (matches.length === 1) key = matches[0].round_builtin_key;
+    if (
+      matches.length &&
+      matches.every(
+        (row) => row.round_builtin_key === matches[0].round_builtin_key
+      )
+    )
+      key = matches[0].round_builtin_key;
   }
   return roundTypeLabel({
     name: text(round.round_type),
