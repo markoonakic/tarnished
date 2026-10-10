@@ -238,3 +238,44 @@ describe('ImportModal', () => {
     expect(progress).toHaveAttribute('aria-valuenow', '30');
   });
 });
+
+it.each(['en', 'sr-Latn'])(
+  'returns to the validated summary after upload failure and retries the same intent in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    validateImport.mockResolvedValue({
+      valid: true,
+      summary: {},
+      warnings: [],
+      errors: [],
+    });
+    importData
+      .mockRejectedValueOnce(new Error(t('Import failed')))
+      .mockResolvedValueOnce({ import_id: 'job-retry' });
+    connectToImportProgress.mockImplementation(() => ({ close: vi.fn() }));
+    const { default: ImportModal } = await import('./ImportModal');
+    render(<ImportModal isOpen onClose={vi.fn()} onSuccess={vi.fn()} />);
+    const file = new File(['zip'], 'retained.zip');
+    fireEvent.change(screen.getByLabelText(t('ZIP archive')), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: t('Validate') }));
+    await screen.findByText(t('Import Summary'));
+    fireEvent.click(screen.getByRole('button', { name: t('Import Data') }));
+    await screen.findByText(t('Import failed'));
+    expect(screen.getByText(t('Import Summary'))).toBeVisible();
+    const callsBeforeRetry = importData.mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: t('Import Data') }));
+    await waitFor(() =>
+      expect(importData.mock.calls.length).toBe(callsBeforeRetry + 1)
+    );
+    const calls = importData.mock.calls.slice(-2);
+    expect(calls[0][0]).toBe(file);
+    expect(calls[1][0]).toBe(file);
+    expect(calls[0][3]).toEqual(expect.any(String));
+    expect(calls[1][3]).toBe(calls[0][3]);
+    expect(
+      validateImport.mock.calls.filter((call) => call[0] === file)
+    ).toHaveLength(1);
+  }
+);

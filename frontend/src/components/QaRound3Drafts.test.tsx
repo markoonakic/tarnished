@@ -118,7 +118,8 @@ it('keeps Other files selection and kind on Reload before and during upload', as
     expect(apiV030.uploadAttachment).toHaveBeenCalledWith(
       'app',
       'portfolio',
-      file
+      file,
+      expect.any(String)
     )
   );
   expect(exitBlocked()).toBe(true);

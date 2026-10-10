@@ -119,3 +119,22 @@ it('wraps unbroken long names without shrinking the action column or forcing a w
     'min-w-0'
   );
 });
+
+it('guards round-type drafts after a failed save', async () => {
+  vi.mocked(updateRoundType).mockRejectedValueOnce(new Error('Offline'));
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+  fireEvent.change(screen.getByLabelText('Round type name'), {
+    target: { value: 'Keep draft' },
+  });
+  for (const failed of [false, true]) {
+    if (failed) {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await screen.findByText('Failed to update round type');
+    }
+    const unload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+    expect(screen.getByLabelText('Round type name')).toHaveValue('Keep draft');
+  }
+});

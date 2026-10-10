@@ -241,3 +241,38 @@ describe('SettingsAPIKey', () => {
     );
   });
 });
+
+it('guards API-key label and preset drafts after a failed save', async () => {
+  listAPIKeys.mockResolvedValue([
+    {
+      id: 'key',
+      label: 'Original',
+      revision: 1,
+      preset: 'full_access',
+      scopes: [],
+      key_prefix: 'fixture',
+      created_at: '2026-10-01T00:00:00Z',
+    },
+  ]);
+  updateAPIKey.mockRejectedValueOnce(new Error('Offline'));
+  render(
+    <MemoryRouter>
+      <SettingsAPIKey />
+    </MemoryRouter>
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Rename' }));
+  const label = screen.getByLabelText('Label', { selector: 'input[id^=edit]' });
+  fireEvent.change(label, { target: { value: 'Keep key label' } });
+  for (const failed of [false, true]) {
+    if (failed) {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+      );
+    }
+    const unload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+    expect(label).toHaveValue('Keep key label');
+  }
+});

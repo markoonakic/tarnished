@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { t } from '@/lib/i18n';
 import HelpTip from '../HelpTip';
 import { isAxiosError } from 'axios';
@@ -48,6 +49,7 @@ export default function SettingsStatuses() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
+  useUnsavedChanges(busy || editingStatus !== null || Boolean(newStatusName));
 
   const loadData = useCallback(async () => {
     try {

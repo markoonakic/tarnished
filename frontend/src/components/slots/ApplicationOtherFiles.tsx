@@ -1,7 +1,7 @@
 import Button from '@/components/ui/Button';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { formatDate } from '@/lib/displayDate';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import HelpTip from '../HelpTip';
 import { apiV030, type Attachment, type AttachmentKind } from '@/lib/apiV030';
@@ -25,6 +25,7 @@ export default function ApplicationOtherFiles({
   const [kind, setKind] = useState<AttachmentKind>('other');
   const [file, setFile] = useState<File>();
   const [busy, setBusy] = useState(false);
+  const uploadIntent = useRef<{ file: File; key: string } | null>(null);
   const [error, setError] = useState('');
   useUnsavedChanges(open && (busy || Boolean(file)));
   useEffect(() => {
@@ -189,7 +190,14 @@ export default function ApplicationOtherFiles({
                 const saved = await apiV030.uploadAttachment(
                   application.id,
                   kind,
-                  file
+                  file,
+                  (uploadIntent.current?.file === file
+                    ? uploadIntent.current
+                    : (uploadIntent.current = {
+                        file,
+                        key: crypto.randomUUID(),
+                      })
+                  ).key
                 );
                 setFiles((items) => [...items, saved]);
                 setOpen(false);

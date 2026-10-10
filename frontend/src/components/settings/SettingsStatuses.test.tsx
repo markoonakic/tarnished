@@ -182,3 +182,28 @@ it('a label-only rename preserves the selected definition meaning rather than in
     })
   );
 });
+
+it('guards status edit drafts before and after a failed save', async () => {
+  vi.mocked(updateStatus).mockRejectedValueOnce(new Error('Offline'));
+  render(
+    <MemoryRouter>
+      <SettingsStatuses />
+    </MemoryRouter>
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+  fireEvent.change(screen.getByPlaceholderText('Status name'), {
+    target: { value: 'Keep draft' },
+  });
+  for (const failed of [false, true]) {
+    if (failed) {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await screen.findByText('Failed to update status');
+    }
+    const unload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+    expect(screen.getByPlaceholderText('Status name')).toHaveValue(
+      'Keep draft'
+    );
+  }
+});

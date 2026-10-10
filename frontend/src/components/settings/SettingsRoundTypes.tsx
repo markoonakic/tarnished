@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { t } from '@/lib/i18n';
 import { isAxiosError } from 'axios';
 import { roundTypeLabel } from '@/lib/referenceLabels';
@@ -28,6 +29,9 @@ export default function SettingsRoundTypes() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
+  useUnsavedChanges(
+    busy || editingRoundType !== null || Boolean(newRoundTypeName)
+  );
 
   useEffect(() => observeRead(loadData), []);
 

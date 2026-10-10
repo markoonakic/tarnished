@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { isAxiosError } from 'axios';
 import { errorMessage } from '@/lib/errorMessage';
 import HelpTip from '../HelpTip';
@@ -160,6 +161,8 @@ export default function SettingsAPIKey() {
   const [editingScopes, setEditingScopes] = useState<string[]>([]);
   const [editingAdvancedScopesOpen, setEditingAdvancedScopesOpen] =
     useState(false);
+
+  useUnsavedChanges(submitting || editingId !== null || Boolean(newLabel));
 
   const loadAPIKeys = useCallback(async () => {
     try {

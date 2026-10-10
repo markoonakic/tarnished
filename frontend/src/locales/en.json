@@ -1071,6 +1071,7 @@
   "error.rate_limited": "Too many requests. Wait before trying again.",
   "error.server_error": "The server could not complete the request.",
   "error.service_error": "The service could not complete the request.",
+  "error.database_busy": "The database is busy. Wait, then retry. Your changes are kept.",
   "error.service_unavailable": "The service is unavailable. Try again later.",
   "error.service_timeout": "The service did not respond in time. Check the status before trying again.",
   "error.request_failed": "Request failed",

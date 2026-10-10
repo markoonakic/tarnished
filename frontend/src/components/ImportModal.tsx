@@ -36,6 +36,11 @@ export default function ImportModal({
   useTranslation();
   const toast = useToastContext();
   const progressConnection = useRef<EventSource | null>(null);
+  const uploadIntent = useRef<{
+    file: File;
+    override: boolean;
+    key: string;
+  } | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -56,6 +61,7 @@ export default function ImportModal({
     progressConnection.current?.close();
     progressConnection.current = null;
     setJobId(null);
+    uploadIntent.current = null;
     setFile(null);
     setValidation(null);
     setTransferState(null);
@@ -150,7 +156,16 @@ export default function ImportModal({
               fileName: file.name,
             })
           );
-        }
+        },
+        (uploadIntent.current?.file === file &&
+        uploadIntent.current.override === override
+          ? uploadIntent.current
+          : (uploadIntent.current = {
+              file,
+              override,
+              key: crypto.randomUUID(),
+            })
+        ).key
       );
 
       setJobId(import_id);
@@ -168,6 +183,7 @@ export default function ImportModal({
           : t('Import failed. Please try again.')
       );
       setImporting(false);
+      setTransferState(null);
     }
   };
 

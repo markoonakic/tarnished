@@ -55,12 +55,16 @@ export function useUnsavedChanges(active: boolean) {
       }
     };
     const pop = (event: PopStateEvent) => {
+      const next = event.state?.idx as number | undefined;
       if (restoring) {
-        restoring = false;
         event.stopImmediatePropagation();
+        // Another Back/Forward can arrive before the requested restoration.
+        // Suppress all intermediate entries until the draft's entry is reached.
+        if (next === index) restoring = false;
+        else if (index !== undefined && next !== undefined)
+          window.history.go(index - next);
         return;
       }
-      const next = event.state?.idx as number | undefined;
       if (
         index !== undefined &&
         next !== undefined &&

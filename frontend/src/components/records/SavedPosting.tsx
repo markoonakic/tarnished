@@ -1,5 +1,6 @@
 import Button from '@/components/ui/Button';
 import { useState } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useTranslation } from 'react-i18next';
 import { apiV030 } from '@/lib/apiV030';
 import { jobLeadError } from '@/lib/jobLeads';
@@ -32,6 +33,7 @@ export default function SavedPosting({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const count = Array.from(draft).length;
+  useUnsavedChanges(open && (busy || draft !== (text || '')));
   return (
     <section className="bg-bg2 mb-4 rounded-lg p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">

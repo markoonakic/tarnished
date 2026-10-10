@@ -364,3 +364,26 @@ it('warns before leaving with queued recordings or pasted transcript text', asyn
   window.dispatchEvent(recording);
   expect(recording.defaultPrevented).toBe(true);
 });
+
+it('bounds fieldsets around long pending recording and transcript filenames', async () => {
+  show();
+  await screen.findByLabelText('Notes');
+  const media = screen
+    .getByRole('button', { name: 'Add Media' })
+    .parentElement!.querySelector('input')!;
+  fireEvent.change(media, {
+    target: { files: [new File(['audio'], 'N'.repeat(190) + '.wav')] },
+  });
+  const filename = screen.getByText('N'.repeat(190) + '.wav');
+  expect(filename.closest('fieldset')).toHaveClass('min-w-0');
+  fireEvent.click(screen.getByRole('button', { name: 'Add transcript' }));
+  const file = screen
+    .getByRole('button', { name: 'Choose transcript file' })
+    .parentElement!.querySelector('input')!;
+  fireEvent.change(file, {
+    target: { files: [new File(['WEBVTT'], 'T'.repeat(180) + '.vtt')] },
+  });
+  expect(
+    screen.getByText('T'.repeat(180) + '.vtt').closest('fieldset')
+  ).toHaveClass('min-w-0');
+});

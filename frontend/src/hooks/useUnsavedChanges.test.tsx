@@ -67,3 +67,19 @@ it('restores a cancelled Back or Forward before the router can discard the edito
   expect(router).not.toHaveBeenCalled();
   window.removeEventListener('popstate', router);
 });
+
+it('waits for the exact history entry after two rapid canceled Back actions', () => {
+  window.history.replaceState({ idx: 2 }, '', '/draft');
+  vi.spyOn(window, 'confirm').mockReturnValue(false);
+  const go = vi.spyOn(window.history, 'go').mockImplementation(() => {});
+  render(<Draft />);
+  const router = vi.fn();
+  window.addEventListener('popstate', router);
+  for (const idx of [1, 0, 1, 2]) {
+    window.dispatchEvent(new PopStateEvent('popstate', { state: { idx } }));
+  }
+  expect(go.mock.calls).toEqual([[1], [2], [1]]);
+  expect(window.confirm).toHaveBeenCalledOnce();
+  expect(router).not.toHaveBeenCalled();
+  window.removeEventListener('popstate', router);
+});

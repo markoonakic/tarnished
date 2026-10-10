@@ -1071,6 +1071,7 @@
   "error.rate_limited": "Previše zahteva. Sačekajte pre novog pokušaja.",
   "error.server_error": "Server nije mogao da završi zahtev.",
   "error.service_error": "Servis nije mogao da završi zahtev.",
+  "error.database_busy": "Baza podataka je zauzeta. Sačekajte, pa pokušajte ponovo. Izmene su sačuvane u obrascu.",
   "error.service_unavailable": "Servis nije dostupan. Pokušajte kasnije.",
   "error.service_timeout": "Servis nije odgovorio na vreme. Proverite status pre novog pokušaja.",
   "error.request_failed": "Zahtev nije uspeo",

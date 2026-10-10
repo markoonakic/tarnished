@@ -1,6 +1,7 @@
 import { t } from './i18n';
 
 const codes = [
+  'database_busy',
   'settings_changed',
   'transcript_attachment_replacement',
   'create_content_changed',

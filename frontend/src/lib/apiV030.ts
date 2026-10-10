@@ -693,11 +693,20 @@ export const apiV030 = {
   fetchApplicationSource: (id: ID) =>
     post<SourcePreview>(`/applications/${id}/fetch-source`),
   attachments: (id: ID) => get<Attachment[]>(`/applications/${id}/attachments`),
-  uploadAttachment: (id: ID, kind: AttachmentKind, file: File) => {
+  uploadAttachment: (
+    id: ID,
+    kind: AttachmentKind,
+    file: File,
+    requestId?: string
+  ) => {
     const data = new FormData();
     data.append('kind', kind);
     data.append('file', file);
-    return post<Attachment>(`/applications/${id}/attachments`, data);
+    return api
+      .post<Attachment>(`/api/applications/${id}/attachments`, data, {
+        headers: requestId ? { 'Idempotency-Key': requestId } : undefined,
+      })
+      .then((response) => response.data);
   },
   downloadAttachment: async (id: ID): Promise<Blob> =>
     (await api.get<Blob>(`/api/attachments/${id}`, { responseType: 'blob' }))

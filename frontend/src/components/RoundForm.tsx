@@ -9,7 +9,7 @@ import SearchableCombobox from './SearchableCombobox';
 import InterviewParticipants from './InterviewParticipants';
 import type { InterviewInput } from '@/lib/apiV030';
 import { observeRead } from '../lib/queryClient';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { isAxiosError } from 'axios';
 import { errorMessage } from '@/lib/errorMessage';
@@ -93,6 +93,7 @@ function RoundFormFields({
   onTimeZoneConflict,
 }: Props & { timeZone: string; onTimeZoneConflict: () => void }) {
   useTranslation();
+  const formId = useId();
   const [interviewZone, setInterviewZone] = useState(round?.time_zone ?? '');
   const timeZone = interviewZone || preferenceZone;
   const [duration, setDuration] = useState(
@@ -416,7 +417,7 @@ function RoundFormFields({
   const pendingUploads = pendingTranscript || mediaFiles.length > 0;
 
   return (
-    <form onSubmit={handleSubmit} className="bg-bg2 rounded-lg p-4">
+    <form onSubmit={handleSubmit} className="bg-bg2 min-w-0 rounded-lg p-4">
       <h3 className="text-primary mb-4 font-medium">
         {round ? t('Edit Round') : t('New Round')}
       </h3>
@@ -449,11 +450,11 @@ function RoundFormFields({
         className="grid grid-cols-1 gap-4 sm:grid-cols-2"
       >
         <div>
-          <label htmlFor="round-type" className={labelClass}>
+          <label htmlFor={`${formId}-round-type`} className={labelClass}>
             {t('Round Type')}
           </label>
           <Dropdown
-            id="round-type"
+            id={`${formId}-round-type`}
             options={[
               { value: '', label: t('Select type') },
               ...roundTypes.map((type) => ({
@@ -471,7 +472,7 @@ function RoundFormFields({
         <div>
           <span className="mb-1 flex h-5 items-center gap-1">
             <label
-              htmlFor="scheduled-date"
+              htmlFor={`${formId}-scheduled-date`}
               className="text-muted text-sm font-semibold"
             >
               {t('Scheduled Date')}
@@ -484,7 +485,7 @@ function RoundFormFields({
             </HelpTip>
           </span>
           <input
-            id="scheduled-date"
+            id={`${formId}-scheduled-date`}
             type="date"
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
@@ -493,11 +494,11 @@ function RoundFormFields({
         </div>
 
         <div>
-          <label htmlFor="scheduled-time" className={labelClass}>
+          <label htmlFor={`${formId}-scheduled-time`} className={labelClass}>
             {t('Time (optional)')}
           </label>
           <input
-            id="scheduled-time"
+            id={`${formId}-scheduled-time`}
             type="text"
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
@@ -508,11 +509,11 @@ function RoundFormFields({
 
         {round ? (
           <div>
-            <label htmlFor="round-outcome" className={labelClass}>
+            <label htmlFor={`${formId}-round-outcome`} className={labelClass}>
               {t('Outcome')}
             </label>
             <Dropdown
-              id="round-outcome"
+              id={`${formId}-round-outcome`}
               options={[
                 { value: '', label: t('Pending') },
                 { value: 'passed', label: t('Passed') },
@@ -532,11 +533,14 @@ function RoundFormFields({
         {round && (
           <>
             <div>
-              <label htmlFor="completed-date" className={labelClass}>
+              <label
+                htmlFor={`${formId}-completed-date`}
+                className={labelClass}
+              >
                 {t('Completed Date')}
               </label>
               <input
-                id="completed-date"
+                id={`${formId}-completed-date`}
                 type="date"
                 value={completedDate}
                 onChange={(e) => setCompletedDate(e.target.value)}
@@ -545,11 +549,14 @@ function RoundFormFields({
             </div>
 
             <div>
-              <label htmlFor="completed-time" className={labelClass}>
+              <label
+                htmlFor={`${formId}-completed-time`}
+                className={labelClass}
+              >
                 {t('Time (optional)')}
               </label>
               <input
-                id="completed-time"
+                id={`${formId}-completed-time`}
                 type="text"
                 value={completedTime}
                 onChange={(e) => setCompletedTime(e.target.value)}
@@ -561,11 +568,11 @@ function RoundFormFields({
         )}
 
         <div className="sm:col-span-2">
-          <label htmlFor="round-notes" className={labelClass}>
+          <label htmlFor={`${formId}-round-notes`} className={labelClass}>
             {t('Notes')}
           </label>
           <textarea
-            id="round-notes"
+            id={`${formId}-round-notes`}
             value={notesSummary}
             onChange={(e) => setNotesSummary(e.target.value)}
             rows={3}
@@ -584,11 +591,11 @@ function RoundFormFields({
           {t('tasks.interviewDetails')}
         </p>
         <div>
-          <label htmlFor="interview-zone" className={labelClass}>
+          <label htmlFor={`${formId}-interview-zone`} className={labelClass}>
             {t('tasks.timeZone')}
           </label>
           <SearchableCombobox
-            id="interview-zone"
+            id={`${formId}-interview-zone`}
             value={timeZone}
             onChange={setInterviewZone}
             containerBackground="bg2"
@@ -602,11 +609,14 @@ function RoundFormFields({
           />
         </div>
         <div>
-          <label htmlFor="interview-duration" className={labelClass}>
+          <label
+            htmlFor={`${formId}-interview-duration`}
+            className={labelClass}
+          >
             {t('tasks.durationMinutes')}
           </label>
           <input
-            id="interview-duration"
+            id={`${formId}-interview-duration`}
             type="number"
             min="1"
             max="1440"
@@ -616,11 +626,11 @@ function RoundFormFields({
           />
         </div>
         <div>
-          <label htmlFor="interview-mode" className={labelClass}>
+          <label htmlFor={`${formId}-interview-mode`} className={labelClass}>
             {t('tasks.mode')}
           </label>
           <Dropdown
-            id="interview-mode"
+            id={`${formId}-interview-mode`}
             value={mode || ''}
             onChange={(value) => setMode(value as InterviewInput['mode'])}
             options={['onsite', 'video', 'phone', 'other'].map((value) => ({
@@ -631,11 +641,11 @@ function RoundFormFields({
           />
         </div>
         <div>
-          <label htmlFor="interview-where" className={labelClass}>
+          <label htmlFor={`${formId}-interview-where`} className={labelClass}>
             {t(mode === 'video' ? 'tasks.meetingLink' : 'tasks.location')}
           </label>
           <input
-            id="interview-where"
+            id={`${formId}-interview-where`}
             type={mode === 'video' ? 'url' : 'text'}
             value={where}
             onChange={(e) => setWhere(e.target.value)}
@@ -655,7 +665,7 @@ function RoundFormFields({
       {/* Same layout as the Media Files part of the round card; files upload on save. */}
       <fieldset
         disabled={loading}
-        className="border-tertiary mt-4 border-t pt-3"
+        className="border-tertiary mt-4 min-w-0 border-t pt-3"
       >
         <legend className="sr-only">{t('Media Files')}</legend>
         <div className="mb-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
@@ -722,7 +732,7 @@ function RoundFormFields({
       {/* Same layout as the transcript part of the round card. */}
       <fieldset
         disabled={loading}
-        className="border-tertiary mt-3 border-t pt-3"
+        className="border-tertiary mt-3 min-w-0 border-t pt-3"
       >
         <legend className="sr-only">{t('Add transcript')}</legend>
         {!transcriptOpen && (
@@ -767,13 +777,13 @@ function RoundFormFields({
               <>
                 <div className="sm:w-48">
                   <label
-                    htmlFor="round-transcript-format"
+                    htmlFor={`${formId}-round-transcript-format`}
                     className={labelClass}
                   >
                     {t('Transcript format')}
                   </label>
                   <Dropdown
-                    id="round-transcript-format"
+                    id={`${formId}-round-transcript-format`}
                     value={transcriptFormat}
                     onChange={(value) =>
                       setTranscriptFormat(value as typeof transcriptFormat)
@@ -786,11 +796,14 @@ function RoundFormFields({
                   />
                 </div>
                 <div>
-                  <label htmlFor="round-transcript-text" className={labelClass}>
+                  <label
+                    htmlFor={`${formId}-round-transcript-text`}
+                    className={labelClass}
+                  >
                     {t('Transcript text')}
                   </label>
                   <textarea
-                    id="round-transcript-text"
+                    id={`${formId}-round-transcript-text`}
                     maxLength={2000000}
                     value={transcriptText}
                     onChange={(e) => setTranscriptText(e.target.value)}
@@ -841,11 +854,14 @@ function RoundFormFields({
           </div>
         )}
         <div className="mt-4">
-          <label htmlFor="transcript-summary" className={labelClass}>
+          <label
+            htmlFor={`${formId}-transcript-summary`}
+            className={labelClass}
+          >
             {t('Transcript Summary')}
           </label>
           <textarea
-            id="transcript-summary"
+            id={`${formId}-transcript-summary`}
             value={transcriptSummary}
             onChange={(e) => setTranscriptSummary(e.target.value)}
             rows={3}
@@ -858,7 +874,10 @@ function RoundFormFields({
       </fieldset>
 
       {loading && uploadingName && (
-        <p role="status" className="text-muted mt-4 text-sm">
+        <p
+          role="status"
+          className="text-muted mt-4 text-sm [overflow-wrap:anywhere]"
+        >
           {t('Uploading...')} {uploadingName}
         </p>
       )}

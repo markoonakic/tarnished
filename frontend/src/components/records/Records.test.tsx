@@ -374,7 +374,8 @@ it('lists kinds, bytes and dates, asks for kind on upload, and deletes only afte
     expect(apiV030.uploadAttachment).toHaveBeenCalledWith(
       'app-1',
       'solution',
-      file
+      file,
+      expect.any(String)
     )
   );
   await waitFor(() =>
@@ -429,4 +430,93 @@ it('normalizes metadata without inventing optional fields', () => {
     priority: 'normal',
     tags: [],
   });
+});
+
+it.each(['lead', 'application'] as const)(
+  'guards priority/tags drafts and pending saves for %s',
+  async (type) => {
+    const update =
+      type === 'lead' ? apiV030.updateLead : apiV030.updateApplication;
+    vi.mocked(update).mockImplementationOnce(
+      () => new Promise<never>(() => {})
+    );
+    render(
+      <RecordTags
+        record={{ id: 'draft-record', priority: 'normal', tags: [] }}
+        type={type}
+        revision={3}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Add tag' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Priority' }));
+    fireEvent.click(screen.getByRole('option', { name: 'High' }));
+    for (const pending of [false, true]) {
+      if (pending)
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      const unload = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(unload);
+      expect(unload.defaultPrevented).toBe(true);
+      expect(screen.getByRole('dialog')).toBeVisible();
+    }
+  }
+);
+it.each(['lead', 'application'] as const)(
+  'guards replacement posting text before and during save for %s',
+  async (type) => {
+    const replace =
+      type === 'lead'
+        ? apiV030.replaceLeadSource
+        : apiV030.replaceApplicationSource;
+    vi.mocked(replace).mockImplementationOnce(
+      () => new Promise<never>(() => {})
+    );
+    render(
+      <SavedPosting
+        id="draft-posting"
+        type={type}
+        revision={2}
+        text="Original"
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Replace text' }));
+    fireEvent.change(screen.getByLabelText('Posting text'), {
+      target: { value: 'Keep replacement' },
+    });
+    for (const pending of [false, true]) {
+      if (pending)
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      const unload = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(unload);
+      expect(unload.defaultPrevented).toBe(true);
+      expect(screen.getByLabelText('Posting text')).toHaveValue(
+        'Keep replacement'
+      );
+    }
+  }
+);
+it('reuses the attachment upload key after a lost response', async () => {
+  vi.mocked(apiV030.uploadAttachment)
+    .mockRejectedValueOnce(new Error('Lost response'))
+    .mockResolvedValueOnce(attachment);
+  render(<ApplicationOtherFiles application={application} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Add file' }));
+  const file = new File(['Work'], 'work.txt');
+  fireEvent.change(screen.getByLabelText('File'), {
+    target: { files: [file] },
+  });
+  fireEvent.submit(
+    screen.getByRole('button', { name: 'Upload' }).closest('form')!
+  );
+  await screen.findByRole('alert');
+  fireEvent.submit(
+    screen.getByRole('button', { name: 'Upload' }).closest('form')!
+  );
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  );
+  const calls = vi.mocked(apiV030.uploadAttachment).mock.calls;
+  expect(calls).toHaveLength(2);
+  expect(calls[0][3]).toEqual(expect.any(String));
+  expect(calls[1][3]).toBe(calls[0][3]);
+  expect(calls[1][2]).toBe(file);
 });

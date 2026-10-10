@@ -62,7 +62,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showRoundForm, setShowRoundForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingIds, setEditingIds] = useState<string[]>([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackOpened, setFeedbackOpened] = useState(false);
@@ -174,10 +174,9 @@ function ApplicationDetailContent({ id }: { id: string }) {
     }
   }
 
-  async function handleRoundSaved(savedRound: Round) {
-    setShowRoundForm(false);
-    setEditingId(null);
-
+  function handleRoundSaved(savedRound: Round, editorId?: string) {
+    if (editorId) setEditingIds((ids) => ids.filter((id) => id !== editorId));
+    else setShowRoundForm(false);
     handleRoundPersisted(savedRound);
   }
 
@@ -262,7 +261,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
         )}
         <div className="bg-secondary mb-6 rounded-lg p-6">
           <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-            <div className="flex-1">
+            <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
               <div className="mb-1 flex items-center gap-2">
                 <h1 className="text-primary text-2xl font-bold">
                   {application.company_id ? (
@@ -609,20 +608,24 @@ function ApplicationDetailContent({ id }: { id: string }) {
           {application.rounds && application.rounds.length > 0 ? (
             <div className="space-y-4">
               {application.rounds.map((round) =>
-                round.id === editingId ? (
+                editingIds.includes(round.id) ? (
                   <RoundForm
                     key={round.id}
                     round={round}
                     applicationId={id!}
-                    onSave={handleRoundSaved}
+                    onSave={(saved) => handleRoundSaved(saved, round.id)}
                     onPersist={handleRoundPersisted}
-                    onCancel={() => setEditingId(null)}
+                    onCancel={() =>
+                      setEditingIds((ids) =>
+                        ids.filter((id) => id !== round.id)
+                      )
+                    }
                   />
                 ) : (
                   <RoundCard
                     key={round.id}
                     round={round}
-                    onEdit={() => setEditingId(round.id)}
+                    onEdit={() => setEditingIds((ids) => [...ids, round.id])}
                     onDelete={() => handleDeleteRound(round.id)}
                     onMediaChange={() => handleMediaChange(round.id)}
                   />

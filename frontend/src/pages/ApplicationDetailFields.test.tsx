@@ -82,7 +82,13 @@ it.each([0, null])(
         </Routes>
       </MemoryRouter>
     );
-    await screen.findByRole('heading', { name: 'Salary fixture' });
+    const heading = await screen.findByRole('heading', {
+      name: 'Salary fixture',
+    });
+    expect(heading.parentElement?.parentElement).toHaveClass(
+      'min-w-0',
+      '[overflow-wrap:anywhere]'
+    );
     if (amount === 0) {
       expect(
         screen.getByRole('heading', { name: 'Salary Range' })
