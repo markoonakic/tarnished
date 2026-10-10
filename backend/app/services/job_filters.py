@@ -5,7 +5,7 @@ from datetime import datetime, time, timedelta
 from typing import Annotated, Literal
 
 from fastapi import HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import String, cast, or_
 
 from app.models import Application, JobLead
@@ -31,7 +31,10 @@ def filter_params(
     employment_type: str | None = None,
     seniority: str | None = None,
     priority: str | None = None,
-    tags: Annotated[list[str] | None, Query()] = None,
+    tags: Annotated[
+        list[Annotated[str, Field(min_length=1, max_length=100)]] | None,
+        Query(max_length=10),
+    ] = None,
     date_field: str | None = None,
     show_archived: bool = False,
     decision: Literal["interesting", "rejected", "archived", "undecided"] | None = None,

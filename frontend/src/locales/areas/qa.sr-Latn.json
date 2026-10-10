@@ -1,4 +1,6 @@
 {
+  "Proposed wording": "Predložena formulacija",
+  "Check the facts before using it.": "Proverite činjenice pre upotrebe.",
   "error.settings_changed": "Podešavanja su izmenjena. Ponovo učitajte i proverite pre ponovnog pokušaja.",
   "error.transcript_attachment_replacement": "Izričito obrišite izmenjivi transkript pre otpremanja priloga. Postojeći transkript i nacrt su sačuvani.",
   "error.create_content_changed": "Ovaj zahtev je već sačuvao zapis sa drugačijim vrednostima. Ponovo učitajte i proverite sačuvani zapis. Nacrt je sačuvan.",

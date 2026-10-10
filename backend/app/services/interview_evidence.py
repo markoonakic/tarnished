@@ -583,6 +583,7 @@ async def pipeline_evidence_sources(data, *, include_workspace_metrics=True):
         {
             "application_id": r.get("application_id"),
             "round_type": r.get("round_type"),
+            "round_builtin_key": r.get("round_builtin_key"),
             "outcome": r.get("outcome"),
             "scheduled_at": r.get("scheduled_at"),
             "completed_at": r.get("completed_at"),

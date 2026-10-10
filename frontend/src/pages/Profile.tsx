@@ -711,7 +711,7 @@ export default function Profile() {
               </div>
             ) : (
               <div className="bg-secondary mb-6 flex flex-wrap items-start justify-between gap-4 rounded-lg p-6">
-                <div>
+                <div className="max-w-full min-w-0 [overflow-wrap:anywhere]">
                   <h2 className="text-fg1 text-2xl font-bold">
                     {profile.display_name ||
                       [profile.first_name, profile.last_name]

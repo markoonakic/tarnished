@@ -1,4 +1,6 @@
 {
+  "Proposed wording": "Proposed wording",
+  "Check the facts before using it.": "Check the facts before using it.",
   "error.settings_changed": "Settings changed. Reload and review before retrying.",
   "error.transcript_attachment_replacement": "Delete the editable transcript explicitly before uploading an attachment. Your existing transcript and draft are kept.",
   "error.create_content_changed": "This request already saved a record with different values. Reload and review the saved record. Your draft is kept.",

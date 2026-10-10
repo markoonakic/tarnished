@@ -84,6 +84,19 @@ async function open() {
 function card(name: string) {
   return screen.getByRole('heading', { name }).closest('section')!;
 }
+it('bounds long accepted display names with a wrapping header', async () => {
+  profile.display_name = 'W'.repeat(240);
+  render(<Profile />);
+  const name = await screen.findByRole('heading', {
+    name: profile.display_name,
+  });
+  expect(name.parentElement).toHaveClass(
+    'min-w-0',
+    'max-w-full',
+    '[overflow-wrap:anywhere]'
+  );
+});
+
 it('keeps a profile draft on Reload and a cancelled navigation link', async () => {
   await open();
   fireEvent.click(

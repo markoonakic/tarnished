@@ -1,9 +1,117 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, expect, it } from 'vitest';
+import { fireEvent } from '@testing-library/react';
+import i18n from '@/lib/i18n';
 import type { FeedbackState } from '../hooks/useFeedback';
 import FeedbackFindings from './FeedbackFindings';
 
-afterEach(cleanup);
+afterEach(async () => {
+  cleanup();
+  await i18n.changeLanguage('en');
+});
+
+it('keeps Better answer safety guidance inside its HelpTip', () => {
+  render(
+    <FeedbackFindings
+      scope="interview"
+      report={{
+        ...report,
+        findings: [
+          {
+            observation: 'Observed',
+            interpretation: 'Review',
+            action: 'Practice',
+            limitations: '',
+            citations: [],
+            coaching: {
+              version: 1,
+              kind: 'interview',
+              title: 'Finding',
+              answer_citation: 0,
+              better_answer: 'Proposed answer',
+            },
+          },
+        ],
+      }}
+    />
+  );
+  expect(screen.getByText('Proposed wording')).toBeVisible();
+  expect(
+    screen.queryByText('Check the facts before using it.')
+  ).not.toBeInTheDocument();
+  fireEvent.focus(screen.getByRole('button', { name: 'Proposed wording' }));
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Check the facts before using it.'
+  );
+});
+
+it.each(['direct', 'snapshot', 'custom'] as const)(
+  'localizes saved round identity via %s without changing quotes',
+  async (mode) => {
+    await i18n.changeLanguage('sr-Latn');
+    const round = {
+      application_id: 'app',
+      round_type: 'Technical',
+      scheduled_at: null,
+      completed_at: null,
+      outcome: null,
+      ...(mode === 'direct'
+        ? { round_builtin_key: 'technical' }
+        : mode === 'custom'
+          ? { round_builtin_key: null }
+          : {}),
+    };
+    const quote = JSON.stringify(round);
+    render(
+      <FeedbackFindings
+        scope="pipeline"
+        report={{
+          ...report,
+          evidence_snapshot: {
+            metrics: { rounds: [{ ...round, round_builtin_key: 'technical' }] },
+          },
+          findings: [
+            {
+              observation: 'Observed',
+              interpretation: 'Review',
+              action: 'Practice',
+              limitations: '',
+              citations: [
+                {
+                  source_id: 'record',
+                  quote: JSON.stringify({
+                    application_id: 'app',
+                    company: 'North',
+                  }),
+                },
+                { source_id: 'round', quote },
+              ],
+              coaching: {
+                version: 1,
+                kind: 'pipeline',
+                title: 'Finding',
+                records: [
+                  {
+                    record_citation: 0,
+                    round_citations: [1],
+                    condition: 'Check',
+                    action: 'Review',
+                  },
+                ],
+              },
+            },
+          ],
+        }}
+      />
+    );
+    expect(
+      screen.getByText(
+        new RegExp(mode === 'custom' ? '^Technical' : '^Tehnički intervju')
+      )
+    ).toBeVisible();
+    expect(quote).toBe(JSON.stringify(round));
+  }
+);
 const report: NonNullable<FeedbackState['report']> = {
   run_at: '2026-09-28T10:00:00Z',
   provider: 'fixture',

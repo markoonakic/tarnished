@@ -98,6 +98,7 @@ export interface FeedbackState {
     period?: string;
     as_of?: string | null;
     time_zone?: string;
+    evidence_snapshot?: { metrics?: { rounds?: Record<string, unknown>[] } };
     findings: FeedbackFinding[];
     sources: FeedbackSource[];
     limitations: string[];

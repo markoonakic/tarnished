@@ -2,7 +2,12 @@ import Button from '@/components/ui/Button';
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Company } from '@/lib/apiV030';
-import { advancedFilterKeys, recordFilterKeys } from '@/lib/recordFilters';
+import {
+  advancedFilterKeys,
+  recordFilterKeys,
+  filterTags,
+  MAX_FILTER_TAGS,
+} from '@/lib/recordFilters';
 import Dropdown from '../Dropdown';
 import SearchableCombobox from '../SearchableCombobox';
 import TagInput from '../TagInput';
@@ -190,7 +195,8 @@ export default function MoreFilters({
               <TagInput
                 id={id + '-tags'}
                 label={t('records.tags')}
-                value={params.getAll('tags')}
+                value={filterTags(params.getAll('tags'))}
+                maxTags={MAX_FILTER_TAGS}
                 onChange={(tags) => onChange({ tags })}
               />
             </div>
