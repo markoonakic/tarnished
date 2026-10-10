@@ -362,9 +362,9 @@ export default function ActivityHeatmap() {
         </div>
       </div>
       {scrollable && (
-        <p className="text-fg2 mt-2 text-xs">
+        <HelpTip label={t('Activity Heatmap')}>
           {t('Scroll for earlier months')}
-        </p>
+        </HelpTip>
       )}
     </div>
   );

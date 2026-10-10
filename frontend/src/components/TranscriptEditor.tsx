@@ -235,8 +235,11 @@ export default function TranscriptEditor({
                   </Button>
                 )}
                 {dirty && (
-                  <span className="text-muted text-sm">
-                    {t('Unsaved changes. Save before requesting feedback.')}
+                  <span className="text-muted flex items-center gap-2 text-sm">
+                    {t('Unsaved changes')}
+                    <HelpTip label={t('Unsaved changes')}>
+                      {t('Unsaved changes. Save before requesting feedback.')}
+                    </HelpTip>
                   </span>
                 )}
               </div>
@@ -402,6 +405,7 @@ export default function TranscriptEditor({
                               {t('Role for passage')} {index + 1}
                               <Dropdown
                                 id={`segment-role-${index}`}
+                                containerBackground="bg2"
                                 value={segment.role}
                                 onChange={(value) =>
                                   change(index, {

@@ -366,3 +366,32 @@ it('shows a missing cited passage honestly without replacing the independent cur
   );
   expect(editTranscript).not.toHaveBeenCalled();
 });
+
+it('separates the role field from the row and puts changed-draft instructions in a HelpTip', async () => {
+  render(
+    <TranscriptEditor
+      roundId="round"
+      onClose={vi.fn()}
+      onChange={vi.fn()}
+      onFeedback={vi.fn()}
+    />
+  );
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Edit transcript' })
+  );
+  const role = screen.getByLabelText('Role for passage 1');
+  expect(role).toHaveClass('bg-bg3');
+  expect(role.closest('.bg-bg2')).toBeInTheDocument();
+  fireEvent.click(role);
+  fireEvent.click(screen.getByRole('option', { name: 'Candidate' }));
+  expect(
+    screen.queryByText('Unsaved changes. Save before requesting feedback.')
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Interview feedback' })
+  ).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Unsaved changes' }));
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Unsaved changes. Save before requesting feedback.'
+  );
+});

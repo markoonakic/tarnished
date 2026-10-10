@@ -64,7 +64,13 @@ it('starts the loaded mobile scroller at the recent end without resetting a user
   const scroller =
     view.container.querySelector<HTMLDivElement>('.overflow-x-auto')!;
   expect(scroller.scrollLeft).toBe(825);
-  expect(screen.getByText('Scroll for earlier months')).toBeVisible();
+  expect(
+    screen.queryByText('Scroll for earlier months')
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Activity Heatmap' }));
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Scroll for earlier months'
+  );
   scroller.scrollLeft = 100;
   view.rerender(<ActivityHeatmap />);
   expect(scroller.scrollLeft).toBe(100);
