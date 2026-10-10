@@ -2,8 +2,9 @@
 
 from datetime import UTC, datetime
 from typing import Annotated, Literal
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import String, cast, func, or_, select, union_all
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,6 +37,7 @@ from app.schemas.workspace import (
     ReminderUpdate,
     TargetType,
 )
+from app.services.create_retry import recover_create
 from app.services.workspace import (
     audit,
     change_record,
@@ -118,7 +120,7 @@ def company_activity(user_id):
 async def companies(
     db: DB,
     user: Owner,
-    query: str | None = None,
+    query: str | None = Query(None, max_length=200),
     industry: str | None = None,
     sort: Literal["name", "activity", "applications"] = "name",
     page: Page = 1,
@@ -181,8 +183,21 @@ async def company_counts(db, user_id, company_id):
 
 
 @router.post("/companies", status_code=201)
-async def create_company(data: CompanyCreate, db: DB, user: Owner):
-    row = Company(user_id=user.id, **data.model_dump())
+async def create_company(
+    data: CompanyCreate,
+    db: DB,
+    user: Owner,
+    idempotency_key: UUID | None = Header(default=None),
+):
+    values = data.model_dump()
+    existing = await recover_create(db, Company, idempotency_key, user.id, values)
+    if existing is not None:
+        return record_dict(existing)
+    row = Company(
+        **({"id": str(idempotency_key)} if idempotency_key else {}),
+        user_id=user.id,
+        **values,
+    )
     db.add(row)
     return await saved(db, user, row, "company.created")
 
@@ -247,7 +262,7 @@ async def delete_company(
 async def contacts(
     db: DB,
     user: Owner,
-    query: str | None = None,
+    query: str | None = Query(None, max_length=200),
     company_id: str | None = None,
     role: str | None = None,
     page: Page = 1,
@@ -285,10 +300,23 @@ async def contacts(
 
 
 @router.post("/contacts", status_code=201)
-async def create_contact(data: ContactCreate, db: DB, user: Owner):
+async def create_contact(
+    data: ContactCreate,
+    db: DB,
+    user: Owner,
+    idempotency_key: UUID | None = Header(default=None),
+):
     if data.company_id:
         await owned(db, Company, data.company_id, user.id)
-    row = Contact(user_id=user.id, **data.model_dump())
+    values = data.model_dump()
+    existing = await recover_create(db, Contact, idempotency_key, user.id, values)
+    if existing is not None:
+        return record_dict(existing)
+    row = Contact(
+        **({"id": str(idempotency_key)} if idempotency_key else {}),
+        user_id=user.id,
+        **values,
+    )
     db.add(row)
     return await saved(db, user, row, "contact.created")
 
@@ -430,10 +458,22 @@ async def notes(
 
 
 @router.post("/notes", status_code=201)
-async def create_note(data: NoteCreate, db: DB, user: Owner):
+async def create_note(
+    data: NoteCreate,
+    db: DB,
+    user: Owner,
+    idempotency_key: UUID | None = Header(default=None),
+):
     values = data.model_dump()
     await targets_owned(db, user.id, values, True)
-    row = Note(user_id=user.id, **values)
+    existing = await recover_create(db, Note, idempotency_key, user.id, values)
+    if existing is not None:
+        return record_dict(existing)
+    row = Note(
+        **({"id": str(idempotency_key)} if idempotency_key else {}),
+        user_id=user.id,
+        **values,
+    )
     db.add(row)
     return await saved(db, user, row, "note.created")
 

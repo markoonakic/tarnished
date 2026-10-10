@@ -1,8 +1,9 @@
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Literal
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -48,6 +49,7 @@ from app.services.application_evidence import (
     response_values,
     validate_response_date,
 )
+from app.services.create_retry import recover_create
 from app.services.extraction import extract_job_data as extract_job_data
 from app.services.interview_jobs import invalidate_interviews
 from app.services.job_fetch import fetch_job_posting_html
@@ -66,7 +68,7 @@ async def list_applications(
     per_page: int = Query(20, ge=1, le=100),
     status_id: str | None = None,
     source: str | None = None,
-    search: str | None = None,
+    search: str | None = Query(None, max_length=200),
     url: str | None = Query(
         None, description="Filter by exact job URL (used by extension)"
     ),
@@ -169,6 +171,7 @@ async def list_application_sources(
 )
 async def create_application(
     data: ApplicationCreate,
+    idempotency_key: UUID | None = Header(default=None),
     x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user_flexible),
     _: object = Depends(require_api_key_scope("applications:write")),
@@ -188,6 +191,21 @@ async def create_application(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status"
         )
+
+    values = data.model_dump(exclude_unset=True, exclude={"response_evidence"})
+    if values.get("company_id"):
+        values.pop("company", None)
+    if "response_evidence" in data.model_fields_set:
+        values.update(
+            response_values(
+                data.response_evidence,
+                get_user_local_today(user, x_timezone=x_timezone),
+            )
+        )
+    existing = await recover_create(db, Application, idempotency_key, user.id, values)
+    if existing is not None:
+        await db.refresh(existing, ["status"])
+        return existing
 
     if (
         "applied_at" in data.model_fields_set
@@ -210,6 +228,7 @@ async def create_application(
     ):
         raise HTTPException(422, "Company and position are required")
     application = Application(
+        **({"id": str(idempotency_key)} if idempotency_key else {}),
         **{key: value for key, value in extra.items() if key != "company"},
         user_id=user.id,
         company=extra.get("company", data.company),
@@ -278,6 +297,7 @@ async def create_application(
 )
 async def create_application_from_url(
     data: ApplicationExtractRequest,
+    idempotency_key: UUID | None = Header(default=None),
     x_timezone: str | None = Depends(get_request_time_zone),
     user: User = Depends(get_current_user_flexible),
     _: object = Depends(require_api_key_scope("applications:write")),
@@ -325,7 +345,18 @@ async def create_application_from_url(
     )
     if selected_status is None:
         raise HTTPException(409, "Preparing status is unavailable")
+    existing = await recover_create(
+        db,
+        Application,
+        idempotency_key,
+        user.id,
+        {"job_url": data.url or None, "source_text": text},
+    )
+    if existing is not None:
+        await db.refresh(existing, ["status"])
+        return existing
     application = Application(
+        **({"id": str(idempotency_key)} if idempotency_key else {}),
         user_id=user.id,
         company="",
         job_title="",
@@ -573,10 +604,18 @@ async def delete_application(
     await db.commit()
 
 
+def check_document_revision(application: Application, expected: int | None) -> None:
+    if expected is not None and application.evidence_revision != expected:
+        raise HTTPException(
+            409, "Documents changed. Reload and review before retrying."
+        )
+
+
 @router.post("/{application_id}/cv", response_model=ApplicationListItem)
 async def upload_cv(
     application_id: str,
     file: UploadFile,
+    expected_evidence_revision: int | None = Header(default=None, ge=0),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
@@ -629,6 +668,7 @@ async def upload_cv(
 
     await lock_ai_settings(db)
     await db.refresh(application)
+    check_document_revision(application, expected_evidence_revision)
     await invalidate_interviews(
         db,
         application_id=application_id,
@@ -651,6 +691,7 @@ async def upload_cv(
 @router.delete("/{application_id}/cv", response_model=ApplicationListItem)
 async def delete_cv(
     application_id: str,
+    expected_evidence_revision: int | None = Header(default=None, ge=0),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
@@ -670,6 +711,7 @@ async def delete_cv(
     # Note: We don't delete CAS files as they may be shared/deduplicated
     await lock_ai_settings(db)
     await db.refresh(application)
+    check_document_revision(application, expected_evidence_revision)
     await invalidate_interviews(db, application_id=application_id, removed=True)
     application.evidence_revision += 1
     application.cv_text = None
@@ -689,6 +731,7 @@ async def delete_cv(
 async def upload_cover_letter(
     application_id: str,
     file: UploadFile,
+    expected_evidence_revision: int | None = Header(default=None, ge=0),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
@@ -741,6 +784,7 @@ async def upload_cover_letter(
 
     await lock_ai_settings(db)
     await db.refresh(application)
+    check_document_revision(application, expected_evidence_revision)
     await invalidate_interviews(
         db,
         application_id=application_id,
@@ -765,6 +809,7 @@ async def upload_cover_letter(
 @router.delete("/{application_id}/cover-letter", response_model=ApplicationListItem)
 async def delete_cover_letter(
     application_id: str,
+    expected_evidence_revision: int | None = Header(default=None, ge=0),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
@@ -784,6 +829,7 @@ async def delete_cover_letter(
     # Note: We don't delete CAS files as they may be shared/deduplicated
     await lock_ai_settings(db)
     await db.refresh(application)
+    check_document_revision(application, expected_evidence_revision)
     await invalidate_interviews(db, application_id=application_id, removed=True)
     application.evidence_revision += 1
     application.cover_letter_text = None

@@ -68,6 +68,7 @@ router = APIRouter(tags=["rounds"], route_class=TranscriptBodyLimitRoute)
 settings = get_settings()
 
 
+from app.services.create_retry import check_create_values
 from app.services.user_time import get_effective_time_zone_name, normalize_in_zone
 from app.services.workspace import audit, change_record, link_contacts
 
@@ -112,6 +113,22 @@ async def create_round(
         if existing is not None:
             if existing.application_id != application_id:
                 raise HTTPException(409, "Round request key is already in use")
+            values = data.model_dump(exclude={"contact_ids"})
+            zone = data.time_zone or get_effective_time_zone_name(
+                user, x_timezone=x_timezone
+            )
+            values["time_zone"] = zone
+            try:
+                for field in ("scheduled_at", "completed_at"):
+                    values[field] = normalize_in_zone(values[field], zone)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from exc
+            check_create_values(existing, values)
+            await db.refresh(existing, attribute_names=["contact_links"])
+            if data.contact_ids is not None and sorted(existing.contact_ids) != sorted(
+                data.contact_ids
+            ):
+                raise HTTPException(409, {"code": "create_content_changed"})
             return existing
 
     result = await db.execute(
@@ -343,6 +360,7 @@ async def upload_media(
     round_id: str,
     request: Request,
     expected_media_generation: int | None = Header(default=None, ge=0),
+    idempotency_key: UUID | None = Header(default=None),
     replace_media_id: str | None = Header(default=None, max_length=36),
     x_timezone: str | None = Depends(get_request_time_zone),
     auth: AuthContext = Depends(require_api_key_scope("files:write")),
@@ -356,6 +374,16 @@ async def upload_media(
     round = await owned_round(db, round_id, user.id)
     generation = round.media_generation
     user_id = user.id
+    if idempotency_key is not None:
+        existing_media = await db.get(RoundMedia, str(idempotency_key))
+        if existing_media is not None:
+            if existing_media.round_id != round_id:
+                raise HTTPException(409, "Recording request key is already in use")
+            await db.refresh(round)
+            await db.refresh(
+                round, attribute_names=["round_type", "media", "contact_links"]
+            )
+            return round
     if (
         expected_media_generation is not None
         and expected_media_generation != generation
@@ -417,6 +445,22 @@ async def upload_media(
             # Fresh account/session/key authority and scope still gate publication.
             auth = await recheck_admitted_auth(db, user_id, session_version, api_key_id)
             check_api_key_scope(auth, "files:write")
+            await lock_ai_settings(db)
+            if idempotency_key is not None:
+                existing_media = await db.get(
+                    RoundMedia, str(idempotency_key), populate_existing=True
+                )
+                if existing_media is not None:
+                    if (
+                        existing_media.round_id != round_id
+                        or existing_media.sha256 != digest
+                    ):
+                        raise HTTPException(409, {"code": "create_content_changed"})
+                    await db.refresh(round)
+                    await db.refresh(
+                        round, attribute_names=["round_type", "media", "contact_links"]
+                    )
+                    return round
             await claim_media_generation(db, round_id, user_id, generation)
             if replace_media_id:
                 await remove_media_transcript(db, round_id, replace_media_id)
@@ -435,6 +479,7 @@ async def upload_media(
             file_path = publish_file(temporary, upload_root, digest, metadata.extension)
             db.add(
                 RoundMedia(
+                    **({"id": str(idempotency_key)} if idempotency_key else {}),
                     round_id=round_id,
                     file_path=file_path,
                     original_filename=filename,
@@ -623,8 +668,11 @@ async def upload_transcript(
         check_api_key_scope(auth, "rounds:read")
     if round.current_transcript and not editable:
         raise HTTPException(
-            409,
-            "An editable transcript cannot be replaced by an attachment-only format. Delete it explicitly first",
+            422,
+            {
+                "code": "transcript_attachment_replacement",
+                "message": "Delete the editable transcript explicitly before uploading PDF or DOCX.",
+            },
         )
     max_size = (
         MAX_TRANSCRIPT_BYTES
