@@ -7,6 +7,7 @@ import ReminderModal from '../ReminderModal';
 import { DeleteConfirm } from './RecordModals';
 import { apiV030, type Reminder } from '@/lib/apiV030';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { allPages, failureMessage } from './addressBook';
 
 export default function AddressReminders({
@@ -42,6 +43,7 @@ export default function AddressReminders({
   const [deleting, setDeleting] = useState<Reminder | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  useUnsavedChanges(busy);
   const [intent, setIntent] = useState('');
   const find = (item: ReminderItem) =>
     query.data?.find((row) => row.id === item.id);
