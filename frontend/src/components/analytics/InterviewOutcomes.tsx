@@ -8,6 +8,7 @@ import { useInterviewRoundsAnalytics } from '@/hooks/useAnalyticsData';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
+import TextLink from '@/components/ui/TextLink';
 import HelpTip from '@/components/HelpTip';
 
 const EMPTY_OUTCOME_DATA: OutcomeData[] = [];
@@ -149,13 +150,18 @@ export default function InterviewOutcomes({
 
   if (data.length === 0) {
     return (
-      <EmptyState
-        message={t('No interview outcome data available')}
-        subMessage={t(
-          'Add completed interview rounds to see outcome analytics'
-        )}
-        icon="bi-bar-chart-steps"
-      />
+      <>
+        <EmptyState
+          message={t('No interview outcome data available')}
+          subMessage={t(
+            'Add completed interview rounds to see outcome analytics'
+          )}
+          icon="bi-bar-chart-steps"
+        />
+        <div className="text-center">
+          <TextLink href="/applications">{t('Applications')}</TextLink>
+        </div>
+      </>
     );
   }
 
