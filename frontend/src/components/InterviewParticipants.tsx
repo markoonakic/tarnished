@@ -1,6 +1,7 @@
 import TextLink from '@/components/ui/TextLink';
 import Button from '@/components/ui/Button';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { apiV030 } from '@/lib/apiV030';
@@ -12,11 +13,13 @@ export default function InterviewParticipants({
   companyId,
   readOnly = false,
   containerBackground = 'bg1',
+  onPendingChange,
 }: {
   value: string[];
   onChange: (value: string[]) => void;
   companyId?: string | null;
   readOnly?: boolean;
+  onPendingChange?: (pending: boolean) => void;
   containerBackground?: 'bg1' | 'bg2' | 'bg3';
 }) {
   const { t } = useTranslation();
@@ -24,6 +27,9 @@ export default function InterviewParticipants({
   const [adding, setAdding] = useState(false);
   const [requestKey, setRequestKey] = useState(() => crypto.randomUUID());
   const [error, setError] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const createLock = useRef(false);
+  useUnsavedChanges(creating);
   const contacts = useQuery({
     queryKey: ['interview-participants', companyId],
     queryFn: async () => {
@@ -63,6 +69,7 @@ export default function InterviewParticipants({
               {!readOnly && (
                 <Button
                   variant="icon"
+                  disabled={creating}
                   aria-label={t('tasks.removeParticipant', {
                     name: item?.name ?? id,
                   })}
@@ -77,6 +84,7 @@ export default function InterviewParticipants({
         })}
         <Button
           type="button"
+          disabled={creating}
           onClick={() => setAdding(!adding)}
           className="flex items-center gap-1.5"
         >
@@ -86,6 +94,7 @@ export default function InterviewParticipants({
       </div>
       {adding && (
         <SearchableCombobox
+          disabled={creating}
           containerBackground={containerBackground}
           value=""
           options={
@@ -99,6 +108,11 @@ export default function InterviewParticipants({
           placeholder={t('tasks.selectContact')}
           onChange={add}
           onCreate={async (name) => {
+            if (createLock.current) return;
+            createLock.current = true;
+            setCreating(true);
+            onPendingChange?.(true);
+            setError(false);
             try {
               const c = await apiV030.createContact(
                 {
@@ -112,8 +126,13 @@ export default function InterviewParticipants({
                 queryKey: ['interview-participants'],
               });
               add(c.id);
+              setError(false);
             } catch {
               setError(true);
+            } finally {
+              createLock.current = false;
+              setCreating(false);
+              onPendingChange?.(false);
             }
           }}
         />

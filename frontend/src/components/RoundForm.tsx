@@ -106,6 +106,8 @@ function RoundFormFields({
     round?.mode === 'video' ? round.meeting_url || '' : round?.location || ''
   );
   const [participants, setParticipants] = useState(round?.contact_ids ?? []);
+  const [participantPending, setParticipantPending] = useState(false);
+  const participantLock = useRef(false);
   const extra = {
     time_zone: timeZone,
     duration_minutes: duration ? Number(duration) : null,
@@ -240,7 +242,8 @@ function RoundFormFields({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (timeZoneChanged || submitting.current) return;
+    if (timeZoneChanged || submitting.current || participantLock.current)
+      return;
     if (
       (!scheduledDate && scheduledTime.trim()) ||
       (!completedDate && completedTime.trim())
@@ -666,6 +669,10 @@ function RoundFormFields({
             containerBackground="bg2"
             value={participants}
             onChange={setParticipants}
+            onPendingChange={(pending) => {
+              participantLock.current = pending;
+              setParticipantPending(pending);
+            }}
           />
         </div>
       </fieldset>
@@ -892,7 +899,7 @@ function RoundFormFields({
       <div className="mt-4 flex justify-end gap-2">
         <Button
           type="button"
-          disabled={loading}
+          disabled={loading || participantPending}
           onClick={() => (persistedRound ? onSave(persistedRound) : onCancel())}
           className="flex items-center gap-1.5"
         >
@@ -902,7 +909,8 @@ function RoundFormFields({
         <Button
           variant="primary"
           type="submit"
-          disabled={loading || timeZoneChanged}
+          disabled={loading || timeZoneChanged || participantPending}
+          title={participantPending ? t('Creating contact...') : undefined}
         >
           {loading
             ? t('Saving...')

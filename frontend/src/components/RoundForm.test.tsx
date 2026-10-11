@@ -1,10 +1,12 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
 } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import api from '@/lib/api';
@@ -36,18 +38,32 @@ let writes: {
 let failRecording = false;
 let loseCreateResponse = false;
 let transcriptReads = 0;
+let contactCreate: (() => Promise<void>) | undefined;
+let contacts: { id: string; name: string }[];
 beforeEach(() => {
   writes = [];
   failRecording = false;
   loseCreateResponse = false;
   transcriptReads = 0;
+  contactCreate = undefined;
+  contacts = [];
   queryClient.clear();
   api.defaults.adapter = async (config) => {
     let data: unknown = round;
     if (config.url === '/api/user-preferences')
       data = { time_zone_mode: 'manual', time_zone: 'Europe/Belgrade' };
     if (config.url === '/api/round-types') data = [round.round_type];
-    if (config.url === '/api/contacts') data = { items: [], total: 0 };
+    if (config.url === '/api/contacts') {
+      if (config.method === 'post') {
+        await contactCreate?.();
+        const contact = {
+          id: 'created-contact',
+          name: JSON.parse(config.data).name,
+        };
+        contacts.push(contact);
+        data = contact;
+      } else data = { items: contacts, total: contacts.length };
+    }
     if (config.method === 'get' && config.url?.endsWith('/transcript')) {
       transcriptReads++;
       data = { generation: 99, transcript: null };
@@ -74,12 +90,13 @@ beforeEach(() => {
         failRecording = false;
         throw new Error('Upload failed');
       }
-      data = {
-        ...round,
-        ...input,
-        transcript_generation: config.url?.endsWith('/transcript') ? 1 : 0,
-        generation: 1,
-      };
+      if (config.url !== '/api/contacts')
+        data = {
+          ...round,
+          ...input,
+          transcript_generation: config.url?.endsWith('/transcript') ? 1 : 0,
+          generation: 1,
+        };
     }
     return { data, status: 200, statusText: 'OK', headers: {}, config };
   };
@@ -93,17 +110,90 @@ function show(value?: Round) {
   const save = vi.fn();
   render(
     <QueryClientProvider client={queryClient}>
-      <RoundForm
-        applicationId="app-1"
-        round={value}
-        onSave={save}
-        onPersist={vi.fn()}
-        onCancel={vi.fn()}
-      />
+      <MemoryRouter>
+        <RoundForm
+          applicationId="app-1"
+          round={value}
+          onSave={save}
+          onPersist={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </MemoryRouter>
     </QueryClientProvider>
   );
   return save;
 }
+it.each([undefined, round])(
+  'waits for participant creation before saving New or Edit',
+  async (value) => {
+    let release!: () => void;
+    contactCreate = () =>
+      new Promise((resolve) => {
+        release = resolve;
+      });
+    const save = show(value);
+    await screen.findByLabelText('Notes');
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.change(screen.getByPlaceholderText('Select a contact'), {
+      target: { value: 'New participant' },
+    });
+    fireEvent.click(
+      await screen.findByRole('option', { name: '+ Create "New participant"' })
+    );
+    const submit = screen.getByRole('button', {
+      name: value ? 'Save' : 'Add Round',
+    });
+    expect(submit).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    fireEvent.submit(submit.closest('form')!);
+    expect(writes.some((write) => write.url !== '/api/contacts')).toBe(false);
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    await waitFor(() => expect(release).toBeTypeOf('function'));
+    await act(async () => release());
+    await screen.findByRole('link', { name: 'New participant' });
+    expect(submit).toBeEnabled();
+    fireEvent.click(submit);
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    expect(
+      writes.find((write) => write.url !== '/api/contacts')?.data.contact_ids
+    ).toEqual(['created-contact']);
+  }
+);
+
+it('clears a failed participant create after a successful retry', async () => {
+  contactCreate = async () => {
+    throw new Error('Offline');
+  };
+  const save = show();
+  await screen.findByLabelText('Notes');
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  const choose = async () => {
+    fireEvent.change(screen.getByPlaceholderText('Select a contact'), {
+      target: { value: 'Recovered participant' },
+    });
+    fireEvent.click(
+      await screen.findByRole('option', {
+        name: '+ Create "Recovered participant"',
+      })
+    );
+  };
+  await choose();
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Could not load this data.'
+  );
+  contactCreate = undefined;
+  await choose();
+  await screen.findByRole('link', { name: 'Recovered participant' });
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Add Round' }));
+  await waitFor(() => expect(save).toHaveBeenCalledOnce());
+  expect(
+    writes.find((write) => write.url !== '/api/contacts')?.data.contact_ids
+  ).toEqual(['created-contact']);
+});
+
 it.each([undefined, round])(
   'warns before leaving an ordinary new or edit round draft without attachments',
   async (value) => {
