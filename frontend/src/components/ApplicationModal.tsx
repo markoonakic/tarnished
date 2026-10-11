@@ -74,6 +74,7 @@ export default function ApplicationModal({
 
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [loading, setLoading] = useState(false);
+  const saveLock = useRef(false);
   const [error, setError] = useState('');
 
   const [company, setCompany] = useState('');
@@ -237,7 +238,7 @@ export default function ApplicationModal({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (loading) return;
+    if (saveLock.current) return;
     if (!statusId || (!isPreparing && (!company.trim() || !jobTitle.trim()))) {
       setError(t('Please fill in required fields'));
       return;
@@ -257,6 +258,7 @@ export default function ApplicationModal({
       setShowStatusDialog(true);
       return;
     }
+    saveLock.current = true;
     setLoading(true);
     setError('');
 
@@ -317,6 +319,7 @@ export default function ApplicationModal({
         error instanceof Error ? error.message : t('Failed to save application')
       );
     } finally {
+      saveLock.current = false;
       setLoading(false);
     }
   }
@@ -379,6 +382,11 @@ export default function ApplicationModal({
           {!isEditing && (
             <ApplicationPostingCapture
               statusId={statusId}
+              disabled={loading}
+              onPendingChange={(pending) => {
+                saveLock.current = pending;
+                setLoading(pending);
+              }}
               onCreated={(id) => {
                 onSuccess(id);
                 onClose();
