@@ -80,6 +80,7 @@ export default function SearchableCombobox({
     [options, value]
   );
   const [inputValue, setInputValue] = useState(selectedOption?.label ?? '');
+  const [createDraft, setCreateDraft] = useState<string | null>(null);
   const [focusedIndex, setFocusedIndex] = useState(-1);
 
   const query = inputValue.trim();
@@ -102,12 +103,14 @@ export default function SearchableCombobox({
     [options, inputValue, createOption]
   );
 
+  useEffect(() => setCreateDraft(null), [selectedOption?.label]);
+
   useEffect(() => {
     if (!isOpen) {
-      setInputValue(selectedOption?.label ?? '');
+      setInputValue(createDraft ?? selectedOption?.label ?? '');
       setFocusedIndex(-1);
     }
-  }, [isOpen, selectedOption?.label]);
+  }, [isOpen, selectedOption?.label, createDraft]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -140,12 +143,12 @@ export default function SearchableCombobox({
       }
 
       setIsOpen(false);
-      setInputValue(selectedOption?.label ?? '');
+      setInputValue(createDraft ?? selectedOption?.label ?? '');
     }
 
     document.addEventListener('mousedown', handlePointerDown);
     return () => document.removeEventListener('mousedown', handlePointerDown);
-  }, [selectedOption?.label]);
+  }, [selectedOption?.label, createDraft]);
 
   function openCombobox() {
     if (disabled) {
@@ -156,13 +159,19 @@ export default function SearchableCombobox({
 
   function closeCombobox() {
     setIsOpen(false);
-    setInputValue(selectedOption?.label ?? '');
+    setInputValue(createDraft ?? selectedOption?.label ?? '');
   }
 
   function handleSelect(option: DropdownOption) {
     if (disabled) return;
-    if (option === createOption) onCreate?.(query);
-    else onChange(option.value);
+    if (option === createOption) {
+      // Keep the submitted name until creation selects a saved option.
+      setCreateDraft(query);
+      onCreate?.(query);
+    } else {
+      setCreateDraft(null);
+      onChange(option.value);
+    }
     setInputValue(option === createOption ? query : option.label);
     setIsOpen(false);
     setFocusedIndex(-1);
@@ -271,6 +280,7 @@ export default function SearchableCombobox({
           onFocus={openCombobox}
           onClick={openCombobox}
           onChange={(event) => {
+            if (createDraft !== null) setCreateDraft(event.target.value);
             setInputValue(event.target.value);
             setIsOpen(true);
           }}

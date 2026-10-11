@@ -10,6 +10,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import api from '@/lib/api';
+import { AxiosError, type AxiosAdapter } from 'axios';
+import i18n from '@/lib/i18n';
 import { queryClient } from '@/lib/queryClient';
 import type { Round } from '@/lib/types';
 import RoundForm from './RoundForm';
@@ -101,10 +103,11 @@ beforeEach(() => {
     return { data, status: 200, statusText: 'OK', headers: {}, config };
   };
 });
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   queryClient.clear();
   api.defaults.adapter = adapter;
+  await i18n.changeLanguage('en');
 });
 function show(value?: Round) {
   const save = vi.fn();
@@ -170,6 +173,7 @@ it('clears a failed participant create after a successful retry', async () => {
   await screen.findByLabelText('Notes');
   fireEvent.click(screen.getByRole('button', { name: 'Add' }));
   const choose = async () => {
+    fireEvent.focus(screen.getByPlaceholderText('Select a contact'));
     fireEvent.change(screen.getByPlaceholderText('Select a contact'), {
       target: { value: 'Recovered participant' },
     });
@@ -482,6 +486,99 @@ it('warns before leaving with queued recordings or pasted transcript text', asyn
   window.dispatchEvent(recording);
   expect(recording.defaultPrevented).toBe(true);
 });
+
+it.each(['en', 'sr-Latn'])(
+  'keeps a failed participant name ready for retry in New/Edit in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    for (const value of [undefined, round]) {
+      contactCreate = async () => {
+        throw new Error('Offline');
+      };
+      const save = show(value);
+      await screen.findByLabelText(i18n.t('Notes'));
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('tasks.addParticipant') })
+      );
+      const input = screen.getByPlaceholderText(i18n.t('tasks.selectContact'));
+      const name = value ? 'Mira Čć Šž Đđ' : 'Jana Čć Šž Đđ';
+      fireEvent.change(input, { target: { value: name } });
+      fireEvent.click(
+        await screen.findByRole('option', {
+          name: i18n.t('kit.createName', { name }),
+        })
+      );
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        i18n.t('tasks.loadFailed')
+      );
+      expect(input).toHaveValue(name);
+      contactCreate = undefined;
+      fireEvent.focus(input);
+      fireEvent.click(
+        await screen.findByRole('option', {
+          name: i18n.t('kit.createName', { name }),
+        })
+      );
+      await screen.findByRole('link', { name });
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t(value ? 'Save' : 'Add Round'),
+        })
+      );
+      await waitFor(() => expect(save).toHaveBeenCalledOnce());
+      expect(writes.at(-1)?.data.contact_ids).toEqual(['created-contact']);
+      cleanup();
+      contacts = [];
+      queryClient.clear();
+    }
+  }
+);
+
+it.each(['en', 'sr-Latn'])(
+  'translates New/Edit network failures and keeps the draft in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    const normal = api.defaults.adapter as AxiosAdapter;
+    for (const value of [undefined, round]) {
+      api.defaults.adapter = async (config) => {
+        if (config.method !== 'get' && config.url?.includes('round'))
+          throw new AxiosError('Network Error', 'ERR_NETWORK', config);
+        return normal(config);
+      };
+      const save = show(value);
+      await screen.findByLabelText(i18n.t('Notes'));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('combobox', { name: i18n.t('Round Type') })
+        ).toHaveTextContent('Technical')
+      );
+      fireEvent.change(screen.getByLabelText(i18n.t('Notes')), {
+        target: { value: 'Retained note' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t(value ? 'Save' : 'Add Round'),
+        })
+      );
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        i18n.t('error.request_failed')
+      );
+      expect(screen.getByRole('alert')).not.toHaveTextContent('Network Error');
+      expect(screen.getByLabelText(i18n.t('Notes'))).toHaveValue(
+        'Retained note'
+      );
+      api.defaults.adapter = normal;
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t(value ? 'Save' : 'Add Round'),
+        })
+      );
+      await waitFor(() => expect(save).toHaveBeenCalledOnce());
+      cleanup();
+      queryClient.clear();
+    }
+  }
+);
 
 it('bounds fieldsets around long pending recording and transcript filenames', async () => {
   show();

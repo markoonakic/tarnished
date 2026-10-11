@@ -406,15 +406,12 @@ function RoundFormFields({
       if (isAxiosError(error) && error.response?.status === 409) {
         onTimeZoneConflict();
       }
-      const detail = isAxiosError(error) ? error.response?.data?.detail : null;
       setError(
-        isAxiosError(error) && error.response
-          ? errorMessage(error.response.data, error.response.status)
-          : typeof detail === 'string'
-            ? t(detail)
-            : error instanceof Error
-              ? error.message
-              : t('Failed to save round. Please check your inputs.')
+        isAxiosError(error)
+          ? errorMessage(error.response?.data, error.response?.status)
+          : error instanceof Error
+            ? error.message
+            : t('Failed to save round. Please check your inputs.')
       );
     } finally {
       submitting.current = false;
