@@ -170,7 +170,7 @@ it('renders summary round counts without detail rounds in both layouts', async (
   });
   mount();
   const table = await screen.findByRole('table');
-  expect(table).toHaveClass('table-fixed');
+  expect(table).toHaveClass('table-fixed', '[overflow-wrap:anywhere]');
   for (const pill of screen.getAllByText('W'.repeat(180)))
     expect(pill).toHaveClass('min-w-0', '[overflow-wrap:anywhere]');
   for (const [company, count] of [

@@ -340,7 +340,7 @@ export default function Applications() {
           <>
             {/* Desktop table */}
             <div className="bg-secondary hidden overflow-hidden rounded-lg md:block">
-              <table className="w-full table-fixed border-collapse">
+              <table className="w-full table-fixed border-collapse [overflow-wrap:anywhere]">
                 <thead>
                   <tr className="border-tertiary border-b">
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
