@@ -121,6 +121,34 @@ it.each([undefined, round])(
     expect(screen.getByLabelText('Notes')).toHaveValue('Unsaved notes');
   }
 );
+it.each([undefined, round])(
+  'keeps scheduled/completed times without dates instead of silently saving them',
+  async (value) => {
+    const save = show(value);
+    await screen.findByLabelText('Notes');
+    await waitFor(() =>
+      expect(
+        screen.getByRole('combobox', { name: 'Round Type' })
+      ).toHaveTextContent('Technical')
+    );
+    const index = value ? 1 : 0;
+    fireEvent.change(
+      screen.getByLabelText(value ? 'Completed Date' : 'Scheduled Date'),
+      { target: { value: '' } }
+    );
+    const time = screen.getAllByLabelText('Time (optional)')[index];
+    fireEvent.change(time, { target: { value: '19:35' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: value ? 'Save' : 'Add Round' })
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Enter a date for the time.'
+    );
+    expect(time).toHaveValue('19:35');
+    expect(writes).toEqual([]);
+    expect(save).not.toHaveBeenCalled();
+  }
+);
 it('keeps the time-zone recovery explanation in a HelpTip', async () => {
   show();
   const zone = await screen.findByRole('combobox', { name: 'Time zone' });

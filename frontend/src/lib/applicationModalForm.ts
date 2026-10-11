@@ -77,15 +77,24 @@ function parseSalary(value: string): number | null {
       t('Salary must be a whole amount in the selected currency.')
     );
   }
+  if (salary < 0 || salary > 2_147_483_647)
+    throw new Error(t('Salary must be between 0 and 2,147,483,647.'));
   return salary;
+}
+
+function salaryRange(values: ApplicationModalFormValues) {
+  const salaryMin = parseSalary(values.salaryMin);
+  const salaryMax = parseSalary(values.salaryMax);
+  if (salaryMin !== null && salaryMax !== null && salaryMax < salaryMin)
+    throw new Error(t('Maximum salary must not be below minimum salary.'));
+  return { salaryMin, salaryMax };
 }
 
 export function buildCreateApplicationPayload(
   values: ApplicationModalFormValues
 ): ApplicationCreate {
   const normalizedUrl = normalizeApplicationUrl(values.jobUrl);
-  const salaryMin = parseSalary(values.salaryMin);
-  const salaryMax = parseSalary(values.salaryMax);
+  const { salaryMin, salaryMax } = salaryRange(values);
   const requirementsMustHave = splitRequirementLines(
     values.requirementsMustHave
   );
@@ -115,6 +124,7 @@ export function buildCreateApplicationPayload(
 export function buildUpdateApplicationPayload(
   values: ApplicationModalFormValues
 ): ApplicationUpdate {
+  const { salaryMin, salaryMax } = salaryRange(values);
   const normalizedUrl = normalizeApplicationUrl(values.jobUrl);
 
   return {
@@ -124,8 +134,8 @@ export function buildUpdateApplicationPayload(
     job_url: normalizedUrl || null,
     status_id: values.statusId,
     applied_at: values.appliedAt || undefined,
-    salary_min: parseSalary(values.salaryMin),
-    salary_max: parseSalary(values.salaryMax),
+    salary_min: salaryMin,
+    salary_max: salaryMax,
     salary_currency: values.salaryCurrency || null,
     recruiter_name: values.recruiterName || null,
     recruiter_title: values.recruiterTitle || null,

@@ -233,6 +233,7 @@ function RoundFormFields({
   }
 
   function roundInstant(date: string, time: string) {
+    if (time.trim() && !date) throw new Error(t('Enter a date for the time.'));
     const local = formatRoundDateTimeForApi(date, time);
     return local ? historyInstant(local, timeZone, 'earlier') : null;
   }
@@ -240,6 +241,13 @@ function RoundFormFields({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (timeZoneChanged || submitting.current) return;
+    if (
+      (!scheduledDate && scheduledTime.trim()) ||
+      (!completedDate && completedTime.trim())
+    ) {
+      setError(t('Enter a date for the time.'));
+      return;
+    }
     if (!roundTypeId) {
       setError(t('Please select a round type'));
       return;

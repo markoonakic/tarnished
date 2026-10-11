@@ -471,6 +471,17 @@ async def update_application(
             "status_reason",
         },
     )
+    if {"salary_min", "salary_max"} & update_data.keys():
+        salary_min = update_data.get("salary_min", application.salary_min)
+        salary_max = update_data.get("salary_max", application.salary_max)
+        if (
+            salary_min is not None
+            and salary_max is not None
+            and salary_max < salary_min
+        ):
+            raise HTTPException(
+                422, "salary_max must be greater than or equal to salary_min"
+            )
     status_changed = "status_id" in update_data and data.status_id != old_status_id
     await job_links(db, user.id, update_data, application)
     if data.archived is not None:

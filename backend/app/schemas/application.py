@@ -1,7 +1,7 @@
 from datetime import UTC, date, datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.evidence import ApplicationEvidence, Meaning, ResponseEvidenceInput
 from app.schemas.round import RoundResponse
@@ -25,7 +25,22 @@ class ApplicationExtractRequest(BaseModel):
         return value
 
 
-class ApplicationCreate(JobFields):
+class SalaryInput(BaseModel):
+    salary_min: int | None = Field(None, ge=0, le=2_147_483_647)
+    salary_max: int | None = Field(None, ge=0, le=2_147_483_647)
+
+    @model_validator(mode="after")
+    def ordered_salary(self):
+        if (
+            self.salary_min is not None
+            and self.salary_max is not None
+            and self.salary_max < self.salary_min
+        ):
+            raise ValueError("salary_max must be greater than or equal to salary_min")
+        return self
+
+
+class ApplicationCreate(JobFields, SalaryInput):
     response_evidence: ResponseEvidenceInput | None = None
     company: str = Field("", max_length=255)
     job_title: str = Field("", max_length=255)
@@ -34,8 +49,6 @@ class ApplicationCreate(JobFields):
     status_id: str = Field(min_length=1, max_length=36)
     applied_at: date | None = None
     location: str | None = None
-    salary_min: int | None = None
-    salary_max: int | None = None
     salary_currency: str | None = None
     recruiter_name: str | None = None
     recruiter_title: str | None = None
@@ -48,7 +61,7 @@ class ApplicationCreate(JobFields):
     source: str | None = None
 
 
-class ApplicationUpdate(JobFields):
+class ApplicationUpdate(JobFields, SalaryInput):
     archived: bool | None = None
     status_changed_at: datetime | None = None
     status_comment: str | None = Field(None, max_length=2000)
@@ -70,8 +83,6 @@ class ApplicationUpdate(JobFields):
     status_id: str | None = Field(None, min_length=1, max_length=36)
     applied_at: date | None = None
     location: str | None = None
-    salary_min: int | None = None
-    salary_max: int | None = None
     salary_currency: str | None = None
     recruiter_name: str | None = None
     recruiter_title: str | None = None

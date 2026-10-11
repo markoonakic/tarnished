@@ -1,4 +1,8 @@
 {
+  "Salary must be between 0 and 2,147,483,647.": "Salary must be between 0 and 2,147,483,647.",
+  "Maximum salary must not be below minimum salary.": "Maximum salary must not be below minimum salary.",
+  "Retry export": "Retry export",
+  "Enter a date for the time.": "Enter a date for the time.",
   "About employer replies": "About employer replies",
   "About applied dates": "About applied dates",
   "About lead conversion": "About lead conversion",

@@ -1,4 +1,8 @@
 {
+  "Salary must be between 0 and 2,147,483,647.": "Plata mora biti između 0 i 2.147.483.647.",
+  "Maximum salary must not be below minimum salary.": "Najveća plata ne sme biti manja od najmanje plate.",
+  "Retry export": "Ponovi izvoz",
+  "Enter a date for the time.": "Unesite datum za vreme.",
   "About employer replies": "O odgovorima poslodavca",
   "About applied dates": "O datumima prijave",
   "About lead conversion": "O pretvaranju oglasa u prijavu",

@@ -55,6 +55,24 @@ function createApplication(rounds: Round[] = []): Application {
 }
 
 describe('application modal form helpers', () => {
+  it.each([buildCreateApplicationPayload, buildUpdateApplicationPayload])(
+    'rejects negative, reversed and oversized salary ranges',
+    (build) => {
+      const values = getApplicationModalDefaults([]);
+      for (const [salaryMin, salaryMax] of [
+        ['-1000', '1000'],
+        ['120000', '80000'],
+        ['0', '2147483648'],
+      ]) {
+        expect(() => build({ ...values, salaryMin, salaryMax })).toThrow(
+          /Salary must be between|Maximum salary/
+        );
+      }
+      expect(
+        build({ ...values, salaryMin: '0', salaryMax: '2147483647' })
+      ).toMatchObject({ salary_min: 0, salary_max: 2147483647 });
+    }
+  );
   it('keeps Applied as the new-application default when Preparing is first', () => {
     expect(
       getApplicationModalDefaults([
@@ -215,7 +233,7 @@ it.each([
   ['.0', 0],
   ['+12', 12],
   [' 42 ', 42],
-  ['9007199254740991', Number.MAX_SAFE_INTEGER],
+  ['2147483647', 2147483647],
 ])(
   'accepts exact whole-unit salary %s in either payload',
   (salaryMin, expected) => {
