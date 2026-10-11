@@ -577,7 +577,11 @@ it('shows five insight rows, coverage denominators, and expands all', async () =
     },
     missing_evidence: { items: [], denominator: 0 },
   } as Awaited<ReturnType<typeof apiV030.breakdowns>>);
-  render(<AnalyticsAiInsights period="all" />);
+  render(
+    <MemoryRouter>
+      <AnalyticsAiInsights period="all" />
+    </MemoryRouter>
+  );
   await screen.findByText('Requirement 0');
   expect(screen.queryByText('Requirement 5')).not.toBeInTheDocument();
   expect(

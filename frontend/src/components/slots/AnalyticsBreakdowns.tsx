@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/Card';
 import HelpTip from '@/components/HelpTip';
@@ -23,7 +24,10 @@ function Frequencies({
   return (
     <Card title={title} icon={icon} className="mb-0! min-w-0">
       {items.length === 0 ? (
-        <p className="text-muted text-sm">{t('analytics.noData')}</p>
+        <div>
+          <p className="text-muted mb-3 text-sm">{t('analytics.noData')}</p>
+          <TextLink to="/applications">{t('Applications')}</TextLink>
+        </div>
       ) : (
         <ul className="space-y-3">
           {items.map((item) => (
@@ -105,7 +109,10 @@ export default function AnalyticsBreakdowns(props: AnalyticsSlotProps) {
         className="mb-0!"
       >
         {data.outcomes_by_source.length === 0 ? (
-          <p className="text-muted text-sm">{t('analytics.noData')}</p>
+          <div>
+            <p className="text-muted mb-3 text-sm">{t('analytics.noData')}</p>
+            <TextLink to="/applications">{t('Applications')}</TextLink>
+          </div>
         ) : (
           <>
             <div className="hidden overflow-hidden rounded-lg md:block">

@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/lib/i18n';
 import { queryClient } from '@/lib/queryClient';
 import type { Activity, Breakdown, Page } from '@/lib/apiV030';
+import AnalyticsAiInsights from './AnalyticsAiInsights';
 import AnalyticsNewKpis from './AnalyticsNewKpis';
 import AnalyticsBreakdowns from './AnalyticsBreakdowns';
 import AnalyticsActivity from './AnalyticsActivity';
@@ -93,6 +94,44 @@ function renderAdditions(period = 'all', asOf?: string) {
     </MemoryRouter>
   );
 }
+
+it.each(['en', 'sr-Latn'])(
+  'gives all empty frequency and evidence cards Applications links in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    breakdowns.mockResolvedValue({
+      ...breakdown,
+      outcomes_by_source: [],
+      top_positions: [],
+      top_technologies: [],
+    });
+    render(
+      <MemoryRouter>
+        <AnalyticsBreakdowns period="all" />
+        <AnalyticsAiInsights period="all" />
+      </MemoryRouter>
+    );
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole('link', { name: i18n.t('Applications') })
+      ).toHaveLength(5)
+    );
+    for (const title of [
+      'analytics.topTechnologies',
+      'ai.repeated_requirements',
+      'ai.missing_evidence',
+    ]) {
+      const heading = screen.getByRole('heading', { name: i18n.t(title) });
+      const card =
+        heading.closest('section') ?? heading.parentElement!.parentElement!;
+      expect(
+        within(card as HTMLElement).getByRole('link', {
+          name: i18n.t('Applications'),
+        })
+      ).toHaveAttribute('href', '/applications');
+    }
+  }
+);
 
 describe('deterministic analytics additions', () => {
   it('shows dated response sample, distinct rejection count, source outcomes and frequencies using one shared read', async () => {
