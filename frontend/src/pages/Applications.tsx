@@ -262,7 +262,7 @@ export default function Applications() {
               />
             </MoreFilters>
             {/* Filters */}
-            <div className="order-1 flex flex-wrap items-center gap-3">
+            <div className="order-1 flex max-w-full min-w-0 flex-wrap items-center gap-3">
               <Dropdown
                 options={[
                   { value: '', label: t('All Statuses') },
