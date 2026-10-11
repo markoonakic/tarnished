@@ -245,12 +245,14 @@ it.each([{ lead_id: 'lead' }, { application_id: 'app' }])(
         })
     );
     render(<ExtractionReview target={target} source="Python required" />);
-    await screen.findByRole('button', { name: 'Edit Python' });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Edit Python' })).toBeEnabled()
+    );
     const before = new Event('beforeunload', { cancelable: true });
     window.dispatchEvent(before);
     expect(before.defaultPrevented).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Edit Python' }));
-    fireEvent.change(screen.getByLabelText('Edit proposed value'), {
+    fireEvent.change(await screen.findByLabelText('Edit proposed value'), {
       target: { value: 'Edited Python' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
