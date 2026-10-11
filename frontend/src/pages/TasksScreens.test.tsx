@@ -524,6 +524,21 @@ it.each(['UTC', 'offset'])(
   }
 );
 
+it('bounds long status headings inside board columns without removing board scrolling', async () => {
+  const original = { ...statuses[0] };
+  statuses[0].name = 'W'.repeat(180);
+  statuses[0].builtin_key = 'custom';
+  try {
+    show(<ApplicationBoard />, '/applications?view=board');
+    expect(await screen.findByText('W'.repeat(180))).toHaveClass(
+      'min-w-0',
+      'max-w-full',
+      '[overflow-wrap:anywhere]'
+    );
+  } finally {
+    Object.assign(statuses[0], original);
+  }
+});
 it('bounds long status text in the dashboard recent-application card', async () => {
   card.status = {
     ...card.status,

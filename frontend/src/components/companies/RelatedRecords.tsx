@@ -30,7 +30,7 @@ export function RelatedApplications({
             {app.job_title}
           </span>
           <span
-            className="rounded px-2 py-1 text-xs font-semibold"
+            className="max-w-full min-w-0 rounded px-2 py-1 text-xs font-semibold [overflow-wrap:anywhere]"
             style={{
               color: getStatusColor(app.status.name, colors, app.status.color),
               backgroundColor:
