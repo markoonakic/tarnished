@@ -63,6 +63,8 @@ function ApplicationDetailContent({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [archiving, setArchiving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deletingRound, setDeletingRound] = useState<string | null>(null);
   useUnsavedChanges(archiving);
   const [showRoundForm, setShowRoundForm] = useState(false);
   const [editingIds, setEditingIds] = useState<string[]>([]);
@@ -141,8 +143,10 @@ function ApplicationDetailContent({ id }: { id: string }) {
   }, [loadApplication]);
 
   async function handleDelete() {
+    if (deleting || deletingRound || archiving) return;
     if (!confirm(t('Are you sure you want to delete this application?')))
       return;
+    setDeleting(true);
     try {
       await deleteApplication(id!, application?.evidence_revision);
       toast.success(t('Application deleted'));
@@ -154,6 +158,8 @@ function ApplicationDetailContent({ id }: { id: string }) {
           : t('Failed to delete application');
       setError(errorMsg);
       showError(errorMsg);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -162,7 +168,9 @@ function ApplicationDetailContent({ id }: { id: string }) {
   }
 
   async function handleDeleteRound(roundId: string) {
+    if (deleting || deletingRound || archiving) return;
     if (!confirm(t('Delete this round?'))) return;
+    setDeletingRound(roundId);
     try {
       await deleteRound(
         roundId,
@@ -178,6 +186,8 @@ function ApplicationDetailContent({ id }: { id: string }) {
           : t('Failed to delete round');
       setError(errorMsg);
       showError(errorMsg);
+    } finally {
+      setDeletingRound(null);
     }
   }
 
@@ -517,6 +527,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
               {t('Application feedback')}
             </Button>
             <Button
+              disabled={deleting}
               onClick={() => setShowEditModal(true)}
               className="flex items-center gap-1.5"
             >
@@ -525,6 +536,8 @@ function ApplicationDetailContent({ id }: { id: string }) {
             </Button>
             <Button
               variant="danger"
+              disabled={deleting || Boolean(deletingRound) || archiving}
+              aria-busy={deleting}
               onClick={handleDelete}
               className="flex items-center gap-1.5"
             >
@@ -634,6 +647,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
                   <RoundCard
                     key={round.id}
                     round={round}
+                    deleting={deleting || deletingRound !== null}
                     onEdit={() => setEditingIds((ids) => [...ids, round.id])}
                     onDelete={() => handleDeleteRound(round.id)}
                     onMediaChange={() => handleMediaChange(round.id)}

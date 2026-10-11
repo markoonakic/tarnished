@@ -57,6 +57,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
   const [extracting, setExtracting] = useState(false);
   const [confirmExtraction, setConfirmExtraction] = useState(false);
   const [stale, setStale] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadJobLead = useCallback(async () => {
     const ownedRequest = ++requestId.current;
@@ -91,7 +92,9 @@ function JobLeadDetailContent({ id }: { id: string }) {
   }, [loadJobLead]);
 
   async function handleDelete() {
+    if (deleting) return;
     if (!confirm(t('Are you sure you want to delete this job lead?'))) return;
+    setDeleting(true);
     try {
       await deleteJobLead(id!, jobLead?.revision);
       toast.success(t('Job lead deleted'));
@@ -103,6 +106,8 @@ function JobLeadDetailContent({ id }: { id: string }) {
           : t('Failed to delete job lead');
       setError(errorMsg);
       showError(errorMsg);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -534,6 +539,8 @@ function JobLeadDetailContent({ id }: { id: string }) {
             )}
             <Button
               variant="danger"
+              disabled={deleting}
+              aria-busy={deleting}
               onClick={handleDelete}
               className="flex items-center gap-1.5"
             >

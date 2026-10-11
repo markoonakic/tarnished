@@ -3,7 +3,7 @@ import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import DocumentTextFallback from './DocumentTextFallback';
 import FileButton from './FileButton';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import {
   uploadCV,
   uploadCoverLetter,
@@ -35,6 +35,9 @@ export default function DocumentSection({
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
   const [justReplaced, setJustReplaced] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const mutationLock = useRef(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const busy = Boolean(uploading || deleting);
   useUnsavedChanges(Boolean(uploading));
 
   async function handleUpload(
@@ -42,6 +45,8 @@ export default function DocumentSection({
     file: File,
     isReplace = false
   ) {
+    if (mutationLock.current) return;
+    mutationLock.current = true;
     setUploading(type);
     setUploadingFile(file);
     setUploadProgress(0);
@@ -87,13 +92,17 @@ export default function DocumentSection({
       );
       setUploadProgress(0);
     } finally {
+      mutationLock.current = false;
       setUploading(null);
       setUploadingFile(null);
     }
   }
 
   async function handleDelete(type: 'cv' | 'cover-letter') {
+    if (mutationLock.current) return;
     if (!confirm(t('Delete this {{type}}?', { type: type }))) return;
+    mutationLock.current = true;
+    setDeleting(type);
     setError('');
     try {
       let updated: Application;
@@ -112,6 +121,9 @@ export default function DocumentSection({
           ? errorMessage(error.response.data, error.response.status)
           : t('Failed to delete {{type}}', { type: type })
       );
+    } finally {
+      mutationLock.current = false;
+      setDeleting(null);
     }
   }
 
@@ -165,7 +177,7 @@ export default function DocumentSection({
                 </span>
                 <Button
                   onClick={() => handlePreview(type)}
-                  disabled={isUploading}
+                  disabled={busy}
                   className="flex items-center gap-1.5"
                   title={canPreview ? t('Preview') : t('View/Download')}
                 >
@@ -178,7 +190,7 @@ export default function DocumentSection({
                     const file = e.target.files?.[0];
                     if (file) handleUpload(type, file, true);
                   }}
-                  disabled={isUploading}
+                  disabled={busy}
                   className="flex items-center gap-1.5"
                 >
                   <i className="bi-arrow-repeat icon-sm"></i>
@@ -187,7 +199,8 @@ export default function DocumentSection({
                 <Button
                   variant="danger"
                   onClick={() => handleDelete(type)}
-                  disabled={isUploading}
+                  disabled={busy}
+                  aria-busy={deleting === type}
                   className="flex items-center gap-1.5"
                 >
                   <i className="bi-trash icon-sm"></i>
@@ -210,7 +223,7 @@ export default function DocumentSection({
                   const file = e.target.files?.[0];
                   if (file) handleUpload(type, file);
                 }}
-                disabled={isUploading}
+                disabled={busy}
                 className="flex items-center gap-1.5"
               >
                 <i className="bi-upload icon-sm"></i>

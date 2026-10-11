@@ -2,6 +2,7 @@ import axios, { AxiosHeaders, type AxiosRequestConfig } from 'axios';
 import { ReadHttpError } from './readRecovery';
 import { uiLabel, isInterfaceText } from './i18n';
 import { errorMessage } from './errorMessage';
+import { beginApiWrite } from './exitGuard';
 
 // Validation objects can contain submitted secrets.
 export function safeErrorMessage(detail: unknown, fallback: string): string {
@@ -106,9 +107,11 @@ export function refreshAuthTokens(): Promise<string | null> {
   }
   if (pendingRefresh?.token === token) return pendingRefresh.promise;
 
+  const finish = beginApiWrite('POST');
   const request = {
     token,
     promise: refreshTokens(token).finally(() => {
+      finish();
       if (pendingRefresh === request) pendingRefresh = null;
     }),
   };
@@ -173,35 +176,42 @@ export async function fetchWithAuth(
   retryOnUnauthorized = true,
   includeTimeZone = false
 ): Promise<Response> {
-  const authorizedHeaders = withAuthorization(init.headers);
-  const response = await fetch(toAbsoluteUrl(input), {
-    ...init,
-    headers: includeTimeZone
-      ? withTimeZoneHeaders(authorizedHeaders)
-      : authorizedHeaders,
-  });
+  const finish = beginApiWrite(init.method);
+  try {
+    const authorizedHeaders = withAuthorization(init.headers);
+    const response = await fetch(toAbsoluteUrl(input), {
+      ...init,
+      headers: includeTimeZone
+        ? withTimeZoneHeaders(authorizedHeaders)
+        : authorizedHeaders,
+    });
 
-  if (response.status !== 401 || !retryOnUnauthorized) {
-    return response;
+    if (response.status !== 401 || !retryOnUnauthorized) {
+      return response;
+    }
+
+    const currentToken = getAccessToken();
+    const refreshedToken =
+      currentToken &&
+      authorizedHeaders.get('Authorization') !== `Bearer ${currentToken}`
+        ? currentToken
+        : await refreshAuthTokens();
+    if (!refreshedToken) {
+      redirectToLogin();
+      return response;
+    }
+
+    const retryHeaders = withAuthorization(init.headers, refreshedToken);
+
+    return await fetch(toAbsoluteUrl(input), {
+      ...init,
+      headers: includeTimeZone
+        ? withTimeZoneHeaders(retryHeaders)
+        : retryHeaders,
+    });
+  } finally {
+    finish();
   }
-
-  const currentToken = getAccessToken();
-  const refreshedToken =
-    currentToken &&
-    authorizedHeaders.get('Authorization') !== `Bearer ${currentToken}`
-      ? currentToken
-      : await refreshAuthTokens();
-  if (!refreshedToken) {
-    redirectToLogin();
-    return response;
-  }
-
-  const retryHeaders = withAuthorization(init.headers, refreshedToken);
-
-  return fetch(toAbsoluteUrl(input), {
-    ...init,
-    headers: includeTimeZone ? withTimeZoneHeaders(retryHeaders) : retryHeaders,
-  });
 }
 
 export function buildAuthenticatedEventSourceUrl(path: string): string {
@@ -214,6 +224,8 @@ export function buildAuthenticatedEventSourceUrl(path: string): string {
 
   return url.toString();
 }
+
+const writes = new WeakMap<AxiosRequestConfig, () => void>();
 
 api.interceptors.request.use((config) => {
   if (
@@ -231,66 +243,95 @@ api.interceptors.request.use((config) => {
   }
 
   config.headers = headers;
+  const adapter = axios.getAdapter(config.adapter ?? api.defaults.adapter);
+  const finish = beginApiWrite(config.method);
+  writes.set(config, finish);
+  config.adapter = async (request) => {
+    try {
+      return await adapter(request);
+    } catch (error) {
+      // Custom adapters can reject without the config used by response cleanup.
+      if (!axios.isAxiosError(error) || !error.config) {
+        finish();
+        writes.delete(config);
+      }
+      throw error;
+    }
+  };
   return config;
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    writes.get(response.config)?.();
+    writes.delete(response.config);
+    return response;
+  },
   async (error) => {
-    if (error.response) {
-      const raw = error.response.data;
-      const data = raw && typeof raw === 'object' ? raw : {};
-      error.response.data = data;
-      const message = errorMessage(data, error.response.status);
+    try {
+      if (axios.isAxiosError(error) && !error.response) {
+        error.message = errorMessage(undefined);
+      }
+      if (error.response) {
+        const raw = error.response.data;
+        const data = raw && typeof raw === 'object' ? raw : {};
+        error.response.data = data;
+        const message = errorMessage(data, error.response.status);
+        if (
+          data.detail &&
+          typeof data.detail === 'object' &&
+          !Array.isArray(data.detail)
+        )
+          data.detail = { ...data.detail, message };
+        else data.detail = message;
+      }
+      if (error.response?.status !== 401) {
+        return Promise.reject(error);
+      }
+
+      const originalRequest = error.config as AxiosRequestConfig & {
+        _retry?: boolean;
+      };
+
       if (
-        data.detail &&
-        typeof data.detail === 'object' &&
-        !Array.isArray(data.detail)
-      )
-        data.detail = { ...data.detail, message };
-      else data.detail = message;
+        ['/api/auth/login', '/api/auth/refresh'].includes(
+          originalRequest.url ?? ''
+        )
+      ) {
+        return Promise.reject(error);
+      }
+
+      if (originalRequest._retry) {
+        clearAuthTokens();
+        redirectToLogin();
+        return Promise.reject(error);
+      }
+
+      const currentToken = getAccessToken();
+      const sentToken = toAxiosHeaders(originalRequest.headers).get(
+        'Authorization'
+      );
+      const refreshedToken =
+        currentToken && sentToken !== `Bearer ${currentToken}`
+          ? currentToken
+          : await refreshAuthTokens();
+      if (!refreshedToken) {
+        redirectToLogin();
+        return Promise.reject(error);
+      }
+
+      originalRequest._retry = true;
+      const headers = toAxiosHeaders(originalRequest.headers);
+      headers.set('Authorization', `Bearer ${refreshedToken}`);
+      originalRequest.headers = headers;
+
+      return await api.request(originalRequest);
+    } finally {
+      if (error.config) {
+        writes.get(error.config)?.();
+        writes.delete(error.config);
+      }
     }
-    if (error.response?.status !== 401) {
-      return Promise.reject(error);
-    }
-
-    const originalRequest = error.config as AxiosRequestConfig & {
-      _retry?: boolean;
-    };
-
-    if (
-      ['/api/auth/login', '/api/auth/refresh'].includes(
-        originalRequest.url ?? ''
-      )
-    ) {
-      return Promise.reject(error);
-    }
-
-    if (originalRequest._retry) {
-      clearAuthTokens();
-      redirectToLogin();
-      return Promise.reject(error);
-    }
-
-    const currentToken = getAccessToken();
-    const sentToken = toAxiosHeaders(originalRequest.headers).get(
-      'Authorization'
-    );
-    const refreshedToken =
-      currentToken && sentToken !== `Bearer ${currentToken}`
-        ? currentToken
-        : await refreshAuthTokens();
-    if (!refreshedToken) {
-      redirectToLogin();
-      return Promise.reject(error);
-    }
-
-    originalRequest._retry = true;
-    const headers = toAxiosHeaders(originalRequest.headers);
-    headers.set('Authorization', `Bearer ${refreshedToken}`);
-    originalRequest.headers = headers;
-
-    return api.request(originalRequest);
   }
 );
 

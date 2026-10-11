@@ -68,7 +68,9 @@ function InterviewPage({ id }: { id?: string }) {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [questions, setQuestions] = useState<QuestionAnswer[]>([]);
   const [questionsOpen, setQuestionsOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [saving, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const busy = saving || deleting;
   const [error, setError] = useState('');
   useUnsavedChanges(busy || section !== null);
   const interview = query.data;
@@ -436,8 +438,17 @@ function InterviewPage({ id }: { id?: string }) {
                   <Button
                     variant="danger"
                     className="flex items-center gap-1.5"
+                    disabled={busy || deleting || section !== null}
+                    aria-busy={deleting}
                     onClick={async () => {
-                      if (!confirm(t('tasks.deleteInterview'))) return;
+                      if (
+                        busy ||
+                        deleting ||
+                        section !== null ||
+                        !confirm(t('tasks.deleteInterview'))
+                      )
+                        return;
+                      setDeleting(true);
                       try {
                         await apiV030.deleteInterview(interview.id, interview);
                         await refresh();
@@ -451,6 +462,8 @@ function InterviewPage({ id }: { id?: string }) {
                               )
                             : t('tasks.saveFailed')
                         );
+                      } finally {
+                        setDeleting(false);
                       }
                     }}
                   >

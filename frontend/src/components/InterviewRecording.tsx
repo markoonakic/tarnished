@@ -30,6 +30,7 @@ interface Props {
   onDelete: () => void;
   onMediaChange: () => void;
   showRoundHeader?: boolean;
+  deleting?: boolean;
 }
 
 export default function InterviewRecording({
@@ -38,6 +39,7 @@ export default function InterviewRecording({
   onDelete,
   onMediaChange,
   showRoundHeader = false,
+  deleting = false,
 }: Props) {
   useTranslation();
   const preferences = useUserPreferences();
@@ -51,6 +53,8 @@ export default function InterviewRecording({
   const toast = useToast();
   const uploadLock = useRef(false);
   const [uploading, setUploading] = useState(false);
+  const [deletingMedia, setDeletingMedia] = useState<string | null>(null);
+  const busy = deleting || uploading || deletingMedia !== null;
   const [uploadingMediaFile, setUploadingMediaFile] = useState<File | null>(
     null
   );
@@ -78,7 +82,7 @@ export default function InterviewRecording({
     replaceId?: string
   ) {
     const file = e.target.files?.[0];
-    if (!file || uploadLock.current) return;
+    if (!file || uploadLock.current || deleting) return;
     // Pending state owns the File. Reset the native chooser so selecting the
     // same file after explicit conflict recovery fires change again.
     e.target.value = '';
@@ -93,7 +97,7 @@ export default function InterviewRecording({
   }
 
   async function sendMedia(pending: NonNullable<typeof pendingMedia>) {
-    if (uploadLock.current) return;
+    if (uploadLock.current || deleting) return;
     if (pending.file.size > 1_000_000_000) {
       setMediaError(
         t('Recording exceeds 1,000,000,000 bytes. Choose a smaller recording.')
@@ -142,6 +146,7 @@ export default function InterviewRecording({
 
   async function handleMediaDelete(mediaId: string, e: React.MouseEvent) {
     e.stopPropagation();
+    if (uploadLock.current || deleting) return;
     if (
       !confirm(
         t(
@@ -150,6 +155,8 @@ export default function InterviewRecording({
       )
     )
       return;
+    uploadLock.current = true;
+    setDeletingMedia(mediaId);
     try {
       await deleteMedia(
         mediaId,
@@ -164,6 +171,9 @@ export default function InterviewRecording({
       } else {
         toast.error(t('Failed to delete media'));
       }
+    } finally {
+      uploadLock.current = false;
+      setDeletingMedia(null);
     }
   }
 
@@ -236,6 +246,7 @@ export default function InterviewRecording({
             <>
               <Button
                 variant="icon"
+                disabled={busy}
                 onClick={onEdit}
                 aria-label={t('Edit round')}
                 title={t('Edit')}
@@ -244,6 +255,7 @@ export default function InterviewRecording({
               </Button>
               <Button
                 variant="icon"
+                disabled={busy}
                 onClick={onDelete}
                 aria-label={t('Delete round')}
                 title={t('Delete')}
@@ -290,7 +302,7 @@ export default function InterviewRecording({
             variant="primary"
             accept=".mp4,.webm,.mov,.mp3,.m4a,.wav,.ogg"
             onChange={(e) => void handleMediaUpload(e)}
-            disabled={uploading}
+            disabled={busy}
             className="flex items-center gap-1.5"
           >
             <i className="bi-plus-circle icon-sm"></i>
@@ -401,6 +413,7 @@ export default function InterviewRecording({
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
+                    disabled={busy}
                     onClick={() => setTranscribingMedia(m.id)}
                     className="flex items-center gap-1.5"
                   >
@@ -412,7 +425,7 @@ export default function InterviewRecording({
                   </Button>
                   <FileButton
                     accept=".mp4,.webm,.mov,.mp3,.m4a,.wav,.ogg"
-                    disabled={uploading}
+                    disabled={busy}
                     onChange={(e) => void handleMediaUpload(e, m.id)}
                     className="flex items-center gap-1.5"
                   >
@@ -444,7 +457,8 @@ export default function InterviewRecording({
                   </Button>
                   <Button
                     variant="danger"
-                    disabled={uploading}
+                    disabled={busy}
+                    aria-busy={deletingMedia === m.id}
                     onClick={(e) => handleMediaDelete(m.id, e)}
                     className="flex items-center gap-1.5"
                     title={t('Delete')}
@@ -505,6 +519,7 @@ export default function InterviewRecording({
         <Button
           variant="primary"
           type="button"
+          disabled={busy}
           onClick={() => setEditingTranscript(true)}
           className="flex items-center gap-1.5"
         >

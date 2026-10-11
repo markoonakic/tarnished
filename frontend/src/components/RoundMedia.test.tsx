@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -110,6 +111,59 @@ afterEach(async () => {
   queryClient.clear();
   api.defaults.adapter = adapter;
   await i18n.changeLanguage('en');
+});
+
+it('locks conflicting actions during recording deletion and warns through the shared client', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  const original = api.defaults.adapter as AxiosAdapter;
+  let release!: () => void;
+  api.defaults.adapter = (config) =>
+    config.method === 'delete'
+      ? new Promise((resolve) => {
+          release = () =>
+            resolve({
+              data: null,
+              status: 204,
+              statusText: 'OK',
+              headers: {},
+              config,
+            });
+        })
+      : original(config);
+  const changed = vi.fn();
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <ApplicationRoundCard
+          round={round}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onMediaChange={changed}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  await waitFor(() => expect(release).toBeDefined());
+  for (const name of [
+    'Delete',
+    'Edit round',
+    'Delete round',
+    'Add Media',
+    'Replace recording',
+    'Transcribe',
+    'Add transcript',
+  ])
+    expect(screen.getByRole('button', { name })).toBeDisabled();
+  const event = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(event);
+  expect(event.defaultPrevented).toBe(true);
+  await act(async () => release());
+  await waitFor(() => expect(changed).toHaveBeenCalledOnce());
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
+  const saved = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(saved);
+  expect(saved.defaultPrevented).toBe(false);
 });
 
 it.each([

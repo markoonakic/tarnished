@@ -1,5 +1,7 @@
 import Button from '@/components/ui/Button';
 import { useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { t } from '@/lib/i18n';
@@ -19,6 +21,7 @@ export default function DeleteAccountCard() {
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  useUnsavedChanges(open && (busy || Boolean(password) || confirm));
   useEffect(
     () =>
       observeRead(async () => {
@@ -38,6 +41,12 @@ export default function DeleteAccountCard() {
     setError('');
     try {
       await apiV030.deleteAccount(password, confirm);
+      flushSync(() => {
+        setOpen(false);
+        setPassword('');
+        setConfirm(false);
+        setBusy(false);
+      });
       signOut();
     } catch (cause) {
       if (axios.isAxiosError(cause) && cause.response?.status === 409) {
