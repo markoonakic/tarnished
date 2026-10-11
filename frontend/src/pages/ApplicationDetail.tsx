@@ -5,6 +5,7 @@ import { t, locale } from '@/lib/i18n';
 import { statusLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useParams, useNavigate } from 'react-router-dom';
 import { observeRead } from '../lib/queryClient';
 import { getApplication, deleteApplication } from '../lib/applications';
@@ -61,6 +62,8 @@ function ApplicationDetailContent({ id }: { id: string }) {
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [archiving, setArchiving] = useState(false);
+  useUnsavedChanges(archiving);
   const [showRoundForm, setShowRoundForm] = useState(false);
   const [editingIds, setEditingIds] = useState<string[]>([]);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -89,11 +92,13 @@ function ApplicationDetailContent({ id }: { id: string }) {
   async function archive(archived: boolean) {
     if (
       !application ||
+      archiving ||
       !confirm(
         t(archived ? 'records.confirmArchive' : 'records.confirmUnarchive')
       )
     )
       return;
+    setArchiving(true);
     try {
       await apiV030.updateApplication(application.id, {
         archived,
@@ -102,6 +107,8 @@ function ApplicationDetailContent({ id }: { id: string }) {
       await loadApplication();
     } catch {
       showError(t('records.saveFailed'));
+    } finally {
+      setArchiving(false);
     }
   }
 
@@ -252,6 +259,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
             <span>{t('records.archived')}</span>
             <Button
               className="flex items-center gap-1.5"
+              disabled={archiving}
               onClick={() => archive(false)}
             >
               <i className="bi-arrow-right icon-sm" aria-hidden="true" />
@@ -311,10 +319,10 @@ function ApplicationDetailContent({ id }: { id: string }) {
                     showError(t('Failed to load statuses'));
                   }
                 }}
-                className="flex items-center gap-1.5"
+                className="flex max-w-full min-w-0 items-center gap-1.5"
               >
                 <span
-                  className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold"
+                  className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold [overflow-wrap:anywhere]"
                   style={{
                     color: getStatusColor(
                       application.status.name,
@@ -324,7 +332,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
                     backgroundColor: `${getStatusColor(application.status.name, colors, application.status.color)}20`,
                   }}
                 >
-                  <span className="h-2 w-2 rounded-full bg-current" />
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-current" />
                   {statusLabel(application.status)}
                 </span>
                 <i className="bi-pencil ml-1" aria-hidden="true" />
@@ -491,6 +499,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
             {!application.archived_at && (
               <Button
                 className="flex items-center gap-1.5"
+                disabled={archiving}
                 onClick={() => archive(true)}
               >
                 <i className="bi-archive mr-1" aria-hidden="true" />

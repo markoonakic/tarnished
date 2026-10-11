@@ -46,7 +46,7 @@ export default function ContactRow({
       </div>
       {role && (
         <span
-          className="inline-flex rounded px-2.5 py-1 text-xs font-semibold"
+          className="inline-flex max-w-full min-w-0 rounded px-2.5 py-1 text-xs font-semibold [overflow-wrap:anywhere]"
           style={pillStyle(roleColor)}
         >
           {role}

@@ -340,7 +340,7 @@ export default function Applications() {
           <>
             {/* Desktop table */}
             <div className="bg-secondary hidden overflow-hidden rounded-lg md:block">
-              <table className="w-full border-collapse">
+              <table className="w-full table-fixed border-collapse">
                 <thead>
                   <tr className="border-tertiary border-b">
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
@@ -383,7 +383,7 @@ export default function Applications() {
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span
-                          className="inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold"
+                          className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold [overflow-wrap:anywhere]"
                           style={{
                             backgroundColor: `${getStatusColor(app.status.name, colors, app.status.color)}20`,
                             color: getStatusColor(
@@ -438,7 +438,7 @@ export default function Applications() {
                       {app.company || t('companies.notSet')}
                     </span>
                     <span
-                      className="inline-flex flex-shrink-0 items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold"
+                      className="inline-flex max-w-[60%] min-w-0 items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold [overflow-wrap:anywhere]"
                       style={{
                         backgroundColor: `${getStatusColor(app.status.name, colors, app.status.color)}20`,
                         color: getStatusColor(

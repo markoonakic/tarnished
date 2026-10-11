@@ -524,6 +524,19 @@ it.each(['UTC', 'offset'])(
   }
 );
 
+it('bounds long status text in the dashboard recent-application card', async () => {
+  card.status = {
+    ...card.status,
+    name: 'W'.repeat(180),
+    builtin_key: 'custom',
+  };
+  show(<DashboardUpcomingRow />, '/');
+  expect(await screen.findByText('W'.repeat(180))).toHaveClass(
+    'min-w-0',
+    'max-w-full',
+    '[overflow-wrap:anywhere]'
+  );
+});
 it('shows the new dashboard row and pipeline status links without starting any work', async () => {
   show(
     <>

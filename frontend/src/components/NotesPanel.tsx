@@ -116,7 +116,7 @@ export default function NotesPanel({
           }
         }}
         placeholder={t('kit.writeNote')}
-        className="bg-bg2 text-fg1 placeholder:text-fg4 focus:ring-accent h-20 w-full rounded-md px-3 py-2 text-sm outline-none focus:ring-2"
+        className="bg-bg3 text-fg1 placeholder:text-fg4 focus:ring-accent h-20 w-full rounded-md px-3 py-2 text-sm outline-none focus:ring-2"
       />
       {error && (
         <p role="alert" className="text-red text-sm">

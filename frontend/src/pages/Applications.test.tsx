@@ -122,7 +122,7 @@ it('renders summary round counts without detail rounds in both layouts', async (
     job_url: null,
     status: {
       id: 'applied',
-      name: 'Applied',
+      name: 'W'.repeat(180),
       color: '#83a598',
       meaning: 'applied',
     },
@@ -170,6 +170,9 @@ it('renders summary round counts without detail rounds in both layouts', async (
   });
   mount();
   const table = await screen.findByRole('table');
+  expect(table).toHaveClass('table-fixed');
+  for (const pill of screen.getAllByText('W'.repeat(180)))
+    expect(pill).toHaveClass('min-w-0', '[overflow-wrap:anywhere]');
   for (const [company, count] of [
     ['Scheduled interviews', 2],
     ['One interview', 1],

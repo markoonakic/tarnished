@@ -54,6 +54,31 @@ it.each(['en', 'sr-Latn'])(
   }
 );
 
+it('guards a pending decision until the write completes', async () => {
+  let release!: (value: Lead) => void;
+  vi.mocked(apiV030.updateLead).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        release = resolve;
+      })
+  );
+  const updated = vi.fn();
+  render(
+    <LeadDecision
+      lead={{ id: 'lead', revision: 3, decision: null } as JobLead}
+      onUpdated={updated}
+    />
+  );
+  fireEvent.click(screen.getByRole('radio', { name: 'Interesting' }));
+  const event = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(event);
+  expect(event.defaultPrevented).toBe(true);
+  release({} as Lead);
+  await waitFor(() => expect(updated).toHaveBeenCalledOnce());
+  const after = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(after);
+  expect(after.defaultPrevented).toBe(false);
+});
 it('saves an unconverted decision with its revision', async () => {
   vi.mocked(apiV030.updateLead).mockResolvedValue({} as Lead);
   const updated = vi.fn();
