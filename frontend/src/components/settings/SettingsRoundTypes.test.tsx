@@ -82,6 +82,7 @@ it('guards a pending create against double-submit and repeated Enter', async () 
   fireEvent.submit(name.closest('form')!);
   fireEvent.submit(name.closest('form')!);
   expect(createRoundType).toHaveBeenCalledOnce();
+  expect(name).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
 });
 it('sends the original name and keeps a stale edit after conflict', async () => {

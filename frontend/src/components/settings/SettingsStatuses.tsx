@@ -255,6 +255,7 @@ export default function SettingsStatuses() {
                     </label>
                     <Dropdown
                       id="edit-status-stage"
+                      disabled={busy}
                       options={stageOptions}
                       value={editMeaning}
                       onChange={(value) =>
@@ -265,6 +266,7 @@ export default function SettingsStatuses() {
                   </div>
                   <input
                     type="text"
+                    disabled={busy}
                     value={editStatusName}
                     onChange={(e) => setEditStatusName(e.target.value)}
                     placeholder={t('Status name')}
@@ -274,6 +276,7 @@ export default function SettingsStatuses() {
                   <input
                     type="color"
                     aria-label={t('Status color')}
+                    disabled={busy}
                     value={editStatusColor}
                     onChange={(e) => setEditStatusColor(e.target.value)}
                     className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"
@@ -309,6 +312,7 @@ export default function SettingsStatuses() {
                   </label>
                   <Dropdown
                     id="new-status-stage"
+                    disabled={busy}
                     options={stageOptions}
                     value={newMeaning}
                     onChange={(value) => setNewMeaning(value as StatusMeaning)}
@@ -317,6 +321,7 @@ export default function SettingsStatuses() {
                 </div>
                 <input
                   type="text"
+                  disabled={busy}
                   value={newStatusName}
                   onChange={(e) => setNewStatusName(e.target.value)}
                   placeholder={t('New status name')}
@@ -326,6 +331,7 @@ export default function SettingsStatuses() {
                 <input
                   type="color"
                   aria-label={t('New status color')}
+                  disabled={busy}
                   value={newStatusColor}
                   onChange={(e) => setNewStatusColor(e.target.value)}
                   className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"

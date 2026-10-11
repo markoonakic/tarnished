@@ -53,6 +53,19 @@ afterEach(() => {
   localStorage.clear();
 });
 
+it('guards a create-user email-only draft before Reload', () => {
+  render(<CreateUserModal isOpen onClose={vi.fn()} onSuccess={vi.fn()} />);
+  const before = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(before);
+  expect(before.defaultPrevented).toBe(false);
+  fireEvent.change(screen.getByLabelText(/^Email/), {
+    target: { value: 'new@example.test' },
+  });
+  const event = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(event);
+  expect(event.defaultPrevented).toBe(true);
+  expect(screen.getByLabelText(/^Email/)).toHaveValue('new@example.test');
+});
 it.each(['x', ' ', 'x'.repeat(64), '😀'.repeat(50)])(
   'creates a user with an accepted password',
   async (password) => {

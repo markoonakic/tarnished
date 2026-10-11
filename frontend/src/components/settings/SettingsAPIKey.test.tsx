@@ -48,6 +48,127 @@ describe('SettingsAPIKey', () => {
     vi.resetAllMocks();
   });
 
+  it('shows all backend scopes and allows removal of every saved permission', async () => {
+    const scopes = [
+      'applications:read',
+      'applications:write',
+      'job_leads:read',
+      'job_leads:write',
+      'profile:read',
+      'profile:write',
+      'rounds:read',
+      'rounds:write',
+      'statuses:read',
+      'statuses:write',
+      'round_types:read',
+      'round_types:write',
+      'dashboard:read',
+      'analytics:read',
+      'analytics:generate',
+      'streak:read',
+      'streak:write',
+      'preferences:read',
+      'preferences:write',
+      'user_settings:read',
+      'user_settings:write',
+      'files:read',
+      'files:write',
+      'export:read',
+      'import:write',
+      'admin:read',
+      'admin:write',
+    ];
+    const key = {
+      id: 'key',
+      label: 'All scopes',
+      revision: 1,
+      preset: 'custom',
+      scopes,
+      key_prefix: 'fixture',
+      created_at: '2026-10-01',
+      last_used_at: null,
+    };
+    listAPIKeys.mockResolvedValue([key]);
+    updateAPIKey.mockResolvedValue({ ...key, scopes: [] });
+    render(
+      <MemoryRouter>
+        <SettingsAPIKey />
+      </MemoryRouter>
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Rename' }));
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Advanced Scopes' })[1]
+    );
+    expect(screen.getAllByRole('checkbox')).toHaveLength(scopes.length);
+    for (const scope of scopes) {
+      expect(screen.getByLabelText(scope)).toBeChecked();
+      fireEvent.click(screen.getByLabelText(scope));
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(updateAPIKey).toHaveBeenCalledWith('key', {
+        label: 'All scopes',
+        expected_revision: 1,
+        preset: 'custom',
+        scopes: [],
+      })
+    );
+  });
+  it('previews the same Import / Export permissions that creation grants and locks pending create input', async () => {
+    listAPIKeys.mockResolvedValue([]);
+    createAPIKey.mockImplementation(() => new Promise(() => {}));
+    render(
+      <MemoryRouter>
+        <SettingsAPIKey />
+      </MemoryRouter>
+    );
+    const label = await screen.findByLabelText('Label');
+    fireEvent.change(label, { target: { value: 'One request' } });
+    const preset = screen.getByRole('combobox', { name: 'Preset' });
+    await selectDropdownOption(preset, /Import.*Export/);
+    fireEvent.click(screen.getByRole('button', { name: 'Advanced Scopes' }));
+    for (const scope of [
+      'applications:read',
+      'job_leads:read',
+      'export:read',
+      'import:write',
+      'files:read',
+      'profile:read',
+    ])
+      expect(screen.getByLabelText(scope)).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Create API Key' }));
+    expect(label).toBeDisabled();
+    expect(preset).toBeDisabled();
+    expect(screen.getByLabelText('files:read')).toBeDisabled();
+  });
+  it('bounds saved labels and keeps their actions outside the shrinking text column', async () => {
+    const label = 'W'.repeat(180);
+    listAPIKeys.mockResolvedValue([
+      {
+        id: 'long',
+        label,
+        preset: 'full_access',
+        scopes: [],
+        key_prefix: 'fixture',
+        created_at: '2026-10-01',
+        last_used_at: null,
+      },
+    ]);
+    render(
+      <MemoryRouter>
+        <SettingsAPIKey />
+      </MemoryRouter>
+    );
+    const value = await screen.findByText(label);
+    expect(value.parentElement).toHaveClass(
+      'min-w-0',
+      'flex-1',
+      '[overflow-wrap:anywhere]'
+    );
+    expect(
+      screen.getByRole('button', { name: 'Rename' }).parentElement
+    ).toHaveClass('shrink-0');
+  });
   it('keeps stale key edit drafts and sends their original revision', async () => {
     listAPIKeys.mockResolvedValue([
       {

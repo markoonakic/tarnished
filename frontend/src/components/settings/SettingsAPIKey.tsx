@@ -75,6 +75,9 @@ const FULL_ACCESS_SCOPES = [
   'round_types:write',
   'dashboard:read',
   'analytics:read',
+  'analytics:generate',
+  'streak:read',
+  'streak:write',
   'preferences:read',
   'preferences:write',
   'user_settings:read',
@@ -106,6 +109,7 @@ const PRESET_SCOPES: Record<string, string[]> = {
     'round_types:read',
     'dashboard:read',
     'analytics:read',
+    'streak:read',
     'preferences:read',
     'user_settings:read',
     'files:read',
@@ -116,11 +120,13 @@ const PRESET_SCOPES: Record<string, string[]> = {
     'job_leads:read',
     'export:read',
     'import:write',
+    'files:read',
+    'profile:read',
   ],
 };
 
 const ALL_SCOPES = Array.from(
-  new Set(Object.values(PRESET_SCOPES).flat())
+  new Set([...Object.values(PRESET_SCOPES).flat(), 'admin:read', 'admin:write'])
 ).sort();
 
 function formatDate(value: string | null): string {
@@ -331,6 +337,7 @@ export default function SettingsAPIKey() {
                   </label>
                   <input
                     id="new-api-key-label"
+                    disabled={submitting}
                     value={newLabel}
                     onChange={(event) => setNewLabel(event.target.value)}
                     placeholder={t('MacBook CLI')}
@@ -347,6 +354,7 @@ export default function SettingsAPIKey() {
                   </label>
                   <Dropdown
                     id="new-api-key-preset"
+                    disabled={submitting}
                     options={API_KEY_PRESETS.map((preset) => ({
                       value: preset.value,
                       label: preset.label,
@@ -397,6 +405,7 @@ export default function SettingsAPIKey() {
                       >
                         <input
                           type="checkbox"
+                          disabled={submitting}
                           checked={newScopes.includes(scope)}
                           onChange={() => handleScopeToggle(scope)}
                         />
@@ -442,7 +451,7 @@ export default function SettingsAPIKey() {
                 {apiKeys.map((apiKey) => (
                   <div key={apiKey.id} className="bg-bg2 rounded-lg p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div className="space-y-1">
+                      <div className="min-w-0 flex-1 space-y-1 [overflow-wrap:anywhere]">
                         {editingId === apiKey.id ? (
                           <div className="space-y-4">
                             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -455,6 +464,7 @@ export default function SettingsAPIKey() {
                                 </label>
                                 <input
                                   id={`edit-api-key-label-${apiKey.id}`}
+                                  disabled={submitting}
                                   value={editingLabel}
                                   onChange={(event) =>
                                     setEditingLabel(event.target.value)
@@ -472,6 +482,7 @@ export default function SettingsAPIKey() {
                                 </label>
                                 <Dropdown
                                   id={`edit-api-key-preset-${apiKey.id}`}
+                                  disabled={submitting}
                                   options={API_KEY_PRESETS.map((preset) => ({
                                     value: preset.value,
                                     label: preset.label,
@@ -532,6 +543,7 @@ export default function SettingsAPIKey() {
                                     >
                                       <input
                                         type="checkbox"
+                                        disabled={submitting}
                                         checked={editingScopes.includes(scope)}
                                         onChange={() =>
                                           handleEditingScopeToggle(scope)
@@ -570,7 +582,7 @@ export default function SettingsAPIKey() {
                       </div>
 
                       {editingId !== apiKey.id && (
-                        <div className="flex gap-2">
+                        <div className="flex shrink-0 gap-2">
                           <Button
                             onClick={() => {
                               setEditingId(apiKey.id);

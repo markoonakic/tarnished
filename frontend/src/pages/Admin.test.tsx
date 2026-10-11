@@ -102,6 +102,23 @@ async function tab() {
   return within(view.container);
 }
 
+it('guards changed AI fields and clears the guard after a successful save', async () => {
+  const a = await tab();
+  const unload = () => {
+    const e = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(e);
+    return e.defaultPrevented;
+  };
+  expect(unload()).toBe(false);
+  fireEvent.change(a.getByLabelText('Text model'), {
+    target: { value: 'openai/changed' },
+  });
+  expect(unload()).toBe(true);
+  await act(async () =>
+    fireEvent.click(a.getByRole('button', { name: 'Save Settings' }))
+  );
+  expect(unload()).toBe(false);
+});
 it('keeps user management visible and opens AI fields only on request', async () => {
   const view = render(<Admin />);
   const a = within(view.container);
@@ -120,6 +137,9 @@ it('keeps user management visible and opens AI fields only on request', async ()
   expect(getLocalSpeechStatus).not.toHaveBeenCalled();
   fireEvent.click(a.getByRole('button', { name: 'Configure AI' }));
   expect(a.getByLabelText('Text model')).toHaveValue('unsaved-model');
+  const unload = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(unload);
+  expect(unload.defaultPrevented).toBe(true);
 });
 
 it('ignores an older admin snapshot after the search changes', async () => {

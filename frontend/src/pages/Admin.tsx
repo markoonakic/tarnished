@@ -39,6 +39,7 @@ import EditUserModal from '../components/EditUserModal';
 import Pagination from '../components/Pagination';
 import SegmentedControl from '../components/SegmentedControl';
 import { apiV030 } from '@/lib/apiV030';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 
 const configurationLabels = {
   get configured() {
@@ -122,6 +123,21 @@ export default function Admin() {
   const [checkingLocal, setCheckingLocal] = useState(false);
   const [savingAi, setSavingAi] = useState(false);
   const aiBaseline = useRef<AISettingsBaseline | null>(null);
+  const [aiDraftBaseline, setAiDraftBaseline] = useState('');
+  const aiDraft = JSON.stringify({
+    aiModel,
+    aiApiKey,
+    aiBaseUrl,
+    textEnabled,
+    textKeyless,
+    textProtocol,
+    clearTextKey,
+    clearTextEndpoint,
+    speech,
+  });
+  useUnsavedChanges(
+    showAISettings && (savingAi || aiDraft !== aiDraftBaseline)
+  );
   const hasLoadedData = useRef(false);
   const requestId = useRef(0);
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -311,6 +327,25 @@ export default function Admin() {
       setAiSettings(updated);
       setLocalStatus('');
       setAiNotice({ error: false, text: t('Settings saved.') });
+      setAiDraftBaseline(
+        JSON.stringify({
+          aiModel,
+          aiApiKey: '',
+          aiBaseUrl: '',
+          textEnabled,
+          textKeyless,
+          textProtocol,
+          clearTextKey: false,
+          clearTextEndpoint: false,
+          speech: {
+            ...speech,
+            apiKey: '',
+            endpoint: '',
+            clearKey: false,
+            clearEndpoint: false,
+          },
+        })
+      );
       // Keep the baseline tied to this form's submitted values.
       aiBaseline.current = submittedValues;
       setAiApiKey('');
@@ -694,6 +729,7 @@ export default function Admin() {
                   variant="primary"
                   onClick={() => {
                     setAiNotice(null);
+                    if (!aiDraftBaseline) setAiDraftBaseline(aiDraft);
                     setShowAISettings(true);
                   }}
                   className="flex items-center gap-1.5"

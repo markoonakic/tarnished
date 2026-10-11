@@ -71,6 +71,8 @@ it('sends one create while Add is pending, including repeated form submissions',
   fireEvent.submit(add.closest('form')!);
   fireEvent.submit(add.closest('form')!);
   expect(createStatus).toHaveBeenCalledOnce();
+  expect(screen.getByPlaceholderText('New status name')).toBeDisabled();
+  expect(screen.getByRole('combobox', { name: 'Stage' })).toBeDisabled();
   expect(add).toBeDisabled();
 });
 it('keeps a stale edit and shows the conflict rather than hiding the editor', async () => {

@@ -5,6 +5,7 @@ import Modal from './Modal';
 import HelpTip from './HelpTip';
 import { newPasswordError } from '../lib/password';
 import { useState, useEffect } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { createUser } from '../lib/admin';
 
 interface Props {
@@ -19,6 +20,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: Props) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  useUnsavedChanges(isOpen && (loading || Boolean(email || password)));
 
   // Discard credentials when the dialog closes.
   useEffect(() => {

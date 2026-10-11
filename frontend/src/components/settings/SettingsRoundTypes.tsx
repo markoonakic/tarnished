@@ -193,6 +193,7 @@ export default function SettingsRoundTypes() {
                 <div className="flex gap-2">
                   <input
                     type="text"
+                    disabled={busy}
                     value={editRoundTypeName}
                     onChange={(e) => setEditRoundTypeName(e.target.value)}
                     placeholder={t('Round type name')}
@@ -214,6 +215,7 @@ export default function SettingsRoundTypes() {
               <form onSubmit={handleAddRoundType} className="flex gap-2">
                 <input
                   type="text"
+                  disabled={busy}
                   value={newRoundTypeName}
                   onChange={(e) => setNewRoundTypeName(e.target.value)}
                   placeholder={t('New round type name')}
