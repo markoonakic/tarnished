@@ -584,7 +584,14 @@ export default function SettingsAPIKey() {
                       {editingId !== apiKey.id && (
                         <div className="flex shrink-0 gap-2">
                           <Button
+                            disabled={submitting || editingId !== null}
+                            title={
+                              editingId
+                                ? t('Save or cancel the current edit first.')
+                                : undefined
+                            }
                             onClick={() => {
+                              if (submitting || editingId !== null) return;
                               setEditingId(apiKey.id);
                               setEditingRevision(apiKey.revision ?? 0);
                               setEditingLabel(apiKey.label);
@@ -598,7 +605,12 @@ export default function SettingsAPIKey() {
                           <Button
                             variant="danger"
                             onClick={() => handleDeleteKey(apiKey.id)}
-                            disabled={submitting}
+                            disabled={submitting || editingId !== null}
+                            title={
+                              editingId
+                                ? t('Save or cancel the current edit first.')
+                                : undefined
+                            }
                           >
                             {t('Revoke')}
                           </Button>

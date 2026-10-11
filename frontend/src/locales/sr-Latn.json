@@ -1,4 +1,6 @@
 {
+  "Could not save appearance.": "Izgled nije sačuvan.",
+  "Save or cancel the current edit first.": "Prvo sačuvajte ili otkažite trenutnu izmenu.",
   "Salary must be between 0 and 2,147,483,647.": "Plata mora biti između 0 i 2.147.483.647.",
   "Maximum salary must not be below minimum salary.": "Najveća plata ne sme biti manja od najmanje plate.",
   "Retry export": "Ponovi izvoz",

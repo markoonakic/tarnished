@@ -11,6 +11,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import api from '@/lib/api';
 import { ThemeProvider, useTheme } from './ThemeContext';
 import SettingsImport from '@/components/settings/SettingsImport';
+import SettingsTheme from '@/components/settings/SettingsTheme';
+import i18n from '@/lib/i18n';
 
 const { auth } = vi.hoisted(() => ({
   auth: { user: { id: 'owner' }, refreshUser: vi.fn() },
@@ -58,9 +60,10 @@ beforeEach(() => {
   });
   vi.mocked(api.patch).mockResolvedValue({ data: {} });
 });
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   vi.restoreAllMocks();
+  await i18n.changeLanguage('en');
 });
 
 it('hydrates saved appearance without writing local defaults to the server', async () => {
@@ -146,6 +149,48 @@ it('keeps appearance writes in click order while an older save is delayed', asyn
     expect(saved.defaultPrevented).toBe(false);
   });
 });
+
+it.each(['en', 'sr-Latn'])(
+  'shows a failed appearance save, keeps the draft and retries in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    vi.mocked(api.patch).mockRejectedValueOnce(new Error('Offline'));
+    const content = () => (
+      <MemoryRouter>
+        <ThemeProvider>
+          <Controls />
+          <SettingsTheme />
+        </ThemeProvider>
+      </MemoryRouter>
+    );
+    const view = render(content());
+    await screen.findByText('gruvbox-light/blue');
+    fireEvent.click(screen.getByRole('button', { name: i18n.t('Red') }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      i18n.t('Could not save appearance.')
+    );
+    expect(screen.getByText('gruvbox-light/red')).toBeVisible();
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    // A preference refresh must not silently replace a failed draft.
+    auth.user = { id: 'owner' };
+    view.rerender(content());
+    expect(screen.getByText('gruvbox-light/red')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: i18n.t('Retry') }));
+    await waitFor(() => expect(api.patch).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    );
+    expect(api.patch).toHaveBeenLastCalledWith('/api/users/settings', {
+      theme: 'gruvbox-light',
+      accent: 'red',
+    });
+    const saved = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(saved);
+    expect(saved.defaultPrevented).toBe(false);
+  }
+);
 
 it('continues the ordered save queue after a failure, including theme changes', async () => {
   vi.mocked(api.patch).mockRejectedValueOnce(new Error('Offline'));

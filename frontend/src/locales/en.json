@@ -1,4 +1,6 @@
 {
+  "Could not save appearance.": "Could not save appearance.",
+  "Save or cancel the current edit first.": "Save or cancel the current edit first.",
   "Salary must be between 0 and 2,147,483,647.": "Salary must be between 0 and 2,147,483,647.",
   "Maximum salary must not be below minimum salary.": "Maximum salary must not be below minimum salary.",
   "Retry export": "Retry export",

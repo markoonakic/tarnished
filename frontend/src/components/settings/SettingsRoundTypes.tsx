@@ -49,6 +49,7 @@ export default function SettingsRoundTypes() {
   }
 
   function startEditRoundType(roundType: RoundType) {
+    if (busy || editingRoundType || newRoundTypeName) return;
     setEditingRoundType(roundType);
     setEditRoundTypeName(roundType.name);
   }
@@ -161,6 +162,16 @@ export default function SettingsRoundTypes() {
                     {!type.is_default && (
                       <>
                         <Button
+                          disabled={
+                            busy ||
+                            editingRoundType !== null ||
+                            Boolean(newRoundTypeName)
+                          }
+                          title={
+                            editingRoundType || newRoundTypeName
+                              ? t('Save or cancel the current edit first.')
+                              : undefined
+                          }
                           onClick={() => startEditRoundType(type)}
                           className="flex items-center gap-1.5"
                         >
@@ -169,6 +180,16 @@ export default function SettingsRoundTypes() {
                         </Button>
                         <Button
                           variant="danger"
+                          disabled={
+                            busy ||
+                            editingRoundType !== null ||
+                            Boolean(newRoundTypeName)
+                          }
+                          title={
+                            editingRoundType || newRoundTypeName
+                              ? t('Save or cancel the current edit first.')
+                              : undefined
+                          }
                           onClick={() => handleDeleteRoundType(type)}
                           className="flex items-center gap-1.5"
                         >
@@ -205,6 +226,7 @@ export default function SettingsRoundTypes() {
                   </Button>
                   <Button
                     type="button"
+                    disabled={busy}
                     onClick={() => setEditingRoundType(null)}
                   >
                     {t('Cancel')}

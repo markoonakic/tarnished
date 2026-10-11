@@ -95,6 +95,7 @@ export default function SettingsStatuses() {
   }
 
   function startEditStatus(status: Status) {
+    if (busy || editingStatus || newStatusName) return;
     setEditingStatus(status);
     setEditStatusName(status.name);
     setEditStatusColor(status.color);
@@ -216,6 +217,16 @@ export default function SettingsStatuses() {
                     )}
                     {!status.is_default && (
                       <Button
+                        disabled={
+                          busy ||
+                          editingStatus !== null ||
+                          Boolean(newStatusName)
+                        }
+                        title={
+                          editingStatus || newStatusName
+                            ? t('Save or cancel the current edit first.')
+                            : undefined
+                        }
                         onClick={() => startEditStatus(status)}
                         className="flex items-center gap-1.5"
                       >
@@ -226,6 +237,16 @@ export default function SettingsStatuses() {
                     {!status.is_default && (
                       <Button
                         variant="danger"
+                        disabled={
+                          busy ||
+                          editingStatus !== null ||
+                          Boolean(newStatusName)
+                        }
+                        title={
+                          editingStatus || newStatusName
+                            ? t('Save or cancel the current edit first.')
+                            : undefined
+                        }
                         onClick={() => handleDeleteStatus(status)}
                         className="flex items-center gap-1.5"
                       >
@@ -292,6 +313,7 @@ export default function SettingsStatuses() {
                   </Button>
                   <Button
                     type="button"
+                    disabled={busy}
                     onClick={() => setEditingStatus(null)}
                     className="h-10"
                   >
