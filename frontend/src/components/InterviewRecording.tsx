@@ -13,7 +13,7 @@ import TranscriptEditor from './TranscriptEditor';
 import TranscriptionPanel from './TranscriptionPanel';
 import FileButton from './FileButton';
 import Modal from './Modal';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { isAxiosError } from 'axios';
 import { uploadMedia, deleteMedia, getMediaSignedUrl } from '../lib/rounds';
@@ -49,6 +49,7 @@ export default function InterviewRecording({
     0
   );
   const toast = useToast();
+  const uploadLock = useRef(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingMediaFile, setUploadingMediaFile] = useState<File | null>(
     null
@@ -75,7 +76,7 @@ export default function InterviewRecording({
     replaceId?: string
   ) {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || uploadLock.current) return;
     // Pending state owns the File. Reset the native chooser so selecting the
     // same file after explicit conflict recovery fires change again.
     e.target.value = '';
@@ -89,12 +90,14 @@ export default function InterviewRecording({
   }
 
   async function sendMedia(pending: NonNullable<typeof pendingMedia>) {
+    if (uploadLock.current) return;
     if (pending.file.size > 1_000_000_000) {
       setMediaError(
         t('Recording exceeds 1,000,000,000 bytes. Choose a smaller recording.')
       );
       return;
     }
+    uploadLock.current = true;
     setUploading(true);
     setMediaError('');
     setUploadingMediaFile(pending.file);
@@ -127,6 +130,7 @@ export default function InterviewRecording({
               )
       );
     } finally {
+      uploadLock.current = false;
       setUploading(false);
       setUploadingMediaProgress(0);
       setUploadingMediaFile(null);

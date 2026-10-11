@@ -1,4 +1,5 @@
 {
+  "ai.retryHelpLabel": "About retrying",
   "ai.useRequirements": "Use these requirements",
   "ai.reviewTitle": "Review extracted data",
   "ai.proposalCount": "{{count}} proposals · {{reviewed}} reviewed",
@@ -56,7 +57,8 @@
   "ai.noInsights": "No reviewed data for this period.",
   "ai.viewAll": "View all",
   "ai.showLess": "Show less",
-  "ai.failed": "The request could not be completed. Check status before an explicit retry. Trying again may repeat work or charges.",
+  "ai.failed": "The request could not be completed.",
+  "ai.retryHelp": "Check status before an explicit retry. Trying again may repeat work or charges.",
   "ai.loadFailed": "Could not load saved data.",
   "ai.checkStatus": "Check status",
   "ai.loading": "Loading saved data…",

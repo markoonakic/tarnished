@@ -179,6 +179,43 @@ it('restores the complete application round card without starting media or feedb
   ).toBeVisible();
 });
 
+it('rejects overlapping chooser changes while an upload is in flight and keeps its failed file for retry', async () => {
+  let reject!: (error: Error) => void;
+  api.defaults.adapter = async (config) => {
+    if (config.url?.endsWith('/media')) {
+      requests.push(config);
+      return await new Promise((_resolve, fail) => {
+        reject = fail;
+      });
+    }
+    return { data: round, status: 200, statusText: 'OK', headers: {}, config };
+  };
+  const view = render(
+    <QueryClientProvider client={queryClient}>
+      <RoundCard
+        round={round}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onMediaChange={vi.fn()}
+      />
+    </QueryClientProvider>
+  );
+  const input = view.container.querySelector('input[type=file]')!;
+  fireEvent.change(input, {
+    target: { files: [new File(['one'], 'first.wav')] },
+  });
+  fireEvent.change(input, {
+    target: { files: [new File(['two'], 'second.wav')] },
+  });
+  await waitFor(() =>
+    expect(requests.filter((r) => r.url?.endsWith('/media'))).toHaveLength(1)
+  );
+  reject(new Error('Connection lost'));
+  expect(await screen.findByText(/Pending: first.wav/)).toBeVisible();
+  expect(
+    screen.getByRole('button', { name: 'Retry recording upload' })
+  ).toBeEnabled();
+});
 it('opens transcription or feedback only on request', async () => {
   render(
     <QueryClientProvider client={queryClient}>

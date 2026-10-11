@@ -94,6 +94,30 @@ it('only reads on open; explicit run shows selectable suggestions and saves sele
     selected_ids: ['item-1'],
   });
 });
+it('keeps selected items after a failed rerun and puts retry guidance in a HelpTip', async () => {
+  show();
+  const run = screen.getByRole('button', { name: 'Draft with AI' });
+  await waitFor(() => expect(run).toBeEnabled());
+  fireEvent.click(run);
+  const item = await screen.findByRole('checkbox', {
+    name: 'Practice grouping by month',
+  });
+  fireEvent.click(item);
+  post.mockRejectedValueOnce(new Error('Connection lost'));
+  fireEvent.click(run);
+  const alert = await screen.findByRole('alert');
+  expect(item).toBeChecked();
+  expect(
+    screen.getByRole('button', { name: 'Save selected (1)' })
+  ).toBeEnabled();
+  expect(alert).not.toHaveTextContent('Trying again may repeat');
+  fireEvent.click(
+    screen.getByRole('button', { name: 'About retrying', expanded: false })
+  );
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Trying again may repeat work or charges.'
+  );
+});
 it('requires confirmed requirements and allowed profile items before a run', async () => {
   allow = false;
   show();

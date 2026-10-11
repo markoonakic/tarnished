@@ -1,6 +1,11 @@
 import Button, { type ButtonProps } from '@/components/ui/Button';
 import { useTranslation } from 'react-i18next';
-import { useRef, type InputHTMLAttributes, type ReactNode } from 'react';
+import {
+  useEffect,
+  useRef,
+  type InputHTMLAttributes,
+  type ReactNode,
+} from 'react';
 
 export default function FileButton({
   children,
@@ -13,6 +18,15 @@ export default function FileButton({
 }) {
   useTranslation();
   const input = useRef<HTMLInputElement>(null);
+  const choosing = useRef(false);
+  useEffect(() => {
+    const element = input.current;
+    const reset = () => {
+      choosing.current = false;
+    };
+    element?.addEventListener('cancel', reset);
+    return () => element?.removeEventListener('cancel', reset);
+  }, []);
   return (
     <>
       <Button
@@ -20,11 +34,24 @@ export default function FileButton({
         type="button"
         className={className}
         disabled={inputProps.disabled}
-        onClick={() => input.current?.click()}
+        onClick={() => {
+          if (choosing.current || inputProps.disabled) return;
+          choosing.current = true;
+          input.current?.click();
+        }}
       >
         {children}
       </Button>
-      <input {...inputProps} ref={input} type="file" className="hidden" />
+      <input
+        {...inputProps}
+        onChange={(event) => {
+          choosing.current = false;
+          inputProps.onChange?.(event);
+        }}
+        ref={input}
+        type="file"
+        className="hidden"
+      />
     </>
   );
 }

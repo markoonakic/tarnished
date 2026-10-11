@@ -32,7 +32,23 @@ export default function PreparationDraft({
     revision
   );
   const { analysis, busy, running, loading } = controller;
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selection, setSelection] = useState<{
+    analysisId?: string;
+    ids: Set<string>;
+  }>({ ids: new Set() });
+  const selected =
+    selection.analysisId === analysis?.id ? selection.ids : new Set<string>();
+  function setSelected(
+    value: Set<string> | ((current: Set<string>) => Set<string>)
+  ) {
+    setSelection((current) => ({
+      analysisId: analysis?.id,
+      ids:
+        typeof value === 'function'
+          ? value(current.analysisId === analysis?.id ? current.ids : new Set())
+          : value,
+    }));
+  }
   const [saving, setSaving] = useState(false);
   useUnsavedChanges(selected.size > 0 || saving);
   const disabled = busy || running || loading || saving;
@@ -75,10 +91,7 @@ export default function PreparationDraft({
             className="flex items-center gap-1.5"
             disabled={disabled || !!hint}
             title={hint ? t(hint) : undefined}
-            onClick={() => {
-              setSelected(new Set());
-              void controller.run();
-            }}
+            onClick={() => void controller.run()}
           >
             <i className="bi-stars mr-1" aria-hidden="true" />
             {t('ai.draftWithAi')}
