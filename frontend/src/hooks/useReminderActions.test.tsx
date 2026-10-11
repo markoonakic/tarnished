@@ -2,11 +2,45 @@ import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { apiV030, type Reminder } from '@/lib/apiV030';
 import { useReminderActions } from './useReminderActions';
-vi.mock('@/lib/apiV030', () => ({ apiV030: { updateReminder: vi.fn() } }));
+vi.mock('@/lib/apiV030', () => ({
+  apiV030: { updateReminder: vi.fn(), deleteReminder: vi.fn() },
+}));
 vi.mock('./useToast', () => ({ useToast: () => ({ error: vi.fn() }) }));
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+});
+it('protects confirmed reminder deletion until success or failure', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  let release!: () => void;
+  vi.mocked(apiV030.deleteReminder).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        release = resolve;
+      })
+  );
+  const { result } = renderHook(useReminderActions);
+  const reminder = { id: 'delete-one', state: 'open', revision: 2 } as Reminder;
+  let write!: Promise<void>;
+  act(() => {
+    write = result.current.remove(reminder);
+  });
+  const event = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(event);
+  expect(event.defaultPrevented).toBe(true);
+  await act(async () => {
+    release();
+    await write;
+  });
+  const done = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(done);
+  expect(done.defaultPrevented).toBe(false);
+  vi.mocked(apiV030.deleteReminder).mockRejectedValueOnce(new Error('Offline'));
+  await act(async () => result.current.remove(reminder));
+  const failed = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(failed);
+  expect(failed.defaultPrevented).toBe(false);
+  vi.restoreAllMocks();
 });
 it('protects pending reminder completion on every caller and clears protection after success or failure', async () => {
   let release!: (value: Reminder) => void;

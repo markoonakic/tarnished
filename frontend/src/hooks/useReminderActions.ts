@@ -44,10 +44,13 @@ export function useReminderActions() {
   }
   async function remove(item: Reminder) {
     if (!confirm(t('tasks.deleteReminder'))) return;
+    setPending((count) => count + 1);
     try {
       await apiV030.deleteReminder(item.id, item.revision);
     } catch {
       toast.error(t('tasks.saveFailed'));
+    } finally {
+      setPending((count) => count - 1);
     }
   }
   return { create, update, toggle, dismiss, remove };

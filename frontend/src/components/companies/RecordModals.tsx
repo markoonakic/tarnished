@@ -385,6 +385,7 @@ export function DeleteConfirm({
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  useUnsavedChanges(busy);
   return (
     <Modal label={t('companies.confirmDelete')} onClose={onClose} busy={busy}>
       <div className="bg-secondary mx-4 w-full max-w-md rounded-lg p-6">
