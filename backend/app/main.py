@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import Response
 from starlette.types import Scope
@@ -87,6 +87,15 @@ async def database_error(request: Request, exc: OperationalError):
         status_code=503 if busy else 500,
         content={"code": "database_busy" if busy else "server_error"},
         headers={"Retry-After": "1"} if busy else None,
+    )
+
+
+@app.exception_handler(TimeoutError)
+async def database_pool_busy(request: Request, exc: TimeoutError):
+    return JSONResponse(
+        status_code=503,
+        content={"code": "database_busy"},
+        headers={"Retry-After": "1"},
     )
 
 
