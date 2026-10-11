@@ -101,6 +101,20 @@ it('uses Serbian dates and plurals without changing calendar keys', async () => 
     isError: false,
   });
   render(<ActivityHeatmap />);
+  const period = screen.getByRole('combobox', {
+    name: i18n.t('Select time range'),
+  });
+  expect(period.parentElement?.parentElement).toHaveClass(
+    'max-w-full',
+    'min-w-0'
+  );
+  expect(period.parentElement?.parentElement?.parentElement).toHaveClass(
+    'flex-wrap',
+    'gap-3'
+  );
+  expect(screen.getByText(i18n.t('Less')).parentElement).toHaveClass(
+    'shrink-0'
+  );
   const cell = screen.getByRole('img', { name: '2 prijave dana 1. 10. 2026.' });
   fireEvent.mouseEnter(cell);
   expect(screen.getByText('1. 10. 2026.')).toBeVisible();

@@ -207,8 +207,8 @@ export default function ActivityHeatmap() {
   if (!data || !data.days || data.days.length === 0 || data.max_count === 0) {
     return (
       <div>
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-3">
+          <div className="flex max-w-full min-w-0 items-center gap-2">
             <Dropdown
               options={[
                 { value: 'rolling', label: t('Last 12 months') },
@@ -242,8 +242,8 @@ export default function ActivityHeatmap() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <div className="flex max-w-full min-w-0 items-center gap-2">
           <Dropdown
             options={[
               { value: 'rolling', label: t('Last 12 months') },
@@ -258,7 +258,7 @@ export default function ActivityHeatmap() {
             containerBackground="bg1"
           />
         </div>
-        <div className="text-muted flex items-center gap-2 text-sm">
+        <div className="text-muted flex shrink-0 items-center gap-2 text-sm">
           <span>{t('Less')}</span>
           {[0, 1, 2, 3, 4].map((level) => (
             <div
