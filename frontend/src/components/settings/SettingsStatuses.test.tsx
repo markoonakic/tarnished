@@ -10,7 +10,12 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import SettingsStatuses from './SettingsStatuses';
 import i18n from '@/lib/i18n';
-import { createStatus, updateStatus, deleteStatus } from '@/lib/settings';
+import {
+  listStatuses,
+  createStatus,
+  updateStatus,
+  deleteStatus,
+} from '@/lib/settings';
 vi.mock('@/hooks/useThemeColors', () => ({ useThemeColors: () => ({}) }));
 vi.mock('@/lib/settings', () => ({
   listStatuses: vi.fn().mockResolvedValue([
@@ -31,6 +36,36 @@ afterEach(async () => {
   await i18n.changeLanguage('en');
 });
 beforeEach(() => vi.clearAllMocks());
+it.each(['en', 'sr-Latn'])(
+  'puts default status instructions in the HelpTip in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    vi.mocked(listStatuses).mockResolvedValueOnce([
+      {
+        id: 'default',
+        builtin_key: 'applied',
+        name: 'Applied',
+        color: '#ffffff',
+        meaning: 'applied',
+        is_default: true,
+      },
+    ]);
+    render(
+      <MemoryRouter>
+        <SettingsStatuses />
+      </MemoryRouter>
+    );
+    await screen.findByText(i18n.t('Applied'));
+    const guidance = i18n.t(
+      'Using default statuses. Add custom statuses to override.'
+    );
+    expect(screen.queryByText(guidance)).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('About application statuses') })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(guidance);
+  }
+);
 it('keeps a stale status row and shows reload guidance after a conflicting delete', async () => {
   vi.spyOn(window, 'confirm').mockReturnValue(true);
   vi.mocked(deleteStatus).mockRejectedValueOnce({

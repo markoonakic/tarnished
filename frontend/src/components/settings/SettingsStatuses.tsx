@@ -169,6 +169,12 @@ export default function SettingsStatuses() {
             {t(
               'Choose the stage used in reports; the status name can be your own. Changes apply the next time a status is selected, not to existing history.'
             )}
+            {statuses.every((status) => status.is_default) && (
+              <>
+                {' '}
+                {t('Using default statuses. Add custom statuses to override.')}
+              </>
+            )}
           </HelpTip>
         </h2>
 
@@ -182,11 +188,6 @@ export default function SettingsStatuses() {
           <Loading message={t('Loading settings...')} />
         ) : (
           <>
-            {statuses.filter((s) => !s.is_default).length === 0 && (
-              <p className="text-muted bg-tertiary mb-4 rounded p-3 text-sm">
-                {t('Using default statuses. Add custom statuses to override.')}
-              </p>
-            )}
             <div className="mb-4 space-y-2">
               {statuses.map((status) => (
                 <div

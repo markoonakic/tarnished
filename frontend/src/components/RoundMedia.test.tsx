@@ -6,7 +6,11 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import {
+  AxiosError,
+  type AxiosAdapter,
+  type InternalAxiosRequestConfig,
+} from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import api from '../lib/api';
 import { queryClient } from '../lib/queryClient';
@@ -130,6 +134,47 @@ it.each([
     );
     expect(await screen.findByText(expected)).toBeVisible();
     expect(requests.every((request) => request.method === 'get')).toBe(true);
+  }
+);
+
+it.each(['en', 'sr-Latn'])(
+  'keeps failed live upload guidance in a HelpTip and retains retry in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    const originalAdapter = api.defaults.adapter;
+    api.defaults.adapter = async (config) => {
+      if (config.method === 'post' && config.url?.endsWith('/media'))
+        throw new Error('Offline');
+      return (originalAdapter as AxiosAdapter)(config);
+    };
+    const view = render(
+      <QueryClientProvider client={queryClient}>
+        <RoundCard
+          round={round}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onMediaChange={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    const file = new File(['recording'], 'retained.wav', { type: 'audio/wav' });
+    fireEvent.change(view.container.querySelector('input[type="file"]')!, {
+      target: { files: [file] },
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      i18n.t('Recording upload failed.')
+    );
+    const guidance = i18n.t(
+      'Check current recordings before retrying; your selected file is kept.'
+    );
+    expect(screen.queryByText(guidance)).not.toBeInTheDocument();
+    const help = screen.getByRole('alert').querySelector('button')!;
+    fireEvent.click(help);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(guidance);
+    expect(screen.getByText(/retained.wav/)).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: i18n.t('Retry recording upload') })
+    ).toBeEnabled();
   }
 );
 

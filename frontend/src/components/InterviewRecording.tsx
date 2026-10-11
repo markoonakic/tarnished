@@ -130,9 +130,7 @@ export default function InterviewRecording({
           ? t('Recordings or transcript changed.')
           : typeof detail === 'string'
             ? detail
-            : t(
-                'Recording upload failed. Check current recordings before retrying; your selected file is kept.'
-              )
+            : t('Recording upload failed.')
       );
     } finally {
       uploadLock.current = false;
@@ -303,13 +301,13 @@ export default function InterviewRecording({
         {mediaError && (
           <div role="alert" className="text-red-bright mb-2 text-sm">
             {mediaError}
-            {uploadConflict && (
-              <HelpTip label={t('Media Files')}>
-                {t(
-                  'Retrying cannot resolve this conflict. Reload and review recordings and the transcript, then discard the pending upload and select the file and replacement again.'
-                )}
-              </HelpTip>
-            )}
+            <HelpTip label={t('Media Files')}>
+              {t(
+                uploadConflict
+                  ? 'Retrying cannot resolve this conflict. Reload and review recordings and the transcript, then discard the pending upload and select the file and replacement again.'
+                  : 'Check current recordings before retrying; your selected file is kept.'
+              )}
+            </HelpTip>
           </div>
         )}
         {deleteConflict && (
