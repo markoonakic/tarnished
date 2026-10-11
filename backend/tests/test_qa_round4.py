@@ -101,17 +101,19 @@ async def test_import_upload_retry_recovers_the_job_without_rescheduling(
             import_router.delete_temp_file(job["temp_path"])
 
 
-async def test_profile_save_under_another_accounts_write_lock_returns_named_busy(
+async def test_profile_save_under_another_accounts_write_lock(
     client, db_engine, workspace
 ):
     owner, other, *_ = workspace
+    is_sqlite = db_engine.dialect.name == "sqlite"
     # Create the profile before the competing transaction starts.
     profile = (await client.get("/api/profile")).json()
     factory = async_sessionmaker(db_engine, expire_on_commit=False)
 
     async def sessions():
         async with factory() as session:
-            await session.execute(text("PRAGMA busy_timeout=30"))
+            if is_sqlite:
+                await session.execute(text("PRAGMA busy_timeout=30"))
             yield session
 
     original = app.dependency_overrides[get_db]
@@ -125,9 +127,15 @@ async def test_profile_save_under_another_accounts_write_lock_returns_named_busy
                 "/api/profile",
                 json={"city": "Safe draft", "expected_revision": profile["revision"]},
             )
-            assert response.status_code == 503
-            assert response.json() == {"code": "database_busy"}
-            assert response.headers["retry-after"] == "1"
+            # SQLite locks all writers; PostgreSQL locks only the other user's row.
+            if is_sqlite:
+                assert response.status_code == 503
+                assert response.json() == {"code": "database_busy"}
+                assert response.headers["retry-after"] == "1"
+            else:
+                assert response.status_code == 200
+                assert response.json()["city"] == "Safe draft"
+                profile = response.json()
             await blocking.rollback()
         saved = await client.put(
             "/api/profile",
