@@ -360,6 +360,7 @@ async def upload_media(
     round_id: str,
     request: Request,
     expected_media_generation: int | None = Header(default=None, ge=0),
+    expected_transcript_generation: int | None = Header(default=None, ge=0),
     idempotency_key: UUID | None = Header(default=None),
     replace_media_id: str | None = Header(default=None, max_length=36),
     x_timezone: str | None = Depends(get_request_time_zone),
@@ -463,7 +464,9 @@ async def upload_media(
                     return round
             await claim_media_generation(db, round_id, user_id, generation)
             if replace_media_id:
-                await remove_media_transcript(db, round_id, replace_media_id)
+                await remove_media_transcript(
+                    db, round_id, replace_media_id, expected_transcript_generation
+                )
                 deleted = await db.execute(
                     delete(RoundMedia)
                     .where(
@@ -520,6 +523,7 @@ async def upload_media(
 async def delete_media(
     media_id: str,
     expected_media_generation: int | None = Header(default=None, ge=0),
+    expected_transcript_generation: int | None = Header(default=None, ge=0),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("files:write")),
     db: AsyncSession = Depends(get_db),
@@ -542,7 +546,9 @@ async def delete_media(
             409, "Recordings changed. Reload and review before deleting"
         )
     await claim_media_generation(db, media.round_id, user.id, generation)
-    await remove_media_transcript(db, media.round_id, media_id)
+    await remove_media_transcript(
+        db, media.round_id, media_id, expected_transcript_generation
+    )
     await db.execute(delete(RoundMedia).where(RoundMedia.id == media_id))
     # Independently pasted/uploaded transcripts are not derived from this media.
     # Shared CAS blobs are retained for offline maintenance, not unlinked here.

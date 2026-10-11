@@ -32,6 +32,7 @@ const round: Round = {
   transcript_path: null,
   transcript_original_filename: null,
   media_generation: 1,
+  transcript_generation: 4,
   media: [
     {
       id: 'media-1',
@@ -292,17 +293,26 @@ it('RoundCard retains rejected file, retries the same precondition and requires 
   const uploads = () => requests.filter((r) => r.url?.endsWith('/media'));
   expect(uploads()[0].headers.get('Expected-Media-Generation')).toBe('1');
   expect(uploads()[0].headers.get('Replace-Media-Id')).toBe('media-1');
+  expect(uploads()[0].headers.get('Expected-Transcript-Generation')).toBe('4');
   failure = 409;
-  view.rerender(card({ ...round, media_generation: 2 }));
+  view.rerender(
+    card({ ...round, media_generation: 2, transcript_generation: 5 })
+  );
   fireEvent.click(
     screen.getByRole('button', { name: 'Retry recording upload' })
   );
   await waitFor(() =>
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Retrying cannot resolve this conflict'
+      'Recordings or transcript changed.'
     )
   );
+  fireEvent.click(screen.getAllByRole('button', { name: 'Media Files' })[1]);
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Retrying cannot resolve this conflict. Reload and review recordings and the transcript'
+  );
+  fireEvent.click(screen.getAllByRole('button', { name: 'Media Files' })[1]);
   expect(uploads()[1].headers.get('Expected-Media-Generation')).toBe('1');
+  expect(uploads()[1].headers.get('Expected-Transcript-Generation')).toBe('4');
   fireEvent.click(screen.getByRole('button', { name: 'Reload recordings' }));
   expect(onMediaChange).toHaveBeenCalledOnce();
   expect(screen.getByText(/Pending: replacement.wav/)).toBeVisible();
@@ -316,6 +326,7 @@ it('RoundCard retains rejected file, retries the same precondition and requires 
   });
   await waitFor(() => expect(onMediaChange).toHaveBeenCalledTimes(2));
   expect(uploads()[2].headers.get('Expected-Media-Generation')).toBe('2');
+  expect(uploads()[2].headers.get('Expected-Transcript-Generation')).toBe('5');
 });
 
 it('RoundCard shows imported duration as unverified and disables inline playback', () => {
@@ -358,7 +369,11 @@ it('RoundCard stale delete keeps metadata and exposes explicit review/reload wit
   );
   fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
   expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Reload and review recordings before deciding to delete again'
+    'Recordings or transcript changed.'
+  );
+  fireEvent.click(screen.getAllByRole('button', { name: 'Media Files' })[1]);
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Reload and review recordings and the transcript before deciding to delete again'
   );
   expect(screen.getByText('first.wav', { selector: 'span' })).toBeVisible();
   expect(screen.queryByText(/Pending:/)).not.toBeInTheDocument();
@@ -369,6 +384,11 @@ it('RoundCard stale delete keeps metadata and exposes explicit review/reload wit
       .find((r) => r.method === 'delete')
       ?.headers.get('Expected-Media-Generation')
   ).toBe('1');
+  expect(
+    requests
+      .find((r) => r.method === 'delete')
+      ?.headers.get('Expected-Transcript-Generation')
+  ).toBe('4');
   fireEvent.click(screen.getByRole('button', { name: 'Reload recordings' }));
   expect(onMediaChange).toHaveBeenCalledOnce();
   expect(requests.filter((r) => r.method === 'delete')).toHaveLength(1);

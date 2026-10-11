@@ -236,7 +236,10 @@ async def test_actual_sdk_multipart_local_preparation_publication_and_editor(
         json={"segments": current["transcript"]["segments"]},
     )
     assert saved.status_code == 200 and saved.json()["generation"] == 2
-    deleted = await client.delete(f"/api/media/{recording[2].id}")
+    deleted = await client.delete(
+        f"/api/media/{recording[2].id}",
+        headers={"Expected-Transcript-Generation": str(saved.json()["generation"])},
+    )
     assert deleted.status_code == 204
     assert (await client.get(f"/api/rounds/{recording[1].id}/transcript")).json()[
         "transcript"

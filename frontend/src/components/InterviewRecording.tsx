@@ -58,10 +58,12 @@ export default function InterviewRecording({
   const [pendingMedia, setPendingMedia] = useState<{
     file: File;
     generation: number;
+    transcriptGeneration: number;
     replaceId?: string;
   } | null>(null);
   useUnsavedChanges(uploading || Boolean(pendingMedia));
   const [mediaError, setMediaError] = useState('');
+  const [uploadConflict, setUploadConflict] = useState(false);
   const [deleteConflict, setDeleteConflict] = useState(false);
   const [editingTranscript, setEditingTranscript] = useState(false);
   const [transcribingMedia, setTranscribingMedia] = useState<string | null>(
@@ -83,6 +85,7 @@ export default function InterviewRecording({
     const pending = {
       file,
       generation: round.media_generation ?? 0,
+      transcriptGeneration: round.transcript_generation ?? 0,
       replaceId,
     };
     setPendingMedia(pending);
@@ -100,6 +103,7 @@ export default function InterviewRecording({
     uploadLock.current = true;
     setUploading(true);
     setMediaError('');
+    setUploadConflict(false);
     setUploadingMediaFile(pending.file);
     setUploadingMediaProgress(0);
     try {
@@ -112,17 +116,18 @@ export default function InterviewRecording({
           );
         },
         pending.generation,
-        pending.replaceId
+        pending.replaceId,
+        pending.transcriptGeneration
       );
       setPendingMedia(null);
       onMediaChange();
     } catch (error) {
       const detail = isAxiosError(error) ? error.response?.data?.detail : null;
+      const conflict = isAxiosError(error) && error.response?.status === 409;
+      setUploadConflict(conflict);
       setMediaError(
-        isAxiosError(error) && error.response?.status === 409
-          ? t(
-              'Recordings changed. Retrying cannot resolve this conflict. Reload and review recordings, then discard this pending upload and select the file and replacement again.'
-            )
+        conflict
+          ? t('Recordings or transcript changed.')
           : typeof detail === 'string'
             ? detail
             : t(
@@ -148,7 +153,11 @@ export default function InterviewRecording({
     )
       return;
     try {
-      await deleteMedia(mediaId, round.media_generation ?? 0);
+      await deleteMedia(
+        mediaId,
+        round.media_generation ?? 0,
+        round.transcript_generation ?? 0
+      );
       setDeleteConflict(false);
       onMediaChange();
     } catch (error) {
@@ -294,13 +303,23 @@ export default function InterviewRecording({
         {mediaError && (
           <div role="alert" className="text-red-bright mb-2 text-sm">
             {mediaError}
+            {uploadConflict && (
+              <HelpTip label={t('Media Files')}>
+                {t(
+                  'Retrying cannot resolve this conflict. Reload and review recordings and the transcript, then discard the pending upload and select the file and replacement again.'
+                )}
+              </HelpTip>
+            )}
           </div>
         )}
         {deleteConflict && (
           <div role="alert" className="text-red-bright mb-2 text-sm">
-            {t(
-              'Recordings changed. Nothing was deleted. Reload and review recordings before deciding to delete again.'
-            )}
+            {t('Recordings or transcript changed.')}
+            <HelpTip label={t('Media Files')}>
+              {t(
+                'Reload and review recordings and the transcript before deciding to delete again.'
+              )}
+            </HelpTip>
           </div>
         )}
         {(pendingMedia || deleteConflict) && !uploading && (
@@ -336,6 +355,7 @@ export default function InterviewRecording({
               onClick={() => {
                 setPendingMedia(null);
                 setMediaError('');
+                setUploadConflict(false);
               }}
               className="flex items-center gap-1.5"
             >
