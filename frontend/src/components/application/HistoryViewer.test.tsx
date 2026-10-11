@@ -29,7 +29,7 @@ it('shows three recent events and keeps the full history in its dialog', async (
       to_status: {
         id: 'applied',
         name: 'W'.repeat(180),
-        meaning: 'unknown' as const,
+        meaning: 'applied' as const,
         color: '#0f0',
       },
       from_meaning: null,
