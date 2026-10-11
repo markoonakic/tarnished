@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.10] - 2026-10-11
+
+### Added
+
+- Use the same Media Files and transcript controls in New and Edit Round as on the round card. Queue recordings and pasted or file transcripts, then upload them after the round is saved.
+- Add regression coverage for ten QA rounds, including concurrent edits, lost responses, pending writes, uploads, account settings, archive restore and both interface languages.
+
+### Fixed
+
+- Keep the complete application round card, including playback, transcript editing and interview feedback. Restore the field background on shared dropdowns.
+- Keep drafts and upload queues after errors. Recover retried creates and recording uploads without duplicates, reject stale edits and deletes, and protect all pending writes with one shared exit guard.
+- Lock competing editors and actions during saves. Keep failed participant names, appearance changes and security drafts ready for retry, and translate request errors in English and Serbian.
+- Preserve archive links, preferences and supported evidence while keeping account authority and other owners unchanged. Return a temporary busy response when the database pool is exhausted.
+- Correct search limits, contact labels, default settings, action hover states, navigation links, card spacing and help tips without removing existing functions.
+
 ## [0.3.9] - 2026-10-09
 
 ### Fixed
