@@ -72,6 +72,9 @@ it('opens in reading mode and links to feedback without sending unsaved edits', 
     />
   );
   await screen.findByText('<script>literal source</script>');
+  expect(
+    screen.getByText('Replace transcript', { selector: 'summary' })
+  ).toHaveClass('hover:bg-bg2', 'hover:text-fg0');
   expect(screen.queryByLabelText('Text for passage 1')).not.toBeInTheDocument();
   expect(
     screen.queryByText(
@@ -93,6 +96,9 @@ it('opens in reading mode and links to feedback without sending unsaved edits', 
   ).toBeDisabled();
   fireEvent.click(screen.getByRole('button', { name: 'Read transcript' }));
   expect(screen.getByText('Draft')).toBeVisible();
+  const leaving = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(leaving);
+  expect(leaving.defaultPrevented).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: 'Edit transcript' }));
   expect(screen.getByLabelText('Text for passage 1')).toHaveValue('Draft');
   fireEvent.click(screen.getByRole('button', { name: 'Save corrections' }));
@@ -359,4 +365,33 @@ it('shows a missing cited passage honestly without replacing the independent cur
     '<script>literal source</script>'
   );
   expect(editTranscript).not.toHaveBeenCalled();
+});
+
+it('separates the role field from the row and puts changed-draft instructions in a HelpTip', async () => {
+  render(
+    <TranscriptEditor
+      roundId="round"
+      onClose={vi.fn()}
+      onChange={vi.fn()}
+      onFeedback={vi.fn()}
+    />
+  );
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Edit transcript' })
+  );
+  const role = screen.getByLabelText('Role for passage 1');
+  expect(role).toHaveClass('bg-bg3');
+  expect(role.closest('.bg-bg2')).toBeInTheDocument();
+  fireEvent.click(role);
+  fireEvent.click(screen.getByRole('option', { name: 'Candidate' }));
+  expect(
+    screen.queryByText('Unsaved changes. Save before requesting feedback.')
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Interview feedback' })
+  ).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Unsaved changes' }));
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Unsaved changes. Save before requesting feedback.'
+  );
 });

@@ -9,6 +9,7 @@ class UserAPIKeyResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    revision: int
     label: str
     preset: str
     scopes: list[str]
@@ -46,6 +47,7 @@ class UserAPIKeyCreateResponse(UserAPIKeyResponse):
 
 
 class UserAPIKeyUpdate(BaseModel):
+    expected_revision: int | None = Field(default=None, ge=0)
     label: str | None = Field(default=None, min_length=1, max_length=255)
     preset: str | None = None
     scopes: list[str] | None = None

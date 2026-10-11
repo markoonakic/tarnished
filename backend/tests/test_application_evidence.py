@@ -37,6 +37,53 @@ async def evidence_workspace(client, db):
     return owner, other, status, result.json()
 
 
+@pytest.mark.parametrize(
+    "pay",
+    [
+        {"salary_min": -1000, "salary_max": 1000},
+        {"salary_min": 120000, "salary_max": 80000},
+        {"salary_max": 9223372036854775808},
+        {"salary_max": 18446744073709551616},
+    ],
+)
+async def test_salary_boundaries(client, evidence_workspace, pay):
+    _, _, status, application = evidence_workspace
+    result = await client.post(
+        "/api/applications",
+        json={
+            "company": "Salary",
+            "job_title": "Role",
+            "status_id": status["id"],
+            **pay,
+        },
+    )
+    assert result.status_code == 422
+    result = await client.patch(
+        "/api/applications/" + application["id"],
+        json={"expected_revision": application["evidence_revision"], **pay},
+    )
+    assert result.status_code == 422
+    saved = (await client.get("/api/applications/" + application["id"])).json()
+    assert saved["salary_min"] is None and saved["salary_max"] is None
+
+
+async def test_salary_partial_update_checks_saved_other_bound(
+    client, evidence_workspace
+):
+    _, _, _, application = evidence_workspace
+    path = "/api/applications/" + application["id"]
+    saved = (
+        await client.patch(path, json={"salary_min": 1000, "salary_max": 2000})
+    ).json()
+    for pay in [{"salary_min": 3000}, {"salary_max": 500}]:
+        result = await client.patch(
+            path, json={"expected_revision": saved["evidence_revision"], **pay}
+        )
+        assert result.status_code == 422
+    saved = (await client.get(path)).json()
+    assert (saved["salary_min"], saved["salary_max"]) == (1000, 2000)
+
+
 async def test_prospective_meaning_and_no_implicit_response(
     client, db, evidence_workspace
 ):

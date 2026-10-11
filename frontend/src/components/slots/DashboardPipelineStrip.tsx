@@ -67,15 +67,17 @@ export default function DashboardPipelineStrip() {
           <TextLink
             key={s.status_id}
             to={'/applications?status=' + s.status_id}
-            className="inline-flex items-center gap-1.5"
+            className="inline-flex max-w-full min-w-0 items-center gap-1.5"
           >
             <span
-              className="h-2 w-2 rounded-full"
+              className="h-2 w-2 shrink-0 rounded-full"
               style={{
                 backgroundColor: getStatusColor(s.name, colors, s.color),
               }}
             />
-            {statusLabel(s)}{' '}
+            <span className="min-w-0 [overflow-wrap:anywhere]">
+              {statusLabel(s)}
+            </span>{' '}
             <span className="text-primary font-semibold">{s.count}</span>
           </TextLink>
         ))}

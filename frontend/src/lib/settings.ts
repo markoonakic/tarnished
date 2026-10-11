@@ -25,15 +25,28 @@ export async function createStatus(data: {
 
 export async function updateStatus(
   id: string,
-  data: { name?: string; color?: string; meaning?: StatusMeaning }
+  data: {
+    name?: string;
+    color?: string;
+    meaning?: StatusMeaning;
+    expected_name?: string;
+    expected_color?: string;
+    expected_meaning?: StatusMeaning;
+  }
 ): Promise<Status> {
   const response = await api.patch(`/api/statuses/${id}`, data);
   invalidateEvidenceQueries();
   return response.data;
 }
 
-export async function deleteStatus(id: string): Promise<void> {
-  await api.delete(`/api/statuses/${id}`);
+export async function deleteStatus(id: string, status?: Status): Promise<void> {
+  await api.delete(`/api/statuses/${id}`, {
+    params: {
+      expected_name: status?.name,
+      expected_color: status?.color,
+      expected_meaning: status?.meaning,
+    },
+  });
   invalidateEvidenceQueries();
 }
 
@@ -52,15 +65,20 @@ export async function createRoundType(data: {
 
 export async function updateRoundType(
   id: string,
-  data: { name: string }
+  data: { name: string; expected_name?: string }
 ): Promise<RoundType> {
   const response = await api.patch(`/api/round-types/${id}`, data);
   invalidateEvidenceQueries();
   return response.data;
 }
 
-export async function deleteRoundType(id: string): Promise<void> {
-  await api.delete(`/api/round-types/${id}`);
+export async function deleteRoundType(
+  id: string,
+  roundType?: RoundType
+): Promise<void> {
+  await api.delete(`/api/round-types/${id}`, {
+    params: { expected_name: roundType?.name },
+  });
   invalidateEvidenceQueries();
 }
 
@@ -80,7 +98,12 @@ export async function createAPIKey(data: {
 
 export async function updateAPIKey(
   id: string,
-  data: { label?: string; preset?: string; scopes?: string[] }
+  data: {
+    label?: string;
+    preset?: string;
+    scopes?: string[];
+    expected_revision?: number;
+  }
 ): Promise<APIKey> {
   const response = await api.patch(`/api/settings/api-keys/${id}`, data);
   return response.data;

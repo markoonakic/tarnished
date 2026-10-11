@@ -102,7 +102,8 @@ export async function getImportStatus(
 export async function importData(
   file: File,
   override: boolean,
-  onUploadProgress?: (loaded: number, total: number) => void
+  onUploadProgress?: (loaded: number, total: number) => void,
+  requestId?: string
 ): Promise<{ import_id: string; status: string; job_id: string }> {
   const formData = new FormData();
   formData.append('file', file);
@@ -114,6 +115,7 @@ export async function importData(
       ? `${API_BASE}/api/import/import`
       : '/api/import/import';
     xhr.open('POST', importUrl);
+    if (requestId) xhr.setRequestHeader('Idempotency-Key', requestId);
 
     const token = getAccessToken();
     if (token) {

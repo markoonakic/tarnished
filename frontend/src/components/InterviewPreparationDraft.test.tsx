@@ -94,6 +94,30 @@ it('only reads on open; explicit run shows selectable suggestions and saves sele
     selected_ids: ['item-1'],
   });
 });
+it('keeps selected items after a failed rerun and puts retry guidance in a HelpTip', async () => {
+  show();
+  const run = screen.getByRole('button', { name: 'Draft with AI' });
+  await waitFor(() => expect(run).toBeEnabled());
+  fireEvent.click(run);
+  const item = await screen.findByRole('checkbox', {
+    name: 'Practice grouping by month',
+  });
+  fireEvent.click(item);
+  post.mockRejectedValueOnce(new Error('Connection lost'));
+  fireEvent.click(run);
+  const alert = await screen.findByRole('alert');
+  expect(item).toBeChecked();
+  expect(
+    screen.getByRole('button', { name: 'Save selected (1)' })
+  ).toBeEnabled();
+  expect(alert).not.toHaveTextContent('Trying again may repeat');
+  fireEvent.click(
+    screen.getByRole('button', { name: 'About retrying', expanded: false })
+  );
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Trying again may repeat work or charges.'
+  );
+});
 it('requires confirmed requirements and allowed profile items before a run', async () => {
   allow = false;
   show();
@@ -114,4 +138,45 @@ it('does not automatically repeat an uncertain request', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Check status' }));
   await waitFor(() => expect(run).toBeEnabled());
   expect(post).toHaveBeenCalledOnce();
+});
+
+it('guards selected preparation items, links and an in-flight Save selected', async () => {
+  const onSaved = show();
+  const unload = () => {
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  const run = screen.getByRole('button', { name: 'Draft with AI' });
+  await waitFor(() => expect(run).toBeEnabled());
+  fireEvent.click(run);
+  const item = await screen.findByRole('checkbox', {
+    name: 'Practice grouping by month',
+  });
+  expect(unload()).toBe(false);
+  fireEvent.click(item);
+  expect(unload()).toBe(true);
+  vi.spyOn(window, 'confirm').mockReturnValue(false);
+  const link = document.createElement('a');
+  link.href = '/applications';
+  document.body.appendChild(link);
+  const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+  link.dispatchEvent(click);
+  expect(click.defaultPrevented).toBe(true);
+  expect(item).toBeChecked();
+  link.remove();
+  let release!: () => void;
+  post.mockImplementation(async () => {
+    await new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    return { data: { ...saved, review_state: 'saved' } };
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save selected (1)' }));
+  await waitFor(() => expect(release).toBeTypeOf('function'));
+  expect(unload()).toBe(true);
+  release();
+  await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
+  expect(unload()).toBe(false);
+  vi.restoreAllMocks();
 });

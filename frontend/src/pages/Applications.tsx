@@ -26,6 +26,7 @@ import ApplicationModal from '../components/ApplicationModal';
 import Pagination from '../components/Pagination';
 import MoreFilters from '../components/records/MoreFilters';
 import {
+  MAX_SEARCH_LENGTH,
   recordFilters,
   recordFilterKeys,
   changeRecordFilters,
@@ -88,7 +89,7 @@ export default function Applications() {
     : 25;
   const statusFilter = searchParams.get('status') || '';
   const sourceFilter = searchParams.get('source') || '';
-  const search = searchParams.get('search') || '';
+  const search = (searchParams.get('search') || '').slice(0, MAX_SEARCH_LENGTH);
   const sort =
     sortOptions.find((option) => option.value === searchParams.get('sort'))
       ?.value ?? 'applied_desc';
@@ -211,6 +212,7 @@ export default function Applications() {
                 placeholder={t('Search company or job title...')}
                 aria-label={t('Search applications')}
                 value={search}
+                maxLength={MAX_SEARCH_LENGTH}
                 onChange={(e) => updateParams({ search: e.target.value })}
                 className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded py-2 pr-9 pl-9 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
               />
@@ -260,7 +262,7 @@ export default function Applications() {
               />
             </MoreFilters>
             {/* Filters */}
-            <div className="order-1 flex flex-wrap items-center gap-3">
+            <div className="order-1 flex max-w-full min-w-0 flex-wrap items-center gap-3">
               <Dropdown
                 options={[
                   { value: '', label: t('All Statuses') },
@@ -338,7 +340,7 @@ export default function Applications() {
           <>
             {/* Desktop table */}
             <div className="bg-secondary hidden overflow-hidden rounded-lg md:block">
-              <table className="w-full border-collapse">
+              <table className="w-full table-fixed border-collapse [overflow-wrap:anywhere]">
                 <thead>
                   <tr className="border-tertiary border-b">
                     <th className="text-muted px-4 py-3 text-left text-xs font-bold tracking-wide uppercase">
@@ -365,7 +367,10 @@ export default function Applications() {
                   {applications.map((app, index) => (
                     <tr
                       key={app.id}
-                      onClick={() => navigate(`/applications/${app.id}`)}
+                      onClick={(event) => {
+                        if (!(event.target as Element).closest('a, button'))
+                          navigate(`/applications/${app.id}`);
+                      }}
                       className={`hover:bg-bg2 cursor-pointer transition-colors duration-200 ${index < applications.length - 1 ? 'border-tertiary border-b' : ''}`}
                     >
                       <td className="px-4 py-3 text-sm">
@@ -378,7 +383,7 @@ export default function Applications() {
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span
-                          className="inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold"
+                          className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold [overflow-wrap:anywhere]"
                           style={{
                             backgroundColor: `${getStatusColor(app.status.name, colors, app.status.color)}20`,
                             color: getStatusColor(
@@ -433,7 +438,7 @@ export default function Applications() {
                       {app.company || t('companies.notSet')}
                     </span>
                     <span
-                      className="inline-flex flex-shrink-0 items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold"
+                      className="inline-flex max-w-[60%] min-w-0 items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold [overflow-wrap:anywhere]"
                       style={{
                         backgroundColor: `${getStatusColor(app.status.name, colors, app.status.color)}20`,
                         color: getStatusColor(

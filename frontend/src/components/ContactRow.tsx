@@ -30,16 +30,23 @@ export default function ContactRow({
       <div className="min-w-0 flex-1 basis-full sm:basis-auto">
         <div className="flex flex-wrap items-center gap-2">
           {href ? (
-            <TextLink to={href}>{name}</TextLink>
+            <TextLink
+              to={href}
+              className="max-w-full min-w-0 [overflow-wrap:anywhere]"
+            >
+              {name}
+            </TextLink>
           ) : (
-            <span className="text-fg1 text-sm font-medium">{name}</span>
+            <span className="text-fg1 max-w-full min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
+              {name}
+            </span>
           )}
         </div>
         {subtitle && <p className="text-fg4 text-xs">{subtitle}</p>}
       </div>
       {role && (
         <span
-          className="inline-flex rounded px-2.5 py-1 text-xs font-semibold"
+          className="inline-flex max-w-full min-w-0 rounded px-2.5 py-1 text-xs font-semibold [overflow-wrap:anywhere]"
           style={pillStyle(roleColor)}
         >
           {role}

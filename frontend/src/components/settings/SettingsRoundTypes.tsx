@@ -1,9 +1,11 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { t } from '@/lib/i18n';
+import { isAxiosError } from 'axios';
 import { roundTypeLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
 import { observeRead } from '@/lib/queryClient';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   listRoundTypes,
   createRoundType,
@@ -12,6 +14,7 @@ import {
 } from '../../lib/settings';
 import type { RoundType } from '../../lib/types';
 import Loading from '../Loading';
+import HelpTip from '../HelpTip';
 import { SettingsBackLink } from './SettingsLayout';
 
 export default function SettingsRoundTypes() {
@@ -24,6 +27,11 @@ export default function SettingsRoundTypes() {
   const [editRoundTypeName, setEditRoundTypeName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
+  useUnsavedChanges(
+    busy || editingRoundType !== null || Boolean(newRoundTypeName)
+  );
 
   useEffect(() => observeRead(loadData), []);
 
@@ -41,22 +49,35 @@ export default function SettingsRoundTypes() {
   }
 
   function startEditRoundType(roundType: RoundType) {
+    if (busy || editingRoundType || newRoundTypeName) return;
     setEditingRoundType(roundType);
     setEditRoundTypeName(roundType.name);
   }
 
   async function handleUpdateRoundType(e: React.FormEvent) {
     e.preventDefault();
-    if (!editingRoundType || !editRoundTypeName.trim()) return;
-
+    if (!editingRoundType || !editRoundTypeName.trim() || submitting.current)
+      return;
+    submitting.current = true;
+    setBusy(true);
     try {
       await updateRoundType(editingRoundType.id, {
+        expected_name: editingRoundType.name,
         name: editRoundTypeName.trim(),
       });
       setEditingRoundType(null);
       loadData();
-    } catch {
-      setError(t('Failed to update round type'));
+    } catch (error) {
+      setError(
+        t(
+          isAxiosError(error) && error.response?.status === 409
+            ? 'Settings changed. Reload and review before retrying.'
+            : 'Failed to update round type'
+        )
+      );
+    } finally {
+      submitting.current = false;
+      setBusy(false);
     }
   }
 
@@ -68,23 +89,32 @@ export default function SettingsRoundTypes() {
     }
 
     try {
-      await deleteRoundType(roundType.id);
+      await deleteRoundType(roundType.id, roundType);
       loadData();
-    } catch {
-      setError(t('Failed to delete round type'));
+    } catch (error) {
+      setError(
+        isAxiosError(error) &&
+          error.response?.data?.detail?.code === 'settings_changed'
+          ? t('Settings changed. Reload and review before retrying.')
+          : t('Failed to delete round type')
+      );
     }
   }
 
   async function handleAddRoundType(e: React.FormEvent) {
     e.preventDefault();
-    if (!newRoundTypeName.trim()) return;
-
+    if (!newRoundTypeName.trim() || submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
     try {
       await createRoundType({ name: newRoundTypeName.trim() });
       setNewRoundTypeName('');
       loadData();
     } catch {
       setError(t('Failed to create round type'));
+    } finally {
+      submitting.current = false;
+      setBusy(false);
     }
   }
 
@@ -96,7 +126,14 @@ export default function SettingsRoundTypes() {
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
         <h2 className="text-fg1 mb-4 text-xl font-bold">
-          {t('Interview Round Types')}
+          {t('Interview Round Types')}{' '}
+          {!loading && roundTypes.every((type) => type.is_default) && (
+            <HelpTip label={t('Interview Round Types')}>
+              {t(
+                'Using default round types. Add custom round types to override.'
+              )}
+            </HelpTip>
+          )}
         </h2>
 
         {error && (
@@ -109,27 +146,32 @@ export default function SettingsRoundTypes() {
           <Loading message={t('Loading settings...')} />
         ) : (
           <>
-            {roundTypes.filter((t) => !t.is_default).length === 0 && (
-              <p className="text-muted bg-tertiary mb-4 rounded p-3 text-sm">
-                {t(
-                  'Using default round types. Add custom round types to override.'
-                )}
-              </p>
-            )}
             <div className="mb-4 space-y-2">
               {roundTypes.map((type) => (
                 <div
                   key={type.id}
-                  className="bg-tertiary flex items-center justify-between rounded px-3 py-2"
+                  className="bg-tertiary flex min-w-0 items-center justify-between gap-3 rounded px-3 py-2"
                 >
-                  <span className="text-fg1">{roundTypeLabel(type)}</span>
-                  <div className="flex items-center gap-2">
+                  <span className="text-fg1 min-w-0 flex-1 [overflow-wrap:anywhere]">
+                    {roundTypeLabel(type)}
+                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
                     {type.is_default && (
                       <span className="text-muted text-xs">{t('Default')}</span>
                     )}
                     {!type.is_default && (
                       <>
                         <Button
+                          disabled={
+                            busy ||
+                            editingRoundType !== null ||
+                            Boolean(newRoundTypeName)
+                          }
+                          title={
+                            editingRoundType || newRoundTypeName
+                              ? t('Save or cancel the current edit first.')
+                              : undefined
+                          }
                           onClick={() => startEditRoundType(type)}
                           className="flex items-center gap-1.5"
                         >
@@ -138,6 +180,16 @@ export default function SettingsRoundTypes() {
                         </Button>
                         <Button
                           variant="danger"
+                          disabled={
+                            busy ||
+                            editingRoundType !== null ||
+                            Boolean(newRoundTypeName)
+                          }
+                          title={
+                            editingRoundType || newRoundTypeName
+                              ? t('Save or cancel the current edit first.')
+                              : undefined
+                          }
                           onClick={() => handleDeleteRoundType(type)}
                           className="flex items-center gap-1.5"
                         >
@@ -162,17 +214,19 @@ export default function SettingsRoundTypes() {
                 <div className="flex gap-2">
                   <input
                     type="text"
+                    disabled={busy}
                     value={editRoundTypeName}
                     onChange={(e) => setEditRoundTypeName(e.target.value)}
                     placeholder={t('Round type name')}
                     aria-label={t('Round type name')}
-                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                    className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright min-w-0 flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                   />
-                  <Button variant="primary" type="submit">
+                  <Button variant="primary" type="submit" disabled={busy}>
                     {t('Save')}
                   </Button>
                   <Button
                     type="button"
+                    disabled={busy}
                     onClick={() => setEditingRoundType(null)}
                   >
                     {t('Cancel')}
@@ -183,13 +237,14 @@ export default function SettingsRoundTypes() {
               <form onSubmit={handleAddRoundType} className="flex gap-2">
                 <input
                   type="text"
+                  disabled={busy}
                   value={newRoundTypeName}
                   onChange={(e) => setNewRoundTypeName(e.target.value)}
                   placeholder={t('New round type name')}
                   aria-label={t('New round type name')}
-                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                  className="bg-bg2 text-fg1 placeholder-muted focus:ring-accent-bright min-w-0 flex-1 rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
                 />
-                <Button variant="primary" type="submit">
+                <Button variant="primary" type="submit" disabled={busy}>
                   {t('Add')}
                 </Button>
               </form>

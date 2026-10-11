@@ -13,6 +13,7 @@ import { useInterviewRoundsAnalytics } from '@/hooks/useAnalyticsData';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
+import TextLink from '@/components/ui/TextLink';
 import HelpTip from '@/components/HelpTip';
 
 const EMPTY_TIMELINE_DATA: TimelineData[] = [];
@@ -174,13 +175,18 @@ export default function InterviewTimeline({
 
       {/* Chart */}
       {data.length === 0 ? (
-        <EmptyState
-          message={t('No measured interview durations available')}
-          subMessage={t(
-            'Completed interview rounds with dates will appear here'
-          )}
-          icon="bi-clock-history"
-        />
+        <>
+          <EmptyState
+            message={t('No measured interview durations available')}
+            subMessage={t(
+              'Completed interview rounds with dates will appear here'
+            )}
+            icon="bi-clock-history"
+          />
+          <div className="text-center">
+            <TextLink href="/applications">{t('Applications')}</TextLink>
+          </div>
+        </>
       ) : (
         <div className="w-full overflow-x-auto">
           <ReactECharts

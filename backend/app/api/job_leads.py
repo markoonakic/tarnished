@@ -12,8 +12,9 @@ browser extension authentication (API token).
 """
 
 from datetime import date
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from pydantic import ValidationError
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
@@ -44,13 +45,14 @@ from app.schemas.job_lead import (
     JobLeadUpdate,
 )
 from app.services.ai_settings import get_ai_settings as get_ai_settings
+from app.services.create_retry import recover_create
 from app.services.extraction import extract_job_data as extract_job_data
 from app.services.job_fetch import fetch_job_posting_html
 from app.services.job_filters import JobFilters, apply_filters, filter_params
 from app.services.lead_capture import capture_complete_source
 from app.services.reference_data import get_initial_application_status
 from app.services.user_time import get_user_local_today
-from app.services.workspace import JOB_FIELDS, audit, job_links
+from app.services.workspace import JOB_FIELDS, audit, change_record, job_links
 
 router = APIRouter(prefix="/api/job-leads", tags=["job-leads"])
 
@@ -67,7 +69,9 @@ async def list_job_leads(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     status_filter: str | None = Query(None, alias="status"),
-    search: str | None = Query(None, description="Search by company, title, or URL"),
+    search: str | None = Query(
+        None, max_length=200, description="Search by company, title, or URL"
+    ),
     source: str | None = Query(None, description="Filter by exact source"),
     sort: str = Query("newest", pattern="^(newest|oldest)$"),
     filters: JobFilters = Depends(filter_params),
@@ -236,18 +240,30 @@ async def _duplicate(db: AsyncSession, user_id: str, url: str | None) -> None:
 @router.post("", response_model=JobLeadResponse, status_code=status.HTTP_201_CREATED)
 async def create_job_lead(
     data: JobLeadCreate,
+    idempotency_key: UUID | None = Header(default=None),
     user: User = Depends(get_current_user_flexible),
     _: object = Depends(require_api_key_scope("job_leads:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Save a URL and bounded source locally. Never fetch or call AI on save."""
     user_id = user.id
-    await _duplicate(db, user_id, data.url)
     captured = await run_in_threadpool(capture_complete_source, data.text, data.html)
     values = data.model_dump(exclude={"url", "text", "html"}, exclude_unset=True)
+    retry_values = {**values, **captured, "url": data.url}
+    if retry_values.get("company_id"):
+        retry_values.pop("company", None)
+    existing = await recover_create(db, JobLead, idempotency_key, user_id, retry_values)
+    if existing is not None:
+        return existing
+    await _duplicate(db, user_id, data.url)
     await job_links(db, user_id, values)
     lead = JobLead(
-        user_id=user_id, url=data.url, status="pending", **captured, **values
+        **({"id": str(idempotency_key)} if idempotency_key else {}),
+        user_id=user_id,
+        url=data.url,
+        status="pending",
+        **captured,
+        **values,
     )
     db.add(lead)
     try:
@@ -421,6 +437,7 @@ async def retry_job_lead_extraction(
 @router.delete("/{job_lead_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_job_lead(
     job_lead_id: str,
+    expected_revision: int | None = Header(default=None, ge=0),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("job_leads:write")),
     db: AsyncSession = Depends(get_db),
@@ -452,6 +469,13 @@ async def delete_job_lead(
             detail="Job lead not found",
         )
 
+    await change_record(
+        db,
+        job_lead,
+        user.id,
+        job_lead.revision if expected_revision is None else expected_revision,
+        {},
+    )
     await db.delete(job_lead)
     await db.commit()
 

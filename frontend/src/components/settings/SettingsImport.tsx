@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import ImportModal from '../ImportModal';
 import { SettingsBackLink } from './SettingsLayout';
+import { useAuth } from '@/contexts/AuthContext';
+import { queryClient } from '@/lib/queryClient';
 
 interface SettingsImportProps {
   onImportSuccess?: () => void;
@@ -14,6 +16,7 @@ export default function SettingsImport({
   onImportSuccess,
 }: SettingsImportProps) {
   useTranslation();
+  const { refreshUser } = useAuth();
   const [showImportModal, setShowImportModal] = useState(false);
 
   return (
@@ -42,6 +45,8 @@ export default function SettingsImport({
         onClose={() => setShowImportModal(false)}
         onSuccess={() => {
           setShowImportModal(false);
+          void queryClient.invalidateQueries();
+          void refreshUser();
           onImportSuccess?.();
         }}
       />

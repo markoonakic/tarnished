@@ -181,7 +181,7 @@ async def test_transcript_full_router_lifecycle(
         await client.post(
             path, headers=expected(2), files={"file": ("new.pdf", b"%PDF attachment")}
         )
-    ).status_code == 409
+    ).status_code == 422
     data = (await client.get(f"/api/applications/{workspace[4]}")).json()
     assert "Corrected exact evidence" not in str(data)
     assert data["rounds"][0]["has_current_transcript"] is True

@@ -1,10 +1,13 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { t } from '@/lib/i18n';
+import HelpTip from '../HelpTip';
+import { isAxiosError } from 'axios';
 import { statusLabel } from '@/lib/referenceLabels';
 import { historyStageLabels } from '@/lib/history';
 import { useTranslation } from 'react-i18next';
 import { observeRead } from '@/lib/queryClient';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   listStatuses,
   createStatus,
@@ -44,6 +47,9 @@ export default function SettingsStatuses() {
   const [editStatusColor, setEditStatusColor] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
+  useUnsavedChanges(busy || editingStatus !== null || Boolean(newStatusName));
 
   const loadData = useCallback(async () => {
     try {
@@ -69,8 +75,9 @@ export default function SettingsStatuses() {
 
   async function handleAddStatus(e: React.FormEvent) {
     e.preventDefault();
-    if (!newStatusName.trim()) return;
-
+    if (!newStatusName.trim() || submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
     try {
       await createStatus({
         name: newStatusName.trim(),
@@ -81,10 +88,14 @@ export default function SettingsStatuses() {
       loadData();
     } catch {
       setError(t('Failed to create status'));
+    } finally {
+      submitting.current = false;
+      setBusy(false);
     }
   }
 
   function startEditStatus(status: Status) {
+    if (busy || editingStatus || newStatusName) return;
     setEditingStatus(status);
     setEditStatusName(status.name);
     setEditStatusColor(status.color);
@@ -93,18 +104,31 @@ export default function SettingsStatuses() {
 
   async function handleUpdateStatus(e: React.FormEvent) {
     e.preventDefault();
-    if (!editingStatus || !editStatusName.trim()) return;
-
+    if (!editingStatus || !editStatusName.trim() || submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
     try {
       await updateStatus(editingStatus.id, {
+        expected_name: editingStatus.name,
+        expected_color: editingStatus.color,
+        expected_meaning: editingStatus.meaning,
         name: editStatusName.trim(),
         color: editStatusColor,
         meaning: editMeaning,
       });
       setEditingStatus(null);
       loadData();
-    } catch {
-      setError(t('Failed to update status'));
+    } catch (error) {
+      setError(
+        t(
+          isAxiosError(error) && error.response?.status === 409
+            ? 'Settings changed. Reload and review before retrying.'
+            : 'Failed to update status'
+        )
+      );
+    } finally {
+      submitting.current = false;
+      setBusy(false);
     }
   }
 
@@ -121,10 +145,15 @@ export default function SettingsStatuses() {
     }
 
     try {
-      await deleteStatus(status.id);
+      await deleteStatus(status.id, status);
       loadData();
-    } catch {
-      setError(t('Failed to delete status'));
+    } catch (error) {
+      setError(
+        isAxiosError(error) &&
+          error.response?.data?.detail?.code === 'settings_changed'
+          ? t('Settings changed. Reload and review before retrying.')
+          : t('Failed to delete status')
+      );
     }
   }
 
@@ -137,6 +166,17 @@ export default function SettingsStatuses() {
       <div className="bg-secondary rounded-lg p-4 md:p-6">
         <h2 className="text-fg1 mb-4 text-xl font-bold">
           {t('Application Statuses')}
+          <HelpTip label={t('About application statuses')}>
+            {t(
+              'Choose the stage used in reports; the status name can be your own. Changes apply the next time a status is selected, not to existing history.'
+            )}
+            {statuses.every((status) => status.is_default) && (
+              <>
+                {' '}
+                {t('Using default statuses. Add custom statuses to override.')}
+              </>
+            )}
+          </HelpTip>
         </h2>
 
         {error && (
@@ -149,11 +189,6 @@ export default function SettingsStatuses() {
           <Loading message={t('Loading settings...')} />
         ) : (
           <>
-            {statuses.filter((s) => !s.is_default).length === 0 && (
-              <p className="text-muted bg-tertiary mb-4 rounded p-3 text-sm">
-                {t('Using default statuses. Add custom statuses to override.')}
-              </p>
-            )}
             <div className="mb-4 space-y-2">
               {statuses.map((status) => (
                 <div
@@ -166,7 +201,7 @@ export default function SettingsStatuses() {
                       style={{ backgroundColor: status.color }}
                     />
                     <div className="min-w-0">
-                      <span className="text-fg1 break-words">
+                      <span className="text-fg1 [overflow-wrap:anywhere]">
                         {statusLabel(status)}
                       </span>
                       {!status.is_default && (
@@ -182,6 +217,16 @@ export default function SettingsStatuses() {
                     )}
                     {!status.is_default && (
                       <Button
+                        disabled={
+                          busy ||
+                          editingStatus !== null ||
+                          Boolean(newStatusName)
+                        }
+                        title={
+                          editingStatus || newStatusName
+                            ? t('Save or cancel the current edit first.')
+                            : undefined
+                        }
                         onClick={() => startEditStatus(status)}
                         className="flex items-center gap-1.5"
                       >
@@ -192,6 +237,16 @@ export default function SettingsStatuses() {
                     {!status.is_default && (
                       <Button
                         variant="danger"
+                        disabled={
+                          busy ||
+                          editingStatus !== null ||
+                          Boolean(newStatusName)
+                        }
+                        title={
+                          editingStatus || newStatusName
+                            ? t('Save or cancel the current edit first.')
+                            : undefined
+                        }
                         onClick={() => handleDeleteStatus(status)}
                         className="flex items-center gap-1.5"
                       >
@@ -222,6 +277,7 @@ export default function SettingsStatuses() {
                     </label>
                     <Dropdown
                       id="edit-status-stage"
+                      disabled={busy}
                       options={stageOptions}
                       value={editMeaning}
                       onChange={(value) =>
@@ -232,6 +288,7 @@ export default function SettingsStatuses() {
                   </div>
                   <input
                     type="text"
+                    disabled={busy}
                     value={editStatusName}
                     onChange={(e) => setEditStatusName(e.target.value)}
                     placeholder={t('Status name')}
@@ -241,15 +298,22 @@ export default function SettingsStatuses() {
                   <input
                     type="color"
                     aria-label={t('Status color')}
+                    disabled={busy}
                     value={editStatusColor}
                     onChange={(e) => setEditStatusColor(e.target.value)}
                     className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"
                   />
-                  <Button variant="primary" type="submit" className="h-10">
+                  <Button
+                    variant="primary"
+                    type="submit"
+                    disabled={busy}
+                    className="h-10"
+                  >
                     {t('Save')}
                   </Button>
                   <Button
                     type="button"
+                    disabled={busy}
                     onClick={() => setEditingStatus(null)}
                     className="h-10"
                   >
@@ -271,6 +335,7 @@ export default function SettingsStatuses() {
                   </label>
                   <Dropdown
                     id="new-status-stage"
+                    disabled={busy}
                     options={stageOptions}
                     value={newMeaning}
                     onChange={(value) => setNewMeaning(value as StatusMeaning)}
@@ -279,6 +344,7 @@ export default function SettingsStatuses() {
                 </div>
                 <input
                   type="text"
+                  disabled={busy}
                   value={newStatusName}
                   onChange={(e) => setNewStatusName(e.target.value)}
                   placeholder={t('New status name')}
@@ -288,21 +354,21 @@ export default function SettingsStatuses() {
                 <input
                   type="color"
                   aria-label={t('New status color')}
+                  disabled={busy}
                   value={newStatusColor}
                   onChange={(e) => setNewStatusColor(e.target.value)}
                   className="bg-bg2 border-tertiary h-10 w-10 cursor-pointer rounded border"
                 />
-                <Button variant="primary" type="submit" className="h-10">
+                <Button
+                  variant="primary"
+                  type="submit"
+                  disabled={busy}
+                  className="h-10"
+                >
                   {t('Add')}
                 </Button>
               </form>
             )}
-
-            <p className="text-muted mt-3 text-xs">
-              {t(
-                'Choose the stage used in reports; the status name can be your own. Changes apply the next time a status is selected, not to existing history.'
-              )}
-            </p>
           </>
         )}
       </div>

@@ -1,5 +1,6 @@
 import Button from '@/components/ui/Button';
 import { useState } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useTranslation } from 'react-i18next';
 import type { JobFields } from '@/lib/apiV030';
 import { apiV030 } from '@/lib/apiV030';
@@ -27,6 +28,12 @@ export default function RecordTags({
   const [priority, setPriority] = useState(record.priority || 'normal');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  useUnsavedChanges(
+    open &&
+      (busy ||
+        priority !== (record.priority || 'normal') ||
+        JSON.stringify(tags) !== JSON.stringify(record.tags || []))
+  );
   function edit() {
     setTags(record.tags || []);
     setDraftRevision(revision);

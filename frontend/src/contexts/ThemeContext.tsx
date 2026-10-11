@@ -6,9 +6,13 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from 'react';
 import api from '../lib/api';
+import { useAuth } from './AuthContext';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { observeRead } from '@/lib/queryClient';
 import {
   getAccentOverrides,
   getStoredTheme,
@@ -36,6 +40,9 @@ interface ThemeContextType {
   currentAccent: string;
   setAccentColor: (colorName: string) => void;
   accentOptions: AccentOption[];
+  saveError: boolean;
+  savingSettings: boolean;
+  retrySettingsSave: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -115,6 +122,13 @@ function initTheme() {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   useTranslation();
+  const { user } = useAuth();
+  const pendingSaves = useRef(Promise.resolve());
+  const settingsVersion = useRef(0);
+  const unsavedSettings = useRef(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  useUnsavedChanges(savingSettings || saveError);
   const [currentTheme, setCurrentTheme] = useState(() => {
     return getStoredTheme();
   });
@@ -129,16 +143,69 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     initTheme();
   }, []);
 
-  const syncSettingsToBackend = useCallback(
-    async (theme: string, accent: string) => {
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    const stop = observeRead(async () => {
+      if (unsavedSettings.current) return;
+      const version = settingsVersion.current;
+      try {
+        await pendingSaves.current;
+        const { data } = await api.get('/api/users/settings');
+        if (
+          !active ||
+          unsavedSettings.current ||
+          version !== settingsVersion.current
+        )
+          return;
+        if (
+          !THEMES.some((theme) => theme.id === data.theme) ||
+          !ACCENT_OPTIONS.some((accent) => accent.name === data.accent)
+        )
+          return;
+        const overrides = {
+          ...getAccentOverrides(),
+          [data.theme]: data.accent,
+        };
+        persistThemeSelection(data.theme);
+        persistAccentOverrides(overrides);
+        setCurrentTheme(data.theme);
+        setAccentOverrides(overrides);
+        document.documentElement.setAttribute('data-theme', data.theme);
+        applyAccentColor(data.accent);
+        requestAnimationFrame(() => {
+          void updateThemeFavicon(getResolvedAccentColor(data.accent));
+        });
+      } catch (error) {
+        return { error };
+      }
+    });
+    return () => {
+      active = false;
+      stop();
+    };
+  }, [user]);
+
+  const syncSettingsToBackend = useCallback((theme: string, accent: string) => {
+    const version = ++settingsVersion.current;
+    unsavedSettings.current = true;
+    setSavingSettings(true);
+    setSaveError(false);
+    // Keep server writes in click order, including after a failed request.
+    pendingSaves.current = pendingSaves.current.then(async () => {
       try {
         await api.patch('/api/users/settings', { theme, accent });
+        if (version === settingsVersion.current) {
+          unsavedSettings.current = false;
+          setSaveError(false);
+        }
       } catch {
-        return;
+        if (version === settingsVersion.current) setSaveError(true);
+      } finally {
+        if (version === settingsVersion.current) setSavingSettings(false);
       }
-    },
-    []
-  );
+    });
+  }, []);
 
   const setTheme = useCallback(
     (themeId: string) => {
@@ -186,6 +253,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         currentAccent,
         setAccentColor,
         accentOptions: ACCENT_OPTIONS,
+        saveError,
+        savingSettings,
+        retrySettingsSave: () =>
+          syncSettingsToBackend(currentTheme, currentAccent),
       }}
     >
       {children}

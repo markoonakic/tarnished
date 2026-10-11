@@ -3,6 +3,7 @@ import { formatDateTime } from '@/lib/displayDate';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import Card from './Card';
 function NoteBody({ body }: { body: string }) {
   const { t } = useTranslation();
@@ -58,7 +59,7 @@ export interface NoteItem {
 }
 export interface NotesPanelProps {
   notes: NoteItem[];
-  onAdd?: (body: string) => void | Promise<void>;
+  onAdd?: (body: string, requestKey: string) => void | Promise<void>;
   onEdit?: (id: string, body: string) => void | Promise<void>;
   onDelete?: (id: string) => void;
 }
@@ -73,7 +74,10 @@ export default function NotesPanel({
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
+  const requestKey = useRef(crypto.randomUUID());
+  useUnsavedChanges(busy || (editing !== null && Boolean(body.trim())));
   function start(id: string, text = '') {
+    requestKey.current = crypto.randomUUID();
     setEditing(id);
     setBody(text);
     setError(false);
@@ -83,7 +87,7 @@ export default function NotesPanel({
     setBusy(true);
     setError(false);
     try {
-      if (editing === '') await onAdd?.(body.trim());
+      if (editing === '') await onAdd?.(body.trim(), requestKey.current);
       else await onEdit?.(editing, body.trim());
       setEditing(null);
       setBody('');
@@ -112,7 +116,7 @@ export default function NotesPanel({
           }
         }}
         placeholder={t('kit.writeNote')}
-        className="bg-bg2 text-fg1 placeholder:text-fg4 focus:ring-accent h-20 w-full rounded-md px-3 py-2 text-sm outline-none focus:ring-2"
+        className="bg-bg3 text-fg1 placeholder:text-fg4 focus:ring-accent h-20 w-full rounded-md px-3 py-2 text-sm outline-none focus:ring-2"
       />
       {error && (
         <p role="alert" className="text-red text-sm">

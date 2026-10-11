@@ -8,6 +8,7 @@ interface Props {
   onChange: (value: string) => void;
   label: string;
   required?: boolean;
+  disabled?: boolean;
   autoComplete?: string;
 }
 
@@ -16,6 +17,7 @@ export default function PasswordInput({
   onChange,
   label,
   required = false,
+  disabled = false,
   autoComplete,
 }: Props) {
   useTranslation();
@@ -37,12 +39,14 @@ export default function PasswordInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={required}
+          disabled={disabled}
           autoComplete={autoComplete}
           className="bg-bg2 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 pr-10 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
         />
         <Button
           variant="icon"
           type="button"
+          disabled={disabled}
           onClick={() => setShowPassword(!showPassword)}
           className="absolute top-1/2 right-2 -translate-y-1/2"
           aria-label={showPassword ? t('Hide password') : t('Show password')}

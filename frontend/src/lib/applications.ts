@@ -45,10 +45,11 @@ export async function getApplicationSources(): Promise<string[]> {
 }
 
 export async function createApplication(
-  data: ApplicationCreate
+  data: ApplicationCreate,
+  requestKey?: string
 ): Promise<Application> {
   const response = await api.post('/api/applications', data, {
-    headers: withAxiosTimeZoneHeaders(),
+    headers: withAxiosTimeZoneHeaders({ 'Idempotency-Key': requestKey }),
   });
   invalidateEvidenceQueries();
   return response.data;
@@ -63,15 +64,21 @@ export async function updateApplication(
   return response.data;
 }
 
-export async function deleteApplication(id: string): Promise<void> {
-  await api.delete(`/api/applications/${id}`);
+export async function deleteApplication(
+  id: string,
+  expectedRevision?: number
+): Promise<void> {
+  await api.delete(`/api/applications/${id}`, {
+    headers: { 'Expected-Evidence-Revision': expectedRevision },
+  });
   invalidateEvidenceQueries();
 }
 
 export async function uploadCV(
   applicationId: string,
   file: File,
-  onProgress?: (loaded: number, total: number) => void
+  onProgress?: (loaded: number, total: number) => void,
+  expectedRevision?: number
 ): Promise<Application> {
   const formData = new FormData();
   formData.append('file', file);
@@ -79,7 +86,10 @@ export async function uploadCV(
     `/api/applications/${applicationId}/cv`,
     formData,
     {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Expected-Evidence-Revision': expectedRevision,
+      },
       onUploadProgress: (event) => {
         if (event.total) {
           onProgress?.(event.loaded, event.total);
@@ -91,8 +101,13 @@ export async function uploadCV(
   return response.data;
 }
 
-export async function deleteCV(applicationId: string): Promise<Application> {
-  const response = await api.delete(`/api/applications/${applicationId}/cv`);
+export async function deleteCV(
+  applicationId: string,
+  expectedRevision?: number
+): Promise<Application> {
+  const response = await api.delete(`/api/applications/${applicationId}/cv`, {
+    headers: { 'Expected-Evidence-Revision': expectedRevision },
+  });
   invalidateEvidenceQueries();
   return response.data;
 }
@@ -100,7 +115,8 @@ export async function deleteCV(applicationId: string): Promise<Application> {
 export async function uploadCoverLetter(
   applicationId: string,
   file: File,
-  onProgress?: (loaded: number, total: number) => void
+  onProgress?: (loaded: number, total: number) => void,
+  expectedRevision?: number
 ): Promise<Application> {
   const formData = new FormData();
   formData.append('file', file);
@@ -108,7 +124,10 @@ export async function uploadCoverLetter(
     `/api/applications/${applicationId}/cover-letter`,
     formData,
     {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Expected-Evidence-Revision': expectedRevision,
+      },
       onUploadProgress: (event) => {
         if (event.total) {
           onProgress?.(event.loaded, event.total);
@@ -121,10 +140,12 @@ export async function uploadCoverLetter(
 }
 
 export async function deleteCoverLetter(
-  applicationId: string
+  applicationId: string,
+  expectedRevision?: number
 ): Promise<Application> {
   const response = await api.delete(
-    `/api/applications/${applicationId}/cover-letter`
+    `/api/applications/${applicationId}/cover-letter`,
+    { headers: { 'Expected-Evidence-Revision': expectedRevision } }
   );
   invalidateEvidenceQueries();
   return response.data;

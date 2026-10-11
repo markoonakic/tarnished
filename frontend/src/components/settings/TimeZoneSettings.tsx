@@ -59,6 +59,7 @@ export default function TimeZoneSettings() {
                 : { time_zone_mode: 'manual', time_zone: value }
             );
         }}
+        disabled={update.isPending}
         placeholder={t('Search time zones')}
       />
     </div>

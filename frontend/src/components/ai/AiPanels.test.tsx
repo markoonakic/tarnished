@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -233,6 +234,71 @@ it('reads without starting AI, saves reviewed choices atomically and collapses',
     screen.queryByRole('button', { name: 'Accept Python' })
   ).not.toBeInTheDocument();
 });
+it.each([{ lead_id: 'lead' }, { application_id: 'app' }])(
+  'guards review drafts and pending saves for %j',
+  async (target) => {
+    let release!: (analysis: Analysis) => void;
+    vi.mocked(analysesApi.review).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        })
+    );
+    render(<ExtractionReview target={target} source="Python required" />);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Edit Python' })).toBeEnabled()
+    );
+    const before = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(before);
+    expect(before.defaultPrevented).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Python' }));
+    fireEvent.change(await screen.findByLabelText('Edit proposed value'), {
+      target: { value: 'Edited Python' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    const draft = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(draft);
+    expect(draft.defaultPrevented).toBe(true);
+    expect(screen.getByText('Edited Python')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Save reviewed' }));
+    const saving = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(saving);
+    expect(saving.defaultPrevented).toBe(true);
+    expect(screen.getByText('Edited Python')).toBeVisible();
+    await act(async () =>
+      release({
+        ...base,
+        revision: 3,
+        review_state: 'saved',
+        reviewed: [{ ...proposal, decision: 'edited', value: 'Edited Python' }],
+      })
+    );
+    await screen.findByRole('button', { name: 'Run again' });
+    const saved = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(saved);
+    expect(saved.defaultPrevented).toBe(false);
+  }
+);
+
+it('removes the review exit guard after Undo and keeps choices on failed save', async () => {
+  vi.mocked(analysesApi.review).mockRejectedValueOnce(new Error('Offline'));
+  render(
+    <ExtractionReview target={{ lead_id: 'lead' }} source="Python required" />
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Accept Python' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+  const undone = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(undone);
+  expect(undone.defaultPrevented).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: 'Accept Python' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save reviewed' }));
+  await screen.findByRole('alert');
+  const failed = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(failed);
+  expect(failed.defaultPrevented).toBe(true);
+  expect(screen.getByText('Accepted')).toBeVisible();
+});
+
 it('Accept all keeps existing edits and rejections', async () => {
   latest({
     ...base,
@@ -276,6 +342,29 @@ it('Accept all keeps existing edits and rejections', async () => {
   );
 });
 
+it.each(['en', 'sr-Latn'])(
+  'keeps edited-value guidance behind a HelpTip in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    render(
+      <ExtractionReview target={{ lead_id: 'lead' }} source="Python required" />
+    );
+    const edit = await screen.findByRole('button', {
+      name: i18n.t('ai.editRow', { value: 'Python' }),
+    });
+    await waitFor(() => expect(edit).toBeEnabled());
+    fireEvent.click(edit);
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'Edited Python' },
+    });
+    const message = i18n.t('ai.userEdited');
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('ai.editedValueHelp') })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(message);
+  }
+);
 it('keeps edited drafts after conflict, supports reject and undo', async () => {
   vi.mocked(analysesApi.review).mockRejectedValue(new Error('409'));
   render(
@@ -488,7 +577,11 @@ it('shows five insight rows, coverage denominators, and expands all', async () =
     },
     missing_evidence: { items: [], denominator: 0 },
   } as Awaited<ReturnType<typeof apiV030.breakdowns>>);
-  render(<AnalyticsAiInsights period="all" />);
+  render(
+    <MemoryRouter>
+      <AnalyticsAiInsights period="all" />
+    </MemoryRouter>
+  );
   await screen.findByText('Requirement 0');
   expect(screen.queryByText('Requirement 5')).not.toBeInTheDocument();
   expect(

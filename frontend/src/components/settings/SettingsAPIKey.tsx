@@ -1,4 +1,8 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { isAxiosError } from 'axios';
+import { errorMessage } from '@/lib/errorMessage';
+import HelpTip from '../HelpTip';
 import { formatDateTime } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
@@ -71,6 +75,9 @@ const FULL_ACCESS_SCOPES = [
   'round_types:write',
   'dashboard:read',
   'analytics:read',
+  'analytics:generate',
+  'streak:read',
+  'streak:write',
   'preferences:read',
   'preferences:write',
   'user_settings:read',
@@ -102,6 +109,7 @@ const PRESET_SCOPES: Record<string, string[]> = {
     'round_types:read',
     'dashboard:read',
     'analytics:read',
+    'streak:read',
     'preferences:read',
     'user_settings:read',
     'files:read',
@@ -112,11 +120,13 @@ const PRESET_SCOPES: Record<string, string[]> = {
     'job_leads:read',
     'export:read',
     'import:write',
+    'files:read',
+    'profile:read',
   ],
 };
 
 const ALL_SCOPES = Array.from(
-  new Set(Object.values(PRESET_SCOPES).flat())
+  new Set([...Object.values(PRESET_SCOPES).flat(), 'admin:read', 'admin:write'])
 ).sort();
 
 function formatDate(value: string | null): string {
@@ -152,10 +162,13 @@ export default function SettingsAPIKey() {
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState('');
+  const [editingRevision, setEditingRevision] = useState(0);
   const [editingPreset, setEditingPreset] = useState<string>('full_access');
   const [editingScopes, setEditingScopes] = useState<string[]>([]);
   const [editingAdvancedScopesOpen, setEditingAdvancedScopesOpen] =
     useState(false);
+
+  useUnsavedChanges(submitting || editingId !== null || Boolean(newLabel));
 
   const loadAPIKeys = useCallback(async () => {
     try {
@@ -248,7 +261,10 @@ export default function SettingsAPIKey() {
         editingPreset === 'custom'
           ? { label, preset: 'custom', scopes: editingScopes }
           : { label, preset: editingPreset };
-      const updated = await updateAPIKey(id, payload);
+      const updated = await updateAPIKey(id, {
+        ...payload,
+        expected_revision: editingRevision,
+      });
       setApiKeys((current) =>
         current.map((item) => (item.id === id ? updated : item))
       );
@@ -258,8 +274,12 @@ export default function SettingsAPIKey() {
       setEditingScopes([]);
       setEditingAdvancedScopesOpen(false);
       toast.success(t('API key updated'));
-    } catch {
-      showError(t('Failed to update API key'));
+    } catch (error) {
+      showError(
+        isAxiosError(error) && error.response
+          ? errorMessage(error.response.data, error.response.status)
+          : t('Failed to update API key')
+      );
     } finally {
       setSubmitting(false);
     }
@@ -289,12 +309,14 @@ export default function SettingsAPIKey() {
       </div>
 
       <div className="bg-secondary rounded-lg p-4 md:p-6">
-        <h2 className="text-fg1 mb-4 text-xl font-bold">{t('API Keys')}</h2>
-        <p className="text-muted mb-6 text-sm">
-          {t(
-            'Create a separate API key for each CLI profile or browser extension. Keys are shown in full only once when created.'
-          )}
-        </p>
+        <h2 className="text-fg1 mb-4 text-xl font-bold">
+          {t('API Keys')}
+          <HelpTip label={t('About API keys')}>
+            {t(
+              'Create a separate API key for each CLI profile or browser extension. Keys are shown in full only once when created.'
+            )}
+          </HelpTip>
+        </h2>
 
         {loading ? (
           <Loading message={t('Loading API keys...')} />
@@ -315,6 +337,7 @@ export default function SettingsAPIKey() {
                   </label>
                   <input
                     id="new-api-key-label"
+                    disabled={submitting}
                     value={newLabel}
                     onChange={(event) => setNewLabel(event.target.value)}
                     placeholder={t('MacBook CLI')}
@@ -331,6 +354,7 @@ export default function SettingsAPIKey() {
                   </label>
                   <Dropdown
                     id="new-api-key-preset"
+                    disabled={submitting}
                     options={API_KEY_PRESETS.map((preset) => ({
                       value: preset.value,
                       label: preset.label,
@@ -365,11 +389,14 @@ export default function SettingsAPIKey() {
 
               {advancedScopesOpen && (
                 <div className="bg-bg3 mt-4 rounded-lg p-4">
-                  <p className="text-muted mb-3 text-sm">
-                    {t(
-                      'Editing scopes directly will turn this key into a custom key.'
-                    )}
-                  </p>
+                  <div className="mb-3 flex items-center gap-2 text-sm">
+                    {t('Advanced Scopes')}
+                    <HelpTip label={t('Advanced Scopes')}>
+                      {t(
+                        'Editing scopes directly will turn this key into a custom key.'
+                      )}
+                    </HelpTip>
+                  </div>
                   <div className="grid gap-2 md:grid-cols-2">
                     {ALL_SCOPES.map((scope) => (
                       <label
@@ -378,6 +405,7 @@ export default function SettingsAPIKey() {
                       >
                         <input
                           type="checkbox"
+                          disabled={submitting}
                           checked={newScopes.includes(scope)}
                           onChange={() => handleScopeToggle(scope)}
                         />
@@ -391,12 +419,12 @@ export default function SettingsAPIKey() {
 
             {revealedKey && (
               <div className="bg-bg2 rounded-lg p-4">
-                <h3 className="text-fg1 mb-2 text-sm font-medium">
+                <h3 className="text-fg1 mb-2 flex items-center gap-2 text-sm font-medium">
                   {t('New API Key')}
+                  <HelpTip label={t('New API Key')}>
+                    {t('Copy this now. You will not be able to view it again.')}
+                  </HelpTip>
                 </h3>
-                <p className="text-muted mb-3 text-xs">
-                  {t('Copy this now. You will not be able to view it again.')}
-                </p>
                 <div className="flex items-center gap-2">
                   <div className="text-fg1 bg-bg3 flex-1 overflow-x-auto rounded px-3 py-2 font-mono text-sm break-all">
                     {revealedKey}
@@ -423,7 +451,7 @@ export default function SettingsAPIKey() {
                 {apiKeys.map((apiKey) => (
                   <div key={apiKey.id} className="bg-bg2 rounded-lg p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div className="space-y-1">
+                      <div className="min-w-0 flex-1 space-y-1 [overflow-wrap:anywhere]">
                         {editingId === apiKey.id ? (
                           <div className="space-y-4">
                             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -436,6 +464,7 @@ export default function SettingsAPIKey() {
                                 </label>
                                 <input
                                   id={`edit-api-key-label-${apiKey.id}`}
+                                  disabled={submitting}
                                   value={editingLabel}
                                   onChange={(event) =>
                                     setEditingLabel(event.target.value)
@@ -453,6 +482,7 @@ export default function SettingsAPIKey() {
                                 </label>
                                 <Dropdown
                                   id={`edit-api-key-preset-${apiKey.id}`}
+                                  disabled={submitting}
                                   options={API_KEY_PRESETS.map((preset) => ({
                                     value: preset.value,
                                     label: preset.label,
@@ -513,6 +543,7 @@ export default function SettingsAPIKey() {
                                     >
                                       <input
                                         type="checkbox"
+                                        disabled={submitting}
                                         checked={editingScopes.includes(scope)}
                                         onChange={() =>
                                           handleEditingScopeToggle(scope)
@@ -551,10 +582,18 @@ export default function SettingsAPIKey() {
                       </div>
 
                       {editingId !== apiKey.id && (
-                        <div className="flex gap-2">
+                        <div className="flex shrink-0 gap-2">
                           <Button
+                            disabled={submitting || editingId !== null}
+                            title={
+                              editingId
+                                ? t('Save or cancel the current edit first.')
+                                : undefined
+                            }
                             onClick={() => {
+                              if (submitting || editingId !== null) return;
                               setEditingId(apiKey.id);
+                              setEditingRevision(apiKey.revision ?? 0);
                               setEditingLabel(apiKey.label);
                               setEditingPreset(apiKey.preset);
                               setEditingScopes(apiKey.scopes);
@@ -566,7 +605,12 @@ export default function SettingsAPIKey() {
                           <Button
                             variant="danger"
                             onClick={() => handleDeleteKey(apiKey.id)}
-                            disabled={submitting}
+                            disabled={submitting || editingId !== null}
+                            title={
+                              editingId
+                                ? t('Save or cancel the current edit first.')
+                                : undefined
+                            }
                           >
                             {t('Revoke')}
                           </Button>

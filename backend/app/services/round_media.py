@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Application, Round
 from app.services.ai_settings import lock_ai_settings
 from app.services.interview_jobs import invalidate_interviews
+from app.services.transcripts import expected_generation
 
 
 async def claim_media_generation(
@@ -38,7 +39,12 @@ async def claim_media_generation(
     await invalidate_round_jobs(db, round_id)
 
 
-async def remove_media_transcript(db: AsyncSession, round_id: str, media_id: str):
+async def remove_media_transcript(
+    db: AsyncSession,
+    round_id: str,
+    media_id: str,
+    expected_transcript_generation: int | None,
+):
     # Caller holds claim_media_generation's round write lock. Corrections retain
     # media provenance and are removed with their source; pasted text is separate.
     round = await db.scalar(
@@ -46,17 +52,22 @@ async def remove_media_transcript(db: AsyncSession, round_id: str, media_id: str
         .where(Round.id == round_id)
         .execution_options(populate_existing=True)
     )
+    removes_transcript = bool(
+        round
+        and round.current_transcript
+        and round.current_transcript.get("source_media_id") == media_id
+    )
+    if round and removes_transcript:
+        # Check after claiming the write lock, including corrections saved while
+        # a replacement recording was uploading or being validated.
+        expected_generation(round, expected_transcript_generation)
     if (
         round
         and round.interview_report
         and round.interview_report.get("source_media_id") == media_id
     ):
         await invalidate_interviews(db, round_id=round_id, removed=True)
-    if (
-        round
-        and round.current_transcript
-        and round.current_transcript.get("source_media_id") == media_id
-    ):
+    if removes_transcript:
         await invalidate_interviews(db, round_id=round_id, removed=True)
         await db.execute(
             update(Round)

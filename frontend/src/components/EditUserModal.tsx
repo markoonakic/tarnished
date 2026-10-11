@@ -2,6 +2,10 @@ import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
+import HelpTip from './HelpTip';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { isAxiosError } from 'axios';
+import { errorMessage } from '@/lib/errorMessage';
 import { newPasswordError } from '../lib/password';
 import { useState, useEffect } from 'react';
 import { updateUser, deleteUser } from '../lib/admin';
@@ -27,6 +31,13 @@ export default function EditUserModal({
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const isCurrentUser = user?.id === currentUserId;
+  useUnsavedChanges(
+    Boolean(user) &&
+      (loading ||
+        isAdmin !== user?.is_admin ||
+        isActive !== user?.is_active ||
+        Boolean(password))
+  );
 
   // Clear credentials when the selected user changes.
   useEffect(() => {
@@ -53,14 +64,19 @@ export default function EditUserModal({
 
     try {
       await updateUser(user!.id, {
+        expected_revision: user!.revision,
         is_admin: isAdmin,
         is_active: isActive,
         ...(password ? { password } : {}),
       });
       onSuccess();
       onClose();
-    } catch {
-      setError(t('Failed to update user'));
+    } catch (error) {
+      setError(
+        isAxiosError(error) && error.response?.status === 409
+          ? errorMessage(error.response.data, 409)
+          : t('Failed to update user')
+      );
     } finally {
       setLoading(false);
     }
@@ -82,11 +98,15 @@ export default function EditUserModal({
     setError('');
 
     try {
-      await deleteUser(user!.id);
+      await deleteUser(user!.id, user!);
       onSuccess();
       onClose();
-    } catch {
-      setError(t('Failed to delete user'));
+    } catch (error) {
+      setError(
+        isAxiosError(error) && error.response?.status === 409
+          ? errorMessage(error.response.data, 409)
+          : t('Failed to delete user')
+      );
     } finally {
       setLoading(false);
     }
@@ -139,9 +159,9 @@ export default function EditUserModal({
               <span className="text-primary text-sm">{t('Admin')}</span>
             </label>
             {isCurrentUser && (
-              <p className="text-muted mt-1 ml-7 text-xs">
+              <HelpTip label={t('Admin')}>
                 {t('You cannot change your own admin status')}
-              </p>
+              </HelpTip>
             )}
           </div>
 
@@ -157,19 +177,28 @@ export default function EditUserModal({
               <span className="text-primary text-sm">{t('Active')}</span>
             </label>
             {isCurrentUser && (
-              <p className="text-muted mt-1 ml-7 text-xs">
+              <HelpTip label={t('Active')}>
                 {t('You cannot change your own active status')}
-              </p>
+              </HelpTip>
             )}
           </div>
 
           <div>
-            <label
-              htmlFor="new-password"
-              className="text-muted mb-1 block text-sm font-semibold"
-            >
-              {t('New Password (optional)')}
-            </label>
+            <div className="mb-1 flex items-center gap-2">
+              <label
+                htmlFor="new-password"
+                className="text-muted block text-sm font-semibold"
+              >
+                {t('New Password (optional)')}
+              </label>
+              <HelpTip label={t('About password resets')}>
+                {isCurrentUser &&
+                  t('Change your own password in Settings → Security.')}
+                {t(
+                  'A password reset signs out browser sessions. API keys stay active.'
+                )}
+              </HelpTip>
+            </div>
             <input
               id="new-password"
               type="password"
@@ -180,18 +209,7 @@ export default function EditUserModal({
               placeholder={t('Leave blank to keep current password')}
               autoComplete="new-password"
             />
-            {isCurrentUser && (
-              <p className="text-muted mt-1 text-xs">
-                {t('Change your own password in Settings → Security.')}
-              </p>
-            )}
           </div>
-
-          <p className="text-muted text-sm">
-            {t(
-              'A password reset signs out browser sessions. API keys stay active.'
-            )}
-          </p>
 
           <div className="border-tertiary flex flex-col-reverse justify-between gap-3 border-t pt-4 sm:flex-row sm:items-center">
             <Button

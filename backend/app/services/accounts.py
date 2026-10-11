@@ -105,7 +105,11 @@ async def guard_last_admin(db: AsyncSession, user_id: str):
 
 
 async def delete_account(
-    db: AsyncSession, user_id: str, expected_version: int | None = None
+    db: AsyncSession,
+    user_id: str,
+    expected_version: int | None = None,
+    *,
+    pending_only: bool = False,
 ):
     from app.models import AuditLog, InterviewJob, ProcessingJob, TransferJob
     from app.services.ai_settings import lock_ai_settings
@@ -119,6 +123,8 @@ async def delete_account(
         raise HTTPException(404, "User not found")
     if expected_version is not None and user.session_version != expected_version:
         raise HTTPException(409, "Account changed; sign in again")
+    if pending_only and not user.approval_pending:
+        raise HTTPException(409, "Account is no longer pending; reload and review")
     if user.is_admin and user.is_active:
         await guard_last_admin(db, user_id)
     transfer_paths = {

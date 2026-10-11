@@ -19,6 +19,37 @@ afterEach(async () => {
   await i18n.changeLanguage('en');
   vi.restoreAllMocks();
 });
+it.each(['en', 'sr-Latn'])(
+  'puts empty heatmap guidance in a HelpTip and keeps an action in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    heatmap.mockReturnValue({
+      data: { days: [], max_count: 0 },
+      isLoading: false,
+      isError: false,
+    });
+    render(<ActivityHeatmap />);
+    expect(screen.getByText(i18n.t('No activity yet.'))).toBeVisible();
+    expect(
+      screen.queryByText(
+        i18n.t(
+          'Not enough data for visualization. Add more applications with different statuses.'
+        )
+      )
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: i18n.t('Applications') })
+    ).toHaveAttribute('href', '/applications');
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('Activity Heatmap') })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      i18n.t(
+        'Not enough data for visualization. Add more applications with different statuses.'
+      )
+    );
+  }
+);
 it('starts the loaded mobile scroller at the recent end without resetting a user scroll on rerender', () => {
   vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(825);
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(310);
@@ -33,7 +64,13 @@ it('starts the loaded mobile scroller at the recent end without resetting a user
   const scroller =
     view.container.querySelector<HTMLDivElement>('.overflow-x-auto')!;
   expect(scroller.scrollLeft).toBe(825);
-  expect(screen.getByText('Scroll for earlier months')).toBeVisible();
+  expect(
+    screen.queryByText('Scroll for earlier months')
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Activity Heatmap' }));
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Scroll for earlier months'
+  );
   scroller.scrollLeft = 100;
   view.rerender(<ActivityHeatmap />);
   expect(scroller.scrollLeft).toBe(100);
@@ -64,6 +101,20 @@ it('uses Serbian dates and plurals without changing calendar keys', async () => 
     isError: false,
   });
   render(<ActivityHeatmap />);
+  const period = screen.getByRole('combobox', {
+    name: i18n.t('Select time range'),
+  });
+  expect(period.parentElement?.parentElement).toHaveClass(
+    'max-w-full',
+    'min-w-0'
+  );
+  expect(period.parentElement?.parentElement?.parentElement).toHaveClass(
+    'flex-wrap',
+    'gap-3'
+  );
+  expect(screen.getByText(i18n.t('Less')).parentElement).toHaveClass(
+    'shrink-0'
+  );
   const cell = screen.getByRole('img', { name: '2 prijave dana 1. 10. 2026.' });
   fireEvent.mouseEnter(cell);
   expect(screen.getByText('1. 10. 2026.')).toBeVisible();

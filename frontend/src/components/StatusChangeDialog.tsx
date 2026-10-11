@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { historyLocalTime, historyInstant } from '@/lib/historyDateTime';
@@ -71,6 +72,13 @@ function StatusChangeForm({
   const [reason, setReason] = useState(initial?.reason ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [baseline] = useState(() =>
+    JSON.stringify([status, time, sentDate, comment, reason])
+  );
+  useUnsavedChanges(
+    busy ||
+      JSON.stringify([status, time, sentDate, comment, reason]) !== baseline
+  );
   const terminal = ['rejected', 'withdrawn'].includes(
     options.find((option) => option.value === status)?.meaning ?? ''
   );

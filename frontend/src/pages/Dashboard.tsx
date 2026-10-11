@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import HelpTip from '@/components/HelpTip';
 import { t } from '@/lib/i18n';
 import DashboardPipelineStrip from '../components/slots/DashboardPipelineStrip';
 import DashboardUpcomingRow from '../components/slots/DashboardUpcomingRow';
@@ -126,12 +127,14 @@ export default function Dashboard() {
           <div className="bg-accent/20 border-accent text-primary mb-6 rounded-lg border px-6 py-4">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <div>
-                <h3 className="mb-1 font-semibold">{t('Welcome! 👋')}</h3>
-                <p className="text-sm">
-                  {t(
-                    'Do you have data from a previous export? You can import it to get started.'
-                  )}
-                </p>
+                <h3 className="mb-1 font-semibold">
+                  {t('Welcome! 👋')}
+                  <HelpTip label={t('Import Data')}>
+                    {t(
+                      'Do you have data from a previous export? You can import it to get started.'
+                    )}
+                  </HelpTip>
+                </h3>
               </div>
               <div className="flex flex-shrink-0 gap-3">
                 <Button onClick={handleDismissPrompt}>{t('Skip')}</Button>

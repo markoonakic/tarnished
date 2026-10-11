@@ -138,6 +138,56 @@ it('archives only after confirmation, shows the banner and restores the record',
     expected_revision: 5,
   });
 });
+it.each([true, false])(
+  'guards pending archive/unarchive saves (%s)',
+  async (archived) => {
+    application.archived_at = archived ? null : '2026-10-08T09:00:00Z';
+    let release!: (
+      value: Awaited<ReturnType<typeof apiV030.updateApplication>>
+    ) => void;
+    vi.mocked(apiV030.updateApplication).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        })
+    );
+    await mount();
+    fireEvent.click(
+      screen.getByRole('button', { name: archived ? 'Archive' : 'Unarchive' })
+    );
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    release(
+      application as unknown as Awaited<
+        ReturnType<typeof apiV030.updateApplication>
+      >
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: archived ? 'Archive' : 'Unarchive' })
+      ).toBeEnabled()
+    );
+    await waitFor(() => {
+      const after = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(after);
+      expect(after.defaultPrevented).toBe(false);
+    });
+  }
+);
+it('bounds long saved status text inside the change-status control', async () => {
+  application.status = {
+    ...application.status,
+    name: 'W'.repeat(180),
+    builtin_key: undefined,
+  };
+  await mount();
+  expect(screen.getByText('W'.repeat(180))).toHaveClass(
+    'min-w-0',
+    'max-w-full',
+    '[overflow-wrap:anywhere]'
+  );
+});
 it('uses the status dialog and saves time, comment and rejection reason atomically', async () => {
   await mount();
   fireEvent.click(screen.getByRole('button', { name: 'Change status' }));

@@ -46,3 +46,23 @@ it('shows the saved lead action and opens its route while dismissing the toast',
   vi.clearAllTimers();
   vi.useRealTimers();
 });
+
+it('keeps the toast stack away from header and expanded navigation', () => {
+  render(
+    <MemoryRouter>
+      <ToastProvider>
+        <Save />
+        <ToastContainer />
+      </ToastProvider>
+    </MemoryRouter>
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(screen.getByRole('alert').parentElement).toHaveClass(
+    'bottom-4',
+    'pointer-events-none'
+  );
+  expect(screen.getByRole('alert')).toHaveClass('pointer-events-auto');
+  expect(
+    screen.getByRole('button', { name: 'Dismiss notification' })
+  ).toBeEnabled();
+});

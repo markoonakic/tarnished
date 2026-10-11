@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -43,6 +44,43 @@ it('requires password and explicit confirmation before deletion and signs out', 
   await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
   expect(apiV030.deleteAccount).toHaveBeenCalledWith('local-password', true);
 });
+it('keeps a pending account-delete dialog, locks input and clears its guard before sign-out', async () => {
+  let release!: () => void;
+  vi.mocked(apiV030.deleteAccount).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        release = () => resolve({} as never);
+      })
+  );
+  signOut.mockImplementation(() => {
+    const saved = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(saved);
+    expect(saved.defaultPrevented).toBe(false);
+  });
+  render(<DeleteAccountCard />);
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Delete account' })).toBeEnabled()
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Delete account' }));
+  const dialog = within(screen.getByRole('dialog'));
+  fireEvent.change(dialog.getByLabelText('Current password'), {
+    target: { value: 'local-password' },
+  });
+  fireEvent.click(dialog.getByRole('checkbox'));
+  fireEvent.click(dialog.getByRole('button', { name: 'Delete permanently' }));
+  expect(dialog.getByLabelText('Current password')).toBeDisabled();
+  expect(dialog.getByRole('checkbox')).toBeDisabled();
+  const pending = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(pending);
+  expect(pending.defaultPrevented).toBe(true);
+  expect(dialog.getByLabelText('Current password')).toHaveValue(
+    'local-password'
+  );
+  expect(dialog.getByRole('checkbox')).toBeChecked();
+  await act(async () => release());
+  await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
+});
+
 it('disables deletion for the last active administrator', async () => {
   vi.mocked(apiV030.account).mockResolvedValue({
     can_delete_account: false,

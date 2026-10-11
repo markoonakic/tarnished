@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { isAxiosError } from 'axios';
 import TextLink from '@/components/ui/TextLink';
 import { formatDate, formatDateTime } from '@/lib/displayDate';
 import { t } from '@/lib/i18n';
@@ -56,6 +57,7 @@ function JobLeadDetailContent({ id }: { id: string }) {
   const [extracting, setExtracting] = useState(false);
   const [confirmExtraction, setConfirmExtraction] = useState(false);
   const [stale, setStale] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadJobLead = useCallback(async () => {
     const ownedRequest = ++requestId.current;
@@ -90,15 +92,22 @@ function JobLeadDetailContent({ id }: { id: string }) {
   }, [loadJobLead]);
 
   async function handleDelete() {
+    if (deleting) return;
     if (!confirm(t('Are you sure you want to delete this job lead?'))) return;
+    setDeleting(true);
     try {
-      await deleteJobLead(id!);
+      await deleteJobLead(id!, jobLead?.revision);
       toast.success(t('Job lead deleted'));
       navigate('/job-leads');
-    } catch {
-      const errorMsg = t('Failed to delete job lead');
+    } catch (error) {
+      const errorMsg =
+        isAxiosError(error) && error.response
+          ? errorMessage(error.response.data, error.response.status)
+          : t('Failed to delete job lead');
       setError(errorMsg);
       showError(errorMsg);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -280,9 +289,9 @@ function JobLeadDetailContent({ id }: { id: string }) {
             }}
           />
         )}
-        <div className="bg-secondary mb-6 rounded-lg p-6">
+        <div className="bg-secondary mb-6 rounded-lg p-6 [overflow-wrap:anywhere]">
           <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-            <div className="flex-1">
+            <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
               <div className="mb-1 flex flex-wrap items-center gap-2">
                 <h1 className="text-primary text-2xl font-bold">
                   {jobLead.company_id ? (
@@ -530,6 +539,8 @@ function JobLeadDetailContent({ id }: { id: string }) {
             )}
             <Button
               variant="danger"
+              disabled={deleting}
+              aria-busy={deleting}
               onClick={handleDelete}
               className="flex items-center gap-1.5"
             >

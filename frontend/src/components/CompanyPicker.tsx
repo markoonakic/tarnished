@@ -26,6 +26,7 @@ export default function CompanyPicker({
     queryClient
   );
   const [busy, setBusy] = useState(false);
+  const [requestKey, setRequestKey] = useState(() => crypto.randomUUID());
   const [error, setError] = useState('');
   const options = (query.data ?? []).map((company) => ({
     value: company.id,
@@ -56,9 +57,10 @@ export default function CompanyPicker({
           setBusy(true);
           setError('');
           try {
-            const company = await apiV030.createCompany({ name });
+            const company = await apiV030.createCompany({ name }, requestKey);
             await client.invalidateQueries({ queryKey: ['companies'] });
             onChange(company.id, company.name);
+            setRequestKey(crypto.randomUUID());
           } catch (error) {
             setError(failureMessage(error));
           } finally {

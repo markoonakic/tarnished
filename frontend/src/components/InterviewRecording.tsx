@@ -13,7 +13,8 @@ import TranscriptEditor from './TranscriptEditor';
 import TranscriptionPanel from './TranscriptionPanel';
 import FileButton from './FileButton';
 import Modal from './Modal';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { isAxiosError } from 'axios';
 import { uploadMedia, deleteMedia, getMediaSignedUrl } from '../lib/rounds';
 import type { Round, RoundMedia } from '../lib/types';
@@ -29,6 +30,7 @@ interface Props {
   onDelete: () => void;
   onMediaChange: () => void;
   showRoundHeader?: boolean;
+  deleting?: boolean;
 }
 
 export default function InterviewRecording({
@@ -37,6 +39,7 @@ export default function InterviewRecording({
   onDelete,
   onMediaChange,
   showRoundHeader = false,
+  deleting = false,
 }: Props) {
   useTranslation();
   const preferences = useUserPreferences();
@@ -48,7 +51,10 @@ export default function InterviewRecording({
     0
   );
   const toast = useToast();
+  const uploadLock = useRef(false);
   const [uploading, setUploading] = useState(false);
+  const [deletingMedia, setDeletingMedia] = useState<string | null>(null);
+  const busy = deleting || uploading || deletingMedia !== null;
   const [uploadingMediaFile, setUploadingMediaFile] = useState<File | null>(
     null
   );
@@ -56,9 +62,12 @@ export default function InterviewRecording({
   const [pendingMedia, setPendingMedia] = useState<{
     file: File;
     generation: number;
+    transcriptGeneration: number;
     replaceId?: string;
   } | null>(null);
+  useUnsavedChanges(uploading || Boolean(pendingMedia));
   const [mediaError, setMediaError] = useState('');
+  const [uploadConflict, setUploadConflict] = useState(false);
   const [deleteConflict, setDeleteConflict] = useState(false);
   const [editingTranscript, setEditingTranscript] = useState(false);
   const [transcribingMedia, setTranscribingMedia] = useState<string | null>(
@@ -73,13 +82,14 @@ export default function InterviewRecording({
     replaceId?: string
   ) {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || uploadLock.current || deleting) return;
     // Pending state owns the File. Reset the native chooser so selecting the
     // same file after explicit conflict recovery fires change again.
     e.target.value = '';
     const pending = {
       file,
       generation: round.media_generation ?? 0,
+      transcriptGeneration: round.transcript_generation ?? 0,
       replaceId,
     };
     setPendingMedia(pending);
@@ -87,14 +97,17 @@ export default function InterviewRecording({
   }
 
   async function sendMedia(pending: NonNullable<typeof pendingMedia>) {
+    if (uploadLock.current || deleting) return;
     if (pending.file.size > 1_000_000_000) {
       setMediaError(
         t('Recording exceeds 1,000,000,000 bytes. Choose a smaller recording.')
       );
       return;
     }
+    uploadLock.current = true;
     setUploading(true);
     setMediaError('');
+    setUploadConflict(false);
     setUploadingMediaFile(pending.file);
     setUploadingMediaProgress(0);
     try {
@@ -107,24 +120,24 @@ export default function InterviewRecording({
           );
         },
         pending.generation,
-        pending.replaceId
+        pending.replaceId,
+        pending.transcriptGeneration
       );
       setPendingMedia(null);
       onMediaChange();
     } catch (error) {
       const detail = isAxiosError(error) ? error.response?.data?.detail : null;
+      const conflict = isAxiosError(error) && error.response?.status === 409;
+      setUploadConflict(conflict);
       setMediaError(
-        isAxiosError(error) && error.response?.status === 409
-          ? t(
-              'Recordings changed. Retrying cannot resolve this conflict. Reload and review recordings, then discard this pending upload and select the file and replacement again.'
-            )
+        conflict
+          ? t('Recordings or transcript changed.')
           : typeof detail === 'string'
             ? detail
-            : t(
-                'Recording upload failed. Check current recordings before retrying; your selected file is kept.'
-              )
+            : t('Recording upload failed.')
       );
     } finally {
+      uploadLock.current = false;
       setUploading(false);
       setUploadingMediaProgress(0);
       setUploadingMediaFile(null);
@@ -133,6 +146,7 @@ export default function InterviewRecording({
 
   async function handleMediaDelete(mediaId: string, e: React.MouseEvent) {
     e.stopPropagation();
+    if (uploadLock.current || deleting) return;
     if (
       !confirm(
         t(
@@ -141,8 +155,14 @@ export default function InterviewRecording({
       )
     )
       return;
+    uploadLock.current = true;
+    setDeletingMedia(mediaId);
     try {
-      await deleteMedia(mediaId, round.media_generation ?? 0);
+      await deleteMedia(
+        mediaId,
+        round.media_generation ?? 0,
+        round.transcript_generation ?? 0
+      );
       setDeleteConflict(false);
       onMediaChange();
     } catch (error) {
@@ -151,6 +171,9 @@ export default function InterviewRecording({
       } else {
         toast.error(t('Failed to delete media'));
       }
+    } finally {
+      uploadLock.current = false;
+      setDeletingMedia(null);
     }
   }
 
@@ -169,7 +192,11 @@ export default function InterviewRecording({
   return (
     <div
       id={`round-${round.id}`}
-      className={showRoundHeader ? 'bg-bg2 rounded-lg p-4' : undefined}
+      className={
+        showRoundHeader
+          ? 'bg-bg2 min-w-0 rounded-lg p-4 [overflow-wrap:anywhere]'
+          : undefined
+      }
     >
       {playingMedia && (
         <MediaPlayer
@@ -180,7 +207,7 @@ export default function InterviewRecording({
 
       <div className="mb-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
         {showRoundHeader && (
-          <div>
+          <div className="min-w-0 flex-1">
             <h4 className="text-primary font-medium">
               {roundTypeLabel(round.round_type)}
             </h4>
@@ -197,7 +224,7 @@ export default function InterviewRecording({
             )}
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex max-w-full shrink-0 flex-wrap items-center gap-1.5">
           {showRoundHeader && (
             <span
               className={`mr-2 text-sm font-medium ${round.outcome === 'passed' ? 'text-green' : round.outcome === 'failed' ? 'text-red' : 'text-yellow'}`}
@@ -219,6 +246,7 @@ export default function InterviewRecording({
             <>
               <Button
                 variant="icon"
+                disabled={busy}
                 onClick={onEdit}
                 aria-label={t('Edit round')}
                 title={t('Edit')}
@@ -227,6 +255,7 @@ export default function InterviewRecording({
               </Button>
               <Button
                 variant="icon"
+                disabled={busy}
                 onClick={onDelete}
                 aria-label={t('Delete round')}
                 title={t('Delete')}
@@ -273,7 +302,7 @@ export default function InterviewRecording({
             variant="primary"
             accept=".mp4,.webm,.mov,.mp3,.m4a,.wav,.ogg"
             onChange={(e) => void handleMediaUpload(e)}
-            disabled={uploading}
+            disabled={busy}
             className="flex items-center gap-1.5"
           >
             <i className="bi-plus-circle icon-sm"></i>
@@ -284,13 +313,23 @@ export default function InterviewRecording({
         {mediaError && (
           <div role="alert" className="text-red-bright mb-2 text-sm">
             {mediaError}
+            <HelpTip label={t('Media Files')}>
+              {t(
+                uploadConflict
+                  ? 'Retrying cannot resolve this conflict. Reload and review recordings and the transcript, then discard the pending upload and select the file and replacement again.'
+                  : 'Check current recordings before retrying; your selected file is kept.'
+              )}
+            </HelpTip>
           </div>
         )}
         {deleteConflict && (
           <div role="alert" className="text-red-bright mb-2 text-sm">
-            {t(
-              'Recordings changed. Nothing was deleted. Reload and review recordings before deciding to delete again.'
-            )}
+            {t('Recordings or transcript changed.')}
+            <HelpTip label={t('Media Files')}>
+              {t(
+                'Reload and review recordings and the transcript before deciding to delete again.'
+              )}
+            </HelpTip>
           </div>
         )}
         {(pendingMedia || deleteConflict) && !uploading && (
@@ -305,12 +344,14 @@ export default function InterviewRecording({
         )}
         {pendingMedia && !uploading && (
           <div className="mb-2 text-sm">
-            <p>
+            <div>
               {t('Pending:')} {pendingMedia.file.name}
-              {t(
-                '. Existing media/transcripts remain available. A lost response may mean the upload succeeded; review before retrying.'
-              )}
-            </p>
+              <HelpTip label={t('Media Files')}>
+                {t(
+                  '. Existing media/transcripts remain available. A lost response may mean the upload succeeded; review before retrying.'
+                )}
+              </HelpTip>
+            </div>
             <Button
               type="button"
               onClick={() => void sendMedia(pendingMedia)}
@@ -324,6 +365,7 @@ export default function InterviewRecording({
               onClick={() => {
                 setPendingMedia(null);
                 setMediaError('');
+                setUploadConflict(false);
               }}
               className="flex items-center gap-1.5"
             >
@@ -371,6 +413,7 @@ export default function InterviewRecording({
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
+                    disabled={busy}
                     onClick={() => setTranscribingMedia(m.id)}
                     className="flex items-center gap-1.5"
                   >
@@ -382,7 +425,7 @@ export default function InterviewRecording({
                   </Button>
                   <FileButton
                     accept=".mp4,.webm,.mov,.mp3,.m4a,.wav,.ogg"
-                    disabled={uploading}
+                    disabled={busy}
                     onChange={(e) => void handleMediaUpload(e, m.id)}
                     className="flex items-center gap-1.5"
                   >
@@ -414,7 +457,8 @@ export default function InterviewRecording({
                   </Button>
                   <Button
                     variant="danger"
-                    disabled={uploading}
+                    disabled={busy}
+                    aria-busy={deletingMedia === m.id}
                     onClick={(e) => handleMediaDelete(m.id, e)}
                     className="flex items-center gap-1.5"
                     title={t('Delete')}
@@ -475,6 +519,7 @@ export default function InterviewRecording({
         <Button
           variant="primary"
           type="button"
+          disabled={busy}
           onClick={() => setEditingTranscript(true)}
           className="flex items-center gap-1.5"
         >

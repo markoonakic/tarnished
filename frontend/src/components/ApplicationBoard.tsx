@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/useToast';
 import StatusChangeDialog from './StatusChangeDialog';
 import { locale } from '@/lib/i18n';
 import HelpTip from './HelpTip';
+import { filterTags } from '@/lib/recordFilters';
 
 function boardFilters(params: URLSearchParams): JobQuery {
   const values = Object.fromEntries(params);
@@ -29,7 +30,7 @@ function boardFilters(params: URLSearchParams): JobQuery {
   }
   return {
     ...values,
-    tags: params.getAll('tags'),
+    tags: filterTags(params.getAll('tags')),
     show_archived: params.get('show_archived') === 'true',
     page: 1,
     per_page: 25,
@@ -166,18 +167,23 @@ export default function ApplicationBoard({
                     onClick={() => setExpanded([...expanded, status.id])}
                   >
                     <i className="bi-arrow-right icon-sm" aria-hidden="true" />
-                    <span style={{ color }}>{statusLabel(status)}</span>
+                    <span
+                      className="max-h-full min-w-0 [overflow-wrap:anywhere]"
+                      style={{ color }}
+                    >
+                      {statusLabel(status)}
+                    </span>
                     <span className="text-muted">{column?.count ?? 0}</span>
                   </Button>
                 ) : (
                   <>
                     <div className="mb-3 flex items-center justify-between gap-2">
                       <span
-                        className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold"
+                        className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold [overflow-wrap:anywhere]"
                         style={{ color, backgroundColor: `${color}20` }}
                       >
                         <span
-                          className="h-2 w-2 rounded-full"
+                          className="h-2 w-2 shrink-0 rounded-full"
                           style={{ backgroundColor: color }}
                         />
                         {statusLabel(status)}
@@ -283,7 +289,7 @@ export default function ApplicationBoard({
                                 .map((s) => (
                                   <Button
                                     key={s.id}
-                                    className="flex w-full items-center gap-1.5 text-left"
+                                    className="flex w-full min-w-0 items-center gap-1.5 text-left [overflow-wrap:anywhere]"
                                     disabled={!zone}
                                     onClick={(e) => {
                                       e.currentTarget
@@ -413,7 +419,6 @@ export default function ApplicationBoard({
             } catch (error) {
               if (isAxiosError(error) && error.response?.status === 409) {
                 toast.error(t('tasks.boardConflict'));
-                setMove(null);
               }
               throw error;
             }

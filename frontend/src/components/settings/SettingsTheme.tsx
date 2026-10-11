@@ -15,6 +15,9 @@ export default function SettingsTheme() {
     currentAccent,
     setAccentColor,
     accentOptions,
+    saveError,
+    savingSettings,
+    retrySettingsSave,
   } = useTheme();
 
   return (
@@ -23,6 +26,18 @@ export default function SettingsTheme() {
         <SettingsBackLink />
       </div>
 
+      {saveError && (
+        <div
+          role="alert"
+          className="text-red-bright mb-6 flex flex-wrap items-center gap-2 text-sm"
+        >
+          {t('Could not save appearance.')}
+          <Button disabled={savingSettings} onClick={retrySettingsSave}>
+            <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
+            {t('Retry')}
+          </Button>
+        </div>
+      )}
       <div className="bg-secondary rounded-lg p-4 md:p-6">
         <div className="mb-4 flex items-center gap-2">
           <h2 className="text-fg1 text-xl font-bold">{t('Theme')}</h2>
@@ -37,7 +52,7 @@ export default function SettingsTheme() {
         />
       </div>
 
-      <div className="bg-secondary mt-4 rounded-lg p-4 md:p-6">
+      <div className="bg-secondary mt-6 rounded-lg p-4 md:p-6">
         <div className="mb-4 flex items-center gap-2">
           <h2 className="text-fg1 text-xl font-bold">{t('Accent Color')}</h2>
           <HelpTip label={t('About accent color')}>

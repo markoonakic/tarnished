@@ -1,4 +1,5 @@
 {
+  "ai.retryHelpLabel": "O ponovnom pokušaju",
   "ai.useRequirements": "Koristi ove zahteve",
   "ai.reviewTitle": "Pregled izdvojenih podataka",
   "ai.proposalCount": "Predlozi: {{count}} · Pregledano: {{reviewed}}",
@@ -56,7 +57,8 @@
   "ai.noInsights": "Nema pregledanih podataka za ovaj period.",
   "ai.viewAll": "Prikaži sve",
   "ai.showLess": "Prikaži manje",
-  "ai.failed": "Zahtev nije završen. Proveri stanje pre ponovnog pokušaja. Ponovni pokušaj može ponoviti obradu i troškove.",
+  "ai.failed": "Zahtev nije završen.",
+  "ai.retryHelp": "Proveri stanje pre ponovnog pokušaja. Ponovni pokušaj može ponoviti obradu i troškove.",
   "ai.loadFailed": "Sačuvani podaci nisu učitani.",
   "ai.checkStatus": "Proveri stanje",
   "ai.loading": "Učitavanje sačuvanih podataka…",

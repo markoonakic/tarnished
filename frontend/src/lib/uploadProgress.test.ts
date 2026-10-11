@@ -38,6 +38,31 @@ describe('upload api helpers', () => {
     expect(callback).toHaveBeenNthCalledWith(2, 5, 10);
   });
 
+  it('keeps one recording request key per queued File and separates distinct files', async () => {
+    post.mockResolvedValue({ data: { id: 'round-1' } });
+    const { uploadMedia } = await import('./rounds');
+    const file = new File(['audio'], 'same.wav');
+    await uploadMedia('round-1', file, undefined, 0);
+    await uploadMedia('round-1', file, undefined, 1);
+    await uploadMedia('round-1', new File(['audio'], 'same.wav'), undefined, 1);
+    const key = post.mock.calls[0][2].headers['Idempotency-Key'];
+    expect(key).toBeTruthy();
+    expect(post.mock.calls[1][2].headers['Idempotency-Key']).toBe(key);
+    expect(post.mock.calls[2][2].headers['Idempotency-Key']).not.toBe(key);
+  });
+  it('sends the displayed application evidence revision on both document uploads', async () => {
+    post.mockResolvedValue({ data: { id: 'app-1' } });
+    const { uploadCV, uploadCoverLetter } = await import('./applications');
+    await uploadCV('app-1', new File(['cv'], 'cv.txt'), undefined, 4);
+    await uploadCoverLetter(
+      'app-1',
+      new File(['cover'], 'cover.txt'),
+      undefined,
+      5
+    );
+    expect(post.mock.calls[0][2].headers['Expected-Evidence-Revision']).toBe(4);
+    expect(post.mock.calls[1][2].headers['Expected-Evidence-Revision']).toBe(5);
+  });
   it('forwards upload progress for round uploads', async () => {
     const callback = vi.fn();
     post.mockImplementation((_url, _body, config) => {

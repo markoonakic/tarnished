@@ -131,9 +131,9 @@ export default function DashboardUpcomingRow() {
               <span className="text-muted block truncate text-xs">
                 {a.job_title}
               </span>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
                 <span
-                  className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs"
+                  className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded px-2 py-0.5 text-xs [overflow-wrap:anywhere]"
                   style={{
                     color: getStatusColor(
                       a.status.name,
@@ -144,7 +144,7 @@ export default function DashboardUpcomingRow() {
                   }}
                 >
                   <span
-                    className="h-1.5 w-1.5 rounded-full"
+                    className="h-1.5 w-1.5 shrink-0 rounded-full"
                     style={{
                       backgroundColor: getStatusColor(
                         a.status.name,

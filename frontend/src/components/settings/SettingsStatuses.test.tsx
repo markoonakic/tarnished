@@ -10,7 +10,12 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import SettingsStatuses from './SettingsStatuses';
 import i18n from '@/lib/i18n';
-import { createStatus, updateStatus } from '@/lib/settings';
+import {
+  listStatuses,
+  createStatus,
+  updateStatus,
+  deleteStatus,
+} from '@/lib/settings';
 vi.mock('@/hooks/useThemeColors', () => ({ useThemeColors: () => ({}) }));
 vi.mock('@/lib/settings', () => ({
   listStatuses: vi.fn().mockResolvedValue([
@@ -31,6 +36,120 @@ afterEach(async () => {
   await i18n.changeLanguage('en');
 });
 beforeEach(() => vi.clearAllMocks());
+it.each(['en', 'sr-Latn'])(
+  'puts default status instructions in the HelpTip in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    vi.mocked(listStatuses).mockResolvedValueOnce([
+      {
+        id: 'default',
+        builtin_key: 'applied',
+        name: 'Applied',
+        color: '#ffffff',
+        meaning: 'applied',
+        is_default: true,
+      },
+    ]);
+    render(
+      <MemoryRouter>
+        <SettingsStatuses />
+      </MemoryRouter>
+    );
+    await screen.findByText(i18n.t('Applied'));
+    const guidance = i18n.t(
+      'Using default statuses. Add custom statuses to override.'
+    );
+    expect(screen.queryByText(guidance)).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('About application statuses') })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(guidance);
+  }
+);
+it('keeps a stale status row and shows reload guidance after a conflicting delete', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  vi.mocked(deleteStatus).mockRejectedValueOnce({
+    isAxiosError: true,
+    response: { status: 409, data: { detail: { code: 'settings_changed' } } },
+  });
+  render(
+    <MemoryRouter>
+      <SettingsStatuses />
+    </MemoryRouter>
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+  await screen.findByText(
+    'Settings changed. Reload and review before retrying.'
+  );
+  expect(screen.getByText('Custom')).toBeInTheDocument();
+  expect(deleteStatus).toHaveBeenCalledWith(
+    'personal',
+    expect.objectContaining({
+      name: 'Custom',
+      color: '#ffffff',
+      meaning: 'rejected',
+    })
+  );
+});
+it('sends one create while Add is pending, including repeated form submissions', async () => {
+  vi.mocked(createStatus).mockImplementationOnce(() => new Promise(() => {}));
+  render(
+    <MemoryRouter>
+      <SettingsStatuses />
+    </MemoryRouter>
+  );
+  await screen.findByText('Custom');
+  fireEvent.change(screen.getByPlaceholderText('New status name'), {
+    target: { value: 'One create' },
+  });
+  const add = screen.getByRole('button', { name: 'Add' });
+  fireEvent.submit(add.closest('form')!);
+  fireEvent.submit(add.closest('form')!);
+  expect(createStatus).toHaveBeenCalledOnce();
+  expect(screen.getByPlaceholderText('New status name')).toBeDisabled();
+  expect(screen.getByRole('combobox', { name: 'Stage' })).toBeDisabled();
+  expect(add).toBeDisabled();
+});
+it('keeps a stale edit and shows the conflict rather than hiding the editor', async () => {
+  vi.mocked(updateStatus).mockRejectedValueOnce({
+    isAxiosError: true,
+    response: { status: 409 },
+  });
+  render(
+    <MemoryRouter>
+      <SettingsStatuses />
+    </MemoryRouter>
+  );
+  await screen.findByText('Custom');
+  fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+  fireEvent.change(screen.getByPlaceholderText('Status name'), {
+    target: { value: 'Retained draft' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await screen.findByText(
+    'Settings changed. Reload and review before retrying.'
+  );
+  expect(screen.getByPlaceholderText('Status name')).toHaveValue(
+    'Retained draft'
+  );
+});
+it('keeps the stage explanation inside a closed HelpTip', async () => {
+  render(
+    <MemoryRouter>
+      <SettingsStatuses />
+    </MemoryRouter>
+  );
+  await screen.findByText('Custom');
+  expect(
+    screen.queryByText(/Choose the stage used in reports/)
+  ).not.toBeInTheDocument();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'About application statuses' })
+  );
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Choose the stage used in reports'
+  );
+});
 it('translates stage options on language changes without translating custom names', async () => {
   await i18n.changeLanguage('sr-Latn');
   render(
@@ -91,9 +210,37 @@ it('a label-only rename preserves the selected definition meaning rather than in
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() =>
     expect(updateStatus).toHaveBeenCalledWith('personal', {
+      expected_name: 'Custom',
+      expected_color: '#ffffff',
+      expected_meaning: 'rejected',
       name: 'Offer',
       meaning: 'rejected',
       color: '#ffffff',
     })
   );
+});
+
+it('guards status edit drafts before and after a failed save', async () => {
+  vi.mocked(updateStatus).mockRejectedValueOnce(new Error('Offline'));
+  render(
+    <MemoryRouter>
+      <SettingsStatuses />
+    </MemoryRouter>
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+  fireEvent.change(screen.getByPlaceholderText('Status name'), {
+    target: { value: 'Keep draft' },
+  });
+  for (const failed of [false, true]) {
+    if (failed) {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await screen.findByText('Failed to update status');
+    }
+    const unload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+    expect(screen.getByPlaceholderText('Status name')).toHaveValue(
+      'Keep draft'
+    );
+  }
 });

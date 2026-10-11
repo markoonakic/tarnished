@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import TextLink from '@/components/ui/TextLink';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/Card';
@@ -72,9 +73,12 @@ export default function AnalyticsAiInsights({
             ) : (
               <>
                 {!rows.length && (
-                  <p className="text-muted mb-4 text-sm">
-                    {t('ai.noInsights')}
-                  </p>
+                  <div className="mb-4">
+                    <p className="text-muted mb-3 text-sm">
+                      {t('ai.noInsights')}
+                    </p>
+                    <TextLink to="/applications">{t('Applications')}</TextLink>
+                  </div>
                 )}
                 <div className="space-y-3">
                   {shown.map((row) => (

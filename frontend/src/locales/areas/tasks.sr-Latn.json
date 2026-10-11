@@ -1,4 +1,5 @@
 {
+  "tasks.questionRequired": "Unesite pitanje ili obrišite odgovor.",
   "tasks.interviewDetails": "Detalji intervjua",
   "tasks.deadlinesWithoutReminder": "Rokovi bez podsetnika ({{count}})",
   "tasks.browserNotifications": "Obaveštenja pregledača za podsetnike",

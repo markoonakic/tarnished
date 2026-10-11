@@ -1,3 +1,5 @@
+import type { Round } from './types';
+import { deleteRound } from './rounds';
 import api, { withAxiosTimeZoneHeaders } from './api';
 import { queryClient } from './queryClient';
 
@@ -73,7 +75,9 @@ export interface ContactInput {
   communication_note?: string | null;
   company_id?: ID | null;
 }
-export interface Contact extends OwnedRecord, ContactInput {}
+export interface Contact extends OwnedRecord, ContactInput {
+  company_name?: string | null;
+}
 export interface ContactDetail extends Contact {
   company: Company | null;
   applications: ApplicationRecord[];
@@ -484,6 +488,7 @@ export interface Account {
   last_login_at: ISODateTime | null;
 }
 export interface AdminUser extends Account {
+  revision?: number;
   created_at: ISODateTime;
   application_count: number;
 }
@@ -565,10 +570,14 @@ const get = async <T>(path: string, params?: object): Promise<T> =>
       headers: withAxiosTimeZoneHeaders(),
     })
   ).data;
-const post = async <T>(path: string, data?: unknown): Promise<T> =>
+const post = async <T>(
+  path: string,
+  data?: unknown,
+  requestKey?: string
+): Promise<T> =>
   (
     await api.post<T>(`/api${path}`, data, {
-      headers: withAxiosTimeZoneHeaders(),
+      headers: withAxiosTimeZoneHeaders({ 'Idempotency-Key': requestKey }),
     })
   ).data;
 const patch = async <T>(path: string, data: unknown): Promise<T> =>
@@ -611,24 +620,30 @@ export const apiV030 = {
   adminUsers: (query?: AdminUsersQuery) =>
     get<Page<AdminUser>>('/admin/users', query),
   adminStats: () => get<AdminStats>('/admin/stats'),
-  approveUser: (id: ID) =>
+  approveUser: (id: ID, expected_revision?: number) =>
     patch<AdminUser>(`/admin/users/${id}`, {
+      expected_revision,
       is_active: true,
       approval_pending: false,
     }),
-  rejectUser: (id: ID) => remove(`/admin/users/${id}`),
+  rejectUser: (id: ID, expected_revision?: number) =>
+    api.delete(`/api/admin/users/${id}`, {
+      params: { expected_revision, pending_only: true },
+    }),
   profile: () => get<Profile>('/profile'),
   updateProfile: (data: ProfileUpdate) => put<Profile>('/profile', data),
   companies: (query?: CompanyQuery) => get<Page<Company>>('/companies', query),
   company: (id: ID) => get<CompanyDetail>(`/companies/${id}`),
-  createCompany: (data: CompanyInput) => post<Company>('/companies', data),
+  createCompany: (data: CompanyInput, requestKey?: string) =>
+    post<Company>('/companies', data, requestKey),
   updateCompany: (id: ID, data: CompanyUpdate) =>
     patch<Company>(`/companies/${id}`, data),
   deleteCompany: (id: ID, revision: number) =>
     remove(`/companies/${id}`, revision),
   contacts: (query?: ContactQuery) => get<Page<Contact>>('/contacts', query),
   contact: (id: ID) => get<ContactDetail>(`/contacts/${id}`),
-  createContact: (data: ContactInput) => post<Contact>('/contacts', data),
+  createContact: (data: ContactInput, requestKey?: string) =>
+    post<Contact>('/contacts', data, requestKey),
   updateContact: (id: ID, data: ContactUpdate) =>
     patch<Contact>(`/contacts/${id}`, data),
   deleteContact: (id: ID, revision: number) =>
@@ -641,7 +656,8 @@ export const apiV030 = {
   setRoundContacts: (id: ID, data: ContactLinksInput) =>
     put<ContactLinks>(`/rounds/${id}/contacts`, data),
   notes: (query: TargetQuery) => get<Page<Note>>('/notes', query),
-  createNote: (data: NoteInput) => post<Note>('/notes', data),
+  createNote: (data: NoteInput, requestKey?: string) =>
+    post<Note>('/notes', data, requestKey),
   updateNote: (id: ID, data: NoteUpdate) => patch<Note>(`/notes/${id}`, data),
   deleteNote: (id: ID, revision: number) => remove(`/notes/${id}`, revision),
   reminders: (query?: ReminderQuery) =>
@@ -660,7 +676,7 @@ export const apiV030 = {
     post<Interview>(`/applications/${applicationId}/rounds`, data),
   updateInterview: (id: ID, data: InterviewUpdate) =>
     patch<Interview>(`/rounds/${id}`, data),
-  deleteInterview: (id: ID) => remove(`/rounds/${id}`),
+  deleteInterview: (id: ID, round?: Round) => deleteRound(id, round),
   overview: () => get<Overview>('/dashboard/overview'),
   board: (query?: JobQuery) => get<Board>('/applications/board', query),
   leads: (query?: JobQuery) => get<Page<Lead>>('/job-leads', query),
@@ -682,11 +698,20 @@ export const apiV030 = {
   fetchApplicationSource: (id: ID) =>
     post<SourcePreview>(`/applications/${id}/fetch-source`),
   attachments: (id: ID) => get<Attachment[]>(`/applications/${id}/attachments`),
-  uploadAttachment: (id: ID, kind: AttachmentKind, file: File) => {
+  uploadAttachment: (
+    id: ID,
+    kind: AttachmentKind,
+    file: File,
+    requestId?: string
+  ) => {
     const data = new FormData();
     data.append('kind', kind);
     data.append('file', file);
-    return post<Attachment>(`/applications/${id}/attachments`, data);
+    return api
+      .post<Attachment>(`/api/applications/${id}/attachments`, data, {
+        headers: requestId ? { 'Idempotency-Key': requestId } : undefined,
+      })
+      .then((response) => response.data);
   },
   downloadAttachment: async (id: ID): Promise<Blob> =>
     (await api.get<Blob>(`/api/attachments/${id}`, { responseType: 'blob' }))

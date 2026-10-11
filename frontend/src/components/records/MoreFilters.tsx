@@ -2,7 +2,12 @@ import Button from '@/components/ui/Button';
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Company } from '@/lib/apiV030';
-import { advancedFilterKeys, recordFilterKeys } from '@/lib/recordFilters';
+import {
+  advancedFilterKeys,
+  recordFilterKeys,
+  filterTags,
+  MAX_FILTER_TAGS,
+} from '@/lib/recordFilters';
 import Dropdown from '../Dropdown';
 import SearchableCombobox from '../SearchableCombobox';
 import TagInput from '../TagInput';
@@ -122,6 +127,7 @@ export default function MoreFilters({
               {t('records.location')}
               <input
                 className={recordInput}
+                maxLength={255}
                 value={params.get('location') || ''}
                 onChange={(event) => onChange({ location: event.target.value })}
               />
@@ -152,6 +158,7 @@ export default function MoreFilters({
               {t('records.seniority')}
               <input
                 className={recordInput}
+                maxLength={50}
                 value={params.get('seniority') || ''}
                 onChange={(event) =>
                   onChange({ seniority: event.target.value })
@@ -188,7 +195,8 @@ export default function MoreFilters({
               <TagInput
                 id={id + '-tags'}
                 label={t('records.tags')}
-                value={params.getAll('tags')}
+                value={filterTags(params.getAll('tags'))}
+                maxTags={MAX_FILTER_TAGS}
                 onChange={(tags) => onChange({ tags })}
               />
             </div>
@@ -261,11 +269,11 @@ export default function MoreFilters({
         </div>
       )}
       {!!active.length && (
-        <div className="order-20 flex basis-full flex-wrap items-center gap-2">
+        <div className="order-20 flex w-full max-w-full min-w-0 basis-full flex-wrap items-center gap-2">
           {active.map(({ key, value }) => (
             <Button
               key={key + value}
-              className="flex items-center gap-1.5"
+              className="flex max-w-full min-w-0 items-center gap-1.5"
               aria-label={t('records.removeFilter', {
                 label: t('records.' + key),
                 value: label(key, value),
@@ -279,8 +287,12 @@ export default function MoreFilters({
                 })
               }
             >
-              {t('records.' + key)}: {label(key, value)}{' '}
-              <span aria-hidden="true">×</span>
+              <span className="min-w-0 truncate" title={label(key, value)}>
+                {t('records.' + key)}: {label(key, value)}
+              </span>
+              <span className="shrink-0" aria-hidden="true">
+                ×
+              </span>
             </Button>
           ))}
           <Button

@@ -9,6 +9,7 @@ import { useInterviewRoundsAnalytics } from '@/hooks/useAnalyticsData';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import Loading from '@/components/Loading';
 import EmptyState from '@/components/EmptyState';
+import TextLink from '@/components/ui/TextLink';
 import HelpTip from '@/components/HelpTip';
 
 const EMPTY_FUNNEL_DATA: FunnelData[] = [];
@@ -156,13 +157,18 @@ export default function InterviewFunnel({
 
   if (data.length === 0) {
     return (
-      <EmptyState
-        message={t('No interview data available')}
-        subMessage={t(
-          'Add interview rounds to your applications to see conversion funnel analytics'
-        )}
-        icon="bi-funnel"
-      />
+      <>
+        <EmptyState
+          message={t('No interview data available')}
+          subMessage={t(
+            'Add interview rounds to your applications to see conversion funnel analytics'
+          )}
+          icon="bi-funnel"
+        />
+        <div className="text-center">
+          <TextLink href="/applications">{t('Applications')}</TextLink>
+        </div>
+      </>
     );
   }
 

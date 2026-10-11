@@ -60,6 +60,20 @@ let interview: Interview;
 let card: BoardCard;
 let requests: InternalAxiosRequestConfig[];
 let conflict: boolean;
+it('wraps maximum-length unbroken reminder titles on Tasks', async () => {
+  reminder.title = 'W'.repeat(250);
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/tasks']}>
+        <Tasks />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+  expect(await screen.findByText(reminder.title)).toHaveClass(
+    'min-w-0',
+    '[overflow-wrap:anywhere]'
+  );
+});
 beforeEach(() => {
   queryClient.clear();
   vi.clearAllMocks();
@@ -412,6 +426,50 @@ it('opens the collapsed question editor when Add is clicked', async () => {
   expect(writes()).toHaveLength(0);
 });
 
+it('disables other interview editors until a held section save finishes', async () => {
+  interview.round_type.builtin_key = 'take_home';
+  show(
+    <Routes>
+      <Route path="/interviews/:id" element={<InterviewDetail />} />
+    </Routes>,
+    '/interviews/round-1'
+  );
+  await screen.findByRole('button', { name: 'Next steps' });
+  const task = screen
+    .getAllByRole('button', { name: 'Take-home task' })[0]
+    .closest('section')!;
+  const next = screen
+    .getByRole('button', { name: 'Next steps' })
+    .closest('section')!;
+  let release!: () => void;
+  const original = api.defaults.adapter;
+  api.defaults.adapter = async (config) => {
+    if (config.method === 'patch')
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    return (
+      original as (
+        config: InternalAxiosRequestConfig
+      ) => ReturnType<import('axios').AxiosAdapter>
+    )(config);
+  };
+  fireEvent.click(within(task).getByRole('button', { name: 'Edit' }));
+  fireEvent.change(within(task).getByLabelText('Description'), {
+    target: { value: 'Saved task' },
+  });
+  fireEvent.click(within(task).getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(release).toBeDefined());
+  expect(within(next).getByRole('button', { name: 'Edit' })).toBeDisabled();
+  fireEvent.click(within(next).getByRole('button', { name: 'Edit' }));
+  expect(screen.queryByLabelText('Next steps')).not.toBeInTheDocument();
+  release();
+  await waitFor(() =>
+    expect(within(next).getByRole('button', { name: 'Edit' })).toBeEnabled()
+  );
+  fireEvent.click(within(next).getByRole('button', { name: 'Edit' }));
+  expect(screen.getByLabelText('Next steps')).toBeVisible();
+});
 it('shows interview sections and recording controls only on its detail page; manual preparation saves all seven lists', async () => {
   show(
     <Routes>
@@ -466,6 +524,34 @@ it.each(['UTC', 'offset'])(
   }
 );
 
+it('bounds long status headings inside board columns without removing board scrolling', async () => {
+  const original = { ...statuses[0] };
+  statuses[0].name = 'W'.repeat(180);
+  statuses[0].builtin_key = 'custom';
+  try {
+    show(<ApplicationBoard />, '/applications?view=board');
+    expect(await screen.findByText('W'.repeat(180))).toHaveClass(
+      'min-w-0',
+      'max-w-full',
+      '[overflow-wrap:anywhere]'
+    );
+  } finally {
+    Object.assign(statuses[0], original);
+  }
+});
+it('bounds long status text in the dashboard recent-application card', async () => {
+  card.status = {
+    ...card.status,
+    name: 'W'.repeat(180),
+    builtin_key: 'custom',
+  };
+  show(<DashboardUpcomingRow />, '/');
+  expect(await screen.findByText('W'.repeat(180))).toHaveClass(
+    'min-w-0',
+    'max-w-full',
+    '[overflow-wrap:anywhere]'
+  );
+});
 it('shows the new dashboard row and pipeline status links without starting any work', async () => {
   show(
     <>

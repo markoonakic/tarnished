@@ -21,6 +21,12 @@ export default function Modal({
   useLayoutEffect(() => {
     const dialog = ref.current!;
     dialog.showModal();
+    // Do not open help by giving it the dialog's automatic initial focus.
+    dialog
+      .querySelector<HTMLElement>(
+        '[autofocus], button:not([data-help-tip]):not(:disabled), input:not(:disabled)'
+      )
+      ?.focus();
     return () => dialog.close();
   }, []);
 

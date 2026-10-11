@@ -267,7 +267,7 @@ async def board(
     user: Owner,
     filters: JobFilters = Depends(filter_params),
     status_id: str | None = None,
-    search: str | None = None,
+    search: str | None = Query(None, max_length=200),
     source: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,

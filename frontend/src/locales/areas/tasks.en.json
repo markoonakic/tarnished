@@ -1,4 +1,5 @@
 {
+  "tasks.questionRequired": "Enter a question or delete the answer.",
   "tasks.interviewDetails": "Interview details",
   "tasks.deadlinesWithoutReminder": "Deadlines without a reminder ({{count}})",
   "tasks.browserNotifications": "Browser notifications for reminders",

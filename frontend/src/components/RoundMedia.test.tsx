@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -6,7 +7,11 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import {
+  AxiosError,
+  type AxiosAdapter,
+  type InternalAxiosRequestConfig,
+} from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import api from '../lib/api';
 import { queryClient } from '../lib/queryClient';
@@ -32,6 +37,7 @@ const round: Round = {
   transcript_path: null,
   transcript_original_filename: null,
   media_generation: 1,
+  transcript_generation: 4,
   media: [
     {
       id: 'media-1',
@@ -107,6 +113,59 @@ afterEach(async () => {
   await i18n.changeLanguage('en');
 });
 
+it('locks conflicting actions during recording deletion and warns through the shared client', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  const original = api.defaults.adapter as AxiosAdapter;
+  let release!: () => void;
+  api.defaults.adapter = (config) =>
+    config.method === 'delete'
+      ? new Promise((resolve) => {
+          release = () =>
+            resolve({
+              data: null,
+              status: 204,
+              statusText: 'OK',
+              headers: {},
+              config,
+            });
+        })
+      : original(config);
+  const changed = vi.fn();
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <ApplicationRoundCard
+          round={round}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onMediaChange={changed}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  await waitFor(() => expect(release).toBeDefined());
+  for (const name of [
+    'Delete',
+    'Edit round',
+    'Delete round',
+    'Add Media',
+    'Replace recording',
+    'Transcribe',
+    'Add transcript',
+  ])
+    expect(screen.getByRole('button', { name })).toBeDisabled();
+  const event = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(event);
+  expect(event.defaultPrevented).toBe(true);
+  await act(async () => release());
+  await waitFor(() => expect(changed).toHaveBeenCalledOnce());
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
+  const saved = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(saved);
+  expect(saved.defaultPrevented).toBe(false);
+});
+
 it.each([
   [1, 'Završen 1 deo zvuka.'],
   [2, 'Završena 2 dela zvuka.'],
@@ -129,6 +188,47 @@ it.each([
     );
     expect(await screen.findByText(expected)).toBeVisible();
     expect(requests.every((request) => request.method === 'get')).toBe(true);
+  }
+);
+
+it.each(['en', 'sr-Latn'])(
+  'keeps failed live upload guidance in a HelpTip and retains retry in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    const originalAdapter = api.defaults.adapter;
+    api.defaults.adapter = async (config) => {
+      if (config.method === 'post' && config.url?.endsWith('/media'))
+        throw new Error('Offline');
+      return (originalAdapter as AxiosAdapter)(config);
+    };
+    const view = render(
+      <QueryClientProvider client={queryClient}>
+        <RoundCard
+          round={round}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onMediaChange={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    const file = new File(['recording'], 'retained.wav', { type: 'audio/wav' });
+    fireEvent.change(view.container.querySelector('input[type="file"]')!, {
+      target: { files: [file] },
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      i18n.t('Recording upload failed.')
+    );
+    const guidance = i18n.t(
+      'Check current recordings before retrying; your selected file is kept.'
+    );
+    expect(screen.queryByText(guidance)).not.toBeInTheDocument();
+    const help = screen.getByRole('alert').querySelector('button')!;
+    fireEvent.click(help);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(guidance);
+    expect(screen.getByText(/retained.wav/)).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: i18n.t('Retry recording upload') })
+    ).toBeEnabled();
   }
 );
 
@@ -179,6 +279,43 @@ it('restores the complete application round card without starting media or feedb
   ).toBeVisible();
 });
 
+it('rejects overlapping chooser changes while an upload is in flight and keeps its failed file for retry', async () => {
+  let reject!: (error: Error) => void;
+  api.defaults.adapter = async (config) => {
+    if (config.url?.endsWith('/media')) {
+      requests.push(config);
+      return await new Promise((_resolve, fail) => {
+        reject = fail;
+      });
+    }
+    return { data: round, status: 200, statusText: 'OK', headers: {}, config };
+  };
+  const view = render(
+    <QueryClientProvider client={queryClient}>
+      <RoundCard
+        round={round}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onMediaChange={vi.fn()}
+      />
+    </QueryClientProvider>
+  );
+  const input = view.container.querySelector('input[type=file]')!;
+  fireEvent.change(input, {
+    target: { files: [new File(['one'], 'first.wav')] },
+  });
+  fireEvent.change(input, {
+    target: { files: [new File(['two'], 'second.wav')] },
+  });
+  await waitFor(() =>
+    expect(requests.filter((r) => r.url?.endsWith('/media'))).toHaveLength(1)
+  );
+  reject(new Error('Connection lost'));
+  expect(await screen.findByText(/Pending: first.wav/)).toBeVisible();
+  expect(
+    screen.getByRole('button', { name: 'Retry recording upload' })
+  ).toBeEnabled();
+});
 it('opens transcription or feedback only on request', async () => {
   render(
     <QueryClientProvider client={queryClient}>
@@ -242,21 +379,39 @@ it('RoundCard retains rejected file, retries the same precondition and requires 
   });
   expect(await screen.findByRole('alert')).toHaveTextContent('no audio track');
   expect(screen.getByText(/Pending: replacement.wav/)).toBeVisible();
+  expect(
+    screen.queryByText(/Existing media\/transcripts remain available/)
+  ).not.toBeInTheDocument();
+  const tips = screen.getAllByRole('button', { name: 'Media Files' });
+  fireEvent.mouseEnter(tips[tips.length - 1].parentElement!);
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'A lost response may mean the upload succeeded'
+  );
+  fireEvent.mouseLeave(tips[tips.length - 1].parentElement!);
   expect(screen.getByText('first.wav', { selector: 'span' })).toBeVisible();
   const uploads = () => requests.filter((r) => r.url?.endsWith('/media'));
   expect(uploads()[0].headers.get('Expected-Media-Generation')).toBe('1');
   expect(uploads()[0].headers.get('Replace-Media-Id')).toBe('media-1');
+  expect(uploads()[0].headers.get('Expected-Transcript-Generation')).toBe('4');
   failure = 409;
-  view.rerender(card({ ...round, media_generation: 2 }));
+  view.rerender(
+    card({ ...round, media_generation: 2, transcript_generation: 5 })
+  );
   fireEvent.click(
     screen.getByRole('button', { name: 'Retry recording upload' })
   );
   await waitFor(() =>
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Retrying cannot resolve this conflict'
+      'Recordings or transcript changed.'
     )
   );
+  fireEvent.click(screen.getAllByRole('button', { name: 'Media Files' })[1]);
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Retrying cannot resolve this conflict. Reload and review recordings and the transcript'
+  );
+  fireEvent.click(screen.getAllByRole('button', { name: 'Media Files' })[1]);
   expect(uploads()[1].headers.get('Expected-Media-Generation')).toBe('1');
+  expect(uploads()[1].headers.get('Expected-Transcript-Generation')).toBe('4');
   fireEvent.click(screen.getByRole('button', { name: 'Reload recordings' }));
   expect(onMediaChange).toHaveBeenCalledOnce();
   expect(screen.getByText(/Pending: replacement.wav/)).toBeVisible();
@@ -270,6 +425,7 @@ it('RoundCard retains rejected file, retries the same precondition and requires 
   });
   await waitFor(() => expect(onMediaChange).toHaveBeenCalledTimes(2));
   expect(uploads()[2].headers.get('Expected-Media-Generation')).toBe('2');
+  expect(uploads()[2].headers.get('Expected-Transcript-Generation')).toBe('5');
 });
 
 it('RoundCard shows imported duration as unverified and disables inline playback', () => {
@@ -312,7 +468,11 @@ it('RoundCard stale delete keeps metadata and exposes explicit review/reload wit
   );
   fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
   expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Reload and review recordings before deciding to delete again'
+    'Recordings or transcript changed.'
+  );
+  fireEvent.click(screen.getAllByRole('button', { name: 'Media Files' })[1]);
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Reload and review recordings and the transcript before deciding to delete again'
   );
   expect(screen.getByText('first.wav', { selector: 'span' })).toBeVisible();
   expect(screen.queryByText(/Pending:/)).not.toBeInTheDocument();
@@ -323,8 +483,39 @@ it('RoundCard stale delete keeps metadata and exposes explicit review/reload wit
       .find((r) => r.method === 'delete')
       ?.headers.get('Expected-Media-Generation')
   ).toBe('1');
+  expect(
+    requests
+      .find((r) => r.method === 'delete')
+      ?.headers.get('Expected-Transcript-Generation')
+  ).toBe('4');
   fireEvent.click(screen.getByRole('button', { name: 'Reload recordings' }));
   expect(onMediaChange).toHaveBeenCalledOnce();
   expect(requests.filter((r) => r.method === 'delete')).toHaveLength(1);
   vi.restoreAllMocks();
+});
+
+it('wraps a long type without removing full application-card controls', async () => {
+  const name = 'W'.repeat(187);
+  const view = render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <ApplicationRoundCard
+          round={{ ...round, round_type: { id: 'type', name } }}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onMediaChange={vi.fn()}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+  const heading = screen.getByRole('heading', { name });
+  expect(heading.parentElement).toHaveClass('min-w-0', 'flex-1');
+  expect(view.container.querySelector('#round-round-1')).toHaveClass(
+    '[overflow-wrap:anywhere]'
+  );
+  expect(screen.getByRole('button', { name: 'Edit round' })).toBeVisible();
+  expect(
+    screen.getByRole('button', { name: 'Interview feedback' })
+  ).toBeVisible();
+  expect(screen.getByText('Add Media')).toBeVisible();
 });

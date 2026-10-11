@@ -1,5 +1,6 @@
 import Button from '@/components/ui/Button';
 import { useState } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useTranslation } from 'react-i18next';
 import type { JobLead } from '@/lib/types';
 import { apiV030, type LeadDecision as Decision } from '@/lib/apiV030';
@@ -16,6 +17,7 @@ export default function LeadDecision({
 }) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
+  useUnsavedChanges(busy);
   const [error, setError] = useState('');
   const converted = !!lead.converted_to_application_id;
   return (

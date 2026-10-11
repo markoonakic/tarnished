@@ -1,8 +1,10 @@
 import Button from '@/components/ui/Button';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import HelpTip from '@/components/HelpTip';
 import axios from 'axios';
+import { errorMessage } from '@/lib/errorMessage';
 import i18n, { t, locale } from '@/lib/i18n';
 import {
   apiV030,
@@ -451,6 +453,7 @@ export default function Profile() {
     section: EntrySection;
     item: ProfileItem;
   } | null>(null);
+  useUnsavedChanges(busy || editing !== null || entry !== null);
   const load = useCallback(async () => {
     try {
       setProfile(await apiV030.profile());
@@ -483,7 +486,12 @@ export default function Profile() {
       const conflict =
         axios.isAxiosError(cause) && cause.response?.status === 409;
       setStale(conflict);
-      setError(label(conflict ? 'staleError' : 'saveError'));
+      setError(
+        axios.isAxiosError(cause) &&
+          cause.response?.data?.code === 'database_busy'
+          ? errorMessage(cause.response.data, cause.response.status)
+          : label(conflict ? 'staleError' : 'saveError')
+      );
       return false;
     } finally {
       setBusy(false);
@@ -709,7 +717,7 @@ export default function Profile() {
               </div>
             ) : (
               <div className="bg-secondary mb-6 flex flex-wrap items-start justify-between gap-4 rounded-lg p-6">
-                <div>
+                <div className="max-w-full min-w-0 [overflow-wrap:anywhere]">
                   <h2 className="text-fg1 text-2xl font-bold">
                     {profile.display_name ||
                       [profile.first_name, profile.last_name]
@@ -1026,7 +1034,7 @@ export default function Profile() {
                             ] as Field[])
                           : section.fields
                         ).map((field) => (
-                          <div key={field.key}>
+                          <div key={field.key} className="min-w-0">
                             <dt className="text-muted text-xs">
                               {label(
                                 section.key === 'personal' &&
@@ -1035,7 +1043,7 @@ export default function Profile() {
                                   : field.key
                               )}
                             </dt>
-                            <dd className="text-fg1 mt-1 text-sm break-words">
+                            <dd className="text-fg1 mt-1 text-sm [overflow-wrap:anywhere]">
                               {field.type === 'tags' ? (
                                 <div className="flex flex-wrap gap-1">
                                   {tags(

@@ -15,6 +15,8 @@ import { apiV030 } from '@/lib/apiV030';
 import { changeRecordFilters, recordFilters } from '@/lib/recordFilters';
 import en from '@/locales/areas/records.en.json';
 import sr from '@/locales/areas/records.sr-Latn.json';
+import type { ApplicationSummary } from '@/lib/types';
+import type { JobLeadListItem } from '@/lib/jobLeads';
 
 vi.mock('@/components/Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
@@ -130,6 +132,94 @@ for (const type of ['application', 'lead'] as const) {
     ).not.toBeInTheDocument();
   });
 }
+it.each(['application', 'lead'])(
+  'bounds pasted %s searches before URL and API writes and constrains chips',
+  async (type) => {
+    render(
+      <MemoryRouter>
+        {type === 'application' ? <Applications /> : <JobLeads />}
+        <Location />
+      </MemoryRouter>
+    );
+    const input = await screen.findByRole('textbox', {
+      name: type === 'application' ? 'Search applications' : 'Search job leads',
+    });
+    expect(input).toHaveAttribute('maxLength', '200');
+    fireEvent.change(input, { target: { value: 'W'.repeat(80001) } });
+    expect(input).toHaveValue('W'.repeat(200));
+    expect(screen.getByTestId('url').textContent!.length).toBeLessThan(300);
+    const list = type === 'application' ? listApplications : getJobLeads;
+    await waitFor(() =>
+      expect(list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: 'W'.repeat(200) })
+      )
+    );
+    const chip = screen.getByRole('button', { name: /Remove Search/ });
+    expect(chip).toHaveClass('max-w-full', 'min-w-0');
+    expect(chip.parentElement).toHaveClass('min-w-0', 'max-w-full', 'w-full');
+    expect(chip.querySelector('span')).toHaveClass('truncate');
+  }
+);
+it.each(['application', 'lead'] as const)(
+  'desktop %s name link adds one entry and one Back restores the list',
+  async (kind) => {
+    const result = { total: 1, page: 1, per_page: 25 };
+    vi.mocked(listApplications).mockResolvedValue({
+      ...result,
+      items: [
+        {
+          id: 'app',
+          company: 'Single link',
+          status: { id: 'applied', name: 'Applied', meaning: 'applied' },
+          round_count: 0,
+        },
+      ] as ApplicationSummary[],
+    });
+    vi.mocked(getJobLeads).mockResolvedValue({
+      ...result,
+      items: [
+        {
+          id: 'lead',
+          company: 'Single link',
+          title: 'Engineer',
+          status: 'pending',
+          decision: 'interesting',
+          scraped_at: '2026-10-10',
+        },
+      ] as JobLeadListItem[],
+    });
+    const prefix = kind === 'application' ? 'applications' : 'job-leads';
+    render(
+      <MemoryRouter initialEntries={['/' + prefix + '?search=Single']}>
+        {kind === 'application' ? <Applications /> : <JobLeads />}
+        <Location />
+      </MemoryRouter>
+    );
+    fireEvent.click(await screen.findByRole('link', { name: 'Single link' }));
+    expect(screen.getByTestId('url')).toHaveTextContent('');
+    fireEvent.click(screen.getByRole('button', { name: /^Back$/ }));
+    expect(screen.getByTestId('url')).toHaveTextContent('?search=Single');
+  }
+);
+
+it('bounds URL tags and API filters, including pre-existing invalid tags', () => {
+  const tags = [
+    'ok',
+    'W'.repeat(81007),
+    ...Array.from({ length: 20 }, (_, i) => '😃'.repeat(50) + i),
+  ];
+  const next = changeRecordFilters(new URLSearchParams(), { tags });
+  expect(next.getAll('tags')).toEqual(['ok']);
+  expect(recordFilters(new URLSearchParams('tags=' + 'W'.repeat(301)))).toEqual(
+    {}
+  );
+  const max = changeRecordFilters(new URLSearchParams(), {
+    tags: Array.from({ length: 20 }, (_, i) => String(i) + '😃'.repeat(49)),
+  });
+  expect(max.getAll('tags')).toHaveLength(10);
+  expect(max.toString().length).toBeLessThan(14000);
+});
+
 it('preserves unrelated URL state and uses repeated tag parameters', () => {
   const params = new URLSearchParams(
     'view=board&sort=company&page=3&tags=old&source=LinkedIn'

@@ -8,6 +8,7 @@ import {
   within,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from '@/lib/i18n';
 
 const { get, post, safeErrorMessage } = vi.hoisted(() => ({
   get: vi.fn(),
@@ -220,9 +221,16 @@ describe('ScopedReport', () => {
       '/api/applications/a1/feedback'
     );
     expect(post).not.toHaveBeenCalled();
+    expect(screen.getByText('No feedback yet.')).toBeInTheDocument();
     expect(
-      screen.getByText(/No saved application report yet/i)
-    ).toBeInTheDocument();
+      screen.queryByText(/No saved application report yet/i)
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'application feedback' })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      'No saved application report yet.'
+    );
   });
 
   it('sends only the generation, config revision and an intent id', async () => {
@@ -978,7 +986,11 @@ describe('ScopedReport', () => {
       ).not.toBeInTheDocument();
       expect(screen.getByText('69.2%')).toBeVisible();
       expect(screen.getByText('Rate unavailable')).toBeVisible();
-      expect(screen.getByText(/Applied 2026-09-18/)).toBeVisible();
+      expect(screen.getByText(/Applied 18 Sept 2026/)).toBeVisible();
+      await act(() => i18n.changeLanguage('sr-Latn'));
+      expect(screen.getByText(/Poslata 18\. 9\. 2026\./)).toBeVisible();
+      expect(screen.queryByText(/Poslata 2026-09-18/)).not.toBeInTheDocument();
+      await act(() => i18n.changeLanguage('en'));
       expect(screen.getByText(/Source: Not recorded/)).toBeVisible();
       expect(screen.getByText(/Technical · Scheduled/)).toHaveTextContent(
         'Completed: Not recorded · Outcome: Not recorded'

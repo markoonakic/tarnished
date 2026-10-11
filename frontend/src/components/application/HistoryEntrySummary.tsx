@@ -21,7 +21,7 @@ export default function HistoryEntrySummary({
     const color = getStatusColor(stage.name, colors, stage.color);
     return (
       <span
-        className="rounded px-2 py-1 text-xs font-medium"
+        className="max-w-full min-w-0 rounded px-2 py-1 text-xs font-medium [overflow-wrap:anywhere]"
         style={{ backgroundColor: `${color}20`, color }}
       >
         {stage.name}

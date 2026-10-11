@@ -1,6 +1,7 @@
 import Button from '@/components/ui/Button';
 import { formatDate } from '@/lib/displayDate';
 import { useEffect, useState } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/Card';
 import HelpTip from '../HelpTip';
@@ -58,6 +59,9 @@ export default function ExtractionReview({
   const [saving, setSaving] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companyId, setCompanyId] = useState('');
+  const [companyRequestKey, setCompanyRequestKey] = useState(() =>
+    crypto.randomUUID()
+  );
   const items = analysis?.draft.items ?? [];
   const hasCompany = items.some((item) => item.field === 'company');
   useEffect(() => {
@@ -91,6 +95,7 @@ export default function ExtractionReview({
   }, [analysis?.id, analysis?.revision]);
   const disabled = busy || running || saving || loading;
   const reviewed = Object.values(choices);
+  useUnsavedChanges(saving || reviewed.length > 0 || editing !== null);
   const companyNeeded =
     items.some(
       (item) =>
@@ -275,6 +280,7 @@ export default function ExtractionReview({
                           type={
                             typeof item.value === 'number' ? 'number' : 'text'
                           }
+                          disabled={disabled}
                           value={choice?.value ?? item.value}
                           onChange={(event) =>
                             setChoices((value) => ({
@@ -309,9 +315,9 @@ export default function ExtractionReview({
                       </span>
                     </blockquote>
                     {choice?.decision === 'edited' && (
-                      <p className="text-muted mt-1 text-xs">
+                      <HelpTip label={t('ai.editedValueHelp')}>
                         {t('ai.userEdited')}
-                      </p>
+                      </HelpTip>
                     )}
                     {item.field === 'company' && (
                       <div className="mt-2">
@@ -332,10 +338,11 @@ export default function ExtractionReview({
                           onChange={setCompanyId}
                           onCreate={(name) => {
                             void apiV030
-                              .createCompany({ name })
+                              .createCompany({ name }, companyRequestKey)
                               .then((company) => {
                                 setCompanies((value) => [...value, company]);
                                 setCompanyId(company.id);
+                                setCompanyRequestKey(crypto.randomUUID());
                               })
                               .catch(() => controller.setError(true));
                           }}
@@ -374,6 +381,7 @@ export default function ExtractionReview({
                       <Button
                         type="button"
 
+                        disabled={disabled}
                         onClick={() => setEditing(null)}
                       >
                         <i

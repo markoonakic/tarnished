@@ -13,6 +13,7 @@ import tempfile
 import zipfile
 from collections.abc import Callable
 from pathlib import Path
+from uuid import UUID
 
 import aiofiles
 from fastapi import (
@@ -20,6 +21,7 @@ from fastapi import (
     BackgroundTasks,
     Depends,
     Form,
+    Header,
     HTTPException,
     Query,
     Request,
@@ -27,6 +29,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import StreamingResponse
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.utils.upload_route import UploadLimitRoute
@@ -36,6 +39,8 @@ from app.core.deps import get_current_user, get_session_user, require_api_key_sc
 from app.core.rate_limit import limiter
 from app.core.security import decode_token
 from app.models import AuditLog, User
+from app.models.transfer_job import TransferJob
+from app.services.ai_settings import lock_ai_settings
 from app.services.import_execution import (
     clear_existing_import_data,
     extract_import_file_mapping,
@@ -459,6 +464,7 @@ async def import_data(
     background_tasks: BackgroundTasks,
     file: UploadFile,
     override: bool = Form(False),
+    idempotency_key: UUID | None = Header(default=None),
     user: User = Depends(get_current_user),
     _: object = Depends(require_api_key_scope("import:write")),
     db: AsyncSession = Depends(get_db),
@@ -473,8 +479,24 @@ async def import_data(
             while chunk := await file.read(UPLOAD_CHUNK_SIZE):
                 await f.write(chunk)
 
+        if idempotency_key is not None:
+            await lock_ai_settings(db)
+            existing = await db.get(
+                TransferJob, str(idempotency_key), populate_existing=True
+            )
+            if existing is not None:
+                if existing.user_id != user_id or existing.job_type != "import_zip":
+                    raise HTTPException(409, "Request key is already in use")
+                delete_temp_file(temp_path)
+                return {
+                    "job_id": existing.id,
+                    "import_id": existing.id,
+                    "status": existing.status,
+                }
+
         job = await create_transfer_job(
             db,
+            job_id=str(idempotency_key) if idempotency_key else None,
             user_id=user_id,
             job_type="import_zip",
             status="queued",
@@ -512,6 +534,10 @@ async def import_data(
             "import_id": job_id,
             "status": "queued",
         }
+    except (HTTPException, OperationalError):
+        if temp_path:
+            delete_temp_file(temp_path)
+        raise
     except Exception as exc:
         logger.exception("Failed to queue import for user %s", user_id)
         if temp_path:

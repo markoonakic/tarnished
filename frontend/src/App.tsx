@@ -202,15 +202,15 @@ function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <ThemeProvider>
-          <AuthProvider>
+        <AuthProvider>
+          <ThemeProvider>
             <ToastProvider>
               <LanguagePreference />
               <AppRoutes />
               <ToastContainer />
             </ToastProvider>
-          </AuthProvider>
-        </ThemeProvider>
+          </ThemeProvider>
+        </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>
   );

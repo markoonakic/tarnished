@@ -492,7 +492,13 @@ it('renders source escaped and permits manual-ready conversion from saved/not-ex
     screen.getByRole('button', { name: 'Convert to Application' })
   );
   const dialog = screen.getByRole('dialog');
-  expect(dialog).toHaveTextContent('Your saved job details will be copied');
+  expect(dialog).not.toHaveTextContent('Your saved job details will be copied');
+  fireEvent.click(
+    within(dialog).getByRole('button', { name: 'About lead conversion' })
+  );
+  expect(screen.getByRole('tooltip')).toHaveTextContent(
+    'Your saved job details will be copied'
+  );
   fireEvent.click(
     within(dialog).getByRole('button', { name: 'Convert to Application' })
   );

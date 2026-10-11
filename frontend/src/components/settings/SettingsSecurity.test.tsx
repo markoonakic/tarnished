@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -109,6 +110,82 @@ describe('SettingsSecurity', () => {
     );
     expect(api.post).not.toHaveBeenCalled();
   });
+});
+
+function unloadPrevented() {
+  const event = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(event);
+  return event.defaultPrevented;
+}
+
+it('protects each password draft, canceled links and failed saves', async () => {
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+  form();
+  expect(unloadPrevented()).toBe(true);
+  const link = document.createElement('a');
+  link.href = '/analytics';
+  document.body.append(link);
+  expect(fireEvent.click(link)).toBe(false);
+  expect(confirm).toHaveBeenCalledOnce();
+  link.remove();
+  vi.mocked(api.post).mockRejectedValueOnce(new Error('Offline'));
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Change password and sign out' })
+  );
+  await screen.findByRole('alert');
+  expect(unloadPrevented()).toBe(true);
+  expect(screen.getByLabelText('New password')).toHaveValue(
+    'synthetic new password'
+  );
+  confirm.mockRestore();
+});
+
+it.each(['Current password', 'New password', 'Confirm new password'])(
+  'protects a draft in only %s',
+  (label) => {
+    render(
+      <MemoryRouter>
+        <SettingsSecurity />
+      </MemoryRouter>
+    );
+    expect(unloadPrevented()).toBe(false);
+    fireEvent.change(screen.getByLabelText(label), {
+      target: { value: 'draft' },
+    });
+    expect(unloadPrevented()).toBe(true);
+  }
+);
+
+it('locks all password controls and repeated submits until saving ends, then signs out without an exit warning', async () => {
+  let release!: () => void;
+  vi.mocked(api.post).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        release = () => resolve({});
+      })
+  );
+  form();
+  const submit = screen.getByRole('button', {
+    name: 'Change password and sign out',
+  });
+  fireEvent.click(submit);
+  for (const label of [
+    'Current password',
+    'New password',
+    'Confirm new password',
+  ])
+    expect(screen.getByLabelText(label)).toBeDisabled();
+  expect(
+    screen
+      .getAllByRole('button', { name: 'Show password' })
+      .every((button) => button.hasAttribute('disabled'))
+  ).toBe(true);
+  fireEvent.submit(submit.closest('form')!);
+  expect(api.post).toHaveBeenCalledOnce();
+  expect(unloadPrevented()).toBe(true);
+  signOut.mockImplementationOnce(() => expect(unloadPrevented()).toBe(false));
+  await act(async () => release());
+  expect(signOut).toHaveBeenCalledOnce();
 });
 
 afterEach(cleanup);

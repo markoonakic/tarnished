@@ -39,6 +39,7 @@ class RoundCreate(InterviewFields):
 
 class RoundUpdate(InterviewFields):
     expected_revision: int | None = Field(None, ge=0)
+    expected_transcript_generation: int | None = Field(None, ge=0)
     round_type_id: str | None = Field(None, min_length=1, max_length=36)
     scheduled_at: datetime | None = None
     completed_at: datetime | None = None

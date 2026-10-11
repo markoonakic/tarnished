@@ -9,8 +9,10 @@ import SearchableCombobox from './SearchableCombobox';
 import InterviewParticipants from './InterviewParticipants';
 import type { InterviewInput } from '@/lib/apiV030';
 import { observeRead } from '../lib/queryClient';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useId } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { isAxiosError } from 'axios';
+import { errorMessage } from '@/lib/errorMessage';
 import { useUserPreferences } from '../hooks/useUserPreferences';
 import {
   getEffectiveTimeZone,
@@ -23,6 +25,7 @@ import {
   uploadRoundTranscript,
   uploadMedia,
 } from '../lib/rounds';
+import { pasteTranscript } from '../lib/transcripts';
 import { listRoundTypes } from '../lib/settings';
 import type { Round, RoundType, RoundCreate, RoundUpdate } from '../lib/types';
 import Dropdown from './Dropdown';
@@ -90,6 +93,7 @@ function RoundFormFields({
   onTimeZoneConflict,
 }: Props & { timeZone: string; onTimeZoneConflict: () => void }) {
   useTranslation();
+  const formId = useId();
   const [interviewZone, setInterviewZone] = useState(round?.time_zone ?? '');
   const timeZone = interviewZone || preferenceZone;
   const [duration, setDuration] = useState(
@@ -102,6 +106,8 @@ function RoundFormFields({
     round?.mode === 'video' ? round.meeting_url || '' : round?.location || ''
   );
   const [participants, setParticipants] = useState(round?.contact_ids ?? []);
+  const [participantPending, setParticipantPending] = useState(false);
+  const participantLock = useRef(false);
   const extra = {
     time_zone: timeZone,
     duration_minutes: duration ? Number(duration) : null,
@@ -113,6 +119,11 @@ function RoundFormFields({
   const isEditing = Boolean(round);
   const [roundTypes, setRoundTypes] = useState<RoundType[]>([]);
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
+  const [requestKey] = useState(() => crypto.randomUUID());
+  const [transcriptGeneration, setTranscriptGeneration] = useState(
+    round?.transcript_generation ?? 0
+  );
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
 
@@ -140,14 +151,49 @@ function RoundFormFields({
   const [outcome, setOutcome] = useState(round?.outcome || '');
   const [notesSummary, setNotesSummary] = useState(round?.notes_summary || '');
   const [transcriptFile, setTranscriptFile] = useState<File | null>(null);
-  const [transcriptGeneration, setTranscriptGeneration] = useState(
-    round?.transcript_generation ?? 0
-  );
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaGeneration] = useState(round?.media_generation ?? 0);
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [transcriptText, setTranscriptText] = useState('');
+  const [transcriptFormat, setTranscriptFormat] = useState<
+    'txt' | 'srt' | 'vtt'
+  >('txt');
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [uploadingName, setUploadingName] = useState('');
   const [transcriptSummary, setTranscriptSummary] = useState(
     round?.transcript_summary || ''
   );
+  const pendingTranscript = Boolean(transcriptFile || transcriptText.trim());
+  const defaultType =
+    roundTypes.find((type) => type.is_default) ?? roundTypes[0];
+  const fieldsChanged =
+    roundTypeId !== (round?.round_type.id ?? defaultType?.id ?? '') ||
+    notesSummary !== (round?.notes_summary ?? '') ||
+    transcriptSummary !== (round?.transcript_summary ?? '') ||
+    scheduledDate !== dateTimeBaseline.scheduled.date ||
+    scheduledTime !== dateTimeBaseline.scheduled.time ||
+    completedDate !== dateTimeBaseline.completed.date ||
+    completedTime !== dateTimeBaseline.completed.time ||
+    duration !== String(round?.duration_minutes ?? '') ||
+    mode !== (round?.mode ?? 'video') ||
+    where !==
+      (round?.mode === 'video'
+        ? round.meeting_url || ''
+        : round?.location || '') ||
+    outcome !== (round?.outcome ?? '') ||
+    timeZoneChanged ||
+    JSON.stringify(participants) !== JSON.stringify(round?.contact_ids ?? []);
+  useUnsavedChanges(
+    fieldsChanged || loading || pendingTranscript || mediaFiles.length > 0
+  );
+  const currentRound = persistedRound || round;
+  const hasTranscript = Boolean(
+    currentRound?.has_current_transcript || currentRound?.transcript_path
+  );
+
+  function clearTranscript() {
+    setTranscriptFile(null);
+    setTranscriptText('');
+    setTranscriptOpen(false);
+  }
 
   const loadRoundTypes = useCallback(async () => {
     try {
@@ -189,26 +235,34 @@ function RoundFormFields({
   }
 
   function roundInstant(date: string, time: string) {
+    if (time.trim() && !date) throw new Error(t('Enter a date for the time.'));
     const local = formatRoundDateTimeForApi(date, time);
     return local ? historyInstant(local, timeZone, 'earlier') : null;
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (timeZoneChanged) return;
+    if (timeZoneChanged || submitting.current || participantLock.current)
+      return;
+    if (
+      (!scheduledDate && scheduledTime.trim()) ||
+      (!completedDate && completedTime.trim())
+    ) {
+      setError(t('Enter a date for the time.'));
+      return;
+    }
     if (!roundTypeId) {
       setError(t('Please select a round type'));
       return;
     }
 
-    if (mediaFile && mediaFile.size > 1_000_000_000) {
-      setError(
-        t(
-          'Recording exceeds 1,000,000,000 bytes. Choose a smaller recording; your draft is kept.'
-        )
-      );
+    if (
+      pendingTranscript &&
+      hasTranscript &&
+      !confirm(t('Replace the current transcript and discard its corrections?'))
+    )
       return;
-    }
+    submitting.current = true;
     setLoading(true);
     setError('');
 
@@ -219,6 +273,9 @@ function RoundFormFields({
         const data: RoundUpdate = {
           ...extra,
           expected_revision: existingRound.revision,
+          expected_transcript_generation: pendingTranscript
+            ? transcriptGeneration
+            : undefined,
           round_type_id: roundTypeId,
           scheduled_at:
             scheduledDate === dateTimeBaseline.scheduled.date &&
@@ -250,7 +307,8 @@ function RoundFormFields({
         savedRound = await createRound(
           applicationId,
           data,
-          dateTimeBaseline.timeZone
+          dateTimeBaseline.timeZone,
+          requestKey
         );
       }
 
@@ -263,50 +321,69 @@ function RoundFormFields({
       });
       onPersist(savedRound);
 
-      // Upload transcript if file is selected
-      if (transcriptFile) {
+      if (pendingTranscript) {
         setUploadProgress(0);
-
+        setUploadingName(transcriptFile?.name || t('Transcript text'));
         try {
-          savedRound = await uploadRoundTranscript(
-            savedRound.id,
-            transcriptFile,
-            (loaded, total) => {
-              setUploadProgress(
-                total > 0 ? Math.round((loaded / total) * 100) : 0
-              );
-            },
-            transcriptGeneration
+          if (transcriptFile) {
+            savedRound = await uploadRoundTranscript(
+              savedRound.id,
+              transcriptFile,
+              (loaded, total) =>
+                setUploadProgress(
+                  total > 0 ? Math.round((loaded / total) * 100) : 0
+                ),
+              transcriptGeneration
+            );
+          } else {
+            const transcript = await pasteTranscript(
+              savedRound.id,
+              transcriptGeneration,
+              transcriptText,
+              transcriptFormat
+            );
+            savedRound = {
+              ...savedRound,
+              has_current_transcript: true,
+              transcript_generation: transcript.generation,
+            };
+          }
+          setTranscriptGeneration(
+            savedRound.transcript_generation ?? transcriptGeneration + 1
           );
-          setUploadProgress(0);
-          setTranscriptFile(null);
-          setTranscriptGeneration(savedRound.transcript_generation ?? 0);
+          clearTranscript();
           setPersistedRound(savedRound);
           onPersist(savedRound);
         } catch (error) {
-          setUploadProgress(0);
+          const detail =
+            isAxiosError(error) && error.response
+              ? errorMessage(error.response.data, error.response.status)
+              : '';
           setError(
-            isAxiosError(error) && error.response?.status === 409
-              ? t(
-                  'Round saved, but transcript upload conflicted. Retrying cannot resolve this conflict. Close and reopen the round, then review the current transcript before selecting a file and saving again.'
-                )
-              : t(
-                  'Round saved, but transcript upload failed. Retry to upload to this same round, or close and keep the saved round.'
-                )
+            `${t('Round saved, but transcript upload failed.')} ${detail}`
           );
           return;
+        } finally {
+          setUploadProgress(0);
+          setUploadingName('');
         }
       }
 
-      if (mediaFile) {
+      // One recording at a time, each against the generation the last upload returned.
+      for (const file of mediaFiles) {
+        setUploadProgress(0);
+        setUploadingName(file.name);
         try {
           savedRound = await uploadMedia(
             savedRound.id,
-            mediaFile,
-            undefined,
-            mediaGeneration
+            file,
+            (loaded, total) =>
+              setUploadProgress(
+                total > 0 ? Math.round((loaded / total) * 100) : 0
+              ),
+            savedRound.media_generation ?? 0
           );
-          setMediaFile(null);
+          setMediaFiles((files) => files.filter((item) => item !== file));
           setPersistedRound(savedRound);
           onPersist(savedRound);
         } catch (error) {
@@ -314,23 +391,14 @@ function RoundFormFields({
             ? error.response?.data?.detail
             : null;
           setError(
-            isAxiosError(error) && error.response?.status === 409
-              ? t(
-                  'Round saved, but recordings changed. Retrying cannot resolve this conflict. Close and review recordings before reopening and selecting a file again. Your pending file and draft are kept while this form stays open.'
-                )
-              : t(
-                  'Round saved, but recording upload failed. {{value0}} Retry uses this same round. Selected file and other draft fields are kept.',
-                  {
-                    value0:
-                      typeof detail === 'string'
-                        ? detail
-                        : t(
-                            'Check current recordings before retrying; a lost response may mean the upload succeeded.'
-                          ),
-                  }
-                )
+            `${t('Round saved, but recording upload failed.')} ${file.name}${
+              typeof detail === 'string' ? `: ${detail}` : ''
+            }`
           );
           return;
+        } finally {
+          setUploadProgress(0);
+          setUploadingName('');
         }
       }
       onSave(savedRound);
@@ -338,48 +406,43 @@ function RoundFormFields({
       if (isAxiosError(error) && error.response?.status === 409) {
         onTimeZoneConflict();
       }
-      const detail = isAxiosError(error) ? error.response?.data?.detail : null;
       setError(
-        typeof detail === 'string'
-          ? detail
+        isAxiosError(error)
+          ? errorMessage(error.response?.data, error.response?.status)
           : error instanceof Error
             ? error.message
             : t('Failed to save round. Please check your inputs.')
       );
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   }
 
+  const labelClass = 'text-muted mb-1 block text-sm font-semibold';
+  const fieldClass =
+    'bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 text-sm transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none';
+  const pendingUploads = pendingTranscript || mediaFiles.length > 0;
+
   return (
-    <form onSubmit={handleSubmit} className="bg-bg2 rounded-lg p-4">
+    <form onSubmit={handleSubmit} className="bg-bg2 min-w-0 rounded-lg p-4">
       <h3 className="text-primary mb-4 font-medium">
         {round ? t('Edit Round') : t('New Round')}
       </h3>
 
-      <HelpTip label={t('Clock changes')}>
-        {t('Dates and times use')} {dateTimeBaseline.timeZone}.{' '}
-        {t(
-          'During a repeated daylight-saving hour, an edited time uses the first occurrence.'
-        )}
-      </HelpTip>
       {timeZoneChanged && (
         <div role="alert" className="text-muted mb-4 text-sm">
           {t('Your time zone changed to')} {timeZone}
-          {t(
-            '. Before saving, reload saved dates in this zone. This discards unsaved date/time edits only; other edits and any saved round are kept.'
-          )}
+          <HelpTip label={t('About reloading dates')}>
+            {t(
+              '. Before saving, reload saved dates in this zone. This discards unsaved date/time edits only; other edits and any saved round are kept.'
+            )}
+          </HelpTip>
           <Button type="button" disabled={loading} onClick={reloadDates}>
+            <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
             {t('Reload saved dates in')} {timeZone}
           </Button>
         </div>
-      )}
-      {persistedRound && (
-        <p role="status" className="text-muted mb-4 text-sm">
-          {t(
-            'Round saved. Closing keeps this record; any unsaved changes or pending transcript or recording are not saved.'
-          )}
-        </p>
       )}
       {error && (
         <div
@@ -395,14 +458,11 @@ function RoundFormFields({
         className="grid grid-cols-1 gap-4 sm:grid-cols-2"
       >
         <div>
-          <label
-            htmlFor="round-type"
-            className="text-muted mb-1 block text-sm font-semibold"
-          >
+          <label htmlFor={`${formId}-round-type`} className={labelClass}>
             {t('Round Type')}
           </label>
           <Dropdown
-            id="round-type"
+            id={`${formId}-round-type`}
             options={[
               { value: '', label: t('Select type') },
               ...roundTypes.map((type) => ({
@@ -418,212 +478,135 @@ function RoundFormFields({
         </div>
 
         <div>
-          <label
-            htmlFor="scheduled-date"
-            className="text-muted mb-1 block text-sm font-semibold"
-          >
-            {t('Scheduled Date')}
-          </label>
+          <span className="mb-1 flex h-5 items-center gap-1">
+            <label
+              htmlFor={`${formId}-scheduled-date`}
+              className="text-muted text-sm font-semibold"
+            >
+              {t('Scheduled Date')}
+            </label>
+            <HelpTip label={t('Clock changes')}>
+              {t('Dates and times use')} {dateTimeBaseline.timeZone}.{' '}
+              {t(
+                'During a repeated daylight-saving hour, an edited time uses the first occurrence.'
+              )}
+            </HelpTip>
+          </span>
           <input
-            id="scheduled-date"
+            id={`${formId}-scheduled-date`}
             type="date"
             value={scheduledDate}
             onChange={(e) => setScheduledDate(e.target.value)}
-            className="bg-bg3 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+            className={fieldClass}
           />
         </div>
 
         <div>
-          <label
-            htmlFor="scheduled-time"
-            className="text-muted mb-1 block text-sm font-semibold"
-          >
+          <label htmlFor={`${formId}-scheduled-time`} className={labelClass}>
             {t('Time (optional)')}
           </label>
           <input
-            id="scheduled-time"
+            id={`${formId}-scheduled-time`}
             type="text"
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
             placeholder={t('e.g. 2:30 PM')}
-            className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+            className={fieldClass}
           />
         </div>
+
+        {round ? (
+          <div>
+            <label htmlFor={`${formId}-round-outcome`} className={labelClass}>
+              {t('Outcome')}
+            </label>
+            <Dropdown
+              id={`${formId}-round-outcome`}
+              options={[
+                { value: '', label: t('Pending') },
+                { value: 'passed', label: t('Passed') },
+                { value: 'failed', label: t('Failed') },
+                { value: 'cancelled', label: t('Cancelled') },
+              ]}
+              value={outcome}
+              onChange={(value) => setOutcome(value)}
+              placeholder={t('Pending')}
+              containerBackground="bg2"
+            />
+          </div>
+        ) : (
+          <div className="hidden sm:block" />
+        )}
 
         {round && (
           <>
             <div>
               <label
-                htmlFor="round-outcome"
-                className="text-muted mb-1 block text-sm font-semibold"
-              >
-                {t('Outcome')}
-              </label>
-              <Dropdown
-                id="round-outcome"
-                options={[
-                  { value: '', label: t('Pending') },
-                  { value: 'passed', label: t('Passed') },
-                  { value: 'failed', label: t('Failed') },
-                  { value: 'cancelled', label: t('Cancelled') },
-                ]}
-                value={outcome}
-                onChange={(value) => setOutcome(value)}
-                placeholder={t('Pending')}
-                containerBackground="bg2"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="completed-date"
-                className="text-muted mb-1 block text-sm font-semibold"
+                htmlFor={`${formId}-completed-date`}
+                className={labelClass}
               >
                 {t('Completed Date')}
               </label>
               <input
-                id="completed-date"
+                id={`${formId}-completed-date`}
                 type="date"
                 value={completedDate}
                 onChange={(e) => setCompletedDate(e.target.value)}
-                className="bg-bg3 text-fg1 focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                className={fieldClass}
               />
             </div>
 
             <div>
               <label
-                htmlFor="completed-time"
-                className="text-muted mb-1 block text-sm font-semibold"
+                htmlFor={`${formId}-completed-time`}
+                className={labelClass}
               >
                 {t('Time (optional)')}
               </label>
               <input
-                id="completed-time"
+                id={`${formId}-completed-time`}
                 type="text"
                 value={completedTime}
                 onChange={(e) => setCompletedTime(e.target.value)}
                 placeholder={t('e.g. 2:30 PM')}
-                className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+                className={fieldClass}
               />
             </div>
           </>
         )}
 
         <div className="sm:col-span-2">
-          <label
-            htmlFor="round-notes"
-            className="text-muted mb-1 block text-sm font-semibold"
-          >
+          <label htmlFor={`${formId}-round-notes`} className={labelClass}>
             {t('Notes')}
           </label>
           <textarea
-            id="round-notes"
+            id={`${formId}-round-notes`}
             value={notesSummary}
             onChange={(e) => setNotesSummary(e.target.value)}
             rows={3}
             placeholder={t('Key points, questions asked, feedback...')}
-            className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
-          />
-        </div>
-
-        <div className="sm:col-span-2">
-          <span className="text-muted mb-1 block text-sm font-semibold">
-            {t('Transcript (TXT/SRT/VTT or document attachment)')}
-          </span>
-          <FileButton
-            accept=".pdf,.docx,.doc,.txt,.md,.rtf,.srt,.vtt"
-            onChange={(e) => setTranscriptFile(e.target.files?.[0] || null)}
-            className="flex w-fit items-center gap-1.5"
-          >
-            <i className="bi-upload icon-sm"></i>
-            {transcriptFile ? transcriptFile.name : t('Choose transcript...')}
-          </FileButton>
-          {uploadProgress > 0 && uploadProgress < 100 && (
-            <div className="mt-2">
-              <ProgressBar
-                progress={uploadProgress}
-                fileName={transcriptFile?.name}
-              />
-            </div>
-          )}
-          {round?.transcript_path && !transcriptFile && (
-            <div className="bg-secondary border-tertiary mt-2 flex items-center gap-2 rounded border p-2">
-              <i className="bi-file-text icon-md text-red-bright"></i>
-              <span className="text-primary truncate text-sm">
-                {t('Current:')}{' '}
-                {round.transcript_original_filename ||
-                  round.transcript_path.split('/').pop()}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="sm:col-span-2">
-          <span className="text-muted mb-1 block text-sm font-semibold">
-            {t('Recording')}
-          </span>
-          <HelpTip label={t('Recording')}>
-            {t(
-              'Audio or video, up to 1 GB and two hours. Uploading does not start transcription; choose Transcribe when ready. MP4/WebM/MOV with audio or MP3/M4A/WAV/OGG.'
-            )}
-          </HelpTip>
-          <FileButton
-            accept=".mp4,.webm,.mov,.mp3,.m4a,.wav,.ogg"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              // State owns the File, including after a failed save or removal.
-              e.target.value = '';
-              setMediaFile(file);
-            }}
-          >
-            {mediaFile ? mediaFile.name : t('Choose recording...')}
-          </FileButton>
-          {mediaFile && (
-            <Button type="button" onClick={() => setMediaFile(null)}>
-              {t('Remove pending recording')}
-            </Button>
-          )}
-        </div>
-
-        <div className="sm:col-span-2">
-          <label
-            htmlFor="transcript-summary"
-            className="text-muted mb-1 block text-sm font-semibold"
-          >
-            {t('Transcript Summary')}
-          </label>
-          <textarea
-            id="transcript-summary"
-            value={transcriptSummary}
-            onChange={(e) => setTranscriptSummary(e.target.value)}
-            rows={3}
-            placeholder={t(
-              'Summary of key discussion points from transcript...'
-            )}
-            className="bg-bg3 text-fg1 placeholder-muted focus:ring-accent-bright w-full resize-y rounded px-3 py-2 transition-all duration-200 ease-in-out focus:ring-1 focus:outline-none"
+            className={`${fieldClass} resize-y`}
           />
         </div>
       </fieldset>
 
       <fieldset
         disabled={loading}
-        className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
+        className="border-tertiary mt-4 grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2"
       >
-        <legend className="text-fg1 mb-4 text-lg font-semibold">
+        <legend className="sr-only">{t('tasks.interviewDetails')}</legend>
+        <p className="text-muted text-sm sm:col-span-2" aria-hidden="true">
           {t('tasks.interviewDetails')}
-        </legend>
+        </p>
         <div>
-          <label
-            htmlFor="interview-zone"
-            className="text-muted mb-1 block text-sm"
-          >
+          <label htmlFor={`${formId}-interview-zone`} className={labelClass}>
             {t('tasks.timeZone')}
           </label>
           <SearchableCombobox
-            id="interview-zone"
+            id={`${formId}-interview-zone`}
             value={timeZone}
             onChange={setInterviewZone}
+            containerBackground="bg2"
             options={[
               ...new Set([
                 timeZone,
@@ -635,79 +618,300 @@ function RoundFormFields({
         </div>
         <div>
           <label
-            htmlFor="interview-duration"
-            className="text-muted mb-1 block text-sm"
+            htmlFor={`${formId}-interview-duration`}
+            className={labelClass}
           >
             {t('tasks.durationMinutes')}
           </label>
           <input
-            id="interview-duration"
+            id={`${formId}-interview-duration`}
             type="number"
             min="1"
             max="1440"
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
-            className="bg-bg3 w-full rounded px-3 py-2 text-sm"
+            className={fieldClass}
           />
         </div>
         <div>
-          <label
-            htmlFor="interview-mode"
-            className="text-muted mb-1 block text-sm"
-          >
+          <label htmlFor={`${formId}-interview-mode`} className={labelClass}>
             {t('tasks.mode')}
           </label>
           <Dropdown
-            id="interview-mode"
+            id={`${formId}-interview-mode`}
             value={mode || ''}
             onChange={(value) => setMode(value as InterviewInput['mode'])}
             options={['onsite', 'video', 'phone', 'other'].map((value) => ({
               value,
               label: t('tasks.mode.' + value),
             }))}
+            containerBackground="bg2"
           />
         </div>
         <div>
-          <label
-            htmlFor="interview-where"
-            className="text-muted mb-1 block text-sm"
-          >
+          <label htmlFor={`${formId}-interview-where`} className={labelClass}>
             {t(mode === 'video' ? 'tasks.meetingLink' : 'tasks.location')}
           </label>
           <input
-            id="interview-where"
+            id={`${formId}-interview-where`}
             type={mode === 'video' ? 'url' : 'text'}
             value={where}
             onChange={(e) => setWhere(e.target.value)}
-            className="bg-bg3 w-full rounded px-3 py-2 text-sm"
+            className={fieldClass}
           />
         </div>
         <div className="sm:col-span-2">
-          <span className="text-muted mb-1 block text-sm">
-            {t('tasks.participants')}
-          </span>
+          <span className={labelClass}>{t('tasks.participants')}</span>
           <InterviewParticipants
+            containerBackground="bg2"
             value={participants}
             onChange={setParticipants}
+            onPendingChange={(pending) => {
+              participantLock.current = pending;
+              setParticipantPending(pending);
+            }}
           />
         </div>
       </fieldset>
+
+      {/* Same layout as the Media Files part of the round card; files upload on save. */}
+      <fieldset
+        disabled={loading}
+        className="border-tertiary mt-4 min-w-0 border-t pt-3"
+      >
+        <legend className="sr-only">{t('Media Files')}</legend>
+        <div className="mb-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+          <span className="text-muted flex items-center gap-2 text-sm">
+            {t('Media Files')}{' '}
+            <HelpTip label={t('Media Files')}>
+              {t('Audio or video · up to 1 GB / 2 hours')}
+            </HelpTip>
+          </span>
+          <FileButton
+            variant="primary"
+            accept=".mp4,.webm,.mov,.mp3,.m4a,.wav,.ogg"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              // Reset the chooser so the same file can be picked again after removal.
+              e.target.value = '';
+              if (!file) return;
+              if (file.size > 1_000_000_000) {
+                setError(
+                  t(
+                    'Recording exceeds 1,000,000,000 bytes. Choose a smaller recording.'
+                  )
+                );
+                return;
+              }
+              setError('');
+              setMediaFiles((files) => [...files, file]);
+            }}
+            className="flex items-center gap-1.5"
+          >
+            <i className="bi-plus-circle icon-sm"></i>
+            {t('Add Media')}
+          </FileButton>
+        </div>
+        {(currentRound?.media.length ?? 0) + mediaFiles.length > 0 ? (
+          <div className="space-y-2">
+            {currentRound?.media.map((m) => (
+              <MediaRow
+                key={m.id}
+                name={m.original_filename || m.file_path.split('/').pop() || ''}
+                video={m.media_type === 'video'}
+                bytes={m.byte_count ?? null}
+              />
+            ))}
+            {mediaFiles.map((file, index) => (
+              <MediaRow
+                key={`${file.name}-${index}`}
+                name={file.name}
+                video={file.type.startsWith('video/')}
+                bytes={file.size}
+                uploading={uploadingName === file.name}
+                progress={uploadProgress}
+                onRemove={() =>
+                  setMediaFiles((files) => files.filter((f) => f !== file))
+                }
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted text-sm">{t('No media files')}</p>
+        )}
+      </fieldset>
+
+      {/* Same layout as the transcript part of the round card. */}
+      <fieldset
+        disabled={loading}
+        className="border-tertiary mt-3 min-w-0 border-t pt-3"
+      >
+        <legend className="sr-only">{t('Add transcript')}</legend>
+        {!transcriptOpen && (
+          <p className="text-muted mb-2 text-sm">
+            {currentRound?.has_current_transcript
+              ? t('Editable transcript available')
+              : currentRound?.transcript_path
+                ? t('Transcript attachment available')
+                : t('No transcript yet')}
+          </p>
+        )}
+        {!transcriptOpen ? (
+          <Button
+            variant="primary"
+            type="button"
+            onClick={() => setTranscriptOpen(true)}
+            className="flex items-center gap-1.5"
+          >
+            <i className="bi-plus-lg icon-sm" aria-hidden="true" />
+            {hasTranscript ? t('Replace transcript') : t('Add transcript')}
+          </Button>
+        ) : (
+          <div className="space-y-3">
+            {transcriptFile ? (
+              <div className="bg-bg3 flex min-w-0 items-center justify-between gap-2 rounded px-3 py-3">
+                <span className="flex min-w-0 items-center gap-2">
+                  <i className="bi-file-text icon-md text-red-bright flex-shrink-0" />
+                  <span className="text-primary truncate text-sm">
+                    {transcriptFile.name}
+                  </span>
+                </span>
+                {uploadingName === transcriptFile.name &&
+                  uploadProgress > 0 &&
+                  uploadProgress < 100 && (
+                    <ProgressBar
+                      progress={uploadProgress}
+                      fileName={transcriptFile.name}
+                    />
+                  )}
+              </div>
+            ) : (
+              <>
+                <div className="sm:w-48">
+                  <label
+                    htmlFor={`${formId}-round-transcript-format`}
+                    className={labelClass}
+                  >
+                    {t('Transcript format')}
+                  </label>
+                  <Dropdown
+                    id={`${formId}-round-transcript-format`}
+                    value={transcriptFormat}
+                    onChange={(value) =>
+                      setTranscriptFormat(value as typeof transcriptFormat)
+                    }
+                    options={['txt', 'srt', 'vtt'].map((value) => ({
+                      value,
+                      label: value.toUpperCase(),
+                    }))}
+                    containerBackground="bg2"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor={`${formId}-round-transcript-text`}
+                    className={labelClass}
+                  >
+                    {t('Transcript text')}
+                  </label>
+                  <textarea
+                    id={`${formId}-round-transcript-text`}
+                    maxLength={2000000}
+                    value={transcriptText}
+                    onChange={(e) => setTranscriptText(e.target.value)}
+                    rows={5}
+                    className={`${fieldClass} resize-y`}
+                  />
+                </div>
+              </>
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {!transcriptText.trim() && (
+                <FileButton
+                  accept=".pdf,.docx,.doc,.txt,.md,.rtf,.srt,.vtt"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (file) {
+                      if (
+                        !/\.(txt|srt|vtt|pdf|docx?|md|rtf)$/i.test(file.name)
+                      ) {
+                        setError(
+                          t(
+                            'Unsupported transcript file. Choose TXT, SRT, VTT, PDF, DOCX, DOC, MD or RTF.'
+                          )
+                        );
+                        return;
+                      }
+                      setError('');
+                      setTranscriptFile(file);
+                    }
+                  }}
+                  className="flex items-center gap-1.5"
+                >
+                  <i className="bi-upload icon-sm" aria-hidden="true" />
+                  {t('Choose transcript file')}
+                </FileButton>
+              )}
+              <Button
+                variant="danger"
+                type="button"
+                onClick={clearTranscript}
+                className="flex items-center gap-1.5"
+              >
+                <i className="bi-x-lg icon-sm" aria-hidden="true" />
+                {t('Remove')}
+              </Button>
+            </div>
+          </div>
+        )}
+        <div className="mt-4">
+          <label
+            htmlFor={`${formId}-transcript-summary`}
+            className={labelClass}
+          >
+            {t('Transcript Summary')}
+          </label>
+          <textarea
+            id={`${formId}-transcript-summary`}
+            value={transcriptSummary}
+            onChange={(e) => setTranscriptSummary(e.target.value)}
+            rows={3}
+            placeholder={t(
+              'Summary of key discussion points from transcript...'
+            )}
+            className={`${fieldClass} resize-y`}
+          />
+        </div>
+      </fieldset>
+
+      {loading && uploadingName && (
+        <p
+          role="status"
+          className="text-muted mt-4 text-sm [overflow-wrap:anywhere]"
+        >
+          {t('Uploading...')} {uploadingName}
+        </p>
+      )}
       <div className="mt-4 flex justify-end gap-2">
         <Button
           type="button"
-          disabled={loading}
+          disabled={loading || participantPending}
           onClick={() => (persistedRound ? onSave(persistedRound) : onCancel())}
+          className="flex items-center gap-1.5"
         >
+          <i className="bi-x-lg icon-sm" aria-hidden="true" />
           {persistedRound ? t('Close (round saved)') : t('Cancel')}
         </Button>
         <Button
           variant="primary"
           type="submit"
-          disabled={loading || timeZoneChanged}
+          disabled={loading || timeZoneChanged || participantPending}
+          title={participantPending ? t('Creating contact...') : undefined}
         >
           {loading
             ? t('Saving...')
-            : persistedRound && (transcriptFile || mediaFile)
+            : persistedRound && pendingUploads
               ? t('Retry save and upload')
               : isEditing || persistedRound
                 ? t('Save')
@@ -715,5 +919,56 @@ function RoundFormFields({
         </Button>
       </div>
     </form>
+  );
+}
+
+function MediaRow({
+  name,
+  video,
+  bytes,
+  uploading = false,
+  progress = 0,
+  onRemove,
+}: {
+  name: string;
+  video: boolean;
+  bytes: number | null;
+  uploading?: boolean;
+  progress?: number;
+  onRemove?: () => void;
+}) {
+  useTranslation();
+  return (
+    <div className="bg-bg3 space-y-2 rounded px-3 py-3">
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-2">
+          {video ? (
+            <i className="bi-camera-video icon-md text-purple-bright flex-shrink-0" />
+          ) : (
+            <i className="bi-music-note-beamed icon-md text-orange-bright flex-shrink-0" />
+          )}
+          <span className="text-primary truncate text-sm">{name}</span>
+        </span>
+        {onRemove && !uploading && (
+          <Button
+            variant="danger"
+            type="button"
+            onClick={onRemove}
+            className="flex items-center gap-1.5"
+          >
+            <i className="bi-x-lg icon-sm" aria-hidden="true" />
+            {t('Remove')}
+          </Button>
+        )}
+      </div>
+      {bytes != null && (
+        <p className="text-muted text-xs">
+          {`${(bytes / 1_000_000).toFixed(1)} MB`}
+        </p>
+      )}
+      {uploading && progress > 0 && progress < 100 && (
+        <ProgressBar progress={progress} fileName={name} />
+      )}
+    </div>
   );
 }

@@ -28,7 +28,7 @@ it('shows three recent events and keeps the full history in its dialog', async (
       from_status: null,
       to_status: {
         id: 'applied',
-        name: 'Applied',
+        name: 'W'.repeat(180),
         meaning: 'applied' as const,
         color: '#0f0',
       },
@@ -53,6 +53,12 @@ it('shows three recent events and keeps the full history in its dialog', async (
     </QueryClientProvider>
   );
   await screen.findByText('Event note 0');
+  for (const badge of screen.getAllByText('W'.repeat(180)))
+    expect(badge).toHaveClass(
+      'min-w-0',
+      'max-w-full',
+      '[overflow-wrap:anywhere]'
+    );
   expect(screen.getAllByText(/Event note/)).toHaveLength(3);
   expect(screen.queryByText(/Historical meaning/)).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'View 3 more' }));

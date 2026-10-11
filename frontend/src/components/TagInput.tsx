@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import { MAX_TAG_LENGTH, MAX_TAGS } from '@/lib/recordFilters';
 import { useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 export default function TagInput({
@@ -8,6 +9,8 @@ export default function TagInput({
   id,
   disabled = false,
   placeholder,
+  maxLength = MAX_TAG_LENGTH,
+  maxTags = MAX_TAGS,
 }: {
   value: string[];
   onChange: (tags: string[]) => void;
@@ -15,6 +18,8 @@ export default function TagInput({
   id?: string;
   disabled?: boolean;
   placeholder?: string;
+  maxLength?: number;
+  maxTags?: number;
 }) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState('');
@@ -23,7 +28,12 @@ export default function TagInput({
       return;
     event.preventDefault();
     const tag = draft.trim();
-    if (tag && !value.some((item) => item.toLowerCase() === tag.toLowerCase()))
+    if (
+      tag &&
+      tag.length <= maxLength &&
+      value.length < maxTags &&
+      !value.some((item) => item.toLowerCase() === tag.toLowerCase())
+    )
       onChange([...value, tag]);
     setDraft('');
   }
@@ -32,9 +42,11 @@ export default function TagInput({
       {value.map((tag, index) => (
         <span
           key={tag}
-          className="bg-bg3 text-fg2 flex items-center gap-1 rounded px-2 py-0.5 text-xs"
+          className="bg-bg3 text-fg2 flex max-w-full min-w-0 items-center gap-1 rounded px-2 py-0.5 text-xs"
         >
-          {tag}
+          <span className="min-w-0 truncate" title={tag}>
+            {tag}
+          </span>
           <Button
             variant="icon"
             type="button"
@@ -51,11 +63,12 @@ export default function TagInput({
         id={id}
         aria-label={label}
         value={draft}
-        disabled={disabled}
-        onChange={(e) => setDraft(e.target.value)}
+        disabled={disabled || value.length >= maxTags}
+        maxLength={maxLength}
+        onChange={(e) => setDraft(e.target.value.slice(0, maxLength))}
         onKeyDown={add}
         placeholder={placeholder ?? t('kit.addTag')}
-        className="text-fg1 placeholder:text-fg4 min-w-20 flex-1 bg-transparent px-1 py-0.5 text-sm outline-none"
+        className="text-fg1 placeholder:text-fg4 min-w-0 flex-1 basis-20 bg-transparent px-1 py-0.5 text-sm outline-none"
       />
     </div>
   );

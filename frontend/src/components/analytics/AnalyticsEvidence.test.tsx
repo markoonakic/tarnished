@@ -17,6 +17,7 @@ import StageResidence from './StageResidence';
 import i18n from '@/lib/i18n';
 import InterviewTimeline from './InterviewTimeline';
 import InterviewOutcomes from './InterviewOutcomes';
+import InterviewFunnel from './InterviewFunnel';
 import SankeyChart from '../SankeyChart';
 const { chart } = vi.hoisted(() => ({ chart: vi.fn() }));
 vi.mock('echarts-for-react', () => ({
@@ -181,6 +182,36 @@ function mount(node: React.ReactNode) {
     </MemoryRouter>
   );
 }
+it.each(['en', 'sr-Latn'])(
+  'gives each empty interview chart one Applications link in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    api.defaults.adapter = async (config) => ({
+      data: { funnel_data: [], outcome_data: [], timeline_data: [] },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+    });
+    mount(
+      <>
+        <InterviewFunnel />
+        <InterviewOutcomes />
+        <InterviewTimeline />
+      </>
+    );
+    const links = await screen.findAllByRole('link', {
+      name: i18n.t('Applications'),
+    });
+    expect(links).toHaveLength(3);
+    for (const link of links) {
+      expect(link).toHaveAttribute('href', '/applications');
+      expect(link).toHaveClass('text-accent', 'hover:text-accent-bright');
+    }
+    expect(chart).not.toHaveBeenCalled();
+  }
+);
+
 it('keeps correct counts, rates, measured averages and current waits in the compact layout', async () => {
   api.defaults.adapter = async (config) => {
     expect(config.params).toEqual({ period: 'all', as_of: scope.as_of });

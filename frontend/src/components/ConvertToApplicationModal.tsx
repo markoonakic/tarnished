@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import HelpTip from './HelpTip';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import Modal from './Modal';
@@ -83,6 +84,9 @@ export default function ConvertToApplicationModal({
           >
             <i className="bi bi-arrow-repeat icon-md text-aqua" />
             {t('Convert to Application')}
+            <HelpTip label={t('About lead conversion')}>
+              {t('Your saved job details will be copied into the application.')}
+            </HelpTip>
           </h3>
           <Button
             variant="icon"
@@ -109,9 +113,6 @@ export default function ConvertToApplicationModal({
             <p className="text-primary font-medium">{jobTitle}</p>
             <p className="text-fg1 text-sm">{company}</p>
           </div>
-          <p className="text-muted mt-4 text-sm">
-            {t('Your saved job details will be copied into the application.')}
-          </p>
         </div>
 
         <div className="border-tertiary flex justify-end gap-3 border-t p-4">

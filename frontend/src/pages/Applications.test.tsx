@@ -10,14 +10,17 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import Applications from './Applications';
 import { listApplications } from '../lib/applications';
+import { listStatuses } from '../lib/settings';
 import { ToastProvider, useToastContext } from '../contexts/ToastContext';
 import type { ApplicationListResponse } from '../lib/types';
+import i18n from '@/lib/i18n';
 
 vi.mock('../lib/applications', () => ({
   listApplications: vi.fn(),
   getApplicationSources: async () => [],
 }));
-vi.mock('../lib/settings', () => ({ listStatuses: async () => [] }));
+vi.mock('../lib/settings', () => ({ listStatuses: vi.fn() }));
+vi.mock('../components/ApplicationBoard', () => ({ default: () => null }));
 vi.mock('../hooks/useThemeColors', () => ({ useThemeColors: () => ({}) }));
 vi.mock('../components/Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
@@ -70,10 +73,58 @@ function search(value: string) {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(listStatuses).mockResolvedValue([]);
   vi.mocked(listApplications).mockReset();
   vi.mocked(listApplications).mockImplementation(() => new Promise(() => {}));
 });
-afterEach(cleanup);
+afterEach(async () => {
+  cleanup();
+  await i18n.changeLanguage('en');
+});
+
+it.each([
+  ['list', 'en'],
+  ['board', 'en'],
+  ['list', 'sr-Latn'],
+  ['board', 'sr-Latn'],
+])(
+  'bounds a long selected status in %s filters in %s, including a URL reload',
+  async (view, language) => {
+    await i18n.changeLanguage(language);
+    const label = 'R8-filter-' + 'T'.repeat(174);
+    vi.mocked(listStatuses).mockResolvedValue([
+      { id: 'long', name: label, color: '#83a598', meaning: 'unknown' },
+    ]);
+    vi.mocked(listApplications).mockResolvedValue(empty);
+    const page = mount(`/applications?view=${view}`);
+    const filter = await screen.findByRole('combobox', {
+      name: i18n.t('All Statuses'),
+    });
+    fireEvent.click(filter);
+    fireEvent.click(await screen.findByRole('option', { name: label }));
+    expect(filter.parentElement?.parentElement).toHaveClass(
+      'min-w-0',
+      'max-w-full',
+      'flex-wrap'
+    );
+    expect(filter.querySelector('.bi-chevron-down')).toHaveClass('shrink-0');
+    expect(filter.querySelector('span')).toHaveClass('truncate');
+    const url = screen.getByLabelText('Location', {
+      selector: 'output',
+    }).textContent!;
+    expect(new URLSearchParams(url).get('status')).toBe('long');
+    page.unmount();
+    mount('/applications' + url);
+    const reloaded = await screen.findByRole('combobox', {
+      name: i18n.t('All Statuses'),
+    });
+    expect(await screen.findByText(label, { selector: 'span' })).toBeVisible();
+    expect(reloaded.parentElement?.parentElement).toHaveClass(
+      'min-w-0',
+      'max-w-full'
+    );
+  }
+);
 
 it('loads sorting from the URL and resets the page while keeping filters', async () => {
   vi.mocked(listApplications).mockResolvedValue(empty);
@@ -122,7 +173,7 @@ it('renders summary round counts without detail rounds in both layouts', async (
     job_url: null,
     status: {
       id: 'applied',
-      name: 'Applied',
+      name: 'W'.repeat(180),
       color: '#83a598',
       meaning: 'applied',
     },
@@ -170,6 +221,9 @@ it('renders summary round counts without detail rounds in both layouts', async (
   });
   mount();
   const table = await screen.findByRole('table');
+  expect(table).toHaveClass('table-fixed', '[overflow-wrap:anywhere]');
+  for (const pill of screen.getAllByText('W'.repeat(180)))
+    expect(pill).toHaveClass('min-w-0', '[overflow-wrap:anywhere]');
   for (const [company, count] of [
     ['Scheduled interviews', 2],
     ['One interview', 1],

@@ -48,6 +48,167 @@ describe('SettingsAPIKey', () => {
     vi.resetAllMocks();
   });
 
+  it('shows all backend scopes and allows removal of every saved permission', async () => {
+    const scopes = [
+      'applications:read',
+      'applications:write',
+      'job_leads:read',
+      'job_leads:write',
+      'profile:read',
+      'profile:write',
+      'rounds:read',
+      'rounds:write',
+      'statuses:read',
+      'statuses:write',
+      'round_types:read',
+      'round_types:write',
+      'dashboard:read',
+      'analytics:read',
+      'analytics:generate',
+      'streak:read',
+      'streak:write',
+      'preferences:read',
+      'preferences:write',
+      'user_settings:read',
+      'user_settings:write',
+      'files:read',
+      'files:write',
+      'export:read',
+      'import:write',
+      'admin:read',
+      'admin:write',
+    ];
+    const key = {
+      id: 'key',
+      label: 'All scopes',
+      revision: 1,
+      preset: 'custom',
+      scopes,
+      key_prefix: 'fixture',
+      created_at: '2026-10-01',
+      last_used_at: null,
+    };
+    listAPIKeys.mockResolvedValue([key]);
+    updateAPIKey.mockResolvedValue({ ...key, scopes: [] });
+    render(
+      <MemoryRouter>
+        <SettingsAPIKey />
+      </MemoryRouter>
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Rename' }));
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Advanced Scopes' })[1]
+    );
+    expect(screen.getAllByRole('checkbox')).toHaveLength(scopes.length);
+    for (const scope of scopes) {
+      expect(screen.getByLabelText(scope)).toBeChecked();
+      fireEvent.click(screen.getByLabelText(scope));
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(updateAPIKey).toHaveBeenCalledWith('key', {
+        label: 'All scopes',
+        expected_revision: 1,
+        preset: 'custom',
+        scopes: [],
+      })
+    );
+  });
+  it('previews the same Import / Export permissions that creation grants and locks pending create input', async () => {
+    listAPIKeys.mockResolvedValue([]);
+    createAPIKey.mockImplementation(() => new Promise(() => {}));
+    render(
+      <MemoryRouter>
+        <SettingsAPIKey />
+      </MemoryRouter>
+    );
+    const label = await screen.findByLabelText('Label');
+    fireEvent.change(label, { target: { value: 'One request' } });
+    const preset = screen.getByRole('combobox', { name: 'Preset' });
+    await selectDropdownOption(preset, /Import.*Export/);
+    fireEvent.click(screen.getByRole('button', { name: 'Advanced Scopes' }));
+    for (const scope of [
+      'applications:read',
+      'job_leads:read',
+      'export:read',
+      'import:write',
+      'files:read',
+      'profile:read',
+    ])
+      expect(screen.getByLabelText(scope)).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Create API Key' }));
+    expect(label).toBeDisabled();
+    expect(preset).toBeDisabled();
+    expect(screen.getByLabelText('files:read')).toBeDisabled();
+  });
+  it('bounds saved labels and keeps their actions outside the shrinking text column', async () => {
+    const label = 'W'.repeat(180);
+    listAPIKeys.mockResolvedValue([
+      {
+        id: 'long',
+        label,
+        preset: 'full_access',
+        scopes: [],
+        key_prefix: 'fixture',
+        created_at: '2026-10-01',
+        last_used_at: null,
+      },
+    ]);
+    render(
+      <MemoryRouter>
+        <SettingsAPIKey />
+      </MemoryRouter>
+    );
+    const value = await screen.findByText(label);
+    expect(value.parentElement).toHaveClass(
+      'min-w-0',
+      'flex-1',
+      '[overflow-wrap:anywhere]'
+    );
+    expect(
+      screen.getByRole('button', { name: 'Rename' }).parentElement
+    ).toHaveClass('shrink-0');
+  });
+  it('keeps stale key edit drafts and sends their original revision', async () => {
+    listAPIKeys.mockResolvedValue([
+      {
+        id: 'key',
+        label: 'Original',
+        revision: 7,
+        preset: 'full_access',
+        scopes: [],
+        key_prefix: 'fixture',
+        created_at: '2026-10-01T00:00:00Z',
+        last_used_at: null,
+      },
+    ]);
+    updateAPIKey.mockRejectedValue(new Error('Conflict'));
+    render(
+      <MemoryRouter>
+        <SettingsAPIKey />
+      </MemoryRouter>
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Rename' }));
+    fireEvent.change(
+      screen.getByLabelText('Label', { selector: 'input[id^=edit]' }),
+      { target: { value: 'Keep label' } }
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+    await waitFor(() =>
+      expect(updateAPIKey).toHaveBeenCalledWith('key', {
+        label: 'Keep label',
+        preset: 'full_access',
+        expected_revision: 7,
+      })
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /^Save$/ })).toBeEnabled()
+    );
+    expect(
+      screen.getByLabelText('Label', { selector: 'input[id^=edit]' })
+    ).toHaveValue('Keep label');
+  });
+
   it('renders existing named api keys from the multi-key endpoint', async () => {
     listAPIKeys.mockResolvedValue([
       {
@@ -101,6 +262,7 @@ describe('SettingsAPIKey', () => {
       last_used_at: null,
       revoked_at: null,
       api_key: 'raw-secret-key',
+      revision: 0,
     });
 
     render(
@@ -127,6 +289,15 @@ describe('SettingsAPIKey', () => {
         preset: 'custom',
         scopes: ['round_types:read'],
       })
+    );
+    expect(
+      screen.queryByText(
+        'Copy this now. You will not be able to view it again.'
+      )
+    ).not.toBeInTheDocument();
+    fireEvent.focus(screen.getByRole('button', { name: 'New API Key' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      'Copy this now. You will not be able to view it again.'
     );
   });
 
@@ -186,7 +357,43 @@ describe('SettingsAPIKey', () => {
         label: 'MacBook CLI',
         preset: 'custom',
         scopes: ['round_types:read'],
+        expected_revision: 0,
       })
     );
   });
+});
+
+it('guards API-key label and preset drafts after a failed save', async () => {
+  listAPIKeys.mockResolvedValue([
+    {
+      id: 'key',
+      label: 'Original',
+      revision: 1,
+      preset: 'full_access',
+      scopes: [],
+      key_prefix: 'fixture',
+      created_at: '2026-10-01T00:00:00Z',
+    },
+  ]);
+  updateAPIKey.mockRejectedValueOnce(new Error('Offline'));
+  render(
+    <MemoryRouter>
+      <SettingsAPIKey />
+    </MemoryRouter>
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Rename' }));
+  const label = screen.getByLabelText('Label', { selector: 'input[id^=edit]' });
+  fireEvent.change(label, { target: { value: 'Keep key label' } });
+  for (const failed of [false, true]) {
+    if (failed) {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+      );
+    }
+    const unload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+    expect(label).toHaveValue('Keep key label');
+  }
 });

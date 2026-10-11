@@ -1,5 +1,6 @@
 import Button from '@/components/ui/Button';
-import { useState } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import HelpTip from '../HelpTip';
 import api from '@/lib/api';
@@ -8,18 +9,28 @@ import SegmentedControl from '@/components/SegmentedControl';
 export default function ApplicationPostingCapture({
   statusId,
   onCreated,
+  disabled = false,
+  onPendingChange,
 }: {
   statusId: string;
   onCreated: (id: string) => void;
+  disabled?: boolean;
+  onPendingChange?: (pending: boolean) => void;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [requestKey] = useState(() => crypto.randomUUID());
   const [mode, setMode] = useState('url');
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const captureLock = useRef(false);
   const [error, setError] = useState(false);
+  useUnsavedChanges(busy || (open && Boolean(url || text)));
   async function capture() {
+    if (disabled || captureLock.current) return;
+    captureLock.current = true;
+    onPendingChange?.(true);
     setBusy(true);
     setError(false);
     try {
@@ -29,12 +40,15 @@ export default function ApplicationPostingCapture({
           url: mode === 'url' ? url : '',
           text: mode === 'text' ? text : undefined,
           status_id: statusId,
-        }
+        },
+        { headers: { 'Idempotency-Key': requestKey } }
       );
       onCreated(data.id);
     } catch {
       setError(true);
     } finally {
+      captureLock.current = false;
+      onPendingChange?.(false);
       setBusy(false);
     }
   }
@@ -45,6 +59,7 @@ export default function ApplicationPostingCapture({
         className="flex items-center gap-1.5"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
+        disabled={disabled || busy}
       >
         <i className="bi-arrow-right icon-sm" aria-hidden="true" />
         {t('ai.fromPostingAction')}
@@ -56,8 +71,16 @@ export default function ApplicationPostingCapture({
             value={mode}
             onChange={setMode}
             options={[
-              { value: 'url', label: t('ai.fromUrl') },
-              { value: 'text', label: t('ai.pasteText') },
+              {
+                value: 'url',
+                label: t('ai.fromUrl'),
+                disabled: disabled || busy,
+              },
+              {
+                value: 'text',
+                label: t('ai.pasteText'),
+                disabled: disabled || busy,
+              },
             ]}
           />
           <HelpTip label={t('ai.captureMethod')}>
@@ -71,7 +94,7 @@ export default function ApplicationPostingCapture({
                 className="bg-bg2 border-bg3 mt-1 w-full rounded border p-2"
                 value={url}
                 onChange={(event) => setUrl(event.target.value)}
-                disabled={busy}
+                disabled={disabled || busy}
               />
             </label>
           ) : (
@@ -82,7 +105,7 @@ export default function ApplicationPostingCapture({
                 rows={6}
                 value={text}
                 onChange={(event) => setText(event.target.value)}
-                disabled={busy}
+                disabled={disabled || busy}
               />
             </label>
           )}
@@ -100,6 +123,7 @@ export default function ApplicationPostingCapture({
             className="flex items-center gap-1.5"
             disabled={
               busy ||
+              disabled ||
               !statusId ||
               (mode === 'url'
                 ? !/^https?:\/\//i.test(url)

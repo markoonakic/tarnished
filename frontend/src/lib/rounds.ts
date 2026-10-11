@@ -5,13 +5,15 @@ import type { Round, RoundCreate, RoundUpdate } from './types';
 export async function createRound(
   applicationId: string,
   data: RoundCreate,
-  expectedTimeZone?: string
+  expectedTimeZone?: string,
+  requestKey?: string
 ): Promise<Round> {
   const response = await api.post(
     `/api/applications/${applicationId}/rounds`,
     data,
     {
       headers: withAxiosTimeZoneHeaders({
+        'Idempotency-Key': requestKey,
         'Expected-Round-Time-Zone': expectedTimeZone,
       }),
     }
@@ -34,9 +36,32 @@ export async function updateRound(
   return response.data;
 }
 
-export async function deleteRound(roundId: string): Promise<void> {
-  await api.delete(`/api/rounds/${roundId}`);
+export async function deleteRound(
+  roundId: string,
+  round?: Round
+): Promise<void> {
+  await api.delete(`/api/rounds/${roundId}`, {
+    params: { expected_revision: round?.revision },
+    headers: {
+      'Expected-Transcript-Generation':
+        round?.transcript_generation ?? (round ? 0 : undefined),
+      'Expected-Media-Generation':
+        round?.media_generation ?? (round ? 0 : undefined),
+    },
+  });
   invalidateEvidenceQueries();
+}
+
+const recordingKeys = new WeakMap<File, Map<string, string>>();
+function recordingKey(roundId: string, file: File, replaceMediaId?: string) {
+  let keys = recordingKeys.get(file);
+  if (!keys) {
+    keys = new Map();
+    recordingKeys.set(file, keys);
+  }
+  const intent = roundId + ':' + (replaceMediaId ?? '');
+  if (!keys.has(intent)) keys.set(intent, crypto.randomUUID());
+  return keys.get(intent)!;
 }
 
 export async function uploadMedia(
@@ -44,7 +69,8 @@ export async function uploadMedia(
   file: File,
   onProgress?: (loaded: number, total: number) => void,
   generation?: number,
-  replaceMediaId?: string
+  replaceMediaId?: string,
+  transcriptGeneration?: number
 ): Promise<Round> {
   const formData = new FormData();
   formData.append('file', file);
@@ -54,7 +80,9 @@ export async function uploadMedia(
     headers: withAxiosTimeZoneHeaders({
       'Content-Type': 'multipart/form-data',
       'Expected-Media-Generation': generation,
+      'Expected-Transcript-Generation': transcriptGeneration,
       'Replace-Media-Id': replaceMediaId,
+      'Idempotency-Key': recordingKey(roundId, file, replaceMediaId),
     }),
     onUploadProgress: (event) => {
       if (event.total) {
@@ -68,10 +96,14 @@ export async function uploadMedia(
 
 export async function deleteMedia(
   mediaId: string,
-  generation?: number
+  generation?: number,
+  transcriptGeneration?: number
 ): Promise<void> {
   await api.delete(`/api/media/${mediaId}`, {
-    headers: { 'Expected-Media-Generation': generation },
+    headers: {
+      'Expected-Media-Generation': generation,
+      'Expected-Transcript-Generation': transcriptGeneration,
+    },
   });
   invalidateEvidenceQueries();
 }

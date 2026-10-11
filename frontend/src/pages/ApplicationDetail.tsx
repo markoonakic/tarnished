@@ -5,10 +5,13 @@ import { t, locale } from '@/lib/i18n';
 import { statusLabel } from '@/lib/referenceLabels';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useParams, useNavigate } from 'react-router-dom';
 import { observeRead } from '../lib/queryClient';
 import { getApplication, deleteApplication } from '../lib/applications';
 import { deleteRound } from '../lib/rounds';
+import { isAxiosError } from 'axios';
+import { errorMessage } from '@/lib/errorMessage';
 import {
   mergeApplicationRoundMedia,
   preserveApplicationRounds,
@@ -59,8 +62,12 @@ function ApplicationDetailContent({ id }: { id: string }) {
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [archiving, setArchiving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deletingRound, setDeletingRound] = useState<string | null>(null);
+  useUnsavedChanges(archiving);
   const [showRoundForm, setShowRoundForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingIds, setEditingIds] = useState<string[]>([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackOpened, setFeedbackOpened] = useState(false);
@@ -87,11 +94,13 @@ function ApplicationDetailContent({ id }: { id: string }) {
   async function archive(archived: boolean) {
     if (
       !application ||
+      archiving ||
       !confirm(
         t(archived ? 'records.confirmArchive' : 'records.confirmUnarchive')
       )
     )
       return;
+    setArchiving(true);
     try {
       await apiV030.updateApplication(application.id, {
         archived,
@@ -100,6 +109,8 @@ function ApplicationDetailContent({ id }: { id: string }) {
       await loadApplication();
     } catch {
       showError(t('records.saveFailed'));
+    } finally {
+      setArchiving(false);
     }
   }
 
@@ -132,16 +143,23 @@ function ApplicationDetailContent({ id }: { id: string }) {
   }, [loadApplication]);
 
   async function handleDelete() {
+    if (deleting || deletingRound || archiving) return;
     if (!confirm(t('Are you sure you want to delete this application?')))
       return;
+    setDeleting(true);
     try {
-      await deleteApplication(id!);
+      await deleteApplication(id!, application?.evidence_revision);
       toast.success(t('Application deleted'));
       navigate('/applications');
-    } catch {
-      const errorMsg = t('Failed to delete application');
+    } catch (error) {
+      const errorMsg =
+        isAxiosError(error) && error.response
+          ? errorMessage(error.response.data, error.response.status)
+          : t('Failed to delete application');
       setError(errorMsg);
       showError(errorMsg);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -150,23 +168,32 @@ function ApplicationDetailContent({ id }: { id: string }) {
   }
 
   async function handleDeleteRound(roundId: string) {
+    if (deleting || deletingRound || archiving) return;
     if (!confirm(t('Delete this round?'))) return;
+    setDeletingRound(roundId);
     try {
-      await deleteRound(roundId);
+      await deleteRound(
+        roundId,
+        application?.rounds?.find((round) => round.id === roundId)
+      );
 
       setApplication((prev) => removeApplicationRound(prev, roundId));
       toast.success(t('Round deleted'));
-    } catch {
-      const errorMsg = t('Failed to delete round');
+    } catch (error) {
+      const errorMsg =
+        isAxiosError(error) && error.response
+          ? errorMessage(error.response.data, error.response.status)
+          : t('Failed to delete round');
       setError(errorMsg);
       showError(errorMsg);
+    } finally {
+      setDeletingRound(null);
     }
   }
 
-  async function handleRoundSaved(savedRound: Round) {
-    setShowRoundForm(false);
-    setEditingId(null);
-
+  function handleRoundSaved(savedRound: Round, editorId?: string) {
+    if (editorId) setEditingIds((ids) => ids.filter((id) => id !== editorId));
+    else setShowRoundForm(false);
     handleRoundPersisted(savedRound);
   }
 
@@ -242,6 +269,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
             <span>{t('records.archived')}</span>
             <Button
               className="flex items-center gap-1.5"
+              disabled={archiving}
               onClick={() => archive(false)}
             >
               <i className="bi-arrow-right icon-sm" aria-hidden="true" />
@@ -251,7 +279,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
         )}
         <div className="bg-secondary mb-6 rounded-lg p-6">
           <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-            <div className="flex-1">
+            <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">
               <div className="mb-1 flex items-center gap-2">
                 <h1 className="text-primary text-2xl font-bold">
                   {application.company_id ? (
@@ -301,10 +329,10 @@ function ApplicationDetailContent({ id }: { id: string }) {
                     showError(t('Failed to load statuses'));
                   }
                 }}
-                className="flex items-center gap-1.5"
+                className="flex max-w-full min-w-0 items-center gap-1.5"
               >
                 <span
-                  className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold"
+                  className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold [overflow-wrap:anywhere]"
                   style={{
                     color: getStatusColor(
                       application.status.name,
@@ -314,7 +342,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
                     backgroundColor: `${getStatusColor(application.status.name, colors, application.status.color)}20`,
                   }}
                 >
-                  <span className="h-2 w-2 rounded-full bg-current" />
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-current" />
                   {statusLabel(application.status)}
                 </span>
                 <i className="bi-pencil ml-1" aria-hidden="true" />
@@ -481,6 +509,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
             {!application.archived_at && (
               <Button
                 className="flex items-center gap-1.5"
+                disabled={archiving}
                 onClick={() => archive(true)}
               >
                 <i className="bi-archive mr-1" aria-hidden="true" />
@@ -498,6 +527,7 @@ function ApplicationDetailContent({ id }: { id: string }) {
               {t('Application feedback')}
             </Button>
             <Button
+              disabled={deleting}
               onClick={() => setShowEditModal(true)}
               className="flex items-center gap-1.5"
             >
@@ -506,6 +536,8 @@ function ApplicationDetailContent({ id }: { id: string }) {
             </Button>
             <Button
               variant="danger"
+              disabled={deleting || Boolean(deletingRound) || archiving}
+              aria-busy={deleting}
               onClick={handleDelete}
               className="flex items-center gap-1.5"
             >
@@ -598,20 +630,25 @@ function ApplicationDetailContent({ id }: { id: string }) {
           {application.rounds && application.rounds.length > 0 ? (
             <div className="space-y-4">
               {application.rounds.map((round) =>
-                round.id === editingId ? (
+                editingIds.includes(round.id) ? (
                   <RoundForm
                     key={round.id}
                     round={round}
                     applicationId={id!}
-                    onSave={handleRoundSaved}
+                    onSave={(saved) => handleRoundSaved(saved, round.id)}
                     onPersist={handleRoundPersisted}
-                    onCancel={() => setEditingId(null)}
+                    onCancel={() =>
+                      setEditingIds((ids) =>
+                        ids.filter((id) => id !== round.id)
+                      )
+                    }
                   />
                 ) : (
                   <RoundCard
                     key={round.id}
                     round={round}
-                    onEdit={() => setEditingId(round.id)}
+                    deleting={deleting || deletingRound !== null}
+                    onEdit={() => setEditingIds((ids) => [...ids, round.id])}
                     onDelete={() => handleDeleteRound(round.id)}
                     onMediaChange={() => handleMediaChange(round.id)}
                   />

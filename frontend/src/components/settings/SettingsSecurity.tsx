@@ -1,7 +1,9 @@
 import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import PasswordInput from '../PasswordInput';
@@ -18,14 +20,20 @@ export default function SettingsSecurity() {
   const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
+  useUnsavedChanges(
+    busy || Boolean(currentPassword || password || confirmation)
+  );
 
   async function invalidate(changePassword: boolean) {
+    if (submitting.current) return;
     setError('');
     const passwordError = newPasswordError(password);
     if (changePassword && (passwordError || password !== confirmation)) {
       setError(passwordError || t('Passwords do not match'));
       return;
     }
+    submitting.current = true;
     setBusy(true);
     try {
       await api.post(
@@ -34,6 +42,12 @@ export default function SettingsSecurity() {
           ? { current_password: currentPassword, new_password: password }
           : undefined
       );
+      flushSync(() => {
+        setCurrentPassword('');
+        setPassword('');
+        setConfirmation('');
+        setBusy(false);
+      });
       signOut();
     } catch {
       setError(
@@ -44,6 +58,7 @@ export default function SettingsSecurity() {
           : t('Could not sign out sessions. Try again.')
       );
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }
@@ -79,12 +94,14 @@ export default function SettingsSecurity() {
             value={currentPassword}
             onChange={setCurrentPassword}
             required
+            disabled={busy}
             autoComplete="current-password"
           />
           <PasswordInput
             label={t('New password')}
             value={password}
             onChange={setPassword}
+            disabled={busy}
             required
             autoComplete="new-password"
           />
@@ -92,6 +109,7 @@ export default function SettingsSecurity() {
             label={t('Confirm new password')}
             value={confirmation}
             onChange={setConfirmation}
+            disabled={busy}
             required
             autoComplete="new-password"
           />

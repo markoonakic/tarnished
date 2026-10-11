@@ -68,7 +68,7 @@ vi.mock('../components/ApplicationModal', () => ({
 vi.mock('../components/JobLeadCaptureForm', () => ({ default: () => null }));
 
 vi.mock('../lib/dashboardPrompt', () => ({
-  hasSeenImportPrompt: () => true,
+  hasSeenImportPrompt: () => false,
   markImportPromptSeen: vi.fn(),
 }));
 
@@ -82,6 +82,24 @@ describe('Dashboard preferences', () => {
     listApplications.mockResolvedValue({ total: 1 });
   });
 
+  it('keeps welcome import guidance only in a named HelpTip', async () => {
+    listApplications.mockResolvedValue({ total: 0 });
+    useUserPreferences.mockReturnValue({ data: undefined });
+    const { default: Dashboard } = await import('./Dashboard');
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>
+    );
+    await screen.findByText('Welcome! 👋');
+    const guidance =
+      'Do you have data from a previous export? You can import it to get started.';
+    expect(screen.queryByText(guidance)).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Import Data', expanded: false })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(guidance);
+  });
   it('shows a retry action instead of an empty account after a failed read', async () => {
     listApplications
       .mockRejectedValueOnce(new Error('Offline'))

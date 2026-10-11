@@ -292,7 +292,7 @@ class InterviewFields(BaseModel):
     def valid_questions(cls, value):
         if any(
             set(pair) - {"question", "answer"}
-            or "question" not in pair
+            or not pair.get("question", "").strip()
             or any(len(text) > 10_000 for text in pair.values())
             for pair in value
         ):

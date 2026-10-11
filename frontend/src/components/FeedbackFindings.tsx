@@ -1,4 +1,7 @@
 import TextLink from '@/components/ui/TextLink';
+import { formatDate, formatDateTime } from '@/lib/displayDate';
+import HelpTip from './HelpTip';
+import { roundTypeLabel } from '@/lib/referenceLabels';
 import { t, locale } from '@/lib/i18n';
 import { useTranslation } from 'react-i18next';
 import type {
@@ -13,7 +16,7 @@ import type { StatusMeaning } from '../lib/types';
 
 type Report = NonNullable<FeedbackState['report']>;
 const disclosure =
-  'border-bg3 rounded border p-3 [&>summary]:cursor-pointer [&>summary]:text-fg1 [&>summary]:font-semibold [&>summary]:focus-visible:outline-accent';
+  'border-bg3 rounded border p-3 [&>summary]:cursor-pointer [&>summary]:rounded [&>summary]:px-3 [&>summary]:py-1.5 [&>summary]:text-sm [&>summary]:text-fg1 [&>summary]:font-semibold [&>summary]:transition-colors [&>summary:hover]:bg-bg2 [&>summary:hover]:text-fg0 [&>summary]:focus-visible:outline-accent';
 
 function recordValue(quote?: string): Record<string, unknown> | null {
   try {
@@ -28,10 +31,44 @@ function recordValue(quote?: string): Record<string, unknown> | null {
 const text = (value: unknown) =>
   typeof value === 'string' && value ? value : t('Not recorded');
 
+function dateText(value: unknown, withTime = false) {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value))
+    ? (withTime ? formatDateTime : formatDate)(value)
+    : text(value);
+}
+
 function stageText(value: unknown) {
   return typeof value === 'string' && Object.hasOwn(historyStageLabels, value)
     ? historyStageLabels[value as StatusMeaning]
     : text(value);
+}
+
+function savedRoundLabel(round: Record<string, unknown>, report: Report) {
+  let key = round.round_builtin_key;
+  if (!Object.hasOwn(round, 'round_builtin_key')) {
+    // Older citation payloads omitted identity; use only the immutable report snapshot.
+    const matches =
+      report.evidence_snapshot?.metrics?.rounds?.filter((row) =>
+        [
+          'application_id',
+          'round_type',
+          'scheduled_at',
+          'completed_at',
+          'outcome',
+        ].every((field) => (row[field] ?? null) === (round[field] ?? null))
+      ) ?? [];
+    if (
+      matches.length &&
+      matches.every(
+        (row) => row.round_builtin_key === matches[0].round_builtin_key
+      )
+    )
+      key = matches[0].round_builtin_key;
+  }
+  return roundTypeLabel({
+    name: text(round.round_type),
+    builtin_key: typeof key === 'string' ? key : null,
+  });
 }
 
 function citationText(quote: string, timeZone?: string) {
@@ -203,9 +240,12 @@ export default function FeedbackFindings({
               <>
                 <details className={disclosure} open={index === first}>
                   <summary>{t('Better answer')}</summary>
-                  <p className="text-fg2 mt-3 text-xs">
-                    {t('Proposed wording · check the facts before using it')}
-                  </p>
+                  <div className="text-fg2 mt-3 flex items-center gap-2 text-xs">
+                    {t('Proposed wording')}
+                    <HelpTip label={t('Proposed wording')}>
+                      {t('Check the facts before using it.')}
+                    </HelpTip>
+                  </div>
                   <p className="mt-2 whitespace-pre-line">
                     {coaching.better_answer}
                   </p>
@@ -299,7 +339,7 @@ export default function FeedbackFindings({
                           </h5>
                           <p className="text-fg2 text-sm">
                             {text(record.role)} {t('· Applied')}{' '}
-                            {text(record.applied_at)}
+                            {dateText(record.applied_at)}
                           </p>
                           <p className="text-fg2 text-sm">
                             {t('Source:')} {text(record.source)}{' '}
@@ -324,10 +364,12 @@ export default function FeedbackFindings({
                             );
                             return round ? (
                               <p key={c} className="text-fg2 text-sm">
-                                {text(round.round_type)} {t('· Scheduled:')}{' '}
-                                {text(round.scheduled_at)} {t('· Completed:')}{' '}
-                                {text(round.completed_at)} {t('· Outcome:')}{' '}
-                                {text(round.outcome)}
+                                {savedRoundLabel(round, report)}{' '}
+                                {t('· Scheduled:')}{' '}
+                                {dateText(round.scheduled_at, true)}{' '}
+                                {t('· Completed:')}{' '}
+                                {dateText(round.completed_at, true)}{' '}
+                                {t('· Outcome:')} {text(round.outcome)}
                               </p>
                             ) : null;
                           })}

@@ -1,4 +1,5 @@
 import TextLink from '@/components/ui/TextLink';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -45,6 +46,7 @@ export default function CompanyDetail() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const company = query.data;
+  useUnsavedChanges(busy || culture !== null);
   return (
     <Layout>
       <div className="mx-auto max-w-4xl px-4 py-8">
@@ -68,7 +70,7 @@ export default function CompanyDetail() {
         ) : (
           company && (
             <>
-              <section className="bg-secondary mb-6 rounded-lg p-6">
+              <section className="bg-secondary mb-6 rounded-lg p-6 [overflow-wrap:anywhere]">
                 <div className="mb-1 flex flex-wrap items-center gap-3">
                   <h1 className="text-primary text-2xl font-bold">
                     {company.name}

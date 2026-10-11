@@ -39,6 +39,41 @@ afterEach(async () => {
   await i18n.changeLanguage('en');
 });
 
+it('wraps long unbroken reminder titles inside the row', () => {
+  const title = 'R'.repeat(250);
+  render(
+    <RemindersCard
+      reminders={[
+        {
+          id: 'long',
+          kind: 'recruiter_follow_up',
+          title,
+          due_at: '2026-10-08T09:00:00Z',
+          state: 'open',
+        },
+      ]}
+    />
+  );
+  const value = screen.getByText(title);
+  expect(value).toHaveClass('min-w-0', '[overflow-wrap:anywhere]');
+  expect(value.parentElement?.parentElement).toHaveClass('min-w-0');
+});
+
+it('keeps the note field separate from its editor and bounds long custom contact roles', () => {
+  render(
+    <>
+      <NotesPanel notes={[]} onAdd={vi.fn()} />
+      <ContactRow name="Short" role={'R'.repeat(96)} />
+    </>
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Add note' }));
+  expect(screen.getByRole('textbox', { name: 'Note' })).toHaveClass('bg-bg3');
+  expect(screen.getByText('R'.repeat(96))).toHaveClass(
+    'min-w-0',
+    'max-w-full',
+    '[overflow-wrap:anywhere]'
+  );
+});
 it('loads area files and keeps complete English and Serbian keys', async () => {
   expect(Object.keys(sr).sort()).toEqual(Object.keys(en).sort());
   expect(Object.keys(dictionaries.en).sort()).toEqual(
@@ -208,7 +243,9 @@ describe('notes', () => {
     const input = screen.getByRole('textbox', { name: 'Note' });
     fireEvent.change(input, { target: { value: 'Draft' } });
     fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
-    await waitFor(() => expect(onAdd).toHaveBeenCalledWith('Draft'));
+    await waitFor(() =>
+      expect(onAdd).toHaveBeenCalledWith('Draft', expect.any(String))
+    );
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Could not save.'
     );

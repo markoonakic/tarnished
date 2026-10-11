@@ -19,6 +19,9 @@ class StatusCreate(BaseModel):
 
 
 class StatusUpdate(BaseModel):
+    expected_name: str | None = None
+    expected_color: str | None = None
+    expected_meaning: Meaning | None = None
     meaning: Meaning | None = None
     name: str | None = None
     color: str | None = None
@@ -63,6 +66,10 @@ class RoundTypeCreate(BaseModel):
         if not normalized:
             raise ValueError("Name cannot be empty")
         return normalized
+
+
+class RoundTypeUpdate(RoundTypeCreate):
+    expected_name: str | None = None
 
 
 class RoundTypeFullResponse(BaseModel):

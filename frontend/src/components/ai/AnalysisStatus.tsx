@@ -1,4 +1,5 @@
 import Button from '@/components/ui/Button';
+import HelpTip from '../HelpTip';
 import { useTranslation } from 'react-i18next';
 import type { JobAnalysisController } from '@/hooks/useJobAnalysis';
 export default function AnalysisStatus({
@@ -12,6 +13,7 @@ export default function AnalysisStatus({
     return (
       <p role="alert" className="text-yellow-bright my-3 text-sm">
         {t('ai.failed')}{' '}
+        <HelpTip label={t('ai.retryHelpLabel')}>{t('ai.retryHelp')}</HelpTip>
         <Button
           type="button"
           className="flex items-center gap-1.5"

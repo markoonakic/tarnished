@@ -115,3 +115,17 @@ describe('TimeZoneSettings', () => {
     });
   });
 });
+
+it('disables the time-zone field while its write is pending', async () => {
+  useUserPreferences.mockReturnValue({
+    data: { time_zone_mode: 'manual', time_zone: 'Europe/Paris' },
+  });
+  const mutate = vi.fn();
+  useUpdateUserPreferences.mockReturnValue({ mutate, isPending: true });
+  const { default: TimeZoneSettings } = await import('./TimeZoneSettings');
+  render(<TimeZoneSettings />);
+  expect(screen.getByRole('combobox', { name: 'Time Zone' })).toBeDisabled();
+  fireEvent.focus(screen.getByRole('combobox', { name: 'Time Zone' }));
+  expect(screen.queryByRole('option')).not.toBeInTheDocument();
+  expect(mutate).not.toHaveBeenCalled();
+});

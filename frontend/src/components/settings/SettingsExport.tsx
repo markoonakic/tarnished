@@ -21,6 +21,7 @@ export default function SettingsExport() {
   useTranslation();
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
+  const [zipJobId, setZipJobId] = useState<string | null>(null);
   const [zipTransferState, setZipTransferState] =
     useState<TransferState | null>(null);
 
@@ -50,7 +51,8 @@ export default function SettingsExport() {
     setExporting(true);
     setError('');
     try {
-      const { job_id } = await startZIPExportJob();
+      const job_id = zipJobId ?? (await startZIPExportJob()).job_id;
+      setZipJobId(job_id);
       while (true) {
         const job = await getZIPExportJobStatus(job_id);
         const state = createTransferStateFromJob(job);
@@ -59,10 +61,12 @@ export default function SettingsExport() {
         if (job.status === 'complete') {
           await downloadZIPExportJob(job_id);
           setZipTransferState(null);
+          setZipJobId(null);
           return;
         }
 
         if (job.status === 'failed') {
+          setZipJobId(null);
           throw new Error(
             job.message || job.error?.error || t('Failed to export data')
           );
@@ -123,7 +127,11 @@ export default function SettingsExport() {
             onClick={handleExportZIP}
             disabled={exporting}
           >
-            {exporting ? t('Exporting...') : t('Export ZIP (with files)')}
+            {exporting
+              ? t('Exporting...')
+              : zipJobId
+                ? t('Retry export')
+                : t('Export ZIP (with files)')}
           </Button>
         </div>
       </div>
