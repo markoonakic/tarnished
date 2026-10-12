@@ -40,7 +40,10 @@ from app.services.report_output import (
 def test_provider_schema_requires_every_field_and_forbids_unknown_fields(scope):
     sources = [{"data": {"profile": [], "posting": ""}}]
     schema = output_schema(
-        scope, citation_choices(sources if scope != "PIPELINE" else [], scope)
+        scope,
+        citation_choices(
+            sources if scope not in ("PIPELINE", "APPLICATION") else [], scope
+        ),
     )
     Draft202012Validator.check_schema(schema)
 

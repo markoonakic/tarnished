@@ -99,6 +99,7 @@
   "ai.field.recruiter_title": "Recruiter function",
   "ai.field.recruiter_linkedin_url": "Recruiter profile",
   "ai.field.posted_date": "Posted",
+  "ai.field.deadline": "Application deadline",
   "ai.category.review_topics": "Topics to review",
   "ai.category.technical_topics": "Technical topics",
   "ai.category.practice_questions": "Practice questions",

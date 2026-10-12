@@ -34,6 +34,7 @@ from app.schemas.interview_feedback import (
 )
 from app.services.ai_settings import CapabilitySettingsState
 from app.services.output_language import output_language_instruction
+from app.services.source_text import normalize_text
 
 MAX_RESPONSE_BYTES = 100_000
 # Compatible Responses services include large, unused reasoning summaries.
@@ -538,6 +539,7 @@ def log_validation_failure(exc, scope=None):
 def validate_section(
     value, sources, scope="INTERVIEW", *, require_current_contract=False
 ) -> dict:
+    value, sources = normalize_text(value), normalize_text(sources)
     try:
         if scope in ("EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
             from app.services.job_analyses import validate_output
@@ -874,7 +876,7 @@ def quote_matches(quote, source):
     Preserve exact fragments. For JSON compare parsed values (including decimal
     numbers), not whitespace inside strings. Plain prose may vary only in spacing.
     """
-    passage = source["text"]
+    quote, passage = normalize_text(quote), normalize_text(source["text"])
     if quote in passage:
         return True
     decoder = json.JSONDecoder(
@@ -897,7 +899,7 @@ def quote_matches(quote, source):
         quoted = None
     else:
         if values:
-            return _json_contains(quoted, values[0])
+            return _json_contains(normalize_text(quoted), normalize_text(values[0]))
         if structured or isinstance(quoted, dict):
             # A 4000-character source can end/start inside its enclosing array.
             # Only complete nonempty objects qualify; escaped JSON inside strings
@@ -907,7 +909,11 @@ def quote_matches(quote, source):
                     item, _ = decoder.raw_decode(passage, match.start())
                 except ValueError:
                     continue
-                if isinstance(item, dict) and item and _json_contains(quoted, item):
+                if (
+                    isinstance(item, dict)
+                    and item
+                    and _json_contains(normalize_text(quoted), normalize_text(item))
+                ):
                     return True
     if structured or quote.lstrip().startswith(("{", "[")):
         return False
@@ -967,7 +973,7 @@ def responses_output_text(payload) -> str:
 
 
 # Bump for validator-only contract changes. Prompt/schema edits change the hash too.
-OUTPUT_CONTRACT_REVISION = 6
+OUTPUT_CONTRACT_REVISION = 7
 
 
 def prompt_revision(scope):
@@ -1352,6 +1358,7 @@ def _validate_provider_section(section, choices, sources, scope):
 def _provider_request(sources, limits, scope, language):
     from app.services.report_output import MODELS, citation_choices, output_schema
 
+    sources = normalize_text(sources)
     choices = citation_choices(sources, scope)
     requirement_ids = (
         [item["id"] for item in sources[0]["data"].get("requirements", [])]
@@ -1363,7 +1370,13 @@ def _provider_request(sources, limits, scope, language):
         json.dumps(MODELS[scope].model_json_schema()), ""
     )
     data = {"sources": sources, "limitations": limits}
-    if scope in ("PIPELINE", "EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
+    if scope in (
+        "APPLICATION",
+        "PIPELINE",
+        "EXTRACTION",
+        "PROFILE_MATCH",
+        "PREPARATION",
+    ):
         system += (
             " The following provider schema uses citation selection instead of the stored quote objects described above. "
             "Select exact original evidence by its integer key in citation_choices; never write or reconstruct a quote. "
@@ -1378,6 +1391,11 @@ def _provider_request(sources, limits, scope, language):
                 "All these values are keys in citation_choices, NOT positions in a finding's citations array. "
                 "Do not output record_citation or round_citations: the server creates those stored pointers from your selections. "
                 "Keep the total selected metric, application and round choices within sixteen per finding. "
+            )
+        elif scope == "APPLICATION":
+            system += (
+                " Findings.citations selects original application, requirement, history, round, document or profile passages. "
+                "context_citations still selects zero-based positions in this finding's citations array, not choice keys. "
             )
         elif scope == "EXTRACTION":
             system += (

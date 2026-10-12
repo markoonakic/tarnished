@@ -63,6 +63,7 @@ FieldName = Literal[
     "recruiter_title",
     "recruiter_linkedin_url",
     "posted_date",
+    "deadline",
 ]
 Category = Literal[
     "review_topics",
@@ -141,7 +142,7 @@ class Proposal(Strict):
             raise PydanticCustomError("proposal_option", "Invalid option")
         if len(value) > PROPOSAL_STRING_LIMITS.get(field, 4000):
             raise PydanticCustomError("proposal_length", "Value too long")
-        if field == "posted_date":
+        if field in ("posted_date", "deadline"):
             from datetime import date
 
             try:

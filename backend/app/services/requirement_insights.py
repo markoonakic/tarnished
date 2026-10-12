@@ -2,6 +2,8 @@
 
 from collections import Counter
 
+from app.services.source_text import explicit_deadlines, quoted_dates
+
 
 def source_hash(application):
     from app.services.interview_evidence import fingerprint
@@ -14,6 +16,13 @@ def current_requirements(record):
     items = []
     for item in record.confirmed_requirements or []:
         if not isinstance(item, dict) or item.get("source_hash", digest) != digest:
+            continue
+        # Old extraction drafts could file apply-by dates as candidate conditions.
+        # They are scheduling facts, not qualifications, even before re-extraction.
+        if explicit_deadlines(str(item.get("text") or "")) or (
+            quoted_dates(str(item.get("text") or ""))
+            & {day for day, _ in explicit_deadlines(str(item.get("quote") or ""))}
+        ):
             continue
         projection = {
             "must_have": "requirements_must_have",

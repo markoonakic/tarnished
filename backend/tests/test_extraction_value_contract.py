@@ -65,13 +65,23 @@ def test_every_field_has_a_matching_value_contract(field):
         else SCALAR_OPTIONS[field][0]
         if field in SCALAR_OPTIONS
         else "2026-10-12"
-        if field == "posted_date"
+        if field in ("posted_date", "deadline")
         else "Text"
     )
-    wire = wire_items(item(field, value))
+    quote = (
+        next(key for key, item in CHOICES.items() if "Apply by" in item["quote"])
+        if field == "deadline"
+        else 0
+    )
+    if field == "deadline":
+        value = "2026-12-15"
+    wire = wire_items(item(field, value, quote))
     VALIDATOR.validate(wire)
     resolved = resolve_citations(wire, CHOICES, "EXTRACTION")
-    assert text.validate_section(resolved, SOURCES, "EXTRACTION") == resolved
+    saved = text.validate_section(resolved, SOURCES, "EXTRACTION")
+    assert all(proposal["quote"] in POSTING for proposal in saved["items"])
+    if field in LIST_FIELDS:
+        assert saved["items"][0]["value"] in saved["items"][0]["quote"]
     assert resolved["items"][0]["field"] == field
     # Integers belong only to pay fields; text belongs to every other field.
     wrong_type = "1200" if isinstance(value, int) else 1200
@@ -184,7 +194,9 @@ async def test_matrix_pay_and_compare_flow_on_both_transports(protocol):
             text_settings(endpoint, protocol), SOURCES, [], "EXTRACTION"
         )
     assert len(calls) == 1
-    assert extracted == resolve_citations(wire, CHOICES, "EXTRACTION")
+    assert extracted == text.validate_section(
+        resolve_citations(wire, CHOICES, "EXTRACTION"), SOURCES, "EXTRACTION"
+    )
     assert all(proposal["quote"] in POSTING for proposal in extracted["items"])
     requirement = next(
         proposal for proposal in extracted["items"] if proposal["field"] == "must_have"
@@ -275,10 +287,20 @@ def test_total_proposal_bound_and_structural_ids_remain_strict():
     with pytest.raises(ValueError):
         text.validate_section(resolved, SOURCES, "EXTRACTION")
     wire["items"]["nice_to_have"].pop()
+    # A discovered deadline counts toward the same total; no proposal is dropped.
+    with pytest.raises(ValueError):
+        text.validate_section(
+            resolve_citations(wire, CHOICES, "EXTRACTION"), SOURCES, "EXTRACTION"
+        )
+    bounded_sources = [
+        {"data": {"posting": POSTING.replace("Apply by 2026-12-15.", "")}}
+    ]
     assert (
         len(
             text.validate_section(
-                resolve_citations(wire, CHOICES, "EXTRACTION"), SOURCES, "EXTRACTION"
+                resolve_citations(wire, CHOICES, "EXTRACTION"),
+                bounded_sources,
+                "EXTRACTION",
             )["items"]
         )
         == 100

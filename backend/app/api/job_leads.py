@@ -591,12 +591,15 @@ async def convert_job_lead_to_application(
             )
         raise _conflict(job_lead_id)
 
-    # Step 4: Create an Application from the job lead data
+    # Step 4: Create an Application from clean, source-backed lead values.
+    from app.services.job_analyses import conversion_text
+
+    clean = await conversion_text(db, job_lead)
     application = Application(
         user_id=user.id,
         company=job_lead.company,
         job_title=job_lead.title,
-        job_description=job_lead.description,
+        job_description=clean["description"],
         job_url=job_lead.url,
         job_lead_id=job_lead.id,
         status_id=default_status.id,
@@ -610,14 +613,14 @@ async def convert_job_lead_to_application(
         recruiter_name=job_lead.recruiter_name,
         recruiter_title=job_lead.recruiter_title,
         recruiter_linkedin_url=job_lead.recruiter_linkedin_url,
-        requirements_must_have=job_lead.requirements_must_have or [],
-        requirements_nice_to_have=job_lead.requirements_nice_to_have or [],
+        requirements_must_have=clean["requirements_must_have"],
+        requirements_nice_to_have=clean["requirements_nice_to_have"],
         skills=job_lead.skills or [],
         years_experience_min=job_lead.years_experience_min,
         years_experience_max=job_lead.years_experience_max,
         source=job_lead.source,
-        source_text=job_lead.source_text,
-        confirmed_requirements=job_lead.confirmed_requirements,
+        source_text=clean["source_text"],
+        confirmed_requirements=clean["confirmed_requirements"],
         requirements_revision=job_lead.requirements_revision,
         **{field: getattr(job_lead, field) for field in JOB_FIELDS},
     )

@@ -19,6 +19,7 @@ from app.services.analytics_queries import (
 )
 from app.services.media_intake import run_media_process
 from app.services.profile_items import legacy_ai_profile
+from app.services.source_text import normalize_text
 
 APP_FIELDS = (
     "company",
@@ -455,6 +456,7 @@ def _append_source(sources, source_id, kind, text, **metadata):
         return
     if not isinstance(text, str):
         text = json.dumps(text, default=str, ensure_ascii=False)
+    text = normalize_text(text)
     for offset in range(0, len(text), 4000):
         sources.append(
             {
@@ -476,7 +478,7 @@ def _compact_record(record):
     """
     compact = {
         field: value if value is None or isinstance(value, (str, bool)) else str(value)
-        for field, value in record.items()
+        for field, value in normalize_text(record).items()
     }
     for field, value in compact.items():
         if not isinstance(value, str) or field == "application_id":

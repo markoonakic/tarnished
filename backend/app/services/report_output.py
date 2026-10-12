@@ -20,6 +20,7 @@ from app.schemas.job_analysis import (
     Match,
     Preparation,
 )
+from app.services.source_text import normalize_text
 
 MODELS = {
     "INTERVIEW": InterviewOutputSection,
@@ -33,6 +34,7 @@ MODELS = {
 
 def citation_choices(sources, scope):
     """Select original substrings only; never serialize or reconstruct a quote."""
+    sources = normalize_text(sources)
     choices = {}
 
     def add(reference, quote):
@@ -77,6 +79,17 @@ def citation_choices(sources, scope):
                     if end - start <= 2000:
                         add(reference, passage[start:end])
                         covered_until = end
+    elif scope == "APPLICATION":
+        for source in sources:
+            reference = {"source_id": source["id"]}
+            passage = source["text"]
+            add(reference, passage)
+            # Continuous original passages, including JSON escapes, not retyped
+            # Serbian prose. The same source/chunk checks still apply on storage.
+            for match in re.finditer(r".+?(?:[.!?](?=\s|$)|\n|$)", passage, re.S):
+                sentence = match.group()
+                for start in range(0, len(sentence), 1000):
+                    add(reference, sentence[start : start + 1000])
     elif scope in ("EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
         data = sources[0]["data"]
         items = (
@@ -111,7 +124,7 @@ def output_schema(scope, choices, *, requirement_ids=None):
         "maximum": max(len(choices) - 1, 0),
         "description": "Select the index of an exact supplied citation choice. Do not write a quote.",
     }
-    if scope in ("PIPELINE", "PROFILE_MATCH", "PREPARATION"):
+    if scope in ("APPLICATION", "PIPELINE", "PROFILE_MATCH", "PREPARATION"):
         schema["$defs"]["Citation"] = selection
     if scope == "EXTRACTION":
         # Bind values to structural field keys, not overlapping anyOf objects.
@@ -129,7 +142,7 @@ def output_schema(scope, choices, *, requirement_ids=None):
                 value = {"type": "integer", "minimum": 0, "maximum": MAX_PAY}
             elif field in SCALAR_OPTIONS:
                 value["enum"] = list(SCALAR_OPTIONS[field])
-            elif field == "posted_date":
+            elif field in ("posted_date", "deadline"):
                 value.update(format="date", pattern=r"^\d{4}-\d{2}-\d{2}$")
             entry = {
                 "type": "object",
@@ -237,6 +250,11 @@ def resolve_citations(output, choices, scope):
                 step["round_citations"] = [
                     position(citations, choice) for choice in rounds
                 ]
+    elif scope == "APPLICATION":
+        findings = value.get("findings")
+        for finding in findings if isinstance(findings, list) else []:
+            if isinstance(finding, dict) and isinstance(finding.get("citations"), list):
+                finding["citations"] = [resolve(c) for c in finding["citations"]]
     elif scope == "EXTRACTION":
         items = value.get("items")
         if isinstance(items, dict):
