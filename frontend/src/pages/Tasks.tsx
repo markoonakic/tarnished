@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import TextLink from '@/components/ui/TextLink';
 import { formatDate } from '@/lib/displayDate';
@@ -143,7 +144,7 @@ export default function Tasks() {
   function openNew(deadline?: Deadline) {
     setRelated('');
     setModal({
-      intent: crypto.randomUUID(),
+      intent: randomId(),
       target: deadline
         ? { type: deadline.target_type, id: deadline.id }
         : undefined,

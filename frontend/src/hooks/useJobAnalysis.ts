@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isAxiosError } from 'axios';
@@ -90,7 +91,7 @@ export function useJobAnalysis(
           i18n.language === 'sr-Latn' ? 'sr-Latn' : 'en'
         );
         if (currentScope.current !== scope) return;
-        attempt.current = { analysis: created, intent: crypto.randomUUID() };
+        attempt.current = { analysis: created, intent: randomId() };
       }
       const value = await analysesApi.run(
         attempt.current.analysis,

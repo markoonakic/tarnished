@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import { invalidateEvidenceQueries } from './queryClient';
 import api, { withAxiosTimeZoneHeaders } from './api';
 import type { Round, RoundCreate, RoundUpdate } from './types';
@@ -60,7 +61,7 @@ function recordingKey(roundId: string, file: File, replaceMediaId?: string) {
     recordingKeys.set(file, keys);
   }
   const intent = roundId + ':' + (replaceMediaId ?? '');
-  if (!keys.has(intent)) keys.set(intent, crypto.randomUUID());
+  if (!keys.has(intent)) keys.set(intent, randomId());
   return keys.get(intent)!;
 }
 

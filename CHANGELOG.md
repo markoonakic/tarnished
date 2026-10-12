@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.11] - 2026-10-12
+
+### Fixed
+
+- Stop a crash on self-hosted installs opened over plain HTTP (for example a LAN or VPN address). Request keys no longer need `crypto.randomUUID`, which browsers offer only on HTTPS or localhost. A lint rule keeps the call out of the app.
+
 ## [0.3.10] - 2026-10-11
 
 ### Added

@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { formatDateTime } from '@/lib/displayDate';
 import { useLayoutEffect, useRef, useState } from 'react';
@@ -74,10 +75,10 @@ export default function NotesPanel({
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
-  const requestKey = useRef(crypto.randomUUID());
+  const requestKey = useRef(randomId());
   useUnsavedChanges(busy || (editing !== null && Boolean(body.trim())));
   function start(id: string, text = '') {
-    requestKey.current = crypto.randomUUID();
+    requestKey.current = randomId();
     setEditing(id);
     setBody(text);
     setError(false);

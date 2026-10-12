@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import HelpTip from './HelpTip';
@@ -51,7 +52,7 @@ export default function ApplicationModal({
   useTranslation();
   const isEditing = Boolean(application);
   const initializedFormKeyRef = useRef<string | null>(null);
-  const requestKey = useRef(crypto.randomUUID());
+  const requestKey = useRef(randomId());
   const [formApplication, setFormApplication] = useState(application);
   const [metadata, setMetadata] = useState(() => jobMetadata(application));
   const [location, setLocation] = useState(application?.location || '');
@@ -196,7 +197,7 @@ export default function ApplicationModal({
       return;
     }
 
-    requestKey.current = crypto.randomUUID();
+    requestKey.current = randomId();
     setFormApplication(application);
     setMetadata(jobMetadata(application));
     setLocation(application?.location || '');

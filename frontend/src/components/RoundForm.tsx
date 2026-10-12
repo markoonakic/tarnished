@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import { historyInstant } from '@/lib/historyDateTime';
@@ -120,7 +121,7 @@ function RoundFormFields({
   const [roundTypes, setRoundTypes] = useState<RoundType[]>([]);
   const [loading, setLoading] = useState(false);
   const submitting = useRef(false);
-  const [requestKey] = useState(() => crypto.randomUUID());
+  const [requestKey] = useState(() => randomId());
   const [transcriptGeneration, setTranscriptGeneration] = useState(
     round?.transcript_generation ?? 0
   );

@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useCallback, useEffect, useState } from 'react';
@@ -535,7 +536,7 @@ export default function Profile() {
             : {}),
         }
       : {
-          id: crypto.randomUUID(),
+          id: randomId(),
           ...(section === 'projects' ? { kind: 'personal' } : {}),
         };
     setEntry({
@@ -594,7 +595,7 @@ export default function Profile() {
           data[field.key] = tags(value).map(
             (name) =>
               previous.find((item) => item.name === name) ?? {
-                id: crypto.randomUUID(),
+                id: randomId(),
                 name,
               }
           );

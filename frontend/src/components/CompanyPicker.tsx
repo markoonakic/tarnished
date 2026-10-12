@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import { useState } from 'react';
 import { queryClient } from '@/lib/queryClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -26,7 +27,7 @@ export default function CompanyPicker({
     queryClient
   );
   const [busy, setBusy] = useState(false);
-  const [requestKey, setRequestKey] = useState(() => crypto.randomUUID());
+  const [requestKey, setRequestKey] = useState(() => randomId());
   const [error, setError] = useState('');
   const options = (query.data ?? []).map((company) => ({
     value: company.id,
@@ -60,7 +61,7 @@ export default function CompanyPicker({
             const company = await apiV030.createCompany({ name }, requestKey);
             await client.invalidateQueries({ queryKey: ['companies'] });
             onChange(company.id, company.name);
-            setRequestKey(crypto.randomUUID());
+            setRequestKey(randomId());
           } catch (error) {
             setError(failureMessage(error));
           } finally {

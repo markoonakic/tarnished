@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -83,7 +84,7 @@ export default function TargetReminders({
         due_date: parsed.date,
         due_time: isInterview ? parsed.time : '09:00',
       },
-      intent: crypto.randomUUID(),
+      intent: randomId(),
     });
   };
   const shortcutButtons = shortcuts.length > 0 && (
@@ -149,7 +150,7 @@ export default function TargetReminders({
             zone
               ? () =>
                   setModal({
-                    intent: crypto.randomUUID(),
+                    intent: randomId(),
                     draft: { title: t('tasks.followUp', { name: label }) },
                   })
               : undefined

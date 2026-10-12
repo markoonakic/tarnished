@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import TextLink from '@/components/ui/TextLink';
 import Button from '@/components/ui/Button';
 import { useRef, useState } from 'react';
@@ -25,7 +26,7 @@ export default function InterviewParticipants({
   const { t } = useTranslation();
   const client = useQueryClient();
   const [adding, setAdding] = useState(false);
-  const [requestKey, setRequestKey] = useState(() => crypto.randomUUID());
+  const [requestKey, setRequestKey] = useState(() => randomId());
   const [error, setError] = useState(false);
   const [creating, setCreating] = useState(false);
   const createLock = useRef(false);
@@ -121,7 +122,7 @@ export default function InterviewParticipants({
                 },
                 requestKey
               );
-              setRequestKey(crypto.randomUUID());
+              setRequestKey(randomId());
               await client.invalidateQueries({
                 queryKey: ['interview-participants'],
               });

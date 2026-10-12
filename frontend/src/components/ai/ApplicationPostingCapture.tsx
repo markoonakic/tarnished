@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useRef, useState } from 'react';
@@ -19,7 +20,7 @@ export default function ApplicationPostingCapture({
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [requestKey] = useState(() => crypto.randomUUID());
+  const [requestKey] = useState(() => randomId());
   const [mode, setMode] = useState('url');
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');

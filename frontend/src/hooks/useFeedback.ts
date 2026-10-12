@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import { language, t } from '@/lib/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -234,7 +235,7 @@ export function useFeedback<T extends FeedbackState = FeedbackState>(
         ? { ...old, phase: 'starting', error: undefined }
         : {
             scope: scopeIdentity,
-            id: crypto.randomUUID(),
+            id: randomId(),
             body: { ...requestBody(state), language: language() },
             phase: 'starting',
           };

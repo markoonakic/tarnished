@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Dropdown from './Dropdown';
 import HelpTip from './HelpTip';
 import Button from '@/components/ui/Button';
@@ -136,7 +137,7 @@ export default function TranscriptionPanel({
     )
       return;
     const key = job?.id ?? selectedId!;
-    const intent = intents.current[key] ?? crypto.randomUUID();
+    const intent = intents.current[key] ?? randomId();
     intents.current[key] = intent;
     submitting.current = true;
     setBusy(true);

@@ -8,6 +8,21 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 export default defineConfig([
   globalIgnores(['dist']),
   {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/**/*.test.{ts,tsx}', 'src/lib/randomId.ts'],
+    rules: {
+      // Only secure contexts have crypto.randomUUID; plain-HTTP installs crash.
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'crypto',
+          property: 'randomUUID',
+          message: 'Use randomId() from @/lib/randomId.',
+        },
+      ],
+    },
+  },
+  {
     files: ['src/**/*.tsx'],
     ignores: ['src/**/*.test.tsx', 'src/components/ui/**'],
     rules: {
