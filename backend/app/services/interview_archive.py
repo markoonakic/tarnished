@@ -663,6 +663,20 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
         inverse[new_segment_id] = old_segment_id
     skipped = 0
 
+    async def pipeline_variants(data, *, include_workspace_metrics=True):
+        # Both representations are rebuilt from checked data. This is local
+        # legacy verification, not permission to send unbounded records.
+        return [
+            (
+                await pipeline_evidence_sources(
+                    data,
+                    include_workspace_metrics=include_workspace_metrics,
+                    compact_records=compact,
+                )
+            )[0]
+            for compact in (True, False)
+        ]
+
     def verify_content(report, candidates, *, input_sources=None):
         _verify_report_sources(report, candidates)
         if input_sources is not None:
@@ -784,11 +798,12 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
             if archived_report and archived_report.get("evidence_snapshot") is not None:
                 # The input was checked before mutation. It includes the original
                 # IDs and permissions, which import intentionally does not restore.
-                expected, _ = await pipeline_evidence_sources(
-                    archived_report["evidence_snapshot"]
-                )
+                expected = await pipeline_variants(archived_report["evidence_snapshot"])
                 try:
-                    verify_content(report, [{s["id"]: s["text"] for s in expected}])
+                    verify_content(
+                        report,
+                        [{s["id"]: s["text"] for s in variant} for variant in expected],
+                    )
                 except ValueError:
                     skipped += 1
                     await db.execute(
@@ -800,7 +815,7 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
             data["metrics"].update(
                 _archived_pipeline_insights(models, data["metrics"], inverse)
             )
-            expected, _ = await pipeline_evidence_sources(data)
+            expected = await pipeline_variants(data)
             historical = []
             if archived_report and archived_report.get("evidence_snapshot") is None:
                 historical_data, _ = await pipeline_snapshot(
@@ -817,8 +832,8 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
                         models, historical_data["metrics"], inverse
                     )
                 )
-                historical, _ = await pipeline_evidence_sources(historical_data)
-            legacy_metrics, _ = await pipeline_evidence_sources(
+                historical = await pipeline_variants(historical_data)
+            legacy_metrics = await pipeline_variants(
                 data, include_workspace_metrics=False
             )
             # Older archives can cite unfiltered profile data; verify it locally only.
@@ -842,11 +857,10 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
                 verify_content(
                     report,
                     [
-                        _expected_index(expected, pipeline_inverse),
-                        _expected_index(legacy_metrics, pipeline_inverse),
-                        _expected_index(legacy_profile, pipeline_inverse),
-                        _expected_index(historical, pipeline_inverse),
-                    ],
+                        _expected_index(variant, pipeline_inverse)
+                        for variant in expected + legacy_metrics + historical
+                    ]
+                    + [_expected_index(legacy_profile, pipeline_inverse)],
                 )
             except ValueError:
                 skipped += 1
@@ -863,10 +877,14 @@ async def verify_restored_report_text(db, user_id, export_data, id_mapper, segme
             if historical:
                 candidates.append(historical_data)
             for candidate in candidates:
-                candidate_sources, _ = await pipeline_evidence_sources(candidate)
+                candidate_sources = await pipeline_variants(candidate)
                 try:
                     _verify_report_sources(
-                        report, [_expected_index(candidate_sources, pipeline_inverse)]
+                        report,
+                        [
+                            _expected_index(variant, pipeline_inverse)
+                            for variant in candidate_sources
+                        ],
                     )
                 except ValueError:
                     continue

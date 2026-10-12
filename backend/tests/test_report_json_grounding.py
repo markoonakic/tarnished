@@ -57,12 +57,14 @@ async def test_reordered_complete_record_and_metric_subset_are_grounded():
     for citation in citations[1:]:
         record = json.loads(citation["quote"])
         citation["quote"] = json.dumps(dict(reversed(list(record.items()))), indent=2)
-    assert (
+    assert text.validate_section(section, sources, "PIPELINE") == section
+    # Older saved JSON formatting stays readable. New compact record citations
+    # must copy the exact original text, not a reserialized equivalent.
+    with pytest.raises(text.SectionValidationError) as error:
         text.validate_section(
             section, sources, "PIPELINE", require_current_contract=True
         )
-        == section
-    )
+    assert error.value.rule == text.ValidationRule.QUOTE_MISMATCH
 
 
 @pytest.mark.parametrize(

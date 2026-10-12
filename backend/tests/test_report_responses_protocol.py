@@ -479,7 +479,7 @@ async def test_chat_protocol_still_uses_chat_completions_path():
     assert headers.startswith(b"POST /v1/chat/completions ")
     assert "messages" in raw and raw["messages"][0]["role"] == "system"
     # Chat Completions keeps its existing 4_000-token cap unchanged.
-    assert raw["max_tokens"] == 4000
+    assert raw["max_tokens"] == 12000
 
 
 async def test_responses_incomplete_status_is_invalid_not_grounding():

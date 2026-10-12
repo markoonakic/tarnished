@@ -365,6 +365,16 @@ def pipeline_sections(sources):
     return _batched(sources, context_kinds=("pipeline_metrics", "profile"))
 
 
+def _record_ids(source, array):
+    # Older source chunks can end inside a record. They are not linked context.
+    try:
+        return {
+            record["application_id"] for record in json.loads(source["text"])[array]
+        }
+    except (ValueError, KeyError, TypeError):
+        return set()
+
+
 def _batched(sources, *, context_kinds):
     # Reuse bounded context without rewriting original passage references.
     context = []
@@ -392,7 +402,52 @@ def _batched(sources, *, context_kinds):
         batches.append(batch)
     if len(batches) > 128:
         raise HTTPException(422, "Evidence exceeds 128 analysis sections")
-    return [batch + [s for s in context if s not in batch] for batch in batches]
+    sections = []
+    for batch in batches:
+        related = []
+        if "pipeline_metrics" in context_kinds:
+            # A rounds-only section still needs the same application's compact record.
+            identities = set().union(
+                *[
+                    _record_ids(source, "rounds")
+                    for source in batch
+                    if source["id"].startswith("pipeline:rounds:")
+                ]
+            )
+            related = [
+                source
+                for source in sources
+                if source["id"].startswith("pipeline:recorded_approaches:")
+                and identities.intersection(_record_ids(source, "applications"))
+            ]
+        else:
+            # Keep the recorded question with a later candidate-answer section.
+            question = None
+            for source in sources:
+                if (
+                    source["kind"] == "transcript"
+                    and source.get("role") == "interviewer"
+                ):
+                    question = source
+                if (
+                    source in batch
+                    and source.get("role") == "candidate"
+                    and question
+                    and question not in related
+                ):
+                    related.append(question)
+        selected = []
+        # Keep a deterministic metric/requirement first, then linked records/questions.
+        core = [s for s in context if s["kind"] == context_kinds[0]][:1]
+        for source in core + related + context:
+            if (
+                source not in batch
+                and source not in selected
+                and sum(len(s["text"]) for s in selected) + len(source["text"]) <= 12000
+            ):
+                selected.append(source)
+        sections.append(batch + selected)
+    return sections
 
 
 def _append_source(sources, source_id, kind, text, **metadata):
@@ -408,6 +463,68 @@ def _append_source(sources, source_id, kind, text, **metadata):
                 "text": text[offset : offset + 4000],
                 "offset": offset,
                 **metadata,
+            }
+        )
+
+
+def _compact_record(record):
+    """Bound the source representation before dispatch, never a returned quote.
+
+    Each JSON string value has a 200-character encoded budget. Even escaped
+    controls fit; the fixed eight-field application object stays below 2000.
+    Display values that need shortening are explicit excerpts, not raw records.
+    """
+    compact = {
+        field: value if value is None or isinstance(value, (str, bool)) else str(value)
+        for field, value in record.items()
+    }
+    for field, value in compact.items():
+        if not isinstance(value, str) or field == "application_id":
+            continue
+        if len(json.dumps(value, ensure_ascii=False)) <= 200:
+            continue
+        size, chars = 3, []  # JSON quotes and the visible excerpt marker.
+        for char in value:
+            size += len(json.dumps(char, ensure_ascii=False)) - 2
+            if size > 200:
+                break
+            chars.append(char)
+        compact[field] = "".join(chars) + "…"
+    return compact
+
+
+def _append_records(sources, source_id, array, records):
+    """Pack complete compact records, never split an inner JSON object."""
+    batch, offset = [], 0
+    for record in records:
+        compact = _compact_record(record)
+        if len(json.dumps(compact, ensure_ascii=False)) > 2000:
+            raise HTTPException(422, "Pipeline record exceeds citation bounds")
+        candidate = json.dumps({array: [*batch, compact]}, ensure_ascii=False)
+        if batch and len(candidate) > 4000:
+            passage = json.dumps({array: batch}, ensure_ascii=False)
+            sources.append(
+                {
+                    "id": f"{source_id}:{offset}",
+                    "kind": "pipeline_record",
+                    "text": passage,
+                    "offset": offset,
+                }
+            )
+            # Stable 4000-character source slots match the archive ID contract.
+            offset += 4000
+            batch = []
+        batch.append(compact)
+    if batch:
+        if offset > MAX_SOURCE_CHARS:
+            raise HTTPException(422, "Pipeline record offsets exceed archive bounds")
+        passage = json.dumps({array: batch}, ensure_ascii=False)
+        sources.append(
+            {
+                "id": f"{source_id}:{offset}",
+                "kind": "pipeline_record",
+                "text": passage,
+                "offset": offset,
             }
         )
 
@@ -477,7 +594,9 @@ async def application_evidence_sources(
     return sources, limits
 
 
-async def pipeline_evidence_sources(data, *, include_workspace_metrics=True):
+async def pipeline_evidence_sources(
+    data, *, include_workspace_metrics=True, compact_records=True
+):
     metrics = data["metrics"]
     sources = []
     limits = [
@@ -559,7 +678,17 @@ async def pipeline_evidence_sources(data, *, include_workspace_metrics=True):
         }
         for app in (metrics.get("applications") or [])
     ]
-    add("pipeline:recorded_approaches", "pipeline_record", {"applications": approaches})
+    if compact_records:
+        _append_records(
+            sources, "pipeline:recorded_approaches", "applications", approaches
+        )
+    else:
+        # Local archive verification only; new requests always use compact sources.
+        add(
+            "pipeline:recorded_approaches",
+            "pipeline_record",
+            {"applications": approaches},
+        )
     by_source: dict[str | None, Counter[str]] = {}
     for application in approaches:
         stages = by_source.setdefault(application["source"], Counter())
@@ -589,7 +718,13 @@ async def pipeline_evidence_sources(data, *, include_workspace_metrics=True):
         }
         for r in (metrics.get("rounds") or [])
     ]
-    add("pipeline:rounds", "pipeline_record", {"rounds": rounds})
+    if compact_records:
+        _append_records(sources, "pipeline:rounds", "rounds", rounds)
+    else:
+        add("pipeline:rounds", "pipeline_record", {"rounds": rounds})
+    limits.append(
+        "Record coaching uses compact source records, not full application details. Values ending in … are excerpts; omitted notes, contacts, descriptions and history are not evidence."
+    )
     if not data["profile"] or not data["profile"].get("work_history"):
         limits.append("No recorded profile experience; do not invent an achievement.")
     add(

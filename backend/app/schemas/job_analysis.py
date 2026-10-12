@@ -1,6 +1,6 @@
 """Small bounded contracts shared by transport validation and review."""
 
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import (
@@ -106,7 +106,7 @@ class ConfirmRequirements(Strict):
 class Proposal(Strict):
     id: str = Field(min_length=1, max_length=80)
     field: FieldName
-    value: StrictStr | StrictInt
+    value: Annotated[StrictStr, Field(min_length=1, max_length=4000)] | StrictInt
     quote: str = Field(min_length=1, max_length=2000)
 
     @model_validator(mode="after")

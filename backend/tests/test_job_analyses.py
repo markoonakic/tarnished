@@ -12,7 +12,7 @@ from tests.test_workspace_v030 import post
 from tests.test_workspace_v030 import workspace as workspace
 
 from app.core.deps import AuthContext
-from app.models import Application, JobLead, Round, RoundType, UserProfile
+from app.models import Application, InterviewJob, JobLead, Round, RoundType, UserProfile
 from app.models.job_analysis import JobAnalysis
 from app.schemas.ai_settings import AISettingsUpdate
 from app.schemas.job_analysis import (
@@ -454,3 +454,52 @@ async def test_archive_inert_and_compatibility_path(client, db, workspace):
     assert restored.application_id != row.application_id
     assert restored.review_state == "imported" and not restored.fingerprint
     assert restored.draft == extraction()
+
+
+async def test_oversized_confirmed_matrix_is_rejected_before_queueing(
+    client, db, workspace
+):
+    user, headers, _, _, statuses = workspace
+    app_data = await post(
+        client,
+        "/applications",
+        {
+            "company": "North",
+            "job_title": "Developer",
+            "status_id": statuses["applied"],
+        },
+        headers,
+    )
+    record = await db.get(Application, app_data["id"])
+    record.confirmed_requirements = [
+        {"id": f"r-{index}", "type": "experience", "text": "Python"}
+        for index in range(101)
+    ]
+    db.add(
+        UserProfile(
+            user_id=user.id,
+            projects=[
+                {"id": str(uuid4()), "name": "Ledger", "description": "Python service"}
+            ],
+        )
+    )
+    await db.commit()
+    row = await service.create(
+        db, user.id, CreateAnalysis(kind="PROFILE_MATCH", application_id=record.id)
+    )
+    await db.commit()
+    with pytest.raises(HTTPException) as error:
+        await service.start(
+            db,
+            AuthContext(user=user, auth_method="jwt"),
+            row,
+            RunAnalysis(intent_id=uuid4(), expected_revision=0),
+        )
+    assert error.value.status_code == 422
+    assert "at most 100" in error.value.detail
+    assert (
+        await db.scalar(
+            select(InterviewJob.id).where(InterviewJob.analysis_id == row.id)
+        )
+        is None
+    )

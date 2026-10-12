@@ -20,11 +20,13 @@ from pydantic import ValidationError
 
 from app.schemas.interview_feedback import (
     ApplicationCoaching,
+    ApplicationOutputSection,
     ApplicationSection,
     InputApplicationSection,
     InputInterviewSection,
     InputPipelineSection,
     InterviewCoaching,
+    InterviewOutputSection,
     InterviewSection,
     PipelineCoaching,
     PipelineOutputSection,
@@ -40,7 +42,7 @@ MAX_REPORT_ENVELOPE_BYTES = 400_000
 
 # Responses includes reasoning tokens in its output budget.
 RESPONSES_MAX_OUTPUT_TOKENS = 12_000
-# Whole-pipeline comparisons need more reasoning headroom than a single record.
+# Pipeline comparisons and exact 100-row matrices need more output/reasoning headroom.
 # Token, text, envelope and time limits remain hard caps; there are no retries.
 RESPONSES_PIPELINE_MAX_OUTPUT_TOKENS = 32_000
 
@@ -188,7 +190,7 @@ def finding_citations(finding):
         yield question
 
 
-def _record_citation(finding, index, lookup, kind):
+def _record_citation(finding, index, lookup, kind, *, require_exact=False):
     if index >= len(finding.citations):
         raise SectionValidationError(ValidationRule.RECORD_INDEX)
     citation = finding.citations[index]
@@ -197,9 +199,12 @@ def _record_citation(finding, index, lookup, kind):
         f"pipeline:{kind}:"
     ):
         raise SectionValidationError(ValidationRule.RECORD_SOURCE)
-    return _record_value(
+    record = _record_value(
         json.loads(citation.quote, object_pairs_hook=unique_object), kind
     )
+    if require_exact and citation.quote not in source["text"]:
+        raise SectionValidationError(ValidationRule.QUOTE_MISMATCH)
+    return record
 
 
 _RECORD_CITATION_CONTRACT = {
@@ -636,7 +641,11 @@ def _validate_section(
                 raise SectionValidationError(ValidationRule.METRIC)
             for step in coaching.records:
                 record = _record_citation(
-                    finding, step.record_citation, lookup, "recorded_approaches"
+                    finding,
+                    step.record_citation,
+                    lookup,
+                    "recorded_approaches",
+                    require_exact=require_current_contract,
                 )
                 step.round_citations = [
                     index
@@ -644,7 +653,13 @@ def _validate_section(
                     if index < len(finding.citations)
                 ]
                 for index in step.round_citations:
-                    round_record = _record_citation(finding, index, lookup, "rounds")
+                    round_record = _record_citation(
+                        finding,
+                        index,
+                        lookup,
+                        "rounds",
+                        require_exact=require_current_contract,
+                    )
                     if round_record["application_id"] != record["application_id"]:
                         raise SectionValidationError(ValidationRule.ROUND_IDENTITY)
                 # Validate every selected round before limiting display pointers.
@@ -982,12 +997,15 @@ def _system_prompt(scope, *, current_date=None):
         "Do not invent deadlines, priority scores or daily schedules. Suggest timing such as today or "
         "tomorrow only when supplied dates or commitments justify it. "
         "Correlation is not causation and employer motives are unknown; never state or imply a motive. "
-        "Every citation.quote MUST contain at most 2000 characters, including whitespace. "
+        "Keep the complete JSON response below 100000 UTF-8 bytes. Each observation, interpretation, "
+        "action, limitation, condition, draft and better_answer must fit its 1200-character schema limit. "
+        "Each coaching title is at most 120 characters. Every citation.quote MUST contain at most 2000 characters, including whitespace. "
         "Choose a short exact passage that supports the claim, not the entire source. "
         "For metrics, quote an exact key/value passage with its relevant denominator or scope; "
         "do not copy the whole metrics object. For application feedback, short exact field values "
-        "or passages are sufficient; complete application objects are required only for pipeline "
-        "record coaching. Never truncate or rebuild an oversized record citation: choose a different "
+        "or passages are sufficient; the supplied COMPACT application objects are required only for pipeline "
+        "record coaching, never full enriched records. Compact values ending in … are excerpts, not full values. "
+        "Never truncate or rebuild an oversized record citation: choose a different "
         "complete record within the limit, use the explicit permitted fallback, or omit the finding. "
         "Cite only provided source text with its exact source_id. Copy JSON records exactly as supplied, "
         "including every value; do not paraphrase JSON strings or combine fields from different records. "
@@ -1008,7 +1026,8 @@ def _system_prompt(scope, *, current_date=None):
             "in citations. Supply question as a separate exact interviewer Citation if available, otherwise "
             "omit it. Do not put interviewer speech in the finding's candidate-supporting citations. "
             "Write better_answer as a speakable rewrite using ONLY supported candidate facts, clearly "
-            "preserving unknown measurements, trace outcomes and test coverage. A clearer sequence is not "
+            "preserving unknown measurements, trace outcomes and test coverage. Rewrite only the selected "
+            "answer passage concisely, not the whole transcript. A clearer sequence is not "
             "new evidence. Never turn a requirement, profile claim or proposed test into past candidate work. "
             "Use action for one focused practice exercise or follow-up question, not an editor or a task plan. "
             "Label proposed checks as future work, separate from tests actually performed. "
@@ -1017,7 +1036,7 @@ def _system_prompt(scope, *, current_date=None):
             "candidate claims. If no assigned candidate passage AND requirement are available return no findings "
             "and explain missing evidence in limitations. Current documents are not historical submission proof. "
             "Do not imply the supplied material covers the entire interview. "
-            + json.dumps(InterviewSection.model_json_schema())
+            + json.dumps(InterviewOutputSection.model_json_schema())
         )
     if scope == "APPLICATION":
         return (
@@ -1045,7 +1064,7 @@ def _system_prompt(scope, *, current_date=None):
             "a follow-up. Keep all unknown names/dates in [fill-in placeholders]. If timing is unconfirmed, "
             "check the applicant's own messages first, not an arbitrary delay. Do not send or save anything. "
             "Do not imply the supplied material covers the entire application. "
-            + json.dumps(ApplicationSection.model_json_schema())
+            + json.dumps(ApplicationOutputSection.model_json_schema())
         )
     if scope == "PIPELINE":
         return (
@@ -1080,6 +1099,8 @@ def _system_prompt(scope, *, current_date=None):
             "Coaching kind 'pipeline': pair the recorded pattern and its cautious explanation with named "
             "records and conditional actions. records[].record_citation is the zero-based index of a citation "
             "quoting ONE COMPLETE application object verbatim from pipeline:recorded_approaches. "
+            "This is a COMPACT source representation containing only the contract fields, bounded to 2000 "
+            "characters before dispatch. It is not the full application with notes, contacts, descriptions or history. "
             "round_citations is an optional display selection of at most four unique indices of complete "
             "objects from pipeline:rounds for that same application; use [] if none is available. "
             "For example, with citations [metric, application, round], record_citation is 1 and "
@@ -1103,9 +1124,11 @@ def _system_prompt(scope, *, current_date=None):
             "This explicitly marks unavailable record-specific coaching, not a full record plan. Still cite a supplied "
             "deterministic metric; if none is available, return zero findings. Never invent or reconstruct a record. "
             "Do not set coaching_unavailable alongside coaching. "
-            "Do not quote partial objects as records. List every affected record available for the stated "
-            "pattern; if only examples fit, say they are examples, not the full affected set. Do not silently "
-            "drop records or evidence to meet the item preference. Each record action needs a check condition: "
+            "Do not quote partial objects as records. Select at most six example records per finding within "
+            "its sixteen-citation budget, including at least one metric and all selected round evidence. "
+            "Use fewer records when round citations need space. Say these are examples, not every affected "
+            "record; use the supplied deterministic counts for the full pattern. Never claim all records "
+            "were reviewed from this section. Each record action needs a check condition: "
             "check own records, wait while an agreed window is open, or consider follow-up only after "
             "confirmed timing and checking newer messages and prior follow-ups. Unknown round completion "
             "and outcomes stay unknown, not failed. Small current-stage source groups do not justify ranking "
@@ -1311,7 +1334,11 @@ async def _analyze_section_chat(
                         },
                     ],
                     response_format={"type": "json_object"},
-                    max_tokens=4000,
+                    max_tokens=(
+                        RESPONSES_PIPELINE_MAX_OUTPUT_TOKENS
+                        if scope in ("PIPELINE", "PROFILE_MATCH")
+                        else RESPONSES_MAX_OUTPUT_TOKENS
+                    ),
                 ) as response:
                     body = bytearray()
                     async for block in response.iter_bytes(chunk_size=4096):
@@ -1400,7 +1427,7 @@ async def _analyze_section_responses(
                     text={"format": {"type": "json_object"}},
                     max_output_tokens=(
                         RESPONSES_PIPELINE_MAX_OUTPUT_TOKENS
-                        if scope == "PIPELINE"
+                        if scope in ("PIPELINE", "PROFILE_MATCH")
                         else RESPONSES_MAX_OUTPUT_TOKENS
                     ),
                     tools=[],
