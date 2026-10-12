@@ -424,6 +424,12 @@ _SCHEMA_FIELDS = frozenset(
     )
 )
 _SCHEMA_CODES = {
+    "text_meaningful": "schema.text",
+    "proposal_pay": "proposal.pay",
+    "proposal_type": "schema.type",
+    "proposal_option": "proposal.option",
+    "proposal_length": "schema.length",
+    "proposal_date": "proposal.date",
     "missing": "schema.missing",
     "extra_forbidden": "schema.extra",
     "literal_error": "schema.literal",
@@ -1374,7 +1380,13 @@ def _provider_request(sources, limits, scope, language):
                 "Keep the total selected metric, application and round choices within sixteen per finding. "
             )
         elif scope == "EXTRACTION":
-            system += " Each proposal's quote is an integer key selecting a supporting posting passage from citation_choices. "
+            system += (
+                " Return items as an object with every field key from the provider schema, not an array. "
+                "Use null for an absent scalar and [] for an absent requirement/responsibility list. "
+                "Each entry has only value and quote; the server derives its field and unique review ID from its structural position. "
+                "Return at most 100 non-null entries in total across all fields. "
+                "Each quote is an integer key selecting a supporting posting passage from citation_choices. "
+            )
         else:
             system += " Each evidence entry is an integer key selecting an allowed profile passage from citation_choices. "
         if scope == "PROFILE_MATCH":

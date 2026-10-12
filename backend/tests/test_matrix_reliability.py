@@ -401,11 +401,9 @@ async def test_extraction_selects_original_posting_text_without_copying(protocol
     sources = [{"data": {"posting": "Use .NET and Node.js.\nWe offer paid leave."}}]
     choices = citation_choices(sources, "EXTRACTION")
     assert choices[0] == {"quote": "Use .NET and Node.js."}
-    wire = {
-        "items": [
-            {"id": "one", "field": "must_have", "value": ".NET and Node.js", "quote": 0}
-        ]
-    }
+    from tests.test_extraction_value_contract import item, wire_items
+
+    wire = wire_items(item("must_have", ".NET and Node.js", 0))
     Draft202012Validator(output_schema("EXTRACTION", choices)).validate(wire)
     async with responses_fixture(body=envelope(wire, protocol)) as (endpoint, calls):
         result = await text.analyze_section(
@@ -413,7 +411,7 @@ async def test_extraction_selects_original_posting_text_without_copying(protocol
         )
     assert len(calls) == 1
     assert result["items"][0]["quote"] == "Use .NET and Node.js."
-    wire["items"][0]["quote"] = 99
+    wire["items"]["must_have"][0]["quote"] = 99
     with pytest.raises(text.SectionValidationError):
         resolve_citations(wire, choices, "EXTRACTION")
 

@@ -34,7 +34,7 @@ from app.services.requirement_insights import current_requirements
 from app.services.user_settings import get_user_preferences
 
 KINDS = ("EXTRACTION", "PROFILE_MATCH", "PREPARATION")
-PROMPT_VERSION = "reviewed-5"
+PROMPT_VERSION = "reviewed-6"
 
 
 def prompt(kind):

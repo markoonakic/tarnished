@@ -3,13 +3,23 @@
 import copy
 import json
 import re
+from typing import get_args
 
 from app.schemas.interview_feedback import (
     ApplicationOutputSection,
     InterviewOutputSection,
     PipelineOutputSection,
 )
-from app.schemas.job_analysis import Extraction, Match, Preparation
+from app.schemas.job_analysis import (
+    MAX_PAY,
+    PROPOSAL_STRING_LIMITS,
+    REQUIREMENTS,
+    SCALAR_OPTIONS,
+    Extraction,
+    FieldName,
+    Match,
+    Preparation,
+)
 
 MODELS = {
     "INTERVIEW": InterviewOutputSection,
@@ -104,7 +114,33 @@ def output_schema(scope, choices, *, requirement_ids=None):
     if scope in ("PIPELINE", "PROFILE_MATCH", "PREPARATION"):
         schema["$defs"]["Citation"] = selection
     if scope == "EXTRACTION":
-        schema["$defs"]["Proposal"]["properties"]["quote"] = selection
+        # Bind values to structural field keys, not overlapping anyOf objects.
+        # Compatible services can collapse those objects to the first field.
+        proposal = schema["$defs"].pop("Proposal")
+        fields = {}
+        for field in proposal["properties"]["field"]["enum"]:
+            value = {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": PROPOSAL_STRING_LIMITS.get(field, 4000),
+                "pattern": r"^[^\u0000]*[^\s\u0000][^\u0000]*$",
+            }
+            if field in ("salary_min", "salary_max"):
+                value = {"type": "integer", "minimum": 0, "maximum": MAX_PAY}
+            elif field in SCALAR_OPTIONS:
+                value["enum"] = list(SCALAR_OPTIONS[field])
+            elif field == "posted_date":
+                value.update(format="date", pattern=r"^\d{4}-\d{2}-\d{2}$")
+            entry = {
+                "type": "object",
+                "properties": {"value": value, "quote": selection},
+            }
+            fields[field] = (
+                {"type": "array", "items": entry, "maxItems": 100}
+                if field in (*REQUIREMENTS, "responsibilities")
+                else {"anyOf": [entry, {"type": "null"}]}
+            )
+        schema["properties"]["items"] = {"type": "object", "properties": fields}
     if scope == "PIPELINE":
         applications = [
             key
@@ -203,6 +239,25 @@ def resolve_citations(output, choices, scope):
                 ]
     elif scope == "EXTRACTION":
         items = value.get("items")
+        if isinstance(items, dict):
+            if set(items) != set(get_args(FieldName)):
+                raise SectionValidationError(ValidationRule.SCHEMA_PARSE)
+            proposals = []
+            for field, entries in items.items():
+                if field in (*REQUIREMENTS, "responsibilities"):
+                    if not isinstance(entries, list):
+                        raise SectionValidationError(ValidationRule.SCHEMA_PARSE)
+                else:
+                    if entries is None:
+                        continue
+                    entries = [entries]
+                for index, entry in enumerate(entries):
+                    if not isinstance(entry, dict) or set(entry) != {"value", "quote"}:
+                        raise SectionValidationError(ValidationRule.SCHEMA_PARSE)
+                    proposals.append(
+                        {"id": f"{field}:{index}", "field": field, **entry}
+                    )
+            value["items"] = items = proposals
         for item in items if isinstance(items, list) else []:
             if isinstance(item, dict) and type(item.get("quote")) is int:
                 item["quote"] = resolve(item["quote"])["quote"]
