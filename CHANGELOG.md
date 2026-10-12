@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.13] - 2026-10-12
+
+### Fixed
+
+- Keep saved application and interview feedback after extracting a different job lead or application. Only reports that use changed evidence become stale; pipeline feedback still updates when its inputs change.
+- Keep unrelated feedback generations unchanged after automatic saves, reviewed saves, requirement confirmation and profile edits. Changes to shared skills or work history still invalidate reports that use that evidence and remove unsafe saved quotes.
+- Preserve archive import and export behavior, including report validation and shared profile evidence cleanup.
+
+### Added
+
+- Add regression tests for extraction scope, converted leads, profile input changes, saved report contents and generation counters.
+
 ## [0.3.12] - 2026-10-12
 
 ### Added
