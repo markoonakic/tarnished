@@ -213,6 +213,24 @@ describe('ScopedReport', () => {
     ).not.toBeInTheDocument();
   });
 
+  it.each(['en', 'sr-Latn'])(
+    'has one title HelpTip and no redundant status hints in %s',
+    async (language) => {
+      await i18n.changeLanguage(language);
+      await renderReport(state());
+      expect(
+        screen.getByRole('status').querySelectorAll('[data-help-tip]')
+      ).toHaveLength(0);
+      expect(document.querySelectorAll('section [data-help-tip]')).toHaveLength(
+        1
+      );
+      expect(
+        screen.queryByRole('button', { name: i18n.t('Try again') })
+      ).not.toBeInTheDocument();
+      await i18n.changeLanguage('en');
+    }
+  );
+
   it('loads status without dispatching any work', async () => {
     await renderReport(state(), {
       emptyHint: 'No saved application report yet.',
@@ -226,7 +244,7 @@ describe('ScopedReport', () => {
       screen.queryByText(/No saved application report yet/i)
     ).not.toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole('button', { name: 'application feedback' })
+      screen.getByRole('button', { name: 'About application feedback' })
     );
     expect(screen.getByRole('tooltip')).toHaveTextContent(
       'No saved application report yet.'

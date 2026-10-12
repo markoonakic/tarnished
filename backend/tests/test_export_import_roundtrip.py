@@ -162,6 +162,64 @@ def importing_auth_headers(importing_user: User) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+@pytest.mark.parametrize("format", ["json", "zip"])
+async def test_review_extraction_preference_export_replace_and_owner(
+    client, db, test_user, importing_user, auth_headers, importing_auth_headers, format
+):
+    response = await client.patch(
+        "/api/user-preferences",
+        headers=auth_headers,
+        json={"review_ai_extraction": True},
+    )
+    assert response.status_code == 200
+    exported = await client.get(f"/api/export/{format}", headers=auth_headers)
+    assert exported.status_code == 200
+    if format == "zip":
+        with zipfile.ZipFile(io.BytesIO(exported.content)) as archive:
+            payload = json.loads(archive.read("data.json"))
+    else:
+        payload = exported.json()
+    assert payload["models"]["User"][0]["settings"]["review_ai_extraction"] is True
+    assert (
+        await client.get("/api/user-preferences", headers=importing_auth_headers)
+    ).json()["review_ai_extraction"] is False
+    source_id, destination_id = test_user.id, importing_user.id
+    # Replace import accepts a ZIP; verify JSON export through the same data.json path.
+    content = exported.content
+    if format == "json":
+        zipped = io.BytesIO()
+        with zipfile.ZipFile(zipped, "w") as archive:
+            archive.writestr("data.json", json.dumps(payload))
+        content = zipped.getvalue()
+    response = await client.post(
+        "/api/import/import",
+        headers=importing_auth_headers,
+        data={"override": "true"},
+        files={"file": ("backup.zip", content, "application/zip")},
+    )
+    assert response.status_code == 202, response.text
+    await wait_for_import_completion(
+        client, importing_auth_headers, response.json()["import_id"]
+    )
+    assert (
+        await client.get("/api/user-preferences", headers=importing_auth_headers)
+    ).json()["review_ai_extraction"] is True
+    response = await client.patch(
+        "/api/user-preferences",
+        headers=importing_auth_headers,
+        json={"review_ai_extraction": False},
+    )
+    assert response.status_code == 200
+    assert (await client.get("/api/user-preferences", headers=auth_headers)).json()[
+        "review_ai_extraction"
+    ] is True
+    await db.rollback()
+    assert (await db.get(User, source_id)).settings["review_ai_extraction"] is True
+    assert (await db.get(User, destination_id)).settings[
+        "review_ai_extraction"
+    ] is False
+
+
 @pytest.mark.parametrize("city,country", [("Belgrade", "Serbia"), (None, None)])
 @pytest.mark.parametrize("target", ["same_owner", "other_owner"])
 async def test_zip_replace_restores_profile_location_only_for_importing_owner(

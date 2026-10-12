@@ -65,7 +65,7 @@ async def lifespan(app: FastAPI):
         yield
 
 
-app = FastAPI(title="Tarnished API", version="0.3.11", lifespan=lifespan)
+app = FastAPI(title="Tarnished API", version="0.3.12", lifespan=lifespan)
 
 
 @app.exception_handler(StarletteHTTPException)

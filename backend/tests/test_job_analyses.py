@@ -239,9 +239,11 @@ async def test_atomic_review_company_choice_revision_and_owner(client, db, works
         "target_revision": lead.revision,
         "items": [{"id": "c", "decision": "accepted"}],
     }
+    foreign_company = await post(client, "/companies", {"name": "North"}, oh)
+    body["items"][0]["company_id"] = foreign_company["id"]
     assert (
         await client.patch(f"/api/job-analyses/{row.id}/review", json=body, headers=h)
-    ).status_code == 422
+    ).status_code == 404
     company = await post(client, "/companies", {"name": "North"}, h)
     body["items"][0]["company_id"] = company["id"]
     assert (
@@ -249,7 +251,7 @@ async def test_atomic_review_company_choice_revision_and_owner(client, db, works
     ).status_code == 200
 
 
-async def test_executor_intents_stale_inputs_and_no_automatic_publication(
+async def test_executor_review_enabled_intents_and_stale_inputs(
     client, db, db_engine, workspace, monkeypatch
 ):
     user, h, _, _, _ = workspace
@@ -266,11 +268,16 @@ async def test_executor_intents_stale_inputs_and_no_automatic_publication(
     row = await service.create(
         db, user.id, CreateAnalysis(kind="EXTRACTION", lead_id=value["id"])
     )
+    user.settings = {"review_ai_extraction": True}
+    await db.commit()
     auth = AuthContext(user=user, auth_method="jwt")
     request = RunAnalysis(intent_id=uuid4(), expected_revision=0)
     job = await service.start(db, auth, row, request)
     assert (await service.start(db, auth, row, request)).id == job.id
     job.state, job.claim_id = "analyzing", "claim"
+    await db.commit()
+    # A later preference change does not alter this queued analysis.
+    user.settings = {"review_ai_extraction": False}
     await db.commit()
     calls = []
 
@@ -288,6 +295,7 @@ async def test_executor_intents_stale_inputs_and_no_automatic_publication(
     lead = await db.get(JobLead, value["id"])
     assert job.state == "complete" and row.draft["items"] and calls == ["EXTRACTION"]
     assert lead.title == "Original" and not lead.confirmed_requirements
+    assert row.review_state == "ready"
     job = await service.start(
         db, auth, row, RunAnalysis(intent_id=uuid4(), expected_revision=row.revision)
     )

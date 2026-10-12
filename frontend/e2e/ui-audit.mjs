@@ -426,6 +426,23 @@ async function audit(page, state, lang, width) {
           issues: ['visible-help-sentence'],
         });
     }
+    for (const line of document.querySelectorAll(
+      '[role="status"], [role="alert"]'
+    )) {
+      if (!visible(line)) continue;
+      const tips = line.querySelectorAll('[data-help-tip]');
+      const section = line.closest('section');
+      const hasTitleTip =
+        section &&
+        [...section.querySelectorAll('[data-help-tip]')].some(
+          (tip) => !line.contains(tip)
+        );
+      if (tips.length > 1 || (tips.length && hasTitleTip))
+        results.push({
+          control: line.textContent.trim().slice(0, 160),
+          issues: ['redundant-status-help'],
+        });
+    }
     for (const panel of document.querySelectorAll(
       '[role="listbox"],[role="menu"],[data-ui="popover"]'
     )) {
