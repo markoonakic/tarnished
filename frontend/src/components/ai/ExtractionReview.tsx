@@ -319,9 +319,15 @@ export default function ExtractionReview({
                   </span>
                   <div className="min-w-0 text-sm break-words">
                     {editing === item.id && item.field === 'company' ? (
-                      <label className="block">
-                        <span className="sr-only">{t('ai.chooseCompany')}</span>
+                      <div>
+                        <label
+                          htmlFor={`company-${item.id}`}
+                          className="sr-only"
+                        >
+                          {t('ai.chooseCompany')}
+                        </label>
                         <SearchableCombobox
+                          id={`company-${item.id}`}
                           options={companies.map((company) => ({
                             value: company.id,
                             label: company.name,
@@ -356,7 +362,7 @@ export default function ExtractionReview({
                             }));
                           }}
                         />
-                      </label>
+                      </div>
                     ) : editing === item.id ? (
                       <label className="block">
                         <span className="sr-only">{t('ai.editValue')}</span>
