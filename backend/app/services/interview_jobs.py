@@ -10,7 +10,7 @@ import json
 from datetime import UTC, datetime
 
 from fastapi import HTTPException
-from sqlalchemy import func, select, update
+from sqlalchemy import false, func, select, true, update
 
 from app.core.deps import check_api_key_scope, recheck_admitted_auth
 from app.models import Application, InterviewJob, ProcessingJob, Round, User, UserAPIKey
@@ -117,8 +117,9 @@ async def invalidate_reports(
     user_id=None,
     removed=False,
     analysis_removed=True,
+    scopes=("INTERVIEW", "APPLICATION", "PIPELINE"),
 ):
-    """Invalidate affected reports while the caller holds the settings write lock."""
+    """Invalidate dependent scopes while the caller holds the settings write lock."""
     owner = await _affected_user(
         db, application_id=application_id, round_id=round_id, user_id=user_id
     )
@@ -152,6 +153,8 @@ async def invalidate_reports(
             )
             .values(state="invalidated", manifest={}, checkpoints=[], claim_id=None)
         )
+    if "INTERVIEW" not in scopes:
+        round_condition = false()
     # INTERVIEW reports live per round.
     await db.execute(
         update(InterviewJob)
@@ -198,6 +201,8 @@ async def invalidate_reports(
         ]
     else:
         app_condition = [Application.user_id == owner]
+    if "APPLICATION" not in scopes:
+        app_condition = [false()]
     await db.execute(
         update(InterviewJob)
         .where(
@@ -236,7 +241,11 @@ async def invalidate_reports(
     # PIPELINE reports live per account and any owned source change matters.
     await db.execute(
         update(InterviewJob)
-        .where(InterviewJob.user_id == owner, InterviewJob.scope == "PIPELINE")
+        .where(
+            InterviewJob.user_id == owner,
+            InterviewJob.scope == "PIPELINE",
+            true() if "PIPELINE" in scopes else false(),
+        )
         .values(
             state="invalidated",
             claim_id=None,
@@ -255,7 +264,11 @@ async def invalidate_reports(
     }
     if removed:
         pipeline_values["pipeline_report"] = None
-    await db.execute(update(User).where(User.id == owner).values(**pipeline_values))
+    await db.execute(
+        update(User)
+        .where(User.id == owner, true() if "PIPELINE" in scopes else false())
+        .values(**pipeline_values)
+    )
 
 
 async def queue_count(db):
