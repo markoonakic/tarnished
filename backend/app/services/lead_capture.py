@@ -1,12 +1,12 @@
 """Bounded untrusted source snapshots, reusing the extraction preprocessing path."""
 
 from app.services.extraction import (
-    MAX_HTML_SIZE,
     MAX_MARKDOWN_SIZE,
     _clean_markdown,
     _truncate_markdown,
     preprocess_html,
 )
+from app.services.job_fetch import HTTP_MAX_DECODED_BYTES
 
 
 def capture_complete_source(text: str | None = None, html: str | None = None) -> dict:
@@ -41,7 +41,7 @@ def capture_source(text: str | None = None, html: str | None = None) -> dict:
         if text and text.strip():
             content = _clean_markdown(text)
         elif html and html.strip():
-            truncated = len(html) > MAX_HTML_SIZE
+            truncated = len(html) > HTTP_MAX_DECODED_BYTES
             content = preprocess_html(html)
             truncated |= content.endswith(
                 "... [Content truncated due to size limit] ..."

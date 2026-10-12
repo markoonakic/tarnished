@@ -7,11 +7,13 @@ from uuid import uuid4
 
 import openai
 from litellm import completion
+from lxml import html as lxml_html
 from markdownify import markdownify as md
 from readability import Document
 from starlette.concurrency import run_in_threadpool
 
 from app.schemas.job_lead import JobLeadExtractionInput
+from app.services.job_fetch import HTTP_MAX_DECODED_BYTES
 from app.services.output_language import output_language_instruction
 
 logger = logging.getLogger(__name__)
@@ -144,16 +146,10 @@ MAX_MARKDOWN_SIZE = 50_000  # characters max output markdown size
 def preprocess_html(html: str) -> str:
     """Preprocess HTML content for LLM extraction.
 
-    Uses Readability to extract the main content and converts it to
-    clean markdown format for better LLM processing.
-
-    The preprocessing pipeline:
-    1. Validate input (non-empty, within size limits)
-    2. Truncate if over size limit (preserves partial content)
-    3. Extract main content using Readability
-    4. Convert to markdown using Markdownify
-    5. Validate output (non-empty after processing)
-    6. Truncate markdown if necessary
+    Remove page assets within the fetcher's document bound, then select the
+    semantic posting block. Use Readability when no such block exists. Retain
+    JobPosting metadata and prefer a full structured description over a teaser.
+    The relevant HTML and final markdown keep their existing size limits.
 
     Args:
         html: Raw HTML content from a job posting page.
@@ -172,27 +168,66 @@ def preprocess_html(html: str) -> str:
     original_size = len(html)
     logger.debug(f"Processing HTML content: {original_size} characters")
 
-    # Step 2: Truncate if over size limit
-    if original_size > MAX_HTML_SIZE:
-        logger.warning(
-            f"HTML content ({original_size} chars) exceeds limit "
-            f"({MAX_HTML_SIZE} chars), truncating"
+    # Keep the fetcher's hard document bound. Apply the smaller parsing budget
+    # to relevant HTML, not a prefix full of CSS, scripts and navigation.
+    truncated = original_size > HTTP_MAX_DECODED_BYTES
+    tree = lxml_html.fromstring(html[:HTTP_MAX_DECODED_BYTES])
+    posting = None
+    for script in tree.xpath('//script[@type="application/ld+json"]'):
+        raw = script.text or ""
+        if len(raw) > MAX_HTML_SIZE:
+            continue
+        try:
+            value = json.loads(raw)
+        except (ValueError, RecursionError):
+            continue
+        entries = value if isinstance(value, list) else [value]
+        for entry in entries:
+            if isinstance(entry, dict) and isinstance(entry.get("@graph"), list):
+                entries += entry["@graph"]
+            entry_type = entry.get("@type") if isinstance(entry, dict) else None
+            if (
+                entry_type == "JobPosting"
+                or isinstance(entry_type, list)
+                and "JobPosting" in entry_type
+            ):
+                posting = entry
+                break
+        if posting:
+            break
+    for node in tree.xpath(
+        "//script|//style|//nav|//footer|//noscript|//svg|//template"
+    ):
+        node.drop_tree()
+    candidates = tree.xpath(
+        "//main|//article|//*[@itemprop='description']|//*[contains(concat(' ', normalize-space(@class), ' '), ' job-description ')]"
+    )
+    if candidates:
+        # Readability often prefers a long employer sidebar over a table/list
+        # posting. Semantic main/article blocks retain those requirements.
+        article_html = str(
+            lxml_html.tostring(
+                max(candidates, key=lambda node: len(node.text_content())),
+                encoding="unicode",
+            )
         )
-        html = html[:MAX_HTML_SIZE]
-        # Try to close any unclosed tags by appending basic closing tags
-        # This is a best-effort attempt to maintain valid HTML structure
-        html += "</div></body></html>"
+    else:
+        article_html = str(lxml_html.tostring(tree, encoding="unicode"))
+    use_readability = not candidates
+    if len(article_html) > MAX_HTML_SIZE:
+        article_html = article_html[:MAX_HTML_SIZE]
+        truncated = True
 
-    # Step 3: Extract main content using Readability
+    # Step 3: Readability fallback for pages without semantic posting markup.
     try:
-        doc = Document(html)
-        article_html = doc.summary()
+        if use_readability:
+            article_html = Document(article_html).summary()
     except Exception as e:
         logger.error(f"Readability failed to parse HTML: {e}")
         raise ValueError(f"Failed to extract content from HTML: {e}") from e
 
     # Validate Readability extracted something
-    if not article_html or not article_html.strip():
+    if (not article_html or not article_html.strip()) and not posting:
         raise ValueError("Readability extracted empty content from HTML")
 
     logger.debug(f"Readability extracted {len(article_html)} chars of HTML")
@@ -204,12 +239,37 @@ def preprocess_html(html: str) -> str:
         logger.error(f"Markdownify failed to convert HTML: {e}")
         raise ValueError(f"Failed to convert HTML to markdown: {e}") from e
 
-    # Step 5: Validate output is not empty
-    if not markdown_content or not markdown_content.strip():
-        raise ValueError("Markdown conversion resulted in empty content")
-
     # Clean up excessive whitespace while preserving structure
     markdown_content = _clean_markdown(markdown_content)
+
+    if posting:
+        # Some boards publish only a teaser in JSON-LD. Never replace the main
+        # posting with that teaser. Full structured descriptions are a fallback.
+        description = posting.get("description")
+        if isinstance(description, str) and len(description) <= MAX_HTML_SIZE:
+            structured = _clean_markdown(md(description))
+            if len(structured) > len(markdown_content):
+                markdown_content = structured
+        metadata = {
+            key: posting[key]
+            for key in (
+                "title",
+                "hiringOrganization",
+                "jobLocation",
+                "datePosted",
+                "validThrough",
+                "employmentType",
+                "baseSalary",
+                "salaryCurrency",
+            )
+            if key in posting
+        }
+        markdown_content = _clean_markdown(
+            json.dumps(metadata, ensure_ascii=False) + "\n\n" + markdown_content
+        )
+
+    if not markdown_content or not markdown_content.strip():
+        raise ValueError("Markdown conversion resulted in empty content")
 
     # Step 6: Truncate markdown if necessary
     if len(markdown_content) > MAX_MARKDOWN_SIZE:
@@ -218,6 +278,12 @@ def preprocess_html(html: str) -> str:
             f"({MAX_MARKDOWN_SIZE} chars), truncating"
         )
         markdown_content = _truncate_markdown(markdown_content, MAX_MARKDOWN_SIZE)
+
+    elif truncated:
+        markdown_content = _truncate_markdown(
+            markdown_content + "\n\n... [Content truncated due to size limit] ...",
+            MAX_MARKDOWN_SIZE,
+        )
 
     logger.debug(
         f"Preprocessed HTML: {original_size} -> {len(markdown_content)} chars "
