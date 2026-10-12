@@ -55,6 +55,6 @@ it('shows a failed delete and clears only the pending exit guard', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
   await screen.findByRole('alert');
   expect(close).not.toHaveBeenCalled();
-  expect(protectedExit()).toBe(false);
+  await waitFor(() => expect(protectedExit()).toBe(false));
   expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
 });
