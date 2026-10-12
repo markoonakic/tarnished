@@ -248,8 +248,11 @@ async def test_bad_sixteenth_value_has_a_safe_rule_without_retry(protocol, diagn
     assert SECRET not in json.dumps(diagnostics)
     changed = deepcopy(wire)
     changed["items"] = [item("salary_min", 1200, "Invented evidence")]
+    # No verified proposal or source-derived deadline survives this case.
     with pytest.raises(ValueError):
-        text.validate_section(changed, SOURCES, "EXTRACTION")
+        text.validate_section(
+            changed, [{"data": {"posting": "Python required."}}], "EXTRACTION"
+        )
     changed["items"][0]["quote"] = 9999
     with pytest.raises(text.SectionValidationError):
         resolve_citations(changed, CHOICES, "EXTRACTION")

@@ -50,6 +50,11 @@ const forms: Record<string, [string, string, string]> = {
     'Sačuvano {{date}} · {{count}} polja',
     'Sačuvano {{date}} · {{count}} polja',
   ],
+  'ai.unverifiedItems': [
+    'Nije moguće proveriti {{count}} stavku, pa je izostavljena.',
+    'Nije moguće proveriti {{count}} stavke, pa su izostavljene.',
+    'Nije moguće proveriti {{count}} stavki, pa su izostavljene.',
+  ],
   'ai.proposalCount': [
     'Predlozi: {{count}} · Pregledano: {{reviewed}}',
     'Predlozi: {{count}} · Pregledano: {{reviewed}}',

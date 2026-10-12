@@ -155,6 +155,8 @@ class Proposal(Strict):
 
 class Extraction(Strict):
     items: list[Proposal] = Field(max_length=100)
+    # Server-owned result metadata, never a provider field.
+    unverified_count: Annotated[StrictInt, Field(ge=0, le=100)] = 0
 
 
 class Citation(Strict):

@@ -78,7 +78,7 @@ def validate_output(output, sources, kind):
             kind
         ]
         .model_validate(output)
-        .model_dump()
+        .model_dump(exclude_defaults=kind == "EXTRACTION")
     )
     requirements = {item["id"] for item in data.get("requirements", [])}
     profiles = {item["id"]: item for item in data.get("profile", [])}
@@ -93,16 +93,18 @@ def validate_output(output, sources, kind):
 
     if kind == "EXTRACTION":
         ids, scalars = set(), set()
+        verified, unverified_count = [], value.get("unverified_count", 0)
         for item in value["items"]:
             if item["id"] in ids:
                 raise SectionValidationError(ValidationRule.DUPLICATE_ID)
-            if item["quote"] not in data["posting"]:
-                raise SectionValidationError(ValidationRule.QUOTE_MISMATCH)
             ids.add(item["id"])
             if item["field"] not in (*REQUIREMENTS, "responsibilities"):
                 if item["field"] in scalars:
                     raise SectionValidationError(ValidationRule.DUPLICATE_ID)
                 scalars.add(item["field"])
+            if item["quote"] not in data["posting"]:
+                unverified_count += 1
+                continue
             if item["field"] in (*REQUIREMENTS, "responsibilities"):
                 item["value"] = source_value(item["value"], item["quote"])
                 deadlines = explicit_deadlines(str(item["value"]))
@@ -115,7 +117,10 @@ def validate_output(output, sources, kind):
             if item["field"] == "deadline" and item["value"] not in quoted_dates(
                 item["quote"]
             ):
-                raise SectionValidationError(ValidationRule.QUOTE_MISMATCH)
+                unverified_count += 1
+                continue
+            verified.append(item)
+        value["items"] = verified
         # The contract includes deadline; retain an unambiguous explicit date even
         # if the provider omits it or classifies it as a candidate condition.
         dates = explicit_deadlines(data["posting"])
@@ -141,7 +146,11 @@ def validate_output(output, sources, kind):
                 for item in value["items"]
                 if item["field"] != "deadline" or item is first
             ]
-        value = Extraction.model_validate(value).model_dump()
+        if not value["items"]:
+            raise SectionValidationError(ValidationRule.QUOTE_MISMATCH)
+        if unverified_count:
+            value["unverified_count"] = unverified_count
+        value = Extraction.model_validate(value).model_dump(exclude_defaults=True)
         if len(json.dumps(value, ensure_ascii=False).encode("utf-8")) > 100_000:
             raise SectionValidationError(ValidationRule.SECTION_SIZE)
         return value
@@ -564,6 +573,7 @@ async def apply_extraction(
     ):
         raise HTTPException(409, "Analysis or target changed")
     clean = validate_output(row.draft, [{"data": data}], "EXTRACTION")
+    row.draft = clean
     proposals = {item["id"]: item for item in clean["items"]}
     row.source_text = normalize_text(row.source_text)
     record.source_text = normalize_text(record.source_text)

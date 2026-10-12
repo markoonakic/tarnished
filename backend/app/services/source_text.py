@@ -26,11 +26,39 @@ def source_value(value: str, quote: str) -> str:
     return re.sub(r"^(?:[-*+] |\d+[.)] )", "", quote.strip()).strip()
 
 
+_MONTHS = (
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+)
+_MONTH_NUMBERS = {
+    spelling: number
+    for number, month in enumerate(_MONTHS, 1)
+    for spelling in (month, month[:3])
+} | {"sept": 9}
+_MONTH_PATTERN = "(?:" + "|".join(_MONTH_NUMBERS) + r")\.?"
+_DATE_PATTERN = (
+    r"\d{4}-\d{2}-\d{2}|\d{1,2}\.\s*\d{1,2}\.\s*\d{4}|"
+    + _MONTH_PATTERN
+    + r"\s+\d{1,2},?\s+\d{4}|"
+    + r"\d{1,2}\s+"
+    + _MONTH_PATTERN
+    + r",?\s+\d{4}"
+)
 _DEADLINE = re.compile(
     r"(?:apply\s+by|application\s+deadline|applications?\s+(?:close|until)|"
     r"closing\s+date|rok\s+(?:za\s+)?prijav[ue]|konkurs\s+(?:traje\s+)?do|"
     r"рок\s+(?:за\s+)?пријав[уе]|конкурс\s+(?:траје\s+)?до|validThrough)"
-    r"[\s\":=-]*(?P<date>\d{4}-\d{2}-\d{2}|\d{1,2}\.\s*\d{1,2}\.\s*\d{4})",
+    r"[\s\":=-]*(?P<date>" + _DATE_PATTERN + r")(?!\d)",
     re.IGNORECASE,
 )
 
@@ -39,11 +67,26 @@ def quoted_dates(text: str) -> set[str]:
     """Canonical dates stated in a verified quote, without inventing a day."""
     dates = set()
     for match in re.finditer(
-        r"(?<!\d)(\d{4}-\d{2}-\d{2}|\d{1,2}\.\s*\d{1,2}\.\s*\d{4})(?!\d)", text
+        r"(?<!\w)(" + _DATE_PATTERN + r")(?!\d)", text, re.IGNORECASE
     ):
         raw = match.group()
         try:
-            if "." in raw:
+            if re.search(r"[a-z]", raw, re.IGNORECASE):
+                parts = raw.lower().replace(",", "").replace(".", "").split()
+                if parts[0] in _MONTH_NUMBERS:
+                    month, day, year = (
+                        _MONTH_NUMBERS[parts[0]],
+                        int(parts[1]),
+                        int(parts[2]),
+                    )
+                else:
+                    day, month, year = (
+                        int(parts[0]),
+                        _MONTH_NUMBERS[parts[1]],
+                        int(parts[2]),
+                    )
+                parsed = date(year, month, day)
+            elif "." in raw:
                 day, month, year = (int(part.strip()) for part in raw.split("."))
                 parsed = date(year, month, day)
             else:

@@ -193,6 +193,51 @@ it.each([
   ).not.toBeInTheDocument();
 });
 
+it.each(['ready', 'saved'])(
+  'shows omitted-item guidance only in a translated HelpTip (%s)',
+  async (reviewState) => {
+    for (const language of ['en', 'sr-Latn']) {
+      for (const count of [1, 2, 5]) {
+        await i18n.changeLanguage(language);
+        latest({
+          ...base,
+          review_state: reviewState,
+          draft: { items: [proposal], unverified_count: count },
+          reviewed:
+            reviewState === 'saved'
+              ? [{ ...proposal, decision: 'accepted' }]
+              : [],
+        });
+        render(
+          <ExtractionReview
+            target={{ lead_id: 'lead' }}
+            source="Python required"
+          />
+        );
+        const help = await screen.findByRole('button', {
+          name: i18n.t('ai.unverifiedHelp'),
+        });
+        const message = i18n.t('ai.unverifiedItems', { count });
+        expect(screen.queryByText(message)).not.toBeInTheDocument();
+        fireEvent.click(help);
+        expect(screen.getByRole('tooltip')).toHaveTextContent(message);
+        expect(message).toContain(String(count));
+        cleanup();
+      }
+    }
+  }
+);
+
+it('does not show omitted-item guidance for older complete extractions', async () => {
+  render(
+    <ExtractionReview target={{ lead_id: 'lead' }} source="Python required" />
+  );
+  await screen.findByRole('button', { name: 'Accept Python' });
+  expect(
+    screen.queryByRole('button', { name: i18n.t('ai.unverifiedHelp') })
+  ).not.toBeInTheDocument();
+});
+
 it('has complete natural Serbian area strings', () => {
   expect(Object.keys(en).sort()).toEqual(Object.keys(sr).sort());
   expect(sr['ai.profileMatch']).toBe('Poređenje sa profilom');

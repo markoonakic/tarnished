@@ -164,8 +164,8 @@ def test_exact_quotes_complete_matrix_and_preparation():
     assert validate_section(extraction(), sources, "EXTRACTION")["items"]
     bad = extraction()
     bad["items"][0]["quote"] = "Invented source"
-    with pytest.raises(ValueError):
-        validate_section(bad, sources, "EXTRACTION")
+    partial = validate_section(bad, sources, "EXTRACTION")
+    assert partial == {"items": bad["items"][1:], "unverified_count": 1}
     data = {
         "requirements": [{"id": "r1", "text": "Python"}],
         "profile": [{"id": "p1", "text": "Built a Python service"}],

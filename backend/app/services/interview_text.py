@@ -1343,6 +1343,12 @@ def _validate_provider_section(section, choices, sources, scope):
     from app.services.report_output import resolve_citations
 
     try:
+        if (
+            scope == "EXTRACTION"
+            and isinstance(section, dict)
+            and "unverified_count" in section
+        ):
+            raise SectionValidationError(ValidationRule.SCHEMA_PARSE)
         section = resolve_citations(section, choices, scope)
         if (
             len(json.dumps(section, ensure_ascii=False).encode("utf-8"))

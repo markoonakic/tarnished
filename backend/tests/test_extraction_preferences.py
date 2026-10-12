@@ -22,10 +22,11 @@ from app.services.ai_settings import update_ai_settings
 POSTING = "North needs a Junior Python developer. Work remotely. Python and SQL required. Build services."
 
 
+@pytest.mark.parametrize("unverified", [False, True])
 @pytest.mark.parametrize("existing", [False, True])
 @pytest.mark.parametrize("entry", ["analysis", "lead_extract", "application_extract"])
 async def test_auto_apply_company_requirements_and_owner(
-    client, db, db_engine, workspace, monkeypatch, existing, entry
+    client, db, db_engine, workspace, monkeypatch, existing, entry, unverified
 ):
     user, headers, other, other_headers, statuses = workspace
     foreign = await post(client, "/companies", {"name": "North"}, other_headers)
@@ -93,6 +94,16 @@ async def test_auto_apply_company_requirements_and_owner(
         },
     ]
 
+    if unverified:
+        output["items"].append(
+            {
+                "id": "bad",
+                "field": "nice_to_have",
+                "value": "Invented requirement",
+                "quote": "Invented quote",
+            }
+        )
+
     async def fake(*args, **kwargs):
         return output
 
@@ -111,6 +122,11 @@ async def test_auto_apply_company_requirements_and_owner(
     )
     await db.refresh(lead)
     assert row.review_state == "saved" and len(row.reviewed) == 5
+    assert row.draft.get("unverified_count", 0) == int(unverified)
+    assert (await service.view(db, row))["draft"].get("unverified_count", 0) == int(
+        unverified
+    )
+    assert all(item["id"] != "bad" for item in row.reviewed)
     assert all(item["decision"] == "accepted" for item in row.reviewed)
     if isinstance(lead, JobLead):
         assert lead.title == "Python developer" and lead.description == "Build services"

@@ -127,6 +127,7 @@ def output_schema(scope, choices, *, requirement_ids=None):
     if scope in ("APPLICATION", "PIPELINE", "PROFILE_MATCH", "PREPARATION"):
         schema["$defs"]["Citation"] = selection
     if scope == "EXTRACTION":
+        schema["properties"].pop("unverified_count")
         # Bind values to structural field keys, not overlapping anyOf objects.
         # Compatible services can collapse those objects to the first field.
         proposal = schema["$defs"].pop("Proposal")

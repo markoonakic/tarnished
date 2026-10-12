@@ -21,7 +21,7 @@ from app.services.interview_evidence import _append_source, fingerprint
 from app.services.lead_capture import capture_complete_source
 from app.services.report_output import citation_choices, output_schema
 from app.services.requirement_insights import current_requirements
-from app.services.source_text import explicit_deadlines, normalize_text
+from app.services.source_text import explicit_deadlines, normalize_text, quoted_dates
 
 
 @pytest.mark.parametrize(
@@ -80,6 +80,9 @@ def test_exact_value_can_select_part_of_a_longer_quote():
     [
         "Apply by 2026-12-15.",
         "Application deadline: 2026-12-15.",
+        "Apply by December 15, 2026.",
+        "Application deadline: 15 December 2026.",
+        "Apply by Dec. 15, 2026.",
         "Rok za prijavu: 15.12.2026.",
         "Рок за пријаву: 15. 12. 2026.",
         '{"validThrough": "2026-12-15T23:59:59"}',
@@ -120,12 +123,19 @@ def test_explicit_deadline_is_not_a_candidate_requirement(posting, classificatio
     ],
 )
 def test_deadline_is_never_guessed(posting):
-    assert text.validate_section(
-        {"items": []}, [{"data": {"posting": posting}}], "EXTRACTION"
-    ) == {"items": []}
+    assert (
+        explicit_deadlines(posting) == []
+        or len({day for day, _ in explicit_deadlines(posting)}) > 1
+    )
+    with pytest.raises(text.SectionValidationError):
+        text.validate_section(
+            {"items": []}, [{"data": {"posting": posting}}], "EXTRACTION"
+        )
 
 
-@pytest.mark.parametrize("quote", ["2026-12-15", "15.12.2026."])
+@pytest.mark.parametrize(
+    "quote", ["2026-12-15", "15.12.2026.", "December 15, 2026", "15 Dec 2026"]
+)
 def test_model_deadline_can_select_an_original_numeric_date(quote):
     item = {
         "id": "deadline",
@@ -145,10 +155,11 @@ def test_deadline_requires_the_labelled_source_date():
         "value": "2026-12-16",
         "quote": "Apply by 2026-12-15",
     }
-    with pytest.raises(text.SectionValidationError):
-        text.validate_section(
-            {"items": [item]}, [{"data": {"posting": item["quote"]}}], "EXTRACTION"
-        )
+    saved = text.validate_section(
+        {"items": [item]}, [{"data": {"posting": item["quote"]}}], "EXTRACTION"
+    )
+    assert saved["unverified_count"] == 1
+    assert saved["items"] == [{**item, "id": "deadline:source", "value": "2026-12-15"}]
 
 
 @pytest.mark.parametrize("source_form,quote_form", [("NFD", "NFC"), ("NFC", "NFD")])
@@ -232,6 +243,12 @@ async def test_save_and_conversion_keep_source_values_and_deadline(
                 "value": "Apply by 2026-12-15",
                 "quote": "Apply by 2026-12-15.",
             },
+            {
+                "id": "unverified",
+                "field": "nice_to_have",
+                "value": "Invented requirement",
+                "quote": "Invented source",
+            },
         ]
     }
     row.draft = text.validate_section(
@@ -251,6 +268,9 @@ async def test_save_and_conversion_keep_source_values_and_deadline(
     expected = "User correction" if decision == "edited" else original
     assert lead.requirements_must_have == [expected]
     assert lead.description == original
+    assert row.draft["unverified_count"] == 1
+    assert (await analyses.view(db, row))["draft"]["unverified_count"] == 1
+    assert all(item["id"] != "unverified" for item in row.reviewed)
     assert lead.deadline.isoformat() == "2026-12-15"
     assert len(analyses.comparison_inputs(lead, None)[0]["requirements"]) == 1
     response = await client.post(f"/api/job-leads/{lead.id}/convert", headers=headers)
@@ -342,3 +362,139 @@ def test_old_deadline_conditions_never_enter_profile_matching(value):
 
 def test_deadline_parser_leaves_unlabelled_dates_alone():
     assert explicit_deadlines("Posted 2026-12-15") == []
+    assert explicit_deadlines("Interview on December 20, 2026") == []
+
+
+@pytest.mark.parametrize(
+    "wording,expected",
+    [
+        ("December 20, 2026", {"2026-12-20"}),
+        ("20 December 2026", {"2026-12-20"}),
+        ("dec 20 2026", {"2026-12-20"}),
+        ("Sept. 30, 2026", {"2026-09-30"}),
+        ("February 29, 2028", {"2028-02-29"}),
+        ("February 29, 2026", set()),
+        ("April 31, 2026", set()),
+        ("December 2026", set()),
+        ("December 20", set()),
+        ("December 20, 20260", set()),
+    ],
+)
+def test_named_dates_are_calendar_valid_and_locale_independent(wording, expected):
+    assert quoted_dates(wording) == expected
+    assert {day for day, _ in explicit_deadlines("Apply by " + wording)} == expected
+
+
+def test_retest_cyrillic_posting_keeps_verified_items_and_named_deadline():
+    posting = (
+        "Retest R1: Backend Developer at Cedar Workshop 3. Location: Niš, Serbia. "
+        "Hybrid. Full-time. Requirements: Python, SQL and Git. "
+        "Responsibilities: Развој сервиса и одржавање апликација. Apply by December 20, 2026."
+    )
+    items = [
+        {
+            "id": "title",
+            "field": "title",
+            "value": "Backend Developer",
+            "quote": "Backend Developer",
+        },
+        {"id": "location", "field": "location", "value": "Niš", "quote": "Niš"},
+        {
+            "id": "duty",
+            "field": "responsibilities",
+            "value": "Развој сервиса и одржавање апликација",
+            "quote": "Развој сервиса и одржавање апликација",
+        },
+        {
+            "id": "bad",
+            "field": "must_have",
+            "value": "Git",
+            "quote": "Python, SQL, Git",
+        },
+        {
+            "id": "date",
+            "field": "deadline",
+            "value": "2026-12-20",
+            "quote": "Apply by December 20, 2026",
+        },
+    ]
+    before = deepcopy(items)
+    sources = [{"data": {"posting": posting}}]
+    saved = text.validate_section({"items": items}, sources, "EXTRACTION")
+    assert saved == {
+        "items": [item for item in items if item["id"] != "bad"],
+        "unverified_count": 1,
+    }
+    assert text.validate_section(saved, sources, "EXTRACTION") == saved
+    assert items == before
+
+
+@pytest.mark.parametrize(
+    "bad_quote", ["Python required!", "Python\u00a0required.", "Invented source"]
+)
+def test_partial_extraction_keeps_exact_spacing_punctuation_and_count(bad_quote):
+    sources = [{"data": {"posting": "Python required. SQL required."}}]
+    items = [
+        {"id": "good", "field": "must_have", "value": "SQL", "quote": "SQL required."},
+        {"id": "bad", "field": "must_have", "value": "Python", "quote": bad_quote},
+    ]
+    saved = text.validate_section({"items": items}, sources, "EXTRACTION")
+    assert saved == {"items": items[:1], "unverified_count": 1}
+    with pytest.raises(text.SectionValidationError):
+        text.validate_section({"items": items[1:]}, sources, "EXTRACTION")
+
+
+def test_wrong_deadline_value_is_omitted_not_used_as_a_requirement():
+    sources = [{"data": {"posting": "Python required. Posted 2026-12-15."}}]
+    good = {
+        "id": "good",
+        "field": "must_have",
+        "value": "Python",
+        "quote": "Python required.",
+    }
+    bad = {
+        "id": "date",
+        "field": "deadline",
+        "value": "2026-12-16",
+        "quote": "2026-12-15",
+    }
+    assert text.validate_section({"items": [good, bad]}, sources, "EXTRACTION") == {
+        "items": [good],
+        "unverified_count": 1,
+    }
+
+
+@pytest.mark.parametrize("protocol", ["responses", "chat_completions"])
+async def test_partial_extraction_transports_do_not_retry_or_accept_provider_counts(
+    protocol,
+):
+    sources = [{"data": {"posting": "Python required. SQL preferred."}}]
+    good = {
+        "id": "good",
+        "field": "must_have",
+        "value": "Python",
+        "quote": "Python required.",
+    }
+    bad = {
+        "id": "bad",
+        "field": "nice_to_have",
+        "value": "SQL",
+        "quote": "SQL required.",
+    }
+    output = {"items": [good, bad]}
+    schema = output_schema("EXTRACTION", citation_choices(sources, "EXTRACTION"))
+    assert "unverified_count" not in schema["properties"]
+    async with responses_fixture(body=envelope(output, protocol)) as (endpoint, calls):
+        saved = await text.analyze_section(
+            text_settings(endpoint, protocol), sources, [], "EXTRACTION"
+        )
+    assert saved == {"items": [good], "unverified_count": 1}
+    assert len(calls) == 1
+    async with responses_fixture(
+        body=envelope({**output, "unverified_count": 0}, protocol)
+    ) as (endpoint, calls):
+        with pytest.raises(text.ReportFailure):
+            await text.analyze_section(
+                text_settings(endpoint, protocol), sources, [], "EXTRACTION"
+            )
+    assert len(calls) == 1
