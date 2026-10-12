@@ -60,6 +60,8 @@ export default function ExtractionReview({
   const [saving, setSaving] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companiesLoading, setCompaniesLoading] = useState(false);
+  const [companiesFailed, setCompaniesFailed] = useState(false);
+  const [companiesRetry, setCompaniesRetry] = useState(0);
   const updated = useRef(onUpdated);
   useEffect(() => {
     updated.current = onUpdated;
@@ -79,7 +81,11 @@ export default function ExtractionReview({
   const items = analysis?.draft.items ?? [];
   const hasCompany = items.some((item) => item.field === 'company');
   useEffect(() => {
-    if (!hasCompany) return;
+    setCompaniesFailed(false);
+    if (!hasCompany) {
+      setCompaniesLoading(false);
+      return;
+    }
     let active = true;
     setCompaniesLoading(true);
     async function loadCompanies() {
@@ -96,17 +102,17 @@ export default function ExtractionReview({
     }
     void loadCompanies()
       .catch(() => {
-        if (active) controller.setError(true);
+        if (active) setCompaniesFailed(true);
       })
       .finally(() => {
         if (active) setCompaniesLoading(false);
       });
     return () => {
       active = false;
+      setCompaniesLoading(false);
     };
     // Company options do not change on every polling read.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasCompany]);
+  }, [hasCompany, companiesRetry]);
   useLayoutEffect(() => {
     setChoices({});
     setEditing(null);
@@ -116,6 +122,8 @@ export default function ExtractionReview({
   const reviewed = Object.values(choices);
   useUnsavedChanges(saving || reviewed.length > 0 || editing !== null);
   const companyProposal = items.find((item) => item.field === 'company');
+  const companyChoice = companyProposal && choices[companyProposal.id];
+  const companyNeeded = companyChoice && companyChoice.decision !== 'rejected';
   const companyValue = String(
     (companyProposal && choices[companyProposal.id]?.value) ??
       companyProposal?.value ??
@@ -133,11 +141,13 @@ export default function ExtractionReview({
       ? t('ai.analyzing')
       : loading || companiesLoading
         ? t('ai.loading')
-        : analysis?.stale
-          ? t('ai.sourceChanged')
-          : !reviewed.length
-            ? t('ai.reviewSelection')
-            : '';
+        : companiesFailed && companyNeeded
+          ? t('ai.companyLookupFailed')
+          : analysis?.stale
+            ? t('ai.sourceChanged')
+            : !reviewed.length
+              ? t('ai.reviewSelection')
+              : '';
   const groups = [...new Set(items.map(group))];
   const displayValue = (field: string, value: string | number) =>
     ['work_mode', 'employment_type', 'pay_period'].includes(field)
@@ -151,7 +161,7 @@ export default function ExtractionReview({
     setEditing(null);
   }
   async function save() {
-    if (!analysis) return;
+    if (!analysis || saveBlocked) return;
     setSaving(true);
     controller.setError(false);
     try {
@@ -284,6 +294,16 @@ export default function ExtractionReview({
             {saveBlocked && (
               <HelpTip label={t('ai.saveBlocked')}>{saveBlocked}</HelpTip>
             )}
+            {companiesFailed && (
+              <Button
+                type="button"
+                disabled={disabled}
+                onClick={() => setCompaniesRetry((value) => value + 1)}
+              >
+                <i className="bi-arrow-clockwise icon-sm" aria-hidden="true" />
+                {t('ai.retryCompanies')}
+              </Button>
+            )}
           </>
         ) : (
           run
@@ -390,16 +410,18 @@ export default function ExtractionReview({
                         {displayValue(item.field, choice?.value ?? item.value)}
                       </span>
                     )}
-                    {item.field === 'company' && (
-                      <span className="bg-bg2 text-muted ml-2 inline-flex rounded px-2 py-1 text-xs">
-                        {t(
-                          selectedCompany
-                            ? 'ai.existingCompany'
-                            : 'ai.newCompany'
-                        )}
-                        {selectedCompany && ` · ${selectedCompany.name}`}
-                      </span>
-                    )}
+                    {item.field === 'company' &&
+                      !companiesLoading &&
+                      !companiesFailed && (
+                        <span className="bg-bg2 text-muted ml-2 inline-flex rounded px-2 py-1 text-xs">
+                          {t(
+                            selectedCompany
+                              ? 'ai.existingCompany'
+                              : 'ai.newCompany'
+                          )}
+                          {selectedCompany && ` · ${selectedCompany.name}`}
+                        </span>
+                      )}
                     {currentValue != null && currentValue !== '' && (
                       <p className="text-muted mt-1 text-xs">
                         {t('ai.current', {

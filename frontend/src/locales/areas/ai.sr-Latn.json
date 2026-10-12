@@ -1,6 +1,8 @@
 {
   "ai.existingCompany": "Postojeća kompanija",
   "ai.newCompany": "Nova kompanija",
+  "ai.companyLookupFailed": "Kompanije nisu učitane. Ponovi učitavanje pre čuvanja kompanije.",
+  "ai.retryCompanies": "Ponovi učitavanje kompanija",
   "ai.savedSummary": "Sačuvano {{date}} · {{count}} polja",
   "ai.savedSummary_one": "Sačuvano {{date}} · {{count}} polje",
   "ai.savedSummary_few": "Sačuvano {{date}} · {{count}} polja",

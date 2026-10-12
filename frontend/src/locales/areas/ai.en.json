@@ -1,6 +1,8 @@
 {
   "ai.existingCompany": "Existing company",
   "ai.newCompany": "New company",
+  "ai.companyLookupFailed": "Could not load companies. Retry before saving a company.",
+  "ai.retryCompanies": "Retry company lookup",
   "ai.savedSummary": "Saved {{date}} · {{count}} fields",
   "ai.savedSummary_one": "Saved {{date}} · {{count}} field",
   "ai.savedSummary_few": "Saved {{date}} · {{count}} fields",

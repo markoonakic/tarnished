@@ -457,6 +457,157 @@ it.each([true, false])(
     expect(onUpdated).toHaveBeenCalledOnce();
   }
 );
+it.each(['en', 'sr-Latn'])(
+  'blocks company creation after a failed lookup and retries in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    const company = { id: 'north', name: ' north ' } as Awaited<
+      ReturnType<typeof apiV030.createCompany>
+    >;
+    vi.mocked(apiV030.companies)
+      .mockRejectedValueOnce(new Error('Offline'))
+      .mockResolvedValueOnce({
+        items: [company],
+        page: 1,
+        per_page: 100,
+        total: 1,
+      });
+    const analysis = {
+      ...base,
+      draft: {
+        items: [{ id: 'c', field: 'company', value: 'NORTH', quote: 'North' }],
+      },
+    };
+    latest(analysis);
+    vi.mocked(analysesApi.review).mockResolvedValue({
+      ...analysis,
+      review_state: 'saved',
+    });
+    render(<ExtractionReview target={{ lead_id: 'lead' }} source="North" />);
+    const retry = await screen.findByRole('button', {
+      name: i18n.t('ai.retryCompanies'),
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('ai.acceptAll') })
+    );
+    const save = screen.getByRole('button', {
+      name: i18n.t('ai.saveReviewed'),
+    });
+    expect(save).toBeDisabled();
+    expect(save).toHaveAttribute('title', i18n.t('ai.companyLookupFailed'));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('ai.saveBlocked') })
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      i18n.t('ai.companyLookupFailed')
+    );
+    expect(screen.queryByText(i18n.t('ai.newCompany'))).not.toBeInTheDocument();
+    fireEvent.click(save);
+    expect(apiV030.createCompany).not.toHaveBeenCalled();
+    expect(analysesApi.review).not.toHaveBeenCalled();
+    fireEvent.click(retry);
+    await waitFor(() => expect(save).toBeEnabled());
+    expect(apiV030.companies).toHaveBeenCalledTimes(2);
+    expect(
+      screen.getByText(new RegExp(i18n.t('ai.existingCompany')))
+    ).toHaveTextContent(company.name.trim());
+    fireEvent.click(save);
+    await waitFor(() =>
+      expect(analysesApi.review).toHaveBeenCalledWith(analysis, [
+        { id: 'c', decision: 'accepted', value: 'NORTH', company_id: 'north' },
+      ])
+    );
+    expect(apiV030.createCompany).not.toHaveBeenCalled();
+  }
+);
+it('does not create a company when a later lookup page fails', async () => {
+  vi.mocked(apiV030.companies)
+    .mockResolvedValueOnce({ items: [], page: 1, per_page: 100, total: 101 })
+    .mockRejectedValueOnce(new Error('Offline'));
+  latest({
+    ...base,
+    draft: {
+      items: [{ id: 'c', field: 'company', value: 'North', quote: 'North' }],
+    },
+  });
+  render(<ExtractionReview target={{ lead_id: 'lead' }} source="North" />);
+  await screen.findByRole('button', { name: 'Retry company lookup' });
+  fireEvent.click(screen.getByRole('button', { name: 'Accept all' }));
+  const save = screen.getByRole('button', { name: 'Save reviewed' });
+  expect(save).toBeDisabled();
+  expect(save).toHaveAttribute('title', i18n.t('ai.companyLookupFailed'));
+  expect(apiV030.companies).toHaveBeenLastCalledWith({
+    page: 2,
+    per_page: 100,
+  });
+  fireEvent.click(save);
+  expect(apiV030.createCompany).not.toHaveBeenCalled();
+  expect(analysesApi.review).not.toHaveBeenCalled();
+});
+it.each(['resolved', 'rejected'])(
+  'clears a cancelled lookup on navigation and ignores its late %s result',
+  async (result) => {
+    let resolve!: (
+      companies: Awaited<ReturnType<typeof apiV030.companies>>
+    ) => void;
+    let reject!: (error: Error) => void;
+    vi.mocked(apiV030.companies).mockImplementationOnce(
+      () =>
+        new Promise((done, fail) => {
+          resolve = done;
+          reject = fail;
+        })
+    );
+    latest({
+      ...base,
+      draft: {
+        items: [{ id: 'c', field: 'company', value: 'North', quote: 'North' }],
+      },
+    });
+    const view = render(
+      <ExtractionReview target={{ lead_id: 'first' }} source="North" />
+    );
+    await waitFor(() => expect(apiV030.companies).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole('button', { name: 'Accept all' }));
+    expect(
+      screen.getByRole('button', { name: 'Save reviewed' })
+    ).toHaveAttribute('title', i18n.t('ai.loading'));
+    const next = { ...base, id: 'second-analysis' };
+    latest(next);
+    vi.mocked(analysesApi.review).mockResolvedValue({
+      ...next,
+      review_state: 'saved',
+    });
+    view.rerender(
+      <ExtractionReview
+        target={{ lead_id: 'second' }}
+        source="Python required"
+      />
+    );
+    await screen.findByRole('button', { name: 'Accept Python' });
+    fireEvent.click(screen.getByRole('button', { name: 'Accept all' }));
+    const save = screen.getByRole('button', { name: 'Save reviewed' });
+    await waitFor(() => expect(save).toBeEnabled());
+    await act(async () => {
+      if (result === 'resolved')
+        resolve({ items: [], page: 1, per_page: 100, total: 101 });
+      else reject(new Error('Offline'));
+    });
+    expect(save).toBeEnabled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Retry company lookup' })
+    ).not.toBeInTheDocument();
+    expect(apiV030.companies).toHaveBeenCalledOnce();
+    fireEvent.click(save);
+    await waitFor(() =>
+      expect(analysesApi.review).toHaveBeenCalledWith(next, [
+        { id: 'r1', decision: 'accepted', value: 'Python' },
+      ])
+    );
+    expect(apiV030.createCompany).not.toHaveBeenCalled();
+  }
+);
 it('company Edit uses the existing combobox and marks a new company without creating it early', async () => {
   latest({
     ...base,
