@@ -22,7 +22,7 @@ from app.schemas.job_analysis import (
     ReviewItem,
 )
 from app.services.ai_settings import get_ai_settings, lock_ai_settings
-from app.services.interview_evidence import fingerprint
+from app.services.interview_evidence import APP_FIELDS, fingerprint
 from app.services.interview_text import analyze_section, supported
 from app.services.profile_items import allowed_profile
 from app.services.requirement_insights import current_requirements
@@ -180,7 +180,8 @@ async def confirm_requirements(db, row, expected_revision):
         record.evidence_revision += 1
     from app.services.interview_jobs import invalidate_reports
 
-    await invalidate_reports(db, user_id=row.user_id)
+    # Confirmation changes requirement provenance, not the legacy report fields.
+    await invalidate_reports(db, user_id=row.user_id, scopes=("PIPELINE",))
     await db.flush()
     return {"requirements": requirements, "revision": target_revision(record)}
 
@@ -484,6 +485,11 @@ async def apply_extraction(
     ids = [item.id for item in choices]
     if len(set(ids)) != len(ids) or not set(ids) <= proposals.keys():
         raise HTTPException(422, "Unknown or duplicate review item")
+    report_input = (
+        {field: getattr(record, field) for field in APP_FIELDS}
+        if isinstance(record, Application)
+        else {}
+    )
     requirements = list(record.confirmed_requirements or [])
     reviewed, responsibilities = [], []
     for choice in choices:
@@ -606,7 +612,14 @@ async def apply_extraction(
         record.evidence_revision += 1
     from app.services.interview_jobs import invalidate_reports
 
-    await invalidate_reports(db, user_id=row.user_id)
+    await invalidate_reports(
+        db,
+        user_id=row.user_id,
+        application_id=row.application_id,
+        scopes=("INTERVIEW", "APPLICATION", "PIPELINE")
+        if any(value != getattr(record, field) for field, value in report_input.items())
+        else ("PIPELINE",),
+    )
     row.reviewed, row.review_state = reviewed, "saved"
     row.revision += 1
     await db.flush()

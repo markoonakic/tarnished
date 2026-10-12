@@ -191,7 +191,8 @@ async def update_profile(
         "ai_permissions" in update_data
         and update_data["ai_permissions"] != profile.ai_permissions
     )
-    from app.services.profile_items import allowed_profile
+    from app.services.interview_evidence import profile_work_history
+    from app.services.profile_items import allowed_profile, legacy_profile_input
 
     prospective = {
         column.key: getattr(profile, column.key)
@@ -199,8 +200,18 @@ async def update_profile(
     }
     prospective.update(update_data)
     if allowed_profile(profile) != allowed_profile(prospective):
+        before, after = legacy_profile_input(profile), legacy_profile_input(prospective)
+        scopes = ("PIPELINE",) if before != after else ()
+        if before["skills"] != after["skills"] or profile_work_history(
+            before["work_history"]
+        ) != profile_work_history(after["work_history"]):
+            scopes = ("INTERVIEW", "APPLICATION", *scopes)
         await invalidate_interviews(
-            db, user_id=user.id, removed=True, analysis_removed=permission_changed
+            db,
+            user_id=user.id,
+            removed=True,
+            analysis_removed=permission_changed,
+            scopes=scopes,
         )
     changed = await db.scalar(
         update(UserProfile)

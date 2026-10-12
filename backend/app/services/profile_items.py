@@ -152,11 +152,10 @@ def allowed_profile(profile) -> dict:
     return output
 
 
-async def legacy_ai_profile(db, user_id):
-    """Old reports keep their source IDs but use the same permission selector."""
-    profile = await db.scalar(select(UserProfile).where(UserProfile.user_id == user_id))
+def legacy_profile_input(profile):
+    """Select exactly the profile fields used by saved feedback reports."""
     allowed = allowed_profile(profile)
-    result = {
+    return {
         "work_history": [
             {k: v for k, v in item.items() if k != "id"}
             for item in allowed.get("work_history", [])
@@ -167,6 +166,12 @@ async def legacy_ai_profile(db, user_id):
         ]
         or None,
     }
+
+
+async def legacy_ai_profile(db, user_id):
+    """Old reports keep their source IDs but use the same permission selector."""
+    profile = await db.scalar(select(UserProfile).where(UserProfile.user_id == user_id))
+    result = legacy_profile_input(profile)
     import json
 
     from fastapi import HTTPException
