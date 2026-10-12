@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import TextLink from '@/components/ui/TextLink';
@@ -24,7 +25,7 @@ export default function JobLeadCaptureForm({
   useTranslation();
   const toast = useToast();
   const [open, setOpen] = useState(false);
-  const [requestKey, setRequestKey] = useState(() => crypto.randomUUID());
+  const [requestKey, setRequestKey] = useState(() => randomId());
   const [mode, setMode] = useState('url');
   const [title, setTitle] = useState('');
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -67,7 +68,7 @@ export default function JobLeadCaptureForm({
         requestKey
       );
       setOpen(false);
-      setRequestKey(crypto.randomUUID());
+      setRequestKey(randomId());
       setUrl('');
       setText('');
       setTitle('');

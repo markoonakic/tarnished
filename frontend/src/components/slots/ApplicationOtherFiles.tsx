@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { formatDate } from '@/lib/displayDate';
@@ -195,7 +196,7 @@ export default function ApplicationOtherFiles({
                     ? uploadIntent.current
                     : (uploadIntent.current = {
                         file,
-                        key: crypto.randomUUID(),
+                        key: randomId(),
                       })
                   ).key
                 );

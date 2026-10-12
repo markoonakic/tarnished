@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { t } from '@/lib/i18n';
 import FileButton from './FileButton';
@@ -163,7 +164,7 @@ export default function ImportModal({
           : (uploadIntent.current = {
               file,
               override,
-              key: crypto.randomUUID(),
+              key: randomId(),
             })
         ).key
       );

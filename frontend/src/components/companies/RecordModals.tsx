@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useId, useState } from 'react';
@@ -26,7 +27,7 @@ export function CompanyModal({
 }) {
   const { t } = useTranslation();
   const [baseline] = useState(company);
-  const [requestKey] = useState(() => crypto.randomUUID());
+  const [requestKey] = useState(() => randomId());
   const [draft, setDraft] = useState<CompanyInput>({
     name: company?.name ?? '',
     website: company?.website ?? '',
@@ -115,7 +116,7 @@ export function ContactModal({
   const { t } = useTranslation();
   const client = useQueryClient();
   const [baseline] = useState(contact);
-  const [requestKey] = useState(() => crypto.randomUUID());
+  const [requestKey] = useState(() => randomId());
   const [draft, setDraft] = useState<ContactInput>({
     name: contact?.name ?? initialName,
     function: contact?.function ?? '',

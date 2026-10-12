@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -60,7 +61,7 @@ export default function DeadlineReminder({
               state: 'open',
             });
             setExisting(data.items[0]);
-            setIntent(crypto.randomUUID());
+            setIntent(randomId());
             setOpen(true);
           } catch (error) {
             setError(errorMessage(error));

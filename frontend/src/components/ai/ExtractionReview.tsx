@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { formatDate } from '@/lib/displayDate';
 import { useEffect, useState } from 'react';
@@ -59,9 +60,7 @@ export default function ExtractionReview({
   const [saving, setSaving] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companyId, setCompanyId] = useState('');
-  const [companyRequestKey, setCompanyRequestKey] = useState(() =>
-    crypto.randomUUID()
-  );
+  const [companyRequestKey, setCompanyRequestKey] = useState(() => randomId());
   const items = analysis?.draft.items ?? [];
   const hasCompany = items.some((item) => item.field === 'company');
   useEffect(() => {
@@ -342,7 +341,7 @@ export default function ExtractionReview({
                               .then((company) => {
                                 setCompanies((value) => [...value, company]);
                                 setCompanyId(company.id);
-                                setCompanyRequestKey(crypto.randomUUID());
+                                setCompanyRequestKey(randomId());
                               })
                               .catch(() => controller.setError(true));
                           }}

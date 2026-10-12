@@ -1,3 +1,4 @@
+import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -91,7 +92,7 @@ export default function AddressReminders({
         reminders={query.data ?? []}
         timeZone={zone}
         onAdd={() => {
-          setIntent(crypto.randomUUID());
+          setIntent(randomId());
           setEditing('new');
         }}
         onEdit={(item) => setEditing(find(item) ?? null)}
