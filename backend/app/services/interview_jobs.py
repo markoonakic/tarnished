@@ -500,6 +500,8 @@ async def start(
         raise HTTPException(409, messages["already_active"])
     if await queue_count(db) >= 16:
         raise HTTPException(503, "Processing queue is full")
+    # Admission checks the same source/section/retention bounds as execution.
+    await _scope_evidence(scope, data)
     job = InterviewJob(
         user_id=auth.user.id,
         scope=scope,
@@ -679,12 +681,23 @@ async def publish(db, job_id, claim, sources, limits):
 async def _scope_evidence(scope, data):
     if scope == "INTERVIEW":
         sources, limits = await evidence_sources(data)
-        return sources, limits, sections(sources)
-    if scope == "APPLICATION":
+        batches = sections(sources)
+    elif scope == "APPLICATION":
         sources, limits = await application_evidence_sources(data)
-        return sources, limits, application_sections(sources)
-    sources, limits = await pipeline_evidence_sources(data)
-    return sources, limits, pipeline_sections(sources)
+        batches = application_sections(sources)
+    else:
+        sources, limits = await pipeline_evidence_sources(data)
+        batches = pipeline_sections(sources)
+    # The mandatory retained input shares the 1 MB report bound with advice and
+    # cited passages. Reject oversized snapshots before any provider dispatch,
+    # not after paying for a report that cannot be stored. Never clip source text.
+    retained = data if scope == "PIPELINE" else {"sources": sources}
+    if len(json.dumps(retained, default=str)) > 750_000:
+        raise HTTPException(
+            422,
+            "Evidence snapshot exceeds retained report bounds; shorten relevant text",
+        )
+    return sources, limits, batches
 
 
 async def execute(executor, job_id, claim):

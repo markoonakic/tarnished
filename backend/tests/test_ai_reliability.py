@@ -1,19 +1,22 @@
 """Demo-scale source contracts. Provider output is synthetic, not a live quality test."""
 
 import json
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi import HTTPException
-from tests.test_feedback_contract import envelope
+from tests.test_core_mutation_integrity import workspace as workspace
+from tests.test_feedback_contract import admitted, envelope
 from tests.test_report_responses_protocol import responses_fixture, text_settings
 
+from app.models import InterviewJob, Round
 from app.schemas.interview_feedback import (
     ApplicationOutputSection,
     InterviewOutputSection,
     PipelineOutputSection,
 )
 from app.schemas.job_analysis import CATEGORIES, Extraction
+from app.services import interview_jobs as jobs
 from app.services import interview_text as text
 from app.services.interview_archive import _verify_report_sources
 from app.services.interview_evidence import (
@@ -339,6 +342,95 @@ def test_long_sources_use_bounded_exact_passages_in_all_review_scopes(kind):
         ]
     with pytest.raises(ValueError):
         validate_output(output, [{"data": data}], kind)
+
+
+@pytest.mark.parametrize("scope", ["INTERVIEW", "APPLICATION", "PIPELINE"])
+async def test_oversized_retained_snapshot_fails_before_dispatch(scope):
+    if scope == "PIPELINE":
+        data = {
+            "profile": {},
+            "metrics": {
+                "applications": [
+                    {
+                        "application_id": str(uuid4()),
+                        "company": "Example",
+                        "notes": "x" * 800000,
+                    }
+                ]
+            },
+        }
+    else:
+        data = {
+            "application_id": str(uuid4()),
+            "application": {"job_description": "Python is required."},
+            "history": [],
+            "profile": {},
+            "documents": {},
+        }
+        if scope == "APPLICATION":
+            from app.services.interview_evidence import ROUND_FIELDS
+
+            data["rounds"] = [
+                {
+                    "id": str(uuid4()),
+                    **dict.fromkeys(ROUND_FIELDS),
+                    "notes_summary": "x" * 64000,
+                }
+                for _ in range(13)
+            ]
+        else:
+            data["round_id"] = str(uuid4())
+            from app.services.interview_evidence import ROUND_FIELDS
+
+            data["round"] = {
+                **dict.fromkeys(ROUND_FIELDS),
+                "current_transcript": {
+                    "coverage": "partial",
+                    "segments": [
+                        {"id": str(uuid4()), "role": "candidate", "text": "x" * 64000}
+                        for _ in range(13)
+                    ],
+                },
+            }
+    with pytest.raises(HTTPException) as error:
+        await jobs._scope_evidence(scope, data)
+    assert error.value.status_code == 422
+    assert "retained report bounds" in error.value.detail
+
+
+async def test_large_transcript_is_rejected_at_admission_without_a_new_job(
+    client, db, workspace, monkeypatch
+):
+    path, old_job, _, _ = await admitted(
+        "INTERVIEW", client, db, workspace, monkeypatch
+    )
+    old_job.state = "failed"
+    interview = await db.get(Round, old_job.round_id)
+    transcript = dict(interview.current_transcript)
+    transcript["segments"] = [
+        {"id": str(uuid4()), "role": "candidate", "text": "x" * 64000}
+        for _ in range(13)
+    ]
+    interview.current_transcript = transcript
+    await db.commit()
+    state = (await client.get(path)).json()
+    intent = str(uuid4())
+    response = await client.post(
+        path,
+        json={
+            "intent_id": intent,
+            "generation": state["generation"],
+            "config_revision": state["capability"]["configuration_revision"],
+        },
+    )
+    assert response.status_code == 422, response.text
+    assert "retained report bounds" in response.text
+    from sqlalchemy import select
+
+    assert (
+        await db.scalar(select(InterviewJob.id).where(InterviewJob.intent_id == intent))
+        is None
+    )
 
 
 @pytest.mark.parametrize("protocol", ["responses", "chat_completions"])
