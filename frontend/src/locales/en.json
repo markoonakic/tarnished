@@ -619,6 +619,8 @@
   "Display the Flame of Ambition widget on the dashboard.": "Display the Flame of Ambition widget on the dashboard.",
   "Show Needs Attention": "Show Needs Attention",
   "Display follow-up sections on the dashboard.": "Display follow-up sections on the dashboard.",
+  "Review AI extraction before saving": "Review AI extraction before saving",
+  "When off, extracted fields are saved automatically. This does not change existing extractions.": "When off, extracted fields are saved automatically. This does not change existing extractions.",
   "Show Activity Heatmap": "Show Activity Heatmap",
   "Display the activity heatmap on the dashboard and analytics page.": "Display the activity heatmap on the dashboard and analytics page.",
   "Failed to save feature visibility settings": "Failed to save feature visibility settings",

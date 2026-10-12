@@ -8,7 +8,10 @@ import {
 } from '@/hooks/useUserPreferences';
 
 type BooleanPreferenceKey =
-  'show_streak_stats' | 'show_needs_attention' | 'show_heatmap';
+  | 'show_streak_stats'
+  | 'show_needs_attention'
+  | 'show_heatmap'
+  | 'review_ai_extraction';
 
 interface ToggleConfig {
   key: BooleanPreferenceKey;
@@ -17,6 +20,17 @@ interface ToggleConfig {
 }
 
 const toggles: ToggleConfig[] = [
+  {
+    key: 'review_ai_extraction',
+    get label() {
+      return t('Review AI extraction before saving');
+    },
+    get description() {
+      return t(
+        'When off, extracted fields are saved automatically. This does not change existing extractions.'
+      );
+    },
+  },
   {
     key: 'show_streak_stats',
     get label() {

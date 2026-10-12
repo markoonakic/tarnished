@@ -358,7 +358,7 @@ def _prompt_stale_reason(metadata, scope):
     return None
 
 
-async def guard(db, job_id, claim, states=ACTIVE):
+async def guard(db, job_id, claim, states=ACTIVE, *, allow_stale_extraction=False):
     await lock_ai_settings(db)
     job = await db.scalar(
         select(InterviewJob)
@@ -368,7 +368,9 @@ async def guard(db, job_id, claim, states=ACTIVE):
     if job is not None and job.analysis_id:
         from app.services.job_analyses import guard as analysis_guard
 
-        return await analysis_guard(db, job, claim, states)
+        return await analysis_guard(
+            db, job, claim, states, allow_stale_extraction=allow_stale_extraction
+        )
     if (
         job is None
         or job.claim_id != claim

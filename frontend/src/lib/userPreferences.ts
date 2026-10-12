@@ -9,6 +9,7 @@ export interface UserPreferences {
   show_streak_stats: boolean;
   show_needs_attention: boolean;
   show_heatmap: boolean;
+  review_ai_extraction: boolean;
   time_zone_mode: TimeZoneMode;
   time_zone: string | null;
 }
@@ -18,6 +19,7 @@ export interface UserPreferencesUpdate {
   show_streak_stats?: boolean;
   show_needs_attention?: boolean;
   show_heatmap?: boolean;
+  review_ai_extraction?: boolean;
   time_zone_mode?: TimeZoneMode;
   time_zone?: string | null;
 }
@@ -27,6 +29,7 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   show_streak_stats: true,
   show_needs_attention: true,
   show_heatmap: true,
+  review_ai_extraction: false,
   time_zone_mode: 'device',
   time_zone: null,
 };

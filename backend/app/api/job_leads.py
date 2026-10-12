@@ -395,13 +395,14 @@ async def _extract_lead(job_lead_id, data, auth, db):
             or (auth.user.settings or {}).get("language", "en"),
         ),
     )
+    lead.revision += 1
+    await db.flush()
     await job_analyses.start(
         db,
         auth,
         analysis,
         RunAnalysis(intent_id=uuid4(), expected_revision=analysis.revision),
     )
-    lead.revision += 1
     lead.status, lead.processing_started_at, lead.error_message = "pending", None, None
     await db.commit()
     await db.refresh(lead)
@@ -418,7 +419,7 @@ async def extract_job_lead(
     _: object = Depends(require_api_key_scope("job_leads:write")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Queue proposals without publishing extracted fields."""
+    """Queue grounded extraction using the owner's review preference."""
     return await _extract_lead(job_lead_id, data, _, db)
 
 

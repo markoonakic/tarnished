@@ -377,6 +377,7 @@ EXPORT_SETTINGS_FIELDS = (
     "show_streak_stats",
     "show_needs_attention",
     "show_heatmap",
+    "review_ai_extraction",
     "time_zone_mode",
     "time_zone",
 )

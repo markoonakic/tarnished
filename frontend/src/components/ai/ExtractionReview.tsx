@@ -1,7 +1,7 @@
 import { randomId } from '@/lib/randomId';
 import Button from '@/components/ui/Button';
 import { formatDate } from '@/lib/displayDate';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { useTranslation } from 'react-i18next';
 import Card from '@/components/Card';
@@ -59,6 +59,21 @@ export default function ExtractionReview({
   const [editing, setEditing] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [companiesLoading, setCompaniesLoading] = useState(false);
+  const updated = useRef(onUpdated);
+  useEffect(() => {
+    updated.current = onUpdated;
+  }, [onUpdated]);
+  const previousReviewState = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (
+      analysis?.review_state === 'saved' &&
+      previousReviewState.current &&
+      previousReviewState.current !== 'saved'
+    )
+      updated.current?.();
+    previousReviewState.current = analysis?.review_state;
+  }, [analysis?.id, analysis?.review_state]);
   const [companyId, setCompanyId] = useState('');
   const [companyRequestKey, setCompanyRequestKey] = useState(() => randomId());
   const items = analysis?.draft.items ?? [];
@@ -66,6 +81,7 @@ export default function ExtractionReview({
   useEffect(() => {
     if (!hasCompany) return;
     let active = true;
+    setCompaniesLoading(true);
     async function loadCompanies() {
       const first = await apiV030.companies({ page: 1, per_page: 100 });
       const items = [...first.items];
@@ -78,16 +94,20 @@ export default function ExtractionReview({
       }
       if (active) setCompanies(items);
     }
-    void loadCompanies().catch(() => {
-      if (active) controller.setError(true);
-    });
+    void loadCompanies()
+      .catch(() => {
+        if (active) controller.setError(true);
+      })
+      .finally(() => {
+        if (active) setCompaniesLoading(false);
+      });
     return () => {
       active = false;
     };
     // Company options do not change on every polling read.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasCompany]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     setChoices({});
     setEditing(null);
     setCompanyId('');
@@ -95,13 +115,29 @@ export default function ExtractionReview({
   const disabled = busy || running || saving || loading;
   const reviewed = Object.values(choices);
   useUnsavedChanges(saving || reviewed.length > 0 || editing !== null);
-  const companyNeeded =
-    items.some(
-      (item) =>
-        item.field === 'company' &&
-        choices[item.id] &&
-        choices[item.id].decision !== 'rejected'
-    ) && !companyId;
+  const companyProposal = items.find((item) => item.field === 'company');
+  const companyValue = String(
+    (companyProposal && choices[companyProposal.id]?.value) ??
+      companyProposal?.value ??
+      ''
+  ).trim();
+  const selectedCompany =
+    companies.find((company) => company.id === companyId) ??
+    companies.find(
+      (company) =>
+        company.name.trim().toLowerCase() === companyValue.toLowerCase()
+    );
+  const saveBlocked = saving
+    ? t('ai.saving')
+    : busy || running
+      ? t('ai.analyzing')
+      : loading || companiesLoading
+        ? t('ai.loading')
+        : analysis?.stale
+          ? t('ai.sourceChanged')
+          : !reviewed.length
+            ? t('ai.reviewSelection')
+            : '';
   const groups = [...new Set(items.map(group))];
   const displayValue = (field: string, value: string | number) =>
     ['work_mode', 'employment_type', 'pay_period'].includes(field)
@@ -119,9 +155,25 @@ export default function ExtractionReview({
     setSaving(true);
     controller.setError(false);
     try {
+      let savedCompanyId = selectedCompany?.id;
+      if (
+        companyProposal &&
+        choices[companyProposal.id] &&
+        choices[companyProposal.id].decision !== 'rejected' &&
+        !savedCompanyId
+      ) {
+        const company = await apiV030.createCompany(
+          { name: companyValue },
+          companyRequestKey
+        );
+        setCompanies((value) => [...value, company]);
+        setCompanyId(company.id);
+        setCompanyRequestKey(randomId());
+        savedCompanyId = company.id;
+      }
       const payload = reviewed.map((choice) =>
         items.find((item) => item.id === choice.id)?.field === 'company'
-          ? { ...choice, company_id: companyId || undefined }
+          ? { ...choice, company_id: savedCompanyId }
           : choice
       );
       const revision = current.evidence_revision ?? current.revision;
@@ -134,7 +186,6 @@ export default function ExtractionReview({
         )
       );
       setChoices({});
-      onUpdated?.();
     } catch {
       controller.setError(true);
     } finally {
@@ -156,16 +207,10 @@ export default function ExtractionReview({
   if (analysis?.review_state === 'saved')
     return (
       <Card
-        title={t('ai.reviewedSummary', {
+        title={t('ai.savedSummary', {
           date: formatDate(analysis.updated_at),
-          accepted: analysis.reviewed.filter(
-            (row) => row.decision === 'accepted'
-          ).length,
-          edited: analysis.reviewed.filter((row) => row.decision === 'edited')
+          count: analysis.reviewed.filter((row) => row.decision !== 'rejected')
             .length,
-          rejected: analysis.reviewed.filter(
-            (row) => row.decision === 'rejected'
-          ).length,
         })}
         icon="bi-check2-all"
         actions={run}
@@ -229,14 +274,16 @@ export default function ExtractionReview({
               variant="primary"
               type="button"
 
-              disabled={
-                disabled || !reviewed.length || companyNeeded || analysis?.stale
-              }
+              disabled={!!saveBlocked}
+              title={saveBlocked || undefined}
               onClick={() => void save()}
             >
               <i className="bi-check2 icon-sm" aria-hidden="true" />
               {t('ai.saveReviewed')}
             </Button>
+            {saveBlocked && (
+              <HelpTip label={t('ai.saveBlocked')}>{saveBlocked}</HelpTip>
+            )}
           </>
         ) : (
           run
@@ -271,7 +318,46 @@ export default function ExtractionReview({
                     {t(`ai.field.${item.field}`)}
                   </span>
                   <div className="min-w-0 text-sm break-words">
-                    {editing === item.id ? (
+                    {editing === item.id && item.field === 'company' ? (
+                      <label className="block">
+                        <span className="sr-only">{t('ai.chooseCompany')}</span>
+                        <SearchableCombobox
+                          options={companies.map((company) => ({
+                            value: company.id,
+                            label: company.name,
+                          }))}
+                          value={selectedCompany?.id ?? ''}
+                          placeholder={companyValue}
+                          disabled={disabled || companiesLoading}
+                          onChange={(id) => {
+                            const company = companies.find(
+                              (value) => value.id === id
+                            );
+                            if (!company) return;
+                            setCompanyId(id);
+                            setChoices((value) => ({
+                              ...value,
+                              [item.id]: {
+                                id: item.id,
+                                decision: 'edited',
+                                value: company.name,
+                              },
+                            }));
+                          }}
+                          onCreate={(name) => {
+                            setCompanyId('');
+                            setChoices((value) => ({
+                              ...value,
+                              [item.id]: {
+                                id: item.id,
+                                decision: 'edited',
+                                value: name,
+                              },
+                            }));
+                          }}
+                        />
+                      </label>
+                    ) : editing === item.id ? (
                       <label className="block">
                         <span className="sr-only">{t('ai.editValue')}</span>
                         <input
@@ -298,6 +384,16 @@ export default function ExtractionReview({
                         {displayValue(item.field, choice?.value ?? item.value)}
                       </span>
                     )}
+                    {item.field === 'company' && (
+                      <span className="bg-bg2 text-muted ml-2 inline-flex rounded px-2 py-1 text-xs">
+                        {t(
+                          selectedCompany
+                            ? 'ai.existingCompany'
+                            : 'ai.newCompany'
+                        )}
+                        {selectedCompany && ` · ${selectedCompany.name}`}
+                      </span>
+                    )}
                     {currentValue != null && currentValue !== '' && (
                       <p className="text-muted mt-1 text-xs">
                         {t('ai.current', {
@@ -318,36 +414,6 @@ export default function ExtractionReview({
                         {t('ai.userEdited')}
                       </HelpTip>
                     )}
-                    {item.field === 'company' && (
-                      <div className="mt-2">
-                        <label
-                          htmlFor={`company-${item.id}`}
-                          className="text-muted mb-1 block text-xs"
-                        >
-                          {t('ai.chooseCompany')}
-                        </label>
-                        <SearchableCombobox
-                          id={`company-${item.id}`}
-                          options={companies.map((company) => ({
-                            value: company.id,
-                            label: company.name,
-                          }))}
-                          value={companyId}
-                          disabled={disabled}
-                          onChange={setCompanyId}
-                          onCreate={(name) => {
-                            void apiV030
-                              .createCompany({ name }, companyRequestKey)
-                              .then((company) => {
-                                setCompanies((value) => [...value, company]);
-                                setCompanyId(company.id);
-                                setCompanyRequestKey(randomId());
-                              })
-                              .catch(() => controller.setError(true));
-                          }}
-                        />
-                      </div>
-                    )}
                   </div>
                   <div className="flex items-start gap-1 sm:justify-end">
                     {choice && editing !== item.id ? (
@@ -365,6 +431,7 @@ export default function ExtractionReview({
                             setChoices((value) => {
                               const copy = { ...value };
                               delete copy[item.id];
+                              if (item.field === 'company') setCompanyId('');
                               return copy;
                             })
                           }

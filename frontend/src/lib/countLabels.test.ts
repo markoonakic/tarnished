@@ -45,6 +45,11 @@ const forms: Record<string, [string, string, string]> = {
     'AI može da koristi {{allowed}} od {{total}} stavke',
     'AI može da koristi {{allowed}} od {{total}} stavki',
   ],
+  'ai.savedSummary': [
+    'Sačuvano {{date}} · {{count}} polje',
+    'Sačuvano {{date}} · {{count}} polja',
+    'Sačuvano {{date}} · {{count}} polja',
+  ],
   'ai.proposalCount': [
     'Predlozi: {{count}} · Pregledano: {{reviewed}}',
     'Predlozi: {{count}} · Pregledano: {{reviewed}}',

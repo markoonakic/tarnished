@@ -385,21 +385,205 @@ it('keeps edited drafts after conflict, supports reject and undo', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Reject Python' }));
   expect(screen.getByText('Rejected')).toBeInTheDocument();
 });
-it('requires an explicit company picker selection before Accept all can save', async () => {
+it.each([true, false])(
+  'Accept all saves a matching or new company (existing=%s)',
+  async (existing) => {
+    const company = { id: 'north', name: ' north ' } as Awaited<
+      ReturnType<typeof apiV030.createCompany>
+    >;
+    vi.mocked(apiV030.companies).mockResolvedValue({
+      items: existing ? [company] : [],
+      page: 1,
+      per_page: 100,
+      total: existing ? 1 : 0,
+    });
+    vi.mocked(apiV030.createCompany).mockResolvedValue(company);
+    const analysis = {
+      ...base,
+      draft: {
+        items: [
+          { id: 'company', field: 'company', value: 'NORTH', quote: 'North' },
+        ],
+      },
+    };
+    latest(analysis);
+    vi.mocked(analysesApi.review).mockResolvedValue({
+      ...analysis,
+      review_state: 'saved',
+      reviewed: [{ ...analysis.draft.items[0], decision: 'accepted' }],
+    });
+    const onUpdated = vi.fn();
+    render(
+      <ExtractionReview
+        target={{ lead_id: 'lead' }}
+        source="North"
+        onUpdated={onUpdated}
+      />
+    );
+    const accept = await screen.findByRole('button', { name: 'Accept all' });
+    await screen.findByText(existing ? /Existing company/ : 'New company');
+    await waitFor(() => expect(accept).toBeEnabled());
+    expect(
+      screen.getByRole('button', { name: 'Save reviewed' })
+    ).toHaveAttribute(
+      'title',
+      'Accept, edit or reject a proposal before saving.'
+    );
+    fireEvent.click(accept);
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Save reviewed' })
+      ).toBeEnabled()
+    );
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Save reviewed' }));
+    await waitFor(() =>
+      expect(analysesApi.review).toHaveBeenCalledWith(analysis, [
+        {
+          id: 'company',
+          decision: 'accepted',
+          value: 'NORTH',
+          company_id: 'north',
+        },
+      ])
+    );
+    if (existing) expect(apiV030.createCompany).not.toHaveBeenCalled();
+    else
+      expect(apiV030.createCompany).toHaveBeenCalledWith(
+        { name: 'NORTH' },
+        expect.any(String)
+      );
+    await screen.findByText(/Saved .* · 1 field/);
+    expect(onUpdated).toHaveBeenCalledOnce();
+  }
+);
+it('company Edit uses the existing combobox and marks a new company without creating it early', async () => {
   latest({
     ...base,
     draft: {
-      items: [
-        { id: 'company', field: 'company', value: 'North', quote: 'North' },
-      ],
+      items: [{ id: 'c', field: 'company', value: 'North', quote: 'North' }],
     },
   });
   render(<ExtractionReview target={{ lead_id: 'lead' }} source="North" />);
-  const accept = await screen.findByRole('button', { name: 'Accept all' });
-  await waitFor(() => expect(accept).toBeEnabled());
-  fireEvent.click(accept);
-  expect(screen.getByRole('button', { name: 'Save reviewed' })).toBeDisabled();
-  expect(screen.getByText('Choose or create a company')).toBeInTheDocument();
+  const edit = await screen.findByRole('button', { name: 'Edit North' });
+  await waitFor(() => expect(edit).toBeEnabled());
+  fireEvent.click(edit);
+  const picker = screen.getByRole('combobox', {
+    name: 'Choose or create a company',
+  });
+  fireEvent.change(picker, { target: { value: 'South' } });
+  fireEvent.click(screen.getByRole('option', { name: '+ Create "South"' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+  expect(screen.getByText('South')).toBeInTheDocument();
+  expect(screen.getByText('New company')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Save reviewed' })).toBeEnabled();
+  expect(apiV030.createCompany).not.toHaveBeenCalled();
+});
+it.each(['en', 'sr-Latn'])(
+  'auto-applied extraction shows only its saved summary in %s',
+  async (language) => {
+    await i18n.changeLanguage(language);
+    latest({
+      ...base,
+      review_state: 'saved',
+      reviewed: [{ ...proposal, decision: 'accepted' }],
+    });
+    const onUpdated = vi.fn();
+    render(
+      <ExtractionReview
+        target={{ lead_id: 'lead' }}
+        source="Python required"
+        onUpdated={onUpdated}
+      />
+    );
+    await screen.findByRole('button', { name: i18n.t('ai.runAgain') });
+    expect(onUpdated).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(
+        language === 'en' ? /Saved .* · 1 field/ : /Sačuvano .* · 1 polje/
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('ai.acceptAll') })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Python')).not.toBeInTheDocument();
+  }
+);
+it('refreshes the record once when a polling read finds an automatic save', async () => {
+  const onUpdated = vi.fn();
+  const view = render(
+    <ExtractionReview
+      target={{ lead_id: 'lead' }}
+      source="Python required"
+      onUpdated={onUpdated}
+    />
+  );
+  await screen.findByRole('button', { name: 'Accept all' });
+  latest({
+    ...base,
+    review_state: 'saved',
+    reviewed: [{ ...proposal, decision: 'accepted' }],
+  });
+  view.rerender(
+    <ExtractionReview
+      target={{ lead_id: 'lead' }}
+      refreshKey={1}
+      source="Python required"
+      onUpdated={onUpdated}
+    />
+  );
+  await screen.findByRole('button', { name: 'Run again' });
+  expect(onUpdated).toHaveBeenCalledOnce();
+  view.rerender(
+    <ExtractionReview
+      target={{ lead_id: 'lead' }}
+      refreshKey={2}
+      source="Python required"
+      onUpdated={onUpdated}
+    />
+  );
+  await waitFor(() => expect(analysesApi.latest).toHaveBeenCalledTimes(3));
+  expect(onUpdated).toHaveBeenCalledOnce();
+});
+it('company Edit preselects the match and can choose another existing company', async () => {
+  const companies = [
+    { id: 'north', name: ' north ' },
+    { id: 'south', name: 'South' },
+  ] as Awaited<ReturnType<typeof apiV030.companies>>['items'];
+  vi.mocked(apiV030.companies).mockResolvedValue({
+    items: companies,
+    page: 1,
+    per_page: 100,
+    total: 2,
+  });
+  const analysis = {
+    ...base,
+    draft: {
+      items: [{ id: 'c', field: 'company', value: 'NORTH', quote: 'North' }],
+    },
+  };
+  latest(analysis);
+  vi.mocked(analysesApi.review).mockResolvedValue({
+    ...analysis,
+    review_state: 'saved',
+    reviewed: [{ ...analysis.draft.items[0], decision: 'edited' }],
+  });
+  render(<ExtractionReview target={{ lead_id: 'lead' }} source="North" />);
+  await screen.findByText(/Existing company/);
+  fireEvent.click(screen.getByRole('button', { name: 'Edit NORTH' }));
+  const picker = screen.getByRole('combobox');
+  expect(picker).toHaveValue(' north ');
+  fireEvent.focus(picker);
+  fireEvent.change(picker, { target: { value: 'South' } });
+  fireEvent.click(screen.getByRole('option', { name: 'South' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save reviewed' }));
+  await waitFor(() =>
+    expect(analysesApi.review).toHaveBeenCalledWith(analysis, [
+      { id: 'c', decision: 'edited', value: 'South', company_id: 'south' },
+    ])
+  );
+  expect(apiV030.createCompany).not.toHaveBeenCalled();
 });
 it('shows a read-only matrix, exact evidence, footer and stale banner', async () => {
   latest({

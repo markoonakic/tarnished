@@ -25,6 +25,7 @@ describe('FeatureToggles', () => {
       show_streak_stats: true,
       show_needs_attention: true,
       show_heatmap: true,
+      review_ai_extraction: false,
       time_zone_mode: 'device',
       time_zone: 'Europe/Belgrade',
     };
@@ -49,6 +50,15 @@ describe('FeatureToggles', () => {
 
     const { default: FeatureToggles } = await import('./FeatureToggles');
     const { rerender } = render(<FeatureToggles />);
+
+    const reviewToggle = screen.getByRole('switch', {
+      name: 'Review AI extraction before saving',
+    });
+    expect(reviewToggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(reviewToggle);
+    expect(mutate).toHaveBeenCalledWith({ review_ai_extraction: true });
+    rerender(<FeatureToggles />);
+    expect(reviewToggle).toHaveAttribute('aria-checked', 'true');
 
     const heatmapToggle = screen.getByRole('switch', {
       name: /show activity heatmap/i,

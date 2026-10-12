@@ -33,6 +33,7 @@ class UserPreferencesUpdate(BaseModel):
     show_streak_stats: bool | None = None
     show_needs_attention: bool | None = None
     show_heatmap: bool | None = None
+    review_ai_extraction: bool | None = None
     time_zone_mode: TimeZoneMode | None = None
     time_zone: str | None = None
 
@@ -55,6 +56,7 @@ class UserPreferencesResponse(BaseModel):
     show_streak_stats: bool
     show_needs_attention: bool
     show_heatmap: bool
+    review_ai_extraction: bool
     time_zone_mode: TimeZoneMode
     time_zone: str | None = None
 

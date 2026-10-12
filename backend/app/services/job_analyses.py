@@ -6,8 +6,9 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
-from app.models import Application, InterviewJob, JobLead, Round, UserProfile
+from app.models import Application, InterviewJob, JobLead, Round, User, UserProfile
 from app.models.job_analysis import JobAnalysis
 from app.models.workspace import Company
 from app.schemas.job_analysis import (
@@ -18,12 +19,14 @@ from app.schemas.job_analysis import (
     Match,
     Preparation,
     Proposal,
+    ReviewItem,
 )
 from app.services.ai_settings import get_ai_settings, lock_ai_settings
 from app.services.interview_evidence import fingerprint
 from app.services.interview_text import analyze_section, supported
 from app.services.profile_items import allowed_profile
 from app.services.requirement_insights import current_requirements
+from app.services.user_settings import get_user_preferences
 
 KINDS = ("EXTRACTION", "PROFILE_MATCH", "PREPARATION")
 PROMPT_VERSION = "reviewed-3"
@@ -318,10 +321,15 @@ async def start(db, auth, row, request):
         raise HTTPException(409, "Inputs changed; create a new analysis")
     row.revision += 1
     row.fingerprint = fingerprint(data)
+    preferences = get_user_preferences(
+        await db.scalar(select(User.settings).where(User.id == row.user_id))
+    )
     row.input_revisions = {
         **revisions,
+        "review_ai_extraction": preferences["review_ai_extraction"],
         "prompt": PROMPT_VERSION,
         "configuration": settings.revision,
+        "target": target_revision(await target(db, row)),
     }
     row.source_text = data.get("posting", "")
     # Keep the prior result during an explicit retry; publication replaces it.
@@ -348,7 +356,7 @@ async def start(db, auth, row, request):
     return job
 
 
-async def guard(db, job, claim, states):
+async def guard(db, job, claim, states, *, allow_stale_extraction=False):
     from app.services.interview_jobs import authority
 
     if job.claim_id != claim or job.state not in states:
@@ -361,7 +369,10 @@ async def guard(db, job, claim, states):
     settings = await get_ai_settings(db)
     if (
         row.revision != job.generation
-        or fingerprint(data) != job.fingerprint
+        or (
+            fingerprint(data) != job.fingerprint
+            and not (allow_stale_extraction and row.kind == "EXTRACTION")
+        )
         or settings.revision != job.config_revision
         or not supported(settings)
         or job.manifest.get("prompt_revision") != PROMPT_VERSION
@@ -384,13 +395,33 @@ async def execute(executor, job_id, claim):
     )
     output = validate_output(output, sources, kind)
     async with executor.sessions() as db:
-        job, _, _ = await guarded(db, job_id, claim, ("analyzing",))
+        job, _, _ = await guarded(
+            db, job_id, claim, ("analyzing",), allow_stale_extraction=True
+        )
         row = await owned(db, job.user_id, job.analysis_id)
         row.draft = output
         row.reviewed = []
         row.review_state = "ready"
         row.revision += 1
         job.state, job.uncertain, job.checkpoints = "complete", False, []
+        if row.kind == "EXTRACTION" and not row.input_revisions.get(
+            "review_ai_extraction", True
+        ):
+            # Save the proposals outside the savepoint; a conflict leaves them reviewable.
+            try:
+                async with db.begin_nested():
+                    await apply_extraction(
+                        db,
+                        row,
+                        row.revision,
+                        row.input_revisions.get("target"),
+                        [
+                            ReviewItem(id=item["id"], decision="accepted")
+                            for item in output["items"]
+                        ],
+                    )
+            except (HTTPException, IntegrityError):
+                pass
         await db.commit()
 
 
@@ -429,25 +460,33 @@ async def view(db, row):
 async def review(db, row, request):
     await lock_ai_settings(db)
     row = await owned(db, row.user_id, row.id)
+    return await apply_extraction(
+        db, row, request.expected_revision, request.target_revision, request.items
+    )
+
+
+async def apply_extraction(
+    db, row, expected_revision, expected_target_revision, choices
+):
+    """One atomic apply path for reviewed and automatic extraction."""
     record = await target(db, row)
     data, _ = await inputs(db, row)
     if (
         row.kind != "EXTRACTION"
         or row.review_state != "ready"
         or not row.draft
-        or row.review_state == "saved"
-        or row.revision != request.expected_revision
-        or target_revision(record) != request.target_revision
+        or row.revision != expected_revision
+        or target_revision(record) != expected_target_revision
         or fingerprint(data) != row.fingerprint
     ):
         raise HTTPException(409, "Analysis or target changed")
     proposals = {item["id"]: item for item in row.draft["items"]}
-    ids = [item.id for item in request.items]
+    ids = [item.id for item in choices]
     if len(set(ids)) != len(ids) or not set(ids) <= proposals.keys():
         raise HTTPException(422, "Unknown or duplicate review item")
     requirements = list(record.confirmed_requirements or [])
     reviewed, responsibilities = [], []
-    for choice in request.items:
+    for choice in choices:
         proposal = proposals[choice.id]
         entry = {**proposal, "decision": choice.decision}
         if choice.decision == "rejected":
@@ -465,17 +504,36 @@ async def review(db, row, request):
                 raise HTTPException(422, "Invalid edited value") from None
         field, value = entry["field"], entry["value"]
         if field == "company":
-            if choice.company_id is None:
-                raise HTTPException(422, "Choose a company")
-            company = await db.scalar(
-                select(Company).where(
-                    Company.id == str(choice.company_id), Company.user_id == row.user_id
+            if choice.company_id is not None:
+                company = await db.scalar(
+                    select(Company).where(
+                        Company.id == str(choice.company_id),
+                        Company.user_id == row.user_id,
+                    )
                 )
-            )
-            if company is None:
-                raise HTTPException(404, "Company not found")
+                if company is None:
+                    raise HTTPException(404, "Company not found")
+            else:
+                name = str(value).strip()
+                companies = await db.scalars(
+                    select(Company)
+                    .where(Company.user_id == row.user_id)
+                    .order_by(Company.id)
+                )
+                company = next(
+                    (
+                        item
+                        for item in companies
+                        if item.name.strip().casefold() == name.casefold()
+                    ),
+                    None,
+                )
+                if company is None:
+                    company = Company(user_id=row.user_id, name=name)
+                    db.add(company)
+                    await db.flush()
             record.company_id, record.company = company.id, company.name
-            if company.name != str(value):
+            if company.name.strip().casefold() != str(value).strip().casefold():
                 entry["decision"] = "edited"
             entry["value"], entry["company_id"] = company.name, company.id
         elif field in REQUIREMENTS:

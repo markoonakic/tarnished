@@ -15,6 +15,7 @@ class UserPreferencesSettings(TypedDict):
     show_streak_stats: bool
     show_needs_attention: bool
     show_heatmap: bool
+    review_ai_extraction: bool
     time_zone_mode: TimeZoneMode
     time_zone: str | None
 
@@ -24,6 +25,7 @@ DEFAULT_USER_PREFERENCES: UserPreferencesSettings = {
     "show_streak_stats": True,
     "show_needs_attention": True,
     "show_heatmap": True,
+    "review_ai_extraction": False,
     "time_zone_mode": "device",
     "time_zone": None,
 }
@@ -59,6 +61,7 @@ def get_user_preferences(
         "show_streak_stats": bool(show_streak_stats),
         "show_needs_attention": bool(show_needs_attention),
         "show_heatmap": bool(show_heatmap),
+        "review_ai_extraction": bool(current.get("review_ai_extraction", False)),
         "time_zone_mode": (
             time_zone_mode
             if time_zone_mode in {"device", "manual"}

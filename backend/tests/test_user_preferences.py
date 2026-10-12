@@ -42,6 +42,7 @@ class TestUserPreferences:
             "show_streak_stats": True,
             "show_needs_attention": True,
             "show_heatmap": True,
+            "review_ai_extraction": False,
             "time_zone_mode": "device",
             "time_zone": None,
         }
@@ -69,6 +70,7 @@ class TestUserPreferences:
             "show_streak_stats": False,
             "show_needs_attention": True,
             "show_heatmap": True,
+            "review_ai_extraction": False,
             "time_zone_mode": "manual",
             "time_zone": "Europe/Belgrade",
         }
@@ -79,6 +81,7 @@ class TestUserPreferences:
             "show_streak_stats": False,
             "show_needs_attention": True,
             "show_heatmap": True,
+            "review_ai_extraction": False,
             "time_zone_mode": "manual",
             "time_zone": "Europe/Belgrade",
         }
@@ -129,6 +132,7 @@ class TestUserPreferences:
             "show_streak_stats": True,
             "show_needs_attention": True,
             "show_heatmap": False,
+            "review_ai_extraction": False,
             "time_zone_mode": "device",
             "time_zone": None,
         }
@@ -141,6 +145,7 @@ class TestUserPreferences:
             "show_streak_stats": True,
             "show_needs_attention": True,
             "show_heatmap": False,
+            "review_ai_extraction": False,
             "time_zone_mode": "device",
             "time_zone": None,
         }

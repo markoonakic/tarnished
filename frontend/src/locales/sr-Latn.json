@@ -619,6 +619,8 @@
   "Display the Flame of Ambition widget on the dashboard.": "Prikazuje Plamen ambicije na početnoj stranici.",
   "Show Needs Attention": "Prikaži stavke za pažnju",
   "Display follow-up sections on the dashboard.": "Prikazuje odeljke za naknadni kontakt na početnoj stranici.",
+  "Review AI extraction before saving": "Pregledaj AI izdvajanje pre čuvanja",
+  "When off, extracted fields are saved automatically. This does not change existing extractions.": "Kada je isključeno, izdvojena polja se automatski čuvaju. Postojeća izdvajanja se ne menjaju.",
   "Show Activity Heatmap": "Prikaži mapu aktivnosti",
   "Display the activity heatmap on the dashboard and analytics page.": "Prikazuje mapu aktivnosti na početnoj stranici i u analitici.",
   "Failed to save feature visibility settings": "Čuvanje podešavanja vidljivosti nije uspelo",

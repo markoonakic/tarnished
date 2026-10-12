@@ -145,6 +145,10 @@ def session(call):
 
 
 async def test_saved_lead_queues_once_and_never_applies_without_review(client, wire):
+    response = await client.patch(
+        "/api/user-preferences", json={"review_ai_extraction": True}
+    )
+    assert response.status_code == 200
     saved = await client.post(
         "/api/job-leads",
         json={
