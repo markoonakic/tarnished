@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.12] - 2026-10-12
+
+### Added
+
+- Add the per-user “Review AI extraction before saving” switch in Settings > Personalization > Features. It is off by default and is included in preferences, JSON and ZIP exports, and Replace imports.
+- Save validated extraction fields, responsibilities, confirmed requirements and the matched or new company automatically when review is off. The server finishes the save even after the page is closed. Saved summaries keep the source quotes and accepted items.
+
+### Fixed
+
+- Accept all now selects an existing company by its trimmed name without case sensitivity, or creates a new company when Save reviewed is used. The company row shows its status and uses the existing company picker for edits.
+- Explain blocked Save reviewed actions in translated help tips. Failed company lookups can be retried without losing review choices or creating duplicate companies.
+- Keep proposals available for review if an automatic save finds a changed target or a conflict. Keep owner isolation, revision checks and quote validation.
+- Keep feedback guidance in one title help tip for application, interview and pipeline feedback.
+
 ## [0.3.11] - 2026-10-12
 
 ### Fixed
