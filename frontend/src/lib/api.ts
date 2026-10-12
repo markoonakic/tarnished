@@ -146,6 +146,26 @@ async function refreshTokens(refreshToken: string): Promise<string | null> {
   return data.access_token;
 }
 
+export async function freshAccessToken(): Promise<string | null> {
+  const token = getAccessToken();
+  if (!token || !getRefreshToken()) return token;
+  let expiry: unknown;
+  try {
+    const payload = token.split('.')[1];
+    expiry = (
+      JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as {
+        exp?: unknown;
+      }
+    ).exp;
+  } catch {
+    return token; // Server authority still checks malformed or non-JWT tokens.
+  }
+  if (typeof expiry === 'number' && expiry * 1000 <= Date.now() + 30_000) {
+    return refreshAuthTokens();
+  }
+  return token;
+}
+
 function withTimeZoneHeaders(headers?: HeadersInit): Headers {
   const mergedHeaders = mergeHeaders(headers);
   const timeZone = getBrowserTimeZone();
@@ -178,7 +198,10 @@ export async function fetchWithAuth(
 ): Promise<Response> {
   const finish = beginApiWrite(init.method);
   try {
-    const authorizedHeaders = withAuthorization(init.headers);
+    const authorizedHeaders = withAuthorization(
+      init.headers,
+      await freshAccessToken()
+    );
     const response = await fetch(toAbsoluteUrl(input), {
       ...init,
       headers: includeTimeZone
@@ -227,7 +250,7 @@ export function buildAuthenticatedEventSourceUrl(path: string): string {
 
 const writes = new WeakMap<AxiosRequestConfig, () => void>();
 
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
   if (
     ['get', 'head'].includes(config.method ?? 'get') &&
     !config.timeout &&
@@ -235,17 +258,24 @@ api.interceptors.request.use((config) => {
   ) {
     config.timeout = 10_000;
   }
+  const finish = beginApiWrite(config.method);
+  writes.set(config, finish);
   const headers = toAxiosHeaders(config.headers);
 
-  const token = getAccessToken();
+  let token: string | null;
+  try {
+    token = await freshAccessToken();
+  } catch (error) {
+    finish();
+    writes.delete(config);
+    throw error;
+  }
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
   config.headers = headers;
   const adapter = axios.getAdapter(config.adapter ?? api.defaults.adapter);
-  const finish = beginApiWrite(config.method);
-  writes.set(config, finish);
   config.adapter = async (request) => {
     try {
       return await adapter(request);

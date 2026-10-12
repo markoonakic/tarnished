@@ -42,6 +42,7 @@ let loseCreateResponse = false;
 let transcriptReads = 0;
 let contactCreate: (() => Promise<void>) | undefined;
 let contacts: { id: string; name: string }[];
+let roundTypesRead: Promise<void> | undefined;
 beforeEach(() => {
   writes = [];
   failRecording = false;
@@ -49,12 +50,16 @@ beforeEach(() => {
   transcriptReads = 0;
   contactCreate = undefined;
   contacts = [];
+  roundTypesRead = undefined;
   queryClient.clear();
   api.defaults.adapter = async (config) => {
     let data: unknown = round;
     if (config.url === '/api/user-preferences')
       data = { time_zone_mode: 'manual', time_zone: 'Europe/Belgrade' };
-    if (config.url === '/api/round-types') data = [round.round_type];
+    if (config.url === '/api/round-types') {
+      await roundTypesRead;
+      data = [round.round_type];
+    }
     if (config.url === '/api/contacts') {
       if (config.method === 'post') {
         await contactCreate?.();
@@ -126,6 +131,30 @@ function show(value?: Round) {
   );
   return save;
 }
+it('blocks early submission until the displayed default type is ready', async () => {
+  let release!: () => void;
+  roundTypesRead = new Promise((resolve) => {
+    release = resolve;
+  });
+  show();
+  await screen.findByLabelText('Notes');
+  const submit = screen.getByRole('button', { name: 'Add Round' });
+  expect(submit).toBeDisabled();
+  fireEvent.submit(submit.closest('form')!);
+  expect(writes).toEqual([]);
+  expect(
+    screen.queryByText('Please select a round type')
+  ).not.toBeInTheDocument();
+  await act(async () => release());
+  await waitFor(() => expect(submit).toBeEnabled());
+  expect(
+    screen.getByRole('combobox', { name: 'Round Type' })
+  ).toHaveTextContent('Technical');
+  fireEvent.click(submit);
+  await waitFor(() => expect(writes).toHaveLength(1));
+  expect(writes[0].data.round_type_id).toBe('technical');
+});
+
 it.each([undefined, round])(
   'waits for participant creation before saving New or Edit',
   async (value) => {
