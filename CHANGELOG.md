@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.14] - 2026-10-12
+
+### Fixed
+
+- Generate pipeline feedback at full data size with compact, complete record citations and retained evidence. Keep source, quote, ownership and report-size checks strict.
+- Use structured output contracts and exact source selections for extraction, profile comparison, preparation and feedback. Keep verified extraction fields when another proposal has an invalid quote, and show omitted items for review.
+- Capture the main job posting before applying text limits. Preserve original Serbian and Cyrillic text, candidate requirements and application deadlines without treating employer benefits or dates as requirements.
+- Keep saved report content and job status consistent while generation completes. Refresh expiring browser sessions before requests, and let sign-in replace an old session without renewing it first.
+- Wait for available interview round types before saving, and show the selected analytics period with the existing button styles.
+
+### Added
+
+- Add regression coverage for full-size pipeline evidence, exact citations, extraction field contracts, Unicode text, deadline capture, archive verification, report publication and session expiry.
+
 ## [0.3.13] - 2026-10-12
 
 ### Fixed
