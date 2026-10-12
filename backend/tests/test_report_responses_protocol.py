@@ -409,7 +409,8 @@ async def test_responses_success_uses_responses_path_and_parses_output_text():
     assert "instructions" in raw and raw["instructions"]
     assert json.loads(raw["input"])["sources"]
     assert raw["tools"] == [] and raw["stream"] is False and raw["store"] is False
-    assert raw["text"]["format"]["type"] == "json_object"
+    assert raw["text"]["format"]["type"] == "json_schema"
+    assert raw["text"]["format"]["strict"] is True
     # The Responses path sends the named bounded headroom constant.
     assert raw["max_output_tokens"] == 12000
 

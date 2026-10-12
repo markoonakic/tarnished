@@ -341,6 +341,11 @@ class ValidationRule(StrEnum):
     CHECKPOINT_SIZE = "bounds.checkpoints"
     PUBLICATION_SIZE = "bounds.publication"
     PUBLICATION_INCOMPLETE = "bounds.publication_incomplete"
+    SECTION_SIZE = "bounds.section_output"
+    COVERAGE = "reference.requirement_coverage"
+    DUPLICATE_ID = "reference.duplicate_id"
+    REQUIREMENT = "reference.unknown_requirement"
+    EVIDENCE_REQUIRED = "reference.profile_evidence_required"
 
 
 class SectionValidationError(ValueError):
@@ -398,6 +403,24 @@ _SCHEMA_FIELDS = frozenset(
         "application",
         "pipeline",
         "interview",
+        "items",
+        "rows",
+        "requirement_id",
+        "requirement_ids",
+        "profile_id",
+        "evidence",
+        "why",
+        "state",
+        "id",
+        "field",
+        "value",
+        "review_topics",
+        "technical_topics",
+        "practice_questions",
+        "company_questions",
+        "examples",
+        "profile_gaps",
+        "plan",
     )
 )
 _SCHEMA_CODES = {
@@ -432,7 +455,12 @@ def validation_context(job_id, scope, section_index=None):
         safe_id = str(UUID(str(job_id)))
     except (ValueError, TypeError, AttributeError):
         safe_id = None
-    context = {"job_id": safe_id, "scope": scope if scope in _SECTION_MODELS else None}
+    context = {
+        "job_id": safe_id,
+        "scope": scope
+        if scope in (*_SECTION_MODELS, "EXTRACTION", "PROFILE_MATCH", "PREPARATION")
+        else None,
+    }
     if type(section_index) is int and 0 <= section_index <= 10000:
         context["section_index"] = section_index
     token = _validation_context.set(context)
@@ -496,7 +524,7 @@ def log_validation_failure(exc, scope=None):
             for part in error["loc"][:12]
         ]
     diagnostic.update(_validation_context.get() or {})
-    if scope in _SECTION_MODELS:
+    if scope in (*_SECTION_MODELS, "EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
         diagnostic["scope"] = scope
     _validation_logger.warning("report_validation_failed %s", json.dumps(diagnostic))
 
@@ -504,11 +532,11 @@ def log_validation_failure(exc, scope=None):
 def validate_section(
     value, sources, scope="INTERVIEW", *, require_current_contract=False
 ) -> dict:
-    if scope in ("EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
-        from app.services.job_analyses import validate_output
-
-        return validate_output(value, sources, scope)
     try:
+        if scope in ("EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
+            from app.services.job_analyses import validate_output
+
+            return validate_output(value, sources, scope)
         return _validate_section(
             value, sources, scope, require_current_contract=require_current_contract
         )
@@ -933,7 +961,7 @@ def responses_output_text(payload) -> str:
 
 
 # Bump for validator-only contract changes. Prompt/schema edits change the hash too.
-OUTPUT_CONTRACT_REVISION = 5
+OUTPUT_CONTRACT_REVISION = 6
 
 
 def prompt_revision(scope):
@@ -1299,6 +1327,65 @@ async def analyze_section(
     )
 
 
+def _validate_provider_section(section, choices, sources, scope):
+    from app.services.report_output import resolve_citations
+
+    try:
+        section = resolve_citations(section, choices, scope)
+        if (
+            len(json.dumps(section, ensure_ascii=False).encode("utf-8"))
+            > MAX_RESPONSE_BYTES
+        ):
+            raise SectionValidationError(ValidationRule.SECTION_SIZE)
+    except ValueError as exc:
+        log_validation_failure(exc, scope)
+        raise
+    return validate_section(section, sources, scope, require_current_contract=True)
+
+
+def _provider_request(sources, limits, scope, language):
+    from app.services.report_output import MODELS, citation_choices, output_schema
+
+    choices = citation_choices(sources, scope)
+    requirement_ids = (
+        [item["id"] for item in sources[0]["data"].get("requirements", [])]
+        if scope == "PROFILE_MATCH"
+        else None
+    )
+    schema = output_schema(scope, choices, requirement_ids=requirement_ids)
+    system = _localized_system_prompt(scope, language).replace(
+        json.dumps(MODELS[scope].model_json_schema()), ""
+    )
+    data = {"sources": sources, "limitations": limits}
+    if scope in ("PIPELINE", "EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
+        system += (
+            " The following provider schema uses citation selection instead of the stored quote objects described above. "
+            "Select exact original evidence by its integer key in citation_choices; never write or reconstruct a quote. "
+            "The server stores the selected original text and identity and checks all grounding rules. "
+            "Use only choices that support the claim. Never treat employer benefits or offers as candidate qualifications. "
+        )
+        data["citation_choices"] = choices
+        if scope == "PIPELINE":
+            system += (
+                " Findings.citations selects metric choices only. Each coaching record uses application_choice "
+                "for a complete application choice and round_choices for complete round choices belonging to that application. "
+                "All these values are keys in citation_choices, NOT positions in a finding's citations array. "
+                "Do not output record_citation or round_citations: the server creates those stored pointers from your selections. "
+                "Keep the total selected metric, application and round choices within sixteen per finding. "
+            )
+        elif scope == "EXTRACTION":
+            system += " Each proposal's quote is an integer key selecting a supporting posting passage from citation_choices. "
+        else:
+            system += " Each evidence entry is an integer key selecting an allowed profile passage from citation_choices. "
+        if scope == "PROFILE_MATCH":
+            system += (
+                " Return rows as an object keyed by every supplied requirement ID, not an array. "
+                "Each key occurs exactly once; its value has state, evidence and why, without requirement_id. "
+                "Return no_evidence or unknown with evidence [] when saved evidence does not support a match. "
+            )
+    return system + json.dumps(schema), json.dumps(data, default=str), schema, choices
+
+
 async def _analyze_section_chat(
     settings: CapabilitySettingsState,
     sources,
@@ -1309,7 +1396,9 @@ async def _analyze_section_chat(
     output_language: str = "en",
 ):
     endpoint = (settings.base_url or "").rstrip("/") + "/chat/completions"
-    system = _localized_system_prompt(scope, output_language)
+    system, user_input, schema, evidence_choices = _provider_request(
+        sources, limits, scope, output_language
+    )
     deadline = (
         PIPELINE_SECTION_REQUEST_TIMEOUT_SECONDS
         if scope == "PIPELINE"
@@ -1327,13 +1416,17 @@ async def _analyze_section_chat(
                         {"role": "system", "content": system},
                         {
                             "role": "user",
-                            "content": json.dumps(
-                                {"sources": sources, "limitations": limits},
-                                default=str,
-                            ),
+                            "content": user_input,
                         },
                     ],
-                    response_format={"type": "json_object"},
+                    response_format={
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "tarnished_report",
+                            "schema": schema,
+                            "strict": True,
+                        },
+                    },
                     max_tokens=(
                         RESPONSES_PIPELINE_MAX_OUTPUT_TOKENS
                         if scope in ("PIPELINE", "PROFILE_MATCH")
@@ -1380,8 +1473,8 @@ async def _analyze_section_chat(
                     log_validation_failure(exc, scope)
                     raise  # Preserve the existing duplicate-key failure category.
                 try:
-                    return validate_section(
-                        section, sources, scope, require_current_contract=True
+                    return _validate_provider_section(
+                        section, evidence_choices, sources, scope
                     )
                 except ValueError:
                     raise ReportFailure(
@@ -1407,8 +1500,9 @@ async def _analyze_section_responses(
 ):
     """Explicit Responses API path: instructions + input, strict JSON, no tools."""
     endpoint = (settings.base_url or "").rstrip("/") + "/responses"
-    system = _localized_system_prompt(scope, output_language)
-    user_input = json.dumps({"sources": sources, "limitations": limits}, default=str)
+    system, user_input, schema, evidence_choices = _provider_request(
+        sources, limits, scope, output_language
+    )
     deadline = (
         PIPELINE_SECTION_REQUEST_TIMEOUT_SECONDS
         if scope == "PIPELINE"
@@ -1424,7 +1518,14 @@ async def _analyze_section_responses(
                     model=(settings.effective_model or "").removeprefix("openai/"),
                     instructions=system,
                     input=user_input,
-                    text={"format": {"type": "json_object"}},
+                    text={
+                        "format": {
+                            "type": "json_schema",
+                            "name": "tarnished_report",
+                            "schema": schema,
+                            "strict": True,
+                        }
+                    },
                     max_output_tokens=(
                         RESPONSES_PIPELINE_MAX_OUTPUT_TOKENS
                         if scope in ("PIPELINE", "PROFILE_MATCH")
@@ -1470,8 +1571,8 @@ async def _analyze_section_responses(
                         SAFE_FAILURE_MESSAGES["provider_response_invalid"],
                     ) from None
                 try:
-                    return validate_section(
-                        section, sources, scope, require_current_contract=True
+                    return _validate_provider_section(
+                        section, evidence_choices, sources, scope
                     )
                 except ValueError:
                     raise ReportFailure(

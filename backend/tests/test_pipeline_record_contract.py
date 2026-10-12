@@ -328,7 +328,16 @@ async def test_real_source_wire_prompt_and_record_parser(protocol, selection):
         if protocol == "responses"
         else request["messages"][1]["content"]
     )
-    assert json.loads(user_input) == {"sources": sources, "limitations": []}
+    from app.services.report_output import citation_choices
+
+    assert json.loads(user_input) == {
+        "sources": sources,
+        "limitations": [],
+        "citation_choices": {
+            str(key): value
+            for key, value in citation_choices(sources, "PIPELINE").items()
+        },
+    }
     spec, _ = json.JSONDecoder().raw_decode(
         prompt.split("Record citation contract: ", 1)[1]
     )

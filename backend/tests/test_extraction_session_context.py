@@ -134,9 +134,9 @@ def session(call):
     context = headers["x-opencode-session"]
     assert str(UUID(context)) == context
     assert headers["Authorization"] == "Bearer offline-key"
-    assert body["model"] == "fixture" and body["response_format"] == {
-        "type": "json_object"
-    }
+    assert body["model"] == "fixture"
+    assert body["response_format"]["type"] == "json_schema"
+    assert body["response_format"]["json_schema"]["strict"] is True
     assert [item["role"] for item in body["messages"]] == ["system", "user"]
     source = json.loads(body["messages"][1]["content"])["sources"][0]["data"]
     assert source["posting"] == SOURCE

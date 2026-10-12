@@ -349,15 +349,7 @@ async def test_oversized_retained_snapshot_fails_before_dispatch(scope):
     if scope == "PIPELINE":
         data = {
             "profile": {},
-            "metrics": {
-                "applications": [
-                    {
-                        "application_id": str(uuid4()),
-                        "company": "Example",
-                        "notes": "x" * 800000,
-                    }
-                ]
-            },
+            "metrics": {"coverage": {"note": "x" * 800000}},
         }
     else:
         data = {

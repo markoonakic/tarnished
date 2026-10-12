@@ -23,6 +23,7 @@ from app.services.interview_evidence import (
     evidence_sources,
     fingerprint,
     pipeline_evidence_sources,
+    pipeline_report_input,
     pipeline_sections,
     pipeline_snapshot,
     sections,
@@ -301,6 +302,15 @@ async def authority(db, user_id, version, key_id, scopes=SCOPES):
             .where(UserAPIKey.id == key_id)
             .values(revoked_at=UserAPIKey.revoked_at)
         )
+    auth = await recheck_admitted_auth(db, user_id, version, key_id)
+    for scope in scopes:
+        check_api_key_scope(auth, scope)
+    return auth
+
+
+async def read_authority(db, user_id, version, key_id, scopes=READ_SCOPES):
+    # Status reads must not acquire the global write lock. Recheck the same
+    # account/session/key authority without bookkeeping UPDATEs.
     auth = await recheck_admitted_auth(db, user_id, version, key_id)
     for scope in scopes:
         check_api_key_scope(auth, scope)
@@ -622,8 +632,10 @@ async def publish(db, job_id, claim, sources, limits):
         report["time_zone"] = (job.manifest or {}).get("time_zone")
         # Live metrics and permitted matches cannot be reconstructed after edits
         # or import. Retain the exact, bounded input, not fresh account authority.
-        report["evidence_snapshot"] = json.loads(json.dumps(data, default=str))
-        report["evidence_fingerprint"] = job.fingerprint
+        report["evidence_snapshot"] = json.loads(
+            json.dumps(pipeline_report_input(data), default=str)
+        )
+        report["evidence_fingerprint"] = fingerprint(report["evidence_snapshot"])
         report["evidence_ids"] = {}
     if len(json.dumps(report)) > 1_000_000:
         with validation_context(job_id, job.scope):
@@ -691,7 +703,9 @@ async def _scope_evidence(scope, data):
     # The mandatory retained input shares the 1 MB report bound with advice and
     # cited passages. Reject oversized snapshots before any provider dispatch,
     # not after paying for a report that cannot be stored. Never clip source text.
-    retained = data if scope == "PIPELINE" else {"sources": sources}
+    retained = (
+        pipeline_report_input(data) if scope == "PIPELINE" else {"sources": sources}
+    )
     if len(json.dumps(retained, default=str)) > 750_000:
         raise HTTPException(
             422,
@@ -837,44 +851,56 @@ def _capability(settings, scope):
 async def _read_common(db, auth, scope, *, round_row=None, application_row=None):
     settings = await get_ai_settings(db)
     if scope == "INTERVIEW":
-        report = round_row.interview_report if round_row else None
-        stale = round_row.interview_report_reason if round_row else None
-        generation = round_row.interview_generation if round_row else None
+        assert round_row is not None
+        model, identity = Round, round_row.id
+        columns = (
+            Round.interview_report,
+            Round.interview_report_reason,
+            Round.interview_generation,
+        )
+        condition = InterviewJob.round_id == identity
     elif scope == "APPLICATION":
-        report = application_row.report if application_row else None
-        stale = application_row.report_reason if application_row else None
-        generation = application_row.report_generation if application_row else None
+        assert application_row is not None
+        model, identity = Application, application_row.id
+        columns = (
+            Application.report,
+            Application.report_reason,
+            Application.report_generation,
+        )
+        condition = InterviewJob.application_id == identity
     elif scope == "PIPELINE":
-        row = (
-            await db.execute(
-                select(
-                    User.pipeline_report,
-                    User.pipeline_report_reason,
-                    User.pipeline_generation,
-                ).where(User.id == auth.user.id)
-            )
-        ).first()
-        report, stale, generation = row if row is not None else (None, None, None)
+        model, identity = User, auth.user.id
+        columns = (
+            User.pipeline_report,
+            User.pipeline_report_reason,
+            User.pipeline_generation,
+        )
+        condition = true()
     else:
         raise KeyError(scope)
-    if report and not stale:
-        stale = _prompt_stale_reason(report, scope)
-    latest = await db.scalar(
-        select(InterviewJob)
+    latest_id = (
+        select(InterviewJob.id)
         .where(
-            InterviewJob.user_id == auth.user.id,
-            InterviewJob.scope == scope,
-            *(
-                (InterviewJob.round_id == round_row.id,)
-                if round_row is not None
-                else (InterviewJob.application_id == application_row.id,)
-                if application_row is not None
-                else ()
-            ),
+            InterviewJob.user_id == auth.user.id, InterviewJob.scope == scope, condition
         )
         .order_by(InterviewJob.created_at.desc())
         .limit(1)
+        .correlate(None)
+        .scalar_subquery()
     )
+    # The result and terminal state must come from the same publication snapshot.
+    result = (
+        await db.execute(
+            select(*columns, InterviewJob)
+            .select_from(model)
+            .outerjoin(InterviewJob, InterviewJob.id == latest_id)
+            .where(model.id == identity)
+            .execution_options(populate_existing=True)
+        )
+    ).one()
+    report, stale, generation, latest = result
+    if report and not stale:
+        stale = _prompt_stale_reason(report, scope)
     return {
         "generation": generation,
         "report": report,
@@ -885,8 +911,7 @@ async def _read_common(db, auth, scope, *, round_row=None, application_row=None)
 
 
 async def read(db, auth, round_id):
-    await lock_ai_settings(db)
-    await authority(
+    await read_authority(
         db,
         auth.user.id,
         auth.user.session_version,
@@ -915,8 +940,7 @@ async def read(db, auth, round_id):
 
 
 async def read_application(db, auth, application_id):
-    await lock_ai_settings(db)
-    await authority(
+    await read_authority(
         db,
         auth.user.id,
         auth.user.session_version,
@@ -946,8 +970,7 @@ async def read_application(db, auth, application_id):
 
 
 async def read_pipeline(db, auth, period="30d", as_of=None, x_timezone=None):
-    await lock_ai_settings(db)
-    await authority(
+    await read_authority(
         db,
         auth.user.id,
         auth.user.session_version,

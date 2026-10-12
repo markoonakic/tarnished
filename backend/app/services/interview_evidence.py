@@ -594,6 +594,88 @@ async def application_evidence_sources(
     return sources, limits
 
 
+PIPELINE_METRIC_FIELDS = (
+    "scope",
+    "current_record_basis",
+    "total_applications",
+    "responded",
+    "response_rate",
+    "response_unknown",
+    "response_undated",
+    "response_not_recorded_as_of",
+    "interviews",
+    "offers",
+    "interview_rate",
+    "offer_rate",
+    "active_applications",
+    "closed_applications",
+    "unknown_applications",
+    "current_stage_breakdown",
+    "stage_breakdown",
+    "first_response",
+    "repeated_requirements",
+    "missing_evidence",
+    "rejected_count",
+    "stage_averages",
+    "outcomes_by_source",
+    "top_positions",
+    "top_technologies",
+    "coverage",
+)
+
+
+def pipeline_report_input(data):
+    """Retain only inputs used by the pipeline source builder, not enriched SQL rows."""
+    metrics = data["metrics"]
+    return {
+        **{key: data.get(key) for key in ("period", "as_of", "time_zone")},
+        "metrics": {
+            **{key: metrics.get(key) for key in PIPELINE_METRIC_FIELDS},
+            "stage_totals": metrics.get("stage_totals", []),
+            "applications": [
+                {
+                    **{
+                        key: row.get(key)
+                        for key in (
+                            "application_id",
+                            "company",
+                            "job_title",
+                            "source",
+                            "current_meaning",
+                            "as_of_meaning",
+                            "applied_at",
+                        )
+                    },
+                    "missing_prefix": bool(
+                        row.get("missing_prefix", True)
+                        or row.get("gap_ids")
+                        or row.get("unknown_history_ids")
+                        or row.get("ambiguous_time_ids")
+                    ),
+                }
+                for row in metrics.get("applications", [])
+            ],
+            "rounds": [
+                {
+                    key: row.get(key)
+                    for key in (
+                        "application_id",
+                        "round_type",
+                        "outcome",
+                        "scheduled_at",
+                        "completed_at",
+                    )
+                }
+                for row in metrics.get("rounds", [])
+            ],
+        },
+        "profile": {
+            "work_history": profile_work_history(data["profile"].get("work_history")),
+            "skills": data["profile"].get("skills"),
+        },
+    }
+
+
 async def pipeline_evidence_sources(
     data, *, include_workspace_metrics=True, compact_records=True
 ):
@@ -606,37 +688,7 @@ async def pipeline_evidence_sources(
     ]
     add = partial(_append_source, sources)
 
-    summary = {
-        key: metrics.get(key)
-        for key in (
-            "scope",
-            "current_record_basis",
-            "total_applications",
-            "responded",
-            "response_rate",
-            "response_unknown",
-            "response_undated",
-            "response_not_recorded_as_of",
-            "interviews",
-            "offers",
-            "interview_rate",
-            "offer_rate",
-            "active_applications",
-            "closed_applications",
-            "unknown_applications",
-            "current_stage_breakdown",
-            "stage_breakdown",
-            "first_response",
-            "repeated_requirements",
-            "missing_evidence",
-            "rejected_count",
-            "stage_averages",
-            "outcomes_by_source",
-            "top_positions",
-            "top_technologies",
-            "coverage",
-        )
-    }
+    summary = {key: metrics.get(key) for key in PIPELINE_METRIC_FIELDS}
     if not include_workspace_metrics:
         for field in (
             "first_response",

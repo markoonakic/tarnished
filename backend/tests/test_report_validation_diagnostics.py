@@ -261,6 +261,11 @@ async def test_publication_bounds(monkeypatch, diagnostics):
     job.config_revision = "fixed"
     job.manifest = {"prompt_revision": "fixed"}
     job.fingerprint = "fixed"
+    monkeypatch.setattr(
+        jobs,
+        "guard",
+        AsyncMock(return_value=(job, {"metrics": {}, "profile": {}}, None)),
+    )
     with pytest.raises(ValueError):
         await jobs.publish(None, JOB_ID, None, [], [])
     assert diagnostics[-1]["rule"] == "bounds.publication"
