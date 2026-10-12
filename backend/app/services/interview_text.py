@@ -1108,13 +1108,15 @@ def _system_prompt(scope, *, current_date=None):
         )
     if scope == "PIPELINE":
         return (
-            "Give useful English feedback about a whole job-search pipeline, not employer motives or a score. "
+            # Prompt text, not a SQL statement.
+            "Give useful English feedback about a whole job-search pipeline, not employer motives or a score. "  # nosec B608
             "EVERY finding MUST include its own citation to a supplied source with kind 'pipeline_metrics', "
             "including activity and interview findings. Record citations alone are insufficient. "
             "A metric cited in another finding does not count. If no supplied metric supports a finding, "
             "omit that finding; if no metric source is supplied, return no findings. "
             + common
-            + "Write the first observation as a short, standalone takeaway from this section's supplied "
+            # Prompt text, not a SQL statement.
+            + "Write the first observation as a short, standalone takeaway from this section's supplied "  # nosec B608
             "evidence, not a summary of unseen sections. Every finding's subject MUST be 'pipeline': "
             "subject identifies this report's scope, not the person, application or round referred to. "
             "topic separately identifies the finding's theme; even an interview-topic finding has subject 'pipeline'. "
@@ -1147,7 +1149,8 @@ def _system_prompt(scope, *, current_date=None):
             "round_citations is [2], not [3]. Do not repeat an identical record action. "
             "Record citation contract: "
             + json.dumps(_RECORD_CITATION_CONTRACT)
-            + " Each reference selects an index in THIS finding's citations, not a source index or an application ID. "
+            # Prompt text, not a SQL statement.
+            + " Each reference selects an index in THIS finding's citations, not a source index or an application ID. "  # nosec B608
             "Set citation.source_id to the selected supplied source.id, including its chunk offset; "
             "source.kind must match source_kind and source.id must match source_id_prefix. "
             "The quote must be ONE inner array element with exactly the listed object_keys, "
