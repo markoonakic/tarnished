@@ -94,3 +94,42 @@ it('leaves malformed and unexpired tokens to server authority', async () => {
   expect(await freshAccessToken()).toBe(current);
   expect(fetch).not.toHaveBeenCalled();
 });
+
+it('signs in without renewing an expired old session first', async () => {
+  setAuthTokens(token(Date.now() / 1000 - 60), 'stale-refresh');
+  const fresh = token(Date.now() / 1000 + 3600);
+  const calls: string[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      calls.push(new URL(url).pathname);
+      return new Response('{}', { status: 503 });
+    })
+  );
+  const sent: { url?: string; authorization?: unknown }[] = [];
+  api.defaults.adapter = async (config) => {
+    sent.push({
+      url: config.url,
+      authorization: config.headers?.Authorization,
+    });
+    return {
+      data: { access_token: fresh, refresh_token: 'new-refresh' },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+    };
+  };
+  const response = await api.post('/api/auth/login', {
+    email: 'a@example.com',
+    password: 'secret',
+  });
+  expect(response.status).toBe(200);
+  expect(calls).toEqual([]);
+  expect(sent).toEqual([{ url: '/api/auth/login', authorization: undefined }]);
+  await api.post('/api/auth/register', {
+    email: 'b@example.com',
+    password: 'x',
+  });
+  expect(calls).toEqual([]);
+});

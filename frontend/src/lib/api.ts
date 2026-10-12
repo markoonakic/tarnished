@@ -146,6 +146,24 @@ async function refreshTokens(refreshToken: string): Promise<string | null> {
   return data.access_token;
 }
 
+// Sign-in and sign-up must not depend on renewing an old session.
+const PUBLIC_AUTH_PATHS = new Set([
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/setup',
+  '/api/auth/setup-status',
+  '/api/auth/refresh',
+]);
+
+export function isPublicAuthPath(url?: string): boolean {
+  if (!url) return false;
+  try {
+    return PUBLIC_AUTH_PATHS.has(new URL(url, 'http://local').pathname);
+  } catch {
+    return false;
+  }
+}
+
 export async function freshAccessToken(): Promise<string | null> {
   const token = getAccessToken();
   if (!token || !getRefreshToken()) return token;
@@ -200,7 +218,7 @@ export async function fetchWithAuth(
   try {
     const authorizedHeaders = withAuthorization(
       init.headers,
-      await freshAccessToken()
+      isPublicAuthPath(input) ? null : await freshAccessToken()
     );
     const response = await fetch(toAbsoluteUrl(input), {
       ...init,
@@ -262,9 +280,9 @@ api.interceptors.request.use(async (config) => {
   writes.set(config, finish);
   const headers = toAxiosHeaders(config.headers);
 
-  let token: string | null;
+  let token: string | null = null;
   try {
-    token = await freshAccessToken();
+    if (!isPublicAuthPath(config.url)) token = await freshAccessToken();
   } catch (error) {
     finish();
     writes.delete(config);
@@ -323,11 +341,7 @@ api.interceptors.response.use(
         _retry?: boolean;
       };
 
-      if (
-        ['/api/auth/login', '/api/auth/refresh'].includes(
-          originalRequest.url ?? ''
-        )
-      ) {
+      if (isPublicAuthPath(originalRequest.url)) {
         return Promise.reject(error);
       }
 
