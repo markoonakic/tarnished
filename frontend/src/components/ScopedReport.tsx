@@ -63,7 +63,9 @@ export function ScopedReportContent({
   title,
   scope,
   requestLabel,
-  emptyHint,
+  emptyHint = t(
+    'No feedback yet. Get suggestions from your saved information.'
+  ),
   onClose,
   feedback,
   hideAction = false,
@@ -90,6 +92,7 @@ export function ScopedReportContent({
                 'Uses your saved information and the configured AI service. Charges may apply only when you request feedback.'
               )}
             </p>
+            {!report && <p>{emptyHint}</p>}
             {scope === 'PIPELINE' && (
               <p>
                 {t('Changing the chart period does not generate new feedback.')}
@@ -111,7 +114,6 @@ export function ScopedReportContent({
       <FeedbackStatus
         feedback={feedback}
         requestLabel={requestLabel}
-        emptyHint={emptyHint}
         hideAction={hideAction}
         readyLabel={
           scope === 'PIPELINE' && report ? savedLabel(report) : undefined

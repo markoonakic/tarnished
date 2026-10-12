@@ -91,6 +91,12 @@ it.each(['en', 'sr-Latn'])(
         t('No feedback yet.')
       )
     );
+    expect(
+      screen.getByRole('status').querySelectorAll('[data-help-tip]')
+    ).toHaveLength(0);
+    expect(document.querySelectorAll('section [data-help-tip]')).toHaveLength(
+      1
+    );
     const copy = t(
       'Save a transcript and identify your answers as Candidate before requesting personal feedback.'
     );
@@ -340,10 +346,11 @@ it('InterviewFeedback presents uncertain interruption without automatic replay',
   };
   vi.spyOn(window, 'confirm').mockReturnValue(false);
   render(<InterviewFeedback round={round} onClose={vi.fn()} />);
-  fireEvent.click(await screen.findByRole('button', { name: 'Try again' }));
-  expect(screen.getByRole('tooltip')).toHaveTextContent(
-    'Trying again may repeat work or charges'
-  );
+  await screen.findByRole('button', { name: 'Try again: interview feedback' });
+  expect(
+    screen.queryByRole('button', { name: 'Try again' })
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('alert').querySelectorAll('button')).toHaveLength(0);
   fireEvent.click(
     screen.getByRole('button', { name: 'Try again: interview feedback' })
   );

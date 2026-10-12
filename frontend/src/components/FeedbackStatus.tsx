@@ -5,15 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { errorMessage } from '@/lib/errorMessage';
 import type { FeedbackController } from '../hooks/useFeedback';
 import Modal from './Modal';
-import HelpTip from './HelpTip';
 
 /** Shared copy for the same report protocol; speech keeps its separate retry rules. */
 export default function FeedbackStatus({
   feedback,
   requestLabel,
-  emptyHint = t(
-    'No feedback yet. Get suggestions from your saved information.'
-  ),
   hideAction = false,
   readyLabel,
   requestedPeriod,
@@ -22,7 +18,6 @@ export default function FeedbackStatus({
 }: {
   feedback: FeedbackController;
   requestLabel: string;
-  emptyHint?: string;
   hideAction?: boolean;
   readyLabel?: string;
   requestedPeriod?: string;
@@ -30,15 +25,7 @@ export default function FeedbackStatus({
   activePeriod?: string;
 }) {
   useTranslation();
-  const {
-    state,
-    starting,
-    running,
-    unknown,
-    failed,
-    terminalUncertain,
-    requestError,
-  } = feedback;
+  const { state, starting, running, unknown, failed, requestError } = feedback;
   const report = state?.report;
   const differentScope = state?.stale_reason_code === 'scope_changed';
   const staleMessage = differentScope
@@ -117,8 +104,6 @@ export default function FeedbackStatus({
         total_sections: state!.job!.total_sections,
       }
     );
-  const retryRisk = !running && !starting && (unknown || terminalUncertain);
-
   const problem = feedback.readError || unknown || failed || !!requestError;
   return (
     <div className="mt-3 space-y-2 text-sm">
@@ -171,14 +156,6 @@ export default function FeedbackStatus({
             />
           )}
           {message}
-          {state && !report && !running && !starting && !problem && (
-            <HelpTip label={requestLabel}>{emptyHint}</HelpTip>
-          )}
-          {retryRisk && (
-            <HelpTip label={t('Try again')}>
-              {t('· Trying again may repeat work or charges.')}
-            </HelpTip>
-          )}
         </div>
       )}
       {report && (savedPeriod || starting || running) && (

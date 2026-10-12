@@ -197,7 +197,6 @@
   "Could not update feedback. Your saved feedback is still available.": "Ažuriranje analize nije uspelo. Sačuvana analiza je i dalje dostupna.",
   "Feedback was interrupted.": "Analiza je prekinuta.",
   "Could not create feedback.": "Kreiranje analize nije uspelo.",
-  "· Trying again may repeat work or charges.": " · Novi pokušaj može ponoviti obradu ili troškove.",
   "Showing saved feedback.": "Prikazana je sačuvana analiza.",
   "New feedback is unavailable. Ask your administrator to check the AI settings. Saved feedback can still be read.": "Nova analiza nije dostupna. Obratite se administratoru radi provere AI podešavanja. Sačuvana analiza je i dalje dostupna.",
   "Check status": "Proveri status",

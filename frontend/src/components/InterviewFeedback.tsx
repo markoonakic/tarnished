@@ -36,6 +36,7 @@ export default function InterviewFeedback({
             {t('Interview feedback')}
           </h3>
           <HelpTip label={t('About interview feedback')}>
+            {!report && <p>{t('No feedback yet.')}</p>}
             <p>
               {t(
                 'Uses your transcript and job details with the configured AI service. Charges may apply only when you request feedback.'
@@ -62,7 +63,6 @@ export default function InterviewFeedback({
       <FeedbackStatus
         feedback={feedback}
         requestLabel={t('interview feedback')}
-        emptyHint={t('No feedback yet.')}
       />
       {report && (
         <div
