@@ -39,10 +39,10 @@ export default function PeriodSelector({
     <div className="flex gap-2">
       {PERIODS.map((period) => (
         <Button
-          variant="primary"
+          variant={currentPeriod === period.value ? 'primary' : 'ghost'}
+          aria-pressed={currentPeriod === period.value}
           key={period.value}
           onClick={() => handlePeriodChange(period.value)}
-          className={` ${currentPeriod === period.value ? '' : ''} `}
         >
           {period.label}
         </Button>

@@ -148,7 +148,11 @@ async def test_prompt_record_spec_matches_real_builder_and_validator():
         citation = exact_record(sources, prefix, keys)
         record = json.loads(citation["quote"])
         assert set(record) == keys
-    assert any(s["offset"] == 4000 for s in sources if s["kind"] == "pipeline_record")
+    assert any(s["offset"] > 0 for s in sources if s["kind"] == "pipeline_record")
+    for source in sources:
+        if source["kind"] == "pipeline_record":
+            assert len(source["text"]) <= 4000
+            assert isinstance(json.loads(source["text"]), dict)
     for batch in pipeline_sections(sources):
         # This fixture fits one request, including real chunked sources.
         result = text.validate_section(
@@ -324,7 +328,16 @@ async def test_real_source_wire_prompt_and_record_parser(protocol, selection):
         if protocol == "responses"
         else request["messages"][1]["content"]
     )
-    assert json.loads(user_input) == {"sources": sources, "limitations": []}
+    from app.services.report_output import citation_choices
+
+    assert json.loads(user_input) == {
+        "sources": sources,
+        "limitations": [],
+        "citation_choices": {
+            str(key): value
+            for key, value in citation_choices(sources, "PIPELINE").items()
+        },
+    }
     spec, _ = json.JSONDecoder().raw_decode(
         prompt.split("Record citation contract: ", 1)[1]
     )

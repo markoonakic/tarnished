@@ -54,9 +54,11 @@ export interface Analysis {
   stale: boolean;
   error: string | null;
   updated_at: string;
-  draft: { items?: Proposal[]; rows?: MatchRow[] } & Partial<
-    Record<PreparationCategory, DraftItem[]>
-  >;
+  draft: {
+    items?: Proposal[];
+    rows?: MatchRow[];
+    unverified_count?: number;
+  } & Partial<Record<PreparationCategory, DraftItem[]>>;
   reviewed: (Proposal & ReviewChoice)[];
   requirements: { id: string; text: string }[];
   profile: { id: string; name: string; text: string }[];

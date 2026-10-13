@@ -165,8 +165,11 @@ function RoundFormFields({
   const pendingTranscript = Boolean(transcriptFile || transcriptText.trim());
   const defaultType =
     roundTypes.find((type) => type.is_default) ?? roundTypes[0];
+  const selectedTypeId =
+    roundTypeId || (!isEditing ? (defaultType?.id ?? '') : '');
+  const typeReady = roundTypes.some((type) => type.id === selectedTypeId);
   const fieldsChanged =
-    roundTypeId !== (round?.round_type.id ?? defaultType?.id ?? '') ||
+    selectedTypeId !== (round?.round_type.id ?? defaultType?.id ?? '') ||
     notesSummary !== (round?.notes_summary ?? '') ||
     transcriptSummary !== (round?.transcript_summary ?? '') ||
     scheduledDate !== dateTimeBaseline.scheduled.date ||
@@ -252,10 +255,7 @@ function RoundFormFields({
       setError(t('Enter a date for the time.'));
       return;
     }
-    if (!roundTypeId) {
-      setError(t('Please select a round type'));
-      return;
-    }
+    if (!typeReady) return;
 
     if (
       pendingTranscript &&
@@ -277,7 +277,7 @@ function RoundFormFields({
           expected_transcript_generation: pendingTranscript
             ? transcriptGeneration
             : undefined,
-          round_type_id: roundTypeId,
+          round_type_id: selectedTypeId,
           scheduled_at:
             scheduledDate === dateTimeBaseline.scheduled.date &&
             scheduledTime === dateTimeBaseline.scheduled.time
@@ -300,7 +300,7 @@ function RoundFormFields({
       } else {
         const data: RoundCreate = {
           ...extra,
-          round_type_id: roundTypeId,
+          round_type_id: selectedTypeId,
           scheduled_at: roundInstant(scheduledDate, scheduledTime) ?? undefined,
           notes_summary: notesSummary || undefined,
           transcript_summary: transcriptSummary || undefined,
@@ -471,7 +471,7 @@ function RoundFormFields({
                 label: roundTypeLabel(type),
               })),
             ]}
-            value={roundTypeId}
+            value={selectedTypeId}
             onChange={(value) => setRoundTypeId(value)}
             placeholder={t('Select type')}
             containerBackground="bg2"
@@ -907,8 +907,16 @@ function RoundFormFields({
         <Button
           variant="primary"
           type="submit"
-          disabled={loading || timeZoneChanged || participantPending}
-          title={participantPending ? t('Creating contact...') : undefined}
+          disabled={
+            loading || timeZoneChanged || participantPending || !typeReady
+          }
+          title={
+            participantPending
+              ? t('Creating contact...')
+              : !typeReady
+                ? t('Select type')
+                : undefined
+          }
         >
           {loading
             ? t('Saving...')

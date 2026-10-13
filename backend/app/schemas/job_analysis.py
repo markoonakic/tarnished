@@ -1,6 +1,6 @@
 """Small bounded contracts shared by transport validation and review."""
 
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import (
@@ -12,6 +12,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from pydantic_core import PydanticCustomError
 
 SCALAR_OPTIONS = {
     "work_mode": ("office", "hybrid", "remote", "other"),
@@ -25,6 +26,18 @@ SCALAR_OPTIONS = {
     ),
     "pay_period": ("hour", "day", "week", "month", "year", "other"),
 }
+
+PROPOSAL_STRING_LIMITS = {
+    "title": 255,
+    "company": 255,
+    "location": 255,
+    "seniority": 50,
+    "salary_currency": 10,
+    "recruiter_name": 255,
+    "recruiter_title": 255,
+    "recruiter_linkedin_url": 512,
+}
+MAX_PAY = 1_000_000_000
 
 Kind = Literal["EXTRACTION", "PROFILE_MATCH", "PREPARATION"]
 FieldName = Literal[
@@ -50,6 +63,7 @@ FieldName = Literal[
     "recruiter_title",
     "recruiter_linkedin_url",
     "posted_date",
+    "deadline",
 ]
 Category = Literal[
     "review_topics",
@@ -87,7 +101,9 @@ class Strict(BaseModel):
     @classmethod
     def meaningful_text(cls, value):
         if isinstance(value, str) and (not value.strip() or "\x00" in value):
-            raise ValueError("Text must be non-empty and cannot contain NUL")
+            raise PydanticCustomError(
+                "text_meaningful", "Text must be non-empty and cannot contain NUL"
+            )
         return value
 
 
@@ -106,58 +122,41 @@ class ConfirmRequirements(Strict):
 class Proposal(Strict):
     id: str = Field(min_length=1, max_length=80)
     field: FieldName
-    value: StrictStr | StrictInt
+    value: Annotated[StrictStr, Field(min_length=1, max_length=4000)] | StrictInt
     quote: str = Field(min_length=1, max_length=2000)
 
-    @model_validator(mode="after")
-    def value_type(self):
-        if self.field in ("salary_min", "salary_max"):
-            if (
-                isinstance(self.value, bool)
-                or not str(self.value).isdigit()
-                or not 0 <= int(self.value) <= 1_000_000_000
-            ):
-                raise ValueError("Invalid pay")
-            self.value = int(self.value)
-        elif (
-            not isinstance(self.value, str)
-            or not self.value.strip()
-            or len(self.value) > 4000
-        ):
-            raise ValueError("Invalid proposal")
-        if (
-            self.field in SCALAR_OPTIONS
-            and self.value not in SCALAR_OPTIONS[self.field]
-        ):
-            raise ValueError("Invalid option")
-        if (
-            self.field
-            in (
-                "title",
-                "company",
-                "location",
-                "seniority",
-                "recruiter_name",
-                "recruiter_title",
-            )
-            and len(str(self.value)) > 255
-        ):
-            raise ValueError("Value too long")
-        if self.field == "salary_currency" and len(str(self.value)) > 10:
-            raise ValueError("Currency too long")
-        if self.field == "seniority" and len(str(self.value)) > 50:
-            raise ValueError("Seniority too long")
-        if self.field == "recruiter_linkedin_url" and len(str(self.value)) > 512:
-            raise ValueError("Profile URL too long")
-        if self.field == "posted_date":
+    @field_validator("value")
+    @classmethod
+    def value_type(cls, value, info):
+        field = info.data.get("field")
+        if field in ("salary_min", "salary_max"):
+            try:
+                if not str(value).isdigit() or not 0 <= int(value) <= MAX_PAY:
+                    raise ValueError
+            except ValueError:
+                raise PydanticCustomError("proposal_pay", "Invalid pay") from None
+            return int(value)
+        if not isinstance(value, str):
+            raise PydanticCustomError("proposal_type", "Invalid proposal")
+        if field in SCALAR_OPTIONS and value not in SCALAR_OPTIONS[field]:
+            raise PydanticCustomError("proposal_option", "Invalid option")
+        if len(value) > PROPOSAL_STRING_LIMITS.get(field, 4000):
+            raise PydanticCustomError("proposal_length", "Value too long")
+        if field in ("posted_date", "deadline"):
             from datetime import date
 
-            date.fromisoformat(str(self.value))
-        return self
+            try:
+                if date.fromisoformat(value).isoformat() != value:
+                    raise ValueError
+            except ValueError:
+                raise PydanticCustomError("proposal_date", "Invalid date") from None
+        return value
 
 
 class Extraction(Strict):
     items: list[Proposal] = Field(max_length=100)
+    # Server-owned result metadata, never a provider field.
+    unverified_count: Annotated[StrictInt, Field(ge=0, le=100)] = 0
 
 
 class Citation(Strict):

@@ -199,8 +199,11 @@ async def test_both_sdk_paths_send_same_scoped_schema_and_reject_wrong_subject(
         else request["messages"][0]["content"]
     )
     schema = emitted_schema(prompt)
-    assert schema == schemas.PipelineOutputSection.model_json_schema()
-    validator = provider_validator(prompt)
+    from app.services.report_output import citation_choices, output_schema
+
+    choices = citation_choices(sources, "PIPELINE")
+    assert schema == output_schema("PIPELINE", choices)
+    validator = provider_validator()
     if subject == "pipeline":
         validator.validate(section)
         assert diagnostics == []
@@ -213,9 +216,15 @@ async def test_both_sdk_paths_send_same_scoped_schema_and_reject_wrong_subject(
         if protocol == "responses"
         else request["messages"][1]["content"]
     )
-    assert json.loads(user_input) == {"sources": sources, "limitations": []}
+    assert json.loads(user_input) == {
+        "sources": sources,
+        "limitations": [],
+        "citation_choices": {str(key): value for key, value in choices.items()},
+    }
     if protocol == "responses":
-        assert request["text"]["format"] == {"type": "json_object"}
+        format = request["text"]["format"]
         assert request["store"] is False and request["tools"] == []
     else:
-        assert request["response_format"] == {"type": "json_object"}
+        assert request["response_format"]["type"] == "json_schema"
+        format = request["response_format"]["json_schema"]
+    assert format["schema"] == schema and format["strict"] is True

@@ -147,8 +147,32 @@ class PipelineOutputFinding(PipelineFinding):
     coaching: PipelineCoaching | None = None
 
 
+# New provider schemas reflect validator limits without changing saved-report readers.
+OutputLimitation = Annotated[str, StringConstraints(max_length=1200)]
+
+
+class InterviewOutputFinding(InterviewFinding):
+    coaching: InterviewCoaching = Field(...)
+
+
+class InterviewOutputSection(InterviewSection):
+    findings: list[InterviewOutputFinding] = Field(max_length=2)
+    limitations: list[OutputLimitation] = Field(max_length=8)
+
+
+class ApplicationOutputFinding(ScopedFinding):
+    subject: Literal["application"]
+    coaching: ApplicationCoaching = Field(...)
+
+
+class ApplicationOutputSection(ApplicationSection):
+    findings: list[ApplicationOutputFinding] = Field(max_length=3)
+    limitations: list[OutputLimitation] = Field(max_length=8)
+
+
 class PipelineOutputSection(PipelineSection):
     findings: list[PipelineOutputFinding] = Field(max_length=3)
+    limitations: list[OutputLimitation] = Field(max_length=8)
 
 
 # Provider item counts are preferences, not permission to discard unchecked evidence.

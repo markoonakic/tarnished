@@ -20,11 +20,13 @@ from pydantic import ValidationError
 
 from app.schemas.interview_feedback import (
     ApplicationCoaching,
+    ApplicationOutputSection,
     ApplicationSection,
     InputApplicationSection,
     InputInterviewSection,
     InputPipelineSection,
     InterviewCoaching,
+    InterviewOutputSection,
     InterviewSection,
     PipelineCoaching,
     PipelineOutputSection,
@@ -32,6 +34,7 @@ from app.schemas.interview_feedback import (
 )
 from app.services.ai_settings import CapabilitySettingsState
 from app.services.output_language import output_language_instruction
+from app.services.source_text import normalize_text
 
 MAX_RESPONSE_BYTES = 100_000
 # Compatible Responses services include large, unused reasoning summaries.
@@ -40,7 +43,7 @@ MAX_REPORT_ENVELOPE_BYTES = 400_000
 
 # Responses includes reasoning tokens in its output budget.
 RESPONSES_MAX_OUTPUT_TOKENS = 12_000
-# Whole-pipeline comparisons need more reasoning headroom than a single record.
+# Pipeline comparisons and exact 100-row matrices need more output/reasoning headroom.
 # Token, text, envelope and time limits remain hard caps; there are no retries.
 RESPONSES_PIPELINE_MAX_OUTPUT_TOKENS = 32_000
 
@@ -188,7 +191,7 @@ def finding_citations(finding):
         yield question
 
 
-def _record_citation(finding, index, lookup, kind):
+def _record_citation(finding, index, lookup, kind, *, require_exact=False):
     if index >= len(finding.citations):
         raise SectionValidationError(ValidationRule.RECORD_INDEX)
     citation = finding.citations[index]
@@ -197,9 +200,12 @@ def _record_citation(finding, index, lookup, kind):
         f"pipeline:{kind}:"
     ):
         raise SectionValidationError(ValidationRule.RECORD_SOURCE)
-    return _record_value(
+    record = _record_value(
         json.loads(citation.quote, object_pairs_hook=unique_object), kind
     )
+    if require_exact and citation.quote not in source["text"]:
+        raise SectionValidationError(ValidationRule.QUOTE_MISMATCH)
+    return record
 
 
 _RECORD_CITATION_CONTRACT = {
@@ -336,6 +342,11 @@ class ValidationRule(StrEnum):
     CHECKPOINT_SIZE = "bounds.checkpoints"
     PUBLICATION_SIZE = "bounds.publication"
     PUBLICATION_INCOMPLETE = "bounds.publication_incomplete"
+    SECTION_SIZE = "bounds.section_output"
+    COVERAGE = "reference.requirement_coverage"
+    DUPLICATE_ID = "reference.duplicate_id"
+    REQUIREMENT = "reference.unknown_requirement"
+    EVIDENCE_REQUIRED = "reference.profile_evidence_required"
 
 
 class SectionValidationError(ValueError):
@@ -393,9 +404,33 @@ _SCHEMA_FIELDS = frozenset(
         "application",
         "pipeline",
         "interview",
+        "items",
+        "rows",
+        "requirement_id",
+        "requirement_ids",
+        "profile_id",
+        "evidence",
+        "why",
+        "state",
+        "id",
+        "field",
+        "value",
+        "review_topics",
+        "technical_topics",
+        "practice_questions",
+        "company_questions",
+        "examples",
+        "profile_gaps",
+        "plan",
     )
 )
 _SCHEMA_CODES = {
+    "text_meaningful": "schema.text",
+    "proposal_pay": "proposal.pay",
+    "proposal_type": "schema.type",
+    "proposal_option": "proposal.option",
+    "proposal_length": "schema.length",
+    "proposal_date": "proposal.date",
     "missing": "schema.missing",
     "extra_forbidden": "schema.extra",
     "literal_error": "schema.literal",
@@ -427,7 +462,12 @@ def validation_context(job_id, scope, section_index=None):
         safe_id = str(UUID(str(job_id)))
     except (ValueError, TypeError, AttributeError):
         safe_id = None
-    context = {"job_id": safe_id, "scope": scope if scope in _SECTION_MODELS else None}
+    context = {
+        "job_id": safe_id,
+        "scope": scope
+        if scope in (*_SECTION_MODELS, "EXTRACTION", "PROFILE_MATCH", "PREPARATION")
+        else None,
+    }
     if type(section_index) is int and 0 <= section_index <= 10000:
         context["section_index"] = section_index
     token = _validation_context.set(context)
@@ -491,7 +531,7 @@ def log_validation_failure(exc, scope=None):
             for part in error["loc"][:12]
         ]
     diagnostic.update(_validation_context.get() or {})
-    if scope in _SECTION_MODELS:
+    if scope in (*_SECTION_MODELS, "EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
         diagnostic["scope"] = scope
     _validation_logger.warning("report_validation_failed %s", json.dumps(diagnostic))
 
@@ -499,11 +539,12 @@ def log_validation_failure(exc, scope=None):
 def validate_section(
     value, sources, scope="INTERVIEW", *, require_current_contract=False
 ) -> dict:
-    if scope in ("EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
-        from app.services.job_analyses import validate_output
-
-        return validate_output(value, sources, scope)
+    value, sources = normalize_text(value), normalize_text(sources)
     try:
+        if scope in ("EXTRACTION", "PROFILE_MATCH", "PREPARATION"):
+            from app.services.job_analyses import validate_output
+
+            return validate_output(value, sources, scope)
         return _validate_section(
             value, sources, scope, require_current_contract=require_current_contract
         )
@@ -636,7 +677,11 @@ def _validate_section(
                 raise SectionValidationError(ValidationRule.METRIC)
             for step in coaching.records:
                 record = _record_citation(
-                    finding, step.record_citation, lookup, "recorded_approaches"
+                    finding,
+                    step.record_citation,
+                    lookup,
+                    "recorded_approaches",
+                    require_exact=require_current_contract,
                 )
                 step.round_citations = [
                     index
@@ -644,7 +689,13 @@ def _validate_section(
                     if index < len(finding.citations)
                 ]
                 for index in step.round_citations:
-                    round_record = _record_citation(finding, index, lookup, "rounds")
+                    round_record = _record_citation(
+                        finding,
+                        index,
+                        lookup,
+                        "rounds",
+                        require_exact=require_current_contract,
+                    )
                     if round_record["application_id"] != record["application_id"]:
                         raise SectionValidationError(ValidationRule.ROUND_IDENTITY)
                 # Validate every selected round before limiting display pointers.
@@ -825,7 +876,7 @@ def quote_matches(quote, source):
     Preserve exact fragments. For JSON compare parsed values (including decimal
     numbers), not whitespace inside strings. Plain prose may vary only in spacing.
     """
-    passage = source["text"]
+    quote, passage = normalize_text(quote), normalize_text(source["text"])
     if quote in passage:
         return True
     decoder = json.JSONDecoder(
@@ -848,7 +899,7 @@ def quote_matches(quote, source):
         quoted = None
     else:
         if values:
-            return _json_contains(quoted, values[0])
+            return _json_contains(normalize_text(quoted), normalize_text(values[0]))
         if structured or isinstance(quoted, dict):
             # A 4000-character source can end/start inside its enclosing array.
             # Only complete nonempty objects qualify; escaped JSON inside strings
@@ -858,7 +909,11 @@ def quote_matches(quote, source):
                     item, _ = decoder.raw_decode(passage, match.start())
                 except ValueError:
                     continue
-                if isinstance(item, dict) and item and _json_contains(quoted, item):
+                if (
+                    isinstance(item, dict)
+                    and item
+                    and _json_contains(normalize_text(quoted), normalize_text(item))
+                ):
                     return True
     if structured or quote.lstrip().startswith(("{", "[")):
         return False
@@ -918,7 +973,7 @@ def responses_output_text(payload) -> str:
 
 
 # Bump for validator-only contract changes. Prompt/schema edits change the hash too.
-OUTPUT_CONTRACT_REVISION = 5
+OUTPUT_CONTRACT_REVISION = 7
 
 
 def prompt_revision(scope):
@@ -982,12 +1037,15 @@ def _system_prompt(scope, *, current_date=None):
         "Do not invent deadlines, priority scores or daily schedules. Suggest timing such as today or "
         "tomorrow only when supplied dates or commitments justify it. "
         "Correlation is not causation and employer motives are unknown; never state or imply a motive. "
-        "Every citation.quote MUST contain at most 2000 characters, including whitespace. "
+        "Keep the complete JSON response below 100000 UTF-8 bytes. Each observation, interpretation, "
+        "action, limitation, condition, draft and better_answer must fit its 1200-character schema limit. "
+        "Each coaching title is at most 120 characters. Every citation.quote MUST contain at most 2000 characters, including whitespace. "
         "Choose a short exact passage that supports the claim, not the entire source. "
         "For metrics, quote an exact key/value passage with its relevant denominator or scope; "
         "do not copy the whole metrics object. For application feedback, short exact field values "
-        "or passages are sufficient; complete application objects are required only for pipeline "
-        "record coaching. Never truncate or rebuild an oversized record citation: choose a different "
+        "or passages are sufficient; the supplied COMPACT application objects are required only for pipeline "
+        "record coaching, never full enriched records. Compact values ending in … are excerpts, not full values. "
+        "Never truncate or rebuild an oversized record citation: choose a different "
         "complete record within the limit, use the explicit permitted fallback, or omit the finding. "
         "Cite only provided source text with its exact source_id. Copy JSON records exactly as supplied, "
         "including every value; do not paraphrase JSON strings or combine fields from different records. "
@@ -1008,7 +1066,8 @@ def _system_prompt(scope, *, current_date=None):
             "in citations. Supply question as a separate exact interviewer Citation if available, otherwise "
             "omit it. Do not put interviewer speech in the finding's candidate-supporting citations. "
             "Write better_answer as a speakable rewrite using ONLY supported candidate facts, clearly "
-            "preserving unknown measurements, trace outcomes and test coverage. A clearer sequence is not "
+            "preserving unknown measurements, trace outcomes and test coverage. Rewrite only the selected "
+            "answer passage concisely, not the whole transcript. A clearer sequence is not "
             "new evidence. Never turn a requirement, profile claim or proposed test into past candidate work. "
             "Use action for one focused practice exercise or follow-up question, not an editor or a task plan. "
             "Label proposed checks as future work, separate from tests actually performed. "
@@ -1017,7 +1076,7 @@ def _system_prompt(scope, *, current_date=None):
             "candidate claims. If no assigned candidate passage AND requirement are available return no findings "
             "and explain missing evidence in limitations. Current documents are not historical submission proof. "
             "Do not imply the supplied material covers the entire interview. "
-            + json.dumps(InterviewSection.model_json_schema())
+            + json.dumps(InterviewOutputSection.model_json_schema())
         )
     if scope == "APPLICATION":
         return (
@@ -1045,17 +1104,19 @@ def _system_prompt(scope, *, current_date=None):
             "a follow-up. Keep all unknown names/dates in [fill-in placeholders]. If timing is unconfirmed, "
             "check the applicant's own messages first, not an arbitrary delay. Do not send or save anything. "
             "Do not imply the supplied material covers the entire application. "
-            + json.dumps(ApplicationSection.model_json_schema())
+            + json.dumps(ApplicationOutputSection.model_json_schema())
         )
     if scope == "PIPELINE":
         return (
-            "Give useful English feedback about a whole job-search pipeline, not employer motives or a score. "
+            # Prompt text, not a SQL statement.
+            "Give useful English feedback about a whole job-search pipeline, not employer motives or a score. "  # nosec B608
             "EVERY finding MUST include its own citation to a supplied source with kind 'pipeline_metrics', "
             "including activity and interview findings. Record citations alone are insufficient. "
             "A metric cited in another finding does not count. If no supplied metric supports a finding, "
             "omit that finding; if no metric source is supplied, return no findings. "
             + common
-            + "Write the first observation as a short, standalone takeaway from this section's supplied "
+            # Prompt text, not a SQL statement.
+            + "Write the first observation as a short, standalone takeaway from this section's supplied "  # nosec B608
             "evidence, not a summary of unseen sections. Every finding's subject MUST be 'pipeline': "
             "subject identifies this report's scope, not the person, application or round referred to. "
             "topic separately identifies the finding's theme; even an interview-topic finding has subject 'pipeline'. "
@@ -1080,13 +1141,16 @@ def _system_prompt(scope, *, current_date=None):
             "Coaching kind 'pipeline': pair the recorded pattern and its cautious explanation with named "
             "records and conditional actions. records[].record_citation is the zero-based index of a citation "
             "quoting ONE COMPLETE application object verbatim from pipeline:recorded_approaches. "
+            "This is a COMPACT source representation containing only the contract fields, bounded to 2000 "
+            "characters before dispatch. It is not the full application with notes, contacts, descriptions or history. "
             "round_citations is an optional display selection of at most four unique indices of complete "
             "objects from pipeline:rounds for that same application; use [] if none is available. "
             "For example, with citations [metric, application, round], record_citation is 1 and "
             "round_citations is [2], not [3]. Do not repeat an identical record action. "
             "Record citation contract: "
             + json.dumps(_RECORD_CITATION_CONTRACT)
-            + " Each reference selects an index in THIS finding's citations, not a source index or an application ID. "
+            # Prompt text, not a SQL statement.
+            + " Each reference selects an index in THIS finding's citations, not a source index or an application ID. "  # nosec B608
             "Set citation.source_id to the selected supplied source.id, including its chunk offset; "
             "source.kind must match source_kind and source.id must match source_id_prefix. "
             "The quote must be ONE inner array element with exactly the listed object_keys, "
@@ -1103,9 +1167,11 @@ def _system_prompt(scope, *, current_date=None):
             "This explicitly marks unavailable record-specific coaching, not a full record plan. Still cite a supplied "
             "deterministic metric; if none is available, return zero findings. Never invent or reconstruct a record. "
             "Do not set coaching_unavailable alongside coaching. "
-            "Do not quote partial objects as records. List every affected record available for the stated "
-            "pattern; if only examples fit, say they are examples, not the full affected set. Do not silently "
-            "drop records or evidence to meet the item preference. Each record action needs a check condition: "
+            "Do not quote partial objects as records. Select at most six example records per finding within "
+            "its sixteen-citation budget, including at least one metric and all selected round evidence. "
+            "Use fewer records when round citations need space. Say these are examples, not every affected "
+            "record; use the supplied deterministic counts for the full pattern. Never claim all records "
+            "were reviewed from this section. Each record action needs a check condition: "
             "check own records, wait while an agreed window is open, or consider follow-up only after "
             "confirmed timing and checking newer messages and prior follow-ups. Unknown round completion "
             "and outcomes stay unknown, not failed. Small current-stage source groups do not justify ranking "
@@ -1276,6 +1342,89 @@ async def analyze_section(
     )
 
 
+def _validate_provider_section(section, choices, sources, scope):
+    from app.services.report_output import resolve_citations
+
+    try:
+        if (
+            scope == "EXTRACTION"
+            and isinstance(section, dict)
+            and "unverified_count" in section
+        ):
+            raise SectionValidationError(ValidationRule.SCHEMA_PARSE)
+        section = resolve_citations(section, choices, scope)
+        if (
+            len(json.dumps(section, ensure_ascii=False).encode("utf-8"))
+            > MAX_RESPONSE_BYTES
+        ):
+            raise SectionValidationError(ValidationRule.SECTION_SIZE)
+    except ValueError as exc:
+        log_validation_failure(exc, scope)
+        raise
+    return validate_section(section, sources, scope, require_current_contract=True)
+
+
+def _provider_request(sources, limits, scope, language):
+    from app.services.report_output import MODELS, citation_choices, output_schema
+
+    sources = normalize_text(sources)
+    choices = citation_choices(sources, scope)
+    requirement_ids = (
+        [item["id"] for item in sources[0]["data"].get("requirements", [])]
+        if scope == "PROFILE_MATCH"
+        else None
+    )
+    schema = output_schema(scope, choices, requirement_ids=requirement_ids)
+    system = _localized_system_prompt(scope, language).replace(
+        json.dumps(MODELS[scope].model_json_schema()), ""
+    )
+    data = {"sources": sources, "limitations": limits}
+    if scope in (
+        "APPLICATION",
+        "PIPELINE",
+        "EXTRACTION",
+        "PROFILE_MATCH",
+        "PREPARATION",
+    ):
+        system += (
+            " The following provider schema uses citation selection instead of the stored quote objects described above. "
+            "Select exact original evidence by its integer key in citation_choices; never write or reconstruct a quote. "
+            "The server stores the selected original text and identity and checks all grounding rules. "
+            "Use only choices that support the claim. Never treat employer benefits or offers as candidate qualifications. "
+        )
+        data["citation_choices"] = choices
+        if scope == "PIPELINE":
+            system += (
+                " Findings.citations selects metric choices only. Each coaching record uses application_choice "
+                "for a complete application choice and round_choices for complete round choices belonging to that application. "
+                "All these values are keys in citation_choices, NOT positions in a finding's citations array. "
+                "Do not output record_citation or round_citations: the server creates those stored pointers from your selections. "
+                "Keep the total selected metric, application and round choices within sixteen per finding. "
+            )
+        elif scope == "APPLICATION":
+            system += (
+                " Findings.citations selects original application, requirement, history, round, document or profile passages. "
+                "context_citations still selects zero-based positions in this finding's citations array, not choice keys. "
+            )
+        elif scope == "EXTRACTION":
+            system += (
+                " Return items as an object with every field key from the provider schema, not an array. "
+                "Use null for an absent scalar and [] for an absent requirement/responsibility list. "
+                "Each entry has only value and quote; the server derives its field and unique review ID from its structural position. "
+                "Return at most 100 non-null entries in total across all fields. "
+                "Each quote is an integer key selecting a supporting posting passage from citation_choices. "
+            )
+        else:
+            system += " Each evidence entry is an integer key selecting an allowed profile passage from citation_choices. "
+        if scope == "PROFILE_MATCH":
+            system += (
+                " Return rows as an object keyed by every supplied requirement ID, not an array. "
+                "Each key occurs exactly once; its value has state, evidence and why, without requirement_id. "
+                "Return no_evidence or unknown with evidence [] when saved evidence does not support a match. "
+            )
+    return system + json.dumps(schema), json.dumps(data, default=str), schema, choices
+
+
 async def _analyze_section_chat(
     settings: CapabilitySettingsState,
     sources,
@@ -1286,7 +1435,9 @@ async def _analyze_section_chat(
     output_language: str = "en",
 ):
     endpoint = (settings.base_url or "").rstrip("/") + "/chat/completions"
-    system = _localized_system_prompt(scope, output_language)
+    system, user_input, schema, evidence_choices = _provider_request(
+        sources, limits, scope, output_language
+    )
     deadline = (
         PIPELINE_SECTION_REQUEST_TIMEOUT_SECONDS
         if scope == "PIPELINE"
@@ -1304,14 +1455,22 @@ async def _analyze_section_chat(
                         {"role": "system", "content": system},
                         {
                             "role": "user",
-                            "content": json.dumps(
-                                {"sources": sources, "limitations": limits},
-                                default=str,
-                            ),
+                            "content": user_input,
                         },
                     ],
-                    response_format={"type": "json_object"},
-                    max_tokens=4000,
+                    response_format={
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "tarnished_report",
+                            "schema": schema,
+                            "strict": True,
+                        },
+                    },
+                    max_tokens=(
+                        RESPONSES_PIPELINE_MAX_OUTPUT_TOKENS
+                        if scope in ("PIPELINE", "PROFILE_MATCH")
+                        else RESPONSES_MAX_OUTPUT_TOKENS
+                    ),
                 ) as response:
                     body = bytearray()
                     async for block in response.iter_bytes(chunk_size=4096):
@@ -1353,8 +1512,8 @@ async def _analyze_section_chat(
                     log_validation_failure(exc, scope)
                     raise  # Preserve the existing duplicate-key failure category.
                 try:
-                    return validate_section(
-                        section, sources, scope, require_current_contract=True
+                    return _validate_provider_section(
+                        section, evidence_choices, sources, scope
                     )
                 except ValueError:
                     raise ReportFailure(
@@ -1380,8 +1539,9 @@ async def _analyze_section_responses(
 ):
     """Explicit Responses API path: instructions + input, strict JSON, no tools."""
     endpoint = (settings.base_url or "").rstrip("/") + "/responses"
-    system = _localized_system_prompt(scope, output_language)
-    user_input = json.dumps({"sources": sources, "limitations": limits}, default=str)
+    system, user_input, schema, evidence_choices = _provider_request(
+        sources, limits, scope, output_language
+    )
     deadline = (
         PIPELINE_SECTION_REQUEST_TIMEOUT_SECONDS
         if scope == "PIPELINE"
@@ -1397,10 +1557,17 @@ async def _analyze_section_responses(
                     model=(settings.effective_model or "").removeprefix("openai/"),
                     instructions=system,
                     input=user_input,
-                    text={"format": {"type": "json_object"}},
+                    text={
+                        "format": {
+                            "type": "json_schema",
+                            "name": "tarnished_report",
+                            "schema": schema,
+                            "strict": True,
+                        }
+                    },
                     max_output_tokens=(
                         RESPONSES_PIPELINE_MAX_OUTPUT_TOKENS
-                        if scope == "PIPELINE"
+                        if scope in ("PIPELINE", "PROFILE_MATCH")
                         else RESPONSES_MAX_OUTPUT_TOKENS
                     ),
                     tools=[],
@@ -1443,8 +1610,8 @@ async def _analyze_section_responses(
                         SAFE_FAILURE_MESSAGES["provider_response_invalid"],
                     ) from None
                 try:
-                    return validate_section(
-                        section, sources, scope, require_current_contract=True
+                    return _validate_provider_section(
+                        section, evidence_choices, sources, scope
                     )
                 except ValueError:
                     raise ReportFailure(

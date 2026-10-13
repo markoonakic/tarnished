@@ -1,12 +1,13 @@
 """Bounded untrusted source snapshots, reusing the extraction preprocessing path."""
 
 from app.services.extraction import (
-    MAX_HTML_SIZE,
     MAX_MARKDOWN_SIZE,
     _clean_markdown,
     _truncate_markdown,
     preprocess_html,
 )
+from app.services.job_fetch import HTTP_MAX_DECODED_BYTES
+from app.services.source_text import normalize_text
 
 
 def capture_complete_source(text: str | None = None, html: str | None = None) -> dict:
@@ -22,7 +23,7 @@ def capture_complete_source(text: str | None = None, html: str | None = None) ->
             if not text:
                 warning += " No useful source text was captured."
         return {
-            "source_text": text or None,
+            "source_text": normalize_text(text) or None,
             "source_truncated": False,
             "content_warning": warning,
         }
@@ -41,7 +42,7 @@ def capture_source(text: str | None = None, html: str | None = None) -> dict:
         if text and text.strip():
             content = _clean_markdown(text)
         elif html and html.strip():
-            truncated = len(html) > MAX_HTML_SIZE
+            truncated = len(html) > HTTP_MAX_DECODED_BYTES
             content = preprocess_html(html)
             truncated |= content.endswith(
                 "... [Content truncated due to size limit] ..."
@@ -53,6 +54,7 @@ def capture_source(text: str | None = None, html: str | None = None) -> dict:
         normalized = "\x00" in content
         if normalized:
             content = _clean_markdown(content.replace("\x00", " "))
+        content = normalize_text(content)
         truncated |= len(content) > MAX_MARKDOWN_SIZE
         content = _truncate_markdown(content, MAX_MARKDOWN_SIZE)
         warning = (

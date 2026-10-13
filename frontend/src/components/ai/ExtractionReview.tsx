@@ -79,6 +79,12 @@ export default function ExtractionReview({
   const [companyId, setCompanyId] = useState('');
   const [companyRequestKey, setCompanyRequestKey] = useState(() => randomId());
   const items = analysis?.draft.items ?? [];
+  const unverifiedCount = analysis?.draft.unverified_count ?? 0;
+  const omittedHelp = unverifiedCount > 0 && (
+    <HelpTip label={t('ai.unverifiedHelp')}>
+      {t('ai.unverifiedItems', { count: unverifiedCount })}
+    </HelpTip>
+  );
   const hasCompany = items.some((item) => item.field === 'company');
   useEffect(() => {
     setCompaniesFailed(false);
@@ -217,11 +223,17 @@ export default function ExtractionReview({
   if (analysis?.review_state === 'saved')
     return (
       <Card
-        title={t('ai.savedSummary', {
-          date: formatDate(analysis.updated_at),
-          count: analysis.reviewed.filter((row) => row.decision !== 'rejected')
-            .length,
-        })}
+        title={
+          <>
+            {t('ai.savedSummary', {
+              date: formatDate(analysis.updated_at),
+              count: analysis.reviewed.filter(
+                (row) => row.decision !== 'rejected'
+              ).length,
+            })}{' '}
+            {omittedHelp}
+          </>
+        }
         icon="bi-check2-all"
         actions={run}
         className="border-accent border-l-2"
@@ -233,7 +245,7 @@ export default function ExtractionReview({
     <Card
       title={
         <>
-          {t('ai.reviewTitle')}{' '}
+          {t('ai.reviewTitle')} {omittedHelp}
           <HelpTip label={t('ai.reviewTitle')}>
             {t('ai.reviewHint')}
             {legacy.length > 0 && !analysis?.reviewed.length && (
