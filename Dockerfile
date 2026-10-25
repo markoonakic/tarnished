@@ -1,4 +1,4 @@
-FROM node:24-alpine AS frontend-builder
+FROM node:25-alpine AS frontend-builder
 WORKDIR /app
 COPY frontend/package.json frontend/yarn.lock frontend/.yarnrc.yml ./
 RUN corepack enable && yarn install --immutable
